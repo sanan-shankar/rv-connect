@@ -83,12 +83,15 @@ export function SignupForm({
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
             <Label htmlFor="batchType">Batch Type</Label>
-            <span
-              className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-muted-foreground/30 text-[10px] text-muted-foreground"
-              title="We'll display this as 'Batch of 'XX'. Even if you left after 10th grade (e.g. in 2014), you'd still be in Batch of '16 (ISC)."
-            >
-              i
-            </span>
+            <div className="group relative">
+              <span className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-muted-foreground/40 text-[10px] font-medium text-muted-foreground">
+                i
+              </span>
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-lg bg-foreground px-3 py-2 text-xs leading-relaxed text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                We&apos;ll display this as &quot;Batch of &apos;XX&quot;. Even if you left after 10th (e.g. in 2014), your batch year is when your class graduated 12th — Batch of &apos;16.
+                <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+              </div>
+            </div>
           </div>
           <Select name="batchType" required>
             <SelectTrigger id="batchType">
@@ -148,7 +151,7 @@ export function SignupForm({
         className="w-full bg-leaf text-white hover:bg-leaf-light"
         disabled={loading}
       >
-        {loading ? "Creating account..." : "Join & send magic link"}
+        {loading ? "Creating account..." : "Join"}
       </Button>
     </form>
   );

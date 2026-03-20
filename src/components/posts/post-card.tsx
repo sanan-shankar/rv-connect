@@ -113,8 +113,7 @@ export function PostCard({ post }: { post: PostData }) {
                 </Link>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>
-                    {post.author.batchType} &apos;
-                    {String(post.author.batchYear).slice(-2)}
+                    Batch of &apos;{String(post.author.batchYear).slice(-2)}
                   </span>
                   <span>·</span>
                   <span>{formatTimeAgo(new Date(post.createdAt))}</span>

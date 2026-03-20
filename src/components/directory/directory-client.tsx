@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback } from "react";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -26,31 +26,32 @@ interface User {
 
 interface DirectoryClientProps {
   users: User[];
-  batchYears: number[];
+  batchYearCounts: { year: number; count: number }[];
   cities: string[];
+  industries: string[];
   initialFilters: {
     q: string;
-    type: string;
     year: string;
     city: string;
+    industry: string;
   };
+  hasFilter: boolean;
 }
 
 export function DirectoryClient({
   users,
-  batchYears,
+  batchYearCounts,
   cities,
+  industries,
   initialFilters,
+  hasFilter,
 }: DirectoryClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(initialFilters.q);
   const [showFilters, setShowFilters] = useState(
-    !!(initialFilters.type !== "all" || initialFilters.year || initialFilters.city)
+    !!(initialFilters.city || initialFilters.industry)
   );
-
-  const hasActiveFilters =
-    initialFilters.type !== "all" || initialFilters.year || initialFilters.city;
 
   const updateFilters = useCallback(
     (key: string, value: string) => {
@@ -65,11 +66,6 @@ export function DirectoryClient({
     [router, searchParams]
   );
 
-  const clearFilters = useCallback(() => {
-    router.push("/directory");
-    setQuery("");
-  }, [router]);
-
   const handleSearch = useCallback(
     (value: string) => {
       setQuery(value);
@@ -81,11 +77,60 @@ export function DirectoryClient({
     [updateFilters]
   );
 
+  // If no filter is active, show the batch year grid
+  if (!hasFilter) {
+    return (
+      <div>
+        {/* Search bar */}
+        <div className="mb-8 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search alumni by name..."
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground">
+          Browse by batch year
+        </h2>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+          {batchYearCounts.map(({ year, count }) => (
+            <button
+              key={year}
+              onClick={() => updateFilters("year", String(year))}
+              className="group flex flex-col items-center rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+            >
+              <span className="font-heading text-lg font-bold text-foreground group-hover:text-primary">
+                &apos;{String(year).slice(-2)}
+              </span>
+              <span className="mt-1 text-xs text-muted-foreground">
+                {count} {count === 1 ? "alumnus" : "alumni"}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Filter view — show users
   return (
     <div>
-      {/* Search and filters */}
-      <div className="mb-8 space-y-3">
+      {/* Search and back */}
+      <div className="mb-6 space-y-3">
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => router.push("/directory")}
+            title="Back to all batches"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -102,53 +147,17 @@ export function DirectoryClient({
           >
             <Filter className="mr-2 h-4 w-4" />
             Filters
-            {hasActiveFilters && (
-              <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary-foreground text-[10px] font-bold text-primary">
-                !
-              </span>
-            )}
           </Button>
         </div>
 
         {showFilters && (
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
             <Select
-              value={initialFilters.type}
-              onValueChange={(v) => updateFilters("type", v ?? "all")}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Batch type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                <SelectItem value="ICSE">ICSE</SelectItem>
-                <SelectItem value="ISC">ISC</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={initialFilters.year || "all"}
-              onValueChange={(v) => updateFilters("year", v === "all" ? "" : v ?? "")}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Batch year" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All years</SelectItem>
-                {batchYears.map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
               value={initialFilters.city || "all"}
               onValueChange={(v) => updateFilters("city", v === "all" ? "" : v ?? "")}
             >
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="City" />
+                <SelectValue placeholder="Filter by city" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All cities</SelectItem>
@@ -160,20 +169,37 @@ export function DirectoryClient({
               </SelectContent>
             </Select>
 
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="mr-1 h-3 w-3" />
-                Clear
-              </Button>
-            )}
+            <Select
+              value={initialFilters.industry || "all"}
+              onValueChange={(v) => updateFilters("industry", v === "all" ? "" : v ?? "")}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Filter by industry" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All industries</SelectItem>
+                {industries.map((ind) => (
+                  <SelectItem key={ind} value={ind}>
+                    {ind}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
       </div>
 
-      {/* Results */}
-      <p className="mb-4 text-sm text-muted-foreground">
-        {users.length} {users.length === 1 ? "alumnus" : "alumni"} found
-      </p>
+      {/* Results header */}
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {initialFilters.year && (
+            <span className="mr-1 font-medium text-foreground">
+              Batch of &apos;{initialFilters.year.slice(-2)}
+            </span>
+          )}
+          — {users.length} {users.length === 1 ? "alumnus" : "alumni"} found
+        </p>
+      </div>
 
       {users.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">

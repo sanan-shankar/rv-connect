@@ -78,7 +78,6 @@ export default async function ProfilePage({
     { icon: Building2, label: "Workplace", value: user.workplace },
     { icon: Briefcase, label: "Job Title", value: user.jobTitle },
     { icon: Phone, label: "Phone", value: user.phone },
-    { icon: Mail, label: "Email", value: user.email },
     { icon: Instagram, label: "Instagram", value: user.instagram },
     { icon: Linkedin, label: "LinkedIn", value: user.linkedin },
   ].filter((item) => item.value);
