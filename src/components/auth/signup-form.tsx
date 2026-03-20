@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -34,8 +35,15 @@ export function SignupForm({
       if (result.error) {
         setError(result.error);
       } else {
+        // User created — now send magic link via client-side signIn
+        const email = formData.get("email") as string;
+        await signIn("resend", {
+          email,
+          redirect: false,
+          callbackUrl: "/feed",
+        });
         toast.success("Welcome to the jungle 🌳");
-        onSuccess(formData.get("email") as string);
+        onSuccess(email);
       }
     } catch {
       setError("Something went wrong. Please try again.");
