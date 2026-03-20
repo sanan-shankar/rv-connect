@@ -84,7 +84,7 @@ export default async function ProfilePage({
   ].filter((item) => item.value);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       {/* Profile header */}
       <Card>
         <CardContent className="pt-6">
