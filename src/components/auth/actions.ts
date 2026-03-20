@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { signIn } from "@/lib/auth";
 import { signupSchema } from "@/lib/validators";
 import { pickAvatarColor } from "@/lib/utils";
 
@@ -46,16 +45,5 @@ export async function registerUser(formData: FormData) {
     },
   });
 
-  // Send magic link via NextAuth
-  try {
-    await signIn("resend", {
-      email: parsed.data.email,
-      redirect: false,
-      callbackUrl: "/feed",
-    });
-  } catch {
-    // signIn may throw a redirect, which is expected
-  }
-
-  return { success: true };
+  return { success: true, email: parsed.data.email };
 }
