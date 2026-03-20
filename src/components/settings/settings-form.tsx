@@ -173,12 +173,29 @@ export function SettingsForm({ user }: { user: User }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="workplace">Workplace</Label>
-                <Input
-                  id="workplace"
-                  name="workplace"
-                  defaultValue={user.workplace || ""}
-                />
+                <Label htmlFor="workplace">Industry</Label>
+                <Select name="workplace" defaultValue={user.workplace || ""}>
+                  <SelectTrigger id="workplace">
+                    <SelectValue placeholder="Select industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Not specified</SelectItem>
+                    <SelectItem value="Technology">Technology</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Healthcare">Healthcare</SelectItem>
+                    <SelectItem value="Education">Education</SelectItem>
+                    <SelectItem value="Arts & Media">Arts & Media</SelectItem>
+                    <SelectItem value="Law">Law</SelectItem>
+                    <SelectItem value="Government">Government</SelectItem>
+                    <SelectItem value="Non-profit">Non-profit</SelectItem>
+                    <SelectItem value="Research">Research</SelectItem>
+                    <SelectItem value="Consulting">Consulting</SelectItem>
+                    <SelectItem value="Entrepreneurship">Entrepreneurship</SelectItem>
+                    <SelectItem value="Agriculture">Agriculture</SelectItem>
+                    <SelectItem value="Student">Student</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="jobTitle">Job Title</Label>
@@ -186,6 +203,7 @@ export function SettingsForm({ user }: { user: User }) {
                   id="jobTitle"
                   name="jobTitle"
                   defaultValue={user.jobTitle || ""}
+                  placeholder="e.g. Software Engineer"
                 />
               </div>
             </div>

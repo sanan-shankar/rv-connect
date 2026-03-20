@@ -43,9 +43,9 @@ export function getInitials(name: string): string {
 }
 
 const AVATAR_COLORS = [
-  "#4A6741", "#6B8F61", "#8B6F47", "#C4A76C",
-  "#5B7E7D", "#7B6B8D", "#A67C52", "#6A8E4E",
-  "#8C7B6B", "#5C8A6F",
+  "#3D8B37", "#5AAD52", "#E07B4C", "#D4B176",
+  "#4A9B8E", "#7B6BB0", "#C97B4B", "#45A065",
+  "#D48B6A", "#3B8B8B",
 ]
 
 export function pickAvatarColor(): string {
@@ -53,5 +53,5 @@ export function pickAvatarColor(): string {
 }
 
 export function formatBatch(batchType: string, batchYear: number): string {
-  return `${batchType} '${String(batchYear).slice(-2)}`
+  return `Batch of '${String(batchYear).slice(-2)}`
 }

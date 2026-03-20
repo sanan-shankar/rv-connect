@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Menu, LogOut, User, Settings, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,7 +44,7 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
         {/* Logo */}
         <Link
           href="/feed"
@@ -54,16 +53,16 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
           RV Alumni
         </Link>
 
-        {/* Desktop nav links */}
-        <div className="hidden items-center gap-1 md:flex">
+        {/* Desktop nav links — centred */}
+        <div className="hidden items-center gap-2 md:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 pathname.startsWith(link.href)
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
               {link.label}
@@ -72,10 +71,8 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
         </div>
 
         {/* Right side */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <DarkModeToggle />
-
-          {/* Notification bell */}
           <NotificationBell initialUnreadCount={unreadCount} />
 
           {/* User dropdown */}
@@ -89,8 +86,8 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
                 size="sm"
               />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-2 py-1.5">
+            <DropdownMenuContent align="end" className="w-52">
+              <div className="px-3 py-2">
                 <p className="text-sm font-medium">{user.name}</p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
@@ -123,11 +120,9 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
           {/* Mobile hamburger */}
           <div className="md:hidden">
             <Sheet>
-              <SheetTrigger>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Menu</span>
-                </Button>
+              <SheetTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Menu</span>
               </SheetTrigger>
               <SheetContent side="right" className="w-64">
                 <SheetTitle className="font-heading text-lg">Menu</SheetTitle>
@@ -136,9 +131,9 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
                         pathname.startsWith(link.href)
-                          ? "bg-accent text-accent-foreground"
+                          ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
