@@ -10,19 +10,18 @@ export default function LandingPage() {
           alt=""
           className="h-full w-full object-cover"
         />
-        {/* Spotify-style gradient fade — dark at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/80" />
+        {/* Very subtle darkening — just enough for text readability */}
+        <div className="absolute inset-0 bg-black/20" />
       </div>
 
-      {/* Content positioned at bottom of viewport */}
-      <div className="relative z-10 flex min-h-screen flex-col justify-end">
-        <div className="mx-auto w-full max-w-5xl px-6 pb-20 sm:px-8 lg:px-12">
-          <h1 className="font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+      {/* Content — vertically centred, left-aligned */}
+      <div className="relative z-10 flex min-h-screen items-center">
+        <div className="mx-auto w-full max-w-7xl px-8 lg:px-16">
+          <h1 className="font-heading text-4xl font-bold tracking-tight text-white drop-shadow-lg sm:text-5xl lg:text-6xl">
             Welcome back to the valley.
           </h1>
-          <p className="mt-3 max-w-lg text-lg text-white/80 sm:text-xl">
-            A space for Rishi Valley alumni to reconnect, share stories, and
-            find each other.
+          <p className="mt-3 max-w-2xl text-lg text-white/90 drop-shadow-md sm:text-xl">
+            A space for Rishi Valley alumni to reconnect, share stories, and find each other.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
@@ -33,7 +32,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/login"
-              className="rounded-xl border-2 border-white/50 px-7 py-3 font-semibold text-white backdrop-blur-sm transition-all hover:border-white hover:bg-white/10"
+              className="rounded-xl border-2 border-white/70 px-7 py-3 font-semibold text-white backdrop-blur-sm transition-all hover:border-white hover:bg-white/10"
             >
               Sign in
             </Link>

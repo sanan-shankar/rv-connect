@@ -90,7 +90,7 @@ export function UserManagement({ users }: { users: UserRow[] }) {
                 </td>
                 <td className="py-2">
                   <div className="flex gap-1">
-                    <Link href={`/profile/${user.id}`}>
+                    <Link href={`/profile/${user.id}`} title="View profile">
                       <Button variant="ghost" size="icon" className="h-7 w-7">
                         <Eye className="h-3 w-3" />
                       </Button>
@@ -100,6 +100,7 @@ export function UserManagement({ users }: { users: UserRow[] }) {
                       size="icon"
                       className="h-7 w-7"
                       onClick={() => handleBlock(user.id, !user.isBlocked)}
+                      title={user.isBlocked ? "Unblock user" : "Block user"}
                     >
                       <Ban className="h-3 w-3" />
                     </Button>
@@ -107,6 +108,7 @@ export function UserManagement({ users }: { users: UserRow[] }) {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive"
+                      title="Delete user"
                       onClick={() => handleDelete(user.id)}
                     >
                       <Trash2 className="h-3 w-3" />
