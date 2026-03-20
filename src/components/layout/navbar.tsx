@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Bell, Menu, LogOut, User, Settings, Shield } from "lucide-react";
+import { Menu, LogOut, User, Settings, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { DarkModeToggle } from "./dark-mode-toggle";
+import { NotificationBell } from "./notification-bell";
 
 interface NavbarProps {
   user: {
@@ -75,16 +76,7 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
           <DarkModeToggle />
 
           {/* Notification bell */}
-          <Link href="/feed" className="relative">
-            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Notifications">
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Button>
-          </Link>
+          <NotificationBell initialUnreadCount={unreadCount} />
 
           {/* User dropdown */}
           <DropdownMenu>
