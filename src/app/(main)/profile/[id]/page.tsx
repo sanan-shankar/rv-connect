@@ -84,7 +84,7 @@ export default async function ProfilePage({
   ].filter((item) => item.value);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       {/* Profile header */}
       <Card>
         <CardContent className="pt-6">
@@ -127,8 +127,8 @@ export default async function ProfilePage({
       {/* Info grid */}
       {infoItems.length > 0 && (
         <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <CardContent className="py-4">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {infoItems.map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
                   <item.icon className="h-4 w-4 text-muted-foreground" />

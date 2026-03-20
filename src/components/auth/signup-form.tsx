@@ -81,14 +81,22 @@ export function SignupForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="batchType">Batch Type</Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="batchType">Batch Type</Label>
+            <span
+              className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-muted-foreground/30 text-[10px] text-muted-foreground"
+              title="We'll display this as 'Batch of 'XX'. Even if you left after 10th grade (e.g. in 2014), you'd still be in Batch of '16 (ISC)."
+            >
+              i
+            </span>
+          </div>
           <Select name="batchType" required>
             <SelectTrigger id="batchType">
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ICSE">ICSE</SelectItem>
-              <SelectItem value="ISC">ISC</SelectItem>
+              <SelectItem value="ICSE">ICSE (10th)</SelectItem>
+              <SelectItem value="ISC">ISC (12th)</SelectItem>
             </SelectContent>
           </Select>
         </div>

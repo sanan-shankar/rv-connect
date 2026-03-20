@@ -66,12 +66,29 @@ export default function OnboardingPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="workplace">Workplace</Label>
-              <Input
+              <Label htmlFor="workplace">Industry</Label>
+              <select
                 id="workplace"
                 name="workplace"
-                placeholder="e.g. Google"
-              />
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                defaultValue=""
+              >
+                <option value="">Select</option>
+                <option value="Technology">Technology</option>
+                <option value="Finance">Finance</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Education">Education</option>
+                <option value="Arts & Media">Arts & Media</option>
+                <option value="Law">Law</option>
+                <option value="Government">Government</option>
+                <option value="Non-profit">Non-profit</option>
+                <option value="Research">Research</option>
+                <option value="Consulting">Consulting</option>
+                <option value="Entrepreneurship">Entrepreneurship</option>
+                <option value="Agriculture">Agriculture</option>
+                <option value="Student">Student</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="jobTitle">Job Title</Label>
