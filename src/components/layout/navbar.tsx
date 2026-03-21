@@ -34,6 +34,7 @@ interface NavbarProps {
 
 const NAV_LINKS = [
   { href: "/feed", label: "Feed" },
+  { href: "/groups", label: "Groups" },
   { href: "/directory", label: "Directory" },
   { href: "/about", label: "About" },
 ];

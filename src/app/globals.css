@@ -60,8 +60,8 @@
 }
 
 :root {
-  /* Fresh light theme with green tinge */
-  --background: #F7FAF7;
+  /* Warm papyrus light theme */
+  --background: #F5F0E8;
   --foreground: #1A1A2E;
   --card: #FFFFFF;
   --card-foreground: #1A1A2E;
@@ -133,12 +133,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  *, *::before, *::after {
+    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  }
   body {
     @apply bg-background text-foreground;
-    transition: background-color 300ms ease, color 300ms ease;
-  }
-  [data-slot="card"], header, nav, main {
-    transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
   }
   html {
     @apply font-sans;

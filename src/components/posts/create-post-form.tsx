@@ -3,9 +3,7 @@
 import { useState, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { createPost } from "@/app/(main)/feed/actions";
 
@@ -106,102 +104,100 @@ export function CreatePostForm() {
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <Textarea
-          placeholder="Share a story, memory, or update..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onFocus={() => setExpanded(true)}
-          rows={expanded ? 4 : 2}
-          maxLength={5000}
-          className="resize-none border-0 bg-transparent p-0 text-base shadow-none focus-visible:ring-0"
-        />
+    <div className="glass rounded-xl p-4">
+      <textarea
+        placeholder="Share a story, memory, or update..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        onFocus={() => setExpanded(true)}
+        rows={expanded ? 4 : 2}
+        maxLength={5000}
+        className="w-full resize-none bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
+      />
 
-        {expanded && (
-          <div className="mt-4 space-y-3">
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2">
-              {TAGS.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setTag(tag === t.value ? null : t.value)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
-                    tag === t.value
-                      ? `${t.color} ring-2 ring-ring`
-                      : "bg-muted text-muted-foreground hover:bg-accent"
-                  }`}
-                >
-                  {t.label}
-                </button>
+      {expanded && (
+        <div className="mt-3 space-y-3">
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2">
+            {TAGS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTag(tag === t.value ? null : t.value)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                  tag === t.value
+                    ? `${t.color} ring-2 ring-ring`
+                    : "bg-muted text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Image previews */}
+          {previews.length > 0 && (
+            <div className="flex gap-2">
+              {previews.map((preview, i) => (
+                <div key={i} className="relative h-20 w-20">
+                  <img
+                    src={preview}
+                    alt=""
+                    className="h-full w-full rounded-lg object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
               ))}
             </div>
+          )}
 
-            {/* Image previews */}
-            {previews.length > 0 && (
-              <div className="flex gap-2">
-                {previews.map((preview, i) => (
-                  <div key={i} className="relative h-20 w-20">
-                    <img
-                      src={preview}
-                      alt=""
-                      className="h-full w-full rounded-lg object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(i)}
-                      className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* Actions */}
+          <div className="flex items-center justify-between border-t border-white/20 pt-3 dark:border-white/10">
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={images.length >= 3 || uploading}
+              >
+                <ImagePlus className="mr-1 h-4 w-4" />
+                {uploading ? "Uploading..." : "Photo"}
+              </Button>
+            </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={images.length >= 3 || uploading}
-                >
-                  <ImagePlus className="mr-1 h-4 w-4" />
-                  {uploading ? "Uploading..." : "Photo"}
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {content.length > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {content.length}/5000
-                  </span>
-                )}
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!content.trim() || submitting}
-                  className="bg-leaf text-white hover:bg-leaf-light"
-                  size="sm"
-                >
-                  {submitting ? "Posting..." : "Post"}
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              {content.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {content.length}/5000
+                </span>
+              )}
+              <Button
+                onClick={handleSubmit}
+                disabled={!content.trim() || submitting}
+                className="bg-leaf text-white hover:bg-leaf-light"
+                size="sm"
+              >
+                {submitting ? "Posting..." : "Post"}
+              </Button>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }

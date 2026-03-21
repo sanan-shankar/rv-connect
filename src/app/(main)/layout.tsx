@@ -31,7 +31,7 @@ export default async function MainLayout({
           alt=""
           className="h-full w-full object-cover"
         />
-        <div className="fixed inset-0 bg-white/75 backdrop-blur-[2px] dark:bg-black/65" />
+        <div className="fixed inset-0 bg-[#F5F0E8]/65 backdrop-blur-[2px] dark:bg-black/65" />
       </div>
       <Navbar
         user={{

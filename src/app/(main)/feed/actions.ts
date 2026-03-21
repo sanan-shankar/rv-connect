@@ -4,8 +4,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { postSchema, commentSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
+import { del } from "@vercel/blob";
 import { unlink } from "fs/promises";
 import path from "path";
+
+const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 // ─── Posts ───────────────────────────────────────────
 
@@ -51,13 +54,17 @@ export async function deletePost(postId: string) {
     return { error: "Not authorized" };
   }
 
-  // Delete image files from disk
+  // Delete image files
   if (post.images) {
     try {
       const images = JSON.parse(post.images) as string[];
       for (const img of images) {
-        const filepath = path.join(process.cwd(), "public", img);
-        await unlink(filepath).catch(() => {});
+        if (useBlob && img.startsWith("http")) {
+          await del(img).catch(() => {});
+        } else {
+          const filepath = path.join(process.cwd(), "public", img);
+          await unlink(filepath).catch(() => {});
+        }
       }
     } catch {
       // ignore parse errors
