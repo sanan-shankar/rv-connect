@@ -43,7 +43,7 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
   const router = useRouter();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b border-white/30 bg-white/70 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-black/40">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
         {/* Logo */}
         <Link

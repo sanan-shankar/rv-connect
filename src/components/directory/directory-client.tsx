@@ -114,7 +114,7 @@ export function DirectoryClient({
         </div>
 
         {showFilters && (
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+          <div className="flex flex-wrap items-center gap-3 glass rounded-lg p-3">
             <Select
               value={initialFilters.city || "all"}
               onValueChange={(v) => updateFilters("city", v === "all" ? "" : v ?? "")}
@@ -167,7 +167,7 @@ export function DirectoryClient({
           </div>
 
           {users.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-12 text-center">
+            <div className="glass rounded-xl p-12 text-center">
               <p className="font-heading text-lg text-foreground">
                 No alumni found matching your filters.
               </p>
@@ -193,7 +193,7 @@ export function DirectoryClient({
               <button
                 key={year}
                 onClick={() => updateFilters("year", String(year))}
-                className="group flex flex-col items-center rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                className="group flex flex-col items-center rounded-xl glass p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
               >
                 <span className="font-heading text-lg font-bold text-foreground group-hover:text-primary">
                   &apos;{String(year).slice(-2)}

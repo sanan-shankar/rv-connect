@@ -147,3 +147,9 @@
     @apply font-heading;
   }
 }
+
+@layer components {
+  .glass {
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-lg;
+  }
+}

@@ -23,7 +23,16 @@ export default async function MainLayout({
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen">
+      {/* Fixed background image */}
+      <div className="fixed inset-0 -z-10">
+        <img
+          src="/images/landing.jpeg"
+          alt=""
+          className="h-full w-full object-cover"
+        />
+        <div className="fixed inset-0 bg-white/75 backdrop-blur-[2px] dark:bg-black/65" />
+      </div>
       <Navbar
         user={{
           id: session.user.id,
