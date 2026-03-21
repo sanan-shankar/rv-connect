@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -11,21 +12,23 @@ export function LandingClient() {
       className="relative flex min-h-screen flex-col overflow-hidden"
       onMouseEnter={() => setHovered(true)}
     >
-      {/* Full-screen hero background — fixed to prevent shaking */}
-      <div className="absolute inset-0">
-        <img
-          src="/images/landing.jpeg"
-          alt=""
-          className="h-full w-full object-cover"
-          style={{ willChange: "auto", backfaceVisibility: "hidden" }}
-          draggable={false}
-        />
-        {/* Overlay that transitions on hover for readability */}
-        <div
-          className="absolute inset-0 transition-colors duration-700 ease-in-out"
-          style={{ backgroundColor: hovered ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.05)" }}
-        />
-      </div>
+      {/* Full-screen hero background — priority preloads with the page */}
+      <Image
+        src="/images/landing.jpeg"
+        alt=""
+        fill
+        priority
+        className="object-cover"
+        sizes="100vw"
+        draggable={false}
+      />
+      {/* Overlay that transitions on hover for readability */}
+      <div
+        className="absolute inset-0 transition-colors duration-700 ease-in-out"
+        style={{
+          backgroundColor: hovered ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.05)",
+        }}
+      />
 
       {/* Content — vertically centred, left-aligned */}
       <div className="relative z-10 flex min-h-screen items-center">
@@ -34,7 +37,8 @@ export function LandingClient() {
             Welcome back to the valley.
           </h1>
           <p className="mt-3 whitespace-nowrap text-lg text-white/90 drop-shadow-md sm:text-xl">
-            A space for Rishi Valley alumni to reconnect, share stories, and find each other.
+            A space for Rishi Valley alumni to reconnect, share stories, and
+            find each other.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
