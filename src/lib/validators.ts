@@ -7,6 +7,7 @@ export const signupSchema = z.object({
   batchYear: z.number().int().min(1926).max(new Date().getFullYear() + 1),
   yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
   yearLeft: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
+  admissionNumber: z.number().int().min(0).max(10000).optional(),
 });
 
 export const profileSchema = z.object({
@@ -22,6 +23,7 @@ export const profileSchema = z.object({
   batchYear: z.number().int().min(1926).max(new Date().getFullYear() + 1),
   yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
   yearLeft: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
+  admissionNumber: z.number().int().min(0).max(10000).optional(),
 });
 
 export const postSchema = z.object({

@@ -23,7 +23,8 @@ model User {
   batchType     String    // "ICSE" or "ISC"
   batchYear     Int       // graduation year e.g. 2021
   yearJoined    Int?
-  yearLeft      Int?
+  yearLeft        Int?
+  admissionNumber Int?
   role          String    @default("member") // "member" | "admin"
   isBlocked     Boolean   @default(false)
   adminNote     String?

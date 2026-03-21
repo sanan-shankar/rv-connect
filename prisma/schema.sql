@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "batchYear" INTEGER NOT NULL DEFAULT 2024,
     "yearJoined" INTEGER,
     "yearLeft" INTEGER,
+    "admissionNumber" INTEGER,
     "role" TEXT NOT NULL DEFAULT 'member',
     "isBlocked" BOOLEAN NOT NULL DEFAULT false,
     "adminNote" TEXT,

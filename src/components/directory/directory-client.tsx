@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback } from "react";
-import { Search, Filter, X, ArrowLeft } from "lucide-react";
+import { Search, Filter, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -77,60 +77,23 @@ export function DirectoryClient({
     [updateFilters]
   );
 
-  // If no filter is active, show the batch year grid
-  if (!hasFilter) {
-    return (
-      <div>
-        {/* Search bar */}
-        <div className="mb-8 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search alumni by name..."
-              value={query}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+  const showingYear = !!initialFilters.year;
 
-        <h2 className="mb-4 text-sm font-medium text-muted-foreground">
-          Browse by batch year
-        </h2>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-          {batchYearCounts.map(({ year, count }) => (
-            <button
-              key={year}
-              onClick={() => updateFilters("year", String(year))}
-              className="group flex flex-col items-center rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
-            >
-              <span className="font-heading text-lg font-bold text-foreground group-hover:text-primary">
-                &apos;{String(year).slice(-2)}
-              </span>
-              <span className="mt-1 text-xs text-muted-foreground">
-                {count} {count === 1 ? "alumnus" : "alumni"}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Filter view — show users
   return (
     <div>
-      {/* Search and back */}
+      {/* Search + filters — always visible */}
       <div className="mb-6 space-y-3">
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => router.push("/directory")}
-            title="Back to all batches"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          {showingYear && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => router.push("/directory")}
+              title="Back to all batches"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -189,32 +152,58 @@ export function DirectoryClient({
         )}
       </div>
 
-      {/* Results header */}
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {initialFilters.year && (
-            <span className="mr-1 font-medium text-foreground">
-              Batch of &apos;{initialFilters.year.slice(-2)}
-            </span>
-          )}
-          — {users.length} {users.length === 1 ? "alumnus" : "alumni"} found
-        </p>
-      </div>
+      {/* Show user list if any filter is active, otherwise batch grid */}
+      {hasFilter ? (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {initialFilters.year && (
+                <span className="mr-1 font-medium text-foreground">
+                  Batch of &apos;{initialFilters.year.slice(-2)}
+                </span>
+              )}
+              {users.length} {users.length === 1 ? "alumnus" : "alumni"} found
+            </p>
+          </div>
 
-      {users.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
-          <p className="font-heading text-lg text-foreground">
-            No alumni found matching your filters.
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Try broadening your search or removing some filters.
-          </p>
+          {users.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-12 text-center">
+              <p className="font-heading text-lg text-foreground">
+                No alumni found matching your filters.
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Try broadening your search or removing some filters.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {users.map((user) => (
+                <ProfileCard key={user.id} user={user} />
+              ))}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {users.map((user) => (
-            <ProfileCard key={user.id} user={user} />
-          ))}
+        <div>
+          <h2 className="mb-4 text-sm font-medium text-muted-foreground">
+            Browse by batch year
+          </h2>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+            {batchYearCounts.map(({ year, count }) => (
+              <button
+                key={year}
+                onClick={() => updateFilters("year", String(year))}
+                className="group flex flex-col items-center rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+              >
+                <span className="font-heading text-lg font-bold text-foreground group-hover:text-primary">
+                  &apos;{String(year).slice(-2)}
+                </span>
+                <span className="mt-1 text-xs text-muted-foreground">
+                  {count} {count === 1 ? "alumnus" : "alumni"}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

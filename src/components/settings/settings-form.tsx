@@ -41,6 +41,7 @@ interface User {
   batchYear: number;
   yearJoined: number | null;
   yearLeft: number | null;
+  admissionNumber: number | null;
 }
 
 export function SettingsForm({ user }: { user: User }) {
@@ -159,6 +160,19 @@ export function SettingsForm({ user }: { user: User }) {
                   max={currentYear}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="admissionNumber">Admission Number</Label>
+              <Input
+                id="admissionNumber"
+                name="admissionNumber"
+                type="number"
+                defaultValue={user.admissionNumber || ""}
+                placeholder="e.g. 1234"
+                min={0}
+                max={10000}
+              />
             </div>
 
             <div className="space-y-2">
