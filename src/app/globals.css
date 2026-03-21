@@ -135,6 +135,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+  [data-slot="card"], header, nav, main {
+    transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
   }
   html {
     @apply font-sans;

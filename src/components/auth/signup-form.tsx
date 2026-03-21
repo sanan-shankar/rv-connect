@@ -144,6 +144,18 @@ export function SignupForm({
         </div>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="admissionNumber">Admission Number (optional)</Label>
+        <Input
+          id="admissionNumber"
+          name="admissionNumber"
+          type="number"
+          placeholder="e.g. 1234"
+          min={0}
+          max={10000}
+        />
+      </div>
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button

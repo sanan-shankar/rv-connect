@@ -16,6 +16,9 @@ export async function registerUser(formData: FormData) {
     yearLeft: formData.get("yearLeft")
       ? Number(formData.get("yearLeft"))
       : undefined,
+    admissionNumber: formData.get("admissionNumber")
+      ? Number(formData.get("admissionNumber"))
+      : undefined,
   };
 
   const parsed = signupSchema.safeParse(raw);
@@ -41,6 +44,7 @@ export async function registerUser(formData: FormData) {
       batchYear: parsed.data.batchYear,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
+      admissionNumber: parsed.data.admissionNumber ?? null,
       avatarColor: pickAvatarColor(),
     },
   });

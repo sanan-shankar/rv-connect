@@ -24,6 +24,7 @@ export default async function SettingsPage() {
       batchYear: true,
       yearJoined: true,
       yearLeft: true,
+      admissionNumber: true,
     },
   });
 

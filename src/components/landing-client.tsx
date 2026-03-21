@@ -11,6 +11,7 @@ export function LandingClient() {
     <div
       className="relative flex min-h-screen flex-col overflow-hidden"
       onMouseEnter={() => setHovered(true)}
+      onTouchStart={() => setHovered(true)}
     >
       {/* Full-screen hero background — priority preloads with the page */}
       <Image
@@ -36,7 +37,7 @@ export function LandingClient() {
           <h1 className="font-heading text-4xl font-bold tracking-tight text-white drop-shadow-lg sm:text-5xl lg:text-6xl">
             Welcome back to the valley.
           </h1>
-          <p className="mt-3 whitespace-nowrap text-lg text-white/90 drop-shadow-md sm:text-xl">
+          <p className="mt-3 text-base text-white/90 drop-shadow-md sm:text-lg lg:text-xl">
             A space for Rishi Valley alumni to reconnect, share stories, and
             find each other.
           </p>

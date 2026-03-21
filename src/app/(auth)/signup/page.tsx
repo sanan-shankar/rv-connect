@@ -21,7 +21,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md overflow-visible">
       <CardHeader>
         <Link
           href="/"

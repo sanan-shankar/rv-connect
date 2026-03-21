@@ -15,6 +15,7 @@ import {
   Instagram,
   Linkedin,
   Pencil,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -74,6 +75,7 @@ export default async function ProfilePage({
   });
 
   const infoItems = [
+    { icon: Hash, label: "Admission No.", value: user.admissionNumber ? String(user.admissionNumber) : null },
     { icon: MapPin, label: "City", value: user.currentCity },
     { icon: Building2, label: "Workplace", value: user.workplace },
     { icon: Briefcase, label: "Job Title", value: user.jobTitle },
