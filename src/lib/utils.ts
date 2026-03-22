@@ -55,3 +55,30 @@ export function pickAvatarColor(): string {
 export function formatBatch(batchType: string, batchYear: number): string {
   return `Batch of '${String(batchYear).slice(-2)}`
 }
+
+/**
+ * Render rich text: sanitize HTML, then apply markdown-style bold/italic
+ * and @[Name](userId) mentions.
+ */
+export function renderRichText(text: string): string {
+  // 1. Escape HTML entities
+  let result = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+
+  // 2. Bold: **text** -> <strong>text</strong>
+  result = result.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+
+  // 3. Italic: *text* -> <em>text</em>
+  result = result.replace(/\*(.+?)\*/g, "<em>$1</em>")
+
+  // 4. Mentions: @[Name](userId) -> clickable link
+  result = result.replace(
+    /@\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="/profile/$2" class="font-semibold text-leaf hover:underline">@$1</a>'
+  )
+
+  return result
+}

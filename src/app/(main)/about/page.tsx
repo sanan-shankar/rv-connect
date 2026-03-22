@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export default function AboutPage() {
@@ -116,6 +117,27 @@ export default function AboutPage() {
               </p>
             </div>
           </div>
+        </section>
+
+        <Separator />
+
+        <section>
+          <h2 className="font-heading text-xl font-bold text-foreground">
+            Rishi Valley School
+          </h2>
+          <p className="mt-4 leading-relaxed text-foreground">
+            Learn more about Rishi Valley, its philosophy, campus life, and
+            current happenings.
+          </p>
+          <a
+            href="https://www.rishivalley.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 text-leaf font-medium hover:text-leaf-light"
+          >
+            Visit rishivalley.org
+            <ExternalLink className="h-4 w-4" />
+          </a>
         </section>
       </div>
     </div>

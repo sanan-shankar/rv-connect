@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, BarChart3, Bold, Italic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { createPost } from "@/app/(main)/feed/actions";
+import { PollCreator } from "./poll-creator";
+import { MentionDropdown } from "./mention-dropdown";
 
 const TAGS = [
   { value: "campus-memory", label: "Campus Memory", color: "bg-leaf/10 text-leaf" },
@@ -23,7 +25,66 @@ export function CreatePostForm() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [pollOptions, setPollOptions] = useState<string[] | null>(null);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionStart, setMentionStart] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function wrapSelection(wrapper: string) {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const before = content.slice(0, start);
+    const selected = content.slice(start, end);
+    const after = content.slice(end);
+    const newContent = before + wrapper + selected + wrapper + after;
+    setContent(newContent);
+    setTimeout(() => {
+      el.selectionStart = start + wrapper.length;
+      el.selectionEnd = end + wrapper.length;
+      el.focus();
+    }, 0);
+  }
+
+  function handleContentChange(value: string) {
+    setContent(value);
+    const el = textareaRef.current;
+    if (!el) {
+      setMentionQuery(null);
+      return;
+    }
+    const cursorPos = el.selectionStart;
+    const textBefore = value.slice(0, cursorPos);
+    const atMatch = textBefore.match(/@(\w*)$/);
+    if (atMatch) {
+      setMentionQuery(atMatch[1]);
+      setMentionStart(cursorPos - atMatch[1].length - 1);
+    } else {
+      setMentionQuery(null);
+    }
+  }
+
+  function handleMentionSelect(user: { id: string; name: string }) {
+    const before = content.slice(0, mentionStart);
+    const after = content.slice(
+      mentionStart + (mentionQuery?.length ?? 0) + 1
+    );
+    const mention = `@[${user.name}](${user.id}) `;
+    const newContent = before + mention + after;
+    setContent(newContent);
+    setMentionQuery(null);
+    setTimeout(() => {
+      const el = textareaRef.current;
+      if (el) {
+        const pos = before.length + mention.length;
+        el.selectionStart = pos;
+        el.selectionEnd = pos;
+        el.focus();
+      }
+    }, 0);
+  }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -88,6 +149,12 @@ export function CreatePostForm() {
     formData.set("content", content);
     if (tag) formData.set("tag", tag);
     if (images.length > 0) formData.set("images", JSON.stringify(images));
+    if (pollOptions) {
+      const validOptions = pollOptions.filter((o) => o.trim());
+      if (validOptions.length >= 2) {
+        formData.set("pollOptions", JSON.stringify(validOptions));
+      }
+    }
 
     const result = await createPost(formData);
     if (result.error) {
@@ -97,6 +164,7 @@ export function CreatePostForm() {
       setTag(null);
       setImages([]);
       setPreviews([]);
+      setPollOptions(null);
       setExpanded(false);
       toast.success("Post shared!");
     }
@@ -105,15 +173,44 @@ export function CreatePostForm() {
 
   return (
     <div className="glass rounded-xl p-4">
-      <textarea
-        placeholder="Share a story, memory, or update..."
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onFocus={() => setExpanded(true)}
-        rows={expanded ? 4 : 2}
-        maxLength={5000}
-        className="w-full resize-none bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
-      />
+      {expanded && (
+        <div className="mb-1 flex gap-1">
+          <button
+            type="button"
+            onClick={() => wrapSelection("**")}
+            className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            title="Bold"
+          >
+            <Bold className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => wrapSelection("*")}
+            className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            title="Italic"
+          >
+            <Italic className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      <div className="relative">
+        <textarea
+          ref={textareaRef}
+          placeholder="Share a story, memory, or update..."
+          value={content}
+          onChange={(e) => handleContentChange(e.target.value)}
+          onFocus={() => setExpanded(true)}
+          rows={expanded ? 4 : 2}
+          maxLength={5000}
+          className="w-full resize-none bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
+        />
+        {mentionQuery !== null && (
+          <MentionDropdown
+            query={mentionQuery}
+            onSelect={handleMentionSelect}
+          />
+        )}
+      </div>
 
       {expanded && (
         <div className="mt-3 space-y-3">
@@ -134,6 +231,15 @@ export function CreatePostForm() {
               </button>
             ))}
           </div>
+
+          {/* Poll creator */}
+          {pollOptions && (
+            <PollCreator
+              options={pollOptions}
+              onChange={setPollOptions}
+              onRemove={() => setPollOptions(null)}
+            />
+          )}
 
           {/* Image previews */}
           {previews.length > 0 && (
@@ -177,6 +283,18 @@ export function CreatePostForm() {
               >
                 <ImagePlus className="mr-1 h-4 w-4" />
                 {uploading ? "Uploading..." : "Photo"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() =>
+                  setPollOptions(pollOptions ? null : ["", ""])
+                }
+                className={pollOptions ? "text-leaf" : ""}
+              >
+                <BarChart3 className="mr-1 h-4 w-4" />
+                Poll
               </Button>
             </div>
 

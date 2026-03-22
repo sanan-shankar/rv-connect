@@ -151,3 +151,33 @@ CREATE TABLE IF NOT EXISTS "GroupPost" (
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "GroupPost_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "Group" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS "PollOption" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "postId" TEXT NOT NULL,
+    "text" TEXT NOT NULL,
+    "position" INTEGER NOT NULL,
+    CONSTRAINT "PollOption_postId_fkey" FOREIGN KEY ("postId") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS "PollVote" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "pollOptionId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "postId" TEXT NOT NULL,
+    CONSTRAINT "PollVote_pollOptionId_fkey" FOREIGN KEY ("pollOptionId") REFERENCES "PollOption" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "PollVote_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "PollVote_postId_fkey" FOREIGN KEY ("postId") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PollVote_userId_postId_key" ON "PollVote"("userId", "postId");
+
+CREATE TABLE IF NOT EXISTS "CommentLike" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "commentId" TEXT NOT NULL,
+    CONSTRAINT "CommentLike_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "CommentLike_commentId_fkey" FOREIGN KEY ("commentId") REFERENCES "Comment" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CommentLike_userId_commentId_key" ON "CommentLike"("userId", "commentId");

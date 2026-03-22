@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send, Reply } from "lucide-react";
+import { Send, Reply, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { formatTimeAgo } from "@/lib/utils";
-import { createComment, loadComments } from "@/app/(main)/feed/actions";
+import {
+  createComment,
+  loadComments,
+  toggleCommentLike,
+} from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 
 interface CommentData {
@@ -14,6 +18,8 @@ interface CommentData {
   content: string;
   parentId: string | null;
   createdAt: string;
+  likeCount: number;
+  liked: boolean;
   author: {
     id: string;
     name: string;
@@ -99,6 +105,13 @@ export function CommentsSection({
               onReply={() =>
                 setReplyTo({ id: comment.id, name: comment.author.name })
               }
+              onLikeToggle={(id, liked, count) => {
+                setComments((prev) =>
+                  prev.map((c) =>
+                    c.id === id ? { ...c, liked, likeCount: count } : c
+                  )
+                );
+              }}
             />
             {/* Replies */}
             {repliesMap.get(comment.id)?.map((reply) => (
@@ -108,6 +121,13 @@ export function CommentsSection({
                   onReply={() =>
                     setReplyTo({ id: comment.id, name: reply.author.name })
                   }
+                  onLikeToggle={(id, liked, count) => {
+                    setComments((prev) =>
+                      prev.map((c) =>
+                        c.id === id ? { ...c, liked, likeCount: count } : c
+                      )
+                    );
+                  }}
                 />
               </div>
             ))}
@@ -138,7 +158,9 @@ export function CommentsSection({
             </div>
           )}
           <Input
-            placeholder={replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."}
+            placeholder={
+              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
+            }
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             maxLength={1000}
@@ -160,10 +182,27 @@ export function CommentsSection({
 function CommentItem({
   comment,
   onReply,
+  onLikeToggle,
 }: {
   comment: CommentData;
   onReply: () => void;
+  onLikeToggle: (id: string, liked: boolean, count: number) => void;
 }) {
+  async function handleLike() {
+    const newLiked = !comment.liked;
+    const newCount = newLiked
+      ? comment.likeCount + 1
+      : comment.likeCount - 1;
+    onLikeToggle(comment.id, newLiked, newCount);
+
+    const result = await toggleCommentLike(comment.id);
+    if (result.error) {
+      // Revert on error
+      onLikeToggle(comment.id, comment.liked, comment.likeCount);
+      toast.error(result.error);
+    }
+  }
+
   return (
     <div className="flex gap-2">
       <UserAvatar
@@ -182,6 +221,19 @@ function CommentItem({
           <span>{formatTimeAgo(new Date(comment.createdAt))}</span>
           <button onClick={onReply} className="hover:text-foreground">
             Reply
+          </button>
+          <button
+            onClick={handleLike}
+            className={`inline-flex items-center gap-1 ${
+              comment.liked
+                ? "text-red-500"
+                : "hover:text-red-500"
+            }`}
+          >
+            <Heart
+              className={`h-3 w-3 ${comment.liked ? "fill-current" : ""}`}
+            />
+            {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
           </button>
         </div>
       </div>

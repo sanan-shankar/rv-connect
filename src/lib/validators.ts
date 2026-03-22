@@ -33,6 +33,7 @@ export const postSchema = z.object({
     .optional(),
   targetBatches: z.string().optional(),
   images: z.string().optional(),
+  pollOptions: z.array(z.string().min(1).max(200)).min(2).max(4).optional(),
 });
 
 export const commentSchema = z.object({

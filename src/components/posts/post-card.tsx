@@ -15,7 +15,8 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import { CommentsSection } from "./comments-section";
 import { ReportDialog } from "./report-dialog";
 import { EditPostDialog } from "./edit-post-dialog";
-import { formatTimeAgo, parseJsonArray } from "@/lib/utils";
+import { PollDisplay } from "./poll-display";
+import { formatTimeAgo, parseJsonArray, renderRichText } from "@/lib/utils";
 import { toggleLike, deletePost } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -53,6 +54,11 @@ export interface PostData {
   likeCount: number;
   liked: boolean;
   isOwn: boolean;
+  poll: {
+    options: { id: string; text: string; voteCount: number }[];
+    totalVotes: number;
+    userVotedOptionId: string | null;
+  } | null;
 }
 
 export function PostCard({ post }: { post: PostData }) {
@@ -162,9 +168,10 @@ export function PostCard({ post }: { post: PostData }) {
 
           {/* Content */}
           <div className="mt-3">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-              {displayText}
-            </p>
+            <p
+              className="whitespace-pre-wrap text-sm leading-relaxed text-foreground"
+              dangerouslySetInnerHTML={{ __html: renderRichText(displayText) }}
+            />
             {isLongText && !expanded && (
               <button
                 onClick={() => setExpanded(true)}
@@ -174,6 +181,16 @@ export function PostCard({ post }: { post: PostData }) {
               </button>
             )}
           </div>
+
+          {/* Poll */}
+          {post.poll && (
+            <PollDisplay
+              postId={post.id}
+              options={post.poll.options}
+              totalVotes={post.poll.totalVotes}
+              userVotedOptionId={post.poll.userVotedOptionId}
+            />
+          )}
 
           {/* Images */}
           {images.length > 0 && (
