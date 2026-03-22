@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 
 export default async function MainLayout({
   children,
@@ -44,6 +45,7 @@ export default async function MainLayout({
         unreadCount={unreadCount}
       />
       <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">{children}</main>
+      <Footer />
     </div>
   );
 }

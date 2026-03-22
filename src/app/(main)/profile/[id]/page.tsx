@@ -69,6 +69,16 @@ export default async function ProfilePage({
         where: { userId: session.user.id },
         select: { id: true },
       },
+      pollOptions: {
+        orderBy: { position: "asc" },
+        include: {
+          _count: { select: { votes: true } },
+        },
+      },
+      pollVotes: {
+        where: { userId: session.user.id },
+        select: { pollOptionId: true },
+      },
     },
     orderBy: { createdAt: "desc" },
     take: 20,
@@ -198,6 +208,22 @@ export default async function ProfilePage({
                   likeCount: p._count.likes,
                   liked: p.likes.length > 0,
                   isOwn: p.authorId === session.user.id,
+                  poll:
+                    p.pollOptions.length > 0
+                      ? {
+                          options: p.pollOptions.map((o) => ({
+                            id: o.id,
+                            text: o.text,
+                            voteCount: o._count.votes,
+                          })),
+                          totalVotes: p.pollOptions.reduce(
+                            (sum, o) => sum + o._count.votes,
+                            0
+                          ),
+                          userVotedOptionId:
+                            p.pollVotes[0]?.pollOptionId ?? null,
+                        }
+                      : null,
                 }}
               />
             ))}

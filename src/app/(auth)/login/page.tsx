@@ -27,6 +27,25 @@ export default function LoginPage() {
     setError("");
 
     try {
+      // Admin bypass: direct login without magic link (dev only)
+      if (process.env.NEXT_PUBLIC_ADMIN_EMAIL && email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
+        const res = await fetch("/api/auth/admin-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          window.location.href = "/feed";
+          return;
+        }
+        if (data.error) {
+          setError(data.error);
+          setLoading(false);
+          return;
+        }
+      }
+
       const result = await signIn("resend", {
         email,
         redirect: false,

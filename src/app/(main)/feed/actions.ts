@@ -16,17 +16,33 @@ export async function createPost(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  // Parse poll options from JSON string if present
+  const pollOptionsRaw = formData.get("pollOptions") as string | null;
+  let pollOptions: string[] | undefined;
+  if (pollOptionsRaw) {
+    try {
+      const parsed = JSON.parse(pollOptionsRaw);
+      if (Array.isArray(parsed)) {
+        pollOptions = parsed.filter((o: string) => o.trim().length > 0);
+        if (pollOptions.length < 2) pollOptions = undefined;
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
   const raw = {
     content: formData.get("content") as string,
     tag: (formData.get("tag") as string) || undefined,
     targetBatches: (formData.get("targetBatches") as string) || undefined,
     images: (formData.get("images") as string) || undefined,
+    pollOptions,
   };
 
   const parsed = postSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.post.create({
+  const post = await prisma.post.create({
     data: {
       authorId: session.user.id,
       content: parsed.data.content,
@@ -35,6 +51,63 @@ export async function createPost(formData: FormData) {
       images: parsed.data.images || null,
     },
   });
+
+  // Create poll options if present
+  if (parsed.data.pollOptions && parsed.data.pollOptions.length >= 2) {
+    for (let i = 0; i < parsed.data.pollOptions.length; i++) {
+      await prisma.pollOption.create({
+        data: {
+          postId: post.id,
+          text: parsed.data.pollOptions[i].trim(),
+          position: i,
+        },
+      });
+    }
+  }
+
+  revalidatePath("/feed");
+  return { success: true };
+}
+
+export async function votePoll(postId: string, optionId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // Verify option belongs to post
+  const option = await prisma.pollOption.findUnique({
+    where: { id: optionId },
+    select: { postId: true },
+  });
+
+  if (!option || option.postId !== postId) {
+    return { error: "Invalid poll option" };
+  }
+
+  // Check for existing vote on this post
+  const existing = await prisma.pollVote.findUnique({
+    where: {
+      userId_postId: {
+        userId: session.user.id,
+        postId,
+      },
+    },
+  });
+
+  if (existing) {
+    // Switch vote
+    await prisma.pollVote.update({
+      where: { id: existing.id },
+      data: { pollOptionId: optionId },
+    });
+  } else {
+    await prisma.pollVote.create({
+      data: {
+        pollOptionId: optionId,
+        userId: session.user.id,
+        postId,
+      },
+    });
+  }
 
   revalidatePath("/feed");
   return { success: true };
@@ -253,22 +326,74 @@ export async function deleteComment(commentId: string) {
 
 // ─── Data Fetching ───────────────────────────────────
 
-export async function loadPosts(cursor?: string, tag?: string) {
-  const session = await auth();
-  if (!session?.user?.id) return { posts: [], nextCursor: null };
+function getTimeFilterDate(
+  filter: "all" | "today" | "week" | "month" | "year"
+): Date | null {
+  if (filter === "all") return null;
+  const now = new Date();
+  switch (filter) {
+    case "today":
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    case "week": {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      d.setDate(d.getDate() - d.getDay()); // start of week (Sunday)
+      return d;
+    }
+    case "month":
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    case "year":
+      return new Date(now.getFullYear(), 0, 1);
+  }
+}
 
+export async function loadPosts(opts?: {
+  page?: number;
+  tag?: string;
+  search?: string;
+  sortBy?: "recent" | "liked" | "commented";
+  timeFilter?: "all" | "today" | "week" | "month" | "year";
+}) {
+  const session = await auth();
+  if (!session?.user?.id) return { posts: [], hasMore: false };
+
+  const page = opts?.page ?? 0;
+  const sortBy = opts?.sortBy ?? "recent";
+  const timeFilter = opts?.timeFilter ?? "all";
   const userBatch = `${session.user.batchType}-${session.user.batchYear}`;
 
+  const timeDate = getTimeFilterDate(timeFilter);
+
+  const where = {
+    isHidden: false,
+    ...(opts?.tag ? { tag: opts.tag } : {}),
+    ...(opts?.search ? { content: { contains: opts.search } } : {}),
+    ...(timeDate ? { createdAt: { gte: timeDate } } : {}),
+    OR: [
+      { targetBatches: null },
+      { targetBatches: "" },
+      { targetBatches: { contains: userBatch } },
+    ],
+  };
+
+  type PostOrderBy =
+    | { createdAt: "desc" }
+    | { likes: { _count: "desc" } }
+    | { comments: { _count: "desc" } };
+
+  let orderBy: PostOrderBy;
+  switch (sortBy) {
+    case "liked":
+      orderBy = { likes: { _count: "desc" as const } };
+      break;
+    case "commented":
+      orderBy = { comments: { _count: "desc" as const } };
+      break;
+    default:
+      orderBy = { createdAt: "desc" as const };
+  }
+
   const posts = await prisma.post.findMany({
-    where: {
-      isHidden: false,
-      ...(tag ? { tag } : {}),
-      OR: [
-        { targetBatches: null },
-        { targetBatches: "" },
-        { targetBatches: { contains: userBatch } },
-      ],
-    },
+    where,
     include: {
       author: {
         select: {
@@ -289,20 +414,24 @@ export async function loadPosts(cursor?: string, tag?: string) {
         where: { userId: session.user.id },
         select: { id: true },
       },
+      pollOptions: {
+        orderBy: { position: "asc" },
+        include: {
+          _count: { select: { votes: true } },
+        },
+      },
+      pollVotes: {
+        where: { userId: session.user.id },
+        select: { pollOptionId: true },
+      },
     },
-    orderBy: { createdAt: "desc" },
-    take: 21, // 20 + 1 to check if there are more
-    ...(cursor
-      ? {
-          cursor: { id: cursor },
-          skip: 1,
-        }
-      : {}),
+    orderBy,
+    take: 21,
+    skip: page * 20,
   });
 
   const hasMore = posts.length > 20;
   const trimmed = hasMore ? posts.slice(0, 20) : posts;
-  const nextCursor = hasMore ? trimmed[trimmed.length - 1].id : null;
 
   return {
     posts: trimmed.map((p) => ({
@@ -316,12 +445,74 @@ export async function loadPosts(cursor?: string, tag?: string) {
       likeCount: p._count.likes,
       liked: p.likes.length > 0,
       isOwn: p.authorId === session.user.id,
+      poll:
+        p.pollOptions.length > 0
+          ? {
+              options: p.pollOptions.map((o) => ({
+                id: o.id,
+                text: o.text,
+                voteCount: o._count.votes,
+              })),
+              totalVotes: p.pollOptions.reduce(
+                (sum, o) => sum + o._count.votes,
+                0
+              ),
+              userVotedOptionId: p.pollVotes[0]?.pollOptionId ?? null,
+            }
+          : null,
     })),
-    nextCursor,
+    hasMore,
   };
 }
 
+export async function toggleCommentLike(commentId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const existing = await prisma.commentLike.findUnique({
+    where: {
+      userId_commentId: {
+        userId: session.user.id,
+        commentId,
+      },
+    },
+  });
+
+  if (existing) {
+    await prisma.commentLike.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.commentLike.create({
+      data: {
+        userId: session.user.id,
+        commentId,
+      },
+    });
+
+    const comment = await prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { authorId: true, postId: true },
+    });
+
+    if (comment && comment.authorId !== session.user.id) {
+      await prisma.notification.create({
+        data: {
+          userId: comment.authorId,
+          type: "like",
+          message: `${session.user.name} liked your comment`,
+          link: `/feed#${comment.postId}`,
+        },
+      });
+    }
+  }
+
+  revalidatePath("/feed");
+  return { success: true, liked: !existing };
+}
+
 export async function loadComments(postId: string) {
+  const session = await auth();
+  const userId = session?.user?.id;
+
   const comments = await prisma.comment.findMany({
     where: { postId },
     include: {
@@ -334,6 +525,17 @@ export async function loadComments(postId: string) {
           batchYear: true,
         },
       },
+      _count: {
+        select: { commentLikes: true },
+      },
+      ...(userId
+        ? {
+            commentLikes: {
+              where: { userId },
+              select: { id: true },
+            },
+          }
+        : {}),
     },
     orderBy: { createdAt: "asc" },
   });
@@ -344,5 +546,7 @@ export async function loadComments(postId: string) {
     parentId: c.parentId,
     createdAt: c.createdAt.toISOString(),
     author: c.author,
+    likeCount: c._count.commentLikes,
+    liked: "commentLikes" in c ? (c.commentLikes as unknown[]).length > 0 : false,
   }));
 }

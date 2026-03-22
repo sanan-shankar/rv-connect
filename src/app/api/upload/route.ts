@@ -83,8 +83,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ urls });
   } catch (error) {
     console.error("Upload error:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to upload images" },
+      { error: `Failed to upload images: ${message}` },
       { status: 500 }
     );
   }
