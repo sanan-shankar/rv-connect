@@ -57,6 +57,16 @@
   --color-paper: #F8FBF8;
   --color-ink: #1A1A2E;
   --color-mist: #EEF2EE;
+
+  /* LiftKit Golden Ratio Spacing (φ = 1.618) */
+  --space-xxs: 0.236em;
+  --space-xs: 0.382em;
+  --space-s: 0.618em;
+  --space-m: 1em;
+  --space-l: 1.618em;
+  --space-xl: 2.618em;
+  --space-xxl: 4.236em;
+  --space-3xl: 6.854em;
 }
 
 :root {

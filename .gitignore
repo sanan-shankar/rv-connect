@@ -52,3 +52,9 @@ next-env.d.ts
 /src/generated/prisma
 use for landing.jpeg
 public/images/landing-original.jpeg
+
+# screenshots
+temporary screenshots/
+
+# claude plans
+.claude/plans/
