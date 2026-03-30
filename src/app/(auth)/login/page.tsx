@@ -85,7 +85,7 @@ export default function LoginPage() {
             Didn&apos;t receive it? Check your spam folder or{" "}
             <button
               onClick={() => setSent(false)}
-              className="text-leaf underline hover:text-leaf-light"
+              className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               try again
             </button>
@@ -101,12 +101,12 @@ export default function LoginPage() {
       <CardHeader>
         <Link
           href="/"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="mb-2 inline-flex items-center gap-1 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
         </Link>
-        <CardTitle className="font-heading text-2xl">Welcome back</CardTitle>
+        <CardTitle className="font-heading text-2xl tracking-tight">Welcome back</CardTitle>
         <CardDescription>
           Enter your email and we&apos;ll send you a magic link to sign in.
         </CardDescription>
@@ -130,7 +130,8 @@ export default function LoginPage() {
           )}
           <Button
             type="submit"
-            className="w-full bg-leaf text-white hover:bg-leaf-light"
+            variant="leaf"
+            className="w-full"
             disabled={loading}
           >
             {loading ? "Sending..." : "Send magic link"}
@@ -138,7 +139,7 @@ export default function LoginPage() {
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
           New here?{" "}
-          <Link href="/signup" className="text-leaf underline hover:text-leaf-light">
+          <Link href="/signup" className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
             Join the community
           </Link>
         </p>

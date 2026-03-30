@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, Check } from "lucide-react";
+import { Bell as BellIcon, Check } from "lucide-react";
+import { Bell } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -66,8 +67,8 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
 
   return (
     <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
-      <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent" title="Notifications">
-        <Bell className="h-4 w-4" />
+      <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
+        <Bell size={18} weight={unreadCount > 0 ? "fill" : "duotone"} />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -76,11 +77,11 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between px-3 py-2">
-          <h3 className="font-heading text-sm font-bold">Notifications</h3>
+          <h3 className="font-heading text-sm font-bold tracking-tight">Notifications</h3>
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="flex items-center gap-1 text-xs text-leaf hover:text-leaf-light"
+              className="flex items-center gap-1 rounded-sm text-xs text-leaf hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150"
             >
               <Check className="h-3 w-3" />
               Mark all read

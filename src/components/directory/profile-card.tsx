@@ -19,14 +19,14 @@ interface ProfileCardProps {
 export function ProfileCard({ user }: ProfileCardProps) {
   return (
     <Link href={`/profile/${user.id}`}>
-      <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
-        <CardContent className="flex flex-col items-center p-6 text-center">
+      <Card className="hover:-translate-y-0.5 transition-transform duration-200 focus-within:ring-2 focus-within:ring-ring/50">
+        <CardContent className="flex flex-col items-center p-6 pt-5 text-center">
           <UserAvatar
             name={user.name}
             avatarColor={user.avatarColor}
             size="lg"
           />
-          <h3 className="mt-3 font-semibold text-foreground">{user.name}</h3>
+          <h3 className="mt-3 font-semibold tracking-tight text-foreground">{user.name}</h3>
           <p className="text-sm text-muted-foreground">
             {formatBatch(user.batchType, user.batchYear)}
           </p>

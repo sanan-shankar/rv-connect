@@ -93,7 +93,7 @@ export function EditPostDialog({
             <Button
               onClick={handleSubmit}
               disabled={!content.trim() || submitting}
-              className="bg-leaf text-white hover:bg-leaf-light"
+              variant="leaf"
             >
               {submitting ? "Saving..." : "Save"}
             </Button>

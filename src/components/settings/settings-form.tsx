@@ -255,7 +255,7 @@ export function SettingsForm({ user }: { user: User }) {
             <Button
               type="submit"
               disabled={saving}
-              className="bg-leaf text-white hover:bg-leaf-light"
+              variant="leaf"
             >
               {saving ? "Saving..." : "Save changes"}
             </Button>

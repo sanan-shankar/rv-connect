@@ -8,17 +8,17 @@ const UPI_ID = "your-upi-id@bank";
 export default function DonatePage() {
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="font-heading text-3xl font-bold text-foreground">
+      <h1 className="font-heading text-3xl font-bold tracking-[-0.02em] text-foreground">
         Support RV Alumni
       </h1>
-      <p className="mt-3 text-lg text-muted-foreground">
+      <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
         RV Alumni is a community-run platform — no ads, no tracking, no fees.
         Your contribution helps cover hosting, maintenance, and keeps this space
         alive for all Rishi Valley alumni.
       </p>
 
       <div className="mt-8 glass rounded-xl p-6 text-center">
-        <h2 className="font-heading text-xl font-bold text-foreground">
+        <h2 className="font-heading text-xl font-bold tracking-tight text-foreground">
           Donate via UPI
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -55,7 +55,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="rounded p-1 text-muted-foreground hover:text-foreground"
+      className="rounded-md p-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 transition-transform duration-150"
       title="Copy UPI ID"
     >
       {copied ? (

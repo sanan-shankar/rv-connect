@@ -20,7 +20,8 @@ export default function Error({
       </p>
       <Button
         onClick={reset}
-        className="mt-6 bg-leaf text-white hover:bg-leaf-light"
+        variant="leaf"
+        className="mt-6"
       >
         Try again
       </Button>

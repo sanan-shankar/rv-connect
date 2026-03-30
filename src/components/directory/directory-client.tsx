@@ -193,9 +193,9 @@ export function DirectoryClient({
               <button
                 key={year}
                 onClick={() => updateFilters("year", String(year))}
-                className="group flex flex-col items-center rounded-xl glass p-4 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl"
+                className="group flex flex-col items-center rounded-xl glass p-4 pt-3.5 transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
               >
-                <span className="font-heading text-lg font-bold text-foreground group-hover:text-primary">
+                <span className="font-heading text-lg font-bold tracking-tight text-foreground group-hover:text-primary">
                   &apos;{String(year).slice(-2)}
                 </span>
                 <span className="mt-1 text-xs text-muted-foreground">

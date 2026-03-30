@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, MessageCircle, MoreHorizontal, Trash2, Flag, Pencil } from "lucide-react";
+import { MoreHorizontal, Trash2, Flag, Pencil } from "lucide-react";
+import { Heart, ChatCircle } from "@phosphor-icons/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,8 +99,8 @@ export function PostCard({ post }: { post: PostData }) {
 
   return (
     <>
-      <Card id={post.id} className="transition-shadow hover:shadow-md">
-        <CardContent className="pt-6">
+      <Card id={post.id}>
+        <CardContent className="pt-5">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -128,7 +129,7 @@ export function PostCard({ post }: { post: PostData }) {
             </div>
 
             <DropdownMenu>
-              <DropdownMenuTrigger className="rounded p-1 hover:bg-accent">
+              <DropdownMenuTrigger className="rounded-md p-1.5 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none active:scale-95 transition-transform duration-150">
                 <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -155,9 +156,9 @@ export function PostCard({ post }: { post: PostData }) {
 
           {/* Tag */}
           {post.tag && (
-            <div className="mt-3">
+            <div className="mt-2.5">
               <span
-                className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                className={`inline-block rounded-md px-2.5 py-0.5 text-xs font-medium ${
                   TAG_STYLES[post.tag] || TAG_STYLES.general
                 }`}
               >
@@ -167,7 +168,7 @@ export function PostCard({ post }: { post: PostData }) {
           )}
 
           {/* Content */}
-          <div className="mt-3">
+          <div className="mt-2.5">
             <p
               className="whitespace-pre-wrap text-sm leading-relaxed text-foreground"
               dangerouslySetInnerHTML={{ __html: renderRichText(displayText) }}
@@ -175,7 +176,7 @@ export function PostCard({ post }: { post: PostData }) {
             {isLongText && !expanded && (
               <button
                 onClick={() => setExpanded(true)}
-                className="mt-1 text-sm font-medium text-leaf hover:text-leaf-light"
+                className="mt-1 text-sm font-medium text-leaf hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm active:opacity-70 transition-opacity duration-150"
               >
                 Read more
               </button>
@@ -222,27 +223,27 @@ export function PostCard({ post }: { post: PostData }) {
           )}
 
           {/* Actions */}
-          <div className="mt-4 flex items-center gap-4 border-t border-border pt-3">
+          <div className="mt-4 flex items-center gap-5 border-t border-border pt-3">
             <button
               onClick={handleLike}
-              className={`flex items-center gap-1.5 text-sm transition-all ${
+              className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-transform duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
                 liked
                   ? "text-red-500"
                   : "text-muted-foreground hover:text-red-500"
-              } ${animateLike ? "scale-125" : ""}`}
-              style={{ transition: "transform 0.15s ease" }}
+              } ${animateLike ? "scale-110" : "active:scale-95"}`}
             >
               <Heart
-                className={`h-4 w-4 ${liked ? "fill-current" : ""}`}
+                size={18}
+                weight={liked ? "fill" : "duotone"}
               />
               <span>{likeCount}</span>
             </button>
 
             <button
               onClick={() => setShowComments(!showComments)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150"
             >
-              <MessageCircle className="h-4 w-4" />
+              <ChatCircle size={18} weight="duotone" />
               <span>{commentCount}</span>
             </button>
           </div>

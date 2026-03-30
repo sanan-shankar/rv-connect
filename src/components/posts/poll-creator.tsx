@@ -38,7 +38,7 @@ export function PollCreator({ options, onChange, onRemove }: PollCreatorProps) {
         <button
           type="button"
           onClick={onRemove}
-          className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+          className="rounded-md p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 transition-transform duration-150"
         >
           <X className="h-4 w-4" />
         </button>
@@ -57,7 +57,7 @@ export function PollCreator({ options, onChange, onRemove }: PollCreatorProps) {
               <button
                 type="button"
                 onClick={() => removeOption(i)}
-                className="rounded p-1 text-muted-foreground hover:text-destructive"
+                className="rounded-md p-1 text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 transition-transform duration-150"
               >
                 <Minus className="h-4 w-4" />
               </button>
