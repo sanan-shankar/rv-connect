@@ -86,7 +86,7 @@ export function GroupFeed({ group, members, posts, isAdmin, currentUserId }: Gro
       <div className="glass rounded-xl p-5">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="font-heading text-2xl font-bold text-foreground">
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
               {group.name}
             </h1>
             {group.description && (
@@ -151,7 +151,7 @@ export function GroupFeed({ group, members, posts, isAdmin, currentUserId }: Gro
               onClick={handlePost}
               disabled={submitting}
               size="sm"
-              className="bg-leaf text-white hover:bg-leaf-light"
+              variant="leaf"
             >
               {submitting ? "Posting..." : "Post"}
             </Button>
@@ -192,7 +192,7 @@ export function GroupFeed({ group, members, posts, isAdmin, currentUserId }: Gro
                 {(post.isOwn || isAdmin) && (
                   <button
                     onClick={() => handleDelete(post.id)}
-                    className="rounded p-1 text-muted-foreground hover:text-destructive"
+                    className="rounded-md p-1.5 text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 transition-transform duration-150"
                     title="Delete post"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

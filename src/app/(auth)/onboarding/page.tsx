@@ -139,7 +139,8 @@ export default function OnboardingPage() {
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-leaf text-white hover:bg-leaf-light"
+              variant="leaf"
+              className="flex-1"
               disabled={loading}
             >
               {loading ? "Saving..." : "Save & continue"}

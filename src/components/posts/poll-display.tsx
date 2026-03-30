@@ -81,7 +81,7 @@ export function PollDisplay({
               key={option.id}
               onClick={() => handleVote(option.id)}
               disabled={submitting}
-              className="w-full rounded-lg border border-border px-4 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:border-leaf hover:bg-leaf/5"
+              className="w-full rounded-lg border border-border px-4 py-2.5 text-left text-sm font-medium text-foreground transition-colors duration-150 hover:border-leaf hover:bg-leaf/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]"
             >
               {option.text}
             </button>

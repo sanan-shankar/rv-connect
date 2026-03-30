@@ -25,7 +25,7 @@ export default function VerifyPage() {
         </p>
         <p className="text-sm text-muted-foreground">
           Didn&apos;t receive it? Check your spam folder or{" "}
-          <Link href="/login" className="text-leaf underline hover:text-leaf-light">
+          <Link href="/login" className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
             try again
           </Link>
           .

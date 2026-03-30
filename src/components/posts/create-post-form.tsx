@@ -178,7 +178,7 @@ export function CreatePostForm() {
           <button
             type="button"
             onClick={() => wrapSelection("**")}
-            className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150"
             title="Bold"
           >
             <Bold className="h-4 w-4" />
@@ -186,7 +186,7 @@ export function CreatePostForm() {
           <button
             type="button"
             onClick={() => wrapSelection("*")}
-            className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150"
             title="Italic"
           >
             <Italic className="h-4 w-4" />
@@ -224,7 +224,7 @@ export function CreatePostForm() {
                 className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
                   tag === t.value
                     ? `${t.color} ring-2 ring-ring`
-                    : "bg-muted text-muted-foreground hover:bg-accent"
+                    : "bg-muted text-muted-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50"
                 }`}
               >
                 {t.label}
@@ -307,7 +307,7 @@ export function CreatePostForm() {
               <Button
                 onClick={handleSubmit}
                 disabled={!content.trim() || submitting}
-                className="bg-leaf text-white hover:bg-leaf-light"
+                variant="leaf"
                 size="sm"
               >
                 {submitting ? "Posting..." : "Post"}

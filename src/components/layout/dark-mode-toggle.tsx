@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
 export function DarkModeToggle() {
@@ -13,10 +13,10 @@ export function DarkModeToggle() {
   if (!mounted) {
     return (
       <button
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         aria-label="Toggle theme"
       >
-        <Sun className="h-4 w-4" />
+        <Sun size={18} weight="duotone" />
       </button>
     );
   }
@@ -25,22 +25,24 @@ export function DarkModeToggle() {
 
   return (
     <button
-      className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent"
+      className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
       <Sun
-        className={`h-4 w-4 transition-all duration-300 ${
-          isDark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
+        size={18}
+        weight="duotone"
+        className={`transition-[transform,opacity] duration-300 ease-out ${
+          isDark ? "absolute rotate-90 scale-0 opacity-0" : "relative rotate-0 scale-100 opacity-100"
         }`}
-        style={{ position: isDark ? "absolute" : "relative" }}
       />
       <Moon
-        className={`h-4 w-4 transition-all duration-300 ${
-          isDark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"
+        size={18}
+        weight="duotone"
+        className={`transition-[transform,opacity] duration-300 ease-out ${
+          isDark ? "relative rotate-0 scale-100 opacity-100" : "absolute -rotate-90 scale-0 opacity-0"
         }`}
-        style={{ position: !isDark ? "absolute" : "relative" }}
       />
     </button>
   );

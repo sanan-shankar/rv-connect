@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send, Reply, Heart } from "lucide-react";
+import { Send, Reply } from "lucide-react";
+import { Heart } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -170,7 +171,7 @@ export function CommentsSection({
           type="submit"
           size="icon"
           disabled={!newComment.trim() || submitting}
-          className="bg-leaf text-white hover:bg-leaf-light"
+          variant="leaf"
         >
           <Send className="h-4 w-4" />
         </Button>
@@ -215,23 +216,24 @@ function CommentItem({
           <span className="text-xs font-semibold text-foreground">
             {comment.author.name}
           </span>
-          <p className="text-sm text-foreground">{comment.content}</p>
+          <p className="text-sm leading-relaxed text-foreground">{comment.content}</p>
         </div>
         <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
           <span>{formatTimeAgo(new Date(comment.createdAt))}</span>
-          <button onClick={onReply} className="hover:text-foreground">
+          <button onClick={onReply} className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150">
             Reply
           </button>
           <button
             onClick={handleLike}
-            className={`inline-flex items-center gap-1 ${
+            className={`inline-flex items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 transition-transform duration-150 ${
               comment.liked
                 ? "text-red-500"
                 : "hover:text-red-500"
             }`}
           >
             <Heart
-              className={`h-3 w-3 ${comment.liked ? "fill-current" : ""}`}
+              size={12}
+              weight={comment.liked ? "fill" : "duotone"}
             />
             {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
           </button>

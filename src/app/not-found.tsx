@@ -13,7 +13,7 @@ export default function NotFound() {
         the valley is still waiting for you.
       </p>
       <Link href="/" className="mt-6">
-        <Button className="bg-leaf text-white hover:bg-leaf-light">
+        <Button variant="leaf">
           Back to home
         </Button>
       </Link>

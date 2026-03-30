@@ -49,7 +49,7 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
         {/* Logo */}
         <Link
           href="/feed"
-          className="font-heading text-xl font-bold text-foreground"
+          className="font-heading text-xl font-bold tracking-tight text-foreground"
         >
           RV Alumni
         </Link>
@@ -60,7 +60,7 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] ${
                 pathname.startsWith(link.href)
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -72,14 +72,14 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
         </div>
 
         {/* Right side */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <DarkModeToggle />
           <NotificationBell initialUnreadCount={unreadCount} />
 
           {/* User dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-95 transition-transform duration-150"
             >
               <UserAvatar
                 name={user.name}
@@ -121,7 +121,7 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
           {/* Mobile hamburger */}
           <div className="md:hidden">
             <Sheet>
-              <SheetTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent">
+              <SheetTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Menu</span>
               </SheetTrigger>
@@ -132,7 +132,7 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+                      className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
                         pathname.startsWith(link.href)
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground"

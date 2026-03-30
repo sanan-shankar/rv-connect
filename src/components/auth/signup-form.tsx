@@ -160,7 +160,8 @@ export function SignupForm({
 
       <Button
         type="submit"
-        className="w-full bg-leaf text-white hover:bg-leaf-light"
+        variant="leaf"
+        className="w-full"
         disabled={loading}
       >
         {loading ? "Creating account..." : "Join"}

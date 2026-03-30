@@ -90,7 +90,7 @@ export function ReportDialog({
             <Button
               onClick={handleSubmit}
               disabled={!reason || submitting}
-              className="bg-leaf text-white hover:bg-leaf-light"
+              variant="leaf"
             >
               {submitting ? "Submitting..." : "Submit Report"}
             </Button>

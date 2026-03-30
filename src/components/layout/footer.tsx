@@ -10,13 +10,13 @@ export function Footer() {
             href="https://www.rishivalley.org/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150"
           >
             Rishi Valley School
             <ExternalLink className="h-3 w-3" />
           </a>
           <span className="hidden sm:inline">·</span>
-          <Link href="/donate" className="hover:text-foreground">
+          <Link href="/donate" className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150">
             Donate
           </Link>
           <span className="hidden sm:inline">·</span>
@@ -24,7 +24,7 @@ export function Footer() {
             href="https://tally.so"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-foreground"
+            className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150"
           >
             Feature Request
           </a>
@@ -33,7 +33,7 @@ export function Footer() {
             href="https://tally.so"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-foreground"
+            className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150"
           >
             Report a Bug
           </a>

@@ -5,10 +5,10 @@ export default function AboutPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-10">
-        <h1 className="font-heading text-3xl font-bold text-foreground">
+        <h1 className="font-heading text-3xl font-bold tracking-[-0.02em] text-foreground">
           About RV Alumni
         </h1>
-        <p className="mt-3 text-lg text-muted-foreground">
+        <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
           A space for Rishi Valley alumni to reconnect, share stories, and find
           each other.
         </p>
@@ -16,7 +16,7 @@ export default function AboutPage() {
 
       <div className="space-y-10">
         <section>
-          <h2 className="font-heading text-xl font-bold text-foreground">
+          <h2 className="font-heading text-xl font-bold tracking-tight text-foreground">
             What is this?
           </h2>
           <p className="mt-4 leading-relaxed text-foreground">
@@ -31,7 +31,7 @@ export default function AboutPage() {
         <Separator />
 
         <section>
-          <h2 className="font-heading text-xl font-bold text-foreground">
+          <h2 className="font-heading text-xl font-bold tracking-tight text-foreground">
             How to use it
           </h2>
           <div className="mt-4 space-y-4">
@@ -63,7 +63,7 @@ export default function AboutPage() {
         <Separator />
 
         <section>
-          <h2 className="font-heading text-xl font-bold text-foreground">
+          <h2 className="font-heading text-xl font-bold tracking-tight text-foreground">
             Community Guidelines
           </h2>
           <p className="mt-4 leading-relaxed text-foreground">
@@ -122,7 +122,7 @@ export default function AboutPage() {
         <Separator />
 
         <section>
-          <h2 className="font-heading text-xl font-bold text-foreground">
+          <h2 className="font-heading text-xl font-bold tracking-tight text-foreground">
             Rishi Valley School
           </h2>
           <p className="mt-4 leading-relaxed text-foreground">
@@ -133,7 +133,7 @@ export default function AboutPage() {
             href="https://www.rishivalley.org/"
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 text-leaf font-medium hover:text-leaf-light"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-sm text-leaf font-medium hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150"
           >
             Visit rishivalley.org
             <ExternalLink className="h-4 w-4" />

@@ -105,7 +105,7 @@ export function CreateGroupForm({ batchYears, currentUserId }: Props) {
             <Button
               onClick={() => setStep("members")}
               disabled={!name.trim()}
-              className="bg-leaf text-white hover:bg-leaf-light"
+              variant="leaf"
             >
               Next: Add Members
             </Button>
@@ -117,7 +117,7 @@ export function CreateGroupForm({ batchYears, currentUserId }: Props) {
         <div className="space-y-4">
           <button
             onClick={() => setStep("details")}
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to details
@@ -176,7 +176,7 @@ export function CreateGroupForm({ batchYears, currentUserId }: Props) {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-leaf text-white hover:bg-leaf-light"
+              variant="leaf"
             >
               {submitting ? "Creating..." : "Create Group"}
             </Button>

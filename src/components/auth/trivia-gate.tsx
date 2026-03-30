@@ -112,14 +112,15 @@ export function TriviaGate({ onPass }: { onPass: () => void }) {
         />
         <Button
           type="submit"
-          className="w-full bg-leaf text-white hover:bg-leaf-light"
+          variant="leaf"
+          className="w-full"
         >
           Check
         </Button>
       </form>
       <p className="mt-3 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <a href="/login" className="text-leaf underline hover:text-leaf-light">
+        <a href="/login" className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
           Sign in
         </a>
       </p>
