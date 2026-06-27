@@ -1,11 +1,53 @@
-# Deploying RV Alumni to Render
+# Deploying RV Alumni
 
-The app is built to run on **Render** with a **Render Postgres** database, while
-local development stays on **SQLite**. Everything in the repo is ready; the steps
-below need *your* accounts (Render + GitHub) and a few secrets.
+You host on **Vercel** today, so use the Vercel path below. (A Render path also
+exists, from an earlier planning decision; it is kept further down for reference.
+Nothing in the build is Render-only: on Vercel the app keeps using your Turso
+database and Vercel Blob exactly as before.)
 
-Local dev is unaffected by any of this: with a `file:` `DATABASE_URL` the app uses
-the SQLite/libSQL adapter exactly as before.
+Local dev is unaffected by any of this.
+
+## Vercel (your current host)
+
+The app already runs on Vercel with **Turso** (libSQL) for the database and
+**Vercel Blob** for images. The redesign keeps both: `src/lib/prisma.ts` only
+switches to Postgres when `DATABASE_URL` starts with `postgres`, which never
+happens on your Vercel setup, so it stays on libSQL/Turso.
+
+**The one thing that is easy to miss: the production database needs the new
+schema.** This redesign added many columns and tables (Letters/Collection/teacher
+fields/bookmarks/photos) and folded the old `GroupPost` table into `Post`. Until
+the Turso database is updated, the new code will error against the old schema.
+
+Steps:
+
+1. **Push the branch** so Vercel sees it. Pushing `redesign` (not `main`) gives a
+   **Preview deployment** with its own URL, leaving your live site untouched:
+   `git push -u origin redesign`
+2. **Update the production database schema** once. With your Turso URL + token set
+   (the same values in Vercel's env), run locally:
+   `TURSO_DATABASE_URL="libsql://..." TURSO_AUTH_TOKEN="..." DATABASE_URL="libsql://..." npx prisma db push`
+   This adds the new tables/columns. It also drops the now-unused `GroupPost`
+   table (there is no real group-post data to lose). Do this right before the
+   deploy so old and new code are not both live against mismatched schemas.
+3. **Confirm Vercel env vars** exist for the deployment (Settings > Environment
+   Variables): `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `NEXTAUTH_SECRET`,
+   `NEXTAUTH_URL`, `ADMIN_EMAIL`, `NEXT_PUBLIC_ADMIN_EMAIL`, `BLOB_READ_WRITE_TOKEN`.
+   Most are already set from before; the redesign added no new required ones.
+4. Open the Preview URL Vercel prints on the deployment, sign in with
+   `ADMIN_EMAIL` (the password-less admin bypass), and look around.
+5. When happy, **merge `redesign` into `main`** to make it your live site.
+
+Note: AGENTS.md records a known admin-login bug specifically on Vercel. If the
+admin bypass misbehaves on the deployment, that is the pre-existing issue, not the
+redesign.
+
+---
+
+## Render (alternative, from the earlier plan)
+
+The app can also run on **Render** with a **Render Postgres** database while local
+development stays on **SQLite**. Use this only if you decide to move off Vercel.
 
 ## How the SQLite-local / Postgres-prod split works
 
