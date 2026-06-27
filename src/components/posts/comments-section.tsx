@@ -25,8 +25,10 @@ interface CommentData {
     id: string;
     name: string;
     avatarColor: string | null;
-    batchType: string;
-    batchYear: number;
+    accountType?: string | null;
+    verifyState?: string | null;
+    batchType: string | null;
+    batchYear: number | null;
   };
 }
 

@@ -1,15 +1,28 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validators";
 import { pickAvatarColor } from "@/lib/utils";
 
 export async function registerUser(formData: FormData) {
+  const password = formData.get("password") as string;
+
+  if (!password || password.length < 8) {
+    return { error: "Password must be at least 8 characters." };
+  }
+
+  const accountType = (formData.get("accountType") as string) || "alumnus";
+  const isAlum = accountType === "alumnus";
   const raw = {
     name: formData.get("name") as string,
     email: formData.get("email") as string,
-    batchType: formData.get("batchType") as string,
-    batchYear: Number(formData.get("batchYear")),
+    password,
+    accountType,
+    batchType: isAlum ? (formData.get("batchType") as string) || undefined : undefined,
+    batchYear: isAlum && formData.get("batchYear")
+      ? Number(formData.get("batchYear"))
+      : undefined,
     yearJoined: formData.get("yearJoined")
       ? Number(formData.get("yearJoined"))
       : undefined,
@@ -35,13 +48,18 @@ export async function registerUser(formData: FormData) {
     return { error: "An account with this email already exists. Try signing in instead." };
   }
 
+  // Hash the password
+  const hashedPassword = await bcrypt.hash(password, 12);
+
   // Create the user
   await prisma.user.create({
     data: {
       name: parsed.data.name,
       email: parsed.data.email,
-      batchType: parsed.data.batchType,
-      batchYear: parsed.data.batchYear,
+      password: hashedPassword,
+      accountType: parsed.data.accountType,
+      batchType: parsed.data.batchType ?? null,
+      batchYear: parsed.data.batchYear ?? null,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
       admissionNumber: parsed.data.admissionNumber ?? null,

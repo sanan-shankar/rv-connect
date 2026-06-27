@@ -44,35 +44,9 @@ export async function createGroup(formData: FormData) {
   return { success: true, groupId: group.id };
 }
 
-export async function createGroupPost(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
-
-  const groupId = formData.get("groupId") as string;
-  const content = (formData.get("content") as string)?.trim();
-  const images = formData.get("images") as string | null;
-
-  if (!content) return { error: "Post cannot be empty" };
-  if (!groupId) return { error: "Group is required" };
-
-  // Verify membership
-  const membership = await prisma.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: session.user.id } },
-  });
-  if (!membership) return { error: "You're not a member of this group" };
-
-  await prisma.groupPost.create({
-    data: {
-      groupId,
-      authorId: session.user.id,
-      content,
-      images: images || null,
-    },
-  });
-
-  revalidatePath(`/groups/${groupId}`);
-  return { success: true };
-}
+// Group posts are now regular Posts with a groupId. They are created via
+// createPost and removed via deletePost (see feed/actions.ts), so the
+// composer, likes, comments, polls, and moderation are all shared.
 
 export async function addMembersToGroup(groupId: string, userIds: string[]) {
   const session = await auth();
@@ -108,28 +82,5 @@ export async function leaveGroup(groupId: string) {
   }).catch(() => {});
 
   revalidatePath("/groups");
-  return { success: true };
-}
-
-export async function deleteGroupPost(postId: string) {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
-
-  const post = await prisma.groupPost.findUnique({
-    where: { id: postId },
-    include: { group: { include: { members: true } } },
-  });
-
-  if (!post) return { error: "Post not found" };
-
-  const isAuthor = post.authorId === session.user.id;
-  const isGroupAdmin = post.group.members.some(
-    (m) => m.userId === session.user.id && m.role === "admin"
-  );
-
-  if (!isAuthor && !isGroupAdmin) return { error: "Not authorized" };
-
-  await prisma.groupPost.delete({ where: { id: postId } });
-  revalidatePath(`/groups/${post.groupId}`);
   return { success: true };
 }

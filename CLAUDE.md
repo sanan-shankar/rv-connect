@@ -1,10 +1,26 @@
 @AGENTS.md
 
+# Current work: visual + product redesign (read first)
+
+A full redesign + MVP build is in progress. Before working, read these (they hold the approved
+decisions, so you do not need the owner to re-explain):
+- `docs/ROADMAP.md` — the phased build plan (decisions, shared components, data model, 13 phases). Source of truth.
+- `docs/spec/` — deep specs per area. `FEEDBACK_CHECKLIST.md` — every owner instruction, tracked.
+- `task_plan.md` / `progress.md` — current status. `/preview/v2` (and `/preview/logos`) — the approved look to match.
+
+Key locked decisions: light-mode-first (dark parked); flush green sidebar nav; warm dimmed surfaces (never pure
+white); ruled-sheet feed; bird avatars (deterministic, 12 species) + photo override; one shared Composer/Feed/PostCard;
+long-form posts = "Letters", newsletter feature = "Roundups", photo archive = "The Valley Collection"; the heart is
+always red `#E03A33`; no em dashes anywhere; deploy to Render + Render Postgres (local dev stays on SQLite).
+Brand palette below is SUPERSEDED by the tokens in `src/app/globals.css` (leaf `#1F8A4C`, sidebar `#235C49`,
+sky `#3F7CA6`, cinnamon `#C2622F`).
+
 # Project
 
-Next.js 16 alumni website. Tailwind CSS v4, shadcn/ui (base-nova), Prisma ORM, NextAuth v5 (Resend magic links), SQLite local / Postgres production. Deployed on Vercel.
+Next.js 16 alumni website. Tailwind CSS v4, shadcn/ui (base-nova), Prisma ORM, NextAuth v5 (email+password;
+magic links being removed), SQLite local / Postgres production. Deploying to Render.
 
-**Brand**: Leaf green `#22A845`/`#34C759`, Bark `#B8860B`/`#DAA520`, Clay `#E8DCC8`, Paper `#F8FBF8`, Ink `#1A1A2E`.
+**Brand (legacy; see globals.css for live tokens)**: Leaf green `#22A845`/`#34C759`, Bark `#B8860B`/`#DAA520`, Clay `#E8DCC8`, Paper `#F8FBF8`, Ink `#1A1A2E`.
 **Fonts**: Libre Baskerville (headings), Source Sans 3 (body).
 **Icons**: Lucide React for UI chrome. `@phosphor-icons/react` duotone for decorative/hero contexts.
 **Animation**: `motion` (Framer Motion) for micro-interactions. `@formkit/auto-animate` for list transitions.
@@ -29,12 +45,12 @@ Next.js 16 alumni website. Tailwind CSS v4, shadcn/ui (base-nova), Prisma ORM, N
 | Screenshotting authenticated pages | Read `.claude/skills/screenshot-auth/SKILL.md` |
 | Retroactively reviewing existing pages | Read `.claude/skills/ui-audit/SKILL.md` |
 | Starting a multi-step task or new feature | Use planning-with-files (`task_plan.md`, `findings.md`, `progress.md`) |
-| Debugging a stubborn bug (3+ attempts) | Use superpowers systematic debugging |
+| Debugging a stubborn bug (2+ attempts) | Use superpowers systematic debugging |
 | Before deploying or merging significant changes | `/simplify` then review security with VibeSec patterns |
 
 ## Sub-Agent Patterns
 
-Use sub-agents liberally to keep the main context clean. Token usage is not a concern — prefer more agents over a cluttered context.
+Use sub-agents liberally to keep the main context clean. Prefer more agents over a cluttered context.
 
 **Parallel Desktop + Mobile**: After any UI change, spawn two sub-agents simultaneously — one screenshots desktop (1440×900), the other screenshots mobile (390×844). Both compare against the liftkit spacing rules.
 

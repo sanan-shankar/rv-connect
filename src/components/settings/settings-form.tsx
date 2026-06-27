@@ -37,8 +37,8 @@ interface User {
   phone: string | null;
   instagram: string | null;
   linkedin: string | null;
-  batchType: string;
-  batchYear: number;
+  batchType: string | null;
+  batchYear: number | null;
   yearJoined: number | null;
   yearLeft: number | null;
   admissionNumber: number | null;
@@ -113,7 +113,7 @@ export function SettingsForm({ user }: { user: User }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="batchType">Batch Type</Label>
-                <Select name="batchType" defaultValue={user.batchType}>
+                <Select name="batchType" defaultValue={user.batchType ?? undefined}>
                   <SelectTrigger id="batchType">
                     <SelectValue />
                   </SelectTrigger>
@@ -129,10 +129,9 @@ export function SettingsForm({ user }: { user: User }) {
                   id="batchYear"
                   name="batchYear"
                   type="number"
-                  defaultValue={user.batchYear}
+                  defaultValue={user.batchYear ?? undefined}
                   min={1926}
                   max={currentYear + 1}
-                  required
                 />
               </div>
             </div>

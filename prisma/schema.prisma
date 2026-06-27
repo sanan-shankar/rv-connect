@@ -11,6 +11,7 @@ model User {
   id            String    @id @default(cuid())
   name          String
   email         String    @unique
+  password      String?
   emailVerified DateTime?
   avatarColor   String?
   bio           String?
@@ -20,12 +21,19 @@ model User {
   phone         String?
   instagram     String?
   linkedin      String?
-  batchType     String    // "ICSE" or "ISC"
-  batchYear     Int       // graduation year e.g. 2021
+  accountType   String    @default("alumnus") // "alumnus" | "teacher" | "ex_teacher"
+  batchType     String?   // "ICSE" or "ISC"; null for teachers who never studied here
+  batchYear     Int?      // graduation year; null for teachers
   yearJoined    Int?
   yearLeft        Int?
   admissionNumber Int?
+  taughtFrom    Int?      // teacher tenure start
+  taughtUntil   Int?      // null = still teaching
+  subjects      String?   // comma list, e.g. "Biology, Nature Club"
   role          String    @default("member") // "member" | "admin"
+  verifyState   String    @default("unverified") // unverified | pending | verified | flagged
+  verifiedAt    DateTime?
+  verifyMethod  String?   // office_list | community | admin_manual
   isBlocked     Boolean   @default(false)
   adminNote     String?
   createdAt     DateTime  @default(now())
@@ -36,12 +44,66 @@ model User {
   likes         Like[]
   commentLikes  CommentLike[]
   pollVotes     PollVote[]
-  reports       Report[]
+  reports       Report[]       @relation("ReportsFiled")
+  reportsAgainst Report[]      @relation("ReportsAgainst")
   notifications Notification[]
+  coverPhoto    String?   // a Collection photo url reused as profile cover
+  photoTrusted  Boolean   @default(false) // auto-approve this uploader's future photos
+
   accounts      Account[]
   sessions      Session[]
+  bookmarks     Bookmark[]
   groupMemberships GroupMember[]
   createdGroups    Group[]
+  photos         Photo[]     @relation("PhotoUploader")
+  approvedPhotos Photo[]     @relation("PhotoApprover")
+  photoLoves     PhotoLove[]
+}
+
+model Photo {
+  id           String    @id @default(cuid())
+  uploaderId   String
+
+  thumbUrl     String    // 480px  — grid
+  url          String    // 1600px — detail view, reusable as a post/cover image
+  originalUrl  String?   // optional full-size (not generated in MVP)
+  blurhash     String?   // optional LQIP (not generated in MVP)
+  width        Int
+  height       Int
+
+  caption      String?
+
+  // faceted taxonomy (fixed enums validated by Zod; comma-joined where multi)
+  subject      String    // e.g. "banyan,landscape"
+  area         String?   // junior-school | senior-school | whole-campus | off-campus
+  era          String    @default("unknown")
+  freeTags     String?   // comma-joined free text, mainly bird/species names
+
+  approved     Boolean   @default(false)
+  isHidden     Boolean   @default(false)
+  approvedAt   DateTime?
+  approvedById String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  uploader   User        @relation("PhotoUploader", fields: [uploaderId], references: [id], onDelete: Cascade)
+  approvedBy User?       @relation("PhotoApprover", fields: [approvedById], references: [id])
+  loves      PhotoLove[]
+
+  @@index([approved, isHidden, createdAt])
+  @@index([era])
+}
+
+model PhotoLove {
+  id      String @id @default(cuid())
+  userId  String
+  photoId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, photoId])
 }
 
 model Group {
@@ -54,7 +116,7 @@ model Group {
 
   creator  User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   members  GroupMember[]
-  posts    GroupPost[]
+  posts    Post[]
 }
 
 model GroupMember {
@@ -68,18 +130,6 @@ model GroupMember {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
-}
-
-model GroupPost {
-  id        String   @id @default(cuid())
-  groupId   String
-  authorId  String
-  content   String
-  images    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
 
 model Account {
@@ -119,20 +169,41 @@ model VerificationToken {
 model Post {
   id            String    @id @default(cuid())
   authorId      String
+  kind          String    @default("post") // "post" | "letter"
+  title         String?   // used by letters
   content       String
   tag           String?
   targetBatches String?
   images        String?
+  groupId       String?   // null = main feed; set = posted into a group
   isHidden      Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  group       Group?       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   comments    Comment[]
   likes       Like[]
+  bookmarks   Bookmark[]
   pollOptions PollOption[]
   pollVotes   PollVote[]
   reports     Report[]
+
+  @@index([groupId, createdAt])
+  @@index([kind, createdAt])
+  @@index([createdAt])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
 }
 
 model Comment {
@@ -162,15 +233,18 @@ model Like {
 }
 
 model Report {
-  id         String   @id @default(cuid())
-  reason     String
-  reporterId String
-  postId     String
-  status     String   @default("pending") // "pending" | "reviewed" | "dismissed"
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  reason         String
+  reporterId     String
+  targetType     String   @default("post") // "post" | "user"
+  postId         String?
+  reportedUserId String?
+  status         String   @default("pending") // "pending" | "reviewed" | "dismissed"
+  createdAt      DateTime @default(now())
 
-  reporter User @relation(fields: [reporterId], references: [id])
-  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter     User  @relation("ReportsFiled", fields: [reporterId], references: [id])
+  post         Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reportedUser User? @relation("ReportsAgainst", fields: [reportedUserId], references: [id], onDelete: Cascade)
 }
 
 model Notification {

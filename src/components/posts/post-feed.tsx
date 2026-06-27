@@ -19,9 +19,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 type SortBy = "recent" | "liked" | "commented";
 type TimeFilter = "all" | "today" | "week" | "month" | "year";
 
-export function PostFeed() {
+export function PostFeed({
+  groupId,
+  showControls = true,
+  reloadKey = 0,
+  emptyTitle,
+  emptyHint,
+}: {
+  groupId?: string;
+  showControls?: boolean;
+  reloadKey?: number;
+  emptyTitle?: string;
+  emptyHint?: string;
+}) {
   const [posts, setPosts] = useState<PostData[]>([]);
-  const [page, setPage] = useState(0);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -33,47 +45,48 @@ export function PostFeed() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Debounce search input
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setSearch(searchInput);
-    }, 300);
+    debounceRef.current = setTimeout(() => setSearch(searchInput), 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [searchInput]);
 
-  const fetchPage = useCallback(
-    async (pageNum: number) => {
-      return loadPosts({
-        page: pageNum,
+  const fetchPosts = useCallback(
+    (next: string | null) =>
+      loadPosts({
+        cursor: next,
+        groupId,
         search: search || undefined,
         sortBy,
         timeFilter,
-      });
-    },
-    [search, sortBy, timeFilter]
+      }),
+    [groupId, search, sortBy, timeFilter]
   );
 
-  // Reset and reload when filters change
+  // First page whenever filters, group, or an external reload trigger change.
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    setPage(0);
-    fetchPage(0).then((data) => {
+    fetchPosts(null).then((data) => {
+      if (cancelled) return;
       setPosts(data.posts);
+      setCursor(data.nextCursor);
       setHasMore(data.hasMore);
       setLoading(false);
     });
-  }, [fetchPage]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchPosts, reloadKey]);
 
   async function handleLoadMore() {
-    const nextPage = page + 1;
     setLoadingMore(true);
-    const data = await fetchPage(nextPage);
+    const data = await fetchPosts(cursor);
     setPosts((prev) => [...prev, ...data.posts]);
+    setCursor(data.nextCursor);
     setHasMore(data.hasMore);
-    setPage(nextPage);
     setLoadingMore(false);
   }
 
@@ -81,55 +94,51 @@ export function PostFeed() {
 
   return (
     <div className="space-y-4">
-      {/* Search + Sort controls */}
-      <div className="glass rounded-xl p-3 space-y-3">
-        <div className="relative">
-          <MagnifyingGlass weight="duotone" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search posts..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Select
-            value={sortBy}
-            onValueChange={(v) => setSortBy(v as SortBy)}
-          >
-            <SelectTrigger className="w-[160px]">
+      {showControls && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[220px] flex-1">
+            <MagnifyingGlass
+              weight="regular"
+              size={16}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              placeholder="Search the valley..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="h-10 rounded-full border-border bg-card pl-10"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+            <SelectTrigger className="h-10 w-[150px] rounded-full bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="recent">Most Recent</SelectItem>
-              <SelectItem value="liked">Most Liked</SelectItem>
-              <SelectItem value="commented">Most Commented</SelectItem>
+              <SelectItem value="recent">Most recent</SelectItem>
+              <SelectItem value="liked">Most liked</SelectItem>
+              <SelectItem value="commented">Most discussed</SelectItem>
             </SelectContent>
           </Select>
-
-          <Select
-            value={timeFilter}
-            onValueChange={(v) => setTimeFilter(v as TimeFilter)}
-          >
-            <SelectTrigger className="w-[140px]">
+          <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
+            <SelectTrigger className="h-10 w-[130px] rounded-full bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="all">All time</SelectItem>
               <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
+              <SelectItem value="week">This week</SelectItem>
+              <SelectItem value="month">This month</SelectItem>
+              <SelectItem value="year">This year</SelectItem>
             </SelectContent>
           </Select>
         </div>
-      </div>
+      )}
 
-      {/* Posts */}
+      {/* Posts as a ruled sheet */}
       {loading ? (
-        <div className="space-y-4">
+        <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-xl border border-border bg-card p-6">
+            <div key={i} className="border-b border-border px-5 py-4 last:border-0">
               <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded-full" />
                 <div className="space-y-2">
@@ -137,37 +146,42 @@ export function PostFeed() {
                   <Skeleton className="h-3 w-20" />
                 </div>
               </div>
-              <Skeleton className="mt-4 h-16 w-full" />
+              <Skeleton className="mt-4 h-14 w-full" />
             </div>
           ))}
         </div>
       ) : posts.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
           <p className="font-heading text-lg tracking-tight text-foreground">
             {search
               ? "No posts match your search."
-              : "No stories yet — be the first to share a memory!"}
+              : emptyTitle || "No stories yet. Be the first to share a memory."}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {search
               ? "Try different keywords or clear your search."
-              : "Write about your time at Rishi Valley, share a life update, or post a photo."}
+              : emptyHint ||
+                "Write about your time in the valley, share an update, or post a photo."}
           </p>
         </div>
       ) : (
         <>
-          <div ref={animateRef} className="space-y-4">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
+          <div
+            ref={animateRef}
+            className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
+          >
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} variant="sheet" />
+            ))}
           </div>
 
           {hasMore && (
-            <div className="flex justify-center pt-4">
+            <div className="flex justify-center pt-2">
               <Button
                 variant="outline"
                 onClick={handleLoadMore}
                 disabled={loadingMore}
+                className="rounded-full"
               >
                 {loadingMore ? "Loading..." : "Load more"}
               </Button>

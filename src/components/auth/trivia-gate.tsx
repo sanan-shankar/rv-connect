@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -58,10 +58,12 @@ function BlinkingOwl() {
 }
 
 export function TriviaGate({ onPass }: { onPass: () => void }) {
-  const question = useMemo(
-    () => TRIVIA_QUESTIONS[Math.floor(Math.random() * TRIVIA_QUESTIONS.length)],
-    []
-  );
+  // Pick the question after mount so server and client first paint match
+  // (a random pick during render causes a hydration mismatch).
+  const [question, setQuestion] = useState(TRIVIA_QUESTIONS[0]);
+  useEffect(() => {
+    setQuestion(TRIVIA_QUESTIONS[Math.floor(Math.random() * TRIVIA_QUESTIONS.length)]);
+  }, []);
 
   const [answer, setAnswer] = useState("");
   const [shake, setShake] = useState(false);

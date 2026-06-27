@@ -1,0 +1,200 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
+import {
+  Newspaper,
+  Users,
+  FolderOpen,
+  Images,
+  Feather,
+  MessagesSquare,
+  CalendarDays,
+  Info,
+  Settings,
+  Shield,
+  LogOut,
+  User as UserIcon,
+  Menu,
+} from "lucide-react";
+import { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { BirdAvatar } from "@/components/common/bird-avatar";
+import { NotificationBell } from "./notification-bell";
+import { PeaksMark } from "./peaks-mark";
+
+export interface SidebarUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatarColor: string | null;
+}
+
+const NAV = [
+  { href: "/feed", label: "Feed", icon: Newspaper },
+  { href: "/directory", label: "Directory", icon: Users },
+  { href: "/groups", label: "Groups", icon: FolderOpen },
+  { href: "/collection", label: "Collection", icon: Images },
+  { href: "/letters", label: "Letters", icon: Feather },
+  { href: "/catchups", label: "Catch-ups", icon: MessagesSquare },
+  { href: "/events", label: "Events", icon: CalendarDays },
+  { href: "/about", label: "About", icon: Info },
+];
+
+function Brand() {
+  return (
+    <Link href="/feed" className="flex items-center gap-2.5 px-2 py-1">
+      <PeaksMark size={15} className="text-sidebar-primary" />
+      <span className="leading-tight">
+        <span className="block font-heading text-[17px] font-bold tracking-tight text-sidebar-foreground">
+          Rishi Valley
+        </span>
+        <span className="block text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/55">
+          Alumni
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function NavLinks({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <nav className="flex flex-col gap-0.5">
+      {NAV.map((n) => {
+        const active = pathname === n.href || pathname.startsWith(n.href + "/");
+        return (
+          <Link
+            key={n.href}
+            href={n.href}
+            onClick={onNavigate}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 ${
+              active
+                ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground"
+            }`}
+          >
+            <n.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+            {n.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function UserMenu({
+  user,
+  unreadCount,
+}: {
+  user: SidebarUser;
+  unreadCount: number;
+}) {
+  const router = useRouter();
+  return (
+    <div className="mt-auto flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1.5 py-1 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
+          <BirdAvatar user={{ id: user.id, name: user.name }} size="sm" />
+          <span className="min-w-0">
+            <span className="block truncate text-[13px] font-semibold text-sidebar-foreground">
+              {user.name}
+            </span>
+            <span className="block truncate text-[11px] text-sidebar-foreground/55">
+              {user.email}
+            </span>
+          </span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" side="top" className="w-52">
+          <DropdownMenuItem onClick={() => router.push(`/profile/${user.id}`)}>
+            <UserIcon className="mr-2 h-4 w-4" />
+            My Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/settings")}>
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </DropdownMenuItem>
+          {user.role === "admin" && (
+            <DropdownMenuItem onClick={() => router.push("/admin")}>
+              <Shield className="mr-2 h-4 w-4" />
+              Admin Panel
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => signOut({ callbackUrl: "/" })}
+            variant="destructive"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <div className="text-sidebar-foreground">
+        <NotificationBell initialUnreadCount={unreadCount} />
+      </div>
+    </div>
+  );
+}
+
+export function Sidebar({
+  user,
+  unreadCount,
+}: {
+  user: SidebarUser;
+  unreadCount: number;
+}) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {/* Desktop: flush, full-height sidebar */}
+      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
+        <Brand />
+        <NavLinks pathname={pathname} />
+        <UserMenu user={user} unreadCount={unreadCount} />
+      </aside>
+
+      {/* Mobile: top bar + slide-over sheet */}
+      <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-sidebar px-4 md:hidden">
+        <Brand />
+        <div className="flex items-center gap-1 text-sidebar-foreground">
+          <NotificationBell initialUnreadCount={unreadCount} />
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Menu</span>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 bg-sidebar p-4">
+              <SheetTitle className="sr-only">Menu</SheetTitle>
+              <div className="mb-4">
+                <Brand />
+              </div>
+              <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+            </SheetContent>
+          </Sheet>
+        </div>
+      </header>
+    </>
+  );
+}

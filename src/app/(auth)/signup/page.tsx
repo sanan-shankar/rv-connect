@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -12,13 +13,12 @@ import {
 } from "@/components/ui/card";
 import { TriviaGate } from "@/components/auth/trivia-gate";
 import { SignupForm } from "@/components/auth/signup-form";
-import { MagicLinkSent } from "@/components/auth/magic-link-sent";
 
-type Step = "trivia" | "register" | "sent";
+type Step = "trivia" | "register";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("trivia");
-  const [email, setEmail] = useState("");
 
   return (
     <Card className="w-full max-w-md overflow-visible">
@@ -50,13 +50,6 @@ export default function SignupPage() {
             </CardDescription>
           </>
         )}
-        {step === "sent" && (
-          <>
-            <CardTitle className="font-heading text-2xl">
-              Check your inbox
-            </CardTitle>
-          </>
-        )}
       </CardHeader>
       <CardContent>
         {step === "trivia" && (
@@ -64,13 +57,11 @@ export default function SignupPage() {
         )}
         {step === "register" && (
           <SignupForm
-            onSuccess={(sentEmail) => {
-              setEmail(sentEmail);
-              setStep("sent");
+            onSuccess={() => {
+              router.push("/feed");
             }}
           />
         )}
-        {step === "sent" && <MagicLinkSent email={email} />}
       </CardContent>
     </Card>
   );

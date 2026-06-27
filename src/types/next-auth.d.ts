@@ -1,4 +1,5 @@
 import "next-auth";
+import "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
@@ -7,16 +8,30 @@ declare module "next-auth" {
       name: string;
       email: string;
       role: string;
-      batchType: string;
-      batchYear: number;
+      accountType: string;
+      verifyState: string;
+      batchType: string | null;
+      batchYear: number | null;
       avatarColor: string | null;
     };
   }
 
   interface User {
     role?: string;
-    batchType?: string;
-    batchYear?: number;
+    accountType?: string;
+    verifyState?: string;
+    batchType?: string | null;
+    batchYear?: number | null;
+    avatarColor?: string | null;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    role?: string;
+    batchType?: string | null;
+    batchYear?: number | null;
     avatarColor?: string | null;
   }
 }

@@ -1,0 +1,44 @@
+# Render Blueprint for RV Alumni.
+# Create from the Render dashboard: New > Blueprint, point at this repo.
+# See DEPLOY.md for the full walkthrough and the env vars marked sync:false.
+
+databases:
+  - name: rv-alumni-db
+    databaseName: rvalumni
+    user: rvalumni
+    plan: free # upgrade to "starter" before real traffic; free dbs expire after 90 days
+
+services:
+  - type: web
+    name: rv-alumni
+    runtime: node
+    plan: free # upgrade to "starter" to avoid the free-tier cold-start spin-down
+    autoDeploy: true
+    buildCommand: >
+      npm install &&
+      node scripts/prepare-prisma.mjs &&
+      npx prisma generate &&
+      npx prisma db push --accept-data-loss &&
+      npm run build
+    startCommand: npm run start
+    healthCheckPath: /login
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rv-alumni-db
+          property: connectionString
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: NODE_VERSION
+        value: "20"
+      # The rest are set in the dashboard (secrets / per-deploy values):
+      - key: NEXTAUTH_URL # e.g. https://rv-alumni.onrender.com
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: NEXT_PUBLIC_ADMIN_EMAIL
+        sync: false
+      - key: BLOB_READ_WRITE_TOKEN # Vercel Blob token for photo/avatar storage
+        sync: false
+      - key: RESEND_API_KEY # only needed once Catch-ups emails ship
+        sync: false

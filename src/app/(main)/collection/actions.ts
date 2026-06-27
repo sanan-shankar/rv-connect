@@ -1,0 +1,275 @@
+"use server";
+
+import sharp from "sharp";
+import { createId } from "@paralleldrive/cuid2";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { putImage, delImage } from "@/lib/storage";
+import { photoSchema } from "@/lib/validators";
+import { revalidatePath } from "next/cache";
+
+const MAX_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
+const PAGE_SIZE = 24;
+
+export type PhotoData = {
+  id: string;
+  thumbUrl: string;
+  url: string;
+  width: number;
+  height: number;
+  caption: string | null;
+  subject: string[];
+  area: string | null;
+  era: string;
+  freeTags: string[];
+  approved: boolean;
+  loveCount: number;
+  loved: boolean;
+  isOwn: boolean;
+  uploader: { id: string; name: string; avatarColor: string | null };
+  createdAt: string;
+};
+
+function shape(
+  p: {
+    id: string; thumbUrl: string; url: string; width: number; height: number;
+    caption: string | null; subject: string; area: string | null; era: string;
+    freeTags: string | null; approved: boolean; uploaderId: string; createdAt: Date;
+    uploader: { id: string; name: string; avatarColor: string | null };
+    _count: { loves: number }; loves: { id: string }[];
+  },
+  userId: string
+): PhotoData {
+  return {
+    id: p.id,
+    thumbUrl: p.thumbUrl,
+    url: p.url,
+    width: p.width,
+    height: p.height,
+    caption: p.caption,
+    subject: p.subject ? p.subject.split(",").filter(Boolean) : [],
+    area: p.area,
+    era: p.era,
+    freeTags: p.freeTags ? p.freeTags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+    approved: p.approved,
+    loveCount: p._count.loves,
+    loved: p.loves.length > 0,
+    isOwn: p.uploaderId === userId,
+    uploader: p.uploader,
+    createdAt: p.createdAt.toISOString(),
+  };
+}
+
+const includeFor = (userId: string) => ({
+  uploader: { select: { id: true, name: true, avatarColor: true } },
+  _count: { select: { loves: true } },
+  loves: { where: { userId }, select: { id: true } },
+});
+
+export async function contributePhoto(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const file = formData.get("file") as File | null;
+  if (!file) return { error: "No photo provided" };
+  if (!file.type.startsWith("image/")) return { error: "Only image files are allowed" };
+  if (file.type === "image/heic" || file.type === "image/heif")
+    return { error: "HEIC is not supported yet. Please export as JPG or PNG." };
+  if (file.size > MAX_INPUT) return { error: "Photo must be under 15MB" };
+
+  let subjects: string[] = [];
+  try {
+    const raw = formData.get("subject") as string;
+    subjects = raw ? JSON.parse(raw) : [];
+  } catch {
+    return { error: "Invalid subjects" };
+  }
+
+  const parsed = photoSchema.safeParse({
+    caption: (formData.get("caption") as string) || undefined,
+    subject: subjects,
+    area: (formData.get("area") as string) || undefined,
+    era: (formData.get("era") as string) || undefined,
+    freeTags: (formData.get("freeTags") as string) || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  let thumbUrl: string;
+  let url: string;
+  let width: number;
+  let height: number;
+  try {
+    const input = Buffer.from(await file.arrayBuffer());
+    const id = createId();
+
+    const display = await sharp(input)
+      .rotate()
+      .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer({ resolveWithObject: true });
+    width = display.info.width;
+    height = display.info.height;
+
+    const thumb = await sharp(input)
+      .rotate()
+      .resize(480, 480, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 72 })
+      .toBuffer();
+
+    [url, thumbUrl] = await Promise.all([
+      putImage(display.data, "collection", `${id}.webp`),
+      putImage(thumb, "collection", `${id}-t.webp`),
+    ]);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { error: `Could not process the photo: ${message}` };
+  }
+
+  // Admins and trusted contributors skip the approval queue.
+  const me = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { photoTrusted: true },
+  });
+  const autoApprove = session.user.role === "admin" || !!me?.photoTrusted;
+
+  await prisma.photo.create({
+    data: {
+      uploaderId: session.user.id,
+      thumbUrl,
+      url,
+      width,
+      height,
+      caption: parsed.data.caption || null,
+      subject: parsed.data.subject.join(","),
+      area: parsed.data.area || null,
+      era: parsed.data.era || "unknown",
+      freeTags: parsed.data.freeTags || null,
+      approved: autoApprove,
+      approvedAt: autoApprove ? new Date() : null,
+      approvedById: autoApprove ? session.user.id : null,
+    },
+  });
+
+  revalidatePath("/collection");
+  return { success: true, autoApprove };
+}
+
+export async function loadPhotos(opts?: {
+  page?: number;
+  subject?: string;
+  area?: string;
+  era?: string;
+  search?: string;
+  sortBy?: "newest" | "oldest" | "loved";
+}) {
+  const session = await auth();
+  if (!session?.user?.id) return { photos: [] as PhotoData[], hasMore: false };
+
+  const page = opts?.page ?? 0;
+  const where = {
+    approved: true,
+    isHidden: false,
+    ...(opts?.subject ? { subject: { contains: opts.subject } } : {}),
+    ...(opts?.area ? { area: opts.area } : {}),
+    ...(opts?.era ? { era: opts.era } : {}),
+    ...(opts?.search
+      ? {
+          OR: [
+            { caption: { contains: opts.search } },
+            { freeTags: { contains: opts.search } },
+          ],
+        }
+      : {}),
+  };
+
+  const orderBy =
+    opts?.sortBy === "oldest"
+      ? { createdAt: "asc" as const }
+      : opts?.sortBy === "loved"
+        ? { loves: { _count: "desc" as const } }
+        : { createdAt: "desc" as const };
+
+  const rows = await prisma.photo.findMany({
+    where,
+    include: includeFor(session.user.id),
+    orderBy,
+    take: PAGE_SIZE + 1,
+    skip: page * PAGE_SIZE,
+  });
+
+  const hasMore = rows.length > PAGE_SIZE;
+  const trimmed = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+  return { photos: trimmed.map((p) => shape(p, session.user.id)), hasMore };
+}
+
+export async function myPendingPhotos(): Promise<PhotoData[]> {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const rows = await prisma.photo.findMany({
+    where: { uploaderId: session.user.id, approved: false, isHidden: false },
+    include: includeFor(session.user.id),
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((p) => shape(p, session.user.id));
+}
+
+export async function togglePhotoLove(photoId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const existing = await prisma.photoLove.findUnique({
+    where: { userId_photoId: { userId: session.user.id, photoId } },
+    select: { id: true },
+  });
+
+  if (existing) {
+    await prisma.photoLove.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.photoLove.create({ data: { userId: session.user.id, photoId } });
+  }
+  return { success: true, loved: !existing };
+}
+
+export async function approvePhoto(photoId: string) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+
+  await prisma.photo.update({
+    where: { id: photoId },
+    data: { approved: true, approvedAt: new Date(), approvedById: session.user.id },
+  });
+  revalidatePath("/collection");
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function declinePhoto(photoId: string) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+
+  const photo = await prisma.photo.findUnique({
+    where: { id: photoId },
+    select: { thumbUrl: true, url: true, originalUrl: true, uploaderId: true },
+  });
+  if (!photo) return { error: "Photo not found" };
+
+  await Promise.all([
+    delImage(photo.thumbUrl),
+    delImage(photo.url),
+    delImage(photo.originalUrl),
+  ]);
+  await prisma.photo.delete({ where: { id: photoId } });
+
+  await prisma.notification.create({
+    data: {
+      userId: photo.uploaderId,
+      type: "admin",
+      message:
+        "A photo you shared was not added to the Collection. This space is for the place itself; please share people-shots on the feed or your profile instead.",
+      link: "/collection",
+    },
+  });
+
+  revalidatePath("/admin");
+  return { success: true };
+}
