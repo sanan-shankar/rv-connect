@@ -1,0 +1,92 @@
+"use client";
+
+import { useState } from "react";
+import { Flag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { reportUser } from "@/components/posts/report-action";
+
+const REASONS = [
+  "This person isn't who they claim to be",
+  "Not a Rishi Valley alumnus or teacher",
+  "Impersonation",
+  "Other",
+];
+
+export function FlagPersonDialog({ userId, name }: { userId: string; name: string }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState(REASONS[0]);
+  const [detail, setDetail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit() {
+    setSubmitting(true);
+    const full = detail.trim() ? `${reason}: ${detail.trim()}` : reason;
+    const result = await reportUser(userId, full);
+    setSubmitting(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Thank you. An admin will take a look.");
+    setOpen(false);
+    setDetail("");
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
+        <Flag className="h-3.5 w-3.5" />
+        Flag
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-xl">Flag {name}</DialogTitle>
+            <DialogDescription>
+              For identity concerns only. An admin reviews every flag.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              {REASONS.map((r) => (
+                <label key={r} className="flex items-center gap-2.5 text-sm text-foreground">
+                  <input
+                    type="radio"
+                    name="flag-reason"
+                    checked={reason === r}
+                    onChange={() => setReason(r)}
+                    className="accent-leaf"
+                  />
+                  {r}
+                </label>
+              ))}
+            </div>
+            <textarea
+              value={detail}
+              onChange={(e) => setDetail(e.target.value)}
+              placeholder="Anything else that helps (optional)"
+              rows={3}
+              maxLength={400}
+              className="w-full resize-none rounded-lg border border-border bg-paper px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            />
+            <Button onClick={handleSubmit} disabled={submitting} variant="destructive" className="w-full">
+              {submitting ? "Sending..." : "Send flag"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

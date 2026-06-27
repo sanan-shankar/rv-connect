@@ -21,10 +21,9 @@ export default async function NewGroupPage() {
         Create a Group
       </h1>
       <CreateGroupForm
-        batchYears={batchYearCounts.map((b) => ({
-          year: b.batchYear,
-          count: b._count.id,
-        }))}
+        batchYears={batchYearCounts
+          .filter((b): b is { batchYear: number; _count: { id: number } } => b.batchYear != null)
+          .map((b) => ({ year: b.batchYear, count: b._count.id }))}
         currentUserId={session.user.id}
       />
     </div>

@@ -1,0 +1,291 @@
+# Spec: media
+
+I now have a thorough grounding in the real codebase: the upload pipeline, image rendering, moderation model, IA, spacing tokens, filter/grid patterns, and avatar conventions. I have everything needed to write the spec. This is my deliverable, returned directly as my final message.
+
+---
+
+# The Photo Archive ("The Valley Collection")
+
+A design and implementation spec for the school photo archive area of RV Alumni. Grounded in the real codebase (`prisma/schema.prisma`, `src/app/api/upload/route.ts`, `src/app/(main)/feed/actions.ts`, `src/components/posts/*`, `src/app/preview/v2/page.tsx`, `.claude/skills/liftkit-spacing`). No files edited.
+
+## 1. Name and identity
+
+### Decision: call it "The Valley Collection" (route `/collection`, sidebar label "Collection")
+
+The owner dislikes "media library" (too clinical, too SaaS) and the project already has a "Letters" naming overload problem, so the new name must be unambiguous, warm, and not collide with "Photos" (which already exists as a *personal* tab on the profile page, see `ProfileView` `tab === "photos"` in `preview/v2/page.tsx`). Candidates considered:
+
+| Name | Verdict |
+|------|---------|
+| "The Banyan" | Beautiful, but the banyan is a load-bearing motif better reserved for the brand/landing; overloading it dilutes it. |
+| "The Album" | Reads personal/Facebook, which is exactly the wrong frame (this is about the *place*, not people-snaps). |
+| "Sightings" | Lovely for birds but too narrow; excludes landscape/campus/ethos. |
+| "The Archive" | Accurate but cold and museum-like; discourages casual contribution. |
+| **"The Valley Collection"** | **Chosen.** "Collection" frames it as a curated, communal body of work that grows (invites contribution), "Valley" anchors it to the *place* not people, and it has zero collision with "Photos" (personal) or "Letters" (two features). Short label in the sidebar: **"Collection"**. |
+
+Sub-framing in copy: the page header subtitle reads **"A shared picture of the place: the banyan, Rishi Konda, the birds, the light."** This sentence does the policy work of telling people what belongs here (the place) versus what does not (selfies, reunion group shots), without a rulebook. No em dashes anywhere, per the owner's constraint; the colon above is intentional and allowed.
+
+### Icon
+
+The v2 sidebar (`NAV` array in `preview/v2/page.tsx`) currently uses Lucide `FolderOpen` for "Groups" and `Newspaper`, `Users`, `Feather`, `CalendarDays`, `Info` for the others. The Collection needs a distinct glyph that reads as "many images / gallery" rather than "one photo":
+
+- **Sidebar chrome icon: Lucide `Images`** (the stacked-frames glyph, `import { Images } from "lucide-react"`), `strokeWidth={1.9}` to match the existing `n.icon size={18} strokeWidth={1.9}` nav convention. `Images` (plural, stacked) is visually distinct from the single `ImageIcon`/`ImagePlus` already used in the composer, so the sidebar item does not look like "add a photo."
+- **Decorative / hero / empty-state icon: Phosphor duotone**, per the CLAUDE.md rule ("`@phosphor-icons/react` duotone for decorative/hero contexts"). Use `<ImagesSquare weight="duotone" />` or `<Mountains weight="duotone" />` from `@phosphor-icons/react`. `Mountains` doubles as a quiet nod to the three peaks (Bodikonda, Middle Peak, Rishikonda) that will become the real logo, so it ties the empty state to the brand story.
+
+This keeps the icon language consistent with the established split: Lucide for chrome, Phosphor duotone for decorative.
+
+## 2. Purpose, scope, and what stays out
+
+The owner is explicit: this is **a living visual memory of the place**, not a personal photo dump. The design must structurally discourage people-snaps without policing them heavily. Three mechanisms enforce the frame:
+
+1. **The taxonomy has no "people" or "reunion" category.** Tags are about *place, subject, era, and part of school* (section 5). There is nowhere to file a selfie, so it self-selects out.
+2. **The upload dialog asks for a caption framed around the place** ("What is this, and where in the valley?"), not "who is in this."
+3. **Admin approval (section 8)** is the backstop: an admin declines anything that is a personal snap with the canned reason "This space is for the place itself; please share people-shots on the feed or your profile instead." The decline is gentle and routes the energy to the right place (feed/profile already support images via the existing upload pipeline).
+
+What lives here: campus and buildings, the banyan, Rishi Konda and the hills, birds and wildlife, landscapes and weather, junior/senior school life as *scenes* (the dining hall, assembly, the long tables), archival/historical scans, ethos moments (silence, walks, study). What does not: individual portraits, reunion group photos, screenshots, memes, anything off-topic. People *in* a landscape are fine; a photo *of* people is not the point.
+
+## 3. Information architecture and routes
+
+The app currently ships a top **Navbar** (`src/components/layout/navbar.tsx`) with `NAV_LINKS = [Feed, Groups, Directory, About]`, while the locked v2 design (`preview/v2/page.tsx`) uses a **flush full-height green sidebar** with `NAV = [Feed, Directory, Groups, Letters, Events, About]`. The Collection slots into the v2 sidebar between Events and About, or right after Groups; the natural grouping is the *browse-the-community* cluster (Directory, Groups, Collection) above the *read* cluster (Letters, Events) and About. Proposed final sidebar order:
+
+`Feed · Directory · Groups · Collection · Letters · Events · About`
+
+Routes (App Router, `(main)` route group so it inherits the auth gate from `(main)/layout.tsx`):
+
+| Route | Purpose | Render |
+|-------|---------|--------|
+| `/collection` | The grid: masonry of approved photos, with filter rail. Supports `?tag=`, `?era=`, `?subject=`, `?q=`, `?sort=`, `?page=` query params (mirrors the directory's URL-driven filter pattern in `directory-client.tsx`). | Server component fetches page 0, hydrates a `CollectionClient`. |
+| `/collection/[id]` | Single-photo lightbox/detail view: full image, caption, uploader, tags, era, "appears in" backlinks. Deep-linkable and shareable. | Server component. |
+| `/collection/contribute` | The full upload flow (drag-drop, tag, caption, era) when more room than the quick dialog is wanted. Optional; the quick dialog on `/collection` covers the common case. | Client. |
+| Admin queue | Lives inside the existing **`/admin`** page as a new "Photo queue" tab, beside the existing report management. No new top-level admin route. | Server + `PhotoQueue` client. |
+
+The grid page is the default. Pagination is cursor/offset based exactly like `loadPosts` (`take: 21, skip: page * 20`, `hasMore = posts.length > 20`); reuse that idiom so the feed and collection paginate identically.
+
+## 4. Cost-aware storage strategy (the load-bearing decision)
+
+The owner's hard constraint: **hosting photos is expensive, storage is limited.** The deploy is moving from Turso+Vercel to **Render**. This changes the storage math and is the single most important decision in this spec.
+
+### 4.1 Where the bytes live
+
+The existing pipeline (`src/app/api/upload/route.ts`) already does the right thing and must be **reused, not rebuilt**: it keys on `const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN`, processes every upload through `sharp` (`resize(1920,1920,{fit:"inside",withoutEnlargement:true}).webp({quality:80})`), and writes either to Vercel Blob (`put(...)`) or the local filesystem (`public/uploads/YYYY/MM/`). Deletion mirrors this in `feed/actions.ts deletePost` (`del(img)` for Blob, `unlink(...)` for local).
+
+**Decision: keep Vercel Blob as the photo store even after moving compute to Render.** Vercel Blob is a standalone object store backed by S3/Cloudflare R2 and is reachable from any host; it does not require the app itself to be on Vercel. This means:
+- Zero new infrastructure: the `put`/`del` calls and the `*.public.blob.vercel-storage.com` remote pattern (already in AGENTS.md) keep working unchanged.
+- Render's own disk is ephemeral on the free/standard web service tier and is the wrong place for user uploads anyway, so the local-filesystem branch stays as the **local-dev-only** path (it already is).
+- The single env var `BLOB_READ_WRITE_TOKEN` is the switch; nothing in application code needs to know we moved off Vercel compute.
+
+**Documented alternative if Blob cost becomes the bottleneck: Cloudflare R2.** R2 has zero egress fees, which matters a lot for a public gallery that people browse repeatedly (egress, not storage, is what kills photo-app bills). The abstraction needed is tiny: introduce one `src/lib/storage.ts` with `putImage(buffer, path)` and `delImage(url)` that today wraps `@vercel/blob` and tomorrow can wrap the R2 S3-compatible SDK, with the existing `useBlob` switch becoming a `STORAGE_DRIVER` switch. The upload route and `deletePost` should call this shim rather than `@vercel/blob` directly. This is a one-file refactor, recommended *before* the archive ships so the archive never hard-codes Blob.
+
+### 4.2 Variants: thumbnail, display, original
+
+A gallery cannot serve 1920px WebPs into a grid; that is the expensive mistake. Generate **three derivatives per upload** in the same `sharp` pass and store all three URLs on the `Photo` row:
+
+| Variant | Long edge | sharp settings | Used by |
+|---------|-----------|----------------|---------|
+| `thumbUrl` | 480px | `.resize(480,480,{fit:"inside",withoutEnlargement:true}).webp({quality:72})` | The masonry grid (the only thing 99% of page-views load). Tiny, ~20-50KB each. |
+| `url` (display) | 1600px | `.webp({quality:80})` | The `/collection/[id]` detail/lightbox view, and reuse as a post image / group cover (section 7). |
+| `originalUrl` | up to 3000px, capped | `.webp({quality:82})` | Download/full-view only, lazy fetched on explicit click. Optional; can be dropped to halve storage if cost bites. |
+
+The grid loads only `thumbUrl`; the detail view loads `url`; `originalUrl` is fetched only when someone clicks "view full size." This is the difference between a page weighing 1MB and 40MB.
+
+Implementation note: the current route hard-caps file input at `5 * 1024 * 1024` (5MB) and rejects non-`image/` types. For the archive, **raise the input cap to 15MB** (people want to contribute good DSLR shots, the owner explicitly wants "higher-quality shots") but keep the *output* tightly compressed via the three-variant pass, so storage stays bounded regardless of input size. Reject HEIC up front with a clear message, or add `heic-convert`; sharp's HEIC support depends on the libvips build and is not guaranteed on Render, so guard it.
+
+### 4.3 Lazy loading, thumbnails, and a blur placeholder
+
+- Every grid `<img>` uses `loading="lazy"` (the post-card already does this, `post-card.tsx` line 211) plus `decoding="async"`.
+- Store a tiny **BlurHash or a 16px base64 LQIP** string on the row (`blurhash` column) generated in the sharp pass (`.resize(16).blur().toBuffer()` then base64, ~200 bytes). The grid renders the blur as a CSS background behind the `<img>` so the masonry does not reflow and the page feels instant. This is cheap and high-impact.
+- Use an `IntersectionObserver`-driven infinite scroll on the grid (same hasMore/page model as `post-feed.tsx`) so only on-screen tiles fetch.
+- Set long cache headers on Blob responses (Blob serves immutable content-addressed URLs, so `Cache-Control: public, max-age=31536000, immutable` is safe and free egress savings).
+
+### 4.4 Storage budget guardrails
+
+- Per-user soft cap surfaced in the UI ("you have contributed 38 photos"); a hard per-upload batch limit of, say, 10 photos to prevent a single bulk dump.
+- The three-variant WebP approach means an average contributed photo costs roughly: thumb ~35KB + display ~250KB + original ~600KB ≈ under 1MB stored per accepted photo. 5,000 accepted photos ≈ under 5GB, comfortably within the project's 5GB folder ceiling and a small Blob bill. If `originalUrl` is dropped, halve that.
+- Declined photos are deleted from storage immediately on rejection (admin decline calls `delImage` on all variants), so the storage cost is only ever *approved* content.
+
+## 5. Cataloging: the tag taxonomy (decision-bearing)
+
+The owner wants "community cataloging via simple tags (birds, landscape, junior/senior school, decade, etc.)." The risk with free-text tags is a sprawling, useless mess at 600 photos. **Decision: a small, fixed, faceted taxonomy across four axes, plus optional free-text only for bird/species names.** Faceted (not flat) tags make the filter rail genuinely useful at scale.
+
+| Facet | Field | Values (fixed enum, stored as strings to match the project's existing string-enum convention, e.g. `Post.tag`) |
+|-------|-------|------|
+| **Subject** | `subject` (one or many) | `birds`, `wildlife`, `landscape`, `campus`, `buildings`, `banyan`, `rishi-konda`, `hills`, `weather-sky`, `flora`, `assembly-dining`, `arts-music`, `sport-outdoors`, `historical` |
+| **Part of school** | `area` | `junior-school`, `senior-school`, `whole-campus`, `off-campus` |
+| **Era** | `era` | a decade bucket: `pre-1960s`, `1960s`, `1970s`, `1980s`, `1990s`, `2000s`, `2010s`, `2020s`, plus `unknown` |
+| **Free tags** | `freeTags` | optional, comma-joined; reserved mainly for **bird/species names** (hoopoe, paradise flycatcher, etc.) so birders can build a de-facto species index without polluting the fixed facets. |
+
+Rationale for fixed enums on the first three facets:
+- They power a clean filter rail (section 6) and they will not drift into 200 near-duplicate tags.
+- `era` as decade buckets, not exact years, respects the owner's repeated "always offer a clear 'don't remember'" rule. Every uploader can pick `unknown`; the UI copy is "Roughly when? (a guess is fine)".
+- They mirror the project's existing pattern of string-valued enums validated by Zod (`postSchema.tag` is a `z.enum([...])`), so the validators file gets one new schema in the same style.
+
+Free-text is deliberately confined to species names so the community can self-organize birds (the school is a famous bird sanctuary, this is the highest-value cataloging) without a tag free-for-all.
+
+## 6. The grid page UX
+
+Reuse the directory's proven structure (`directory-client.tsx`): URL-driven filters, a search box with a 300ms debounce, a collapsible filter panel in a `glass` container, and a graceful empty state. The collection adds a masonry layout instead of the equal-card grid.
+
+- **Header** mirrors `v2-head` in `preview/v2/page.tsx`: display-font title "The Valley Collection" + subtitle, with a primary **"Contribute a photo"** button (`v2-btn v2-btn-primary` with the `Plus` icon convention already in v2) that opens the quick upload dialog.
+- **Filter rail**: three `Select`s (Subject, Part of school, Era) from `src/components/ui/select.tsx` (already installed), plus the debounced search input over caption + free tags, plus a sort `Select` (Newest, Oldest, Most loved, A wander = random). "A wander" (a random shuffle) is a small delight that encourages browsing the place rather than just the latest uploads.
+- **Masonry**: CSS columns (`columns-2 sm:columns-3 lg:columns-4`, `gap` via a LiftKit `--space-s` token, tiles `break-inside-avoid mb-[var(--space-s)]`). Tiles preserve aspect ratio (store `width`/`height` on the row so the grid never reflows). Each tile: blur LQIP behind a lazy `thumbUrl`, a hover overlay (gradient `from-black/55` per the CLAUDE.md image-treatment rule) showing caption + a love count + a subtle uploader credit.
+- **Empty / first-run state**: the Phosphor duotone `Mountains` glyph, a warm line ("The collection is just beginning. The first photographs of the valley will live here."), and the Contribute button. This is the seeding hook (section 9).
+- **Mobile (390x844)**: `columns-2`, filter rail collapses into a sheet (the project already uses `src/components/ui/sheet.tsx` for the mobile nav), tap a tile to open the detail route. Per LiftKit mobile rule, step every spacing token down one level.
+
+## 7. How it ties into the rest of the app (reuse)
+
+This is where the archive earns its keep instead of being a silo. The owner wants pictures usable as post images and profile/cover photos, and cover images for groups/events.
+
+1. **Shared upload pipeline.** The archive uses the *same* `/api/upload` route and `sharp` settings as the composer; the only delta is generating three variants and returning `{thumbUrl, url, originalUrl, width, height, blurhash}` instead of a flat `urls` array. To avoid breaking the existing `create-post-form.tsx` (which expects `{urls}`), add a `?variants=1` query flag or a second route `/api/upload/photo`; the composer path stays untouched. This honours the project's "shared composer / shared feed" modular goal.
+
+2. **"Add from the Collection" picker.** A small reusable `<CollectionPicker>` client component (a dialog showing the masonry of approved photos with single/multi select) becomes the *shared image source* across the app:
+   - In the **post composer** (`create-post-form.tsx`), beside the existing "Photo" upload button, add a "From the Collection" button. Selecting a photo pushes its `url` (the 1600px display variant) into the existing `images` state array; nothing else in the post flow changes, because posts already store `images` as a JSON array of URLs (`Post.images`, `parseJsonArray`). This means a beautiful banyan shot someone uploaded can be reused in a post without re-uploading or re-storing bytes.
+   - **Profile cover** and **group/event cover** images use the same picker, storing the chosen `url` on `User.coverPhoto` / `Group.coverPhoto` / `Event.coverPhoto` (new columns). The v2 profile already renders a `cover-photo` div and a `photos-grid`; this wires real data into it.
+
+3. **Backlinks ("appears in").** Because a Collection photo's `url` may be embedded in posts/covers, the detail page can show "Used in 3 posts" by querying `Post.images contains photo.url`. This makes the archive feel alive and connected rather than a dead-end gallery. Cheap to compute on the detail route only.
+
+4. **Reuse rendering + helpers.** `parseJsonArray`, `formatTimeAgo`, `UserAvatar` (uploader credit), `Card`/`Button`/`Select`/`Sheet`/`Dialog` from `src/components/ui/*`, and the `glass` utility all carry over. No new design primitives needed.
+
+## 8. Moderation (admin approval)
+
+The project already has a complete moderation pattern to mirror: the `Report` model with `status: "pending" | "reviewed" | "dismissed"`, `Post.isHidden`, admin actions (`adminHidePost`, `adminDismissReport`, `adminResolveReport` in `components/profile/admin-actions.ts`), and the `ReportManagement` queue UI inside `/admin`.
+
+**Decision: every uploaded photo starts `approved = false` and is invisible in the grid until an admin approves it.** Rationale: storage is expensive and the frame is fragile (people-snaps), so a small gate at the front is far cheaper than cleanup later, and the community is invite-only and small enough that an approval queue is tractable. This matches the owner's "admin approval" note exactly.
+
+Flow:
+- Upload writes a `Photo` row with `approved = false` and stores all variants. The uploader sees their own pending photos in the grid with a "Pending review" badge (so it does not feel like a black hole), but no one else sees them.
+- A new **"Photo queue" tab in `/admin`** renders a `PhotoQueue` client component modelled directly on `ReportManagement`: each pending photo shows the thumb, caption, proposed tags/era, uploader, and three actions: **Approve** (`approved = true`, `approvedAt`, `approvedById`), **Edit tags then approve** (admin can fix mis-tagging inline, which keeps the taxonomy clean), and **Decline** (deletes all variants from storage via `delImage`, deletes the row, optionally fires a gentle `Notification` of type `"admin"` with the place-not-people canned message).
+- Post-approval moderation: approved photos can still be reported using the *existing* `Report` flow (extend `Report` to optionally reference a photo, section 9), and an admin can hide/remove them the same way posts are hidden. No second moderation system.
+- **Trust escalation (optional, recommended):** after an admin approves N photos from the same uploader, flip a per-user `photoTrusted` flag so their future uploads auto-approve. This keeps the queue from becoming a chore as the prolific contributors (the birders) prove themselves, while new/unknown uploaders still pass the gate. Implemented as a simple count check in the upload action.
+
+## 9. Data model deltas (Prisma)
+
+The schema (`prisma/schema.prisma`) uses `cuid()` ids, string-valued enums, `DateTime @default(now())`, and `@@unique` join models. The additions follow those conventions exactly. SQLite local / Postgres prod means **no native array or enum types**: multi-value facets are stored as comma-joined strings (the project already does this with `Post.images`, `targetBatches`), validated by Zod against the fixed enums.
+
+```prisma
+model Photo {
+  id            String    @id @default(cuid())
+  uploaderId    String
+
+  // storage variants (all WebP, produced in one sharp pass)
+  thumbUrl      String    // 480px  — grid
+  url           String    // 1600px — detail view, reusable as post/cover image
+  originalUrl   String?   // up to 3000px — full-view/download only (optional, droppable to save space)
+  blurhash      String?   // tiny LQIP for no-reflow loading
+  width         Int       // intrinsic dims so the masonry never reflows
+  height        Int
+
+  caption       String?   // "What is this, and where in the valley?"
+
+  // faceted taxonomy (fixed enums validated by Zod; comma-joined where multi)
+  subject       String    // comma-joined from the subject enum (e.g. "banyan,landscape")
+  area          String?   // "junior-school" | "senior-school" | "whole-campus" | "off-campus"
+  era           String    @default("unknown") // decade bucket or "unknown"
+  freeTags      String?   // comma-joined free text, mainly bird/species names
+
+  // moderation (mirrors Post.isHidden + Report pattern)
+  approved      Boolean   @default(false)
+  isHidden      Boolean   @default(false) // post-approval takedown, same semantics as Post.isHidden
+  approvedAt    DateTime?
+  approvedById  String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  uploader      User        @relation("PhotoUploader", fields: [uploaderId], references: [id], onDelete: Cascade)
+  approvedBy    User?       @relation("PhotoApprover", fields: [approvedById], references: [id])
+  loves         PhotoLove[]
+
+  @@index([approved, isHidden, createdAt]) // the grid's hot query
+  @@index([era])
+}
+
+model PhotoLove {  // mirrors the Like model, lets people "love" a photo (drives "Most loved" sort + a delight)
+  id      String @id @default(cuid())
+  userId  String
+  photoId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, photoId])
+}
+```
+
+User-side additions (cover photos reuse the archive, section 7):
+
+```prisma
+// add to model User:
+  coverPhoto    String?       // a Collection photo url reused as profile cover
+  photoTrusted  Boolean  @default(false) // auto-approve this uploader's future photos
+  photos        Photo[]      @relation("PhotoUploader")
+  approvedPhotos Photo[]     @relation("PhotoApprover")
+  photoLoves    PhotoLove[]
+```
+
+Reuse-as-cover columns on Group (and the planned Event model) are `coverPhoto String?` storing a Collection photo `url`.
+
+Reporting reuse: extend the existing `Report` model to make `postId` optional and add an optional `photoId String?` + relation, rather than building a parallel report system; the `ReportManagement` queue then handles both with a small conditional. (Alternatively, photos are takedown-only via the admin queue and never user-reported; the simpler MVP path is to skip photo reporting at launch and rely on the upfront approval gate.)
+
+Validators: add to `src/lib/validators.ts`, in the same style as `postSchema`:
+
+```ts
+export const photoSchema = z.object({
+  caption: z.string().max(300).optional(),
+  subject: z.array(z.enum([
+    "birds","wildlife","landscape","campus","buildings","banyan",
+    "rishi-konda","hills","weather-sky","flora","assembly-dining",
+    "arts-music","sport-outdoors","historical",
+  ])).min(1, "Pick at least one subject"),
+  area: z.enum(["junior-school","senior-school","whole-campus","off-campus"]).optional(),
+  era: z.enum([
+    "pre-1960s","1960s","1970s","1980s","1990s","2000s","2010s","2020s","unknown",
+  ]).default("unknown"),
+  freeTags: z.string().max(200).optional(),
+});
+```
+
+(The array is `.join(",")` into the string column on write, validated against the enum before joining.)
+
+## 10. Seeding and marketing the collection (the owner is unsure here)
+
+An empty gallery is a dead gallery; the chicken-and-egg problem is the real risk. Concrete plays, cheapest first:
+
+1. **Admin seeds 40-60 photos before launch.** The owner/admins upload a curated founding set: the banyan in every season, Rishi Konda at dawn, the famous bird shots, the dining hall, assembly, archival scans. This is the single most important step; the empty-state copy ("the collection is just beginning") only works if it is *not* actually empty on day one. These founding photos demonstrate the *quality bar and the place-not-people frame* by example, which teaches the taxonomy better than any rulebook.
+
+2. **A weekly/monthly "from the Collection" surface elsewhere.** The v2 feed already has a right-hand rail with cards ("Coming up", "New in the directory", "Your groups"). Add a **"From the Collection"** rail card showing one rotating photo with a one-line caption and a "see more" link. This pulls the archive into the feed (where people actually are) and gives passive viewers a reason to click in. It also drives the "newsletter" feature (the Letterloop-style one) a ready-made section: "a photograph from the valley this month."
+
+3. **A gentle prompt seeded into the post composer.** Among the composer chips, an occasional rotating placeholder: "Have a good photo of the valley? Add it to the Collection." Low-friction, in-context, non-nagging.
+
+4. **Theme drives.** Periodic light campaigns run by admins: "Monsoon week: show us the valley in the rain," "The banyan through the decades," "Birds of RV." Each becomes a temporary `freeTag` and a feed post. Birders are the highest-propensity contributors (the school's identity is a bird sanctuary), so the very first drive should be birds; it will reliably produce volume and seeds the species index.
+
+5. **Reuse as the carrot.** Because Collection photos can be set as profile/group/event covers (section 7), there is a *selfish* reason to contribute and to browse: you get beautiful, on-theme cover art for free, sourced from the community. "Set your profile cover from the Collection" is a one-click hook that converts browsers into contributors.
+
+6. **A small delight to reward contribution.** When a photo is approved, the uploader gets a warm notification and a quiet count ("You have added 12 photographs to the valley's memory"). The hoopoe-covering-its-eyes easter egg (the established template from the login form, `Hoopoe` component) gets a second home here: on the empty state or on a successful contribution, the hoopoe peeks out from behind its wings. This is exactly the "2-3 places, never cringe" spread the owner asked for.
+
+## 11. Micro-animations and delight (scoped, non-cringe)
+
+Honouring the "No `transition-all`, only `transform`/`opacity`, spring easing" rule and the hoopoe easter-egg template:
+
+- **Love a photo**: reuse the existing heart `pop` keyframe from `post-card.tsx`/v2 (`@keyframes pop`), red heart, on the detail view and grid hover.
+- **Tile entrance**: a subtle staggered `opacity` + small `translateY` fade-in as tiles enter the viewport via `motion`, animating transform/opacity only. Skip per-frame iteration when screenshotting (CLAUDE.md note about animated elements).
+- **The hoopoe easter egg, place #2**: on the empty state, or as a one-time celebration when a contribution is approved, the hoopoe (from the existing `Hoopoe` SVG component) uncovers its eyes. Reuses existing code, no new asset.
+- **"A wander" sort** gently cross-fades the grid (opacity only) when shuffled, so it feels like turning over a new page of an album rather than a jarring re-sort.
+
+## 12. Open questions / decisions to confirm with the owner
+
+1. **Keep `originalUrl`?** It roughly doubles per-photo storage. Recommend launching *without* it (display 1600px is plenty for screens; add download-original later if demand appears).
+2. **Vercel Blob vs Cloudflare R2 at launch.** Recommend shipping on Blob behind a one-file `storage.ts` shim so R2 is a drop-in later if egress cost bites. Confirm whether to do the shim now (recommended) or after MVP.
+3. **Photo reporting at launch?** Recommend MVP relies solely on the upfront approval gate and admin takedown; defer user-facing photo reports (and the `Report.photoId` change) to v2.
+4. **Auto-approve trust flag (`photoTrusted`)** at launch or later? Recommend later, once the queue actually feels heavy.
+5. **Dark mode**: the owner is "light-mode-first, dark mode loses character." The v2 styles already define dark tokens; the grid and detail view will inherit them for free, but the founding curated photos are tuned for the warm light palette. Recommend not spending effort tuning the archive for dark mode in MVP.
+
+---
+
+Files this spec is grounded in (all absolute):
+- `/Users/sanan/Documents/rv-alumni/prisma/schema.prisma` (models, conventions, string-enum + comma-join idioms)
+- `/Users/sanan/Documents/rv-alumni/src/app/api/upload/route.ts` (the sharp + Blob/filesystem pipeline to reuse and extend to 3 variants)
+- `/Users/sanan/Documents/rv-alumni/src/app/(main)/feed/actions.ts` (pagination `take:21/skip` idiom, Blob/local `del`/`unlink` deletion to mirror for declined photos)
+- `/Users/sanan/Documents/rv-alumni/src/components/posts/create-post-form.tsx` and `post-card.tsx` (composer image handling and `loading="lazy"` rendering to reuse via `<CollectionPicker>`)
+- `/Users/sanan/Documents/rv-alumni/src/components/admin/report-management.tsx` + `src/components/profile/admin-actions.ts` (moderation queue pattern to mirror as `PhotoQueue`)
+- `/Users/sanan/Documents/rv-alumni/src/components/directory/directory-client.tsx` (URL-driven filters, debounced search, glass filter panel, empty state to mirror)
+- `/Users/sanan/Documents/rv-alumni/src/app/preview/v2/page.tsx` (locked v2 design: sidebar `NAV`, header, rail cards, `Hoopoe` easter-egg component, palette tokens)
+- `/Users/sanan/Documents/rv-alumni/src/lib/validators.ts`, `src/lib/utils.ts`, `src/components/common/user-avatar.tsx`, `src/components/layout/navbar.tsx`, `.claude/skills/liftkit-spacing/SKILL.md` (Zod style, helpers, avatar, IA, spacing tokens)

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { randomBytes } from "crypto";
+import { encode } from "@auth/core/jwt";
+
+const MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 
 export async function POST(req: NextRequest) {
   const adminEmail = process.env.ADMIN_EMAIL;
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
-  if (!adminEmail) {
+  if (!adminEmail || !secret) {
     return NextResponse.json({ error: "Not available" }, { status: 403 });
   }
 
@@ -23,32 +26,43 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Create a database session
-  const sessionToken = randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  // Ensure admin role is set
+  if (user.role !== "admin") {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { role: "admin" },
+    });
+  }
 
-  await prisma.session.create({
-    data: {
-      sessionToken,
-      userId: user.id,
-      expires,
-    },
-  });
-
-  const response = NextResponse.json({ success: true });
-
-  // Set the session cookie (matches NextAuth's cookie name)
-  // Use __Secure- prefix when behind HTTPS (Vercel), plain name for local dev
+  // Create a JWT token matching NextAuth's format
   const isSecure = req.nextUrl.protocol === "https:";
   const cookieName = isSecure
     ? "__Secure-authjs.session-token"
     : "authjs.session-token";
 
-  response.cookies.set(cookieName, sessionToken, {
+  const token = await encode({
+    token: {
+      name: user.name,
+      email: user.email,
+      sub: user.id,
+      id: user.id,
+      role: "admin",
+      batchType: user.batchType,
+      batchYear: user.batchYear,
+      avatarColor: user.avatarColor,
+    },
+    secret,
+    salt: cookieName,
+    maxAge: MAX_AGE,
+  });
+
+  const response = NextResponse.json({ success: true });
+
+  response.cookies.set(cookieName, token, {
     httpOnly: true,
     secure: isSecure,
     sameSite: "lax",
-    expires,
+    expires: new Date(Date.now() + MAX_AGE * 1000),
     path: "/",
   });
 

@@ -44,6 +44,54 @@ export async function adminUpdateNote(userId: string, note: string) {
   return { success: true };
 }
 
+export async function adminVerifyUser(
+  userId: string,
+  method: "office_list" | "admin_manual" = "admin_manual"
+) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return { error: "Not authorized" };
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      verifyState: "verified",
+      verifyMethod: method,
+      verifiedAt: new Date(),
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId,
+      type: "admin",
+      message: "You're verified. Your name now carries a small leaf to show you belong.",
+      link: `/profile/${userId}`,
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/profile/${userId}`);
+  return { success: true };
+}
+
+export async function adminUnverifyUser(userId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return { error: "Not authorized" };
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { verifyState: "pending", verifyMethod: null, verifiedAt: null },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath(`/profile/${userId}`);
+  return { success: true };
+}
+
 export async function adminHidePost(postId: string) {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") {

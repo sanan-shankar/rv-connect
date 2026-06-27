@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { DirectoryClient } from "@/components/directory/directory-client";
+import { cityCoords } from "@/lib/city-coords";
+import type { CityPin } from "@/components/directory/alumni-map";
 
 export default async function DirectoryPage({
   searchParams,
@@ -37,6 +39,27 @@ export default async function DirectoryPage({
     orderBy: { batchYear: "desc" },
   });
 
+  // Aggregate alumni locations into map pins (one per known city, sized by count).
+  const cityCounts = await prisma.user.groupBy({
+    by: ["currentCity"],
+    where: { isBlocked: false, currentCity: { not: null } },
+    _count: { id: true },
+  });
+  const pinMap = new Map<string, CityPin>();
+  let unmappedCount = 0;
+  for (const c of cityCounts) {
+    const coords = cityCoords(c.currentCity);
+    if (!coords) {
+      unmappedCount += c._count.id;
+      continue;
+    }
+    const key = coords.join(",");
+    const existing = pinMap.get(key);
+    if (existing) existing.count += c._count.id;
+    else pinMap.set(key, { city: c.currentCity!, lng: coords[0], lat: coords[1], count: c._count.id });
+  }
+  const cityPins = [...pinMap.values()];
+
   // Only fetch users if we have a filter active
   const hasFilter = !!(params.q || showingYear || params.city || params.industry);
 
@@ -47,6 +70,8 @@ export default async function DirectoryPage({
           id: true,
           name: true,
           avatarColor: true,
+          accountType: true,
+          verifyState: true,
           batchType: true,
           batchYear: true,
           currentCity: true,
@@ -84,10 +109,11 @@ export default async function DirectoryPage({
       </p>
       <DirectoryClient
         users={users}
-        batchYearCounts={batchYearCounts.map((b) => ({
-          year: b.batchYear,
-          count: b._count.id,
-        }))}
+        cityPins={cityPins}
+        unmappedCount={unmappedCount}
+        batchYearCounts={batchYearCounts
+          .filter((b): b is { batchYear: number; _count: { id: number } } => b.batchYear != null)
+          .map((b) => ({ year: b.batchYear, count: b._count.id }))}
         cities={cities.map((c) => c.currentCity!).filter(Boolean)}
         industries={industries.map((i) => i.workplace!).filter(Boolean)}
         initialFilters={{

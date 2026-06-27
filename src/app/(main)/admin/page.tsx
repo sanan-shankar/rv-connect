@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, FileText, AlertTriangle, UserPlus } from "lucide-react";
+import { Users, FileText, AlertTriangle, UserPlus, Images } from "lucide-react";
 import { UserManagement } from "@/components/admin/user-management";
 import { ReportManagement } from "@/components/admin/report-management";
+import { PhotoQueue } from "@/components/admin/photo-queue";
+import { VerificationQueue } from "@/components/admin/verification-queue";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -15,7 +17,7 @@ export default async function AdminPage() {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [totalUsers, totalPosts, newSignups, pendingReports] =
+  const [totalUsers, totalPosts, newSignups, pendingReports, pendingPhotos] =
     await Promise.all([
       prisma.user.count({ where: { isBlocked: false } }),
       prisma.post.count(),
@@ -23,6 +25,11 @@ export default async function AdminPage() {
         where: { createdAt: { gte: weekAgo } },
       }),
       prisma.report.count({ where: { status: "pending" } }),
+      prisma.photo.findMany({
+        where: { approved: false, isHidden: false },
+        include: { uploader: { select: { name: true } } },
+        orderBy: { createdAt: "asc" },
+      }),
     ]);
 
   const users = await prisma.user.findMany({
@@ -40,6 +47,23 @@ export default async function AdminPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const pendingVerification = await prisma.user.findMany({
+    where: { isBlocked: false, verifyState: { in: ["unverified", "pending", "flagged"] } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      accountType: true,
+      verifyState: true,
+      batchType: true,
+      batchYear: true,
+      admissionNumber: true,
+      yearJoined: true,
+      yearLeft: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
   const reports = await prisma.report.findMany({
     where: { status: "pending" },
     include: {
@@ -51,6 +75,7 @@ export default async function AdminPage() {
           author: { select: { name: true } },
         },
       },
+      reportedUser: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -60,6 +85,7 @@ export default async function AdminPage() {
     { label: "Total Posts", value: totalPosts, icon: FileText },
     { label: "New This Week", value: newSignups, icon: UserPlus },
     { label: "Pending Reports", value: pendingReports, icon: AlertTriangle },
+    { label: "Photos to Review", value: pendingPhotos.length, icon: Images },
   ];
 
   return (
@@ -98,9 +124,42 @@ export default async function AdminPage() {
             reason: r.reason,
             createdAt: r.createdAt.toISOString(),
             reporterName: r.reporter.name,
-            postId: r.post.id,
-            postContent: r.post.content.slice(0, 200),
-            postAuthor: r.post.author.name,
+            targetType: r.targetType,
+            postId: r.post?.id ?? null,
+            postContent: r.post ? r.post.content.slice(0, 200) : null,
+            postAuthor: r.post?.author.name ?? null,
+            reportedUserId: r.reportedUser?.id ?? null,
+            reportedUserName: r.reportedUser?.name ?? null,
+          }))}
+        />
+      </section>
+
+      {/* Verification queue */}
+      <section>
+        <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
+          Verification ({pendingVerification.length})
+        </h2>
+        <VerificationQueue users={pendingVerification} />
+      </section>
+
+      {/* Photo queue */}
+      <section>
+        <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
+          Photos to Review ({pendingPhotos.length})
+        </h2>
+        <PhotoQueue
+          photos={pendingPhotos.map((p) => ({
+            id: p.id,
+            thumbUrl: p.thumbUrl,
+            caption: p.caption,
+            subject: p.subject ? p.subject.split(",").filter(Boolean) : [],
+            area: p.area,
+            era: p.era,
+            freeTags: p.freeTags
+              ? p.freeTags.split(",").map((t) => t.trim()).filter(Boolean)
+              : [],
+            uploaderName: p.uploader.name,
+            createdAt: p.createdAt.toISOString(),
           }))}
         />
       </section>

@@ -39,26 +39,27 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.55);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.3);
+  --radius-2xl: calc(var(--radius) * 1.7);
+  --radius-3xl: calc(var(--radius) * 2.1);
+  --radius-4xl: calc(var(--radius) * 2.5);
 
-  /* Fresh, vibrant nature colours */
-  --color-leaf: #22A845;
-  --color-leaf-light: #34C759;
-  --color-canopy: #1A8035;
-  --color-bark: #B8860B;
-  --color-bark-light: #DAA520;
-  --color-clay: #E8DCC8;
-  --color-paper: #F8FBF8;
-  --color-ink: #1A1A2E;
-  --color-mist: #EEF2EE;
+  /* Valley palette (light-mode-first). Neutrals carry the UI; accents are used sparingly. */
+  --color-leaf: #1F8A4C;        /* primary green */
+  --color-leaf-light: #34C759;  /* lit accent (active nav) */
+  --color-canopy: #235C49;      /* deep sidebar green */
+  --color-sky: #3F7CA6;         /* office blue, the vivid pop */
+  --color-cinnamon: #C2622F;    /* warm accent (saved, events, hoopoe) */
+  --color-heart: #E03A33;       /* the heart is always this red */
+  --color-paper: #FAF8F3;       /* surface */
+  --color-float: #FFFFFF;       /* floating modals only */
+  --color-ink: #23241E;         /* warm near-black text */
+  --color-mist: #EFEBE1;        /* recessed surface */
 
-  /* LiftKit Golden Ratio Spacing (φ = 1.618) */
+  /* LiftKit Golden Ratio Spacing (phi = 1.618) */
   --space-xxs: 0.236em;
   --space-xs: 0.382em;
   --space-s: 0.618em;
@@ -70,72 +71,74 @@
 }
 
 :root {
-  /* Warm papyrus light theme */
-  --background: #F5F0E8;
-  --foreground: #1A1A2E;
-  --card: #FFFFFF;
-  --card-foreground: #1A1A2E;
+  /* Warm, dimmed light theme. Surfaces are never pure white (that is reserved for floating modals). */
+  --background: #E9E6DD;
+  --foreground: #23241E;
+  --card: #FAF8F3;
+  --card-foreground: #23241E;
   --popover: #FFFFFF;
-  --popover-foreground: #1A1A2E;
-  --primary: #22A845;
+  --popover-foreground: #23241E;
+  --primary: #1F8A4C;
   --primary-foreground: #FFFFFF;
-  --secondary: #EFF5EF;
-  --secondary-foreground: #1A8035;
-  --muted: #EFF5EF;
-  --muted-foreground: #64748B;
-  --accent: #EFF5EF;
-  --accent-foreground: #1A8035;
-  --destructive: #EF4444;
-  --border: #DCE5DC;
-  --input: #DCE5DC;
-  --ring: #22A845;
-  --chart-1: #22A845;
-  --chart-2: #34C759;
-  --chart-3: #FF9500;
-  --chart-4: #DAA520;
-  --chart-5: #E8DCC8;
-  --radius: 0.75rem;
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1A1A2E;
-  --sidebar-primary: #22A845;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #EFF5EF;
-  --sidebar-accent-foreground: #1A8035;
-  --sidebar-border: #DCE5DC;
-  --sidebar-ring: #22A845;
+  --secondary: #EFEBE1;
+  --secondary-foreground: #1A6B3C;
+  --muted: #EFEBE1;
+  --muted-foreground: #6E7268;
+  --accent: #EFEBE1;
+  --accent-foreground: #1A6B3C;
+  --destructive: #E03A33;
+  --border: #DED9CC;
+  --input: #DED9CC;
+  --ring: #1F8A4C;
+  --chart-1: #1F8A4C;
+  --chart-2: #3F7CA6;
+  --chart-3: #C2622F;
+  --chart-4: #34C759;
+  --chart-5: #C75F7A;
+  --radius: 1rem;
+  --sidebar: #235C49;
+  --sidebar-foreground: #EBF3EE;
+  --sidebar-primary: #34C759;
+  --sidebar-primary-foreground: #08120D;
+  --sidebar-accent: #2E6A55;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2A5C49;
+  --sidebar-ring: #34C759;
 }
 
+/* Dark mode scaffolding is kept but NOT shipped for MVP (forcedTheme="light").
+   It loses character today; revisit later as a warm "gray not black" treatment. */
 .dark {
-  --background: #0F1A13;
-  --foreground: #E2E8E4;
-  --card: #162019;
-  --card-foreground: #E2E8E4;
-  --popover: #162019;
-  --popover-foreground: #E2E8E4;
-  --primary: #34C759;
-  --primary-foreground: #0F1A13;
-  --secondary: #1E2D22;
-  --secondary-foreground: #E2E8E4;
-  --muted: #1E2D22;
-  --muted-foreground: #94A3B8;
-  --accent: #1E2D22;
-  --accent-foreground: #E2E8E4;
-  --destructive: #EF4444;
-  --border: #2A3D2E;
-  --input: #2A3D2E;
-  --ring: #34C759;
-  --chart-1: #34C759;
-  --chart-2: #22A845;
-  --chart-3: #FF9500;
-  --chart-4: #DAA520;
-  --chart-5: #1E2D22;
-  --sidebar: #162019;
-  --sidebar-foreground: #E2E8E4;
+  --background: #10171A;
+  --foreground: #E8EDE7;
+  --card: #18211D;
+  --card-foreground: #E8EDE7;
+  --popover: #1E2823;
+  --popover-foreground: #E8EDE7;
+  --primary: #34B083;
+  --primary-foreground: #08120D;
+  --secondary: #1E2823;
+  --secondary-foreground: #D0D8D2;
+  --muted: #1E2823;
+  --muted-foreground: #9DA8A0;
+  --accent: #1E2823;
+  --accent-foreground: #D0D8D2;
+  --destructive: #F0675A;
+  --border: #28332D;
+  --input: #28332D;
+  --ring: #34B083;
+  --chart-1: #34B083;
+  --chart-2: #5C9BC4;
+  --chart-3: #D98A4F;
+  --chart-4: #34C759;
+  --chart-5: #C75F7A;
+  --sidebar: #16271F;
+  --sidebar-foreground: #E8EDE7;
   --sidebar-primary: #34C759;
-  --sidebar-primary-foreground: #0F1A13;
-  --sidebar-accent: #1E2D22;
-  --sidebar-accent-foreground: #E2E8E4;
-  --sidebar-border: #2A3D2E;
+  --sidebar-primary-foreground: #08120D;
+  --sidebar-accent: #23302A;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #28332D;
   --sidebar-ring: #34C759;
 }
 
@@ -143,8 +146,10 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Only background and border animate, and quickly. Colour is NEVER transitioned, so the
+     like heart can switch to red on the first frame (no fade through a dark value). */
   *, *::before, *::after {
-    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+    transition: background-color 120ms ease, border-color 120ms ease;
   }
   body {
     @apply bg-background text-foreground;
@@ -155,10 +160,33 @@
   h1, h2, h3, h4 {
     @apply font-heading tracking-tight;
   }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
-  .glass {
-    @apply bg-white/70 dark:bg-black/40 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-sm;
+  /* Layered, colour-tinted card shadow (never a flat shadow-md). */
+  .card-elevated {
+    box-shadow: 0 1px 2px rgba(30, 28, 22, 0.04), 0 18px 40px -28px rgba(30, 28, 22, 0.5);
   }
+}
+
+/* Hoopoe (login password delight): wings open like curtains to reveal the eyes. */
+.hoopoe .wing {
+  transform-box: view-box;
+  transform-origin: 40px 49px;
+  transition: transform 0.45s cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+.hoopoe:not(.covered) .wing-l { transform: rotate(-82deg); }
+.hoopoe:not(.covered) .wing-r { transform: rotate(82deg); }
+.hoopoe .eye { transition: opacity 0.2s ease 0.08s; }
+.hoopoe.covered .eye { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .hoopoe .wing { transition: none; }
 }

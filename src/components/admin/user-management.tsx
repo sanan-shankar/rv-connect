@@ -15,8 +15,8 @@ interface UserRow {
   id: string;
   name: string;
   email: string;
-  batchType: string;
-  batchYear: number;
+  batchType: string | null;
+  batchYear: number | null;
   role: string;
   isBlocked: boolean;
   createdAt: string;

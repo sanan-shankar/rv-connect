@@ -18,10 +18,18 @@ import { registerUser } from "./actions";
 export function SignupForm({
   onSuccess,
 }: {
-  onSuccess: (email: string) => void;
+  onSuccess: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [accountType, setAccountType] = useState<"alumnus" | "teacher" | "ex_teacher">("alumnus");
+  const isAlum = accountType === "alumnus";
+
+  const ACCOUNT_TYPES = [
+    { value: "alumnus", label: "Alumnus" },
+    { value: "teacher", label: "Teacher" },
+    { value: "ex_teacher", label: "Former teacher" },
+  ] as const;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,20 +38,40 @@ export function SignupForm({
 
     const formData = new FormData(e.currentTarget);
 
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await registerUser(formData);
       if (result.error) {
         setError(result.error);
       } else {
-        // User created — now send magic link via client-side signIn
+        // User created — sign in with credentials directly
         const email = formData.get("email") as string;
-        await signIn("resend", {
+        const signInResult = await signIn("credentials", {
           email,
+          password,
           redirect: false,
-          callbackUrl: "/feed",
         });
-        toast.success("Welcome to the jungle 🌳");
-        onSuccess(email);
+
+        if (signInResult?.error) {
+          setError("Account created but sign in failed. Please log in manually.");
+        } else {
+          toast.success("Welcome to the jungle!");
+          onSuccess();
+        }
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -79,6 +107,60 @@ export function SignupForm({
         />
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="At least 8 characters"
+          required
+          minLength={8}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          placeholder="Confirm your password"
+          required
+          minLength={8}
+        />
+      </div>
+
+      {/* Account type */}
+      <input type="hidden" name="accountType" value={accountType} />
+      <div className="space-y-2">
+        <Label>I am a...</Label>
+        <div className="grid grid-cols-3 gap-1.5 rounded-full border border-border bg-paper p-1">
+          {ACCOUNT_TYPES.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => setAccountType(t.value)}
+              className={`rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                accountType === t.value
+                  ? "bg-leaf text-white"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!isAlum && (
+        <p className="rounded-lg bg-paper px-3 py-2 text-[13px] leading-relaxed text-muted-foreground">
+          Teachers do not need a batch. If you also studied at Rishi Valley, you can add your batch
+          later from your profile.
+        </p>
+      )}
+
+      {isAlum && (
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
@@ -113,11 +195,13 @@ export function SignupForm({
             placeholder={String(currentYear)}
             min={1926}
             max={currentYear + 1}
-            required
+            required={isAlum}
           />
         </div>
       </div>
+      )}
 
+      {isAlum && (
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="yearJoined">Year Joined</Label>
@@ -143,18 +227,7 @@ export function SignupForm({
           />
         </div>
       </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="admissionNumber">Admission Number (optional)</Label>
-        <Input
-          id="admissionNumber"
-          name="admissionNumber"
-          type="number"
-          placeholder="e.g. 1234"
-          min={0}
-          max={10000}
-        />
-      </div>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

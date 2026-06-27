@@ -52,8 +52,27 @@ export function pickAvatarColor(): string {
   return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]
 }
 
-export function formatBatch(batchType: string, batchYear: number): string {
+export function formatBatch(
+  batchType: string | null,
+  batchYear: number | null
+): string {
+  if (batchYear == null) return ""
   return `Batch of '${String(batchYear).slice(-2)}`
+}
+
+/**
+ * The single line shown under a person's name everywhere. Alumni get
+ * "Batch of '09"; teachers get a role label since they have no batch.
+ */
+export function batchLine(user: {
+  accountType?: string | null
+  batchType?: string | null
+  batchYear?: number | null
+}): string {
+  if (user.accountType === "teacher") return "Teacher"
+  if (user.accountType === "ex_teacher") return "Former teacher"
+  if (user.batchYear == null) return "Member"
+  return `Batch of '${String(user.batchYear).slice(-2)}`
 }
 
 /**

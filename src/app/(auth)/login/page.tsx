@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { Mail, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Hoopoe } from "@/components/auth/hoopoe";
 import {
   Card,
   CardContent,
@@ -17,9 +18,23 @@ import {
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [intro, setIntro] = useState(true);
+
+  // On load the hoopoe peeks: eyes open briefly, then settle closed.
+  useEffect(() => {
+    const t = setTimeout(() => setIntro(false), 1000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const hoopoeCovered = !showPw && !intro;
+
+  const isAdmin =
+    process.env.NEXT_PUBLIC_ADMIN_EMAIL &&
+    email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,8 +42,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // Admin bypass: direct login without magic link (dev only)
-      if (process.env.NEXT_PUBLIC_ADMIN_EMAIL && email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
+      // Admin bypass: direct login via admin-login endpoint (no password needed)
+      if (isAdmin) {
         const res = await fetch("/api/auth/admin-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -46,54 +61,22 @@ export default function LoginPage() {
         }
       }
 
-      const result = await signIn("resend", {
+      const result = await signIn("credentials", {
         email,
+        password,
         redirect: false,
-        callbackUrl: "/feed",
       });
 
       if (result?.error) {
-        setError("Something went wrong. Please try again.");
-      } else {
-        setSent(true);
+        setError("Invalid email or password.");
+      } else if (result?.ok) {
+        window.location.href = "/feed";
       }
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
-  }
-
-  if (sent) {
-    return (
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-leaf/10">
-            <Mail className="h-8 w-8 text-leaf" />
-          </div>
-          <CardTitle className="font-heading text-2xl">
-            Check your inbox
-          </CardTitle>
-          <CardDescription className="text-base">
-            We sent a magic link to{" "}
-            <span className="font-medium text-foreground">{email}</span>. Click
-            the link in the email to sign in.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Didn&apos;t receive it? Check your spam folder or{" "}
-            <button
-              onClick={() => setSent(false)}
-              className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            >
-              try again
-            </button>
-            .
-          </p>
-        </CardContent>
-      </Card>
-    );
   }
 
   return (
@@ -106,9 +89,14 @@ export default function LoginPage() {
           <ArrowLeft className="h-4 w-4" />
           Back
         </Link>
-        <CardTitle className="font-heading text-2xl tracking-tight">Welcome back</CardTitle>
-        <CardDescription>
-          Enter your email and we&apos;ll send you a magic link to sign in.
+        <div className="mb-1 flex justify-center">
+          <Hoopoe covered={hoopoeCovered} />
+        </div>
+        <CardTitle className="text-center font-heading text-2xl tracking-tight">
+          Welcome back to the valley
+        </CardTitle>
+        <CardDescription className="text-center">
+          Enter your email and password to sign in.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -125,6 +113,31 @@ export default function LoginPage() {
               autoFocus
             />
           </div>
+          {!isAdmin && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPw ? "text" : "password"}
+                  placeholder="Your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((s) => !s)}
+                  aria-label={showPw ? "Hide password" : "Show password"}
+                  className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          )}
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
@@ -134,7 +147,7 @@ export default function LoginPage() {
             className="w-full"
             disabled={loading}
           >
-            {loading ? "Sending..." : "Send magic link"}
+            {loading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
