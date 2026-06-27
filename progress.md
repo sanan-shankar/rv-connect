@@ -308,10 +308,25 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
 ### scrollable Landing showcase, login Hoopoe delight, teacher accounts + nullable batch + verified marker +
 ### admin verification queue + flag-a-person. Every nav item resolves. tsc clean throughout.
 
-### Remaining
-- Deploy prep next: render.yaml + DEPLOY.md + the SQLite-local/Postgres-prod provider path; cleanup .next-stale.
-  The actual deploy needs the OWNER'S accounts (Render service + Render Postgres + GitHub connect + env vars) and
-  then a branch + commit + push.
+### DEPLOY PREP done + local verified (2026-06-27)
+- storage.ts shim already Blob/filesystem-ready (from Phase 9). Added the Postgres path WITHOUT touching local:
+  src/lib/prisma.ts now picks @prisma/adapter-pg when DATABASE_URL starts with "postgres", else libSQL (local
+  file: / Turso) -- so local dev is unchanged. Installed @prisma/adapter-pg + pg (+ @types/pg).
+- Prisma can't env-switch `provider`, so scripts/prepare-prisma.mjs rewrites datasource provider sqlite->postgresql
+  ONLY during a Postgres build (no-op locally; verified). Committed schema stays sqlite. No SQLite-only types used,
+  so the swap is clean.
+- render.yaml (Blueprint: web service + Render Postgres; build = prepare-prisma -> generate -> db push -> build;
+  health check /login; env vars incl. DATABASE_URL fromDatabase + generated NEXTAUTH_SECRET). .env.example +
+  DEPLOY.md (full owner walkthrough incl. the provider split, Blob token, post-deploy seeding, follow-ups).
+- VERIFIED local untouched: tsc 0 errors, dev serves, datasource still sqlite, feed works (screenshot-92), the
+  prepare script no-ops on file: URL. Moved leftover .next-stale out of the repo (rm -rf blocked; used mv).
+  gitignored .claude/gsd-core + node_modules + .next-stale.
+- COMMITTED to a new branch `redesign` (commit 21eb32f, 111 files, NO push, NO AI attribution per CLAUDE.md).
+  Excluded .claude/ (reinstallable GSD tooling w/ node_modules) and Inspiration/. Secrets (.env.local) + dev.db
+  are gitignored and were not committed.
+
+### TO GO LIVE (needs the OWNER's accounts): push branch to GitHub, Render New>Blueprint on the repo, fill the
+### sync:false env vars (NEXTAUTH_URL, ADMIN_EMAIL, NEXT_PUBLIC_ADMIN_EMAIL, BLOB_READ_WRITE_TOKEN), apply. See DEPLOY.md.
 - Larger follow-ups (need deploy infra or are big net-new): full Catch-ups (Roundup* models + Render Cron +
   Resend), full Events model+page, invite tokens + community vouching + house-per-year + /profile/complete,
   remaining Phase 13 micro-delights (signup hoopoe, loading-bird scene, bookmark ribbon, avatar chirp).

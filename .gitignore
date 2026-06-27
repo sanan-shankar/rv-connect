@@ -63,3 +63,7 @@ temporary screenshots/
 .claude/gsd-core/
 .claude/**/node_modules/
 .next-stale/
+
+# Local tooling + reference material (not part of the app)
+.claude/
+Inspiration/
