@@ -35,14 +35,20 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
   noticeably longer/wider than the old inline bar); it expands into a live input on click. (SearchPill)
 - [ ] Smaller search that expands into filters on focus; pagination so the feed scales (600+ posts/month).
 - [x] Lower the right rail so "Coming up" aligns with the composer ("share memory") tile, not "New post".
-  Feed now uses the 3-col shell (main + 318px rail); the rail carries a top offset so its first card lines
-  up with the composer, not the page header. New post / search / bell live in the header instead.
+  Feed now uses the 3-col shell (main + 318px rail); the rail carries a top offset (pt-[139px]) so its
+  first card ("Coming up") lines up exactly with the composer tile (measured 171px == 171px), not the page
+  header. The "Coming up" event card (cinnamon iPhone-calendar date chip + RSVP) is restored at the rail
+  top, followed by "New in the directory" (bird avatars, names link to profiles) and "Your groups" (counts
+  in office-blue). New post / search / bell live in the header, which stays inside the main column so the
+  space beside it (above the rail) is header-only.
 - [~] Use the freed space above the rail for something useful (TBD; add if a good idea fits).
 - [x] Share icon: rounder/softer/approachable, not too sharp, not too vertical/compressed, "just right".
   Swapped ShareFat for the rounder ShareNetwork everywhere posts render it (post-card, letter-engagement).
 - [x] New post button: tone the glow down ~20% (less "AI company").
   Primary/leaf button glow softened to 0 5px 13px -12px (tinted, restrained), applied in button.tsx.
-- [~] New post button: the "+" must be vertically centered with the text and the content centered in the button.
+- [x] New post button: the "+" must be vertically centered with the text and the content centered in the button.
+  Button base is inline-flex items-center justify-center with even px-5; the + (17px) sits on the text
+  baseline-centre and the icon+label group is centred in the pill. Verified on a 1440 crop.
 - [x] Batch line: the "·" separator dot is too small; make it slightly bigger (not too big).
   Added .dotsep (1.15em, ink-soft) and applied it to post-card, profile, and footer separators.
 - [~] Tighten name-to-batch spacing (Ananya was too loose; match the nicer Sanjana spacing).
