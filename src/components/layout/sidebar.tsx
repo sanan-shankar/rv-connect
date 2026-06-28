@@ -55,6 +55,14 @@ const NAV = [
   { href: "/about", label: "About", icon: Info },
 ];
 
+// Primary destinations that live on the mobile bottom tab bar; everything else
+// folds into the More sheet.
+const MOBILE_TABS = NAV.slice(0, 4);
+
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
 function Brand() {
   return (
     <Link href="/feed" className="flex items-center gap-2.5 px-2 py-1">
@@ -81,7 +89,7 @@ function NavLinks({
   return (
     <nav className="flex flex-col gap-0.5">
       {NAV.map((n) => {
-        const active = pathname === n.href || pathname.startsWith(n.href + "/");
+        const active = isActive(pathname, n.href);
         return (
           <Link
             key={n.href}
@@ -175,26 +183,87 @@ export function Sidebar({
         <UserMenu user={user} unreadCount={unreadCount} />
       </aside>
 
-      {/* Mobile: top bar + slide-over sheet */}
+      {/* Mobile: slim brand top bar + a bottom tab bar with a More sheet */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-sidebar px-4 md:hidden">
         <Brand />
-        <div className="flex items-center gap-1 text-sidebar-foreground">
+        <div className="flex items-center text-sidebar-foreground">
           <NotificationBell initialUnreadCount={unreadCount} />
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Menu</span>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 bg-sidebar p-4">
-              <SheetTitle className="sr-only">Menu</SheetTitle>
-              <div className="mb-4">
-                <Brand />
-              </div>
-              <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
-            </SheetContent>
-          </Sheet>
         </div>
       </header>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-sidebar-border bg-sidebar px-1 pb-[env(safe-area-inset-bottom)] text-sidebar-foreground md:hidden">
+        {MOBILE_TABS.map((n) => {
+          const active = isActive(pathname, n.href);
+          return (
+            <Link
+              key={n.href}
+              href={n.href}
+              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring/60 active:opacity-70 ${
+                active ? "text-sidebar-primary-foreground" : "text-sidebar-foreground/70"
+              }`}
+            >
+              <span
+                className={`grid h-8 w-12 place-items-center rounded-full ${
+                  active ? "bg-sidebar-accent text-white" : ""
+                }`}
+              >
+                <n.icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
+              </span>
+              {n.label}
+            </Link>
+          );
+        })}
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium text-sidebar-foreground/70 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring/60 active:opacity-70">
+            <span className="grid h-8 w-12 place-items-center rounded-full">
+              <Menu className="h-[18px] w-[18px]" strokeWidth={1.9} />
+            </span>
+            More
+          </SheetTrigger>
+          <SheetContent side="bottom" className="rounded-t-2xl bg-sidebar p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+            <SheetTitle className="sr-only">More</SheetTitle>
+            <div className="mb-3">
+              <Brand />
+            </div>
+            <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+            <div className="mt-3 border-t border-sidebar-border pt-3">
+              <Link
+                href={`/profile/${user.id}`}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+              >
+                <UserIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                My Profile
+              </Link>
+              <Link
+                href="/settings"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+              >
+                <Settings className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                Settings
+              </Link>
+              {user.role === "admin" && (
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+                >
+                  <Shield className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                  Admin
+                </Link>
+              )}
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+              >
+                <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                Sign out
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </nav>
     </>
   );
 }

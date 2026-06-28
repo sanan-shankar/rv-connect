@@ -25,9 +25,13 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [x] Bird avatars as default (not initials); photo upload overrides.
 - [ ] Need 500+ bird avatar variations (scalable to 1000), evenly distributed, well differentiated.
 - [~] Bird glyphs must be CENTERED in their disc.
-- [~] Search placeholder text should end in "..." and the search bar should be longer.
+- [x] Search placeholder text should end in "..." and the search bar should be longer.
+  Moved into the PageHeader as an expand-on-click pill (placeholder "Search the valley...", ~320px wide,
+  noticeably longer/wider than the old inline bar); it expands into a live input on click. (SearchPill)
 - [ ] Smaller search that expands into filters on focus; pagination so the feed scales (600+ posts/month).
-- [~] Lower the right rail so "Coming up" aligns with the composer ("share memory") tile, not "New post".
+- [x] Lower the right rail so "Coming up" aligns with the composer ("share memory") tile, not "New post".
+  Feed now uses the 3-col shell (main + 318px rail); the rail carries a top offset so its first card lines
+  up with the composer, not the page header. New post / search / bell live in the header instead.
 - [~] Use the freed space above the rail for something useful (TBD; add if a good idea fits).
 - [x] Share icon: rounder/softer/approachable, not too sharp, not too vertical/compressed, "just right".
   Swapped ShareFat for the rounder ShareNetwork everywhere posts render it (post-card, letter-engagement).
