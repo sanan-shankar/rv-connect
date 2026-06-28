@@ -23,8 +23,13 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 ## Feed
 - [x] Use the ruled SHEET layout (not separate tiles).
 - [x] Bird avatars as default (not initials); photo upload overrides.
-- [ ] Need 500+ bird avatar variations (scalable to 1000), evenly distributed, well differentiated.
-- [~] Bird glyphs must be CENTERED in their disc.
+- [x] Need 500+ bird avatar variations (scalable to 1000), evenly distributed, well differentiated.
+  640 combinations (16 species x 10 disc colours x 4 poses) from a salted FNV-1a hash of user.id,
+  high-bit-sliced so the axes decorrelate (a real correlation bug between colour parity and pose
+  parity was found and fixed). src/lib/avatar.test.mjs observes all 640 distinct triples evenly spread.
+- [x] Bird glyphs must be CENTERED in their disc.
+  Every silhouette is now authored balanced around (16,16) in a 0..32 viewBox; the old low-right
+  translate(0.6,1.6) offset is gone. Verified on a 16-species contact sheet at 28/40/64/104px.
 - [x] Search placeholder text should end in "..." and the search bar should be longer.
   Moved into the PageHeader as an expand-on-click pill (placeholder "Search the valley...", ~320px wide,
   noticeably longer/wider than the old inline bar); it expands into a live input on click. (SearchPill)
@@ -41,7 +46,9 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [x] Batch line: the "·" separator dot is too small; make it slightly bigger (not too big).
   Added .dotsep (1.15em, ink-soft) and applied it to post-card, profile, and footer separators.
 - [~] Tighten name-to-batch spacing (Ananya was too loose; match the nicer Sanjana spacing).
-- [ ] Click any person's NAME in the feed to go to their profile (everywhere a name appears).
+- [x] Click any person's NAME in the feed to go to their profile (everywhere a name appears).
+  Shared PersonName (Link to /profile/[id] with hover underline) now renders names in the feed,
+  comments, and rails; avatars also link to the profile. UserAvatar deleted, BirdAvatar everywhere.
 - [P] Reactions beyond the heart: only if great icons; small, tasteful, no emoji soup.
 - [ ] Saved/bookmarked posts, with a cute colored bookmark animation.
 - [P] "On this day" tile that swaps with the events tile depending on what is applicable (needs history DB first).

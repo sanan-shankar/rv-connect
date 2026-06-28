@@ -23,7 +23,10 @@ export default async function FeedPage() {
           unreadCount={unreadCount}
           actions={<NewPostCTA />}
         />
-        <FeedColumn showControls={false} />
+        <FeedColumn
+          showControls={false}
+          currentUser={{ id: session.user.id, name: session.user.name }}
+        />
       </div>
       {/* The rail drops to the composer line, matching the contract (Coming up
           aligns with the composer, not the page header). */}

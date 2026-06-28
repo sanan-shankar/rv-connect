@@ -5,7 +5,9 @@ import { Send, Reply } from "lucide-react";
 import { Heart } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserAvatar } from "@/components/common/user-avatar";
+import { BirdAvatar } from "@/components/common/bird-avatar";
+import { PersonName } from "@/components/common/person-name";
+import Link from "next/link";
 import { formatTimeAgo } from "@/lib/utils";
 import {
   createComment,
@@ -208,16 +210,15 @@ function CommentItem({
 
   return (
     <div className="flex gap-2">
-      <UserAvatar
-        name={comment.author.name}
-        avatarColor={comment.author.avatarColor}
-        size="sm"
-      />
+      <Link href={`/profile/${comment.author.id}`} aria-label={comment.author.name}>
+        <BirdAvatar
+          user={{ id: comment.author.id, name: comment.author.name }}
+          size="xs"
+        />
+      </Link>
       <div className="flex-1">
         <div className="rounded-lg bg-muted px-3 py-2">
-          <span className="text-xs font-semibold text-foreground">
-            {comment.author.name}
-          </span>
+          <PersonName user={comment.author} className="text-xs" />
           <p className="text-sm leading-relaxed text-foreground">{comment.content}</p>
         </div>
         <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">

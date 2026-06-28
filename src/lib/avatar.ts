@@ -2,10 +2,16 @@
  * Deterministic valley-bird avatars.
  *
  * Every member without an uploaded photo gets a bird, derived stably from their id, so it never
- * changes and is evenly distributed (species and disc colour are hashed with different salts so
- * they do not correlate). Combinations = species x colours x (future variations), which scales
- * well past 500 as we add species. Photo upload overrides the bird; a manual species/colour can
- * also override the hash.
+ * changes and is evenly distributed. The three axes (species, disc colour, pose) are hashed with
+ * different salts so they do not correlate: two members who happen to share a species are very
+ * unlikely to also share colour and pose. Combinations:
+ *
+ *     16 species  x  10 disc colours  x  4 poses  =  640
+ *
+ * which clears the 500 floor with headroom and scales toward 1000 as species are added. Photo
+ * upload overrides the bird; a manual species/colour can also override the hash (precedence:
+ * photo > manual > hash). The same id yields the same bird on the server and the client because
+ * this is pure arithmetic over charCodeAt, with no Math.random, Date, or locale.
  */
 
 export const AVATAR_PALETTE = [
@@ -22,7 +28,10 @@ export const AVATAR_PALETTE = [
 ];
 
 // Bird silhouettes available in bird-avatar.tsx. Keep in sync with the Species switch there.
-export const BIRD_SPECIES_COUNT = 6;
+export const BIRD_SPECIES_COUNT = 16;
+
+// Pose variations (mirror / crest-lift / tail-lift) applied on top of a species. See bird-avatar.tsx.
+export const BIRD_POSE_COUNT = 4;
 
 /** FNV-1a 32-bit hash. Stable across runtimes, good spread for short strings like ids. */
 export function fnv1a(input: string): number {
@@ -36,13 +45,27 @@ export function fnv1a(input: string): number {
 
 export interface BirdChoice {
   species: number;
+  pose: number;
   color: string;
   colorIndex: number;
 }
 
+/**
+ * Each axis is a separately-salted FNV-1a, and we take a HIGH-bit window (`>>> 13`) before the
+ * modulo. The salting decorrelates the axes' high bits; the high-bit window is what actually
+ * matters here, because FNV-1a's final `imul` step couples the LOW bit of the result across
+ * salts of equal length (so `color % 10` parity and `pose % 4` parity would otherwise lock
+ * together). Slicing from bit 13 upward avoids that coupling and yields all 640 combinations
+ * evenly across real cuid ids (verified in avatar.test.mjs).
+ */
+function axisIndex(seed: string, salt: string, count: number): number {
+  return ((fnv1a(salt + seed) >>> 13) >>> 0) % count;
+}
+
 export function birdFor(seed: string): BirdChoice {
   const s = seed && seed.length > 0 ? seed : "valley";
-  const species = fnv1a(s + "::species") % BIRD_SPECIES_COUNT;
-  const colorIndex = fnv1a(s + "::color") % AVATAR_PALETTE.length;
-  return { species, color: AVATAR_PALETTE[colorIndex], colorIndex };
+  const species = axisIndex(s, "species::", BIRD_SPECIES_COUNT);
+  const colorIndex = axisIndex(s, "color::", AVATAR_PALETTE.length);
+  const pose = axisIndex(s, "pose::", BIRD_POSE_COUNT);
+  return { species, pose, color: AVATAR_PALETTE[colorIndex], colorIndex };
 }

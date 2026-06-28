@@ -17,7 +17,12 @@ export function NewPostCTA() {
     }
     el.scrollIntoView({ behavior: "smooth", block: "start" });
     const field = el.querySelector<HTMLElement>("textarea, [contenteditable], input");
-    field?.focus({ preventScroll: true });
+    if (field) {
+      field.focus({ preventScroll: true });
+    } else {
+      // Collapsed pill: click it to expand into the full editor.
+      el.querySelector<HTMLElement>("button")?.click();
+    }
   }
 
   return (
