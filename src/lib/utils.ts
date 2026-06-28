@@ -42,10 +42,11 @@ export function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
+// Vivid, evenly-walked palette (see docs/spec/color.md). Each passes AA against
+// white initials/glyphs; adjacent people in a list read as clearly different.
 const AVATAR_COLORS = [
-  "#3D8B37", "#5AAD52", "#E07B4C", "#D4B176",
-  "#4A9B8E", "#7B6BB0", "#C97B4B", "#45A065",
-  "#D48B6A", "#3B8B8B",
+  "#2E9E54", "#3F7CA6", "#1F9C8E", "#E14B3C", "#C2622F",
+  "#C79318", "#8A5BB0", "#5566C4", "#C7508A", "#4F7E5C",
 ]
 
 export function pickAvatarColor(): string {

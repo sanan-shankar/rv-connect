@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, ShareFat, BookmarkSimple } from "@phosphor-icons/react";
+import { Heart, ShareNetwork, BookmarkSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { toggleLike, toggleBookmark } from "@/app/(main)/feed/actions";
 import { CommentsSection } from "@/components/posts/comments-section";
@@ -69,12 +69,21 @@ export function LetterEngagement({
         <button
           onClick={handleLike}
           aria-pressed={liked}
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-            liked ? "text-heart" : "hover:text-heart"
+          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 ${
+            liked ? "text-heart" : "hover:text-foreground"
           }`}
         >
-          <span className={`inline-flex transition-transform ${animateLike ? "scale-125" : ""}`}>
-            <Heart size={18} weight={liked ? "fill" : "regular"} />
+          <span
+            className={`inline-flex will-change-transform ${animateLike ? "scale-[1.35]" : ""}`}
+            style={{ transition: "transform 320ms cubic-bezier(.34,1.56,.64,1)" }}
+          >
+            {/* Heart is ALWAYS red on the first frame; transition:none stops a black flash. */}
+            <Heart
+              size={18}
+              weight={liked ? "fill" : "duotone"}
+              color="#E03A33"
+              style={{ opacity: liked ? 1 : 0.45, transition: "none" }}
+            />
           </span>
           <span>{likeCount}</span>
         </button>
@@ -94,7 +103,7 @@ export function LetterEngagement({
           aria-label="Copy link to letter"
           className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
-          <ShareFat size={17} weight="regular" />
+          <ShareNetwork size={18} weight="regular" />
         </button>
       </div>
 

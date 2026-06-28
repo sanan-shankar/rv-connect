@@ -9,7 +9,8 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [~] With a dimmer bg, make the sidebar green slightly darker for more contrast (current is a touch light).
 - [~] Theme light/dark transition is too slow; speed it up (text fades in slowly, feels laggy).
 - [x] Icons are loved (esp. the quill "Letters" icon). Keep the set.
-- [~] Colors should be more vivid, at the level of the "alumni office blue" #3F7CA6 (not overboard).
+- [x] Colors should be more vivid, at the level of the "alumni office blue" #3F7CA6 (not overboard).
+  Avatar palette replaced with 10 vivid hues (docs/spec/color.md); UserAvatar fallback now #3F7CA6.
 - [~] Add more RED presence in the UI even with no likes (a proper red/coral, not the drab brown).
 
 ## Auth / login
@@ -28,10 +29,13 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [ ] Smaller search that expands into filters on focus; pagination so the feed scales (600+ posts/month).
 - [~] Lower the right rail so "Coming up" aligns with the composer ("share memory") tile, not "New post".
 - [~] Use the freed space above the rail for something useful (TBD; add if a good idea fits).
-- [~] Share icon: rounder/softer/approachable, not too sharp, not too vertical/compressed, "just right".
-- [~] New post button: tone the glow down ~20% (less "AI company").
+- [x] Share icon: rounder/softer/approachable, not too sharp, not too vertical/compressed, "just right".
+  Swapped ShareFat for the rounder ShareNetwork everywhere posts render it (post-card, letter-engagement).
+- [x] New post button: tone the glow down ~20% (less "AI company").
+  Primary/leaf button glow softened to 0 5px 13px -12px (tinted, restrained), applied in button.tsx.
 - [~] New post button: the "+" must be vertically centered with the text and the content centered in the button.
-- [~] Batch line: the "·" separator dot is too small; make it slightly bigger (not too big).
+- [x] Batch line: the "·" separator dot is too small; make it slightly bigger (not too big).
+  Added .dotsep (1.15em, ink-soft) and applied it to post-card, profile, and footer separators.
 - [~] Tighten name-to-batch spacing (Ananya was too loose; match the nicer Sanjana spacing).
 - [ ] Click any person's NAME in the feed to go to their profile (everywhere a name appears).
 - [P] Reactions beyond the heart: only if great icons; small, tasteful, no emoji soup.
@@ -39,8 +43,11 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [P] "On this day" tile that swaps with the events tile depending on what is applicable (needs history DB first).
 
 ## Heart (critical bug)
-- [~] The like heart turns BLACK then fades to red. The heart must ALWAYS be red; only the size pops.
+- [x] The like heart turns BLACK then fades to red. The heart must ALWAYS be red; only the size pops.
   Root cause: a global `* { transition: color }` in globals.css + fill icon flooding currentColor.
+  Fixed: global transition already excludes color; Heart given explicit color #E03A33 + transition:none
+  (resting 45% opacity duotone, liked solid fill) in post-card, comments-section, letter-engagement;
+  pop animates transform only.
 
 ## Dark mode
 - [D] Dark mode "loses character / feels corporate". Decision: ship LIGHT-ONLY for MVP; park a warmer

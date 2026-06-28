@@ -21,7 +21,7 @@ export function UserAvatar({
   className = "",
 }: UserAvatarProps) {
   const initials = getInitials(name);
-  const color = avatarColor || "#4A6741";
+  const color = avatarColor || "#3F7CA6";
 
   return (
     <div
