@@ -113,11 +113,12 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [P] Profile-completeness nudge (gentle, dismissable).
 
 ## Directory (the core reason to join)
-- [ ] Do NOT default to an alphabetical list (the "two A's" person dominates). Either show nothing until a
-  search, or group by GRADUATING YEAR. Recommend a default.
-- [ ] Feature-rich search that reveals filters progressively; basic users get simple search. Facets: name,
-  batch, city, profession, tags, house-history.
-- [ ] World MAP of alumni (loved), zoomable/interactive, large. Solve the city-clustering problem.
+- [x] Do NOT default to an alphabetical list (the "two A's" person dominates). Default is the dual-mode browse
+  surface (Map default tab + Batches), never a flat list. Results sort by recency, not name-asc.
+- [x] Feature-rich search that reveals filters progressively; basic users get simple search (name/city/
+  profession). Advanced facets (city, profession, batch range, sort) sit behind the Filters toggle.
+- [x] World MAP of alumni (loved), zoomable/interactive, large. Counted sqrt-scaled city pins, zoom-based
+  superclustering (India's cities merge at low zoom, split on zoom in), and a per-city people drilldown.
 - [P] Privacy controls: hold off; every profile is visible for now.
 
 ## Groups
