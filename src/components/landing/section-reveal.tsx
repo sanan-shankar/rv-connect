@@ -2,7 +2,14 @@
 
 import { useRef, useEffect, useState } from "react";
 
-/** The single scroll animation primitive: fade + small rise as a section enters. */
+/**
+ * The single scroll animation primitive: fade + small rise as a section enters.
+ *
+ * No-JS / pre-hydration safe: content renders visible by default and only
+ * arms the hidden start state once mounted on the client, so a user without
+ * JavaScript (or before hydration) never sees opacity-0 content. Reduced
+ * motion is honored both here (skip arming) and by the global stylesheet.
+ */
 export function SectionReveal({
   children,
   className,
@@ -13,11 +20,20 @@ export function SectionReveal({
   delay?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
+  const [armed, setArmed] = useState(false);
+  const [shown, setShown] = useState(true);
 
   useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+
     const el = ref.current;
     if (!el) return;
+
+    // Arm the hidden start state, then observe to reveal.
+    setShown(false);
+    setArmed(true);
+
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -25,7 +41,7 @@ export function SectionReveal({
           io.disconnect();
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.15 },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -36,7 +52,7 @@ export function SectionReveal({
       ref={ref}
       style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
       className={`transition-[opacity,transform] duration-700 ease-out ${
-        shown ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+        armed && !shown ? "translate-y-6 opacity-0" : "translate-y-0 opacity-100"
       } ${className ?? ""}`}
     >
       {children}

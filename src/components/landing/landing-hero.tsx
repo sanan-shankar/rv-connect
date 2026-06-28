@@ -40,13 +40,16 @@ export function LandingHero() {
       />
 
       {/* Brand, top-left */}
-      <div className="relative z-10 flex items-center gap-2.5 px-8 pt-7 lg:px-16">
+      <div
+        className="relative z-10 flex items-center gap-2.5 px-8 pt-7 lg:px-16"
+        style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
+      >
         <PeaksMark size={16} className="text-white" />
-        <span className="leading-tight text-white drop-shadow">
+        <span className="leading-tight text-white">
           <span className="block font-heading text-[16px] font-bold tracking-tight">
             Rishi Valley
           </span>
-          <span className="block text-[9.5px] uppercase tracking-[0.22em] text-white/70">
+          <span className="block text-[9.5px] uppercase tracking-[0.22em] text-white/80">
             Alumni
           </span>
         </span>
@@ -71,7 +74,7 @@ export function LandingHero() {
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center rounded-xl border-2 border-white/70 px-8 py-3.5 font-semibold leading-normal text-white backdrop-blur-sm transition-[transform,background-color,border-color] duration-200 hover:border-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-xl border border-white/85 bg-white/12 px-8 py-3.5 font-semibold leading-normal text-white shadow-sm transition-[transform,background-color,border-color] duration-200 hover:scale-[1.02] hover:border-white hover:bg-white/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 active:scale-[0.98]"
             >
               Sign in
             </Link>
