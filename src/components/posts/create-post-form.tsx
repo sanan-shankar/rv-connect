@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { ImagePlus, X, BarChart3, Bold, Italic, Feather } from "lucide-react";
+import { ImagePlus, X, BarChart3, Bold, Italic, Feather, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { createPost } from "@/app/(main)/feed/actions";
+import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
+
+/** Where the composer is posting. Drives the placeholder and the available affordances. */
+export type ComposerScope = "post" | "group" | "letter";
 
 const TAGS = [
   { value: "campus-memory", label: "Campus Memory", color: "bg-leaf/10 text-leaf" },
@@ -17,17 +20,32 @@ const TAGS = [
   { value: "general", label: "General", color: "bg-muted text-muted-foreground" },
 ];
 
+const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
+  post: "Share a memory, a sighting, or a note for the valley",
+  group: "Share something with this group",
+  letter: "Write your letter to the valley. Take your time.",
+};
+
 export function CreatePostForm({
   groupId,
-  placeholder = "Share a story, memory, or update...",
+  scope,
+  placeholder,
   defaultLetter = false,
+  currentUser,
   onPosted,
 }: {
   groupId?: string;
+  scope?: ComposerScope;
   placeholder?: string;
   defaultLetter?: boolean;
+  currentUser?: AvatarUser;
   onPosted?: () => void;
 } = {}) {
+  // Resolve scope: explicit prop wins, else infer from defaultLetter / groupId.
+  const resolvedScope: ComposerScope =
+    scope ?? (defaultLetter ? "letter" : groupId ? "group" : "post");
+  const collapsedPlaceholder =
+    placeholder ?? SCOPE_PLACEHOLDER[resolvedScope];
   const [content, setContent] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const [kind, setKind] = useState<"post" | "letter">(defaultLetter ? "letter" : "post");
@@ -47,7 +65,13 @@ export function CreatePostForm({
   const maxLen = isLetter ? 20000 : 5000;
   const effectivePlaceholder = isLetter
     ? "Write your letter to the valley. Take your time."
-    : placeholder;
+    : collapsedPlaceholder;
+
+  function expand(startKind?: "post" | "letter") {
+    if (startKind) setKind(startKind);
+    setExpanded(true);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  }
 
   function wrapSelection(wrapper: string) {
     const el = textareaRef.current;
@@ -195,6 +219,56 @@ export function CreatePostForm({
       onPosted?.();
     }
     setSubmitting(false);
+  }
+
+  // Collapsed: a single pill row (avatar + placeholder + Photo/Poll/Letter), expands on click.
+  // Letters default to expanded, so they skip the pill and open straight into the editor.
+  if (!expanded) {
+    return (
+      <div
+        data-composer
+        className="card-elevated flex items-center gap-3 rounded-full border border-border bg-card py-2 pl-3 pr-2"
+      >
+        {currentUser && (
+          <BirdAvatar user={currentUser} size="sm" className="hidden sm:inline-grid" />
+        )}
+        <button
+          type="button"
+          onClick={() => expand("post")}
+          className="min-w-0 flex-1 truncate rounded-full py-1.5 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+        >
+          {collapsedPlaceholder}
+        </button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => expand("post")}
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          >
+            <ImageIcon className="h-[15px] w-[15px]" />
+            <span className="hidden sm:inline">Photo</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => expand("post")}
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          >
+            <BarChart3 className="h-[15px] w-[15px]" />
+            <span className="hidden sm:inline">Poll</span>
+          </button>
+          {resolvedScope !== "group" && (
+            <button
+              type="button"
+              onClick={() => expand("letter")}
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+            >
+              <Feather className="h-[15px] w-[15px]" />
+              <span className="hidden sm:inline">Letter</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (

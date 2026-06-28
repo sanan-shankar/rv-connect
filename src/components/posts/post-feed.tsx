@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { MagnifyingGlass, SlidersHorizontal } from "@phosphor-icons/react";
 import { PostCard, type PostData } from "./post-card";
 import { loadPosts } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
@@ -19,14 +19,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 type SortBy = "recent" | "liked" | "commented";
 type TimeFilter = "all" | "today" | "week" | "month" | "year";
 
+/** Which slice of posts to render. `author` is reserved for a later batch (needs loadPosts support). */
+export type FeedScope = "all" | "author" | "group" | "letters";
+
+const LAST_SEEN_KEY = "rv-feed-last-seen";
+
 export function PostFeed({
   groupId,
+  scope = "all",
   showControls = true,
   reloadKey = 0,
   emptyTitle,
   emptyHint,
 }: {
   groupId?: string;
+  scope?: FeedScope;
   showControls?: boolean;
   reloadKey?: number;
   emptyTitle?: string;
@@ -42,6 +49,10 @@ export function PostFeed({
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("recent");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // "New since you were last here": the timestamp of the most recent post we showed last visit.
+  const [lastSeen, setLastSeen] = useState<number | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -58,12 +69,22 @@ export function PostFeed({
       loadPosts({
         cursor: next,
         groupId,
+        kind: scope === "letters" ? "letter" : undefined,
         search: search || undefined,
         sortBy,
         timeFilter,
       }),
-    [groupId, search, sortBy, timeFilter]
+    [groupId, scope, search, sortBy, timeFilter]
   );
+
+  // Read (then refresh) the last-seen marker once on mount, per scope, so the
+  // "new since last here" divider is stable for the session.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `${LAST_SEEN_KEY}:${groupId ?? scope}`;
+    const stored = window.localStorage.getItem(key);
+    setLastSeen(stored ? Number(stored) : null);
+  }, [groupId, scope]);
 
   // First page whenever filters, group, or an external reload trigger change.
   useEffect(() => {
@@ -75,11 +96,26 @@ export function PostFeed({
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
       setLoading(false);
+      // Stamp the newest post we just showed as the new marker for next visit.
+      if (typeof window !== "undefined" && data.posts.length > 0) {
+        const newest = Math.max(
+          ...data.posts.map((p) => new Date(p.createdAt).getTime())
+        );
+        window.localStorage.setItem(`${LAST_SEEN_KEY}:${groupId ?? scope}`, String(newest));
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [fetchPosts, reloadKey]);
+  }, [fetchPosts, reloadKey, groupId, scope]);
+
+  // Index of the first post that is NOT newer than last-seen: the divider goes above it.
+  // Only meaningful on the default recent sort and when there is genuinely new content.
+  const dividerIndex =
+    lastSeen !== null && sortBy === "recent" && !search
+      ? posts.findIndex((p) => new Date(p.createdAt).getTime() <= lastSeen)
+      : -1;
+  const showDivider = dividerIndex > 0; // at least one new post above older ones
 
   async function handleLoadMore() {
     setLoadingMore(true);
@@ -95,42 +131,62 @@ export function PostFeed({
   return (
     <div className="space-y-4">
       {showControls && (
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[220px] flex-1">
-            <MagnifyingGlass
-              weight="regular"
-              size={16}
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              placeholder="Search the valley..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="h-10 rounded-full border-border bg-card pl-10"
-            />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-[220px] flex-1">
+              <MagnifyingGlass
+                weight="regular"
+                size={16}
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                placeholder="Search the valley..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-10 rounded-full border-border bg-card pl-10"
+              />
+            </div>
+            {/* Filters live behind a disclosure so the default feed stays calm. */}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((o) => !o)}
+              aria-expanded={filtersOpen}
+              className={`flex h-10 shrink-0 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] ${
+                filtersOpen || sortBy !== "recent" || timeFilter !== "all"
+                  ? "bg-primary/10 text-primary"
+                  : "bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <SlidersHorizontal weight="regular" size={16} />
+              Filters
+            </button>
           </div>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
-            <SelectTrigger className="h-10 w-[150px] rounded-full bg-card">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Most recent</SelectItem>
-              <SelectItem value="liked">Most liked</SelectItem>
-              <SelectItem value="commented">Most discussed</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
-            <SelectTrigger className="h-10 w-[130px] rounded-full bg-card">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This week</SelectItem>
-              <SelectItem value="month">This month</SelectItem>
-              <SelectItem value="year">This year</SelectItem>
-            </SelectContent>
-          </Select>
+          {filtersOpen && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+                <SelectTrigger className="h-10 w-[150px] rounded-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent">Most recent</SelectItem>
+                  <SelectItem value="liked">Most liked</SelectItem>
+                  <SelectItem value="commented">Most discussed</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
+                <SelectTrigger className="h-10 w-[130px] rounded-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This week</SelectItem>
+                  <SelectItem value="month">This month</SelectItem>
+                  <SelectItem value="year">This year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       )}
 
@@ -170,8 +226,19 @@ export function PostFeed({
             ref={animateRef}
             className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
           >
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} variant="sheet" />
+            {posts.map((post, i) => (
+              <div key={post.id}>
+                {showDivider && i === dividerIndex && (
+                  <div className="flex items-center gap-3 px-5 py-2">
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="text-[10.5px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
+                      New since you were last here
+                    </span>
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                )}
+                <PostCard post={post} variant="sheet" />
+              </div>
             ))}
           </div>
 

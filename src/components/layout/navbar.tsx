@@ -17,7 +17,7 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { UserAvatar } from "@/components/common/user-avatar";
+import { BirdAvatar } from "@/components/common/bird-avatar";
 import { DarkModeToggle } from "./dark-mode-toggle";
 import { NotificationBell } from "./notification-bell";
 
@@ -81,9 +81,8 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
             <DropdownMenuTrigger
               className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-95 transition-transform duration-150"
             >
-              <UserAvatar
-                name={user.name}
-                avatarColor={user.avatarColor}
+              <BirdAvatar
+                user={{ id: user.id, name: user.name, avatarColor: user.avatarColor }}
                 size="sm"
               />
             </DropdownMenuTrigger>

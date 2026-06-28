@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { UserAvatar } from "@/components/common/user-avatar";
+import { BirdAvatar } from "@/components/common/bird-avatar";
 
 interface MentionUser {
   id: string;
@@ -67,10 +67,9 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
             }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent"
           >
-            <UserAvatar
-              name={user.name}
-              avatarColor={user.avatarColor}
-              size="sm"
+            <BirdAvatar
+              user={{ id: user.id, name: user.name, avatarColor: user.avatarColor }}
+              size="xs"
             />
             <div>
               <span className="text-sm font-medium text-foreground">
