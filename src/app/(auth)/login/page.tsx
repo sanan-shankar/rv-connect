@@ -3,18 +3,12 @@
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Hoopoe } from "@/components/auth/hoopoe";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PeaksMark } from "@/components/layout/peaks-mark";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,9 +18,10 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [intro, setIntro] = useState(true);
 
-  // On load the hoopoe peeks: eyes open briefly, then settle closed.
+  // On load the hoopoe peeks: eyes open briefly, then settle closed so the
+  // interaction is noticed.
   useEffect(() => {
-    const t = setTimeout(() => setIntro(false), 1000);
+    const t = setTimeout(() => setIntro(false), 1100);
     return () => clearTimeout(t);
   }, []);
 
@@ -80,83 +75,105 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
+    <div className="grid min-h-screen lg:grid-cols-[1.4fr_1fr]">
+      {/* Photo half: the valley, with the brand overlaid */}
+      <div className="relative hidden overflow-hidden lg:block">
+        <img
+          src="/images/landing.jpeg"
+          alt=""
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent" />
         <Link
           href="/"
-          className="mb-2 inline-flex items-center gap-1 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150"
+          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back
+          <PeaksMark size={18} />
+          <span className="font-heading text-lg tracking-tight">Rishi Valley</span>
         </Link>
-        <div className="mb-1 flex justify-center">
-          <Hoopoe covered={hoopoeCovered} />
-        </div>
-        <CardTitle className="text-center font-heading text-2xl tracking-tight">
-          Welcome back to the valley
-        </CardTitle>
-        <CardDescription className="text-center">
-          Enter your email and password to sign in.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoFocus
-            />
+      </div>
+
+      {/* Form half: warm panel, centered form */}
+      <div className="grid min-h-screen place-items-center bg-background px-6 py-10">
+        <div className="w-full max-w-[360px] text-center">
+          <div className="mx-auto mb-1 grid h-[108px] place-items-center">
+            <Hoopoe covered={hoopoeCovered} size={96} />
           </div>
-          {!isAdmin && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPw ? "text" : "password"}
-                  placeholder="Your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((s) => !s)}
-                  aria-label={showPw ? "Hide password" : "Show password"}
-                  className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+          <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
+            Welcome back
+          </h1>
+          <p className="mx-auto mt-2 mb-7 max-w-[30ch] text-sm leading-relaxed text-muted-foreground">
+            Sign in to reconnect with the people who grew up under the same trees.
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+              />
             </div>
-          )}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
-          <Button
-            type="submit"
-            variant="leaf"
-            className="w-full"
-            disabled={loading}
-          >
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          New here?{" "}
-          <Link href="/signup" className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-            Join the community
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+            {!isAdmin && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    href="/login"
+                    className="rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    Forgot?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPw ? "text" : "password"}
+                    placeholder="Your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => !s)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                    className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button
+              type="submit"
+              variant="leaf"
+              className="mt-2 w-full"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
+
+          <p className="mt-6 text-sm text-muted-foreground">
+            New here?{" "}
+            <Link
+              href="/signup"
+              className="rounded-sm font-medium text-leaf hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              Request an invite
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

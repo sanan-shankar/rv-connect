@@ -32,6 +32,7 @@ export default function OnboardingPage() {
   }
 
   return (
+    <div className="flex min-h-screen items-center justify-center px-4 py-10">
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle className="font-heading text-2xl">
@@ -149,5 +150,6 @@ export default function OnboardingPage() {
         </form>
       </CardContent>
     </Card>
+    </div>
   );
 }
