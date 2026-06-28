@@ -17,7 +17,7 @@ import { SUBJECTS, AREAS, ERAS } from "@/lib/collection";
 import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
 import { ContributeDialog } from "./contribute-dialog";
 
-type SortBy = "newest" | "oldest" | "loved";
+type SortBy = "newest" | "oldest" | "loved" | "wander";
 
 function Tile({ photo }: { photo: PhotoData }) {
   return (
@@ -177,13 +177,14 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={(v) => setSortBy((v ?? "newest") as SortBy)}>
-          <SelectTrigger className="h-10 w-[120px] rounded-full bg-card">
+          <SelectTrigger className="h-10 w-[136px] rounded-full bg-card">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="newest">Newest</SelectItem>
             <SelectItem value="oldest">Oldest</SelectItem>
             <SelectItem value="loved">Most loved</SelectItem>
+            <SelectItem value="wander">A wander</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="leaf" className="rounded-full" onClick={() => setDialogOpen(true)}>
