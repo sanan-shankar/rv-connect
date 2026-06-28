@@ -397,6 +397,7 @@ const PAGE_SIZE = 20;
 export async function loadPosts(opts?: {
   cursor?: string | null; // opaque: a post id (keyset) or "offset:N"
   groupId?: string; // set => load this group's feed; unset => main feed
+  authorId?: string; // set => only this author's posts (profile Posts tab)
   kind?: "post" | "letter";
   tag?: string;
   search?: string;
@@ -424,6 +425,7 @@ export async function loadPosts(opts?: {
 
   const baseWhere = {
     isHidden: false,
+    ...(opts?.authorId ? { authorId: opts.authorId } : {}),
     ...(opts?.tag ? { tag: opts.tag } : {}),
     ...(opts?.kind ? { kind: opts.kind } : {}),
     ...(opts?.search ? { content: { contains: opts.search } } : {}),
