@@ -71,22 +71,45 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
   "gray, not black" dark mode for a later, dedicated polish pass.
 
 ## Profile
-- [~] BUG: the large profile avatar is cut off / the header tile is mis-spaced. Fix (avatar must not clip).
-- [~] Remove the glow on profile elements.
-- [~] Drop the "5 groups" stat (irrelevant). Keep "42 posts" and "in the valley 2003 to 2009".
-- [~] Header line order: batch, location, profession (do NOT show house publicly).
-- [~] Tighten name-to-batch spacing on the cover.
-- [ ] CTA rethink: Message vs Save contact is unclear; recommend the right primary CTA.
-- [ ] Details card beyond three items; the RIGHT full set (batch, based-in, profession, at-RV years, etc.),
+- [x] BUG: the large profile avatar is cut off / the header tile is mis-spaced. Fix (avatar must not clip).
+  104px BirdAvatar with ring lives in cover-body (not the clipped cover-photo), pulled up -mt-14 with
+  relative z-[2]; cover photo raised to h-44 so the whole avatar sits inside the card. Verified 1440 + 390.
+- [x] Remove the glow on profile elements.
+  Reuses the foundation Button (restrained tinted shadow) and .card-elevated (neutral layered shadow); no
+  --primary-tinted halos anywhere on the profile.
+- [x] Drop the "5 groups" stat (irrelevant). Keep "42 posts" and "in the valley 2003 to 2009".
+  Stats strip is exactly "N posts" + "In the valley YYYY to YYYY" (years only when both exist). Group count
+  moved into the rail Groups card header "Groups (N)".
+- [x] Header line order: batch, location, profession (do NOT show house publicly).
+  metaParts = [batchLine, currentCity, jobTitle@workplace].filter(Boolean) joined with .dotsep; no house.
+- [x] Tighten name-to-batch spacing on the cover.
+  Name leading-[1.05], meta mt-[3px] so the two read as one stacked unit.
+- [x] CTA rethink: Message vs Save contact is unclear; recommend the right primary CTA.
+  Own profile: "Edit profile" (-> /settings). Others: "Get in touch" (dialog of the methods the person
+  actually shared; disabled with helper text if none) + "Save contact" (.vcf vCard download). No fake inbox.
+- [x] Details card beyond three items; the RIGHT full set (batch, based-in, profession, at-RV years, etc.),
   avoid the "AI always picks three" smell.
-- [ ] Contact: phone number, email, and any number of social links (Instagram, Facebook, X, LinkedIn, site),
+  Variable-length: at-RV years, batch (spelled ISC/ICSE YYYY), taught-subjects (teachers), based-in,
+  profession, and admission no. gated "Private to you" for owner/admin only. Renders only present fields.
+- [x] Contact: phone number, email, and any number of social links (Instagram, Facebook, X, LinkedIn, site),
   each clearly labeled with where it links.
-- [ ] About section WRITTEN BY THE USER.
-- [ ] A prompted "school memories" area (favorite teacher + why, favorite anecdote, committees, captaincy /
+  Rail Contact card lists email/phone/instagram/linkedin, each labeled with the value (mailto/tel/profile
+  URL); same list powers the Get in touch dialog. Existing instagram/linkedin fields normalized to URLs.
+- [x] About section WRITTEN BY THE USER.
+  New nullable User.about (long-form); About tab "In their words" block renders it, with an owner empty-state
+  prompt to /settings. Distinct from the short cover bio.
+- [~] A prompted "school memories" area (favorite teacher + why, favorite anecdote, committees, captaincy /
   torchbearer, sports-day records, contributions). Needs structure brainstorming; do not clutter.
+  About tab "The valley years" block scaffolds the prompts (teacher / favorite memory / committees) as
+  dashed placeholder cards on the owner's own view, hidden on others'. Editing UI + a UserMemory store are
+  flagged for the settings/onboarding pass.
 - [P] "Person in focus" daily feature pulling from the memory answers.
-- [ ] Fix alignment: Details/Contact/Groups rail is long while About is short; align tab-content top with rail.
-- [ ] "Open to" tags: keep; suggest tags (people will not invent their own).
+- [x] Fix alignment: Details/Contact/Groups rail is long while About is short; align tab-content top with rail.
+  Cols grid items-start; rail is lg:sticky lg:top-6; tabs row and first rail card share the same top edge.
+  Groups capped at 5 with a count in the header so the rail no longer outruns short tabs.
+- [x] "Open to" tags: keep; suggest tags (people will not invent their own).
+  Soft leaf pills under the bio from new nullable User.openTo; a DEFAULT_OPEN_TO suggested set shows on the
+  owner's own profile when none are set.
 - [P] Profile-completeness nudge (gentle, dismissable).
 
 ## Directory (the core reason to join)

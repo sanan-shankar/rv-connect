@@ -4,10 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
-import { batchLine } from "@/lib/utils";
-import { PostCard } from "@/components/posts/post-card";
+import { batchLine, parseJsonArray } from "@/lib/utils";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
+import { ProfileTabs } from "@/components/profile/profile-tabs";
+import { ProfileAuthorFeed } from "@/components/profile/profile-author-feed";
+import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
 import {
   MapPin,
   Briefcase,
@@ -18,9 +20,31 @@ import {
   Mail,
   Instagram,
   Linkedin,
+  Globe,
   Pencil,
+  Users,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Default suggestions when a member has not picked any "Open to" tags yet.
+// People rarely invent their own, so we offer a sensible set to choose from.
+const DEFAULT_OPEN_TO = ["Open to mentoring", "Hosting visitors", "Career chats"];
+
+// Prompted school-memories scaffold. Empty answers are invisible on others'
+// profiles; the owner sees a soft prompt to fill them in.
+const MEMORY_PROMPTS = [
+  { key: "favorite_teacher", label: "A teacher I remember", placeholder: "Who shaped your years in the valley?" },
+  { key: "favorite_memory", label: "A favorite memory", placeholder: "A morning, a person, a place you still think about." },
+  { key: "committees", label: "Committees and roles", placeholder: "Nature club, choir, editorial, sports..." },
+] as const;
+
+function socialHref(kind: "instagram" | "linkedin" | "website", value: string): string {
+  const v = value.trim();
+  if (kind === "instagram") return `https://instagram.com/${v.replace(/^@/, "")}`;
+  if (v.startsWith("http")) return v;
+  return `https://${v}`;
+}
 
 export default async function ProfilePage({
   params,
@@ -31,147 +55,255 @@ export default async function ProfilePage({
   const session = await auth();
   if (!session?.user) return null;
 
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      groupMemberships: {
+        include: { group: { select: { id: true, name: true, _count: { select: { members: true } } } } },
+        orderBy: { joinedAt: "desc" },
+      },
+      _count: { select: { posts: true } },
+    },
+  });
   if (!user || user.isBlocked) notFound();
 
   const isOwnProfile = session.user.id === user.id;
   const isAdmin = session.user.role === "admin";
+  const firstName = user.name.split(" ")[0];
 
-  const userBatch = `${session.user.batchType}-${session.user.batchYear}`;
-  const [posts, postCount] = await Promise.all([
-    prisma.post.findMany({
-      where: {
-        authorId: user.id,
-        isHidden: false,
-        OR: [
-          { targetBatches: null },
-          { targetBatches: "" },
-          { targetBatches: { contains: userBatch } },
-        ],
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            avatarColor: true,
-            accountType: true,
-            verifyState: true,
-            batchType: true,
-            batchYear: true,
-          },
-        },
-        _count: { select: { comments: true, likes: true } },
-        likes: { where: { userId: session.user.id }, select: { id: true } },
-        pollOptions: {
-          orderBy: { position: "asc" },
-          include: { _count: { select: { votes: true } } },
-        },
-        pollVotes: { where: { userId: session.user.id }, select: { pollOptionId: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-    prisma.post.count({ where: { authorId: user.id, isHidden: false } }),
-  ]);
+  const postCount = user._count.posts;
+
+  // Photos: flatten image arrays from this author's visible posts.
+  const photoPosts = await prisma.post.findMany({
+    where: { authorId: user.id, isHidden: false, NOT: { images: null } },
+    select: { id: true, images: true },
+    orderBy: { createdAt: "desc" },
+    take: 60,
+  });
+  const photos = photoPosts.flatMap((p) =>
+    parseJsonArray(p.images).map((src) => ({ src, postId: p.id }))
+  );
 
   const profession =
     user.jobTitle && user.workplace
       ? `${user.jobTitle} at ${user.workplace}`
       : user.jobTitle || user.workplace || null;
 
+  // Public header meta line: batch, location, profession (never house).
+  const metaParts = [batchLine(user), user.currentCity, profession].filter(Boolean) as string[];
+
+  const openToTags = (user.openTo
+    ? user.openTo.split(",").map((t) => t.trim()).filter(Boolean)
+    : isOwnProfile
+      ? DEFAULT_OPEN_TO
+      : []);
+
+  // Right-rail Details: full, variable-length record (only present fields).
   const details = [
-    { icon: GraduationCap, label: batchLine(user) },
-    profession ? { icon: Briefcase, label: profession } : null,
-    user.currentCity ? { icon: MapPin, label: user.currentCity } : null,
     user.yearJoined && user.yearLeft
       ? { icon: CalendarDays, label: `In the valley ${user.yearJoined} to ${user.yearLeft}` }
-      : null,
-    (isOwnProfile || isAdmin) && user.admissionNumber
-      ? { icon: Hash, label: `Admission no. ${user.admissionNumber}` }
-      : null,
-  ].filter(Boolean) as { icon: typeof MapPin; label: string }[];
-
-  const contacts = [
-    { icon: Mail, label: "Email", href: `mailto:${user.email}`, show: true },
-    { icon: Phone, label: "Phone", href: user.phone ? `tel:${user.phone}` : null, show: !!user.phone },
-    {
-      icon: Instagram,
-      label: "Instagram",
-      href: user.instagram ? `https://instagram.com/${user.instagram.replace("@", "")}` : null,
-      show: !!user.instagram,
-    },
-    {
-      icon: Linkedin,
-      label: "LinkedIn",
-      href: user.linkedin
-        ? user.linkedin.startsWith("http")
-          ? user.linkedin
-          : `https://${user.linkedin}`
+      : user.yearJoined
+        ? { icon: CalendarDays, label: `In the valley from ${user.yearJoined}` }
         : null,
-      show: !!user.linkedin,
-    },
-  ].filter((c) => c.show && c.href);
+    user.batchType && user.batchYear
+      ? { icon: GraduationCap, label: `${user.batchType} ${user.batchYear}` }
+      : null,
+    user.accountType !== "alumnus" && user.subjects
+      ? { icon: BookOpen, label: `Taught ${user.subjects}` }
+      : null,
+    user.currentCity ? { icon: MapPin, label: `Based in ${user.currentCity}` } : null,
+    profession ? { icon: Briefcase, label: profession } : null,
+    (isOwnProfile || isAdmin) && user.admissionNumber
+      ? { icon: Hash, label: `Admission no. ${user.admissionNumber}`, privateNote: true }
+      : null,
+  ].filter(Boolean) as { icon: typeof MapPin; label: string; privateNote?: boolean }[];
+
+  // Contact methods (email always available to signed-in members; rest if shared).
+  const methods: ContactMethod[] = [
+    { kind: "email" as const, label: "Email", value: user.email, href: `mailto:${user.email}` },
+    user.phone
+      ? { kind: "phone" as const, label: "Phone", value: user.phone, href: `tel:${user.phone}` }
+      : null,
+    user.instagram
+      ? {
+          kind: "instagram" as const,
+          label: "Instagram",
+          value: user.instagram.startsWith("@") ? user.instagram : `@${user.instagram}`,
+          href: socialHref("instagram", user.instagram),
+          external: true,
+        }
+      : null,
+    user.linkedin
+      ? {
+          kind: "linkedin" as const,
+          label: "LinkedIn",
+          value: user.linkedin.replace(/^https?:\/\//, ""),
+          href: socialHref("linkedin", user.linkedin),
+          external: true,
+        }
+      : null,
+  ].filter(Boolean) as ContactMethod[];
+
+  // vCard from the public fields.
+  const vcard = [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `FN:${user.name}`,
+    `EMAIL:${user.email}`,
+    user.phone ? `TEL:${user.phone}` : null,
+    profession ? `TITLE:${profession}` : null,
+    user.currentCity ? `ADR:;;${user.currentCity};;;;` : null,
+    user.instagram ? `URL:${socialHref("instagram", user.instagram)}` : null,
+    user.linkedin ? `URL:${socialHref("linkedin", user.linkedin)}` : null,
+    `NOTE:${batchLine(user)} — Rishi Valley Alumni`,
+    "END:VCARD",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const railContactIcons = { email: Mail, phone: Phone, instagram: Instagram, linkedin: Linkedin, website: Globe };
+
+  // ---- About tab content (server-rendered) ----
+  const aboutNode = (
+    <div className="space-y-4">
+      <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-6">
+        <h3 className="mb-2 text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+          In their words
+        </h3>
+        {user.about ? (
+          <p className="max-w-[64ch] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
+            {user.about}
+          </p>
+        ) : isOwnProfile ? (
+          <p className="text-[14px] leading-[1.7] text-muted-foreground">
+            You haven&rsquo;t written an about section yet.{" "}
+            <Link href="/settings" className="font-semibold text-leaf hover:underline">
+              Add a few lines
+            </Link>{" "}
+            so people know who you are now.
+          </p>
+        ) : (
+          <p className="text-[14px] leading-[1.7] text-muted-foreground">
+            {firstName}{" "}hasn&rsquo;t written an about section yet.
+          </p>
+        )}
+      </section>
+
+      <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-6">
+        <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+          The valley years
+        </h3>
+        {isOwnProfile ? (
+          <div className="space-y-3">
+            {MEMORY_PROMPTS.map((p) => (
+              <div key={p.key} className="rounded-xl border border-dashed border-border px-4 py-3">
+                <div className="text-[13px] font-semibold text-foreground">{p.label}</div>
+                <div className="mt-0.5 text-[13px] text-muted-foreground">{p.placeholder}</div>
+              </div>
+            ))}
+            <p className="pt-1 text-[13px] text-muted-foreground">
+              Memory prompts are coming to{" "}
+              <Link href="/settings" className="font-semibold text-leaf hover:underline">
+                your settings
+              </Link>
+              . Answer the ones you remember; the rest stay hidden.
+            </p>
+          </div>
+        ) : (
+          <p className="text-[14px] leading-[1.7] text-muted-foreground">
+            {firstName}{" "}hasn&rsquo;t shared valley memories yet.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+
+  // ---- Photos tab content ----
+  const photosNode =
+    photos.length > 0 ? (
+      <div className="grid grid-cols-3 gap-2.5">
+        {photos.map((ph, i) => (
+          <Link
+            key={`${ph.postId}-${i}`}
+            href={`/feed#${ph.postId}`}
+            className="group block overflow-hidden rounded-2xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={ph.src}
+              alt=""
+              className="aspect-square h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+            />
+          </Link>
+        ))}
+      </div>
+    ) : null;
 
   return (
     <div className="space-y-6">
       {/* Cover + identity */}
       <section className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
         <div
-          className="relative h-40 bg-cover bg-center"
-          style={{ backgroundImage: "url(/images/landing.jpeg)" }}
+          className="relative h-44 bg-cover bg-center"
+          style={{ backgroundImage: `url(${user.coverPhoto || "/images/landing.jpeg"})` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/35" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/30" />
         </div>
         <div className="px-6 pb-5">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="-mt-14">
-              <BirdAvatar user={{ id: user.id, name: user.name }} size="lg" ring />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="relative z-[2] -mt-14">
+              <BirdAvatar
+                user={{ id: user.id, name: user.name, avatarColor: user.avatarColor }}
+                size="lg"
+                ring
+              />
             </div>
-            <div className="flex-1 pb-1">
-              <h1 className="flex items-center gap-1.5 font-heading text-2xl font-bold tracking-tight text-foreground">
+            <div className="min-w-0 flex-1 sm:pb-1">
+              <h1 className="flex items-center gap-1.5 font-heading text-[26px] font-bold leading-[1.05] tracking-tight text-foreground">
                 {user.name}
                 <VerifiedMark user={user} size={16} />
               </h1>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.07em]">
-                  {batchLine(user)}
-                </span>
-                {user.currentCity && (
-                  <>
-                    <span className="dotsep">·</span>
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {user.currentCity}
-                    </span>
-                  </>
-                )}
-                {profession && (
-                  <>
-                    <span className="dotsep">·</span>
-                    <span>{profession}</span>
-                  </>
-                )}
+              <div className="mt-[3px] flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-muted-foreground">
+                {metaParts.map((part, i) => (
+                  <span key={i} className="inline-flex items-center gap-1.5">
+                    {i > 0 && <span className="dotsep">·</span>}
+                    {i === 1 && <MapPin className="h-3.5 w-3.5" />}
+                    {part}
+                  </span>
+                ))}
               </div>
             </div>
-            {isOwnProfile ? (
-              <Link href="/settings" className="pb-1">
-                <Button variant="outline" size="sm" className="rounded-full">
-                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                  Edit profile
-                </Button>
-              </Link>
-            ) : (
-              <div className="pb-1">
-                <FlagPersonDialog userId={user.id} name={user.name} />
-              </div>
-            )}
+            <div className="sm:pb-1">
+              {isOwnProfile ? (
+                <Link href="/settings">
+                  <Button size="sm" className="rounded-full">
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                    Edit profile
+                  </Button>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <GetInTouch name={user.name} methods={methods} vcard={vcard} />
+                </div>
+              )}
+            </div>
           </div>
 
           {user.bio && (
-            <p className="mt-4 max-w-prose text-[15px] leading-[1.7] text-foreground">
-              {user.bio}
-            </p>
+            <p className="mt-4 max-w-[64ch] text-[15px] leading-[1.7] text-foreground">{user.bio}</p>
+          )}
+
+          {openToTags.length > 0 && (
+            <div className="mt-3.5 flex flex-wrap gap-2">
+              {openToTags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full bg-leaf/10 px-3 py-1.5 text-[12px] font-semibold text-leaf"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
           )}
 
           <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-4 text-[13px] text-muted-foreground">
@@ -195,88 +327,112 @@ export default async function ProfilePage({
         <AdminProfileTools userId={user.id} isBlocked={user.isBlocked} adminNote={user.adminNote} />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_290px]">
-        {/* Posts */}
-        <main className="min-w-0">
-          <h2 className="mb-3 font-heading text-lg font-bold tracking-tight text-foreground">
-            Posts
-          </h2>
-          {posts.length === 0 ? (
-            <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              No posts yet.
-            </div>
-          ) : (
-            <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
-              {posts.map((p) => (
-                <PostCard
-                  key={p.id}
-                  variant="sheet"
-                  post={{
-                    id: p.id,
-                    content: p.content,
-                    tag: p.tag,
-                    images: p.images,
-                    createdAt: p.createdAt.toISOString(),
-                    author: p.author,
-                    commentCount: p._count.comments,
-                    likeCount: p._count.likes,
-                    liked: p.likes.length > 0,
-                    isOwn: p.authorId === session.user.id,
-                    poll:
-                      p.pollOptions.length > 0
-                        ? {
-                            options: p.pollOptions.map((o) => ({
-                              id: o.id,
-                              text: o.text,
-                              voteCount: o._count.votes,
-                            })),
-                            totalVotes: p.pollOptions.reduce((s, o) => s + o._count.votes, 0),
-                            userVotedOptionId: p.pollVotes[0]?.pollOptionId ?? null,
-                          }
-                        : null,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </main>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_290px]">
+        {/* Main column: tabs */}
+        <ProfileTabs
+          showPhotos={photos.length > 0}
+          posts={
+            <ProfileAuthorFeed
+              authorId={user.id}
+              firstName={firstName}
+              isOwnProfile={isOwnProfile}
+            />
+          }
+          about={aboutNode}
+          photos={photosNode}
+        />
 
         {/* Rail */}
-        <aside className="space-y-4">
+        <aside className="space-y-4 lg:sticky lg:top-6">
           <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
             <h3 className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
               Details
             </h3>
             <div className="space-y-1">
               {details.map((d, i) => (
-                <div key={i} className="flex items-center gap-2.5 py-1 text-[13.5px] text-foreground">
+                <div
+                  key={i}
+                  className="flex items-center gap-2.5 py-1 text-[13.5px] text-foreground"
+                >
                   <d.icon className="h-[15px] w-[15px] shrink-0 text-muted-foreground" />
-                  {d.label}
+                  <span>{d.label}</span>
+                  {d.privateNote && (
+                    <span className="ml-auto text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+                      Private to you
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
           </section>
 
-          {contacts.length > 0 && (
+          {(methods.length > 0 || isOwnProfile) && (
             <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
               <h3 className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
                 Contact
               </h3>
-              <div className="space-y-1">
-                {contacts.map((c) => (
-                  <a
-                    key={c.label}
-                    href={c.href as string}
-                    target={c.href!.startsWith("http") ? "_blank" : undefined}
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 py-1 text-[13.5px] text-foreground hover:text-leaf"
+              {methods.length > 0 ? (
+                <div className="space-y-0.5">
+                  {methods.map((m) => {
+                    const Icon = railContactIcons[m.kind];
+                    return (
+                      <a
+                        key={m.kind + m.value}
+                        href={m.href}
+                        target={m.external ? "_blank" : undefined}
+                        rel={m.external ? "noopener noreferrer" : undefined}
+                        className="flex items-center gap-2.5 rounded-lg py-1.5 text-[13.5px] text-foreground transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      >
+                        <Icon className="h-[15px] w-[15px] shrink-0 text-muted-foreground" />
+                        <span className="min-w-0">
+                          <span className="block font-medium leading-tight">{m.label}</span>
+                          <span className="block truncate text-[11.5px] text-muted-foreground">
+                            {m.value}
+                          </span>
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  You haven&rsquo;t shared any contact details yet.{" "}
+                  <Link href="/settings" className="font-semibold text-leaf hover:underline">
+                    Add some
+                  </Link>{" "}
+                  so people can reach you.
+                </p>
+              )}
+            </section>
+          )}
+
+          {user.groupMemberships.length > 0 && (
+            <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+                <Users className="h-3.5 w-3.5" />
+                Groups ({user.groupMemberships.length})
+              </h3>
+              <div>
+                {user.groupMemberships.slice(0, 5).map((m) => (
+                  <Link
+                    key={m.group.id}
+                    href={`/groups/${m.group.id}`}
+                    className="flex items-center border-t border-border py-2 text-[13.5px] font-semibold text-foreground first:border-t-0 transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                   >
-                    <c.icon className="h-[15px] w-[15px] shrink-0 text-muted-foreground" />
-                    {c.label}
-                  </a>
+                    <span className="min-w-0 truncate">{m.group.name}</span>
+                    <span className="ml-auto pl-2 text-[12px] font-semibold text-sky">
+                      {m.group._count.members}
+                    </span>
+                  </Link>
                 ))}
               </div>
             </section>
+          )}
+
+          {!isOwnProfile && (
+            <div className="px-1">
+              <FlagPersonDialog userId={user.id} name={user.name} />
+            </div>
           )}
         </aside>
       </div>
