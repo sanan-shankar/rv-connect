@@ -164,8 +164,11 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
   RV trivia answers. Use later for insights ("you have X in common", house-switch patterns). Not all shown.
 
 ## Landing page
-- [ ] Keep the calm hero; make the page SCROLLABLE into a feature showcase that sells joining, using real
+- [x] Keep the calm hero; make the page SCROLLABLE into a feature showcase that sells joining, using real
   app screenshots/embeds plus tasteful lively animations (birds hopping, scroll-reveal). Light mode.
+  Done: hero CTAs cleaned (no glassmorphism), sticky glass nav, 5 real Sharp-optimized WebP screenshots
+  (Directory, Feed, Letters, Catch-ups, Collection) framed as the product, trust/invite-only section,
+  scroll-reveal + hopping bird + drifting leaves (all transform/opacity, reduced-motion + no-JS safe).
 
 ## Delight / micro-interactions (as important as everything else)
 - [~] Hoopoe on password (template): bigger, more obviously a hoopoe, opens then closes on load.
