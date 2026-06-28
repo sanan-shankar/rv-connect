@@ -72,7 +72,7 @@
 
 :root {
   /* Warm, dimmed light theme. Surfaces are never pure white (that is reserved for floating modals). */
-  --background: #E9E6DD;
+  --background: #EBE6D7;
   --foreground: #23241E;
   --card: #FAF8F3;
   --card-foreground: #23241E;

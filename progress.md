@@ -336,3 +336,24 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
   bodi-middle-rishi.png in a dedicated logo pass).
 - Needs the owner's accounts: deploy (Render service + Render Postgres + GitHub connection + env vars). Also a
   git branch + commit + push when the MVP is coherent. .next-stale dir still in repo root (safe to delete).
+
+## Session 2026-06-28/29 — Wave B + foundation polish
+- Foundation (B1-B4) + photo-split login: done, tagged foundation-frozen.
+- Wave B (workflow wf_84975619-cc0): Seed (14 demo users @demo.valley.test + 16 posts), Profile
+  (tabs/about/open-to/fuller details+contact, authorId added to loadPosts), Directory + world map
+  (clustered counted city pins, drilldowns, progressive search; map now WORKS), Landing (scrollable
+  showcase with real app screenshots + tasteful motion, sign-in CTA fixed), Support (UPI, honest
+  costs), Collection (masonry + facets + "A wander"). All committed. Verify: all 5 surfaces
+  matchesContract=true, NO P0s.
+- Foundation polish: faint tree opacity 0.07 -> 0.16 (app-shell); feed header toolbar now inline with
+  the "Feed" title (page-header flex-nowrap + inner actions nowrap/shrink-0); --background
+  #E9E6DD -> #EBE6D7 (marginally warmer per owner).
+- OPEN P1s for next session: Support chips contradict the cost breakdown (Rs 20 "cover a month" vs
+  ~Rs 1.2-1.5k/mo) -> fix amounts or relabel; Directory: ?view= not reflected in URL, filters do not
+  recompute map pins (map + filters are mutually exclusive), take:60 silent cap with no Load more;
+  Collection: filter Selects show raw "all"/"newest" instead of labels, no LQIP/blurhash. Profile P2s:
+  mobile meta dotsep orphan on wrap, #about deep-link, posts-tab skeleton in static screenshot.
+- REMAINING: Wave C (Groups; Letters + Catch-ups with Letterloop parity, distinct names;
+  Onboarding/auth/verification). Wave D (polish/interactions: hoopoe choreography, bird chirp,
+  bookmark sweep, loading scene, like-pop, bell-shake; then Phase 0 deploy to Render + Postgres,
+  remove magic links).
