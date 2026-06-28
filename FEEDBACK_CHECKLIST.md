@@ -191,8 +191,10 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
   whole new section; maybe within About).
 
 ## Giving / support
-- [ ] SUPPORT page to fund the owner's hosting (distinct from school donations, which are dropped). UPI to
-  start; nicer options later. Honest copy about costs.
+- [x] SUPPORT page to fund the owner's hosting (distinct from school donations, which are dropped). UPI to
+  start; nicer options later. Honest copy about costs. (`/support`: ruled-sheet honest cost breakdown, UPI id
+  with copy-to-clipboard, QR placeholder, suggested-amount chips with UPI deep link, office-blue reserved for
+  the single primary action, "card and international coming later" line; no processor, no Contribution table.)
 - [P] Campaign cards with progress bars (good idea, parked).
 
 ## Infra / performance
