@@ -3,9 +3,7 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      {children}
-    </div>
-  );
+  // Neutral full-bleed wrapper. Each auth page owns its own layout:
+  // login is a photo-split; signup/onboarding center their own card.
+  return <div className="min-h-screen bg-background">{children}</div>;
 }

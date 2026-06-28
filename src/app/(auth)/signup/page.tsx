@@ -21,6 +21,7 @@ export default function SignupPage() {
   const [step, setStep] = useState<Step>("trivia");
 
   return (
+    <div className="flex min-h-screen items-center justify-center px-4 py-10">
     <Card className="w-full max-w-md overflow-visible">
       <CardHeader>
         <Link
@@ -64,5 +65,6 @@ export default function SignupPage() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
