@@ -32,8 +32,8 @@ export async function FeedRail({ userId }: { userId: string }) {
   ]);
 
   return (
-    <aside className="hidden w-[300px] shrink-0 lg:block">
-      <div className="sticky top-8 space-y-4">
+    <div className="w-full">
+      <div className="sticky top-7 space-y-4">
         {recentMembers.length > 0 && (
           <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
             <h3 className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
@@ -98,6 +98,6 @@ export async function FeedRail({ userId }: { userId: string }) {
           )}
         </section>
       </div>
-    </aside>
+    </div>
   );
 }

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Bell as BellIcon, Check } from "lucide-react";
+import { useState } from "react";
+import { Check } from "lucide-react";
 import { Bell } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +20,8 @@ import { useRouter } from "next/navigation";
 
 interface NotificationBellProps {
   initialUnreadCount: number;
+  /** "sidebar" = compact inline trigger; "header" = circular surface pill (contract feed). */
+  variant?: "sidebar" | "header";
 }
 
 interface Notification {
@@ -32,7 +33,10 @@ interface Notification {
   createdAt: string;
 }
 
-export function NotificationBell({ initialUnreadCount }: NotificationBellProps) {
+export function NotificationBell({
+  initialUnreadCount,
+  variant = "sidebar",
+}: NotificationBellProps) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
@@ -65,6 +69,32 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
     setUnreadCount(0);
   }
 
+  if (variant === "header") {
+    return (
+      <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
+        <DropdownMenuTrigger
+          className="relative grid h-11 w-11 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-transform duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          title="Notifications"
+        >
+          <Bell size={18} weight={unreadCount > 0 ? "fill" : "duotone"} />
+          {unreadCount > 0 && (
+            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border-2 border-card bg-cinnamon" />
+          )}
+          <span className="sr-only">
+            {unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
+          </span>
+        </DropdownMenuTrigger>
+        <NotificationPanel
+          notifications={notifications}
+          loaded={loaded}
+          unreadCount={unreadCount}
+          onMarkAllRead={handleMarkAllRead}
+          onClickNotification={handleClickNotification}
+        />
+      </DropdownMenu>
+    );
+  }
+
   return (
     <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
       <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
@@ -75,47 +105,71 @@ export function NotificationBell({ initialUnreadCount }: NotificationBellProps) 
           </span>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <div className="flex items-center justify-between px-3 py-2">
-          <h3 className="font-heading text-sm font-bold tracking-tight">Notifications</h3>
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllRead}
-              className="flex items-center gap-1 rounded-sm text-xs text-leaf hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150"
-            >
-              <Check className="h-3 w-3" />
-              Mark all read
-            </button>
-          )}
-        </div>
-        <Separator />
-        <div className="max-h-80 overflow-y-auto">
-          {notifications.length === 0 && loaded && (
-            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              No notifications yet
-            </div>
-          )}
-          {!loaded && (
-            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              Loading...
-            </div>
-          )}
-          {notifications.map((notif) => (
-            <DropdownMenuItem
-              key={notif.id}
-              onClick={() => handleClickNotification(notif)}
-              className={`flex-col items-start gap-0 px-3 py-2 ${
-                !notif.read ? "bg-leaf/5" : ""
-              }`}
-            >
-              <p className="text-sm text-foreground">{notif.message}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatTimeAgo(new Date(notif.createdAt))}
-              </p>
-            </DropdownMenuItem>
-          ))}
-        </div>
-      </DropdownMenuContent>
+      <NotificationPanel
+        notifications={notifications}
+        loaded={loaded}
+        unreadCount={unreadCount}
+        onMarkAllRead={handleMarkAllRead}
+        onClickNotification={handleClickNotification}
+      />
     </DropdownMenu>
+  );
+}
+
+function NotificationPanel({
+  notifications,
+  loaded,
+  unreadCount,
+  onMarkAllRead,
+  onClickNotification,
+}: {
+  notifications: Notification[];
+  loaded: boolean;
+  unreadCount: number;
+  onMarkAllRead: () => void;
+  onClickNotification: (notif: Notification) => void;
+}) {
+  return (
+    <DropdownMenuContent align="end" className="w-80">
+      <div className="flex items-center justify-between px-3 py-2">
+        <h3 className="font-heading text-sm font-bold tracking-tight">Notifications</h3>
+        {unreadCount > 0 && (
+          <button
+            onClick={onMarkAllRead}
+            className="flex items-center gap-1 rounded-sm text-xs text-leaf hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150"
+          >
+            <Check className="h-3 w-3" />
+            Mark all read
+          </button>
+        )}
+      </div>
+      <Separator />
+      <div className="max-h-80 overflow-y-auto">
+        {notifications.length === 0 && loaded && (
+          <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+            No notifications yet
+          </div>
+        )}
+        {!loaded && (
+          <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+            Loading...
+          </div>
+        )}
+        {notifications.map((notif) => (
+          <DropdownMenuItem
+            key={notif.id}
+            onClick={() => onClickNotification(notif)}
+            className={`flex-col items-start gap-0 px-3 py-2 ${
+              !notif.read ? "bg-leaf/5" : ""
+            }`}
+          >
+            <p className="text-sm text-foreground">{notif.message}</p>
+            <p className="text-xs text-muted-foreground">
+              {formatTimeAgo(new Date(notif.createdAt))}
+            </p>
+          </DropdownMenuItem>
+        ))}
+      </div>
+    </DropdownMenuContent>
   );
 }

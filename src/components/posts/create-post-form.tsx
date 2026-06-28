@@ -198,7 +198,10 @@ export function CreatePostForm({
   }
 
   return (
-    <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
+    <div
+      data-composer
+      className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
+    >
       {expanded && (
         <div className="mb-1 flex gap-1">
           <button
