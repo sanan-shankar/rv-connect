@@ -160,7 +160,7 @@ export async function loadPhotos(opts?: {
   area?: string;
   era?: string;
   search?: string;
-  sortBy?: "newest" | "oldest" | "loved";
+  sortBy?: "newest" | "oldest" | "loved" | "wander";
 }) {
   const session = await auth();
   if (!session?.user?.id) return { photos: [] as PhotoData[], hasMore: false };
@@ -181,6 +181,21 @@ export async function loadPhotos(opts?: {
         }
       : {}),
   };
+
+  // "A wander": a gentle shuffle of a bounded set, single page (no load-more).
+  if (opts?.sortBy === "wander") {
+    const rows = await prisma.photo.findMany({
+      where,
+      include: includeFor(session.user.id),
+      orderBy: { createdAt: "desc" },
+      take: 60,
+    });
+    for (let i = rows.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rows[i], rows[j]] = [rows[j], rows[i]];
+    }
+    return { photos: rows.map((p) => shape(p, session.user.id)), hasMore: false };
+  }
 
   const orderBy =
     opts?.sortBy === "oldest"
