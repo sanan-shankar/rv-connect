@@ -30,7 +30,7 @@ export function PageHeader({
   const hasRight = showSearch || unreadCount !== undefined || actions || children;
 
   return (
-    <header className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+    <header className="mb-6 flex flex-nowrap items-start justify-between gap-4">
       <div className="min-w-0">
         <h1 className="font-heading text-[28px] font-bold leading-none tracking-[-0.02em] text-foreground">
           {title}
@@ -42,7 +42,7 @@ export function PageHeader({
         )}
       </div>
       {hasRight && (
-        <div className="flex flex-wrap items-center justify-end gap-2.5">
+        <div className="flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
           {showSearch && (
             <div className="hidden sm:block">
               <SearchPill />
