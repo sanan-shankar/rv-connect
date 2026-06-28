@@ -139,7 +139,7 @@ export default async function ProfilePage({
                 </span>
                 {user.currentCity && (
                   <>
-                    <span className="text-[15px] leading-none opacity-60">·</span>
+                    <span className="dotsep">·</span>
                     <span className="inline-flex items-center gap-1">
                       <MapPin className="h-3.5 w-3.5" />
                       {user.currentCity}
@@ -148,7 +148,7 @@ export default async function ProfilePage({
                 )}
                 {profession && (
                   <>
-                    <span className="text-[15px] leading-none opacity-60">·</span>
+                    <span className="dotsep">·</span>
                     <span>{profession}</span>
                   </>
                 )}

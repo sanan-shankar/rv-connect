@@ -227,15 +227,17 @@ function CommentItem({
           </button>
           <button
             onClick={handleLike}
+            aria-pressed={comment.liked}
             className={`inline-flex items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 transition-transform duration-150 ${
-              comment.liked
-                ? "text-red-500"
-                : "hover:text-red-500"
+              comment.liked ? "text-heart" : "hover:text-foreground"
             }`}
           >
+            {/* Heart is ALWAYS red on the first frame; transition:none prevents a black flash. */}
             <Heart
               size={12}
               weight={comment.liked ? "fill" : "duotone"}
+              color="#E03A33"
+              style={{ opacity: comment.liked ? 1 : 0.45, transition: "none" }}
             />
             {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
           </button>

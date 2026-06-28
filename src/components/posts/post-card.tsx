@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight } from "lucide-react";
-import { Heart, ChatCircle, ShareFat, BookmarkSimple, Feather } from "@phosphor-icons/react";
+import { Heart, ChatCircle, ShareNetwork, BookmarkSimple, Feather } from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -169,7 +169,7 @@ export function PostCard({
                 <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em]">
                   {batchLine(post.author)}
                 </span>
-                <span className="text-[15px] leading-none opacity-60">·</span>
+                <span className="dotsep">·</span>
                 <span>{formatTimeAgo(new Date(post.createdAt))}</span>
               </div>
             </div>
@@ -299,12 +299,24 @@ export function PostCard({
           <button
             onClick={handleLike}
             aria-pressed={liked}
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-              liked ? "text-heart" : "hover:text-heart"
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 ${
+              liked ? "text-heart" : "hover:text-foreground"
             }`}
           >
-            <span className={`inline-flex transition-transform ${animateLike ? "scale-125" : ""}`}>
-              <Heart size={18} weight={liked ? "fill" : "regular"} />
+            <span
+              className={`inline-flex will-change-transform ${
+                animateLike ? "scale-[1.35]" : ""
+              }`}
+              style={{ transition: "transform 320ms cubic-bezier(.34,1.56,.64,1)" }}
+            >
+              {/* Heart is ALWAYS red, painted on the first frame. transition:none stops it
+                  tweening through the dark inherited colour, so it can never flash black. */}
+              <Heart
+                size={18}
+                weight={liked ? "fill" : "duotone"}
+                color="#E03A33"
+                style={{ opacity: liked ? 1 : 0.45, transition: "none" }}
+              />
             </span>
             <span>{likeCount}</span>
           </button>
@@ -333,7 +345,7 @@ export function PostCard({
             aria-label="Copy link to post"
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            <ShareFat size={17} weight="regular" />
+            <ShareNetwork size={18} weight="regular" />
           </button>
         </div>
 

@@ -15,11 +15,11 @@ export function Footer() {
             Rishi Valley School
             <ExternalLink className="h-3 w-3" />
           </a>
-          <span className="hidden sm:inline">·</span>
+          <span className="dotsep hidden sm:inline">·</span>
           <Link href="/support" className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150">
             Support
           </Link>
-          <span className="hidden sm:inline">·</span>
+          <span className="dotsep hidden sm:inline">·</span>
           <a
             href="https://tally.so"
             target="_blank"
@@ -28,7 +28,7 @@ export function Footer() {
           >
             Feature Request
           </a>
-          <span className="hidden sm:inline">·</span>
+          <span className="dotsep hidden sm:inline">·</span>
           <a
             href="https://tally.so"
             target="_blank"
