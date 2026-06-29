@@ -6,31 +6,31 @@ trigger: When needing to screenshot or visually verify any authenticated page.
 
 # Authenticated Screenshot Workflow
 
-Most pages in this app require authentication. Use `screenshot-auth.mjs` to capture them.
+Most pages in this app require authentication. Use `scripts/qa/screenshot-auth.mjs` to capture them.
 
 ## Commands
 
 ### Authenticated Desktop Screenshot (1440x900)
 ```bash
-node screenshot-auth.mjs http://localhost:3000/feed
-node screenshot-auth.mjs http://localhost:3000/feed feed-desktop
+node scripts/qa/screenshot-auth.mjs http://localhost:3000/feed
+node scripts/qa/screenshot-auth.mjs http://localhost:3000/feed feed-desktop
 ```
 
 ### Authenticated Mobile Screenshot (390x844)
 ```bash
-node screenshot-auth.mjs http://localhost:3000/feed --mobile
-node screenshot-auth.mjs http://localhost:3000/feed feed-mobile --mobile
+node scripts/qa/screenshot-auth.mjs http://localhost:3000/feed --mobile
+node scripts/qa/screenshot-auth.mjs http://localhost:3000/feed feed-mobile --mobile
 ```
 
 ### Public Page Screenshot (no auth needed)
 ```bash
-node screenshot.mjs http://localhost:3000
-node screenshot.mjs http://localhost:3000/login login
+node scripts/qa/screenshot.mjs http://localhost:3000
+node scripts/qa/screenshot.mjs http://localhost:3000/login login
 ```
 
 ## How It Works
 
-1. `screenshot-auth.mjs` reads `ADMIN_EMAIL` from `.env.local`
+1. `scripts/qa/screenshot-auth.mjs` reads `ADMIN_EMAIL` from `.env.local`
 2. POSTs to `http://localhost:3000/api/auth/admin-login` to create a DB session
 3. Sets the `authjs.session-token` cookie on the browser
 4. Navigates to the target URL and screenshots
@@ -62,7 +62,7 @@ node screenshot.mjs http://localhost:3000/login login
 - `/about` — About page
 - `/donate` — Donate page
 
-## Public Routes (use regular `screenshot.mjs`)
+## Public Routes (use regular `scripts/qa/screenshot.mjs`)
 - `/` — Landing page
 - `/login` — Login page
 - `/verify` — Magic link verify

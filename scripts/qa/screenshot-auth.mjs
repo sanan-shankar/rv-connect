@@ -1,7 +1,11 @@
 import puppeteer from 'puppeteer';
-import { existsSync, readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, mkdirSync, readdirSync } from 'fs';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+process.chdir(repoRoot);
 
 // Load .env.local for ADMIN_EMAIL
 config({ path: '.env.local' });
@@ -20,6 +24,7 @@ if (!adminEmail) {
 }
 
 const screenshotsDir = './temporary screenshots';
+mkdirSync(screenshotsDir, { recursive: true });
 
 // Auto-increment screenshot number
 const existing = existsSync(screenshotsDir)
@@ -79,7 +84,7 @@ try {
 // Step 2: Navigate to the target authenticated page
 try {
   await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-} catch (e) {
+} catch {
   // Fallback if networkidle2 times out
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, 3000));

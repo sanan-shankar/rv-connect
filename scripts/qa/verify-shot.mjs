@@ -1,0 +1,42 @@
+// Shared verifier helper: authed screenshot + console/pageerror + doc status.
+// Usage: PUPPETEER_EXECUTABLE_PATH=".../Google Chrome" node scripts/qa/verify-shot.mjs <route> <outName.png> [mobile]
+// Prints one JSON line: {route, status, errors[], out}
+import puppeteer from "puppeteer";
+import { config } from "dotenv";
+import { mkdirSync } from "fs";
+import { dirname, join, resolve } from "path";
+import { fileURLToPath } from "url";
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+process.chdir(repoRoot);
+
+config({ path: ".env.local" });
+
+const [route, out = "shot.png", mobile] = process.argv.slice(2);
+const vp = mobile === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 };
+const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox"] });
+const page = await browser.newPage();
+await page.setViewport(vp);
+const errs = [];
+page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text().slice(0, 160)); });
+page.on("pageerror", (e) => errs.push("pageerror: " + String(e.message).slice(0, 180)));
+await page.goto("http://localhost:3000", { waitUntil: "domcontentloaded" });
+await page.evaluate(async (email) => {
+  await fetch("/api/auth/admin-login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+}, process.env.ADMIN_EMAIL);
+let status = "?";
+try {
+  const resp = await page.goto("http://localhost:3000" + route, { waitUntil: "networkidle2", timeout: 30000 });
+  status = resp ? resp.status() : "no-resp";
+  await new Promise((s) => setTimeout(s, 500));
+} catch (e) {
+  status = "NAV-ERR";
+  errs.push("nav: " + String(e.message).slice(0, 140));
+}
+const overlay = await page.evaluate(() => /Application error|Unhandled Runtime Error|could not be found/i.test(document.body?.innerText || ""));
+if (overlay) errs.push("overlay: error text visible");
+mkdirSync("temporary screenshots", { recursive: true });
+const outPath = join("temporary screenshots", out);
+try { await page.screenshot({ path: outPath }); } catch {}
+console.log(JSON.stringify({ route, status, errors: errs, out: outPath }));
+await browser.close();
