@@ -73,10 +73,16 @@ prisma/
 
 Additional docs are organized under `docs/`; start with `docs/README.md` for the map.
 
-## Deploying to Render
+## Deploying to Vercel
 
-1. Create a PostgreSQL database on Render
-2. Change `prisma/schema.prisma` datasource provider to `"postgresql"`
-3. Set environment variables in Render dashboard
-4. Add build command: `npx prisma generate && npx prisma db push && npm run build`
-5. Add start command: `npm start`
+The app runs on **Vercel** with a **Turso** (libSQL) database and **Vercel Blob**
+for images; local dev stays on SQLite. See `docs/operations/DEPLOY.md` for the
+full walkthrough.
+
+1. Connect the GitHub repo to a Vercel project (production branch: `main`)
+2. Provision a Turso database and set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`
+3. Set the remaining env vars in the Vercel dashboard: `NEXTAUTH_SECRET`,
+   `NEXTAUTH_URL`, `ADMIN_EMAIL`, `NEXT_PUBLIC_ADMIN_EMAIL`, `BLOB_READ_WRITE_TOKEN`
+   (and `RESEND_API_KEY` once email ships)
+4. `postinstall` runs `prisma generate`; Vercel builds with `next build` automatically
+5. Apply the schema to Turso with `npx prisma db push` (pointed at the Turso URL)

@@ -12,14 +12,14 @@ decisions, so you do not need the owner to re-explain):
 Key locked decisions: light-mode-first (dark parked); flush green sidebar nav; warm dimmed surfaces (never pure
 white); ruled-sheet feed; bird avatars (deterministic, 12 species) + photo override; one shared Composer/Feed/PostCard;
 long-form posts = "Letters", newsletter feature = "Roundups", photo archive = "The Valley Collection"; the heart is
-always red `#E03A33`; no em dashes anywhere; deploy to Render + Render Postgres (local dev stays on SQLite).
+always red `#E03A33`; no em dashes anywhere; deploy to Vercel (local dev stays on SQLite; production on Turso/libSQL).
 Brand palette below is SUPERSEDED by the tokens in `src/app/globals.css` (leaf `#1F8A4C`, sidebar `#235C49`,
 sky `#3F7CA6`, cinnamon `#C2622F`).
 
 # Project
 
 Next.js 16 alumni website. Tailwind CSS v4, shadcn/ui (base-nova), Prisma ORM, NextAuth v5 (email+password;
-magic links being removed), SQLite local / Postgres production. Deploying to Render.
+magic links being removed), SQLite local / Turso (libSQL) production. Deploying to Vercel.
 
 **Brand (legacy; see globals.css for live tokens)**: Leaf green `#22A845`/`#34C759`, Bark `#B8860B`/`#DAA520`, Clay `#E8DCC8`, Paper `#F8FBF8`, Ink `#1A1A2E`.
 **Fonts**: Libre Baskerville (headings), Source Sans 3 (body).
