@@ -42,21 +42,33 @@ const GROUPS = [
     id: "seed-grp-bengaluru",
     name: "Bengaluru Alumni",
     description: "Valley folk now in Bengaluru. Meetups, chai, and the occasional trek.",
+    visibility: "public",
     members: ["rohan", "meera", "priya", "nikhil", "lakshmi"],
   },
   {
     id: "seed-grp-class09",
     name: "Class of '09",
     description: "The batch that planted the south orchard. Keeping the thread alive.",
+    visibility: "private",
     members: ["ananya", "arjun", "kabir", "george"],
   },
   {
     id: "seed-grp-birders",
     name: "Birders of RV",
     description: "Sightings, photos and dawn-walk notes from the valley and beyond.",
+    visibility: "public",
     members: ["meera", "fatima", "sneha", "wei", "zara", "david"],
   },
 ];
+
+// The owner joins Bengaluru + Class of '09 (so "Your groups" is populated), but
+// is left OUT of Birders so a demo Keeper can send a real pending invite that
+// shows up in the owner's notification bell on first browse.
+const OWNER_GROUPS = ["seed-grp-bengaluru", "seed-grp-class09"];
+const SEED_INVITE = {
+  groupId: "seed-grp-birders",
+  inviterKey: "meera", // first listed Birders member, made its Keeper below
+};
 
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL ?? "file:dev.db",
@@ -455,7 +467,7 @@ async function main() {
   }
 
   // Demo groups. Recreate our fixed seed groups idempotently (delete by id,
-  // cascade clears memberships) and add demo + owner members.
+  // cascade clears memberships + invites) and add demo + owner members.
   const groupIds = GROUPS.map((g) => g.id);
   await db.execute({
     sql: `DELETE FROM "Group" WHERE id IN (${groupIds.map(() => "?").join(", ")})`,
@@ -463,21 +475,56 @@ async function main() {
   });
   const nowIso = iso(new Date());
   for (const g of GROUPS) {
+    const ownerJoins = OWNER_GROUPS.includes(g.id);
+    // The creator is the first Keeper. Owner-joined groups are owner-created;
+    // the Birders group is created by its first demo member (its Keeper).
+    const creatorId = ownerJoins ? OWNER_ID : (idByKey[g.members[0]] ?? OWNER_ID);
     await db.execute({
-      sql: `INSERT INTO "Group" (id, name, description, creatorId, createdAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [g.id, g.name, g.description, OWNER_ID, nowIso, nowIso],
+      sql: `INSERT INTO "Group" (id, name, description, coverImage, visibility, creatorId, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [g.id, g.name, g.description, null, g.visibility, creatorId, nowIso, nowIso],
     });
-    // Owner joins as admin so the group shows in the owner's "Your groups" rail.
-    const memberUserIds = [OWNER_ID, ...g.members.map((k) => idByKey[k]).filter(Boolean)];
+    // Membership: the creator is the Keeper (admin), everyone else a member.
+    const memberUserIds = ownerJoins
+      ? [OWNER_ID, ...g.members.map((k) => idByKey[k]).filter(Boolean)]
+      : g.members.map((k) => idByKey[k]).filter(Boolean);
     for (let i = 0; i < memberUserIds.length; i++) {
       const uid = memberUserIds[i];
       await db.execute({
         sql: `INSERT INTO GroupMember (id, groupId, userId, role, joinedAt)
               VALUES (?, ?, ?, ?, ?)`,
-        args: [createId(), g.id, uid, i === 0 ? "admin" : "member", nowIso],
+        args: [createId(), g.id, uid, uid === creatorId ? "admin" : "member", nowIso],
       });
     }
+  }
+
+  // One pending group invite from a Keeper to the owner, plus its notification,
+  // so the bell carries a real invite to exercise the accept/decline flow.
+  const inviterId = idByKey[SEED_INVITE.inviterKey];
+  if (inviterId) {
+    const inviteGroup = GROUPS.find((g) => g.id === SEED_INVITE.groupId);
+    await db.execute({
+      sql: `INSERT INTO GroupInvite (id, groupId, inviterId, inviteeId, status, createdAt)
+            VALUES (?, ?, ?, ?, 'pending', ?)`,
+      args: [createId(), SEED_INVITE.groupId, inviterId, OWNER_ID, nowIso],
+    });
+    // Clear any stale demo invite notification, then add a fresh one.
+    await db.execute({
+      sql: `DELETE FROM Notification WHERE userId = ? AND type = 'group_invite' AND link = ?`,
+      args: [OWNER_ID, `/groups/${SEED_INVITE.groupId}`],
+    });
+    const inviterName = PEOPLE.find((p) => p.key === SEED_INVITE.inviterKey)?.name ?? "A Keeper";
+    await db.execute({
+      sql: `INSERT INTO Notification (id, userId, type, message, link, read, createdAt)
+            VALUES (?, ?, 'group_invite', ?, ?, 0, ?)`,
+      args: [
+        createId(),
+        OWNER_ID,
+        `${inviterName} invited you to join ${inviteGroup?.name ?? "a group"}`,
+        `/groups/${SEED_INVITE.groupId}`,
+        nowIso,
+      ],
+    });
   }
 
   const uc = await db.execute({
