@@ -179,7 +179,8 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [ ] Bookmark/save animation (bookmark sweeps over, gains color).
 - [ ] Loading states: replace gray rectangles with a small lively scene (a bird hopping among leaves),
   not a "movie".
-- [x] Like-pop and bell-shake already in.
+- [x] Like-pop and bell-shake (bell-shake was previously only in the preview mock; now wired into the real
+  notification-bell.tsx, firing on unread-count increment with the shared .animate-bell keyframe).
 
 ## Logo
 - [ ] Trace the three peaks (Bodikonda, Middle Peak, Rishikonda left-to-right) from bodi-middle-rishi.png
@@ -214,5 +215,6 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [ ] Iterate: screenshot everything AND verify every interaction works (min 2 to 3 loops); zero sloppy bugs.
 - [ ] Update ALL docs so future sessions are as smart (no re-explaining).
 - [x] Desktop first; do not prioritize mobile yet.
-- [x] No em dashes anywhere (followed silently).
+- [x] No em dashes anywhere (now true: removed the stray em dashes in About, error, not-found, and the
+  profile vCard NOTE that had slipped through).
 - [x] Use the GSD workflow + meticulous task division.

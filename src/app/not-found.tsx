@@ -9,7 +9,7 @@ export default function NotFound() {
         Page not found
       </h2>
       <p className="mt-2 max-w-md text-muted-foreground">
-        Looks like you wandered off the path. This page doesn&apos;t exist — but
+        Looks like you wandered off the path. This page doesn&apos;t exist, but
         the valley is still waiting for you.
       </p>
       <Link href="/" className="mt-6">
