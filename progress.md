@@ -413,3 +413,20 @@ DEFERRED to a follow-up milestone (net-new, not fixes): Catch-ups (Letterloop-pa
 community vouching, profile-completion depth (house-per-year, sections, memory prompts), directory
 facets/gazetteer + live map search, delight beats beyond bell (chirp, loading scene), password reset,
 invite-only enforcement, deploy to Render + Postgres.
+
+## Fork 3 (cont.) — preview-fidelity pass (2026-06-27), committed 5626686
+Owner feedback on the built app vs /preview/v2. Verified (screenshots + tsc clean):
+- HOOPOE root cause = the global @media(prefers-reduced-motion:reduce) block in globals.css killed ALL
+  transitions; removed it so hoopoe + bell-shake + like-pop animate regardless of OS reduce-motion
+  (proven by sampling computed wing transform under emulated reduce: smooth, not snap). Also removed the
+  hoopoe bottom tail (rounded body only); crest kept.
+- BG warmth set to preview exactly: --background #E7E1D3, --card #F6F2E8, secondary/muted/accent #EEE8DA,
+  border/input #E0D8C8, --color-paper #F6F2E8.
+- BUTTONS -> sidebar/canopy green #235C49 (Button default+leaf variants + 3 landing CTAs). bg-leaf/10 tints left.
+- TREE was hidden by -z-10 (behind opaque page bg); fixed to z-0 + content relative z-10, opacity .11.
+  Owner chose the FULL faded tree (version A, default). Fade-to-bottom variant available as .valley-tree--fade.
+- SIDEBAR: peaks mark 15->26px standalone white; nav text-sm->14.5px (preview parity). Search pill already 320px.
+- RAIL: feed/page aside pt-[139px]->pt-[106px] so "Coming up" top == composer top (both 138px measured).
+- POSTS: ruled sheet -> tight separate tiles (PostCard variant="card", space-y-2.5).
+- FONTS never changed: Libre Baskerville (headings) + Source Sans 3 (body), same CSS vars in preview + app.
+- BIRDS deferred to a dedicated owner session; agent stopped, partial edits stashed ("wip-bird-avatars-deferred").
