@@ -29,7 +29,7 @@ export function AppShell({
         {/* faint valley behind the content; subtle enough not to hurt readability */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-[center_28%] opacity-[0.16]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-[center_28%] opacity-[0.08]"
           style={{ backgroundImage: "url(/images/landing.jpeg)" }}
         />
         {rightRail ? (

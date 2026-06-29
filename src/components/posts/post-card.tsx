@@ -49,7 +49,9 @@ export interface PostData {
   author: {
     id: string;
     name: string;
+    photoUrl?: string | null;
     avatarColor: string | null;
+    avatarSpecies?: number | null;
     accountType?: string | null;
     verifyState?: string | null;
     batchType: string | null;
@@ -83,6 +85,7 @@ export function PostCard({
   const [showReport, setShowReport] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [animateLike, setAnimateLike] = useState(false);
+  const [animateBookmark, setAnimateBookmark] = useState(false);
 
   const images = parseJsonArray(post.images);
   const isLetter = post.kind === "letter";
@@ -127,6 +130,10 @@ export function PostCard({
   async function handleBookmark() {
     const next = !bookmarked;
     setBookmarked(next);
+    if (next) {
+      setAnimateBookmark(true);
+      setTimeout(() => setAnimateBookmark(false), 480);
+    }
     const result = await toggleBookmark(post.id);
     if (result.error) {
       setBookmarked(!next);
@@ -158,7 +165,16 @@ export function PostCard({
         <header className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Link href={`/profile/${post.author.id}`} aria-label={post.author.name}>
-              <BirdAvatar user={{ id: post.author.id, name: post.author.name }} size="sm" />
+              <BirdAvatar
+                user={{
+                  id: post.author.id,
+                  name: post.author.name,
+                  photoUrl: post.author.photoUrl,
+                  avatarColor: post.author.avatarColor,
+                  avatarSpecies: post.author.avatarSpecies,
+                }}
+                size="sm"
+              />
             </Link>
             <div className="leading-tight">
               <div className="flex items-center gap-1">
@@ -334,10 +350,30 @@ export function PostCard({
             aria-pressed={bookmarked}
             aria-label={bookmarked ? "Remove bookmark" : "Save post"}
             className={`ml-auto flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-              bookmarked ? "text-leaf" : "hover:text-foreground"
+              bookmarked ? "text-cinnamon" : "hover:text-foreground"
             }`}
           >
-            <BookmarkSimple size={18} weight={bookmarked ? "fill" : "regular"} />
+            <span
+              className="relative inline-flex will-change-transform"
+              style={{
+                transform: animateBookmark ? "scale(1.28)" : "scale(1)",
+                transition: "transform 480ms cubic-bezier(.34,1.56,.64,1)",
+              }}
+            >
+              {/* Resting mark: subtle outline, cinnamon once saved. */}
+              <BookmarkSimple size={18} weight={bookmarked ? "fill" : "regular"} />
+              {/* Save sweep: a clipped cinnamon fill rising bottom-to-top on the moment of saving. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 inline-flex origin-bottom overflow-hidden"
+                style={{
+                  transform: animateBookmark ? "scaleY(1)" : "scaleY(0)",
+                  transition: "transform 360ms cubic-bezier(.22,.61,.36,1)",
+                }}
+              >
+                <BookmarkSimple size={18} weight="fill" color="#C2622F" />
+              </span>
+            </span>
           </button>
 
           <button

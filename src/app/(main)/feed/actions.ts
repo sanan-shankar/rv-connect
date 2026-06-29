@@ -460,7 +460,9 @@ export async function loadPosts(opts?: {
       select: {
         id: true,
         name: true,
+        photoUrl: true,
         avatarColor: true,
+        avatarSpecies: true,
         accountType: true,
         verifyState: true,
         batchType: true,
