@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -16,16 +16,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [intro, setIntro] = useState(true);
 
-  // On load the hoopoe peeks: eyes open briefly, then settle closed so the
-  // interaction is noticed.
-  useEffect(() => {
-    const t = setTimeout(() => setIntro(false), 1100);
-    return () => clearTimeout(t);
-  }, []);
-
-  const hoopoeCovered = !showPw && !intro;
+  // The hoopoe watches with its eyes open while the password is hidden, and
+  // politely covers them the moment you reveal the password.
+  const hoopoeCovered = showPw;
 
   const isAdmin =
     process.env.NEXT_PUBLIC_ADMIN_EMAIL &&
