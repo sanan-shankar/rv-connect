@@ -54,10 +54,10 @@
   --color-sky: #3F7CA6;         /* office blue, the vivid pop */
   --color-cinnamon: #C2622F;    /* warm accent (saved, events, hoopoe) */
   --color-heart: #E03A33;       /* the heart is always this red */
-  --color-paper: #FAF8F3;       /* surface */
+  --color-paper: #F6F2E8;       /* surface (preview warmth) */
   --color-float: #FFFFFF;       /* floating modals only */
   --color-ink: #23241E;         /* warm near-black text */
-  --color-mist: #EFEBE1;        /* recessed surface */
+  --color-mist: #EEE8DA;        /* recessed surface */
 
   /* LiftKit Golden Ratio Spacing (phi = 1.618) */
   --space-xxs: 0.236em;
@@ -72,23 +72,23 @@
 
 :root {
   /* Warm, dimmed light theme. Surfaces are never pure white (that is reserved for floating modals). */
-  --background: #E9E6DD;
+  --background: #E7E1D3;  /* matches /preview/v2 warmth exactly */
   --foreground: #23241E;
-  --card: #FAF8F3;
+  --card: #F6F2E8;
   --card-foreground: #23241E;
   --popover: #FFFFFF;
   --popover-foreground: #23241E;
   --primary: #1F8A4C;
   --primary-foreground: #FFFFFF;
-  --secondary: #EFEBE1;
+  --secondary: #EEE8DA;
   --secondary-foreground: #1A6B3C;
-  --muted: #EFEBE1;
+  --muted: #EEE8DA;
   --muted-foreground: #6E7268;
-  --accent: #EFEBE1;
+  --accent: #EEE8DA;
   --accent-foreground: #1A6B3C;
   --destructive: #E03A33;
-  --border: #DED9CC;
-  --input: #DED9CC;
+  --border: #E0D8C8;
+  --input: #E0D8C8;
   --ring: #1F8A4C;
   --chart-1: #1F8A4C;
   --chart-2: #3F7CA6;
@@ -160,14 +160,10 @@
   h1, h2, h3, h4 {
     @apply font-heading tracking-tight;
   }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
+  /* NOTE: the small, intentional micro-delights (hoopoe, bell-shake, like-pop,
+     bookmark) must play regardless of the OS reduce-motion setting, per the
+     owner. So we do NOT globally kill transitions/animations here. Any future
+     LARGE ambient motion (e.g. drifting landing birds) should guard itself. */
 }
 
 @layer components {
@@ -200,9 +196,6 @@
   animation: bell 0.6s ease;
   transform-origin: 50% 4px;
 }
-@media (prefers-reduced-motion: reduce) {
-  .animate-bell { animation: none; }
-}
 
 /* Hoopoe (login password delight): wings open like curtains to reveal the eyes. */
 .hoopoe .wing {
@@ -214,6 +207,11 @@
 .hoopoe:not(.covered) .wing-r { transform: rotate(82deg); }
 .hoopoe .eye { transition: opacity 0.2s ease 0.08s; }
 .hoopoe.covered .eye { opacity: 0; }
-@media (prefers-reduced-motion: reduce) {
-  .hoopoe .wing { transition: none; }
+
+/* Valley atmosphere behind content. Base = a uniform faint wash (version A).
+   Add `valley-tree--fade` (version B) to keep the tree near the top and let it
+   dissolve into the solid background toward the bottom. */
+.valley-tree--fade {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 82%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 82%);
 }

@@ -44,7 +44,7 @@ export function Hoopoe({ covered, size = 120 }: { covered: boolean; size?: numbe
     <svg
       width={size}
       height={size}
-      viewBox="0 0 80 92"
+      viewBox="0 0 80 80"
       fill="none"
       aria-hidden
       style={{
@@ -63,16 +63,7 @@ export function Hoopoe({ covered, size = 120 }: { covered: boolean; size?: numbe
         </g>
       ))}
 
-      {/* Fanned, banded tail behind the body: three splayed feathers */}
-      {[-13, 0, 13].map((deg, i) => (
-        <g key={i} transform={`rotate(${deg} 40 62)`}>
-          <rect x="37" y="60" width="6" height="28" rx="2.5" fill="#2C2A28" />
-          <rect x="37" y="68" width="6" height="5" fill="#F2EFE7" />
-          <rect x="37" y="79" width="6" height="5" fill="#F2EFE7" />
-        </g>
-      ))}
-
-      {/* Body + head */}
+      {/* Body + head (rounded body, no tail) */}
       <ellipse cx="40" cy="58" rx="18" ry="17" fill="#D9A36F" />
       <ellipse cx="40" cy="40" rx="15" ry="14" fill="#E2B68B" />
 
