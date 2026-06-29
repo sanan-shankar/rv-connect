@@ -192,9 +192,9 @@ export function PostFeed({
 
       {/* Posts as a ruled sheet */}
       {loading ? (
-        <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
+        <div className="space-y-2.5">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="border-b border-border px-5 py-4 last:border-0">
+            <div key={i} className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
               <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded-full" />
                 <div className="space-y-2">
@@ -222,14 +222,11 @@ export function PostFeed({
         </div>
       ) : (
         <>
-          <div
-            ref={animateRef}
-            className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
-          >
+          <div ref={animateRef} className="space-y-2.5">
             {posts.map((post, i) => (
-              <div key={post.id}>
+              <div key={post.id} className="space-y-2.5">
                 {showDivider && i === dividerIndex && (
-                  <div className="flex items-center gap-3 px-5 py-2">
+                  <div className="flex items-center gap-3 py-1">
                     <span className="h-px flex-1 bg-border" />
                     <span className="text-[10.5px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
                       New since you were last here
@@ -237,7 +234,7 @@ export function PostFeed({
                     <span className="h-px flex-1 bg-border" />
                   </div>
                 )}
-                <PostCard post={post} variant="sheet" />
+                <PostCard post={post} variant="card" />
               </div>
             ))}
           </div>

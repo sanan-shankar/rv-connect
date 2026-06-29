@@ -65,8 +65,8 @@ function isActive(pathname: string, href: string) {
 
 function Brand() {
   return (
-    <Link href="/feed" className="flex items-center gap-2.5 px-2 py-1">
-      <PeaksMark size={15} className="text-sidebar-primary" />
+    <Link href="/feed" className="flex items-center gap-3 px-2 py-1">
+      <PeaksMark size={26} className="shrink-0 text-sidebar-foreground" />
       <span className="leading-tight">
         <span className="block font-heading text-[17px] font-bold tracking-tight text-sidebar-foreground">
           Rishi Valley
@@ -95,7 +95,7 @@ function NavLinks({
             key={n.href}
             href={n.href}
             onClick={onNavigate}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 ${
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 ${
               active
                 ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground"

@@ -21,7 +21,7 @@ export function LandingFooter() {
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-xl bg-leaf px-8 py-3.5 font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-xl bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
           >
             Request an invite
           </Link>
