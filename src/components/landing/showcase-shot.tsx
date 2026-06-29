@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useScroll, useTransform, motion, useReducedMotion } from "motion/react";
 import { Search } from "lucide-react";
 import { PeaksMark } from "@/components/layout/peaks-mark";
@@ -28,6 +28,12 @@ export function ShowcaseShot({
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
 
+  // Only arm the scroll-linked parallax after mount so the server-rendered
+  // HTML (no transform) matches the client's first render and never triggers
+  // a hydration mismatch. Transform/opacity-only, reduced-motion safe.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"],
@@ -37,7 +43,7 @@ export function ShowcaseShot({
   return (
     <motion.div
       ref={ref}
-      style={reduce ? undefined : { y }}
+      style={reduce || !mounted ? undefined : { y }}
       className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
       data-shot
     >
