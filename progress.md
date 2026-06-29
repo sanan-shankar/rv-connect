@@ -378,3 +378,38 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
   uses the rough zigzag PeaksMark pending a faithful trace of /Inspiration/bodi-middle-rishi.png.
 - HEAD now at the docs commit above. Remaining: Catch-ups newsletter, onboarding/auth/verification,
   Wave D polish, deploy. See HANDOFF.md.
+
+## Fork 3 — Fix campaign COMPLETE (2026-06-27)
+GROUND TRUTH: the owner's "everything broke" was a stale 2.7GB .next cache showing the OLD app.
+A fresh server proved feed/login/other-profiles/landing(solid sign-in)/directory-map all MATCH the
+contract. Settled the AUDIT-vs-REBUILD_PLAN contradiction (AUDIT was right; REBUILD_PLAN's diagnosis
+was cache-based). Wrote PUNCHLIST.md (1 P0, 7 P1, 25 P2) + docs/contract/index.html (standalone
+openable reference).
+
+EXECUTED (sequential on redesign, each tsc-clean + committed):
+- 03d09f4 B-FOUNDATION: bg #E9E6DD, tree overlay 0.08, real photo avatars in feed select, three-peaks
+  logo (peaks-mark, outline+solid variants, summit ~54%), bookmark cinnamon sweep+pop, bell keyframe, card primitive de-glassed.
+- 47191af B-PROFILE: P0 own-profile null-group crash guard + admin tools warm restyle.
+- 254754c B-AUTH: hoopoe branched tail + rounded crest + intro blink/settle, server-side trivia gate,
+  dropped admissionNumber from SIGNUP (kept in profile/settings), removed dead /verify + Forgot link.
+- ab33379 B-DIRECTORY: filters re-filter the live map, city normalize, case-insensitive search, load-more.
+- c1fab47 B-CONTENT: rail avatar overrides, group batch-add notification + browse empty state, letter title fallback, collection seed variety.
+- 236cf88 B-COPY-DELIGHT: removed About em dash (+3 more found), real bell-shake on unread increment, deleted dead landing-client.tsx, corrected 2 false [x] claims.
+- 5a3cee3 B-SETTINGS-PROFILE: Sharp->WebP avatar upload in Edit Profile (with remove-photo fallback).
+
+REGRESSION caught in my verification pass (agents could not screenshot; bundled Chrome broken):
+- 06bae15 fix: the foundation+content agents added `avatarSpecies: true` to Prisma selects, but it is
+  NOT a User column (species derives from id). This 500'd feed + profile post loads. Removed from
+  feed/actions.ts, feed-rail.tsx, post-card.tsx. Verified: profile posts load, feed clean, zero runtime errors.
+
+VERIFIED VISUALLY (1440, system Chrome): own-profile renders (P0 gone), feed, directory map, login
+(hoopoe + three-peaks outline mark), settings avatar upload, profile posts load. tsc clean repo-wide.
+
+NOT yet re-verified visually (low risk, owner to review): bookmark sweep + bell-shake animations
+(static shots cannot show motion), collection variety, groups empty state, letter title fallback.
+Pre-deploy gate: run `npm run build` before pushing.
+
+DEFERRED to a follow-up milestone (net-new, not fixes): Catch-ups (Letterloop-parity), Events,
+community vouching, profile-completion depth (house-per-year, sections, memory prompts), directory
+facets/gazetteer + live map search, delight beats beyond bell (chirp, loading scene), password reset,
+invite-only enforcement, deploy to Render + Postgres.
