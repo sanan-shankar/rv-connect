@@ -1,29 +1,76 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 /**
  * The hoopoe: a login delight. Its wings cover its eyes while the password is
  * hidden, and open like little curtains when you reveal it. covered => eyes hidden.
- * Animation is driven by inline styles so it never depends on global CSS timing.
+ *
+ * On mount it runs a one-shot intro: eyes open, a quick blink, then it settles
+ * closed so the reveal interaction gets noticed. Animation is driven by inline
+ * styles + transform/opacity only so it never depends on global CSS timing.
  */
 const WING_T = "transform 0.5s cubic-bezier(0.34, 1.5, 0.64, 1)";
-const EYE_T = "opacity 0.2s ease 0.1s";
+const EYE_T = "opacity 0.2s ease 0.1s, transform 0.18s ease";
 
 export function Hoopoe({ covered, size = 120 }: { covered: boolean; size?: number }) {
-  const crest = [-39, -26, -13, 0, 13, 26, 39];
-  const eyeStyle = { opacity: covered ? 0 : 1, transition: EYE_T } as const;
+  // Crest: rounded-tip cinnamon spokes (matches the preview/v2 hoopoe).
+  const crest = [-32, -16, 0, 16, 32];
+
+  // One-shot intro choreography: open -> blink -> settle. blink squashes the
+  // eyes (scaleY), settle nudges the whole bird down a hair then back.
+  const [blink, setBlink] = useState(false);
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const b = setTimeout(() => setBlink(true), 620);
+    const b2 = setTimeout(() => setBlink(false), 760);
+    const s = setTimeout(() => setSettled(true), 900);
+    return () => {
+      clearTimeout(b);
+      clearTimeout(b2);
+      clearTimeout(s);
+    };
+  }, []);
+
+  const eyeStyle = {
+    opacity: covered ? 0 : 1,
+    transformBox: "fill-box",
+    transformOrigin: "50% 50%",
+    transform: blink ? "scaleY(0.12)" : "scaleY(1)",
+    transition: EYE_T,
+  } as const;
+
   return (
-    <svg width={size} height={size} viewBox="0 0 80 88" fill="none" aria-hidden>
-      {/* Crest: a fan of black-tipped cinnamon spokes */}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 80 92"
+      fill="none"
+      aria-hidden
+      style={{
+        transformBox: "fill-box",
+        transformOrigin: "50% 100%",
+        transform: settled ? "translateY(0)" : "translateY(-3px)",
+        opacity: settled ? 1 : 0.92,
+        transition: "transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.4s ease",
+      }}
+    >
+      {/* Crest: a fan of black-tipped cinnamon spokes with rounded tips */}
       {crest.map((deg, i) => (
         <g key={i} transform={`rotate(${deg} 40 33)`}>
-          <rect x="37.6" y="4" width="4.8" height="24" rx="2.4" fill="#C2622F" />
-          <rect x="37.6" y="4" width="4.8" height="7" rx="2.4" fill="#2C2A28" />
+          <rect x="37.4" y="3" width="5.2" height="25" rx="2.6" fill="#C2622F" />
+          <circle cx="40" cy="4.6" r="3.2" fill="#2C2A28" />
         </g>
       ))}
 
-      {/* Long banded tail behind the body */}
-      <rect x="35.5" y="60" width="9" height="27" rx="1.5" fill="#2C2A28" />
-      <rect x="35.5" y="75" width="9" height="6" fill="#F2EFE7" />
+      {/* Fanned, banded tail behind the body: three splayed feathers */}
+      {[-13, 0, 13].map((deg, i) => (
+        <g key={i} transform={`rotate(${deg} 40 62)`}>
+          <rect x="37" y="60" width="6" height="28" rx="2.5" fill="#2C2A28" />
+          <rect x="37" y="68" width="6" height="5" fill="#F2EFE7" />
+          <rect x="37" y="79" width="6" height="5" fill="#F2EFE7" />
+        </g>
+      ))}
 
       {/* Body + head */}
       <ellipse cx="40" cy="58" rx="18" ry="17" fill="#D9A36F" />
@@ -32,7 +79,7 @@ export function Hoopoe({ covered, size = 120 }: { covered: boolean; size?: numbe
       {/* Short decurved beak */}
       <path d="M40 44 Q38.4 51 37 55.5 Q36.6 55.9 36.2 55.6 Q38 50 38.5 44 Z" fill="#3A3330" />
 
-      {/* Eyes (fade out when covered, also physically hidden by the wings) */}
+      {/* Eyes (fade out when covered, blink on intro) */}
       <circle cx="33.8" cy="41" r="2.8" fill="#2C2A28" style={eyeStyle} />
       <circle cx="46.2" cy="41" r="2.8" fill="#2C2A28" style={eyeStyle} />
 

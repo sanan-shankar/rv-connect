@@ -11,7 +11,6 @@ export const signupSchema = z
     batchYear: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
     yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
     yearLeft: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
-    admissionNumber: z.number().int().min(0).max(10000).optional(),
   })
   .refine((d) => d.accountType !== "alumnus" || (d.batchType && d.batchYear), {
     message: "Alumni need a batch type and graduation year",

@@ -4,8 +4,15 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validators";
 import { pickAvatarColor } from "@/lib/utils";
+import { hasPassedTrivia } from "./trivia-actions";
 
 export async function registerUser(formData: FormData) {
+  // The trivia gate is enforced server-side: a valid signed pass cookie must be
+  // present, so the gate cannot be skipped by jumping straight to register.
+  if (!(await hasPassedTrivia())) {
+    return { error: "Please answer the entry question before signing up." };
+  }
+
   const password = formData.get("password") as string;
 
   if (!password || password.length < 8) {
@@ -28,9 +35,6 @@ export async function registerUser(formData: FormData) {
       : undefined,
     yearLeft: formData.get("yearLeft")
       ? Number(formData.get("yearLeft"))
-      : undefined,
-    admissionNumber: formData.get("admissionNumber")
-      ? Number(formData.get("admissionNumber"))
       : undefined,
   };
 
@@ -62,7 +66,6 @@ export async function registerUser(formData: FormData) {
       batchYear: parsed.data.batchYear ?? null,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
-      admissionNumber: parsed.data.admissionNumber ?? null,
       avatarColor: pickAvatarColor(),
     },
   });
