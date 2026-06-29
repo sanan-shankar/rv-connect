@@ -8,7 +8,7 @@ re-explaining anything. Read this + the contract + the area spec before touching
 1. **`/preview/v2` is law.** `src/app/preview/v2/page.tsx` is the approved look (feed, profile, login,
    light + the controls). Open it, screenshot it, and build the real surface to MATCH it. The reason the
    build failed is that compaction lost sight of this file. Do not let that happen again.
-2. **Source of truth stack:** `docs/ROADMAP.md` (build order + DoD) -> `FEEDBACK_CHECKLIST.md` (every owner
+2. **Source of truth stack:** `docs/ROADMAP.md` (build order + DoD) -> `docs/planning/FEEDBACK_CHECKLIST.md` (every owner
    instruction, tracked) -> `docs/spec/<area>.md` (depth). This doc maps those into fork-sized batches.
 3. **One batch per session. Stop at the verify gate.** Do NOT let a session compact. If you approach the
    context limit mid-batch, commit WIP, write a handoff note in `progress.md`, and stop. A compacted
@@ -27,7 +27,7 @@ old composer-box + exposed search/filter row (lost header search pill + bell + N
 composer); feed rail lost "Coming up" + "New in the directory"; posts render as tiles not the ruled sheet;
 profile lost tabs/About/Photos/bio/open-to/profession line and has thin Details/Contact; login reverted to
 the dark void (lost the photo-split + centered form); hoopoe no longer animates (snaps, no bounce); landing
-sign-in button still bad; directory map reportedly does not load. Full per-item list = FEEDBACK_CHECKLIST.
+sign-in button still bad; directory map reportedly does not load. Full per-item list = `docs/planning/FEEDBACK_CHECKLIST.md`.
 
 ## How to run this (the recommended model)
 The owner's instinct is right: avoid compaction, one self-contained chunk per session, hand off via docs.
@@ -101,8 +101,8 @@ Three refinements over "12 random tasks per fork":
   commit), works only in its surface's files, commits, and the owner merges branches in wave order.
 - A fork that discovers it needs a shared-primitive change STOPS and flags it; that change is made once,
   sequentially, and the frozen commit is re-tagged. This prevents the re-drift the owner fears.
-- Every fork's kickoff prompt: "Read REBUILD_PLAN.md + /preview/v2 + docs/spec/<area>.md + the relevant
-  FEEDBACK_CHECKLIST section. Do ONLY batch <id>. Match the contract. Verify interactions + screenshots at
+- Every fork's kickoff prompt: "Read docs/planning/REBUILD_PLAN.md + /preview/v2 + docs/spec/<area>.md + the relevant
+  docs/planning/FEEDBACK_CHECKLIST.md section. Do ONLY batch <id>. Match the contract. Verify interactions + screenshots at
   1440. Update the checklist + progress.md. Commit. Stop before compaction."
 
 ## Status (update as batches complete)

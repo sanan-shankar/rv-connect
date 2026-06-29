@@ -5,7 +5,8 @@
 A full redesign + MVP build is in progress. Before working, read these (they hold the approved
 decisions, so you do not need the owner to re-explain):
 - `docs/ROADMAP.md` — the phased build plan (decisions, shared components, data model, 13 phases). Source of truth.
-- `docs/spec/` — deep specs per area. `FEEDBACK_CHECKLIST.md` — every owner instruction, tracked.
+- `docs/spec/` — deep specs per area. `docs/planning/FEEDBACK_CHECKLIST.md` — every owner instruction, tracked.
+- `docs/planning/PUNCHLIST.md` — authoritative verified backlog and fork-sized batches.
 - `task_plan.md` / `progress.md` — current status. `/preview/v2` (and `/preview/logos`) — the approved look to match.
 
 Key locked decisions: light-mode-first (dark parked); flush green sidebar nav; warm dimmed surfaces (never pure
@@ -70,10 +71,10 @@ Dev server: `npm run dev` on `http://localhost:3000`. Start in background if not
 
 | Command | Use |
 |---------|-----|
-| `node screenshot.mjs http://localhost:3000` | Public pages (landing, login) |
-| `node screenshot.mjs http://localhost:3000/route label` | Public with label |
-| `node screenshot-auth.mjs http://localhost:3000/feed` | Authenticated pages |
-| `node screenshot-auth.mjs http://localhost:3000/feed --mobile` | Authenticated mobile |
+| `node scripts/qa/screenshot.mjs http://localhost:3000` | Public pages (landing, login) |
+| `node scripts/qa/screenshot.mjs http://localhost:3000/route label` | Public with label |
+| `node scripts/qa/screenshot-auth.mjs http://localhost:3000/feed` | Authenticated pages |
+| `node scripts/qa/screenshot-auth.mjs http://localhost:3000/feed --mobile` | Authenticated mobile |
 
 Screenshots save to `./temporary screenshots/screenshot-N.png` (auto-incremented).
 

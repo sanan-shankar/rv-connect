@@ -156,7 +156,7 @@ Use static, optimized image screenshots, NOT live embeds or iframes, for section
 
 ### 4.2 How the screenshots get produced (workflow)
 
-The repo already has `screenshot.mjs` / `screenshot-auth.mjs` and the `screenshot-auth` skill (admin-login bypass). Pipeline:
+The repo already has `scripts/qa/screenshot.mjs` / `scripts/qa/screenshot-auth.mjs` and the `screenshot-auth` skill (admin-login bypass). Pipeline:
 
 1. Seed the dev DB with the v2 sample content (or build a dedicated `/preview/showcase` route that renders the real in-app components with fixed seed props, so the screenshots are of *real components*, satisfying "real screenshots of the app" while staying deterministic).
 2. Capture at 2x device-scale for retina crispness, at a fixed viewport (1440 wide for the desktop frame; a 390-wide capture for the mobile inset where used).

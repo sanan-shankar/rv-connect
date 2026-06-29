@@ -315,3 +315,22 @@ The hidden and ambient layer, surfaced here so the owner can see what is normall
 - Konami valley-bird flush (with the sequence printed)
 - theme sun-sweep / sun-to-moon morph / crossfade (dark lives here only)
 - muted-by-default sound toggle + mobile haptics demo
+
+## Build status (live, 2026-06-27)
+
+All seven routes are BUILT and compiling, light and dark, with a reduced-motion toggle in the top bar.
+Self-contained under `src/app/preview/delight/`; no core app files touched. Verified by screenshot.
+
+- `_kit.tsx` — SPRINGS (gentle/snappy/settle); BASE_CSS (v2 tokens namespaced under `.delight`, plus
+  `--ease-spring`/`--ease-pop`/`--dur-*`); FadeRise, Stagger, SpringPress, AmbientLayer, Seg (sliding
+  `layoutId` thumb); useValleyMotion (reduced + tab-paused); DelightShell + DemoCard/DemoGrid; re-exports
+  PeaksMark + BirdAvatar. Two-tier reduced-motion contract (`.ambient/.parallax/.drift` freeze; micro stays).
+- `_hoopoe.tsx` — HoopoeMascot, poses idle/peek/covered/curious/happy/sleepy/point/searching, idle blink,
+  `gaze`. GOTCHA: every animated SVG part needs `transform-box: view-box` (Framer defaults to fill-box,
+  which breaks userspace transform origins). Login semantics: eyes OPEN while hidden, COVER when revealed.
+- Routes: `/preview/delight` (index + foundation), `/hoopoe`, `/landing` (canvas leaf-fall the cursor
+  parts + parallax ridges + hopping bird), `/transitions`, `/loading`, `/feedback`, `/eggs`.
+
+Next, once favourites are chosen: promote winners into real components (PostCard like/bookmark, sidebar
+marker, route template, login, skeletons) and the landing page, lifting the kit into `src/lib/motion.ts`
++ `src/components/motion/`. Tiny polish: the feedback fundraiser demo uses `$`; switch to `₹`.

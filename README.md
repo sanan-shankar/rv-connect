@@ -71,6 +71,8 @@ prisma/
   schema.prisma      Database schema
 ```
 
+Additional docs are organized under `docs/`; start with `docs/README.md` for the map.
+
 ## Deploying to Render
 
 1. Create a PostgreSQL database on Render

@@ -1,5 +1,37 @@
 # Progress Log
 
+## Session 2026-06-29 — Bird avatars reborn: 37 real Rishi Valley birds, colour, no background
+Final count is **37** (started at 26; owner named more birds they remember from school, all added:
+Paradise Flycatcher, Pond Heron, Little Cormorant, Golden Oriole, Cattle Egret, Verditer Flycatcher,
+Peregrine Falcon, Orange-headed Thrush, Blue-faced Malkoha, Jacobin Cuckoo, Black Eagle).
+Fixed a `mix()` bug (3-digit hex like `#000`/`#fff` produced a NaN blue channel -> invalid fill ->
+rendered BLACK), which had been drawing several birds' wings/patches as black blobs.
+The public gallery at **/preview/birds-rv** was redesigned as a clean icon display (one size, names only).
+Owner rejected the mono-white silhouettes (all looked the same at profile size). Rebuilt the system:
+- **New formula:** each bird has its OWN real colours and is built from big SOFT ROUNDED shapes (no
+  thin spikes). Colour carries differentiation at 28-40px; one bold rounded signature gives character.
+  Lives in **`src/components/common/bird-avatar-v2.tsx`**; `BirdAvatar` delegates to it via `USE_V2`.
+- **26 species, researched.** A background workflow (eBird/V. Santharam, the RV checklist + book,
+  the Rayalaseema arid-scrub avifauna) pooled 171 species; an art-director pass curated 26 that are
+  both accurate to Rishi Valley AND mutually distinct as round flat avatars (rejected redundant
+  blues, yellow orioles, "small brown jobs", extra owls). Hoopoe, Peafowl, Spotted Owlet are in.
+- **Optical centering, measured not eyeballed.** `scripts/dev/centroid.mjs` rasterises each bird,
+  finds its true pixel centroid + bbox, and writes scale+nudge corrections to
+  `src/components/common/bird-adjust.json` (read via `archeTransform`). Converged: every bird centroid
+  = (50,50), reach ~43, even margins, zero edge-kissing (fixed the "hangs low / too close to edge" issue).
+- **Background treatment = NONE (owner choice).** `BG_MODE` in bird-avatar-v2.tsx switches
+  none / outline (sticker halo) / inset (bird in disc) in one line; container in bird-avatar.tsx
+  stops clipping for the no-disc modes so crests/bills are not cut. No disc => no per-member colour;
+  visual variety is 26 species x 2 poses. Switch to "inset"/"outline" to restore per-member colour.
+- **Owner = Hoopoe.** `SPECIES_PINS` in avatar.ts pins user id -> species; sanan (owner) -> Hoopoe (#0),
+  applied in BirdAvatar (manual override > pin > hash). Pin is keyed by local id; production should add
+  an `avatarSpecies` column + settings UI (User has `avatarColor` but no `avatarSpecies` yet).
+- `BIRD_SPECIES_COUNT` 52 -> 26; `avatar.test.mjs` updated -> PASSES. tsc clean (only a pre-existing
+  unrelated error in preview/delight/_kit.tsx). Previews: **/preview/birds-rv** (gallery),
+  **/preview/birds-bg** (treatment comparison), /preview/centroid (dev harness).
+- Verified on the real authenticated feed: no-disc birds read cleanly; owner shows the hoopoe in the
+  composer, post header, and sidebar.
+
 ## Session 2026-06-27 — Fork 5: bird-avatar species set (16 -> 52)
 Scope: ONLY the bird avatars. Expanded the deterministic set from 16 to **52 distinct, cute,
 centered species** (now 52 x 10 colours x 4 poses = 2080 combos). Same locked system: one off-white
@@ -102,10 +134,10 @@ click-chirp, living loading scene); the PUNCHLIST P0 own-profile crash; bird-ava
   refined into a proper species set.
 - Post layout toggle added: Tiles (default) vs ruled Sheet (Almanac feel). Live via control bar + ?layout=.
 - Logo lab at /preview/logos: wordmark-only, monogram (filled+outline), valley/hills, feather, leaf.
-- FEATURES.md written (feature backlog).
+- docs/planning/FEATURES.md written (feature backlog).
 
 ## Round 4 — design locked + MVP build kickoff (2026-06-27)
-- GSD installed (./.claude, local). FEEDBACK_CHECKLIST.md written: every owner instruction itemized + tracked.
+- GSD installed (./.claude, local). docs/planning/FEEDBACK_CHECKLIST.md written: every owner instruction itemized + tracked.
 - Locked the design in /preview/v2 and verified by screenshot:
   - dimmer + warmer light palette, less-white surfaces; darker flush sidebar green.
   - heart is ALWAYS red now (fixed the black->red fade: transform-only transition on the heart).
@@ -361,7 +393,7 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
   so the swap is clean.
 - render.yaml (Blueprint: web service + Render Postgres; build = prepare-prisma -> generate -> db push -> build;
   health check /login; env vars incl. DATABASE_URL fromDatabase + generated NEXTAUTH_SECRET). .env.example +
-  DEPLOY.md (full owner walkthrough incl. the provider split, Blob token, post-deploy seeding, follow-ups).
+  docs/operations/DEPLOY.md (full owner walkthrough incl. the provider split, Blob token, post-deploy seeding, follow-ups).
 - VERIFIED local untouched: tsc 0 errors, dev serves, datasource still sqlite, feed works (screenshot-92), the
   prepare script no-ops on file: URL. Moved leftover .next-stale out of the repo (rm -rf blocked; used mv).
   gitignored .claude/gsd-core + node_modules + .next-stale.
@@ -370,7 +402,7 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
   are gitignored and were not committed.
 
 ### TO GO LIVE (needs the OWNER's accounts): push branch to GitHub, Render New>Blueprint on the repo, fill the
-### sync:false env vars (NEXTAUTH_URL, ADMIN_EMAIL, NEXT_PUBLIC_ADMIN_EMAIL, BLOB_READ_WRITE_TOKEN), apply. See DEPLOY.md.
+### sync:false env vars (NEXTAUTH_URL, ADMIN_EMAIL, NEXT_PUBLIC_ADMIN_EMAIL, BLOB_READ_WRITE_TOKEN), apply. See docs/operations/DEPLOY.md.
 - Larger follow-ups (need deploy infra or are big net-new): full Catch-ups (Roundup* models + Render Cron +
   Resend), full Events model+page, invite tokens + community vouching + house-per-year + /profile/complete,
   remaining Phase 13 micro-delights (signup hoopoe, loading-bird scene, bookmark ribbon, avatar chirp).
@@ -403,11 +435,11 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
   remove magic links).
 
 ## Session 2026-06-29 (fork 2) — audit truth + Wave C Groups & Letters
-- AUDIT (AUDIT.md): the committed app MOSTLY MATCHES the /preview/v2 contract. Feed, Profile, Login
+- AUDIT (docs/planning/AUDIT.md): the committed app MOSTLY MATCHES the /preview/v2 contract. Feed, Profile, Login
   (photo-split), Directory (working map), Support, Collection all render correctly; heart is locked
   red (#E03A33, no color transition) and the hoopoe has a real spring + on-load peek IN CODE. The
   owner's "it looks broken" was almost certainly a STALE dev-server render. Lesson: trust screenshots
-  + code, never the FEEDBACK_CHECKLIST [x] marks.
+  + code, never the docs/planning/FEEDBACK_CHECKLIST.md [x] marks.
 - Wave B P1 cleanup (committed bd3b0f3 b048119 4f23991 e22e795): fixed landing hydration runtime error
   (showcase parallax), replaced glassmorphism landing Sign-in with solid leaf-green, deleted live-DB
   "asdfasdf" junk group + seeded 3 real groups, varied the 12 Collection tiles.
@@ -421,13 +453,13 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
 - Logo: /preview/logo = first-pass three-peaks (outline + solid-white-fill + gradient). Real app still
   uses the rough zigzag PeaksMark pending a faithful trace of /Inspiration/bodi-middle-rishi.png.
 - HEAD now at the docs commit above. Remaining: Catch-ups newsletter, onboarding/auth/verification,
-  Wave D polish, deploy. See HANDOFF.md.
+  Wave D polish, deploy. See docs/operations/HANDOFF.md.
 
 ## Fork 3 — Fix campaign COMPLETE (2026-06-27)
 GROUND TRUTH: the owner's "everything broke" was a stale 2.7GB .next cache showing the OLD app.
 A fresh server proved feed/login/other-profiles/landing(solid sign-in)/directory-map all MATCH the
-contract. Settled the AUDIT-vs-REBUILD_PLAN contradiction (AUDIT was right; REBUILD_PLAN's diagnosis
-was cache-based). Wrote PUNCHLIST.md (1 P0, 7 P1, 25 P2) + docs/contract/index.html (standalone
+contract. Settled the `docs/planning/AUDIT.md` vs `docs/planning/REBUILD_PLAN.md` contradiction (`docs/planning/AUDIT.md` was right; `docs/planning/REBUILD_PLAN.md`'s diagnosis
+was cache-based). Wrote docs/planning/PUNCHLIST.md (1 P0, 7 P1, 25 P2) + docs/contract/index.html (standalone
 openable reference).
 
 EXECUTED (sequential on redesign, each tsc-clean + committed):
@@ -490,4 +522,4 @@ GOTCHA confirmed: editing globals.css needs a full .next clear + restart (HMR si
 plain restart 404'd all routes from a corrupt .next; moved .next to scratchpad to clear since rm/find-delete
 are blocked and in-project copy busts the 5GB cap).
 Birds deferred to a dedicated session (stash@{0} wip-bird-avatars-deferred; recommend drop + redo).
-Full remaining backlog + the next-fork prompt: HANDOFF.md (rewritten) + PUNCHLIST.md.
+Full remaining backlog + the next-fork prompt: docs/operations/HANDOFF.md (rewritten) + docs/planning/PUNCHLIST.md.

@@ -1,6 +1,6 @@
 # RV Alumni — Brutally Honest Audit (real app vs `/preview/v2` contract)
 
-Audited on branch `redesign`, dev server :3000. Verdicts trust only screenshots + code, NOT the FEEDBACK_CHECKLIST `[x]` marks.
+Audited on branch `redesign`, dev server :3000. Verdicts trust only screenshots + code, NOT the `docs/planning/FEEDBACK_CHECKLIST.md` `[x]` marks.
 
 ## Overall verdict: MOSTLY matches the contract.
 
@@ -63,7 +63,7 @@ Screenshot pairs captured (in `temporary screenshots/`):
 
 ---
 
-## False "done" claims (FEEDBACK_CHECKLIST marks `[x]` but NOT true in the real app)
+## False "done" claims (`docs/planning/FEEDBACK_CHECKLIST.md` marks `[x]` but NOT true in the real app)
 - **Line 167 "Keep the calm hero; make page SCROLLABLE into a feature showcase":** structure exists BUT the page throws a dev runtime error and the hero "Sign in" button is still glassmorphism — so the landing is not actually shippable/clean. **Partially false.**
 - **Implied "glow toned down / no AI-company glass":** the landing Sign-in glass pill survives. **False for landing.**
 - Everything else marked `[x]` that I could verify is actually true: heart-always-red (line 63) ✅ real, profile-avatar-not-clipped (line 74) ✅ real, ruled sheet (line 24) ✅ real, bird avatars centered (line 30) ✅ real, login photo-split (line 17) ✅ real, lowered right rail (line 37) ✅ real, world map (line 120) ✅ real, no-alphabetical-default (line 116) ✅ real, support page (line 194) ✅ real, search placeholder "..." + longer (line 33) ✅ real. The checklist is more honest than feared — the gaps are the *landing* items and the *unlogged logo swap*.

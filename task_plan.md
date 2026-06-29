@@ -3,8 +3,8 @@
 ## Source of truth
 - **docs/ROADMAP.md** — the consolidated, phased build plan (decisions, shared components, data model, 13 phases).
 - **docs/spec/** — deep specs per area (ia, letters, directory, profile, onboarding, color, delight, avatars, media, landing, infra).
-- **FEEDBACK_CHECKLIST.md** — every owner instruction, itemized + tracked. Never ship with an open [~]/[ ] that was promised.
-- **FEATURES.md** — feature backlog. **/preview/v2** — the approved look (reference while building).
+- **docs/planning/FEEDBACK_CHECKLIST.md** — every owner instruction, itemized + tracked. Never ship with an open [~]/[ ] that was promised.
+- **docs/planning/FEATURES.md** — feature backlog. **/preview/v2** — the approved look (reference while building).
 
 ## Goal
 Apply the approved look to the real app and build the MVP, then push to GitHub and deploy to Render.
