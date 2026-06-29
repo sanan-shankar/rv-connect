@@ -67,6 +67,10 @@ export default async function ProfilePage({
   });
   if (!user || user.isBlocked) notFound();
 
+  // An orphaned GroupMember row can point at a deleted Group (group === null).
+  // Filter those out before touching any group field, or the page throws.
+  const groups = user.groupMemberships.filter((m) => m.group);
+
   const isOwnProfile = session.user.id === user.id;
   const isAdmin = session.user.role === "admin";
   const firstName = user.name.split(" ")[0];
@@ -406,22 +410,22 @@ export default async function ProfilePage({
             </section>
           )}
 
-          {user.groupMemberships.length > 0 && (
+          {groups.length > 0 && (
             <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
               <h3 className="mb-3 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
                 <Users className="h-3.5 w-3.5" />
-                Groups ({user.groupMemberships.length})
+                Groups ({groups.length})
               </h3>
               <div>
-                {user.groupMemberships.slice(0, 5).map((m) => (
+                {groups.slice(0, 5).map((m) => (
                   <Link
-                    key={m.group.id}
-                    href={`/groups/${m.group.id}`}
+                    key={m.group!.id}
+                    href={`/groups/${m.group!.id}`}
                     className="flex items-center border-t border-border py-2 text-[13.5px] font-semibold text-foreground first:border-t-0 transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                   >
-                    <span className="min-w-0 truncate">{m.group.name}</span>
+                    <span className="min-w-0 truncate">{m.group!.name}</span>
                     <span className="ml-auto pl-2 text-[12px] font-semibold text-sky">
-                      {m.group._count.members}
+                      {m.group!._count.members}
                     </span>
                   </Link>
                 ))}
