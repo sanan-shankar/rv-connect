@@ -57,6 +57,8 @@ model User {
   bookmarks     Bookmark[]
   groupMemberships GroupMember[]
   createdGroups    Group[]
+  groupInvitesSent     GroupInvite[] @relation("GroupInvitesSent")
+  groupInvitesReceived GroupInvite[] @relation("GroupInvitesReceived")
   photos         Photo[]     @relation("PhotoUploader")
   approvedPhotos Photo[]     @relation("PhotoApprover")
   photoLoves     PhotoLove[]
@@ -112,6 +114,8 @@ model Group {
   id          String   @id @default(cuid())
   name        String
   description String?
+  coverImage  String?  // optional cover photo url (Collection or upload)
+  visibility  String   @default("public") // "public" (browseable, auto-join) | "private" (invite-only, hidden)
   creatorId   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -119,6 +123,25 @@ model Group {
   creator  User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   members  GroupMember[]
   posts    Post[]
+  invites  GroupInvite[]
+
+  @@index([visibility, createdAt])
+}
+
+model GroupInvite {
+  id        String   @id @default(cuid())
+  groupId   String
+  inviterId String
+  inviteeId String
+  status    String   @default("pending") // "pending" | "accepted" | "declined"
+  createdAt DateTime @default(now())
+
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter User  @relation("GroupInvitesSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User  @relation("GroupInvitesReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, inviteeId])
+  @@index([inviteeId, status])
 }
 
 model GroupMember {
