@@ -14,6 +14,7 @@ model User {
   password      String?
   emailVerified DateTime?
   avatarColor   String?
+  photoUrl      String?   // uploaded profile photo; overrides the bird avatar everywhere
   bio           String?
   about         String?   // long-form "in their words" paragraph (profile About tab)
   openTo        String?   // comma list of soft "Open to" tags (mentoring, hosting, etc.)

@@ -1,9 +1,14 @@
 "use server";
 
+import sharp from "sharp";
+import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { putImage, delImage } from "@/lib/storage";
 import { profileSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
+
+const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
 
 export async function updateUserProfile(formData: FormData) {
   const session = await auth();
@@ -54,6 +59,68 @@ export async function updateUserProfile(formData: FormData) {
       admissionNumber: parsed.data.admissionNumber ?? null,
     },
   });
+
+  revalidatePath("/settings");
+  revalidatePath(`/profile/${session.user.id}`);
+  return { success: true };
+}
+
+export async function updateAvatar(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const file = formData.get("file") as File | null;
+  if (!file) return { error: "No photo provided" };
+  if (!file.type.startsWith("image/")) return { error: "Only image files are allowed" };
+  if (file.type === "image/heic" || file.type === "image/heif")
+    return { error: "HEIC is not supported yet. Please export as JPG or PNG." };
+  if (file.size > MAX_AVATAR_INPUT) return { error: "Photo must be under 15MB" };
+
+  let url: string;
+  try {
+    const input = Buffer.from(await file.arrayBuffer());
+    const id = createId();
+    // Square crop to a compact WebP; avatars never need more than ~512px.
+    const webp = await sharp(input)
+      .rotate()
+      .resize(512, 512, { fit: "cover", position: "centre" })
+      .webp({ quality: 82 })
+      .toBuffer();
+    url = await putImage(webp, "avatars", `${id}.webp`);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { error: `Could not process the photo: ${message}` };
+  }
+
+  // Replace any prior uploaded photo, best-effort.
+  const prev = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { photoUrl: true },
+  });
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { photoUrl: url },
+  });
+  if (prev?.photoUrl && prev.photoUrl !== url) await delImage(prev.photoUrl);
+
+  revalidatePath("/settings");
+  revalidatePath(`/profile/${session.user.id}`);
+  return { success: true, photoUrl: url };
+}
+
+export async function removeAvatar() {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const prev = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { photoUrl: true },
+  });
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { photoUrl: null },
+  });
+  if (prev?.photoUrl) await delImage(prev.photoUrl);
 
   revalidatePath("/settings");
   revalidatePath(`/profile/${session.user.id}`);
