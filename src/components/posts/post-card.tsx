@@ -51,7 +51,6 @@ export interface PostData {
     name: string;
     photoUrl?: string | null;
     avatarColor: string | null;
-    avatarSpecies?: number | null;
     accountType?: string | null;
     verifyState?: string | null;
     batchType: string | null;
@@ -171,7 +170,6 @@ export function PostCard({
                   name: post.author.name,
                   photoUrl: post.author.photoUrl,
                   avatarColor: post.author.avatarColor,
-                  avatarSpecies: post.author.avatarSpecies,
                 }}
                 size="sm"
               />
