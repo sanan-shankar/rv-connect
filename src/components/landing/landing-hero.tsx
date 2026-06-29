@@ -74,7 +74,7 @@ export function LandingHero() {
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center rounded-xl border border-white/85 bg-white/12 px-8 py-3.5 font-semibold leading-normal text-white shadow-sm transition-[transform,background-color,border-color] duration-200 hover:scale-[1.02] hover:border-white hover:bg-white/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-xl bg-leaf px-8 py-3.5 font-semibold leading-normal text-white shadow-lg transition-[transform,background-color] duration-200 hover:scale-[1.02] hover:bg-canopy hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 active:scale-[0.98]"
             >
               Sign in
             </Link>
