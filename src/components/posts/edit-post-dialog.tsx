@@ -22,18 +22,24 @@ const TAGS = [
 
 export function EditPostDialog({
   postId,
+  kind = "post",
   initialContent,
+  initialTitle,
   initialTag,
   open,
   onClose,
 }: {
   postId: string;
+  kind?: string;
   initialContent: string;
+  initialTitle?: string | null;
   initialTag: string | null;
   open: boolean;
   onClose: () => void;
 }) {
+  const isLetter = kind === "letter";
   const [content, setContent] = useState(initialContent);
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [tag, setTag] = useState(initialTag);
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,13 +49,17 @@ export function EditPostDialog({
 
     const formData = new FormData();
     formData.set("content", content);
-    if (tag) formData.set("tag", tag);
+    if (isLetter) {
+      if (title.trim()) formData.set("title", title.trim());
+    } else if (tag) {
+      formData.set("tag", tag);
+    }
 
     const result = await editPost(postId, formData);
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success("Post updated");
+      toast.success(isLetter ? "Letter updated" : "Post updated");
       onClose();
     }
     setSubmitting(false);
@@ -59,32 +69,44 @@ export function EditPostDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Post</DialogTitle>
+          <DialogTitle>{isLetter ? "Edit letter" : "Edit Post"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {isLetter && (
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Title your letter"
+              maxLength={160}
+              className="w-full bg-transparent font-heading text-xl font-bold tracking-[-0.01em] text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none"
+            />
+          )}
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            maxLength={5000}
-            rows={5}
+            maxLength={isLetter ? 20000 : 5000}
+            rows={isLetter ? 10 : 5}
           />
 
-          <div className="flex flex-wrap gap-2">
-            {TAGS.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setTag(tag === t.value ? null : t.value)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
-                  tag === t.value
-                    ? "bg-leaf/10 text-leaf ring-2 ring-ring"
-                    : "bg-muted text-muted-foreground hover:bg-accent"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          {!isLetter && (
+            <div className="flex flex-wrap gap-2">
+              {TAGS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTag(tag === t.value ? null : t.value)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                    tag === t.value
+                      ? "bg-leaf/10 text-leaf ring-2 ring-ring"
+                      : "bg-muted text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>

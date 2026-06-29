@@ -181,7 +181,7 @@ export async function editPost(postId: string, formData: FormData) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true },
+    select: { authorId: true, kind: true, groupId: true },
   });
 
   if (!post) return { error: "Post not found" };
@@ -189,20 +189,31 @@ export async function editPost(postId: string, formData: FormData) {
 
   const content = formData.get("content") as string;
   const tag = formData.get("tag") as string;
+  const title = formData.get("title") as string;
+  const isLetter = post.kind === "letter";
+  const cap = isLetter ? 20000 : 5000;
 
-  if (!content || content.length > 5000) {
-    return { error: "Content must be between 1 and 5000 characters" };
+  if (!content || content.length > cap) {
+    return { error: `Content must be between 1 and ${cap} characters` };
+  }
+  if (title && title.length > 160) {
+    return { error: "Title must be 160 characters or fewer" };
   }
 
   await prisma.post.update({
     where: { id: postId },
     data: {
       content,
-      tag: tag || null,
+      // Tags are post-only; a letter keeps its title and ignores tags.
+      ...(isLetter ? { title: title?.trim() || null } : { tag: tag || null }),
     },
   });
 
-  revalidatePath("/feed");
+  revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
+  if (isLetter) {
+    revalidatePath("/letters");
+    revalidatePath(`/letters/${postId}`);
+  }
   return { success: true };
 }
 

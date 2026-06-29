@@ -256,16 +256,16 @@ export function CreatePostForm({
             <BarChart3 className="h-[15px] w-[15px]" />
             <span className="hidden sm:inline">Poll</span>
           </button>
-          {resolvedScope !== "group" && (
-            <button
-              type="button"
-              onClick={() => expand("letter")}
-              className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
-            >
-              <Feather className="h-[15px] w-[15px]" />
-              <span className="hidden sm:inline">Letter</span>
-            </button>
-          )}
+          {/* Letters can be written in the main feed and in a group (carrying
+              groupId). The group read view gates group letters to members. */}
+          <button
+            type="button"
+            onClick={() => expand("letter")}
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          >
+            <Feather className="h-[15px] w-[15px]" />
+            <span className="hidden sm:inline">Letter</span>
+          </button>
         </div>
       </div>
     );
