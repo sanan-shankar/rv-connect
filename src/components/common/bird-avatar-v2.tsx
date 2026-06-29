@@ -2,7 +2,7 @@ import { birdFor, AVATAR_PALETTE } from "@/lib/avatar";
 import ADJUST from "@/components/common/bird-adjust.json";
 
 /**
- * Optical-centering corrections, keyed by bird name. Generated/refined by _centroid.mjs (which
+ * Optical-centering corrections, keyed by bird name. Generated/refined by scripts/dev/centroid.mjs (which
  * rasterises each bird, finds its true pixel centroid + bounding box, and writes the scale-about-
  * centre + nudge needed to seat the visual mass at 50,50 with even margins). Hand-edited values
  * are preserved across runs unless re-measured.
@@ -20,19 +20,24 @@ const ADJUST_MAP = ADJUST as Record<string, { x?: number; y?: number; s?: number
  * House style: one bird, big and SOFT and ROUNDED, filling ~85% of the disc. No thin spikes, no
  * hair-thin beaks/tails. Colour does the differentiating at small size; one bold rounded signature
  * gives each its character. Every bird is OPTICALLY centred via `adjust` (measured with
- * _centroid.mjs — geometric centre is not the visual centre).
+ * scripts/dev/centroid.mjs — geometric centre is not the visual centre).
  *
  * Drawing space is viewBox 0..100, disc centre (50,50) r50; keep visual mass inside r~45.
  * Wired in behind the USE_V2 flag in bird-avatar.tsx.
  */
 
 const INK = "#33302B";
-const CREAM = "#F3ECDD";
 const WHITE = "#F6F1E7";
 
 function mix(hex: string, withHex: string, pct: number) {
-  const a = hex.replace("#", "");
-  const b = withHex.replace("#", "");
+  // Expand 3-digit shorthand (#000 -> #000000) so the channel slices below never read past the end
+  // and produce NaN (which renders as black).
+  const norm = (h: string) => {
+    const s = h.replace("#", "");
+    return s.length === 3 ? s.split("").map((c) => c + c).join("") : s;
+  };
+  const a = norm(hex);
+  const b = norm(withHex);
   const ar = parseInt(a.slice(0, 2), 16),
     ag = parseInt(a.slice(2, 4), 16),
     ab = parseInt(a.slice(4, 6), 16);
@@ -61,7 +66,7 @@ function beak(xb: number, y: number, len: number, h: number, fill: string) {
 
 /**
  * `adjust` optically re-centres a bird: x/y nudge (viewBox units) and s scale-about-centre.
- * Values come from the _centroid.mjs harness (adjust.x/y = reported nudge dx/dy; s = ~44/reach
+ * Values come from the scripts/dev/centroid.mjs harness (adjust.x/y = reported nudge dx/dy; s = ~44/reach
  * when a bird runs too big or too small). This makes the VISUAL mass sit at 50,50.
  */
 type Arche = {
@@ -667,11 +672,259 @@ const ARCHES: Arche[] = [
       );
     },
   },
+  // 26 — ASIAN PARADISE FLYCATCHER (rufous morph). Glossy blue-black crested head, rufous body,
+  // powder-blue eye-ring + bill (its ribbon tail is cropped to a soft nub).
+  {
+    name: "Paradise Flycatcher",
+    skip: WARMS,
+    draw: () => {
+      const RUF = "#C07A50", BLK = "#2C2A33", BLU = "#83B6CA";
+      return (
+        <g>
+          {/* soft tail nub */}
+          <path d="M22 54 Q10 58 13 68 Q23 61 31 59 Z" fill={RUF} />
+          <circle cx="48" cy="57" r="30" fill={RUF} />
+          {/* crested blue-black head */}
+          <path d="M48 30 Q50 16 60 21 Q54 26 56 34 Z" fill={BLK} />
+          <circle cx="56" cy="42" r="15" fill={BLK} />
+          {/* powder-blue eye-ring + bill */}
+          <circle cx="59" cy="41" r="5.6" fill={BLU} />
+          <Eye cx={59} cy={41} r={3.3} />
+          <path d="M70 42 Q83 43 82 50 Q78 49 71 48 Q68 45 70 42 Z" fill={BLU} />
+        </g>
+      );
+    },
+  },
+  // 27 — INDIAN POND HERON. Hunched buff body, white belly/wing, streaky crown, soft dagger bill.
+  {
+    name: "Pond Heron",
+    skip: WARMS,
+    draw: () => {
+      const BUFF = "#B49A6E", WHT = "#EDEADF", CROWN = "#8A7450", BILL = "#C7B074";
+      return (
+        <g>
+          {/* white underparts */}
+          <ellipse cx="46" cy="64" rx="22" ry="17" fill={WHT} />
+          {/* hunched buff body */}
+          <path d="M22 60 Q24 40 44 38 Q66 38 70 58 Q70 80 46 81 Q24 80 22 60 Z" fill={BUFF} />
+          {/* streaky neck */}
+          {[52, 60].map((y, k) => (
+            <path key={k} d={`M34 ${y} Q46 ${y + 3} 58 ${y}`} stroke={mix(BUFF, "#000", 0.2)} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.5" />
+          ))}
+          <circle cx="58" cy="44" r="13" fill={BUFF} />
+          {/* darker crown */}
+          <path d="M48 40 Q58 31 70 40 Q58 38 50 43 Z" fill={CROWN} />
+          {/* soft dagger bill with dark tip */}
+          <path d="M70 44 Q86 46 89 52 Q83 49 71 49 Z" fill={BILL} />
+          <path d="M82 47.5 Q89 50 89 52 Q84 50.5 80 49.5 Z" fill="#5A5040" />
+          <Eye cx={61} cy={43} />
+        </g>
+      );
+    },
+  },
+  // 28 — LITTLE CORMORANT. Dark glossy waterbird, raised snaky neck, hooked bill, blue-green eye.
+  {
+    name: "Cormorant",
+    skip: [],
+    draw: () => {
+      const BLK = "#2A2A30", BILL = "#8C8C84", EYE = "#3FA88A";
+      return (
+        <g>
+          <ellipse cx="45" cy="60" rx="29" ry="26" fill={BLK} />
+          <ellipse cx="41" cy="62" rx="15" ry="15" fill={mix(BLK, "#2E6E50", 0.16)} />
+          {/* raised neck + small head */}
+          <path d="M52 58 Q61 44 59 33 Q58 27 50 29 Q56 33 54 44 Q52 53 44 59 Z" fill={BLK} />
+          <circle cx="56" cy="31" r="9" fill={BLK} />
+          {/* hooked grey bill */}
+          <path d="M62 29 Q77 29 77 37 Q73 40 67 38 Q64 33 62 29 Z" fill={BILL} />
+          {/* blue-green eye */}
+          <circle cx="57" cy="30" r="3.6" fill={EYE} />
+          <circle cx="57" cy="30" r="1.7" fill={INK} />
+        </g>
+      );
+    },
+  },
+  // 29 — INDIAN GOLDEN ORIOLE. Glowing golden-yellow body, black eye-stripe (not a hood), black
+  // wing, pink-red bill. (Distinct from the full-hooded Black-hooded Oriole.)
+  {
+    name: "Golden Oriole",
+    skip: [7],
+    draw: () => {
+      const YEL = "#E8B82E", BLK = "#2E2A26", PINK = "#D06A6A";
+      return (
+        <g>
+          <circle cx="49" cy="55" r="33" fill={YEL} />
+          {/* black wing edge */}
+          <path d="M28 50 Q34 77 55 81 Q42 62 38 47 Z" fill={BLK} />
+          {/* black eye-stripe through the eye */}
+          <path d="M50 39 Q63 37 73 42 L73 47 Q63 43 52 46 Z" fill={BLK} />
+          {/* pink-red bill */}
+          <path d="M71 42 Q84 43 83 51 Q79 55 72 53 Q69 47 71 42 Z" fill={PINK} />
+          <Eye cx={62} cy={43} />
+        </g>
+      );
+    },
+  },
+  // 30 — CATTLE EGRET (breeding). Cool-white body, buff crown/breast plumes, yellow dagger bill.
+  {
+    name: "Cattle Egret",
+    skip: [],
+    draw: () => {
+      const WHT = "#EFF1EA", SHADE = "#DBDDD2", BUFF = "#D9A85A", BILL = "#E0B23C", LEG = "#7A6E58";
+      return (
+        <g>
+          {/* stubby legs */}
+          <rect x="42" y="80" width="3" height="8" rx="1.5" fill={LEG} />
+          <rect x="52" y="80" width="3" height="8" rx="1.5" fill={LEG} />
+          <ellipse cx="46" cy="58" rx="29" ry="26" fill={WHT} />
+          {/* soft grey wing shading so the white body holds form */}
+          <ellipse cx="35" cy="62" rx="14" ry="16" fill={SHADE} transform="rotate(-12 35 62)" />
+          {/* buff breast + crown plumes */}
+          <ellipse cx="50" cy="64" rx="13" ry="10" fill={mix(BUFF, "#fff", 0.32)} />
+          <path d="M44 38 Q56 31 66 40 Q56 39 50 43 Q46 42 44 45 Z" fill={BUFF} />
+          <circle cx="58" cy="45" r="12" fill={WHT} />
+          <path d="M52 41 Q60 36 67 41 Q59 40 54 44 Z" fill={BUFF} />
+          {/* yellow dagger bill */}
+          <path d="M68 45 Q84 46 87 51 Q82 49 70 49.5 Z" fill={BILL} />
+          <Eye cx={61} cy={44} />
+        </g>
+      );
+    },
+  },
+  // 31 — VERDITER FLYCATCHER. Uniform bright verditer (aqua) body, black lores, small dark bill.
+  {
+    name: "Verditer Flycatcher",
+    skip: BLUES,
+    draw: () => {
+      const VERD = "#46A9BE", DARK = "#2E2A30";
+      return (
+        <g>
+          <circle cx="49" cy="55" r="32" fill={VERD} />
+          <ellipse cx="38" cy="58" rx="14" ry="14" fill={mix(VERD, "#000", 0.16)} transform="rotate(-14 38 58)" />
+          {/* black lores */}
+          <ellipse cx="64" cy="46" rx="6" ry="4.6" fill={DARK} />
+          {beak(74, 48, 9, 2.6, DARK)}
+          <Eye cx={60} cy={44} />
+        </g>
+      );
+    },
+  },
+  // 32 — PEREGRINE FALCON. Slate back, pale barred belly, dark hood + black moustache, hooked beak.
+  {
+    name: "Peregrine Falcon",
+    skip: [],
+    draw: () => {
+      const SLATE = "#5C6E7E", HOOD = "#3E4A57", PALE = "#E6E2D6", BAR = "#9AA0A0", CERE = "#E0B23C", BEAK = "#5A5A60";
+      return (
+        <g>
+          <circle cx="49" cy="55" r="32" fill={SLATE} />
+          {/* pale barred belly */}
+          <path d="M50 40 Q72 44 70 78 Q56 84 46 78 Q44 56 50 40 Z" fill={PALE} />
+          {[58, 66, 74].map((y, k) => (
+            <path key={k} d={`M48 ${y} Q60 ${y + 3} 68 ${y}`} stroke={BAR} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.6" />
+          ))}
+          {/* dark hooded head + white cheek */}
+          <circle cx="56" cy="42" r="15" fill={HOOD} />
+          <circle cx="61" cy="46" r="6" fill={PALE} />
+          {/* black moustache */}
+          <path d="M59 46 Q61 54 57 59 Q55 52 57 46 Z" fill="#2E343C" />
+          {/* hooked beak with yellow cere */}
+          <path d="M68 42 Q80 42 80 49 Q76 47 70 48 Q67 45 68 42 Z" fill={CERE} />
+          <path d="M74 44 Q82 44 80 50 Q77 49 74 48 Z" fill={BEAK} />
+          <Eye cx={57} cy={42} r={3.8} />
+        </g>
+      );
+    },
+  },
+  // 33 — ORANGE-HEADED THRUSH. Glowing orange head + underparts, blue-grey back and wing.
+  {
+    name: "Orange-headed Thrush",
+    skip: WARMS,
+    draw: () => {
+      const ORG = "#D98A3E", GREY = "#6E7A86";
+      return (
+        <g>
+          <circle cx="49" cy="55" r="32" fill={GREY} />
+          {/* orange head + front */}
+          <path d="M50 40 Q72 44 70 78 Q56 84 46 78 Q44 56 50 40 Z" fill={ORG} />
+          <circle cx="57" cy="42" r="15" fill={ORG} />
+          {/* grey wing */}
+          <ellipse cx="36" cy="58" rx="13" ry="16" fill={mix(GREY, "#000", 0.14)} transform="rotate(-12 36 58)" />
+          {beak(72, 44, 11, 2.8, "#C9B48E")}
+          <Eye cx={61} cy={42} />
+        </g>
+      );
+    },
+  },
+  // 34 — BLUE-FACED MALKOHA. Dark olive body, bold blue facial patch around the eye, green bill.
+  {
+    name: "Blue-faced Malkoha",
+    skip: [],
+    draw: () => {
+      const OLV = "#6E7458", BLUE = "#3A78A8", BILL = "#9AB04A";
+      return (
+        <g>
+          <circle cx="46" cy="56" r="31" fill={OLV} />
+          <ellipse cx="42" cy="62" rx="15" ry="13" fill={mix(OLV, "#000", 0.16)} />
+          <circle cx="57" cy="44" r="14" fill={OLV} />
+          {/* blue face patch */}
+          <ellipse cx="60" cy="44" rx="9" ry="7" fill={BLUE} />
+          <Eye cx={61} cy={44} r={3.3} />
+          {/* pale green bill */}
+          <path d="M70 43 Q83 43 82 51 Q78 54 72 52 Q69 47 70 43 Z" fill={BILL} />
+        </g>
+      );
+    },
+  },
+  // 35 — JACOBIN (PIED) CUCKOO. Black above, white below, tall pointed crest, white wing patch.
+  {
+    name: "Jacobin Cuckoo",
+    skip: [],
+    draw: () => {
+      const BLK = "#2E2A2C", WHT = "#F2ECDE";
+      return (
+        <g>
+          {/* tall crest */}
+          <path d="M48 28 Q48 10 60 15 Q53 21 56 32 Z" fill={BLK} />
+          <ellipse cx="49" cy="55" rx="31" ry="30" fill={BLK} />
+          {/* white underparts */}
+          <path d="M50 42 Q74 46 72 78 Q58 86 46 80 Q44 58 50 42 Z" fill={WHT} />
+          {/* white wing patch */}
+          <ellipse cx="38" cy="56" rx="7" ry="11" fill={WHT} transform="rotate(-12 38 56)" />
+          {beak(70, 44, 10, 2.8, "#2E2A26")}
+          <Eye cx={59} cy={42} />
+        </g>
+      );
+    },
+  },
+  // 36 — BLACK EAGLE. All-black soaring raptor, fierce brow, hooked beak, yellow cere + eye.
+  {
+    name: "Black Eagle",
+    skip: [],
+    draw: () => {
+      const BLK = "#2C2A30", CERE = "#E0B23C", BEAK = "#4A4A50";
+      return (
+        <g>
+          <circle cx="48" cy="56" r="32" fill={BLK} />
+          <ellipse cx="38" cy="58" rx="15" ry="18" fill={mix(BLK, "#000", 0.18)} transform="rotate(-12 38 58)" />
+          <circle cx="57" cy="44" r="15" fill={BLK} />
+          {/* faint brow ridge */}
+          <path d="M50 38 Q60 35 68 39 L67 43 Q59 40 52 43 Z" fill={mix(BLK, "#fff", 0.08)} />
+          {/* hooked beak + yellow cere */}
+          <path d="M68 41 Q80 41 80 48 Q76 46 70 47 Q67 44 68 41 Z" fill={CERE} />
+          <path d="M74 43 Q82 43 80 49 Q77 48 74 47 Z" fill={BEAK} />
+          {/* piercing yellow eye */}
+          <circle cx="58" cy="43" r="4" fill={CERE} />
+          <circle cx="58" cy="43" r="2" fill={INK} />
+        </g>
+      );
+    },
+  },
 ];
 
 export const ARCHETYPE_COUNT = ARCHES.length;
 
-/** Exposed for the optical-centering harness (preview/centroid + _centroid.mjs). */
+/** Exposed for the optical-centering harness (preview/centroid + scripts/dev/centroid.mjs). */
 export const ARCHETYPES = ARCHES;
 
 /** Pick a disc colour that does not clash with the archetype's body hue. */
@@ -686,8 +939,20 @@ function discFor(arche: Arche, colorIndex: number): string {
 }
 
 /**
- * Full-bleed disc + bird, sized to `px`. `colorOverride` (a hex disc colour) and `speciesOverride`
- * mirror the BirdAvatar manual-override path.
+ * How the bird sits in its slot. Owner-chosen: "none" (just the bird, no disc). Switching to
+ * "outline" (sticker halo) or "inset" (bird inside a coloured disc) is a one-line change and the
+ * rest of the system (centering, BirdAvatar container) adapts automatically.
+ */
+export const BG_MODE: "none" | "outline" | "inset" = "none";
+
+/** Inset scale for "inset" mode (bird sits inside the disc with margin). */
+const INSET_SCALE = 0.66;
+
+/**
+ * The bird glyph, sized to `px`. In "none" mode it is just the centred bird on a transparent
+ * background (BirdAvatar gives it a non-clipping container so crest/bill are never cut). `colorOverride`
+ * (disc colour) and `speciesOverride` mirror the BirdAvatar manual-override path; disc colour is
+ * only used by the disc-bearing modes.
  */
 export function BirdGlyphV2({
   seed,
@@ -702,23 +967,53 @@ export function BirdGlyphV2({
 }) {
   const bird = birdFor(seed);
   const arche = ARCHES[(speciesOverride ?? bird.species) % ARCHES.length];
-  const disc = colorOverride ? mix(colorOverride, "#FBF6EC", 0.18) : discFor(arche, bird.colorIndex);
   const flip = bird.pose >= 2;
-  const clip = `bv2-${seed.replace(/[^a-zA-Z0-9]/g, "")}-${px}`;
+  const inner = (
+    <g transform={flip ? "translate(100 0) scale(-1 1)" : undefined}>
+      <g transform={archeTransform(arche)}>{arche.draw()}</g>
+    </g>
+  );
 
+  if (BG_MODE === "none") {
+    return (
+      <svg width={px} height={px} viewBox="0 0 100 100" className="block" aria-hidden>
+        {inner}
+      </svg>
+    );
+  }
+
+  const uid = `${seed.replace(/[^a-zA-Z0-9]/g, "")}-${px}`;
+
+  if (BG_MODE === "outline") {
+    const fid = `stk-${uid}`;
+    return (
+      <svg width={px} height={px} viewBox="0 0 100 100" className="block" aria-hidden>
+        <defs>
+          <filter id={fid} x="-30%" y="-30%" width="160%" height="160%">
+            <feMorphology in="SourceAlpha" operator="dilate" radius="2.6" result="d" />
+            <feGaussianBlur in="d" stdDeviation="1.3" result="shb" />
+            <feFlood floodColor="#2A2622" floodOpacity="0.22" result="shc" />
+            <feComposite in="shc" in2="shb" operator="in" result="shadow" />
+            <feFlood floodColor="#FCFAF4" result="hc" />
+            <feComposite in="hc" in2="d" operator="in" result="halo" />
+            <feMerge>
+              <feMergeNode in="shadow" />
+              <feMergeNode in="halo" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g filter={`url(#${fid})`}>{inner}</g>
+      </svg>
+    );
+  }
+
+  // inset: bird inside a coloured disc
+  const disc = colorOverride ? mix(colorOverride, "#FBF6EC", 0.18) : discFor(arche, bird.colorIndex);
   return (
     <svg width={px} height={px} viewBox="0 0 100 100" className="block" aria-hidden>
-      <defs>
-        <clipPath id={clip}>
-          <circle cx="50" cy="50" r="50" />
-        </clipPath>
-      </defs>
       <circle cx="50" cy="50" r="50" fill={disc} />
-      <g clipPath={`url(#${clip})`}>
-        <g transform={flip ? "translate(100 0) scale(-1 1)" : undefined}>
-          <g transform={archeTransform(arche)}>{arche.draw()}</g>
-        </g>
-      </g>
+      <g transform={`translate(50 50) scale(${INSET_SCALE}) translate(-50 -50)`}>{inner}</g>
     </svg>
   );
 }

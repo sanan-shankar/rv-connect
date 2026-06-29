@@ -1,10 +1,11 @@
 import { getInitials } from "@/lib/utils";
-import { birdFor, BIRD_SPECIES_COUNT, BIRD_POSE_COUNT } from "@/lib/avatar";
-import { BirdGlyphV2 } from "@/components/common/bird-avatar-v2";
+import { birdFor, BIRD_SPECIES_COUNT, BIRD_POSE_COUNT, SPECIES_PINS } from "@/lib/avatar";
+import { BirdGlyphV2, BG_MODE } from "@/components/common/bird-avatar-v2";
 
 /**
- * PREVIEW FLAG: render the new colour-per-bird "v2" silhouettes everywhere instead of the
- * mono-white ones. Flip to `false` to revert the whole app instantly. (Direction not yet locked.)
+ * Render the Rishi Valley colour bird set (v2). Flip to `false` to fall back to the legacy
+ * mono-white silhouettes. The bird's background treatment is controlled by BG_MODE in
+ * bird-avatar-v2.tsx ("none" = no disc, the chosen look).
  */
 const USE_V2 = true;
 
@@ -627,12 +628,19 @@ export function BirdAvatar({
   }
 
   const seed = user.id || user.name || "valley";
+  // Manual override > owner/staff pin > deterministic hash.
+  const speciesPick = user.avatarSpecies ?? SPECIES_PINS[seed];
 
   if (USE_V2) {
+    // No-disc modes ("none"/"outline") must NOT clip to a circle, or the crest/bill get cut.
+    const clipped = BG_MODE === "inset";
+    const v2Base = clipped
+      ? base
+      : "relative inline-grid place-items-center shrink-0";
     return (
       <span
-        className={`${base} ${className}`}
-        style={{ width: px, height: px, ...ringStyle }}
+        className={`${v2Base} ${className}`}
+        style={{ width: px, height: px, ...(clipped ? ringStyle : undefined) }}
         aria-label={user.name ?? "Member"}
         role="img"
       >
@@ -640,7 +648,7 @@ export function BirdAvatar({
           seed={seed}
           px={px}
           colorOverride={user.avatarColor}
-          speciesOverride={user.avatarSpecies}
+          speciesOverride={speciesPick}
         />
         {!user.name ? null : <span className="sr-only">{getInitials(user.name)}</span>}
       </span>

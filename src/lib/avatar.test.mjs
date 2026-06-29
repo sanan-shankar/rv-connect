@@ -4,12 +4,14 @@
  * No test runner is wired into this project, so this is a standalone assertion script. It mirrors
  * the salted FNV-1a in src/lib/avatar.ts and verifies, over thousands of cuid-shaped ids, that:
  *   - every species / colour / pose bucket lands within a generous band of its expected share
- *   - the >= 500 distinct-combination floor is actually reachable (we observe >= 500 unique triples)
  *   - the three axes are decorrelated (no triple is wildly over-represented)
+ * The set is 37 Rishi Valley species. The rendered avatars are currently background-less
+ * (BG_MODE="none"), so the disc colour is not shown and the visual variety is 37 species x 2
+ * poses (left/right); colour is still hashed so the disc-bearing modes work if re-enabled.
  * It throws (non-zero exit) on failure so it can gate a build if desired.
  */
 
-const SPECIES_COUNT = 52;
+const SPECIES_COUNT = 37;
 const COLOR_COUNT = 10;
 const POSE_COUNT = 4;
 
