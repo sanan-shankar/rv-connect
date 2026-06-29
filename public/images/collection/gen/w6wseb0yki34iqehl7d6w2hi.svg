@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="900" viewBox="0 0 1100 900" role="img" aria-label="The old banyan, reaching">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CFE0C6"/>
+      <stop offset="1" stop-color="#9FBE93"/>
+    </linearGradient>
+    <linearGradient id="vig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.42"/>
+    </linearGradient>
+  </defs>
+  <rect width="1100" height="900" fill="url(#sky)"/>
+  <path d="M0 558 L1100 558 L1100 900 L0 900 Z" fill="#2C5E3A" opacity="0.92"/><path d="M0 598 Q275 528 550 588 T1100 568 L1100 900 L0 900 Z" fill="#000" opacity="0.16"/><rect x="524" y="418" width="52" height="170" rx="14" fill="#3a2a1c" opacity="0.9"/><ellipse cx="550" cy="398" rx="170" ry="120" fill="#7A5230" opacity="0.55"/><ellipse cx="430" cy="438" rx="110" ry="80" fill="#2C5E3A" opacity="0.5"/><ellipse cx="670" cy="433" rx="120" ry="86" fill="#2C5E3A" opacity="0.5"/>
+  <rect width="1100" height="900" fill="url(#vig)"/>
+  <text x="44" y="816" font-family="Georgia, 'Times New Roman', serif" font-size="40" fill="#fff" opacity="0.96">The old banyan, reaching</text>
+  <text x="44" y="856" font-family="Georgia, serif" font-size="24" fill="#fff" opacity="0.72" letter-spacing="2">1990s</text>
+</svg>
