@@ -6,7 +6,7 @@ export function proxy(request: NextRequest) {
 
   // Public routes that don't require auth
   // NOTE: "/preview" is temporary — design-direction mockups; remove before shipping.
-  const publicPaths = ["/", "/login", "/signup", "/verify", "/api/auth", "/preview"];
+  const publicPaths = ["/", "/login", "/signup", "/api/auth", "/preview"];
   const isPublic = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + "/")
   );

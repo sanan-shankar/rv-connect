@@ -3,17 +3,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-const TRIVIA_QUESTIONS = [
-  {
-    question: "What tree was the school built around?",
-    answer: "banyan",
-  },
-  {
-    question: "What house is next to Krishna?",
-    answer: "cauvery",
-  },
-];
+import { getTriviaQuestion, checkTrivia } from "./trivia-actions";
 
 function BlinkingOwl() {
   return (
@@ -58,34 +48,47 @@ function BlinkingOwl() {
 }
 
 export function TriviaGate({ onPass }: { onPass: () => void }) {
-  // Pick the question after mount so server and client first paint match
-  // (a random pick during render causes a hydration mismatch).
-  const [question, setQuestion] = useState(TRIVIA_QUESTIONS[0]);
-  useEffect(() => {
-    setQuestion(TRIVIA_QUESTIONS[Math.floor(Math.random() * TRIVIA_QUESTIONS.length)]);
-  }, []);
-
+  // The question (and its answer) live on the server. We fetch only the prompt
+  // after mount so the answer never ships to the browser, and the answer is
+  // checked server-side.
+  const [question, setQuestion] = useState<{ id: string; question: string } | null>(null);
   const [answer, setAnswer] = useState("");
   const [shake, setShake] = useState(false);
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    getTriviaQuestion().then(setQuestion);
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (answer.trim().toLowerCase() === question.answer) {
-      onPass();
-    } else {
+    if (!question || checking) return;
+    setChecking(true);
+    setError("");
+    try {
+      const res = await checkTrivia(question.id, answer);
+      if (res.ok) {
+        onPass();
+        return;
+      }
+      setError(res.error ?? "Not quite. Have another go.");
       setShake(true);
       setTimeout(() => setShake(false), 500);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setChecking(false);
     }
   }
 
   return (
     <div
-      className={`transition-transform ${shake ? "animate-[shake_0.5s_ease-in-out]" : ""}`}
+      className="transition-transform"
       style={
         shake
           ? {
-              animation:
-                "shake 0.5s cubic-bezier(.36,.07,.19,.97) both",
+              animation: "shake 0.5s cubic-bezier(.36,.07,.19,.97) both",
             }
           : undefined
       }
@@ -101,8 +104,8 @@ export function TriviaGate({ onPass }: { onPass: () => void }) {
         `}
       </style>
       <BlinkingOwl />
-      <p className="mb-4 text-center font-heading text-lg text-foreground">
-        {question.question}
+      <p className="mb-4 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
+        {question?.question ?? "..."}
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
@@ -112,12 +115,14 @@ export function TriviaGate({ onPass }: { onPass: () => void }) {
           autoFocus
           className="text-center"
         />
+        {error && <p className="text-center text-sm text-destructive">{error}</p>}
         <Button
           type="submit"
           variant="leaf"
           className="w-full"
+          disabled={!question || checking}
         >
-          Check
+          {checking ? "Checking..." : "Check"}
         </Button>
       </form>
       <p className="mt-3 text-center text-sm text-muted-foreground">
