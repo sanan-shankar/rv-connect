@@ -37,14 +37,14 @@ export function AppShell({
         />
         <div className="relative z-10 flex flex-1 flex-col">
           {rightRail ? (
-            <div className="mx-auto grid w-full max-w-[1180px] flex-1 grid-cols-1 gap-x-[30px] px-5 pb-16 pt-6 sm:px-7 lg:px-9 lg:py-7 min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
+            <div className="mx-auto grid w-full max-w-[1280px] flex-1 grid-cols-1 gap-x-[30px] px-5 pb-16 pt-6 sm:px-7 lg:px-9 lg:py-7 min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
               <main className="min-w-0">{children}</main>
               {/* On the contract the rail starts level with the composer, not the
                   page header, so it carries its own top offset. */}
               <aside className="hidden min-[1180px]:block">{rightRail}</aside>
             </div>
           ) : (
-            <main className="mx-auto w-full max-w-[1180px] flex-1 px-5 py-6 sm:px-7 lg:px-10 lg:py-8">
+            <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 py-6 sm:px-7 lg:px-10 lg:py-8">
               {children}
             </main>
           )}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight } from "lucide-react";
-import { Heart, ChatCircle, ShareNetwork, BookmarkSimple, Feather } from "@phosphor-icons/react";
+import { Heart, ChatCircle, ShareFat, BookmarkSimple, Feather } from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,22 +20,6 @@ import { PollDisplay } from "./poll-display";
 import { formatTimeAgo, parseJsonArray, renderRichText, batchLine } from "@/lib/utils";
 import { toggleLike, deletePost, toggleBookmark } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
-
-const TAG_STYLES: Record<string, string> = {
-  "campus-memory": "bg-leaf/10 text-leaf",
-  "life-update": "bg-cinnamon/10 text-cinnamon",
-  "looking-for-connections": "bg-sky/10 text-sky",
-  photo: "bg-sky/10 text-sky",
-  general: "bg-muted text-muted-foreground",
-};
-
-const TAG_LABELS: Record<string, string> = {
-  "campus-memory": "Campus Memory",
-  "life-update": "Life Update",
-  "looking-for-connections": "Looking for Connections",
-  photo: "Photo",
-  general: "General",
-};
 
 export interface PostData {
   id: string;
@@ -155,7 +139,7 @@ export function PostCard({
   const wrapClass =
     variant === "sheet"
       ? "px-5 py-4 border-b border-border last:border-0"
-      : "card-elevated rounded-[var(--radius)] border border-border bg-card p-5";
+      : "card-elevated rounded-[var(--radius)] border border-border bg-card p-4";
 
   return (
     <>
@@ -241,19 +225,6 @@ export function PostCard({
           </Link>
         ) : (
           <>
-            {/* Tag */}
-            {post.tag && (
-              <div className="mt-2.5">
-                <span
-                  className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                    TAG_STYLES[post.tag] || TAG_STYLES.general
-                  }`}
-                >
-                  {TAG_LABELS[post.tag] || post.tag}
-                </span>
-              </div>
-            )}
-
             {/* Content */}
             <div className="mt-2.5">
               <p
@@ -309,7 +280,7 @@ export function PostCard({
         )}
 
         {/* Actions */}
-        <div className="mt-3.5 flex items-center gap-1 text-muted-foreground">
+        <div className="mt-2 -ml-2.5 flex items-center gap-1 text-muted-foreground">
           <button
             onClick={handleLike}
             aria-pressed={liked}
@@ -379,7 +350,7 @@ export function PostCard({
             aria-label="Copy link to post"
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            <ShareNetwork size={18} weight="regular" />
+            <ShareFat size={18} weight="regular" />
           </button>
         </div>
 

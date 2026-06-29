@@ -48,7 +48,7 @@ export function SearchPill() {
             e.preventDefault();
             submit();
           }}
-          className="flex h-11 w-[min(20rem,56vw)] items-center gap-2.5 rounded-full border border-border bg-card pl-4 pr-2 shadow-[0_1px_2px_rgba(30,28,22,0.04)] focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/40"
+          className="flex h-10 w-[min(20rem,56vw)] items-center gap-2.5 rounded-full border border-border bg-card pl-4 pr-2 shadow-[0_1px_2px_rgba(30,28,22,0.04)] focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/40"
         >
           <MagnifyingGlass
             weight="regular"
@@ -73,7 +73,7 @@ export function SearchPill() {
           onClick={() => setOpen(true)}
           aria-label="Search the valley"
           className={cn(
-            "flex h-11 w-[min(20rem,56vw)] items-center gap-2.5 rounded-full border border-border bg-card pl-4 pr-4 text-left text-[13.5px] text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)]",
+            "flex h-10 w-[min(20rem,56vw)] items-center gap-2.5 rounded-full border border-border bg-card pl-4 pr-4 text-left text-[13.5px] text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)]",
             "transition-transform duration-150 ease-out hover:text-foreground active:scale-[0.99] focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/40"
           )}
         >

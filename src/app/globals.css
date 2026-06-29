@@ -196,6 +196,11 @@
   animation: bell 0.6s ease;
   transform-origin: 50% 4px;
 }
+/* Header bell also wobbles on hover (matches the preview). */
+.bell-trigger:hover svg {
+  animation: bell 0.6s ease;
+  transform-origin: 50% 4px;
+}
 
 /* Hoopoe (login password delight): wings open like curtains to reveal the eyes. */
 .hoopoe .wing {

@@ -35,7 +35,7 @@ export default async function FeedPage() {
           first card aligns with the composer tile (per the contract). The offset
           equals the header block height plus its bottom margin. */}
       <aside className="hidden min-[1180px]:block">
-        <div className="min-[1180px]:pt-[106px]">
+        <div className="min-[1180px]:pt-[85px]">
           <FeedRail userId={session.user.id} />
         </div>
       </aside>
