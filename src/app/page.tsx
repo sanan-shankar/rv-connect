@@ -68,7 +68,12 @@ export default function LandingPage() {
           body="One ruled sheet, not an endless scroll. A sighting, a memory, a note for the valley. It stays useful even when it is busy, because it was never built to be loud."
           accent="leaf"
           reverse
-          visual={<Shot name="feed" alt="The feed, a calm ruled sheet of posts from members." />}
+          visual={
+            <div className="relative">
+              <HoppingBird className="-top-5 right-12 z-10" />
+              <Shot name="feed" alt="The feed, a calm ruled sheet of posts from members." />
+            </div>
+          }
         />
 
         {/* 3. Letters */}
@@ -77,7 +82,12 @@ export default function LandingPage() {
           title="Room for the longer things."
           body="When a post is too small for what you want to say, write a Letter. An essay, a tribute, a travelogue, opening into a quiet reading page of its own."
           accent="cinnamon"
-          visual={<Shot name="letters" alt="The Letters page, with a long-form piece about the valley." />}
+          visual={
+            <div className="relative">
+              <HoppingBird className="-top-5 left-8 z-10" />
+              <Shot name="letters" alt="The Letters page, with a long-form piece about the valley." />
+            </div>
+          }
         />
 
         {/* 4. Catch-ups (the recurring round-robin) */}
@@ -87,7 +97,12 @@ export default function LandingPage() {
           body="A round-robin that comes back every season. You answer a few prompts, everyone's answers arrive together, and the years stay close even when the miles do not."
           accent="leaf"
           reverse
-          visual={<Shot name="catchups" alt="The Catch-ups feature, a gathered group newsletter." />}
+          visual={
+            <div className="relative">
+              <HoppingBird className="-top-5 right-10 z-10" />
+              <Shot name="catchups" alt="The Catch-ups feature, a gathered group newsletter." />
+            </div>
+          }
         />
 
         {/* 5. The Valley Collection */}
@@ -98,7 +113,12 @@ export default function LandingPage() {
             title="The valley remembers."
             body="Decades of the valley in one place. The banyan, Rishi Konda, choir on the steps, the hoopoes that never left. Add the ones only you still have."
             accent="cinnamon"
-            visual={<Shot name="collection" alt="The Valley Collection, a shared archive of valley photographs." />}
+            visual={
+              <div className="relative">
+                <HoppingBird className="-top-5 left-12 z-10" />
+                <Shot name="collection" alt="The Valley Collection, a shared archive of valley photographs." />
+              </div>
+            }
           />
         </div>
 

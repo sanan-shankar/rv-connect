@@ -26,7 +26,7 @@ export default function BirdGrid() {
       <h1 className="font-heading text-2xl tracking-tight">Valley birds</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Deterministic from id, photo upload overrides. {BIRD_SPECIES_COUNT} species x{" "}
-        {AVATAR_PALETTE.length} colours (more species to come).
+        {AVATAR_PALETTE.length} colours x 4 poses.
       </p>
 
       <h2 className="mt-8 font-heading text-lg">Species (each colour)</h2>

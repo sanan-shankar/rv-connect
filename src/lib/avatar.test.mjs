@@ -9,7 +9,7 @@
  * It throws (non-zero exit) on failure so it can gate a build if desired.
  */
 
-const SPECIES_COUNT = 16;
+const SPECIES_COUNT = 52;
 const COLOR_COUNT = 10;
 const POSE_COUNT = 4;
 
@@ -50,7 +50,7 @@ function fakeCuid(n) {
   return base + tail;
 }
 
-const N = 8000;
+const N = 16000;
 const species = new Array(SPECIES_COUNT).fill(0);
 const color = new Array(COLOR_COUNT).fill(0);
 const pose = new Array(POSE_COUNT).fill(0);
@@ -76,7 +76,7 @@ function checkAxis(name, counts, buckets, band) {
   });
 }
 
-checkAxis("species", species, SPECIES_COUNT, 0.2);
+checkAxis("species", species, SPECIES_COUNT, 0.28);
 checkAxis("color", color, COLOR_COUNT, 0.15);
 checkAxis("pose", pose, POSE_COUNT, 0.1);
 

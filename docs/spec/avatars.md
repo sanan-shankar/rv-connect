@@ -1,5 +1,27 @@
 # Spec: avatars
 
+> **Implementation status (2026-06-27): SHIPPED, expanded to 52 species.**
+> The system below is live in `src/lib/avatar.ts` + `src/components/common/bird-avatar.tsx`, with these
+> deltas from the original draft: the species set is now **52** (not 12/16), the disc palette is **10**
+> colours (not 16), and the third axis is **4 poses** (mirror / lift / both / none), giving
+> **52 x 10 x 4 = 2080** deterministic birds. All silhouettes are a single off-white fill centred in a
+> `0 0 32 32` viewBox with a negative-space eye in the disc colour; glyph = `floor(size * 0.66)`.
+> Design rules enforced via the QA harness at **`/preview/birds-qa`** (large render + centre cross +
+> safe-ring + the 40/28 ship sizes): every bird's mass sits centred on (16,16), balanced (not too
+> tall/wide), no dangling legs (waders show body + neck only). Distribution verified by
+> `src/lib/avatar.test.mjs` (2078/2080 combos observed over 16000 ids, even spread).
+>
+> The 52 species (index -> bird): 0 Hoopoe, 1 Rose-ringed parakeet, 2 Green bee-eater, 3 Purple sunbird,
+> 4 White-throated kingfisher, 5 Red-vented bulbul, 6 Indian roller, 7 Drongo, 8 Coppersmith barbet,
+> 9 Paradise flycatcher, 10 Indian peahen, 11 Tailorbird, 12 Swift, 13 Lapwing, 14 Owl, 15 Munia,
+> 16 Owlet, 17 Duck, 18 Swan, 19 Flamingo, 20 Peacock, 21 Rooster, 22 Hen, 23 Penguin, 24 Pelican,
+> 25 Stork, 26 Crane, 27 Heron, 28 Hornbill, 29 Toucan, 30 Woodpecker, 31 Hummingbird, 32 Dove,
+> 33 Sparrow, 34 Robin, 35 Swallow, 36 Magpie, 37 Cockatiel, 38 Cardinal, 39 Wagtail, 40 Spoonbill,
+> 41 Avocet, 42 Eagle, 43 Falcon, 44 Kite, 45 Goose, 46 Moorhen, 47 Quail, 48 Puffin, 49 Kiwi,
+> 50 Cockatoo, 51 Jay. (To add more: append a `case` in `Species()` and bump `BIRD_SPECIES_COUNT`.)
+>
+> The original draft below is kept for the rationale (hashing, precedence, accessibility, lightweight goals).
+
 I have everything I need. The current production code uses `UserAvatar` (initials + `avatarColor` random color), `pickAvatarColor()` assigns random colors at signup, and `User.avatarColor` is the only avatar field in the schema. The v2 preview proves out the bird concept with a single `BirdGlyph` and 3 variants. Now I'll write the exhaustive spec.
 
 ---

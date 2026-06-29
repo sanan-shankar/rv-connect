@@ -245,6 +245,8 @@ model Comment {
   parent       Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
   replies      Comment[]     @relation("CommentReplies")
   commentLikes CommentLike[]
+
+  @@index([postId, createdAt])
 }
 
 model Like {
@@ -283,6 +285,8 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
 }
 
 model PollOption {

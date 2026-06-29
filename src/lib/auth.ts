@@ -1,10 +1,11 @@
 import NextAuth from "next-auth";
+import { cache } from "react";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const nextAuth = NextAuth({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: PrismaAdapter(prisma as any),
   providers: [
@@ -123,3 +124,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+export const { handlers, signIn, signOut } = nextAuth;
+
+// Dedupe auth() within a single request. Without this, layout + page + each
+// server action all call auth() independently, and each re-runs the session()
+// callback's prisma.user.findUnique. React cache() collapses the repeat calls
+// in one request to a single session resolution (one DB read instead of ~3).
+export const auth = cache(nextAuth.auth);

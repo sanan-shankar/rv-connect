@@ -20,11 +20,10 @@ export default function AboutPage() {
             What is this?
           </h2>
           <p className="mt-4 leading-relaxed text-foreground">
-            RV Alumni is a simple, community-run platform for alumni of Rishi
-            Valley School. Whether you graduated decades ago or just a few
-            years back, this is your space to reconnect with batchmates, share
-            memories of campus life, and stay in touch with the people who
-            shaped your journey.
+            RV Alumni is a small, community-run site for people who went to
+            Rishi Valley School. It is the place to find your batchmates again
+            and stay close to the people you grew up with, whether you left
+            decades ago or last year.
           </p>
         </section>
 

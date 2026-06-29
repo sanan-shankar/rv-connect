@@ -32,7 +32,10 @@ export function ShowcaseShot({
   // HTML (no transform) matches the client's first render and never triggers
   // a hydration mismatch. Transform/opacity-only, reduced-motion safe.
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -49,7 +52,7 @@ export function ShowcaseShot({
     >
       {/* Faux in-app top bar */}
       <div className="flex items-center gap-2.5 border-b border-border bg-card px-4 py-2.5">
-        <PeaksMark size={13} className="text-leaf" />
+        <PeaksMark size={13} variant="light" />
         <div className="flex h-6 flex-1 items-center gap-2 rounded-full border border-border bg-muted px-3 text-[11px] text-muted-foreground">
           <Search className="h-3 w-3" aria-hidden />
           <span>Search the valley</span>

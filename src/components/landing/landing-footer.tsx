@@ -10,7 +10,7 @@ export function LandingFooter() {
   return (
     <footer className="relative border-t border-border bg-leaf/[0.06]">
       <div className="mx-auto max-w-3xl px-6 py-20 text-center sm:py-28">
-        <PeaksMark size={20} className="mx-auto text-leaf" />
+        <PeaksMark size={20} variant="light" className="mx-auto" />
         <h2 className="mt-6 font-heading text-3xl font-bold tracking-[-0.03em] text-foreground text-balance sm:text-[2.6rem] sm:leading-[1.08]">
           Come back to the valley.
         </h2>
@@ -37,7 +37,7 @@ export function LandingFooter() {
       <div className="border-t border-border/70">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-7 text-[13px] text-muted-foreground sm:flex-row">
           <div className="flex items-center gap-2">
-            <PeaksMark size={13} className="text-muted-foreground" />
+            <PeaksMark size={13} variant="light" />
             <span className="font-heading font-bold tracking-tight text-foreground">
               Rishi Valley
             </span>

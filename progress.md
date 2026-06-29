@@ -1,5 +1,49 @@
 # Progress Log
 
+## Session 2026-06-27 — Fork 5: bird-avatar species set (16 -> 52)
+Scope: ONLY the bird avatars. Expanded the deterministic set from 16 to **52 distinct, cute,
+centered species** (now 52 x 10 colours x 4 poses = 2080 combos). Same locked system: one off-white
+fill centred in `0 0 32 32`, negative-space eye = disc colour, `birdFor` hash unchanged.
+- New QA harness at **/preview/birds-qa**: every species rendered big with a centre cross + safe ring
+  + the 40/28 ship sizes. Use this to judge centering/balance for any future bird edits.
+- Authored 52 species in `bird-avatar.tsx` `Species()` (see docs/spec/avatars.md for the index->name list).
+- Fix pass after QA: removed dangling LEGS from waders (flamingo/stork/crane/heron/kiwi) and recentred
+  (they were bottom-hanging / too tall — owner's explicit pet peeve); fixed swift wings (were sweeping
+  up like ears); reworked eagle + falcon (were reading as a heart/bat); replaced 3 near-duplicate round
+  birds with distinctive bills (myna->spoonbill, koel->avocet, junglefowl->puffin); differentiated
+  munia/dove/sparrow/robin; enlarged the hoopoe crest.
+- `BIRD_SPECIES_COUNT` 16 -> 52 in avatar.ts; `avatar.test.mjs` updated (N=16000, species band 0.28) ->
+  PASSES (2078/2080 combos, even spread). avatars.md given an "implementation status" header with the list.
+- Verified via screenshots at large + ship sizes, light disc + full 10-colour palette. Looks delightful.
+- Open for a future pass if wanted: a couple of small round birds still read as "blob+eye" at 28px
+  (inherent to mono silhouettes; colour carries differentiation there); eagle #42 is the least elegant.
+
+
+## Session 2026-06-27 — Fork 4: preview-parity fixes (committed fd343e2, 819bc30)
+Owner was seeing the real (main) app diverge from /preview/v2 AND several "broken" things that
+were actually a STALE .next cache serving old CSS. Key learning reinforced: when the UI looks wrong,
+too-small, or an animation "does not work", suspect the .next cache FIRST. Always clear .next
+(`mv .next` to scratchpad, rm is blocked) + restart before concluding a CSS/animation fix failed.
+Fixes this session (all verified at runtime + screenshot, tsc clean):
+- Valley background is now a FIXED cover back-layer (app-shell.tsx): `fixed inset-0 z-0 bg-cover
+  bg-center opacity-[0.11]`, sidebar+content `z-10` above it. Fills the window at any desktop size,
+  shows the whole frame, stationary on scroll (content scrolls over it). (Replaces the bg-contain
+  and the earlier bg-cover-on-tall-element that looked zoomed/pixelated.)
+- Notification bell (notification-bell.tsx): switched header+sidebar icon from Phosphor duotone/fill
+  to lucide outline Bell (matches preview). Hover wobble (.bell-trigger:hover svg in globals) now
+  actually serves after the cache clear; confirmed computed animationName="bell" on hover.
+- Search pill (search-pill.tsx): width min(20rem,56vw) -> min(19rem,53vw) (~5% shorter, ~304px).
+- Post actions (post-card.tsx): -ml-2.5 -> -ml-3.5 so the heart glyph's left aligns with the post
+  content left (measured heart svg left 301 vs content 305).
+- Feed heading confirmed 30px Libre Baskerville (matches preview; the "super small" was stale cache).
+- Hoopoe (login): FLIPPED per owner. Eyes now OPEN while the password is hidden and COVER when
+  revealed (was the reverse). Removed the intro timer (`intro` state + useEffect); the component's
+  own blink/settle still plays on mount. Verified eye opacity hidden=1 / shown=0. (commit e277db0)
+- Pushed `redesign` to GitHub (origin = github.com/sanan-shankar/rv-alumni) as the MVP checkpoint.
+  Owner called this "a good MVP". Deploy (Render) still pending; deployed Vercel site is still old code.
+Still open / next: more micro-delights beyond the existing bell/like/hoopoe/bookmark (avatar
+click-chirp, living loading scene); the PUNCHLIST P0 own-profile crash; bird-avatar species set.
+
 ## Session 2026-06-26 — Visual overhaul kickoff
 
 ### Done

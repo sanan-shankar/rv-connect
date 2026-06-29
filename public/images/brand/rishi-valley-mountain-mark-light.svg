@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1140" height="350" viewBox="-110 40 1140 350" role="img" aria-labelledby="title desc">
+  <title id="title">Rishi Valley mountain mark for light backgrounds</title>
+  <desc id="desc">Option A green Bodi, Middle, and Rishi mountain mark for white or light backgrounds.</desc>
+  <path
+    d="M-48 390 C-75 390 -98 377 -98 362 C-98 352 -84 348 -70 348 C6 346 82 248 190 198 C284 155 370 179 462 252 C512 199 548 80 622 62 C695 44 683 150 748 158 C786 162 781 107 822 128 C899 168 922 344 980 348 C994 348 1008 352 1008 362 C1008 377 985 390 958 390 Z"
+    fill="#cbd8c1"
+  />
+  <path
+    d="M462 252 C512 199 548 80 622 62 C695 44 683 150 748 158 C786 162 781 107 822 128 C899 168 922 344 980 348 C994 348 1008 352 1008 362 C1008 377 985 390 958 390 L432 390 C432 338 444 286 462 252 Z"
+    fill="#7f9a82"
+  />
+  <path
+    d="M748 158 C786 162 781 107 822 128 C899 168 922 344 980 348 C994 348 1008 352 1008 362 C1008 377 985 390 958 390 L680 390 C692 288 718 202 748 158 Z"
+    fill="#235c49"
+  />
+</svg>

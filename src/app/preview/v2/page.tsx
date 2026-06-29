@@ -28,20 +28,11 @@ import {
   Briefcase,
 } from "lucide-react";
 import { Heart, ShareFat } from "@phosphor-icons/react";
+import { PeaksMark } from "@/components/layout/peaks-mark";
 
 /* ------------------------------------------------------------------ */
 /*  Marks                                                              */
 /* ------------------------------------------------------------------ */
-
-/* working brand mark: a leaf (real logo work is deferred) */
-function LeafMark({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
-      <path d="M26 6 C12 6 6 14 6 26 C18 26 26 18 26 6 Z" fill="currentColor" />
-      <path d="M10.5 21.5 C14 17.5 18 13.5 22.5 9" stroke="var(--sidebar)" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 /* hoopoe: only for the password field's eye-cover delight */
 function Hoopoe({ covered, size = 64 }: { covered: boolean; size?: number }) {
@@ -277,7 +268,7 @@ function AppSidebar({ avatars, active }: { avatars: AvatarStyle; active: string 
   return (
     <aside className="v2-side">
       <div className="v2-brand">
-        <span className="v2-mark"><LeafMark size={22} /></span>
+        <span className="v2-mark"><PeaksMark size={34} /></span>
         <div>
           <h1 className="v2-display">Rishi Valley</h1>
           <span>Alumni</span>
@@ -539,7 +530,7 @@ export default function PreviewV2() {
         <div className="v2-login">
           <div className="v2-login-photo">
             <img src="/images/landing.jpeg" alt="" />
-            <span className="v2-login-mark"><LeafMark size={20} /><span>Rishi Valley</span></span>
+            <span className="v2-login-mark"><PeaksMark size={20} /><span>Rishi Valley</span></span>
           </div>
           <div className="v2-login-form">
             <div className="v2-formbox">
@@ -628,7 +619,7 @@ function Styles() {
 .v2-side { width:248px; flex:0 0 248px; position:sticky; top:0; height:100vh; align-self:flex-start;
   background:var(--sidebar); color:var(--sidebar-ink); display:flex; flex-direction:column; padding:20px 14px 16px; gap:3px; }
 .v2-brand { display:flex; align-items:center; gap:11px; padding:6px 10px 18px; }
-.v2-mark { display:grid; place-items:center; width:38px; height:38px; border-radius:12px; background:rgba(255,255,255,.14); color:var(--sidebar-ink); }
+.v2-mark { display:grid; place-items:center; width:112px; height:34px; color:var(--sidebar-ink); }
 .v2-brand h1 { font-size:17px; margin:0; line-height:1.05; }
 .v2-brand span { display:block; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--sidebar-muted); margin-top:3px; }
 .v2-nav { display:flex; flex-direction:column; gap:2px; }
