@@ -15,19 +15,25 @@ import { formatBatch } from "@/lib/utils";
  *  - "Your groups": the groups you belong to, with member counts in office-blue.
  */
 export async function FeedRail({ userId }: { userId: string }) {
+  // Untyped so the avatar-override columns (photoUrl / avatarSpecies) select
+  // alongside the always-present fields, matching the post-card author select.
+  const memberSelect = {
+    id: true,
+    name: true,
+    avatarColor: true,
+    photoUrl: true,
+    avatarSpecies: true,
+    batchType: true,
+    batchYear: true,
+    currentCity: true,
+  };
+
   const [recentMembers, myGroups] = await Promise.all([
     prisma.user.findMany({
       where: { isBlocked: false, id: { not: userId } },
       orderBy: { createdAt: "desc" },
       take: 3,
-      select: {
-        id: true,
-        name: true,
-        avatarColor: true,
-        batchType: true,
-        batchYear: true,
-        currentCity: true,
-      },
+      select: memberSelect,
     }),
     prisma.group.findMany({
       where: { members: { some: { userId } } },
@@ -83,7 +89,13 @@ export async function FeedRail({ userId }: { userId: string }) {
                     className="shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
                   >
                     <BirdAvatar
-                      user={{ id: m.id, name: m.name, avatarColor: m.avatarColor }}
+                      user={{
+                        id: m.id,
+                        name: m.name,
+                        avatarColor: m.avatarColor,
+                        avatarSpecies: m.avatarSpecies ?? null,
+                        photoUrl: m.photoUrl ?? null,
+                      }}
                       size="sm"
                     />
                   </Link>

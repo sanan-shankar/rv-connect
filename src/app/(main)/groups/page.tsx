@@ -88,23 +88,27 @@ export default async function GroupsPage() {
         )}
       </section>
 
-      {browseGroups.length > 0 && (
-        <section className="mt-9 space-y-3">
-          <div>
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
-              Browse public groups
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Open to everyone. Join from the group page anytime.
-            </p>
-          </div>
+      <section className="mt-9 space-y-3">
+        <div>
+          <h2 className="text-[12px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+            Browse public groups
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Open to everyone. Join from the group page anytime.
+          </p>
+        </div>
+        {browseGroups.length === 0 ? (
+          <p className="rounded-[var(--radius)] border border-dashed border-border bg-card/60 px-4 py-6 text-center text-sm text-muted-foreground">
+            Nothing new to browse right now. You have joined every public group.
+          </p>
+        ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {browseGroups.map((g) => (
               <GroupCard key={g.id} group={toCard(g)} />
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
     </div>
   );
 }
