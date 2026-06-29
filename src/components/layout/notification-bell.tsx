@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
-import { Bell } from "@phosphor-icons/react";
+import { Check, Bell } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,11 +91,7 @@ export function NotificationBell({
           className="bell-trigger relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-transform duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           title="Notifications"
         >
-          <Bell
-            size={18}
-            weight={unreadCount > 0 ? "fill" : "duotone"}
-            className={bellClass}
-          />
+          <Bell size={18} strokeWidth={1.9} className={bellClass} />
           {unreadCount > 0 && (
             <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border-2 border-card bg-cinnamon" />
           )}
@@ -118,11 +113,7 @@ export function NotificationBell({
   return (
     <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
       <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
-        <Bell
-          size={18}
-          weight={unreadCount > 0 ? "fill" : "duotone"}
-          className={bellClass}
-        />
+        <Bell size={18} strokeWidth={1.9} className={bellClass} />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}

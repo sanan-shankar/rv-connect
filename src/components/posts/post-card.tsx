@@ -280,7 +280,7 @@ export function PostCard({
         )}
 
         {/* Actions */}
-        <div className="mt-2 -ml-2.5 flex items-center gap-1 text-muted-foreground">
+        <div className="mt-2 -ml-3.5 flex items-center gap-1 text-muted-foreground">
           <button
             onClick={handleLike}
             aria-pressed={liked}
