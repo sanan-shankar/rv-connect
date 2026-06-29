@@ -15,14 +15,13 @@ import { formatBatch } from "@/lib/utils";
  *  - "Your groups": the groups you belong to, with member counts in office-blue.
  */
 export async function FeedRail({ userId }: { userId: string }) {
-  // Untyped so the avatar-override columns (photoUrl / avatarSpecies) select
-  // alongside the always-present fields, matching the post-card author select.
+  // Untyped so the avatar-override column (photoUrl) selects alongside the
+  // always-present fields, matching the post-card author select.
   const memberSelect = {
     id: true,
     name: true,
     avatarColor: true,
     photoUrl: true,
-    avatarSpecies: true,
     batchType: true,
     batchYear: true,
     currentCity: true,
@@ -93,7 +92,6 @@ export async function FeedRail({ userId }: { userId: string }) {
                         id: m.id,
                         name: m.name,
                         avatarColor: m.avatarColor,
-                        avatarSpecies: m.avatarSpecies ?? null,
                         photoUrl: m.photoUrl ?? null,
                       }}
                       size="sm"
