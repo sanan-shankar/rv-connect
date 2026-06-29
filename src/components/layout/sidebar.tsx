@@ -177,7 +177,7 @@ export function Sidebar({
   return (
     <>
       {/* Desktop: flush, full-height sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
+      <aside className="sticky top-0 z-10 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
         <Brand />
         <NavLinks pathname={pathname} />
         <UserMenu user={user} unreadCount={unreadCount} />
