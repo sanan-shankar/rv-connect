@@ -58,12 +58,11 @@ export function LandingHero() {
       {/* Headline + actions */}
       <div className="relative z-10 flex flex-1 items-center">
         <div className="mx-auto w-full max-w-7xl px-8 lg:px-16">
-          <h1 className="max-w-2xl font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl">
+          <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl md:whitespace-nowrap">
             Welcome back to the valley.
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg">
-            A quiet place for the people who grew up under the same trees. Find each other, share
-            the valley, keep it close.
+          <p className="mt-4 text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg md:whitespace-nowrap">
+            A space for Rishi Valley alumni to reconnect, share stories, and find each other.
           </p>
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
