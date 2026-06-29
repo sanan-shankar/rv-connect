@@ -15,7 +15,7 @@ export default function Error({
         Something went wrong
       </h1>
       <p className="mt-2 max-w-md text-muted-foreground">
-        We hit an unexpected error. Please try again — if the problem persists,
+        We hit an unexpected error. Please try again. If the problem persists,
         let an admin know.
       </p>
       <Button

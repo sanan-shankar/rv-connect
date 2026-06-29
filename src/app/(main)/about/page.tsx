@@ -67,7 +67,7 @@ export default function AboutPage() {
             Community Guidelines
           </h2>
           <p className="mt-4 leading-relaxed text-foreground">
-            This is a space for genuine connection — not another WhatsApp
+            This is a space for genuine connection, not another WhatsApp
             group. Please keep these in mind:
           </p>
           <div className="mt-4 space-y-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { Bell } from "@phosphor-icons/react";
 import {
@@ -41,6 +41,22 @@ export function NotificationBell({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [loaded, setLoaded] = useState(false);
+  const [shake, setShake] = useState(false);
+  const prevUnread = useRef(initialUnreadCount);
+
+  // Wobble the bell only when the unread count climbs (a new notification
+  // arrived), never on decrement or on hover.
+  useEffect(() => {
+    if (unreadCount > prevUnread.current) {
+      setShake(true);
+      const t = setTimeout(() => setShake(false), 600);
+      prevUnread.current = unreadCount;
+      return () => clearTimeout(t);
+    }
+    prevUnread.current = unreadCount;
+  }, [unreadCount]);
+
+  const bellClass = shake ? "animate-bell" : undefined;
 
   async function handleOpen() {
     if (!loaded) {
@@ -76,7 +92,11 @@ export function NotificationBell({
           className="relative grid h-11 w-11 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-transform duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           title="Notifications"
         >
-          <Bell size={18} weight={unreadCount > 0 ? "fill" : "duotone"} />
+          <Bell
+            size={18}
+            weight={unreadCount > 0 ? "fill" : "duotone"}
+            className={bellClass}
+          />
           {unreadCount > 0 && (
             <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border-2 border-card bg-cinnamon" />
           )}
@@ -98,7 +118,11 @@ export function NotificationBell({
   return (
     <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
       <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
-        <Bell size={18} weight={unreadCount > 0 ? "fill" : "duotone"} />
+        <Bell
+          size={18}
+          weight={unreadCount > 0 ? "fill" : "duotone"}
+          className={bellClass}
+        />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}

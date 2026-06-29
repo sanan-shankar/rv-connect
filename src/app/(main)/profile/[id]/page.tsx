@@ -159,7 +159,7 @@ export default async function ProfilePage({
     user.currentCity ? `ADR:;;${user.currentCity};;;;` : null,
     user.instagram ? `URL:${socialHref("instagram", user.instagram)}` : null,
     user.linkedin ? `URL:${socialHref("linkedin", user.linkedin)}` : null,
-    `NOTE:${batchLine(user)} — Rishi Valley Alumni`,
+    `NOTE:${batchLine(user)}, Rishi Valley Alumni`,
     "END:VCARD",
   ]
     .filter(Boolean)
