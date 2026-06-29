@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="1320" viewBox="0 0 1100 1320" role="img" aria-label="Monsoon green along the path">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9FB7AE"/>
+      <stop offset="1" stop-color="#6E8E84"/>
+    </linearGradient>
+    <linearGradient id="vig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.42"/>
+    </linearGradient>
+  </defs>
+  <rect width="1100" height="1320" fill="url(#sky)"/>
+  <path d="M0 818 L1100 818 L1100 1320 L0 1320 Z" fill="#1F6B3C" opacity="0.92"/><path d="M0 858 Q275 788 550 848 T1100 828 L1100 1320 L0 1320 Z" fill="#000" opacity="0.16"/><circle cx="814" cy="316.8" r="40" fill="#235C49" opacity="0.5"/><path d="M0 842 Q550 828 1100 842" stroke="#000" stroke-width="2" fill="none" opacity="0.1"/><path d="M0 925.6666666666666 Q550 911.6666666666666 1100 925.6666666666666" stroke="#000" stroke-width="2" fill="none" opacity="0.1"/><path d="M0 1009.3333333333334 Q550 995.3333333333334 1100 1009.3333333333334" stroke="#000" stroke-width="2" fill="none" opacity="0.1"/><path d="M0 1093 Q550 1079 1100 1093" stroke="#000" stroke-width="2" fill="none" opacity="0.1"/><path d="M0 1176.6666666666667 Q550 1162.6666666666667 1100 1176.6666666666667" stroke="#000" stroke-width="2" fill="none" opacity="0.1"/>
+  <rect width="1100" height="1320" fill="url(#vig)"/>
+  <text x="44" y="1236" font-family="Georgia, 'Times New Roman', serif" font-size="40" fill="#fff" opacity="0.96">Monsoon green along the path</text>
+  <text x="44" y="1276" font-family="Georgia, serif" font-size="24" fill="#fff" opacity="0.72" letter-spacing="2">2020s</text>
+</svg>

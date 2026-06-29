@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="900" viewBox="0 0 1100 900" role="img" aria-label="Rishi Konda under afternoon light">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D9C9E0"/>
+      <stop offset="1" stop-color="#9DA9C9"/>
+    </linearGradient>
+    <linearGradient id="vig" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.42"/>
+    </linearGradient>
+  </defs>
+  <rect width="1100" height="900" fill="url(#sky)"/>
+  <path d="M0 558 L1100 558 L1100 900 L0 900 Z" fill="#4A5A6B" opacity="0.92"/><path d="M0 598 Q275 528 550 588 T1100 568 L1100 900 L0 900 Z" fill="#000" opacity="0.16"/><circle cx="792" cy="234" r="38" fill="#3F7CA6" opacity="0.45"/><path d="M0 558 Q440 438 770 538 T1100 498 L1100 900 L0 900 Z" fill="#000" opacity="0.1"/>
+  <rect width="1100" height="900" fill="url(#vig)"/>
+  <text x="44" y="816" font-family="Georgia, 'Times New Roman', serif" font-size="40" fill="#fff" opacity="0.96">Rishi Konda under afternoon light</text>
+  <text x="44" y="856" font-family="Georgia, serif" font-size="24" fill="#fff" opacity="0.72" letter-spacing="2">2010s</text>
+</svg>
