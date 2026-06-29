@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { ImagePlus, Loader2 } from "lucide-react";
+import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,12 +26,19 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { updateUserProfile, deleteAccount } from "./actions";
+import {
+  updateUserProfile,
+  deleteAccount,
+  updateAvatar,
+  removeAvatar,
+} from "./actions";
 
 interface User {
   id: string;
   name: string;
   email: string;
+  photoUrl: string | null;
+  avatarColor: string | null;
   bio: string | null;
   currentCity: string | null;
   workplace: string | null;
@@ -49,6 +58,47 @@ export function SettingsForm({ user }: { user: User }) {
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handlePhotoPick(f: File | null) {
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      toast.error("Please choose an image");
+      return;
+    }
+    if (f.size > 15 * 1024 * 1024) {
+      toast.error("Photo must be under 15MB");
+      return;
+    }
+    setPhotoBusy(true);
+    const fd = new FormData();
+    fd.set("file", f);
+    const result = await updateAvatar(fd);
+    setPhotoBusy(false);
+    if (fileRef.current) fileRef.current.value = "";
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    setPhotoUrl(result.photoUrl ?? null);
+    toast.success("Photo updated");
+    router.refresh();
+  }
+
+  async function handlePhotoRemove() {
+    setPhotoBusy(true);
+    const result = await removeAvatar();
+    setPhotoBusy(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    setPhotoUrl(null);
+    toast.success("Photo removed");
+    router.refresh();
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -87,6 +137,65 @@ export function SettingsForm({ user }: { user: User }) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Profile photo</Label>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handlePhotoPick(e.target.files?.[0] ?? null)}
+              />
+              <div className="flex items-center gap-4 rounded-[var(--radius)] border border-border bg-paper/50 p-4">
+                <BirdAvatar
+                  user={{
+                    id: user.id,
+                    name: user.name,
+                    photoUrl,
+                    avatarColor: user.avatarColor,
+                  }}
+                  size="lg"
+                />
+                <div className="space-y-1.5">
+                  <p className="text-sm text-muted-foreground">
+                    {photoUrl
+                      ? "Your photo shows everywhere in place of your bird."
+                      : "Upload a photo, or keep your valley bird."}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={photoBusy}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {photoBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ImagePlus className="h-4 w-4" />
+                      )}
+                      {photoUrl ? "Change photo" : "Upload photo"}
+                    </Button>
+                    {photoUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={photoBusy}
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={handlePhotoRemove}
+                      >
+                        Remove photo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
