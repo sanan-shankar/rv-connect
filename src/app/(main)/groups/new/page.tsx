@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { CreateGroupForm } from "@/components/groups/create-group-form";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function NewGroupPage() {
   const session = await auth();
@@ -16,10 +17,11 @@ export default async function NewGroupPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-6 font-heading text-3xl font-bold text-foreground">
-        Create a Group
-      </h1>
+    <div className="mx-auto max-w-2xl">
+      <PageHeader
+        title="Create a group"
+        subtitle="Give it a name and decide who can join. You can invite people anytime."
+      />
       <CreateGroupForm
         batchYears={batchYearCounts
           .filter((b): b is { batchYear: number; _count: { id: number } } => b.batchYear != null)
