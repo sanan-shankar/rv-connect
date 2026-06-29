@@ -27,13 +27,13 @@ export default async function GroupsPage() {
   const [myGroups, browseGroups] = await Promise.all([
     prisma.group.findMany({
       where: { members: { some: { userId } } },
-      include: select,
+      select,
       orderBy: { updatedAt: "desc" },
     }),
     // Public groups the viewer has not joined: the browseable, auto-joinable set.
     prisma.group.findMany({
       where: { visibility: "public", members: { none: { userId } } },
-      include: select,
+      select,
       orderBy: { createdAt: "desc" },
       take: 24,
     }),
