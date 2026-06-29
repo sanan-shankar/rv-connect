@@ -128,8 +128,10 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [ ] Each group can host its own newsletter and events. Group feed reuses the shared feed UI.
 
 ## Letters: TWO distinct features (needs distinct names)
-- [ ] Long-form POST TYPE ("letter"): written via the shared composer in any feed; renders without
-  dominating the feed. Separate from the newsletter feature below.
+- [x] Long-form POST TYPE ("letter"): written via the shared composer in any feed (main + groups, carrying
+  groupId); renders as a compact PostCard variant (title + excerpt + "Read this letter") so it never dominates
+  the feed; full editorial read view at /letters/[id]; warm /letters list surface; editable title/body.
+  Separate from the newsletter feature below.
 - [ ] Newsletter feature (Letterloop-style): full Letterloop parity. Anyone can set questions; time periods;
   automated email reminders; UI for adding questions; songs/extras; per-group issue archive; cadence.
   Needs a backend for scheduled jobs + transactional email (Resend). Needs a DISTINCT name (not "letters").
