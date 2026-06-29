@@ -1,92 +1,91 @@
-# Fork handoff — RV Alumni rebuild (paste this whole file into a fresh session)
+# Fork handoff — RV Alumni (paste this whole file into a fresh session)
 
-You are continuing a high-stakes redesign + MVP build of the RV Alumni app (Next.js 16, Tailwind v4,
-Prisma, SQLite local, light-mode-first). Branch `redesign`. Hold a very high quality bar. The owner was
-burned by a compacted session that drifted; do substantive work via fresh-context subagents (the Agent
-tool) so you never compact, and STOP to hand off (with an updated copy of this file) before ~60% context.
+You are continuing a careful redesign + MVP of the RV Alumni app (Next.js 16 + Turbopack, Tailwind v4,
+Prisma, SQLite local, light-mode-first). Branch `redesign`. The owner was burned by a compacted session
+that drifted, so: hold a high quality bar, VERIFY visually (not just tsc), and do not let this session
+compact, hand off via this file before ~60% context.
 
-## 0. The cache gotcha that caused the "it looks broken" panic
-If the running app looks like an OLD/broken version while the code looks right, it is the Next/Turbopack
-`.next` cache serving stale compiled CSS/JS. Fix: stop `npm run dev`, `mv .next .next-stale` (rm -rf is
-blocked by Safety Net), `npm run dev`, hard-refresh. Always suspect this before believing a regression.
+## 0. CRITICAL workflow gotchas (read first, these have bitten every fork)
+1. **`.next` cache corruption.** If the running app 404s every route, or a `globals.css` change does not
+   show up, the Turbopack `.next` cache is stale/corrupt. `rm -rf` and `find -delete` are BLOCKED by Safety
+   Net, and an in-project `mv .next .next-stale` exceeds the 5GB folder cap. Fix that works: move it OUT to
+   the scratchpad (same APFS volume, so it is instant):
+   `mv .next "/private/tmp/claude-501/-Users-sanan-Documents-rv-alumni/<session>/scratchpad/next-old"` then
+   `npm run dev`. ALWAYS clear `.next` and restart after editing `globals.css`, HMR does not reliably pick
+   up token/CSS-rule changes (a new `.bell-trigger` rule silently failed to serve until a clean restart).
+2. **Subagents cannot screenshot** unless you pass them
+   `PUPPETEER_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"` (the bundled
+   puppeteer Chrome is broken). A blind agent already shipped a regression. Either give every screenshotting
+   agent that env var, or do the visual verification yourself.
+3. **Verify at runtime, not just `npx tsc --noEmit`.** tsc passed a Prisma `select` for a non-existent
+   column (`avatarSpecies`) that 500'd the feed at runtime. Always: screenshot the surface AND watch the
+   browser console / server log for `PrismaClientValidationError` / `pageerror`. Use puppeteer
+   `getBoundingClientRect` to MEASURE alignment rather than eyeballing.
+4. **Reduced-motion:** the global `@media (prefers-reduced-motion: reduce)` blanket kill was removed on
+   purpose so the hoopoe / bell / like delights play regardless of OS setting. Do NOT re-add a blanket kill.
+5. No em dashes anywhere (copy, errors, examples). Plain conventional commits, NO AI attribution / no
+   Co-Authored-By. Animate transform/opacity only. Reuse shadcn/ui + cn() + the shared Composer/Feed/PostCard.
 
-## 1. Orient (read in order)
-- REBUILD_PLAN.md (campaign + rules), task_plan.md (phase tracker), FEEDBACK_CHECKLIST.md (binding owner
-  feedback, itemized), docs/ROADMAP.md + docs/spec/*.md (deep specs per area), AUDIT.md (honest current-
-  state audit), progress.md (full history; latest entries are fork 2).
-- THE CONTRACT (approved look, do NOT edit): live route /preview/v2 (src/app/preview/v2/page.tsx). Toggles:
-  /preview/v2 , ?view=profile , ?view=login , &theme=dark , &avatars=initials. This is the reference.
-  Also /preview/logo = three-peaks logo lab (outline / solid-white-fill / gradient).
+## 1. The contract (the approved look, do NOT regress)
+- Live: `/preview/v2` (`src/app/preview/v2/page.tsx`) with `?view=profile`, `?view=login`, `&theme=dark`,
+  `&avatars=initials`. Frozen reference.
+- Standalone openable reference (no server needed): `docs/contract/index.html` (toggles view/theme/avatars).
+- `PUNCHLIST.md` = the authoritative verified state + the full remaining backlog. `progress.md` = full history.
 
-## 2. Current state (verify with `git log --oneline -20`; HEAD ~ 049cba1)
-The committed app ALREADY MATCHES the contract for: design tokens (warm dim bg #EBE6D7, surface warm-white,
-flush green sidebar #235C49), feed (header search pill + bell + New post inline, ruled SHEET, lowered rail
-with Coming up / New in the directory / Your groups), profile (cover + large non-clipped avatar, tabs
-Posts/About/Photos, Details + Contact rail, open-to tags), photo-split light login with an animated hoopoe
-(spring + on-load peek), directory with a working zoomable world map (map-default), support page, and The
-Valley Collection. Heart is locked red (#E03A33, no colour transition; cannot flash black). Bird avatars
-centered. DONE + verified this session:
-- Wave B cleanup (bd3b0f3 b048119 4f23991 e22e795): landing hydration error fixed; landing Sign-in button
-  de-glassed to solid leaf-green; junk "asdfasdf" group removed + 3 real groups seeded; Collection tiles varied.
-- Groups (2e94a07..6f6a111): Group.visibility public/private + coverImage + GroupInvite; organizer shown as
-  "Keeper"; create + browse + join (public auto / private invite-only) + @-invite via notifications; group
-  page reuses the shared FeedColumn (Composer + PostFeed + PostCard); groupId leak-guarded.
-- Letters long-form (4751fd3 fe0c658 e41199b): Post.kind="letter" + title via the shared composer; compact
-  LETTER card in feed (does not dominate); editorial /letters/[id] read view; /letters list; allowed in
-  group feeds; seeded. DISTINCT from Catch-ups (the newsletter).
-Do NOT rebuild any of the above. If something looks wrong, clear the .next cache first (section 0).
+## 2. State now (all committed on `redesign`, HEAD ~ 7add1e3, tsc clean, routes verified 200)
+The app MATCHES the contract on feed / login / profiles / directory map / landing. Recent fidelity pass
+(this fork) done + screenshot-verified:
+- Background warmth set to the preview exactly: `--background #E7E1D3`, `--card #F6F2E8`, secondary/muted/
+  accent `#EEE8DA`, border/input `#E0D8C8` (globals.css).
+- Buttons recolored to the canopy/sidebar green `#235C49` (Button `default`+`leaf` variants + 3 landing CTAs).
+- Faint valley tree: was hidden by a `-z-10` bug; now `z-0` + content `relative z-10`, `opacity .11`, and
+  `bg-fixed` (background-attachment:fixed) so it is stationary + natural-scale (not stretched to scroll height).
+  Owner chose the FULL faded tree; a fade-to-bottom variant exists as `.valley-tree--fade` if wanted.
+- Sidebar: peaks mark 26px standalone white; nav text 14.5px (preview parity).
+- Feed header matches preview: "Feed" is NOT bold (30px), subtitle is one line (`whitespace-nowrap`),
+  search/bell/New-post are 40px (h-10). Rail "Coming up" top aligns to the composer top (feed/page aside
+  `pt-[85px]`, measured 117==117). Content max-width widened to 1280 so the rail sits nearer the right edge.
+- Posts: separate tiles, tightly spaced (`PostCard variant="card"`, `space-y-2.5`, `p-4`). Post category
+  tags removed. Share icon = `ShareFat`. Heart/comment row pulled up + left (`-ml-2.5`) so the heart's left
+  edge aligns with the tile content; saves vertical height.
+- Login hoopoe: bottom tail removed (rounded body, crest on top); animates regardless of reduce-motion.
+- Bell wobbles on hover (`.bell-trigger:hover svg` in globals) AND on new-notification increment.
+- Landing hero: title "Welcome back to the valley." + subtitle "A space for Rishi Valley alumni to reconnect,
+  share stories, and find each other.", each one line on desktop.
+- FONTS never changed app-vs-preview: Libre Baskerville (headings) + Source Sans 3 (body), same CSS vars.
 
-## 3. Remaining work, in order (each is its own wave; check in after each)
-(a) CATCH-UPS = the Letterloop-parity newsletter (docs/spec/letters.md; FEEDBACK_CHECKLIST "## Letters" 2nd
-    feature). Group-scoped. A Catch-up has rounds with questions + a deadline; members submit answers; an
-    organizer compiles/publishes an ISSUE; per-group issue archive; cadence (monthly/quarterly); a clear
-    first-time explainer of what it is; optional song/extras. MVP = manual cadence + manual compile/publish;
-    DEFER automated email reminders to deploy (Render Cron + Resend). Must be visibly DISTINCT from Letters.
-    Nav already has a "Catch-ups" item; inspect what exists before building.
-(b) ONBOARDING / AUTH / VERIFICATION (docs/spec/onboarding.md). Minimal signup: name, email, password,
-    batch (grad year), years joined/left. TEACHERS (past/present, even non-alumni) can register; account
-    type alumnus/teacher/ex-teacher with a tag; current students cannot. Invite-only entry; keep a warm
-    trivia/verification gate; NO magic links. "Complete your profile" later collects house PER YEAR (with
-    clear "don't remember"), class sections (9A/9B), admission number (with "don't remember"), profession,
-    socials, about, memory prompts. Verification: admin via office class-lists + community vouch ("N people
-    confirm they know X") + flag-via-report; a NON-obvious verified marker (hover reveals it).
-(c) WAVE D polish (docs/spec/delight.md): FIRST runtime-verify the hoopoe on /login on a fresh server (owner
-    says it snaps; code has a spring + intro peek, so confirm at runtime and fix if the transition does not
-    fire). Then: bird-avatar click chirp/wiggle, bookmark/save ribbon sweep (gains colour), a living loading
-    scene (a bird hopping among leaves, not gray rectangles); confirm like-pop + bell-shake. Animate only
-    transform/opacity.
-(d) LOGO: if the owner dropped /Inspiration/bodi-middle-rishi.png, trace the real three-peak skyline into a
-    simple mark and swap PeaksMark (src/components/layout/peaks-mark.tsx, used in sidebar/login/landing) from
-    the current rough zigzag to the trace. Owner wants BOTH an outline and a solid-white-fill variant (see
-    /preview/logo); let them pick. Until the photo exists, leave the placeholder.
-(e) DEPLOY (Phase 0): push to GitHub (clean conventional "redesign" history, no AI attribution); Render
-    always-on + Render Postgres (switch Prisma provider to postgresql; storage.ts Blob shim); remove magic
-    links + /verify. Local dev stays SQLite/libSQL so screenshots keep working.
+## 3. Remaining work (in rough priority; full detail in PUNCHLIST.md)
+1. **Bird avatars (owner wants a DEDICATED session for this).** Two things: (a) center every species glyph
+   in its disc (balanced around 16,16 in the 0..32 viewBox), (b) expand to many clearly-distinct species
+   (the current set looks too similar / too few). Files: `src/components/common/bird-avatar.tsx`,
+   `src/lib/avatar.ts` (+ `avatar.test.mjs`), preview at `/preview/birds`. A half-finished WIP is in
+   `git stash` (`stash@{0}: wip-bird-avatars-deferred`) — recommend DROP it and redo cleanly. Verify with the
+   Chrome env var on `/preview/birds`.
+2. **Catch-ups** (Letterloop-parity newsletter) — `/catchups` is a ComingSoon stub. Rounds + questions +
+   deadline, member answers, organizer compiles/publishes an issue, per-group archive, cadence, first-time
+   explainer. Distinct from "Letters" (the long-form post type, which is done). MVP = manual; defer email.
+3. **Onboarding/verification depth** — minimal signup is fine; add complete-profile (house-per-year with
+   "don't remember", class sections, admission no, profession, socials, about, memory prompts), teacher
+   account collection, community vouching ("N people confirm they know X"), invite-only ENFORCEMENT (not
+   built), subtle verified marker. Server-side trivia gate was added this campaign; confirm it.
+4. **Events** (`/events` is a stub): a small tile that appears only when an event exists, opens details +
+   RSVP, add-to-calendar (.ics). Keep it minor.
+5. **Directory tier-2**: filters re-filter the live map (done), but add House/Tag facets, programmatic
+   pan-to-city on search, map hover tooltips, a real City gazetteer.
+6. **Logo**: trace the three peaks (Bodikonda / Middle Peak / Rishikonda, left to right) from the photo into
+   a clean mark. The photo was committed-deleted at repo root but still exists at
+   `Inspiration/bodi-middle-rishi.png`. Owner wants solid OR outline (compare against the same background);
+   get the relative peak heights + curvature right. Current `peaks-mark.tsx` is an approximation.
+7. **Deploy** (Phase 0): Render always-on + Render Postgres (switch Prisma provider, storage.ts Blob shim,
+   remove magic links + `/verify`), keep local on SQLite. Run `npm run build` as the gate before deploy.
+8. **Collection / photo archive**, donate→support tweaks, "On this day", bookmark persistence — see PUNCHLIST.
 
-## 4. Rules that prevent drift
-Per surface: open the contract/spec, build to MATCH, then VERIFY (npx tsc --noEmit; curl route; screenshot
-1440 + 390 and READ the png; diff vs contract/checklist; iterate). VERIFY interactions, not just stills
-(the owner will not forgive a black heart or a snapping hoopoe). No em dashes anywhere. Animate only
-transform/opacity. Every clickable element gets hover + focus-visible + active. Use the tokens (leaf
-#1F8A4C, office-blue/sky #3F7CA6, cinnamon #C2622F, heart #E03A33); never raw Tailwind blue/indigo. Reuse
-shadcn/ui + cn() and the shared Composer/Feed/PostCard. Do NOT edit anything under src/app/preview
-(frozen). Do NOT restyle the frozen foundation primitives (globals.css tokens, app-shell, sidebar,
-page-header, bird-avatar, person-name, create-post-form/composer, post-feed, feed-column, post-card,
-lib/avatar.ts) from a surface batch; a shared change is a deliberate sequential pass. Plain conventional
-commits, atomic (so a process restart never loses work). Do NOT run two code-editing subagents at once on
-the same tree (git index.lock); sequential builds, parallel only for read-only verify.
+## 4. Tooling
+Dev: `npm run dev` :3000. Screenshots: `export PUPPETEER_EXECUTABLE_PATH="/Applications/Google Chrome.app/
+Contents/MacOS/Google Chrome"`; public `node screenshot.mjs <url> <label>`; authed `node screenshot-auth.mjs
+<url> <label>` (`--mobile` for 390). Admin user id `cmmz0vvws0000ynsg3ueb9scp`; demo users end `@demo.valley.test`.
+Per-batch: `npx tsc --noEmit` clean + screenshot 1440 (and 390 where it matters) + READ the png + check the
+console, then commit. Update PUNCHLIST.md + progress.md.
 
-## 5. Tooling
-Dev server: `npm run dev` on :3000. Screenshots need `export PUPPETEER_EXECUTABLE_PATH="/Applications/Google
-Chrome.app/Contents/MacOS/Google Chrome"`; public `node screenshot.mjs <url> <label>`; authed `node
-screenshot-auth.mjs <url> <label>` (--mobile for 390). Owner/admin user id cmmz0vvws0000ynsg3ueb9scp; seeded
-demo users end @demo.valley.test. If the Prisma 7 generated client blocks a node seed script, talk to dev.db
-via @libsql/client + @paralleldrive/cuid2 (see prisma/seed-demo.mjs).
-
-## 6. Per-wave protocol + refork
-After EACH wave: STOP and check in with the owner: (1) what shipped, with screenshots + a P0/P1/P2 punch
-list; (2) your approximate context usage; (3) an updated copy of THIS file as the next fork's prompt. If you
-pass ~60% context, recommend reforking now rather than continuing. Keep progress.md, REBUILD_PLAN.md,
-FEEDBACK_CHECKLIST.md, and this file current so the next session is as smart as this one.
-
-Your first move: `git log --oneline -20` + clear the .next cache (section 0), then start wave (a) Catch-ups.
+Your first move: `git log --oneline -8`, then `npm run dev` and confirm `/feed` + `/login` serve 200 (if they
+404, clear `.next` per section 0). Then pick a task above (the owner's next is the bird avatars).
