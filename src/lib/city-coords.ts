@@ -88,3 +88,24 @@ export function cityCoords(raw: string | null | undefined): [number, number] | n
   if (!raw) return null;
   return CITY_COORDS[normalizeCity(raw)] ?? null;
 }
+
+/**
+ * Every known spelling that resolves to the same place as the given city, so a
+ * filter on "Bangalore" also catches "Bengaluru" (and vice versa). Always
+ * includes the original input. Returns lowercased, deduped keys; callers should
+ * compare case-insensitively. When the city is not in the gazetteer, the result
+ * is just the normalized input itself.
+ */
+export function cityNameVariants(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const key = normalizeCity(raw);
+  const variants = new Set<string>([key]);
+  const coords = CITY_COORDS[key];
+  if (coords) {
+    const target = coords.join(",");
+    for (const [name, c] of Object.entries(CITY_COORDS)) {
+      if (c.join(",") === target) variants.add(name);
+    }
+  }
+  return [...variants];
+}
