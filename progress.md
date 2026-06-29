@@ -430,3 +430,20 @@ Owner feedback on the built app vs /preview/v2. Verified (screenshots + tsc clea
 - POSTS: ruled sheet -> tight separate tiles (PostCard variant="card", space-y-2.5).
 - FONTS never changed: Libre Baskerville (headings) + Source Sans 3 (body), same CSS vars in preview + app.
 - BIRDS deferred to a dedicated owner session; agent stopped, partial edits stashed ("wip-bird-avatars-deferred").
+
+## Fork 3 (cont.) — header/tiles fidelity + tree-fixed + session wrap (2026-06-27)
+Verified live after a clean .next clear + restart (routes 200, bell-rule present, bell anim=bell on hover,
+tree background-attachment=fixed). Committed 0002bfc / 2c61898 / 7add1e3:
+- Landing hero new title+subtitle, one line each on desktop.
+- Tree pinned with bg-fixed (stationary + natural scale; was stretched to scroll height -> looked zoomed).
+- Feed header now matches preview: "Feed" not bold (30px), subtitle one line, search/bell/New-post 40px,
+  rail "Coming up" aligned to composer (feed/page aside pt-[85px], measured 117==117), content max-w 1280
+  so the rail sits nearer the right edge.
+- Posts: tight separate tiles (variant=card, space-y-2.5, p-4), tags removed, ShareFat icon, heart/comment
+  pulled up+left (-ml-2.5) to align the heart with the tile content edge.
+- Hoopoe tail removed (rounded body). Bell wobbles on hover (.bell-trigger:hover svg) + on new notif.
+GOTCHA confirmed: editing globals.css needs a full .next clear + restart (HMR silently kept stale CSS, and a
+plain restart 404'd all routes from a corrupt .next; moved .next to scratchpad to clear since rm/find-delete
+are blocked and in-project copy busts the 5GB cap).
+Birds deferred to a dedicated session (stash@{0} wip-bird-avatars-deferred; recommend drop + redo).
+Full remaining backlog + the next-fork prompt: HANDOFF.md (rewritten) + PUNCHLIST.md.
