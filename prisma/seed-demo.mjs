@@ -387,6 +387,26 @@ const POSTS = [
   },
 ];
 
+// Two long-form Letters (kind="letter", with a title + a longer body). These
+// populate /letters and seed a compact letter card into the main feed without
+// letting it dominate. Main-feed letters: groupId stays null, no batch target.
+const LETTERS = [
+  {
+    author: "rohan",
+    title: "A letter to the boy in the third bed by the window",
+    createdAt: daysAgo(1.5),
+    content:
+      "I have been meaning to write this for thirty years, and a thunderstorm in London last week finally made me sit down. It was the kind of storm that takes the lights out, and in the dark I was, without warning, twelve again.\n\nYou are asleep in the third bed by the window, the one with the creak, and the valley is going through one of its theatrical nights. The thunder rolls down off Rishi Konda and the whole dorm holds its breath between flashes. You are not frightened, exactly. You have learned by now that the valley's weather is enormous but rarely cruel. You are simply awake, the way a child is awake when the world is being interesting.\n\nWhat I want to tell you, across all these years, is that the things you are quietly learning in this room will outlast almost everything you think is important right now. Not the marks. Not the cricket. The patience. The way you have started to notice the exact moment the light changes on the far slope. The way silence has stopped being something to fill and become something to live inside.\n\nYou will leave here and build bridges, of all things, in cities on the other side of the world. People will praise the engineering. None of it will ever be as quiet, or as well-made, as the walk up to the rocks at dawn that you are about to learn by heart. Learn it well. You will draw on it for the rest of your life.\n\nWith more affection than I knew how to show at the time,\nYour older self.",
+  },
+  {
+    author: "meera",
+    title: "On the red earth, and why I keep a jar of it on my desk",
+    createdAt: daysAgo(6.5),
+    content:
+      "There is a jar of soil on my desk in Berlin. It is the colour of the valley after rain, that deep iron red, and my colleagues assume it is decorative. It is not. It is a control sample, in the loosest possible sense, against which I quietly measure my whole working life.\n\nI study soil microbes. The official version is that I ended up here through a chain of degrees and grants and a lucky postdoc. The truer version begins on the morning walks, when Lakshmi-ma'am would crouch down in the middle of a sentence about birds and turn over a clod of earth, and a dozen of us would crowd around to watch a beetle the size of a lentil decide what to do with its day. She taught us that the ground is not a surface. It is a city.\n\nIt took me twenty years and a great deal of expensive equipment to start proving, in the careful language of journals, what she showed us in five minutes with her hands. The red earth of the valley holds a community of organisms doing slow, patient, world-building work, mostly out of sight, asking nothing of us except that we notice. I have spent my career learning to notice at a scale you need a microscope for. But the instinct, the turning-over-the-clod, the willingness to crouch in the middle of the path and look closely at something small, was issued to me on a hillside before I was fourteen.\n\nSo the jar stays. On the bad days, when a result will not replicate and I have forgotten why any of this matters, I look at it and remember that someone once knelt in the dust to show me a beetle, and meant it as the whole of an education.",
+  },
+];
+
 async function upsertUser(p, passwordHash) {
   const email = `${p.key}${DOMAIN}`;
   const verifiedAt = iso(new Date());
@@ -463,6 +483,17 @@ async function main() {
       sql: `INSERT INTO Post (id, authorId, kind, content, tag, isHidden, createdAt, updatedAt)
             VALUES (?, ?, 'post', ?, ?, 0, ?, ?)`,
       args: [createId(), idByKey[post.author], post.content, post.tag ?? null, ts, ts],
+    });
+  }
+
+  // Long-form Letters (kind="letter" with a title). Same reset above already
+  // cleared these (they are posts by demo authors), so this stays idempotent.
+  for (const letter of LETTERS) {
+    const ts = iso(letter.createdAt);
+    await db.execute({
+      sql: `INSERT INTO Post (id, authorId, kind, title, content, isHidden, createdAt, updatedAt)
+            VALUES (?, ?, 'letter', ?, ?, 0, ?, ?)`,
+      args: [createId(), idByKey[letter.author], letter.title, letter.content, ts, ts],
     });
   }
 
