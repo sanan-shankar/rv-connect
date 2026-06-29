@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { GroupHeader } from "@/components/groups/group-header";
 import { FeedColumn } from "@/components/posts/feed-column";
+import { InviteResponse } from "@/components/groups/invite-response";
 
 export default async function GroupPage({
   params,
@@ -40,9 +41,24 @@ export default async function GroupPage({
   const myRole = membership?.role ?? null;
   const isPrivate = group.visibility === "private";
 
-  // Private groups are hidden from non-members. Public groups are previewable
-  // (header + Join), so members and browsers can both reach this page.
-  if (isPrivate && !membership) {
+  // A pending invite lets a non-member preview the group and accept/decline,
+  // even when it is private (this is the bell's "invited you" entry point).
+  const pendingInvite = membership
+    ? null
+    : await prisma.groupInvite.findUnique({
+        where: {
+          groupId_inviteeId: { groupId: id, inviteeId: session.user.id },
+        },
+        select: {
+          status: true,
+          inviter: { select: { name: true } },
+        },
+      });
+  const hasPendingInvite = pendingInvite?.status === "pending";
+
+  // Private groups are hidden from non-members without an invite. Public groups
+  // are previewable (header + Join), so members and browsers can both reach this.
+  if (isPrivate && !membership && !hasPendingInvite) {
     return (
       <div className="mx-auto max-w-3xl text-center">
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12">
@@ -78,6 +94,14 @@ export default async function GroupPage({
         myRole={myRole}
       />
 
+      {hasPendingInvite && (
+        <InviteResponse
+          groupId={group.id}
+          groupName={group.name}
+          inviterName={pendingInvite?.inviter.name ?? "A Keeper"}
+        />
+      )}
+
       {membership ? (
         <FeedColumn
           groupId={group.id}
@@ -93,8 +117,9 @@ export default async function GroupPage({
             Join to see and share posts
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            This is a public group. Join from the header above to read the feed
-            and post.
+            {hasPendingInvite
+              ? "Accept the invite above to read the feed and post here."
+              : "This is a public group. Join from the header above to read the feed and post."}
           </p>
         </div>
       )}
