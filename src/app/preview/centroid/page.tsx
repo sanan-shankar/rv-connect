@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { ARCHETYPES } from "@/components/common/bird-avatar-v2";
 
-// Always re-read the adjust file per request so the _centroid.mjs convergence loop sees fresh values
+// Always re-read the adjust file per request so the scripts/dev/centroid.mjs convergence loop sees fresh values
 // (a static JSON import would be cached by the dev server between iterations).
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ function transformFor(adj?: { x?: number; y?: number; s?: number }): string | un
 }
 
 /**
- * Dev-only harness for the optical-centering script (_centroid.mjs). Renders ONE bird glyph alone
+ * Dev-only harness for the optical-centering script (scripts/dev/centroid.mjs). Renders ONE bird glyph alone
  * on a transparent background at 600x600 (viewBox 0..100) so the script can rasterize it and
  * compute the true pixel centroid + bounding box. No disc, no chrome.
  */

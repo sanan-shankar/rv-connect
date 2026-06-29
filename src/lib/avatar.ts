@@ -27,11 +27,20 @@ export const AVATAR_PALETTE = [
   "#D2694A", // terracotta / coral (keeps real red in the mix)
 ];
 
-// Bird silhouettes available in bird-avatar.tsx. Keep in sync with the Species switch there.
-export const BIRD_SPECIES_COUNT = 52;
+// Rishi Valley bird species. Keep in sync with the ARCHES list in bird-avatar-v2.tsx.
+export const BIRD_SPECIES_COUNT = 37;
 
-// Pose variations (mirror / crest-lift / tail-lift) applied on top of a species. See bird-avatar.tsx.
+// Pose variations (left/right). Only pose >= 2 mirrors the bird; see bird-avatar-v2.tsx.
 export const BIRD_POSE_COUNT = 4;
+
+/**
+ * Manual species pins by user id, until a settings UI lets members pick their own bird.
+ * The site owner is the Common Hoopoe (#0) — the valley's signature bird.
+ * (For production this should migrate to an avatarSpecies column; ids differ per database.)
+ */
+export const SPECIES_PINS: Record<string, number> = {
+  cmmz0vvws0000ynsg3ueb9scp: 0, // sanan (owner) -> Hoopoe
+};
 
 /** FNV-1a 32-bit hash. Stable across runtimes, good spread for short strings like ids. */
 export function fnv1a(input: string): number {

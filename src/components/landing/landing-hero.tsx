@@ -66,26 +66,30 @@ export function LandingHero() {
 
       {/* Headline + actions */}
       <div className="relative z-10 flex flex-1 items-center">
-        <div className="mx-auto w-full max-w-7xl px-8 lg:px-16">
-          <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl md:whitespace-nowrap">
-            Welcome back to the valley.
-          </h1>
-          <p className="mt-4 text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg md:whitespace-nowrap">
-            A space for Rishi Valley alumni to reconnect, share stories, and find each other.
-          </p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
-            >
-              Request an invite
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center rounded-full border border-white/55 bg-white/10 px-6 py-2.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
-            >
-              Sign in
-            </Link>
+        <div className="w-full px-8 lg:px-16">
+          <div className="lg:grid lg:grid-cols-[111px_1fr] lg:gap-x-2.5">
+            <div className="lg:col-start-2">
+              <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl md:whitespace-nowrap">
+                Welcome back to the valley.
+              </h1>
+              <p className="mt-4 text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg md:whitespace-nowrap">
+                A space for Rishi Valley alumni to reconnect, share stories, and find each other.
+              </p>
+              <div className="mt-9 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
+                >
+                  Request an invite
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center rounded-full border border-white/55 bg-white/10 px-6 py-2.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
+                >
+                  Sign in
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>
