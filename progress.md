@@ -357,3 +357,24 @@ profile, directory. Login is light + warm. Old top navbar + glassmorphism + dark
   Onboarding/auth/verification). Wave D (polish/interactions: hoopoe choreography, bird chirp,
   bookmark sweep, loading scene, like-pop, bell-shake; then Phase 0 deploy to Render + Postgres,
   remove magic links).
+
+## Session 2026-06-29 (fork 2) — audit truth + Wave C Groups & Letters
+- AUDIT (AUDIT.md): the committed app MOSTLY MATCHES the /preview/v2 contract. Feed, Profile, Login
+  (photo-split), Directory (working map), Support, Collection all render correctly; heart is locked
+  red (#E03A33, no color transition) and the hoopoe has a real spring + on-load peek IN CODE. The
+  owner's "it looks broken" was almost certainly a STALE dev-server render. Lesson: trust screenshots
+  + code, never the FEEDBACK_CHECKLIST [x] marks.
+- Wave B P1 cleanup (committed bd3b0f3 b048119 4f23991 e22e795): fixed landing hydration runtime error
+  (showcase parallax), replaced glassmorphism landing Sign-in with solid leaf-green, deleted live-DB
+  "asdfasdf" junk group + seeded 3 real groups, varied the 12 Collection tiles.
+- Wave C Groups (committed 2e94a07..6f6a111, verified): Group.visibility public/private + coverImage +
+  GroupInvite; organizer role shown as "Keeper"; create + browse + join (public auto / private invite)
+  + @-invite via notifications; group page reuses shared FeedColumn (Composer+PostFeed+PostCard),
+  groupId leak-guarded.
+- Wave C Letters long-form (was ~90% built; completed + verified 4751fd3 fe0c658 e41199b): Post.kind
+  "letter" + title via shared composer; compact LETTER card in feed; editorial /letters/[id] read view;
+  /letters list; now allowed in group feeds + editable; seeded. Distinct from Catch-ups.
+- Logo: /preview/logo = first-pass three-peaks (outline + solid-white-fill + gradient). Real app still
+  uses the rough zigzag PeaksMark pending a faithful trace of /Inspiration/bodi-middle-rishi.png.
+- HEAD now at the docs commit above. Remaining: Catch-ups newsletter, onboarding/auth/verification,
+  Wave D polish, deploy. See HANDOFF.md.
