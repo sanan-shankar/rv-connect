@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Database
 - **Prisma ORM** with `@prisma/adapter-libsql`
 - Local: SQLite (`dev.db`)
-- Production: PostgreSQL on Render
+- Production: Turso (libSQL), hosted on Vercel
 - Schema: `prisma/schema.prisma` — User, Post, Comment, Like, Group, Notification, Report, Poll models
 - Commands: `npx prisma db push`, `npx prisma generate`, `npx prisma studio`
 

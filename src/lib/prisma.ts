@@ -7,8 +7,9 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  // Production (Render): Postgres when DATABASE_URL is a postgres:// connection
-  // string. Local dev and Turso stay on the libSQL adapter (SQLite file).
+  // Production runs on Vercel with Turso (libSQL). The Postgres branch is an
+  // optional fallback that only activates if DATABASE_URL is a postgres://
+  // connection string; local dev and Turso both use the libSQL adapter.
   const dbUrl = process.env.DATABASE_URL ?? "";
   if (dbUrl.startsWith("postgres")) {
     const adapter = new PrismaPg({ connectionString: dbUrl });
