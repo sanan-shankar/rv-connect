@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="1200" viewBox="0 0 1100 1200" role="img" aria-label="Long shadows by the dairy">
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="900" viewBox="0 0 1100 900" role="img" aria-label="Long shadows by the dairy">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#E7B98C"/>
@@ -8,10 +8,16 @@
       <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
       <stop offset="1" stop-color="#000" stop-opacity="0.42"/>
     </linearGradient>
+    <filter id="tone" color-interpolation-filters="sRGB">
+      <feColorMatrix type="hueRotate" values="4"/>
+      <feColorMatrix type="saturate" values="0.90"/>
+    </filter>
   </defs>
-  <rect width="1100" height="1200" fill="url(#sky)"/>
-  <path d="M0 744 L1100 744 L1100 1200 L0 1200 Z" fill="#33414A" opacity="0.92"/><path d="M0 784 Q275 714 550 774 T1100 754 L1100 1200 L0 1200 Z" fill="#000" opacity="0.16"/><circle cx="792" cy="312" r="38" fill="#C2622F" opacity="0.45"/><path d="M0 744 Q440 624 770 724 T1100 684 L1100 1200 L0 1200 Z" fill="#000" opacity="0.1"/>
-  <rect width="1100" height="1200" fill="url(#vig)"/>
-  <text x="44" y="1116" font-family="Georgia, 'Times New Roman', serif" font-size="40" fill="#fff" opacity="0.96">Long shadows by the dairy</text>
-  <text x="44" y="1156" font-family="Georgia, serif" font-size="24" fill="#fff" opacity="0.72" letter-spacing="2">2010s</text>
+  <g filter="url(#tone)">
+    <rect width="1100" height="900" fill="url(#sky)"/>
+    <path d="M0 558 L1100 558 L1100 900 L0 900 Z" fill="#33414A" opacity="0.92"/><path d="M0 598 Q275 528 550 588 T1100 568 L1100 900 L0 900 Z" fill="#000" opacity="0.16"/><circle cx="792" cy="234" r="38" fill="#C2622F" opacity="0.45"/><path d="M0 558 Q440 438 770 538 T1100 498 L1100 900 L0 900 Z" fill="#000" opacity="0.1"/>
+  </g>
+  <rect width="1100" height="900" fill="url(#vig)"/>
+  <text x="44" y="816" font-family="Georgia, 'Times New Roman', serif" font-size="40" fill="#fff" opacity="0.96">Long shadows by the dairy</text>
+  <text x="44" y="856" font-family="Georgia, serif" font-size="24" fill="#fff" opacity="0.72" letter-spacing="2">2010s</text>
 </svg>

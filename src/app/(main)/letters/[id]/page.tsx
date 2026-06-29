@@ -7,6 +7,19 @@ import { BirdAvatar } from "@/components/common/bird-avatar";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { formatBatch, renderRichText, parseJsonArray } from "@/lib/utils";
 
+// Untitled letters fall back to their first line / opening words rather than a
+// literal "Untitled letter" placeholder.
+function letterTitle(title: string | null, content: string) {
+  if (title && title.trim()) return title.trim();
+  const firstLine = content
+    .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .split(/\n/)
+    .map((l) => l.trim())
+    .find(Boolean);
+  if (!firstLine) return "A letter";
+  return firstLine.length > 90 ? firstLine.slice(0, 90).trimEnd() + "..." : firstLine;
+}
+
 export default async function LetterPage({
   params,
 }: {
@@ -60,7 +73,7 @@ export default async function LetterPage({
       </div>
 
       <h1 className="mt-2 font-heading text-3xl font-bold leading-tight tracking-[-0.02em] text-foreground sm:text-4xl">
-        {letter.title || "Untitled letter"}
+        {letterTitle(letter.title, letter.content)}
       </h1>
 
       <div className="mt-5 flex items-center gap-3 border-b border-border pb-6">

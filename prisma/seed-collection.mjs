@@ -85,6 +85,18 @@ const RATIOS = [
   [1100, 1200],
 ];
 
+// Deterministic FNV-1a hash of the photo id, so each photo gets a stable but
+// distinct visual offset. Photos sharing a mood no longer render as the same tile.
+function seedFor(id) {
+  let h = 0x811c9dc5;
+  const s = String(id);
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
 function esc(s) {
   return String(s).replace(/[<>&'"]/g, (c) =>
     ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[c],
@@ -143,10 +155,15 @@ function motifSvg(motif, w, h, m) {
   return parts.join("");
 }
 
-function buildSvg(p, i) {
+function buildSvg(p) {
   const { mood, motif } = describe(p);
   const m = MOODS[mood];
-  const [w, h] = RATIOS[i % RATIOS.length];
+  const seed = seedFor(p.id);
+  // Per-photo visual variation so same-mood tiles do not read as duplicates:
+  // pick the aspect ratio, a hue rotation, and a saturation nudge from the seed.
+  const [w, h] = RATIOS[seed % RATIOS.length];
+  const hue = (seed % 31) - 15; // -15..+15 degrees
+  const sat = 1 + (((seed >>> 5) % 7) - 3) / 20; // 0.85..1.15
   const caption = esc(p.caption ?? "The valley");
   const era = esc((p.era ?? "").replace(/^./, (c) => c.toUpperCase()));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${caption}">
@@ -159,9 +176,15 @@ function buildSvg(p, i) {
       <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
       <stop offset="1" stop-color="#000" stop-opacity="0.42"/>
     </linearGradient>
+    <filter id="tone" color-interpolation-filters="sRGB">
+      <feColorMatrix type="hueRotate" values="${hue}"/>
+      <feColorMatrix type="saturate" values="${sat.toFixed(2)}"/>
+    </filter>
   </defs>
-  <rect width="${w}" height="${h}" fill="url(#sky)"/>
-  ${motifSvg(motif, w, h, m)}
+  <g filter="url(#tone)">
+    <rect width="${w}" height="${h}" fill="url(#sky)"/>
+    ${motifSvg(motif, w, h, m)}
+  </g>
   <rect width="${w}" height="${h}" fill="url(#vig)"/>
   <text x="44" y="${h - 84}" font-family="Georgia, 'Times New Roman', serif" font-size="40" fill="#fff" opacity="0.96">${caption}</text>
   <text x="44" y="${h - 44}" font-family="Georgia, serif" font-size="24" fill="#fff" opacity="0.72" letter-spacing="2">${era || "The valley"}</text>
@@ -174,10 +197,9 @@ async function main() {
     "SELECT id, caption, subject, era, area, thumbUrl, url FROM Photo ORDER BY thumbUrl",
   );
   const rows = res.rows;
-  let i = 0;
   for (const p of rows) {
-    const svg = buildSvg(p, i);
-    const [w, h] = RATIOS[i % RATIOS.length];
+    const svg = buildSvg(p);
+    const [w, h] = RATIOS[seedFor(p.id) % RATIOS.length];
     const file = `${p.id}.svg`;
     await writeFile(resolve(OUT_DIR, file), svg, "utf8");
     const publicUrl = `${PUBLIC_PREFIX}/${file}`;
@@ -185,7 +207,6 @@ async function main() {
       sql: `UPDATE Photo SET thumbUrl = ?, url = ?, width = ?, height = ?, updatedAt = ? WHERE id = ?`,
       args: [publicUrl, publicUrl, w, h, new Date().toISOString(), p.id],
     });
-    i++;
   }
   console.log(`Collection art generated: ${rows.length} distinct tiles in ${PUBLIC_PREFIX}/.`);
 }

@@ -48,6 +48,19 @@ export async function createGroup(formData: FormData) {
     },
   });
 
+  // Let every batch-added member (not the creator) know they were added.
+  const addedMembers = ids.filter((userId) => userId !== session.user.id);
+  if (addedMembers.length > 0) {
+    await prisma.notification.createMany({
+      data: addedMembers.map((userId) => ({
+        userId,
+        type: "group_invite",
+        message: `${session.user.name} added you to ${group.name}`,
+        link: `/groups/${group.id}`,
+      })),
+    });
+  }
+
   revalidatePath("/groups");
   return { success: true, groupId: group.id };
 }
