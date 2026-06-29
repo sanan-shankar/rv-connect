@@ -29,6 +29,35 @@ import bcrypt from "bcryptjs";
 const DOMAIN = "@demo.valley.test";
 const DEV_PASSWORD = "valley-demo-2026";
 
+// The local dev owner account. Seeded demo groups add this user as a member so
+// they surface in the "Your groups" rail when you browse as the owner.
+const OWNER_ID = process.env.SEED_OWNER_ID ?? "cmmz0vvws0000ynsg3ueb9scp";
+
+// Three plausibly-named demo groups (replaces the old junk "asdfasdf" test
+// group). Each id is fixed so re-running the seed is idempotent (we delete and
+// recreate these exact ids, never the user's real groups). Members are demo
+// users by key, and the owner is added to all of them.
+const GROUPS = [
+  {
+    id: "seed-grp-bengaluru",
+    name: "Bengaluru Alumni",
+    description: "Valley folk now in Bengaluru. Meetups, chai, and the occasional trek.",
+    members: ["rohan", "meera", "priya", "nikhil", "lakshmi"],
+  },
+  {
+    id: "seed-grp-class09",
+    name: "Class of '09",
+    description: "The batch that planted the south orchard. Keeping the thread alive.",
+    members: ["ananya", "arjun", "kabir", "george"],
+  },
+  {
+    id: "seed-grp-birders",
+    name: "Birders of RV",
+    description: "Sightings, photos and dawn-walk notes from the valley and beyond.",
+    members: ["meera", "fatima", "sneha", "wei", "zara", "david"],
+  },
+];
+
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL ?? "file:dev.db",
   authToken: process.env.TURSO_AUTH_TOKEN,
@@ -425,6 +454,32 @@ async function main() {
     });
   }
 
+  // Demo groups. Recreate our fixed seed groups idempotently (delete by id,
+  // cascade clears memberships) and add demo + owner members.
+  const groupIds = GROUPS.map((g) => g.id);
+  await db.execute({
+    sql: `DELETE FROM "Group" WHERE id IN (${groupIds.map(() => "?").join(", ")})`,
+    args: groupIds,
+  });
+  const nowIso = iso(new Date());
+  for (const g of GROUPS) {
+    await db.execute({
+      sql: `INSERT INTO "Group" (id, name, description, creatorId, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [g.id, g.name, g.description, OWNER_ID, nowIso, nowIso],
+    });
+    // Owner joins as admin so the group shows in the owner's "Your groups" rail.
+    const memberUserIds = [OWNER_ID, ...g.members.map((k) => idByKey[k]).filter(Boolean)];
+    for (let i = 0; i < memberUserIds.length; i++) {
+      const uid = memberUserIds[i];
+      await db.execute({
+        sql: `INSERT INTO GroupMember (id, groupId, userId, role, joinedAt)
+              VALUES (?, ?, ?, ?, ?)`,
+        args: [createId(), g.id, uid, i === 0 ? "admin" : "member", nowIso],
+      });
+    }
+  }
+
   const uc = await db.execute({
     sql: "SELECT count(*) AS n FROM User WHERE email LIKE ?",
     args: [`%${DOMAIN}`],
@@ -434,7 +489,7 @@ async function main() {
     args: ids,
   });
   console.log(
-    `Demo seed complete: ${uc.rows[0].n} users, ${pc.rows[0].n} posts (all ${DOMAIN}).`,
+    `Demo seed complete: ${uc.rows[0].n} users, ${pc.rows[0].n} posts, ${GROUPS.length} groups (all ${DOMAIN}).`,
   );
 }
 
