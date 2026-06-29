@@ -1,11 +1,16 @@
 import puppeteer from 'puppeteer';
-import { existsSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { existsSync, mkdirSync, readdirSync } from 'fs';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+process.chdir(repoRoot);
 
 const url = process.argv[2] || 'http://localhost:3000';
 const label = process.argv[3] || '';
 
 const screenshotsDir = './temporary screenshots';
+mkdirSync(screenshotsDir, { recursive: true });
 
 // Auto-increment screenshot number
 const existing = existsSync(screenshotsDir)
@@ -27,7 +32,7 @@ await page.setViewport({ width: 1440, height: 900 });
 
 try {
   await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-} catch (e) {
+} catch {
   // Fallback if networkidle2 times out
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, 2000));
