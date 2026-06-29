@@ -20,6 +20,7 @@ import {
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { DarkModeToggle } from "./dark-mode-toggle";
 import { NotificationBell } from "./notification-bell";
+import { PeaksMark } from "./peaks-mark";
 
 interface NavbarProps {
   user: {
@@ -49,9 +50,12 @@ export function Navbar({ user, unreadCount }: NavbarProps) {
         {/* Logo */}
         <Link
           href="/feed"
-          className="font-heading text-xl font-bold tracking-tight text-foreground"
+          className="flex items-center gap-2.5 text-foreground"
         >
-          RV Alumni
+          <PeaksMark size={18} className="text-primary" />
+          <span className="font-heading text-xl font-bold tracking-tight">
+            RV Alumni
+          </span>
         </Link>
 
         {/* Desktop nav links — centred */}

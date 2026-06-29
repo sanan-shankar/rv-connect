@@ -40,6 +40,7 @@ const viewport = mobileFlag
 
 const browser = await puppeteer.launch({
   headless: true,
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
 
@@ -83,6 +84,8 @@ try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await new Promise(r => setTimeout(r, 3000));
 }
+// Let streamed/Suspense content (e.g. feed posts) resolve before capture
+await new Promise(r => setTimeout(r, 4000));
 
 // Step 3: Take screenshot
 await page.screenshot({ path: outPath, fullPage: false });

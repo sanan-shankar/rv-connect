@@ -80,9 +80,9 @@ export function HoppingBird({ className = "" }: { className?: string }) {
 }
 
 /**
- * Three slow drifting leaves between the photo band and the closing CTA.
- * Capped at three so it never reads as snow. Gated behind in-view + reduced
- * motion. Transform/opacity only.
+ * A handful of slow drifting leaves behind a section, looping gently while in
+ * view. Light enough that it never reads as snow. Gated behind in-view +
+ * reduced motion. Transform/opacity only.
  */
 export function DriftingLeaves() {
   const ref = useRef<HTMLDivElement>(null);
@@ -106,9 +106,13 @@ export function DriftingLeaves() {
   }, []);
 
   const leaves = [
-    { left: "12%", delay: "0s", dur: "9s", size: 22, tint: "var(--color-leaf)" },
-    { left: "54%", delay: "1.6s", dur: "11s", size: 16, tint: "var(--color-canopy)" },
-    { left: "82%", delay: "3.2s", dur: "10s", size: 19, tint: "var(--color-cinnamon)" },
+    { left: "8%", delay: "0s", dur: "10s", size: 20, tint: "var(--color-leaf)" },
+    { left: "22%", delay: "2.4s", dur: "12s", size: 15, tint: "var(--color-cinnamon)" },
+    { left: "38%", delay: "4.1s", dur: "9.5s", size: 18, tint: "var(--color-canopy)" },
+    { left: "54%", delay: "1.2s", dur: "11.5s", size: 16, tint: "var(--color-leaf)" },
+    { left: "68%", delay: "3.3s", dur: "10.5s", size: 21, tint: "var(--color-cinnamon)" },
+    { left: "82%", delay: "5s", dur: "9s", size: 17, tint: "var(--color-canopy)" },
+    { left: "93%", delay: "2s", dur: "12.5s", size: 14, tint: "var(--color-leaf)" },
   ];
 
   return (
@@ -135,7 +139,7 @@ export function DriftingLeaves() {
           88% { opacity: 0.55; }
           100% { transform: translateY(320px) rotate(220deg); opacity: 0; }
         }
-        .lb-drift { animation-name: lb-drift; animation-timing-function: ease-in; animation-iteration-count: 1; animation-fill-mode: both; }
+        .lb-drift { animation-name: lb-drift; animation-timing-function: linear; animation-iteration-count: infinite; animation-fill-mode: both; }
         @media (prefers-reduced-motion: reduce) { .lb-drift { display: none; } }
       `}</style>
     </div>

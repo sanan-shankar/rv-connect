@@ -65,13 +65,17 @@ function isActive(pathname: string, href: string) {
 
 function Brand() {
   return (
-    <Link href="/feed" className="flex items-center gap-3 px-2 py-1">
-      <PeaksMark size={26} className="shrink-0 text-sidebar-foreground" />
-      <span className="leading-tight">
-        <span className="block font-heading text-[17px] font-bold tracking-tight text-sidebar-foreground">
+    <Link href="/feed" className="flex items-center gap-2.5 px-2 py-1">
+      <PeaksMark
+        size={28}
+        variant="two-plane"
+        className="shrink-0 -translate-y-px text-sidebar-foreground"
+      />
+      <span className="flex min-w-0 flex-col justify-center leading-none">
+        <span className="block whitespace-nowrap font-heading text-[17px] font-bold leading-none tracking-tight text-sidebar-foreground">
           Rishi Valley
         </span>
-        <span className="block text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/55">
+        <span className="mt-1 block text-[10px] uppercase leading-none tracking-[0.2em] text-sidebar-foreground/55">
           Alumni
         </span>
       </span>
@@ -110,13 +114,7 @@ function NavLinks({
   );
 }
 
-function UserMenu({
-  user,
-  unreadCount,
-}: {
-  user: SidebarUser;
-  unreadCount: number;
-}) {
+function UserMenu({ user }: { user: SidebarUser }) {
   const router = useRouter();
   return (
     <div className="mt-auto flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
@@ -157,9 +155,13 @@ function UserMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="text-sidebar-foreground">
-        <NotificationBell initialUnreadCount={unreadCount} />
-      </div>
+      <Link
+        href="/settings"
+        aria-label="Settings"
+        className="group grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground/70 transition-colors hover:bg-white/[0.07] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+      >
+        <Settings className="h-[18px] w-[18px] transition-transform duration-300 ease-out group-hover:[transform:rotate(45deg)]" strokeWidth={1.9} />
+      </Link>
     </div>
   );
 }
@@ -180,7 +182,7 @@ export function Sidebar({
       <aside className="sticky top-0 z-10 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
         <Brand />
         <NavLinks pathname={pathname} />
-        <UserMenu user={user} unreadCount={unreadCount} />
+        <UserMenu user={user} />
       </aside>
 
       {/* Mobile: slim brand top bar + a bottom tab bar with a More sheet */}

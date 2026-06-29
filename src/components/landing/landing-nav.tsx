@@ -35,7 +35,7 @@ export function LandingNav() {
           href="/"
           className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
         >
-          <PeaksMark size={15} className="text-leaf" />
+          <PeaksMark size={15} variant="light" />
           <span className="font-heading text-[15px] font-bold tracking-tight text-foreground">
             Rishi Valley
           </span>

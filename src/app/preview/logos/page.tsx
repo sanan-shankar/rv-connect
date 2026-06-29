@@ -1,3 +1,5 @@
+import { PeaksMark } from "@/components/layout/peaks-mark";
+
 /* Logo lab: a few non-bird marks to choose from. Static, self-contained. */
 
 function Wordmark() {
@@ -46,6 +48,7 @@ export default function LogoLab() {
 .lg-row { display:flex; align-items:center; gap:13px; }
 .lg-mark { display:grid; place-items:center; width:46px; height:46px; border-radius:14px;
   background:var(--green); color:#FBFBF8; }
+.lg-mark.wide { width:76px; }
 .lg-mark.outline { background:transparent; border:1.5px solid var(--green); color:var(--green); }
 .lg-mono { font-family:var(--font-display),serif; font-size:21px; font-weight:700; }
 `,
@@ -73,11 +76,8 @@ export default function LogoLab() {
 
         <Tile name="Valley + hills" note="The place itself: Rishi Konda's ridgeline.">
           <div className="lg-row">
-            <span className="lg-mark">
-              <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-                <circle cx="22" cy="9" r="3.4" fill="currentColor" opacity=".85" />
-                <path d="M2 25 L11 13 L17 21 L23 12 L30 25 Z" fill="currentColor" />
-              </svg>
+            <span className="lg-mark wide">
+              <PeaksMark size={18} />
             </span>
             <Wordmark />
           </div>

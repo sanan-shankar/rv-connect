@@ -6,9 +6,9 @@
  * different salts so they do not correlate: two members who happen to share a species are very
  * unlikely to also share colour and pose. Combinations:
  *
- *     16 species  x  10 disc colours  x  4 poses  =  640
+ *     52 species  x  10 disc colours  x  4 poses  =  2080
  *
- * which clears the 500 floor with headroom and scales toward 1000 as species are added. Photo
+ * which clears the 500 floor with wide headroom and scales past 1000. Photo
  * upload overrides the bird; a manual species/colour can also override the hash (precedence:
  * photo > manual > hash). The same id yields the same bird on the server and the client because
  * this is pure arithmetic over charCodeAt, with no Math.random, Date, or locale.
@@ -28,7 +28,7 @@ export const AVATAR_PALETTE = [
 ];
 
 // Bird silhouettes available in bird-avatar.tsx. Keep in sync with the Species switch there.
-export const BIRD_SPECIES_COUNT = 16;
+export const BIRD_SPECIES_COUNT = 52;
 
 // Pose variations (mirror / crest-lift / tail-lift) applied on top of a species. See bird-avatar.tsx.
 export const BIRD_POSE_COUNT = 4;

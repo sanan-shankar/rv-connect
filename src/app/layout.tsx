@@ -13,13 +13,13 @@ const libreBaskerville = Libre_Baskerville({
 const sourceSans = Source_Sans_3({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "RV Alumni — Rishi Valley School",
+  title: "Rishi Valley Alumni",
   description:
-    "A space for Rishi Valley alumni to reconnect, reminisce, and find each other.",
+    "A quiet, invite-only home for Rishi Valley alumni and teachers.",
 };
 
 export default function RootLayout({

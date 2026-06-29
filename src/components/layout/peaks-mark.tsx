@@ -1,58 +1,93 @@
 /**
- * PeaksMark - the Bodikonda / Middle / Rishikonda skyline, traced from the valley photo
- * (/Inspiration/bodi-middle-rishi.png).
+ * PeaksMark - the chosen Bodi / Middle / Rishi mountain mark.
  *
- * Reading the photo left to right: a low, rounded left massif (Bodikonda), a wide central
- * saddle, then the dominant summit at roughly 54% of the width (rounded crown, the tallest
- * point), a small secondary shoulder just to its right, and a long descent to a low right
- * shoulder. The ridge uses curved C/Q segments so the crowns read as weathered hills, not a
- * straight-line zigzag.
- *
- * `variant="outline"` strokes the ridge; `variant="solid"` fills the closed silhouette.
- * Defaults to outline (the existing app usage). Renders in currentColor / white so it sits on
- * the green sidebar and the login photo alike.
+ * This is the final Bodi / Middle / Rishi logo study from Inspiration. It
+ * stays inline so brand surfaces can choose solid white/currentColor, the
+ * shaded sidebar mark for dark green, or the option-A greens for light surfaces.
  */
 
-// Ridge traced across a 0..64 x 0..22 viewBox. Baseline sits at y=20.
+const VIEWBOX_WIDTH = 1140;
+const VIEWBOX_HEIGHT = 350;
 const RIDGE =
-  "M1 20 " +
-  "C4 20 6 18.5 9 14.5 " + // rise onto the rounded left massif
-  "C11.5 11.2 14 11 16.5 13.5 " + // rounded crown of Bodikonda
-  "C19 16 21 18 24 17.2 " + // dip into the wide central saddle
-  "C28 16 31 10 34.5 4.8 " + // climb to the dominant summit (~54% width)
-  "C36 2.6 38 3 39.5 6 " + // rounded crown of the tallest peak
-  "C41 9 42.5 12.5 45 12 " + // small secondary shoulder just right of the summit
-  "C49 11 52 14.5 56 17.5 " + // long descent
-  "C59 19.5 61 20 63 20"; // settle to the low right shoulder
+  "M-70 348 " +
+  "C6 346 82 248 190 198 " +
+  "C284 155 370 179 462 252 " +
+  "C512 199 548 80 622 62 " +
+  "C695 44 683 150 748 158 " +
+  "C786 162 781 107 822 128 " +
+  "C899 168 922 344 980 348";
 
-const SILHOUETTE = RIDGE + " L63 22 L1 22 Z";
+const SILHOUETTE =
+  "M-48 390 " +
+  "C-75 390 -98 377 -98 362 " +
+  "C-98 352 -84 348 -70 348 " +
+  "C6 346 82 248 190 198 " +
+  "C284 155 370 179 462 252 " +
+  "C512 199 548 80 622 62 " +
+  "C695 44 683 150 748 158 " +
+  "C786 162 781 107 822 128 " +
+  "C899 168 922 344 980 348 " +
+  "C994 348 1008 352 1008 362 " +
+  "C1008 377 985 390 958 390 Z";
+
+const MIDDLE_PLANE =
+  "M462 252 " +
+  "C512 199 548 80 622 62 " +
+  "C695 44 683 150 748 158 " +
+  "C786 162 781 107 822 128 " +
+  "C899 168 922 344 980 348 " +
+  "C994 348 1008 352 1008 362 " +
+  "C1008 377 985 390 958 390 " +
+  "L432 390 " +
+  "C432 338 444 286 462 252 Z";
+
+const RISHI_PLANE =
+  "M748 158 " +
+  "C786 162 781 107 822 128 " +
+  "C899 168 922 344 980 348 " +
+  "C994 348 1008 352 1008 362 " +
+  "C1008 377 985 390 958 390 " +
+  "L680 390 " +
+  "C692 288 718 202 748 158 Z";
 
 export function PeaksMark({
   size = 18,
   className = "",
-  variant = "outline",
+  variant = "solid",
 }: {
   size?: number;
   className?: string;
-  variant?: "outline" | "solid";
+  variant?: "two-plane" | "light" | "outline" | "solid";
 }) {
-  const w = Math.round((size * 64) / 22);
+  const w = Math.round((size * VIEWBOX_WIDTH) / VIEWBOX_HEIGHT);
   return (
     <svg
       width={w}
       height={size}
-      viewBox="0 0 64 22"
+      viewBox="-110 40 1140 350"
       fill="none"
       className={className}
       aria-hidden
     >
-      {variant === "solid" ? (
+      {variant === "two-plane" ? (
+        <>
+          <path d={SILHOUETTE} fill="#eaf1df" />
+          <path d={MIDDLE_PLANE} fill="#8ca383" opacity="0.72" />
+          <path d={RISHI_PLANE} fill="#173f35" opacity="0.37" />
+        </>
+      ) : variant === "light" ? (
+        <>
+          <path d={SILHOUETTE} fill="#cbd8c1" />
+          <path d={MIDDLE_PLANE} fill="#7f9a82" />
+          <path d={RISHI_PLANE} fill="#235c49" />
+        </>
+      ) : variant === "solid" ? (
         <path d={SILHOUETTE} fill="currentColor" />
       ) : (
         <path
           d={RIDGE}
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="28"
           strokeLinecap="round"
           strokeLinejoin="round"
         />

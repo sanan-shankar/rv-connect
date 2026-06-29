@@ -27,7 +27,16 @@ export function LandingHero() {
       {/* Hover-reactive wash for readability */}
       <div
         className="absolute inset-0 transition-colors duration-700 ease-in-out"
-        style={{ backgroundColor: hovered ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.05)" }}
+        style={{ backgroundColor: hovered ? "rgba(0,0,0,0.18)" : "rgba(0,0,0,0.03)" }}
+      />
+      {/* Top wash keeps the small white brand readable without dimming the whole photo. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-40"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(20,30,22,0.34), rgba(20,30,22,0.16) 45%, transparent)",
+        }}
       />
       {/* Constant bottom gradient so the headline and cue always have contrast */}
       <div
@@ -35,7 +44,7 @@ export function LandingHero() {
         className="absolute inset-0"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, transparent 50%, rgba(20,30,22,0.5))",
+            "linear-gradient(180deg, transparent 54%, rgba(20,30,22,0.36))",
         }}
       />
 
@@ -44,12 +53,12 @@ export function LandingHero() {
         className="relative z-10 flex items-center gap-2.5 px-8 pt-7 lg:px-16"
         style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
       >
-        <PeaksMark size={16} className="text-white" />
-        <span className="leading-tight text-white">
-          <span className="block font-heading text-[16px] font-bold tracking-tight">
+        <PeaksMark size={34} className="text-white" />
+        <span className="mt-[2px] flex h-8 flex-col justify-between text-white">
+          <span className="block font-heading text-[21px] font-bold leading-none tracking-tight">
             Rishi Valley
           </span>
-          <span className="block text-[9.5px] uppercase tracking-[0.22em] text-white/80">
+          <span className="block text-[10.5px] uppercase leading-none tracking-[0.24em] text-white/85">
             Alumni
           </span>
         </span>
@@ -64,16 +73,16 @@ export function LandingHero() {
           <p className="mt-4 text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg md:whitespace-nowrap">
             A space for Rishi Valley alumni to reconnect, share stories, and find each other.
           </p>
-          <div className="mt-10 flex flex-wrap gap-4">
+          <div className="mt-9 flex flex-wrap items-center gap-3">
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center rounded-xl bg-white px-8 py-3.5 font-semibold leading-normal text-gray-900 shadow-lg transition-transform duration-200 hover:scale-[1.02] hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
             >
               Request an invite
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center rounded-xl bg-canopy px-8 py-3.5 font-semibold leading-normal text-white shadow-lg transition-[transform,filter] duration-200 hover:scale-[1.02] hover:brightness-110 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-full border border-white/55 bg-white/10 px-6 py-2.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
             >
               Sign in
             </Link>
@@ -82,7 +91,7 @@ export function LandingHero() {
       </div>
 
       {/* Scroll cue */}
-      <div className="relative z-10 flex flex-col items-center gap-1 pb-7 text-white/80">
+      <div className="relative z-10 flex flex-col items-center gap-3 pb-7 text-white/80">
         <span className="text-[11px] font-medium uppercase tracking-[0.18em]">See what&apos;s inside</span>
         <ChevronDown className="h-5 w-5 animate-bounce" />
       </div>
