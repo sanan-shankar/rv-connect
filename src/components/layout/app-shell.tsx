@@ -32,7 +32,7 @@ export function AppShell({
             bottom instead of a uniform wash. */}
         <div
           aria-hidden
-          className="valley-tree pointer-events-none absolute inset-0 z-0 bg-cover bg-[center_28%] opacity-[0.11]"
+          className="valley-tree pointer-events-none absolute inset-0 z-0 bg-cover bg-fixed bg-[center_28%] opacity-[0.11]"
           style={{ backgroundImage: "url(/images/landing.jpeg)" }}
         />
         <div className="relative z-10 flex flex-1 flex-col">
