@@ -116,7 +116,7 @@ Checklist items marked done that are not actually true.
 
 | Claim | Reality |
 |---|---|
-| FEEDBACK_CHECKLIST Process: "No em dashes anywhere (followed silently)" `[x]` | `about/page.tsx:70` contains an em dash. |
+| `docs/planning/FEEDBACK_CHECKLIST.md` Process: "No em dashes anywhere (followed silently)" `[x]` | `about/page.tsx:70` contains an em dash. |
 | "Like-pop and bell-shake already in" `[x]` | Like-pop is real; **bell-shake is NOT** in real `notification-bell.tsx` — it only exists hover-triggered in the preview mock (`v2/page.tsx:664-665`). |
 
 ---
@@ -156,8 +156,8 @@ This is a **targeted-fix campaign**. Rule: **everything `touchesFoundation` land
 - **Kickoff:** "In a worktree off frozen foundation, fix the directory rail avatar overrides, notify batch-added group members, add a groups browse empty state, fall back letter titles to the excerpt, and vary collection seed art. tsc + screenshot feed/groups/letters/collection."
 
 ### B-COPY-DELIGHT — em dash, bell-shake, dead file (parallel, small)
-- **Scope:** #3 (em dash in About), #7 (bell-shake on unread increment), #30 (delete landing-client.tsx). Fix both false `[x]` claims in FEEDBACK_CHECKLIST.
-- **Files:** `about/page.tsx`, `components/layout/notification-bell.tsx`, `globals.css` (bell keyframe — **coordinate: if globals.css edit needed, fold into B-FOUNDATION instead**), `components/landing-client.tsx`, `FEEDBACK_CHECKLIST.md`.
+- **Scope:** #3 (em dash in About), #7 (bell-shake on unread increment), #30 (delete landing-client.tsx). Fix both false `[x]` claims in `docs/planning/FEEDBACK_CHECKLIST.md`.
+- **Files:** `about/page.tsx`, `components/layout/notification-bell.tsx`, `globals.css` (bell keyframe — **coordinate: if globals.css edit needed, fold into B-FOUNDATION instead**), `components/landing-client.tsx`, `docs/planning/FEEDBACK_CHECKLIST.md`.
 - **Dependencies:** B-FOUNDATION (bell keyframe in globals.css). **Parallel-safe:** yes (but the keyframe addition is a foundation file — see Coordination).
 - **Kickoff:** "In a worktree off frozen foundation, remove the About em dash, wire the real bell-shake on unread increment, delete dead landing-client.tsx, and correct the two false [x] checklist claims."
 
@@ -177,5 +177,5 @@ This is a **targeted-fix campaign**. Rule: **everything `touchesFoundation` land
 2. **One git worktree per parallel batch**, each branched off the frozen-foundation commit. Use `superpowers-using-git-worktrees`. Forks never edit each other's files.
 3. **Shared-primitive escape hatch:** if any parallel fork discovers it needs to change a foundation file (`globals.css`, `app-shell.tsx`, `post-card.tsx`, `peaks-mark.tsx`, `ui/card.tsx`, `feed/actions.ts` author select), it **STOPS and flags it** rather than editing — the change is folded into B-FOUNDATION (or a foundation amendment) and re-frozen so forks rebase onto it. (Notably the bell-shake keyframe in B-COPY-DELIGHT — if it needs globals.css, move it into B-FOUNDATION.)
 4. **Verify gate per batch:** `tsc` clean + screenshot the touched surface at 1440 (and 390 where mobile matters) + one interaction check (e.g. own-profile loads, heart stays red, bookmark animates, filter re-filters map). Read the PNG, do not assume.
-5. **Per-batch bookkeeping:** update `PUNCHLIST.md` (check off fixed items) and `progress.md` at the end of each batch. Plain conventional commits, no AI attribution.
+5. **Per-batch bookkeeping:** update `docs/planning/PUNCHLIST.md` (check off fixed items) and `progress.md` at the end of each batch. Plain conventional commits, no AI attribution.
 6. **Merge order:** rebase each finished fork onto latest `redesign`, run its verify gate again post-rebase, then merge. Foundation first, then forks in any order.

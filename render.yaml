@@ -1,6 +1,6 @@
 # Render Blueprint for RV Alumni.
 # Create from the Render dashboard: New > Blueprint, point at this repo.
-# See DEPLOY.md for the full walkthrough and the env vars marked sync:false.
+# See docs/operations/DEPLOY.md for the full walkthrough and the env vars marked sync:false.
 
 databases:
   - name: rv-alumni-db

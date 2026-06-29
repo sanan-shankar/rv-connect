@@ -30,7 +30,7 @@ compact, hand off via this file before ~60% context.
 - Live: `/preview/v2` (`src/app/preview/v2/page.tsx`) with `?view=profile`, `?view=login`, `&theme=dark`,
   `&avatars=initials`. Frozen reference.
 - Standalone openable reference (no server needed): `docs/contract/index.html` (toggles view/theme/avatars).
-- `PUNCHLIST.md` = the authoritative verified state + the full remaining backlog. `progress.md` = full history.
+- `docs/planning/PUNCHLIST.md` = the authoritative verified state + the full remaining backlog. `progress.md` = full history.
 
 ## 2. State now (all committed on `redesign`, HEAD ~ 7add1e3, tsc clean, routes verified 200)
 The app MATCHES the contract on feed / login / profiles / directory map / landing. Recent fidelity pass
@@ -54,7 +54,7 @@ The app MATCHES the contract on feed / login / profiles / directory map / landin
   share stories, and find each other.", each one line on desktop.
 - FONTS never changed app-vs-preview: Libre Baskerville (headings) + Source Sans 3 (body), same CSS vars.
 
-## 3. Remaining work (in rough priority; full detail in PUNCHLIST.md)
+## 3. Remaining work (in rough priority; full detail in docs/planning/PUNCHLIST.md)
 1. **Bird avatars (owner wants a DEDICATED session for this).** Two things: (a) center every species glyph
    in its disc (balanced around 16,16 in the 0..32 viewBox), (b) expand to many clearly-distinct species
    (the current set looks too similar / too few). Files: `src/components/common/bird-avatar.tsx`,
@@ -78,14 +78,14 @@ The app MATCHES the contract on feed / login / profiles / directory map / landin
    get the relative peak heights + curvature right. Current `peaks-mark.tsx` is an approximation.
 7. **Deploy** (Phase 0): Render always-on + Render Postgres (switch Prisma provider, storage.ts Blob shim,
    remove magic links + `/verify`), keep local on SQLite. Run `npm run build` as the gate before deploy.
-8. **Collection / photo archive**, donate→support tweaks, "On this day", bookmark persistence — see PUNCHLIST.
+8. **Collection / photo archive**, donate→support tweaks, "On this day", bookmark persistence — see `docs/planning/PUNCHLIST.md`.
 
 ## 4. Tooling
 Dev: `npm run dev` :3000. Screenshots: `export PUPPETEER_EXECUTABLE_PATH="/Applications/Google Chrome.app/
-Contents/MacOS/Google Chrome"`; public `node screenshot.mjs <url> <label>`; authed `node screenshot-auth.mjs
+Contents/MacOS/Google Chrome"`; public `node scripts/qa/screenshot.mjs <url> <label>`; authed `node scripts/qa/screenshot-auth.mjs
 <url> <label>` (`--mobile` for 390). Admin user id `cmmz0vvws0000ynsg3ueb9scp`; demo users end `@demo.valley.test`.
 Per-batch: `npx tsc --noEmit` clean + screenshot 1440 (and 390 where it matters) + READ the png + check the
-console, then commit. Update PUNCHLIST.md + progress.md.
+console, then commit. Update `docs/planning/PUNCHLIST.md` + `progress.md`.
 
 Your first move: `git log --oneline -8`, then `npm run dev` and confirm `/feed` + `/login` serve 200 (if they
 404, clear `.next` per section 0). Then pick a task above (the owner's next is the bird avatars).
