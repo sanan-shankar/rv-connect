@@ -369,7 +369,9 @@ export function PostCard({
       {showEdit && (
         <EditPostDialog
           postId={post.id}
+          kind={post.kind}
           initialContent={post.content}
+          initialTitle={post.title}
           initialTag={post.tag}
           open={showEdit}
           onClose={() => setShowEdit(false)}
