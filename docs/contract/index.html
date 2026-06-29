@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RV Alumni — Approved look (the contract)</title>
+<style>
+  :root { --bg:#EBE6D7; --surface:#FAF8F3; --ink:#23241E; --soft:#6B726A; --border:#E0DAC9; --green:#235C49; --leaf:#1F8A4C; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  header { max-width:1180px; margin:0 auto; padding:34px 28px 10px; }
+  h1 { font-family:Georgia,"Times New Roman",serif; font-size:27px; letter-spacing:-.02em; margin:0 0 6px; }
+  p.lede { color:var(--soft); font-size:14.5px; margin:0 0 4px; max-width:70ch; line-height:1.55; }
+  p.note { color:var(--soft); font-size:12.5px; margin:8px 0 0; }
+  .controls { position:sticky; top:0; z-index:5; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(6px); border-bottom:1px solid var(--border); }
+  .controls-inner { max-width:1180px; margin:0 auto; padding:14px 28px; display:flex; gap:18px; flex-wrap:wrap; align-items:center; }
+  .seg { display:flex; gap:3px; background:#fff; border:1px solid var(--border); border-radius:11px; padding:3px; }
+  .seg > span.lbl { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); align-self:center; padding:0 8px 0 4px; }
+  .seg button { border:0; background:transparent; cursor:pointer; font:inherit; font-size:13px; font-weight:600; color:var(--soft); padding:7px 14px; border-radius:8px; }
+  .seg button.on { background:var(--green); color:#fff; }
+  .seg button:disabled { opacity:.35; cursor:not-allowed; }
+  main { max-width:1180px; margin:0 auto; padding:22px 28px 70px; }
+  .frame { border:1px solid var(--border); border-radius:18px; overflow:hidden; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.05), 0 30px 60px -40px rgba(0,0,0,.5); }
+  .frame img { display:block; width:100%; height:auto; }
+  .caption { font-size:12.5px; color:var(--soft); margin:12px 2px 0; }
+  .caption b { color:var(--ink); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>The approved look (the contract)</h1>
+    <p class="lede">This is the frozen reference for RV Alumni: the design every real screen should match. These are real screenshots of <b>/preview/v2</b>. Toggle the view, theme, and avatar style to compare.</p>
+    <p class="note">Live interactive version (with the real hoopoe animation and hover states): run <code>npm run dev</code> and open <code>http://localhost:3000/preview/v2</code>. Dark mode is parked for a later polish pass; the MVP ships light only.</p>
+  </header>
+
+  <div class="controls">
+    <div class="controls-inner">
+      <div class="seg" id="view"><span class="lbl">View</span>
+        <button data-v="feed" class="on">Feed</button>
+        <button data-v="profile">Profile</button>
+        <button data-v="login">Login</button>
+      </div>
+      <div class="seg" id="theme"><span class="lbl">Theme</span>
+        <button data-v="light" class="on">Light</button>
+        <button data-v="dark">Dark</button>
+      </div>
+      <div class="seg" id="avatars"><span class="lbl">Avatars</span>
+        <button data-v="bird" class="on">Birds</button>
+        <button data-v="initials">Letters</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="frame"><img id="shot" src="feed-light-bird.png" alt="approved look" /></div>
+    <div class="caption" id="cap"></div>
+  </main>
+
+<script>
+  const state = { view: 'feed', theme: 'light', avatars: 'bird' };
+  const img = document.getElementById('shot');
+  const cap = document.getElementById('cap');
+  const avatarsSeg = document.getElementById('avatars');
+
+  function render() {
+    const loginAvatarsNA = state.view === 'login';
+    avatarsSeg.querySelectorAll('button').forEach(b => b.disabled = loginAvatarsNA);
+    const file = state.view === 'login'
+      ? `login-${state.theme}.png`
+      : `${state.view}-${state.theme}-${state.avatars}.png`;
+    img.src = file;
+    const avatarTxt = loginAvatarsNA ? '' : `, ${state.avatars === 'bird' ? 'bird avatars' : 'letter avatars'}`;
+    cap.innerHTML = `<b>${state.view[0].toUpperCase() + state.view.slice(1)}</b> &middot; ${state.theme} mode${avatarTxt}`;
+  }
+  function wire(id, key) {
+    document.getElementById(id).addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn || btn.disabled) return;
+      state[key] = btn.dataset.v;
+      document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b === btn));
+      render();
+    });
+  }
+  wire('view', 'view'); wire('theme', 'theme'); wire('avatars', 'avatars');
+  render();
+</script>
+</body>
+</html>
