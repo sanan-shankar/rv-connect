@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
@@ -256,7 +256,7 @@ export default async function ProfilePage({
         <div className="px-6 pb-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="relative z-[2] -mt-14">
-              <BirdAvatar
+              <ProfileAvatar
                 user={{ id: user.id, name: user.name, avatarColor: user.avatarColor }}
                 size="lg"
                 ring

@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { motion } from "motion/react";
 import { Search, Filter, ArrowLeft, ArrowUpDown } from "lucide-react";
+import { SPRINGS } from "@/components/common/motion";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -276,13 +278,22 @@ export function DirectoryClient({
           <button
             key={v}
             onClick={() => setBrowseView(v)}
-            className={`rounded-full px-4 py-1.5 text-[13px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+            className={`relative rounded-full px-4 py-1.5 text-[13px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
               browseView === v
-                ? "bg-primary text-primary-foreground"
+                ? "text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {v === "map" ? "Map" : v === "batches" ? "Batches" : "People"}
+            {browseView === v && (
+              <motion.span
+                layoutId="directoryViewThumb"
+                className="absolute inset-0 z-0 rounded-full bg-primary"
+                transition={SPRINGS.snappy}
+              />
+            )}
+            <span className="relative z-10">
+              {v === "map" ? "Map" : v === "batches" ? "Batches" : "People"}
+            </span>
           </button>
         ))}
       </div>

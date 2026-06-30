@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { motion } from "motion/react";
+import { SPRINGS } from "@/components/common/motion";
 
 type TabKey = "posts" | "about" | "photos";
 
@@ -47,9 +49,13 @@ export function ProfileTabs({
                 active ? "text-leaf" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t.label}
+              <span className="relative z-10">{t.label}</span>
               {active && (
-                <span className="absolute inset-x-2.5 -bottom-px h-[2.5px] rounded-full bg-leaf" />
+                <motion.span
+                  layoutId="profileTabThumb"
+                  className="absolute inset-x-2.5 -bottom-px z-0 h-[2.5px] rounded-full bg-leaf"
+                  transition={SPRINGS.snappy}
+                />
               )}
             </button>
           );
