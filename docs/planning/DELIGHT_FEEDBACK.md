@@ -162,5 +162,8 @@ Lane: which lab route/file. Promotion target noted where it differs.
 
 ## Needs the owner before core promotion
 - Confirm the lab-first, then-promote sequencing (vs. me editing core now while other sessions run).
-- Pick from the loading-states ideas round.
+- Loading states: owner picked the SLEEPING BIRDS waking-on-load concept ONLY. Drop sports day,
+  drop Pac-Man, and the foraging bird needs a believable peck (it currently reads as twerking, not
+  pecking). Not built into the app yet (the app is responsive enough that a loading state rarely
+  shows); build the sleeping-birds overlay when prioritized.
 - Composer: approve the reworked direction before it replaces the core composer.

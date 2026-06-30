@@ -105,7 +105,11 @@ export function NotificationBell({
             transition={shakeTransition}
             whileTap={{ scale: 0.9, transition: SPRINGS.snappy }}
           >
-            <Bell size={18} strokeWidth={1.9} />
+            {/* The bell's weight sits low (body + clapper are bottom-heavy), so
+                the glyph is nudged up a hair to sit optically centered in the
+                40px circle. A static transform on the icon itself, independent
+                of the parent span's animated rotate / scale. */}
+            <Bell size={18} strokeWidth={1.9} style={{ transform: "translateY(-0.5px)" }} />
           </motion.span>
           {unreadCount > 0 && (
             <motion.span

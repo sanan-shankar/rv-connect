@@ -9,7 +9,8 @@
  *  between Feed, Directory, Letters, Catch-ups, Collection, and the
  *  rest: the incoming view fades in and rises a few pixels into place.
  *
- *  Fast on purpose (about 240ms) so it never feels slow. Hydration-safe:
+ *  Calm and quick (about 280ms) so it eases in without ever feeling slow,
+ *  matching the /preview/delight content cross-fade. Hydration-safe:
  *  server and client both render the initial frame, then the client
  *  animates. Per owner decision we do NOT branch on reduced motion.
  *  transform + opacity only.
@@ -25,9 +26,9 @@ export default function MainTemplate({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6, scale: 0.99 }}
+      initial={{ opacity: 0, y: 8, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.24, ease: EASE_SPRING }}
+      transition={{ duration: 0.28, ease: EASE_SPRING }}
     >
       {children}
     </motion.div>

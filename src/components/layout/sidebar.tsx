@@ -125,7 +125,10 @@ function NavLinks({
               <>
                 {/* The soft pill and the cinnamon edge are two layoutId children.
                     They glide together to whichever row matches the route,
-                    instead of popping, on one shared spring. */}
+                    instead of popping, on one shared spring. The pill stays
+                    inset to the row; the bar pulls out to the sidebar's flush
+                    left edge (-16px == the px-4 rail padding) so it reads as a
+                    distinct edge marker, not a hairline crammed inside the pill. */}
                 <motion.span
                   layoutId={`${markerId}-pill`}
                   className="absolute inset-0 z-0 rounded-xl bg-sidebar-accent"
@@ -133,7 +136,7 @@ function NavLinks({
                 />
                 <motion.span
                   layoutId={`${markerId}-bar`}
-                  className="absolute left-1 top-2 bottom-2 z-[1] w-[3px] rounded-full bg-cinnamon"
+                  className="absolute left-[-16px] top-1.5 bottom-1.5 z-[1] w-1 rounded-full bg-cinnamon"
                   transition={SPRINGS.snappy}
                 />
               </>

@@ -281,49 +281,52 @@ export function CreatePostForm({
     { wrapper: "~~", icon: <Strikethrough className="h-4 w-4" />, label: "Strikethrough" },
   ];
 
-  // Collapsed: a single pill row (avatar + placeholder + a quiet Photo control),
-  // expands on click. Letters default to expanded, so they skip the pill.
-  if (!expanded) {
-    return (
-      <div
-        ref={rootRef}
-        data-composer
-        className="card-elevated flex items-center gap-3 rounded-full border border-border bg-card py-2 pl-3 pr-2"
-      >
-        {currentUser && (
-          <BirdAvatar user={currentUser} size="sm" className="hidden sm:inline-grid" />
-        )}
-        <button
-          type="button"
-          onClick={() => expand("post")}
-          className="min-w-0 flex-1 truncate rounded-full py-1.5 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
-        >
-          {collapsedPlaceholder}
-        </button>
-        <button
-          type="button"
-          onClick={() => expand("post")}
-          className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
-        >
-          <ImageIcon className="h-[15px] w-[15px]" />
-          <span className="hidden sm:inline">Photo</span>
-        </button>
-      </div>
-    );
-  }
-
+  // One rootRef wrapper, always mounted, holds an AnimatePresence that swaps the
+  // resting pill for the expanded panel. The panel UNFURLS open (height/opacity,
+  // SPRINGS.gentle) and ANIMATES its collapse on exit (the exact reverse), so
+  // clicking the backdrop, Cancel, or Escape closes it as smoothly as it opens.
+  // Letters default to expanded, so they skip the pill.
   return (
-    <div
-      ref={rootRef}
-      data-composer
-      className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
-    >
-      <motion.div
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ height: "auto", opacity: 1 }}
-        transition={SPRINGS.gentle}
-        style={{ overflow: "visible" }}
-      >
+    <div ref={rootRef} data-composer>
+      <AnimatePresence initial={false} mode="wait">
+        {!expanded ? (
+          <motion.div
+            key="pill"
+            className="card-elevated flex items-center gap-3 rounded-full border border-border bg-card py-2 pl-3 pr-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={SPRINGS.gentle}
+          >
+            {currentUser && (
+              <BirdAvatar user={currentUser} size="sm" className="hidden sm:inline-grid" />
+            )}
+            <button
+              type="button"
+              onClick={() => expand("post")}
+              className="min-w-0 flex-1 truncate rounded-full py-1.5 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            >
+              {collapsedPlaceholder}
+            </button>
+            <button
+              type="button"
+              onClick={() => expand("post")}
+              className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+            >
+              <ImageIcon className="h-[15px] w-[15px]" />
+              <span className="hidden sm:inline">Photo</span>
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="panel"
+            className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={SPRINGS.gentle}
+            style={{ overflow: "visible" }}
+          >
         {/* Inline formatting bar: reveals with the field, not stranded */}
         <motion.div
           className="mb-2 flex gap-1"
@@ -354,8 +357,10 @@ export function CreatePostForm({
           />
         )}
 
-        {/* The field, with ONE clean focus ring overlay (no stray second box) */}
-        <div className="group relative rounded-[calc(var(--radius)-2px)]">
+        {/* The field, with ONE clean, well-spaced focus ring overlay. The editor
+            carries generous EVEN inner padding so the caret never touches the ring,
+            and the ring is a single soft inset ring that fades in on focus. */}
+        <div className="group relative rounded-[var(--radius)]">
           <textarea
             ref={textareaRef}
             placeholder={effectivePlaceholder}
@@ -363,14 +368,16 @@ export function CreatePostForm({
             onChange={(e) => handleContentChange(e.target.value)}
             rows={isLetter ? 10 : 4}
             maxLength={maxLen}
-            className="peer w-full resize-none rounded-[calc(var(--radius)-2px)] bg-transparent px-0.5 text-base leading-[1.7] text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="peer w-full resize-none rounded-[var(--radius)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
-          {/* focus ring lives as an overlay so only opacity/transform animate */}
+          {/* focus ring lives as an overlay so only opacity/transform animate, and
+              there is never a stray second box behind the field */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-[calc(var(--radius)-2px)] opacity-0 transition-opacity duration-200 ease-out peer-focus:opacity-100"
+            className="pointer-events-none absolute inset-0 origin-center scale-[0.992] rounded-[var(--radius)] opacity-0 transition-[opacity,transform] duration-200 ease-out peer-focus:scale-100 peer-focus:opacity-100"
             style={{
-              boxShadow: "0 0 0 2.5px color-mix(in srgb, var(--color-leaf) 22%, transparent)",
+              boxShadow: "0 0 0 3px color-mix(in srgb, var(--color-leaf) 26%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--color-leaf) 55%, var(--border))",
             }}
           />
           {mentionQuery !== null && (
@@ -617,32 +624,40 @@ export function CreatePostForm({
                   {content.length}/{maxLen}
                 </span>
               )}
-              {/* Quiet until there is content, then springs to life */}
-              <motion.div
-                animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.6 }}
+              {/* A clean pill Post button: quiet/disabled until there is text, then
+                  it springs to life. Keeps the existing disabled/submitting logic. */}
+              <motion.button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!content.trim() || submitting}
+                className="inline-flex h-10 items-center rounded-full border-0 px-[22px] text-[14px] font-bold text-white"
+                style={{
+                  background: "var(--color-leaf)",
+                  cursor: hasContent && !submitting ? "pointer" : "default",
+                  boxShadow:
+                    hasContent && !submitting
+                      ? "0 6px 16px -11px var(--color-leaf), inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent)"
+                      : "none",
+                }}
+                animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
+                whileHover={hasContent && !submitting ? { scale: 1.03 } : undefined}
                 whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
                 transition={SPRINGS.snappy}
-                style={{ transformOrigin: "center" }}
               >
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!content.trim() || submitting}
-                  variant="leaf"
-                  size="sm"
-                >
-                  {submitting
-                    ? isLetter
-                      ? "Publishing..."
-                      : "Posting..."
-                    : isLetter
-                      ? "Publish letter"
-                      : "Post"}
-                </Button>
-              </motion.div>
+                {submitting
+                  ? isLetter
+                    ? "Publishing..."
+                    : "Posting..."
+                  : isLetter
+                    ? "Publish letter"
+                    : "Post"}
+              </motion.button>
             </div>
           </div>
         </div>
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
