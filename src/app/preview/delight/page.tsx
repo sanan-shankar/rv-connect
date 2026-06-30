@@ -11,19 +11,19 @@ import {
   Stagger,
   staggerChild,
   SpringPress,
-  AmbientLayer,
   motion,
-  PeaksMark,
 } from "./_kit";
 import { HoopoeMascot } from "./_hoopoe";
 
 const ROUTES = [
-  { href: "/preview/delight/transitions", title: "Navigation & transitions", desc: "Sliding sidebar marker, seg and tab thumbs, content cross-rise, the landing to login lateral pass." },
-  { href: "/preview/delight/hoopoe", title: "The hoopoe mascot", desc: "One resident bird, many poses: password cover and peek, gaze-follow, wing-flap, sleepy, point." },
-  { href: "/preview/delight/landing", title: "The living valley", desc: "Canvas leaf-fall the cursor parts, scroll breeze, parallax ridges, a bird that hops the screenshots." },
-  { href: "/preview/delight/loading", title: "Loading states", desc: "Warm valley shimmer, a hoopoe hopping the skeleton rows, leaves that settle on hand-off." },
-  { href: "/preview/delight/feedback", title: "Feedback moments", desc: "Heart pop with leaf flecks, bookmark ribbon, focus ring bloom, composer unfurl, report blur-in." },
-  { href: "/preview/delight/eggs", title: "Easter eggs & ambient", desc: "Good-evening tint, the logo draw-on, a corner peek, theme sun-sweep, the rare drifting feather." },
+  { href: "/preview/delight/transitions", title: "Navigation & transitions", desc: "The sliding sidebar marker, the seg thumb, content cross-fade between views, the landing to login lateral pass, and a coordinated first paint." },
+  { href: "/preview/delight/composer", title: "The composer, reworked", desc: "A slim pill that unfurls. Photo, poll and letter tucked away, no tag walls, bold and italic and underline and strike, click outside to close." },
+  { href: "/preview/delight/landing", title: "The living valley", desc: "A calm photo hero, then a living section: leaves with real veins the cursor parts, and cute legged birds that walk, peck and hop between frames." },
+  { href: "/preview/delight/feedback", title: "Feedback moments", desc: "A smoother heart, an even bookmark that tucks, share without the wiggle, RSVP, poll bars, the bell dot, fund progress, a better chirp." },
+  { href: "/preview/delight/loading", title: "Loading states", desc: "Warm valley shimmer that now loops clean, leaves that settle on hand-off, the Letters draw-on, a bird crossing the skeleton rows." },
+  { href: "/preview/delight/loading-ideas", title: "Loading, ideas round 2", desc: "Richer living scenes to choose from before we build: sports-day athletes, foraging birds, one reusable relay, sleepers that wake." },
+  { href: "/preview/delight/eggs", title: "Easter eggs & ambient", desc: "Hover the logo for a valley fact (ten of them), the konami valley flash, and an honest note on what we parked." },
+  { href: "/preview/delight/hoopoe", title: "The hoopoe mascot", desc: "One resident bird, many poses. Built in a separate session, linked here so the whole cast lives in one place." },
 ];
 
 export default function DelightIndex() {
@@ -48,9 +48,9 @@ export default function DelightIndex() {
             <p>
               Two buckets, one feel. <b>Common</b> motion smooths the snaps you hit every day, kept so small it
               reads as the absence of jank. <b>Signature</b> motion is the resident hoopoe, the living valley
-              hero, and a few hidden things that reward looking closely.
+              section, and a few hidden things that reward looking closely.
             </p>
-            <p className="dl-hero-note">Use the controls up top to flip light or dark and to feel reduced motion freeze the big ambient effects while the micro-delights keep their character.</p>
+            <p className="dl-hero-note">Everything here animates, all the time, by choice. The controls up top are lab-only. Light mode is home; dark is parked for later.</p>
           </div>
         </section>
       </FadeRise>
@@ -77,7 +77,7 @@ export default function DelightIndex() {
           </div>
         </DemoCard>
 
-        <DemoCard title="SpringPress + stagger" note="Press depth on every clickable, and a one-time stagger on first paint.">
+        <DemoCard title="SpringPress + stagger" note="A clear press on every clickable now (a sink on tap, a small lift on hover), and a one-time stagger on first paint.">
           <Stagger className="dl-chips">
             {["Photo", "Poll", "Letter", "Sighting"].map((c) => (
               <motion.span key={c} variants={staggerChild}>
@@ -87,20 +87,13 @@ export default function DelightIndex() {
           </Stagger>
         </DemoCard>
 
-        <DemoCard title="AmbientLayer (scroll)" note="Scroll-linked drift for the faint banyan background and the ridge layers. Freezes under reduced motion." span={2}>
-          <div className="dl-ambient-window">
-            <AmbientLayer factor={0.12} className="parallax">
-              <PeaksMark size={54} variant="light" />
-            </AmbientLayer>
-            <span className="dl-hint">scroll the page; the ridge drifts</span>
-          </div>
-        </DemoCard>
-
-        <DemoCard title="Reduced-motion contract" note="Tier 1 (large ambient) freezes. Tier 2 (hoopoe, like-pop, bell) stays on, by choice.">
-          <div className="dl-tier">
-            <div><span className="dl-dot ok" /> Tier 2 micro stays: <b>kept</b></div>
-            <div><span className="dl-dot off" /> Tier 1 ambient: <b>frozen</b></div>
-            <p>Toggle Reduced motion in the top bar to compare.</p>
+        <DemoCard title="Decisions locked" note="The calls behind this round, so every room reads the same way." span={3}>
+          <div className="dl-decide">
+            <div><span className="dl-dot ok" /> Everything animates, all the time. Nothing here gates on the OS reduced-motion setting (your call).</div>
+            <div><span className="dl-dot ok" /> Light mode is home. Dark is parked for a later, dedicated pass.</div>
+            <div><span className="dl-dot ok" /> The heart is always red. Only transform animates, never colour.</div>
+            <div><span className="dl-dot ok" /> Press is intentional: a sink on tap, a lift on hover, one spring across the product.</div>
+            <div><span className="dl-dot off" /> The hoopoe mascot is built in a separate session. Slots are left for it here and on the landing.</div>
           </div>
         </DemoCard>
       </DemoGrid>
@@ -140,6 +133,9 @@ const INDEX_CSS = `
 .dl-tier p { margin:6px 0 0; }
 .dl-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
 .dl-dot.ok { background:var(--primary); } .dl-dot.off { background:var(--ink-soft); opacity:.5; }
+.dl-decide { display:grid; grid-template-columns:1fr 1fr; gap:11px 26px; font-size:13px; line-height:1.5; color:var(--ink); width:100%; }
+.dl-decide > div { padding-right:6px; }
+@media (max-width:640px){ .dl-decide{ grid-template-columns:1fr; } }
 .dl-routes { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
 @media (max-width:960px){ .dl-routes{grid-template-columns:repeat(2,1fr);} .dl-hero{flex-direction:column; text-align:center;} }
 @media (max-width:640px){ .dl-routes{grid-template-columns:1fr;} }

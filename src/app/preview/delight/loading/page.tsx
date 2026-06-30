@@ -13,7 +13,6 @@ import {
   motion,
   BirdAvatar,
 } from "../_kit";
-import { HoopoeMascot } from "../_hoopoe";
 import { AnimatePresence } from "motion/react";
 
 /* small replay button used across demos */
@@ -83,11 +82,13 @@ function RuledSkeleton() {
 }
 
 /* ============================================================ *
- * 3. Hoopoe hops the skeleton rows, then real rows FadeRise
+ * 3. A BirdAvatar visits each row, then real rows FadeRise
+ *    (the hoopoe perched version is deferred to the hoopoe session;
+ *     here a kit BirdAvatar moves cleanly between avatar spots.)
  * ============================================================ */
 const HOP_ROWS = [0, 1, 2];
 const ROW_H = 46;
-function HoopoeHops() {
+function AvatarVisits() {
   const { reduced } = useValleyMotion();
   const [loaded, setLoaded] = useState(false);
   const [perch, setPerch] = useState(0);
@@ -111,7 +112,7 @@ function HoopoeHops() {
   return (
     <div className="dll-col dll-col-wide">
       <div className="dll-rowstack">
-        {/* hopping hoopoe perched on the discs */}
+        {/* a kit BirdAvatar that travels cleanly from row to row over the avatar spots */}
         <AnimatePresence>
           {!loaded && (
             <motion.div
@@ -120,12 +121,12 @@ function HoopoeHops() {
               animate={
                 reduced
                   ? { opacity: 1, y: 0 }
-                  : { opacity: 1, y: perch * ROW_H, x: [0, 6, 0] }
+                  : { opacity: 1, y: perch * ROW_H, scale: [1, 0.94, 1] }
               }
               exit={{ opacity: 0, y: perch * ROW_H }}
-              transition={{ y: SPRINGS.gentle, x: { duration: 0.5 }, opacity: { duration: 0.2 } }}
+              transition={{ y: SPRINGS.gentle, scale: { duration: 0.46, ease: [0.34, 1.56, 0.64, 1] }, opacity: { duration: 0.2 } }}
             >
-              <HoopoeMascot size={26} pose="curious" gaze={0.4} />
+              <BirdAvatar user={{ id: "visitor" }} size={30} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -294,17 +295,16 @@ function GlobalLoadLoop() {
     return () => clearInterval(id);
   }, [reduced, paused]);
 
-  const gaze = tilt === 1 ? 0.8 : tilt === -1 ? -0.8 : 0;
-
   return (
     <div className="dll-loadsplit">
       <div className="dll-loadside">
         <motion.div
+          className="dll-mascotslot"
           animate={reduced ? {} : { rotate: tilt * 5 }}
           transition={SPRINGS.gentle}
           style={{ transformOrigin: "center bottom" }}
         >
-          <HoopoeMascot size={62} pose="curious" gaze={gaze} />
+          {/* hoopoe mascot slot, built in a separate session */}
         </motion.div>
         <span className="dll-loadlabel">One moment, fetching the valley.</span>
       </div>
@@ -424,8 +424,8 @@ export default function Page() {
           <RuledSkeleton />
         </DemoCard>
 
-        <DemoCard title="Hoopoe hops the rows" note="The hoopoe perches and hops down the skeleton, then real rows rise in." span={1}>
-          <HoopoeHops />
+        <DemoCard title="A bird visits the rows" note="A kit BirdAvatar moves cleanly between the avatar spots, then real rows rise in. (The perched hoopoe version is deferred to the hoopoe session.)" span={1}>
+          <AvatarVisits />
         </DemoCard>
 
         <DemoCard title="A bird forages the grid" note="While the Valley Collection loads, a small bird hops tile to tile." span={1}>
@@ -460,17 +460,26 @@ const CSS = `
 .dll-side-tag { font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); }
 .dll-bar { height:14px; border-radius:7px; }
 .dll-short { width:62%; }
+/* seamless warm sweep. A REPEATING gradient with a fixed PIXEL tile (320px): one
+   soft cinnamon highlight per tile, the rest flat surface. The bar is narrower than
+   one tile, so only one highlight shows at a time. We translate background-position
+   by exactly one tile (320px), so the end frame is pixel-identical to the start: the
+   loop wraps with zero visible cut and glides on forever. */
 .dll-bar-warm {
-  background:linear-gradient(100deg,
-    var(--surface-2) 0%,
-    color-mix(in srgb, var(--cinnamon) 14%, var(--surface-2)) 45%,
-    color-mix(in srgb, #fff 30%, var(--surface-2)) 52%,
-    var(--surface-2) 60%);
-  background-size:280% 100%;
-  animation:dllSheen 2.4s ease-in-out infinite;
+  background:repeating-linear-gradient(100deg,
+    var(--surface-2) 0px,
+    var(--surface-2) 132px,
+    color-mix(in srgb, var(--cinnamon) 14%, var(--surface-2)) 150px,
+    color-mix(in srgb, #fff 30%, var(--surface-2)) 160px,
+    color-mix(in srgb, var(--cinnamon) 14%, var(--surface-2)) 170px,
+    var(--surface-2) 188px,
+    var(--surface-2) 320px);
+  animation:dllWarmSheen 2.8s linear infinite;
 }
 .dll-bar-gray { background:#cfcabd; animation:dllPulse 1.1s ease-in-out infinite; }
 .delight.dark .dll-bar-gray { background:#3a423d; }
+/* exactly one tile (320px) of travel === one seamless period */
+@keyframes dllWarmSheen { from{ background-position:0 0; } to{ background-position:-320px 0; } }
 @keyframes dllSheen { 0%{ background-position:120% 0; } 100%{ background-position:-120% 0; } }
 @keyframes dllPulse { 0%,100%{ opacity:.5; } 50%{ opacity:.95; } }
 
@@ -523,6 +532,8 @@ const CSS = `
 .dll-loadsplit { display:flex; gap:28px; width:100%; align-items:stretch; flex-wrap:wrap; }
 .dll-loadside { flex:1; min-width:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
   padding:18px; border-radius:14px; background:var(--surface-2); border:1px solid var(--border); }
+.dll-mascotslot { width:62px; height:62px; border-radius:14px; border:1px dashed var(--border);
+  background:color-mix(in srgb, var(--cinnamon) 8%, var(--surface)); display:grid; place-items:center; }
 .dll-loadlabel { font-size:12.5px; color:var(--ink-soft); }
 .dll-letters { align-items:flex-start; }
 .dll-letters-eyebrow { font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--cinnamon); }

@@ -103,7 +103,16 @@ export function SpringPress({
 } & MotionProps) {
   const Comp = (motion as unknown as Record<string, typeof motion.button>)[as] ?? motion.button;
   return (
-    <Comp className={className} onClick={onClick} whileTap={{ scale: 0.97 }} transition={SPRINGS.snappy} {...rest}>
+    // Press is now intentional, not a hint: a clear sink on tap plus a small lift on hover so
+    // every clickable telegraphs that it is alive. Transform-only, snappy spring (ages well).
+    <Comp
+      className={className}
+      onClick={onClick}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.93 }}
+      transition={SPRINGS.snappy}
+      {...rest}
+    >
       {children}
     </Comp>
   );

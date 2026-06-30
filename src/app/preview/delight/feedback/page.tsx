@@ -13,6 +13,15 @@ import {
   motion,
   BirdAvatar,
 } from "../_kit";
+// Read-only core lookups (same pattern as preview/centroid and preview/birds-bg): used only to
+// name the species behind a deterministic avatar for the hover tooltip. Nothing here is mutated.
+import { birdFor } from "@/lib/avatar";
+import { ARCHETYPES } from "@/components/common/bird-avatar-v2";
+
+/** The species name that a given seed's avatar actually renders (mirrors BirdGlyphV2's lookup). */
+function speciesNameFor(seed: string): string {
+  return ARCHETYPES[birdFor(seed).species % ARCHETYPES.length]?.name ?? "Valley bird";
+}
 
 /* ------------------------------------------------------------------ *
  *  Feedback interactions. Each demo is a single micro-interaction that
@@ -35,6 +44,7 @@ export default function Page() {
         <PollDemo />
         <BellDemo />
         <ShareCommentDemo />
+        <SpeciesHoverDemo />
         <ComposerDemo />
         <ToastBirdDemo />
       </DemoGrid>
@@ -91,9 +101,9 @@ function LikeDemo() {
                   key={f.id}
                   className="dlf-fleck drift"
                   style={{ background: f.c }}
-                  initial={{ opacity: 0.9, y: 0, x: 0, scale: 0.7 }}
-                  animate={{ opacity: 0, y: -34, x: f.x, scale: 1 }}
-                  transition={{ duration: 0.85, ease: "easeOut" }}
+                  initial={{ opacity: 0, y: 2, x: 0, scale: 0.5, rotate: 0 }}
+                  animate={{ opacity: [0, 0.95, 0.95, 0], y: -36, x: f.x, scale: [0.5, 1, 1, 0.9], rotate: f.x > 0 ? 40 : -40 }}
+                  transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1], times: [0, 0.18, 0.7, 1] }}
                 />
               ))}
             </span>
@@ -101,8 +111,12 @@ function LikeDemo() {
               className="dlf-heartpop"
               key={liked ? "on" : "off"}
               initial={liked ? { scale: 1 } : false}
-              animate={liked ? { scale: [1, 1.35, 1] } : { scale: 1 }}
-              transition={{ duration: 0.34, ease: [0.34, 1.56, 0.64, 1] }}
+              animate={liked ? { scale: [1, 0.86, 1.28, 0.97, 1] } : { scale: 1 }}
+              transition={
+                liked
+                  ? { duration: 0.56, ease: [0.34, 1.56, 0.64, 1], times: [0, 0.16, 0.5, 0.78, 1] }
+                  : { duration: 0.2, ease: "easeOut" }
+              }
             >
               <Heart size={26} weight={liked ? "fill" : "regular"} />
             </motion.span>
@@ -131,34 +145,66 @@ function Odometer({ value }: { value: number }) {
 }
 
 /* ---- 2. Bookmark ribbon tuck ---- */
+// One ribbon silhouette: straight top + two sides, an even inverted-V notch at the foot. The
+// SAME path is the outline (stroke, uniform weight) and the clip for the fill sweep, so the stroke
+// reads as one continuous even line and the fill always lands exactly inside it.
+const RIBBON_PATH = "M5 4 H35 V52 L20 42 L5 52 Z";
 function BookmarkDemo() {
   const [saved, setSaved] = useState(false);
   return (
-    <DemoCard title="Bookmark ribbon tuck" note="A cinnamon ribbon sweeps down and the V notch tucks in and springs back.">
+    <DemoCard title="Bookmark ribbon tuck" note="An even cinnamon outline. On save, colour floods up from the foot, then the ribbon gives one happy settle.">
       <div className="dlf-bookwrap">
         <SpringPress className="dlf-bookbtn" onClick={() => setSaved((s) => !s)} aria-pressed={saved}>
-          <span className={`dlf-ribbon${saved ? " on" : ""}`}>
-            <motion.svg width="40" height="58" viewBox="0 0 40 58" aria-hidden>
-              <motion.path
-                d="M4 2 H36 V54 L20 44 L4 54 Z"
-                fill={saved ? "var(--cinnamon)" : "transparent"}
+          <motion.span
+            className={`dlf-ribbon${saved ? " on" : ""}`}
+            style={{ transformOrigin: "50% 4px" }}
+            animate={saved ? { scaleY: [1, 0.9, 1.04, 1] } : { scaleY: 1 }}
+            transition={
+              saved
+                ? { duration: 0.5, ease: [0.34, 1.56, 0.64, 1], times: [0, 0.32, 0.66, 1] }
+                : { duration: 0.22, ease: "easeOut" }
+            }
+          >
+            <svg
+              width="40"
+              height="56"
+              viewBox="0 0 40 56"
+              aria-hidden
+              style={{ overflow: "visible", display: "block" }}
+            >
+              <defs>
+                <clipPath id="dlf-ribbon-clip">
+                  <path d={RIBBON_PATH} />
+                </clipPath>
+              </defs>
+              {/* fill sweep: a block that rises from the foot, clipped to the ribbon shape */}
+              <motion.rect
+                clipPath="url(#dlf-ribbon-clip)"
+                x="3"
+                y="0"
+                width="34"
+                height="56"
+                fill="var(--cinnamon)"
+                style={{ transformBox: "view-box", transformOrigin: "20px 52px" }}
+                initial={false}
+                animate={{ scaleY: saved ? 1 : 0 }}
+                transition={
+                  saved
+                    ? { duration: 0.42, ease: [0.33, 0, 0.2, 1] }
+                    : { duration: 0.26, ease: "easeIn" }
+                }
+              />
+              {/* outline: one continuous stroke, uniform weight on every side and the V notch */}
+              <path
+                d={RIBBON_PATH}
+                fill="none"
                 stroke="var(--cinnamon)"
                 strokeWidth="2.4"
-                style={{ transformBox: "view-box", transformOrigin: "20px 2px" }}
-                animate={{ scaleY: saved ? 1 : 0.94 }}
-                transition={SPRINGS.gentle}
+                strokeLinejoin="round"
+                strokeLinecap="round"
               />
-              <motion.path
-                d="M4 54 L20 44 L36 54"
-                fill="none"
-                stroke={saved ? "var(--cinnamon)" : "var(--border)"}
-                strokeWidth="2.4"
-                style={{ transformBox: "view-box", transformOrigin: "20px 49px" }}
-                animate={{ scaleY: saved ? [1, 0.55, 1] : 1 }}
-                transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-              />
-            </motion.svg>
-          </span>
+            </svg>
+          </motion.span>
           <span className="dlf-booklabel">{saved ? "Saved to Roundups" : "Save"}</span>
         </SpringPress>
       </div>
@@ -177,40 +223,55 @@ function RsvpDemo() {
     if (next && !reduced) setFleck((f) => f + 1);
   }
   return (
-    <DemoCard title="RSVP confirm morph" note="RSVP morphs to Going with a drawn check, cinnamon settles into filled green.">
+    <DemoCard title="RSVP to Going" note="RSVP fills to Going: a confident button settle, the check draws on, and two leaf flecks lift off.">
       <div className="dlf-rsvpwrap">
-        <SpringPress
-          className={`v2-btn dlf-rsvp${going ? " going" : ""}`}
-          onClick={toggle}
-          aria-pressed={going}
+        <motion.div
+          className="dlf-rsvp-pop"
+          animate={going ? { scale: [1, 0.94, 1.05, 1] } : { scale: 1 }}
+          transition={
+            going
+              ? { duration: 0.46, ease: [0.34, 1.56, 0.64, 1], times: [0, 0.28, 0.6, 1] }
+              : { duration: 0.2, ease: "easeOut" }
+          }
         >
-          <span className="dlf-rsvp-check">
-            <motion.svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
-              <motion.path
-                d="M3.5 9.5 L7.5 13 L14.5 5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                initial={false}
-                animate={{ pathLength: going ? 1 : 0, opacity: going ? 1 : 0 }}
-                transition={{ duration: 0.34, ease: "easeOut" }}
-              />
-            </motion.svg>
-          </span>
-          <span className="dlf-rsvp-label">{going ? "Going" : "RSVP"}</span>
-          {fleck > 0 && going && (
-            <motion.span
-              key={fleck}
-              className="dlf-fleck drift"
-              style={{ background: "var(--primary)", left: "50%", bottom: 4 }}
-              initial={{ opacity: 0.9, y: 0, scale: 0.7 }}
-              animate={{ opacity: 0, y: -30, x: 10, scale: 1 }}
-              transition={{ duration: 0.85, ease: "easeOut" }}
-            />
-          )}
-        </SpringPress>
+          <SpringPress
+            className={`v2-btn dlf-rsvp${going ? " going" : ""}`}
+            onClick={toggle}
+            aria-pressed={going}
+          >
+            <span className="dlf-rsvp-check">
+              <motion.svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+                <motion.path
+                  d="M3.5 9.5 L7.5 13 L14.5 5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={false}
+                  animate={{ pathLength: going ? 1 : 0, opacity: going ? 1 : 0 }}
+                  transition={
+                    going
+                      ? { pathLength: { duration: 0.3, ease: [0.65, 0, 0.35, 1], delay: 0.06 }, opacity: { duration: 0.12 } }
+                      : { duration: 0.16, ease: "easeOut" }
+                  }
+                />
+              </motion.svg>
+            </span>
+            <span className="dlf-rsvp-label">{going ? "Going" : "RSVP"}</span>
+            {going &&
+              [-12, 11].map((dx, i) => (
+                <motion.span
+                  key={`${fleck}-${i}`}
+                  className="dlf-fleck drift"
+                  style={{ background: i === 0 ? "var(--primary)" : "var(--cinnamon)", left: "50%", bottom: 6 }}
+                  initial={{ opacity: 0, y: 0, scale: 0.4, rotate: 0 }}
+                  animate={{ opacity: [0, 0.95, 0], y: -32, x: dx, scale: [0.4, 1, 0.85], rotate: dx > 0 ? 36 : -36 }}
+                  transition={{ duration: 0.85, ease: [0.22, 0.61, 0.36, 1], times: [0, 0.2, 1], delay: i * 0.05 }}
+                />
+              ))}
+          </SpringPress>
+        </motion.div>
         <span className="dlf-rsvp-sub">Reunion picnic, banyan lawn, 10am</span>
       </div>
     </DemoCard>
@@ -236,17 +297,26 @@ function PollDemo() {
       setPcts(POLL_TARGET);
       return;
     }
-    const start = performance.now();
-    const dur = 700;
+    const dur = 620;
+    // Each row's number counts up on the same stagger and curve as its bar (80ms apart), so the
+    // figure and the bar feel like one motion rather than two timers running side by side. The
+    // start time comes from the first rAF frame timestamp (not performance.now in render scope).
+    const STAGGER = 80;
+    const order = ["a", "b", "c"];
+    let start = 0;
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / dur);
-      const e = 1 - Math.pow(1 - t, 3);
-      setPcts({
-        a: Math.round(POLL_TARGET.a * e),
-        b: Math.round(POLL_TARGET.b * e),
-        c: Math.round(POLL_TARGET.c * e),
+      if (!start) start = now;
+      const elapsed = now - start;
+      const next: Record<string, number> = { a: 0, b: 0, c: 0 };
+      let done = true;
+      order.forEach((id, i) => {
+        const t = Math.min(1, Math.max(0, (elapsed - i * STAGGER) / dur));
+        const e = 1 - Math.pow(1 - t, 3);
+        next[id] = Math.round(POLL_TARGET[id] * e);
+        if (t < 1) done = false;
       });
-      if (t < 1) requestAnimationFrame(tick);
+      setPcts(next);
+      if (!done) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
   }
@@ -273,7 +343,11 @@ function PollDemo() {
                 className="dlf-poll-fill"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: choice ? POLL_TARGET[o.id] / 100 : 0 }}
-                transition={{ ...SPRINGS.settle, delay: choice ? i * 0.07 : 0 }}
+                transition={
+                  choice
+                    ? { type: "spring", stiffness: 150, damping: 20, delay: i * 0.08 }
+                    : { duration: 0.25, ease: "easeOut" }
+                }
               />
               <span className="dlf-poll-text">
                 {choice === o.id && (
@@ -301,12 +375,17 @@ function PollDemo() {
 }
 
 /* ---- 5. Bell dot pop + ring + fundraiser bar ---- */
+const FUND_RAISED = 8400;
+const FUND_GOAL = 12000;
+const FUND_PCT = FUND_RAISED / FUND_GOAL; // 0.7
 function BellDemo() {
   const { reduced } = useValleyMotion();
   const [unread, setUnread] = useState(false);
   const [ring, setRing] = useState(0);
-  const [show, setShow] = useState(false);
+  const [filled, setFilled] = useState(false);
   const [amount, setAmount] = useState(0);
+  const fundRef = useRef<HTMLDivElement | null>(null);
+  const raf = useRef<number | null>(null);
 
   function notify() {
     setUnread(true);
@@ -315,41 +394,81 @@ function BellDemo() {
   function clear() {
     setUnread(false);
   }
-  function fund() {
-    setShow(true);
+
+  // Count the figure up to match the bar. Reused by the in-view trigger and the replay button.
+  function runCount() {
+    if (raf.current) cancelAnimationFrame(raf.current);
     if (reduced) {
-      setAmount(8400);
+      setAmount(FUND_RAISED);
       return;
     }
-    const start = performance.now();
-    const dur = 900;
+    const dur = 950;
+    let start = 0; // seeded from the first rAF frame timestamp, not performance.now in render scope
     const tick = (now: number) => {
+      if (!start) start = now;
       const t = Math.min(1, (now - start) / dur);
-      const e = 1 - Math.pow(1 - t, 3);
-      setAmount(Math.round(8400 * e));
-      if (t < 1) requestAnimationFrame(tick);
+      const e = 1 - Math.pow(1 - t, 3); // matches the bar's ease-out
+      setAmount(Math.round(FUND_RAISED * e));
+      if (t < 1) raf.current = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    raf.current = requestAnimationFrame(tick);
+  }
+
+  // Fill on first scroll-into-view (or immediately if already on screen at mount). SSR-safe:
+  // the markup renders at 0 and only fills client-side after the observer fires, so server and
+  // client first paint agree.
+  useEffect(() => {
+    const el = fundRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setFilled(true);
+          runCount();
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function replay() {
+    setFilled(false);
+    setAmount(0);
+    if (raf.current) cancelAnimationFrame(raf.current);
+    // next frame so the bar resets to 0 before refilling
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setFilled(true);
+        runCount();
+      }),
+    );
   }
 
   return (
-    <DemoCard title="Bell dot, ring, fundraiser bar" note="A cinnamon dot pops and rocks the bell once, and the scholarship bar fills to 70%." span={2}>
+    <DemoCard title="Bell dot, ring, fundraiser bar" note="A cinnamon dot pops and rings the bell, and the scholarship bar fills to 70% the moment it scrolls into view." span={2}>
       <div className="dlf-bellrow">
         <div className="dlf-bellbox">
           <motion.span
             className="dlf-bell"
             key={ring}
-            animate={ring > 0 ? { rotate: [0, -14, 11, -7, 0] } : { rotate: 0 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
-            style={{ transformOrigin: "50% 10%" }}
+            animate={ring > 0 ? { rotate: [0, -9, 7, -5, 3, 0] } : { rotate: 0 }}
+            transition={{ duration: 0.7, ease: [0.36, 0.07, 0.2, 1], times: [0, 0.16, 0.36, 0.56, 0.78, 1] }}
+            style={{ transformOrigin: "50% 12%" }}
           >
             <Bell size={30} />
             {unread && (
               <motion.span
                 className="dlf-belldot"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={SPRINGS.snappy}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+                transition={{ duration: 0.42, ease: [0.34, 1.56, 0.64, 1], times: [0, 0.6, 1] }}
               />
             )}
           </motion.span>
@@ -359,21 +478,25 @@ function BellDemo() {
           </div>
         </div>
 
-        <div className="dlf-fund">
+        <div className="dlf-fund" ref={fundRef}>
           <div className="dlf-fund-top">
             <span>Scholarship fund</span>
             <b>${amount.toLocaleString()}</b>
-            <span className="dlf-fund-goal">of $12,000</span>
+            <span className="dlf-fund-goal">of ${FUND_GOAL.toLocaleString()}</span>
           </div>
           <div className="dlf-fund-track">
             <motion.span
               className="dlf-fund-fill"
               initial={{ scaleX: 0 }}
-              animate={{ scaleX: show ? 0.7 : 0 }}
-              transition={{ ...SPRINGS.settle }}
+              animate={{ scaleX: filled ? FUND_PCT : 0 }}
+              transition={
+                filled
+                  ? { duration: 0.95, ease: [0.22, 0.61, 0.36, 1] }
+                  : { duration: 0.2, ease: "easeOut" }
+              }
             />
           </div>
-          <button className="v2-btn v2-btn-soft sm" onClick={fund} type="button">Show progress</button>
+          <button className="v2-btn v2-btn-soft sm" onClick={replay} type="button">Replay</button>
         </div>
       </div>
     </DemoCard>
@@ -411,13 +534,17 @@ function ShareCommentDemo() {
         </div>
         <div className="dlf-sc-actions">
           <SpringPress className="dlf-iconbtn" onClick={doShare}>
-            <motion.span
-              animate={shared ? { x: [0, 3, 0], rotate: [0, -8, 0] } : { x: 0, rotate: 0 }}
-              transition={{ duration: 0.45, ease: "easeInOut" }}
-              className="dlf-iconswap"
-            >
-              {shared ? <Check size={18} strokeWidth={2.6} className="dlf-sharecheck" /> : <ShareFat size={18} />}
-            </motion.span>
+            <span className="dlf-iconswap">
+              <motion.span
+                key={shared ? "check" : "share"}
+                className="dlf-iconface"
+                initial={shared ? { scale: 0.5, opacity: 0 } : false}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={shared ? SPRINGS.snappy : { duration: 0.18, ease: "easeOut" }}
+              >
+                {shared ? <Check size={18} strokeWidth={2.6} className="dlf-sharecheck" /> : <ShareFat size={18} />}
+              </motion.span>
+            </span>
             <span>{shared ? "Shared" : "Share"}</span>
           </SpringPress>
 
@@ -460,6 +587,69 @@ function ShareCommentDemo() {
             <p><b>Dev Menon</b> Read this twice. Thank you for writing it.</p>
           </div>
         </motion.div>
+      </div>
+    </DemoCard>
+  );
+}
+
+/* ---- Species on hover (profile pages only) ---- */
+// In the app this reveal lives only on a member's profile page, never inline in the feed, so the
+// species reads as a small personal detail rather than chrome on every avatar. Hover or keyboard
+// focus brings up the tooltip; only opacity + transform animate.
+const SPECIES_PEOPLE = [
+  { id: "meera", name: "Meera Iyer" },
+  { id: "arun", name: "Arun Rao" },
+  { id: "dev", name: "Dev Menon" },
+];
+function SpeciesHoverDemo() {
+  const [active, setActive] = useState<string | null>(null);
+  return (
+    <DemoCard
+      title="Species on hover"
+      note="On a profile, hovering (or focusing) a member's bird names its species. This is a profile-only touch, never in the feed."
+    >
+      <div className="dlf-species">
+        <span className="dlf-species-flag">profile pages only</span>
+        <div className="dlf-species-row">
+          {SPECIES_PEOPLE.map((p) => {
+            const name = speciesNameFor(p.id);
+            const on = active === p.id;
+            return (
+              <div
+                key={p.id}
+                className="dlf-species-item"
+                tabIndex={0}
+                role="img"
+                aria-label={`${p.name}, ${name}`}
+                onMouseEnter={() => setActive(p.id)}
+                onMouseLeave={() => setActive((a) => (a === p.id ? null : a))}
+                onFocus={() => setActive(p.id)}
+                onBlur={() => setActive((a) => (a === p.id ? null : a))}
+              >
+                <span className="dlf-species-tipwrap" aria-hidden>
+                  <motion.span
+                    className="dlf-species-tip"
+                    initial={false}
+                    animate={on ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 6, scale: 0.96 }}
+                    transition={on ? SPRINGS.snappy : { duration: 0.14, ease: "easeOut" }}
+                    style={{ pointerEvents: "none", transformOrigin: "50% 120%" }}
+                  >
+                    {name}
+                    <span className="dlf-species-tail" />
+                  </motion.span>
+                </span>
+                <motion.span
+                  className="dlf-species-av"
+                  animate={{ scale: on ? 1.06 : 1 }}
+                  transition={SPRINGS.snappy}
+                >
+                  <BirdAvatar user={{ id: p.id, name: p.name }} size={52} />
+                </motion.span>
+                <span className="dlf-species-name">{p.name.split(" ")[0]}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </DemoCard>
   );
@@ -577,30 +767,34 @@ function ToastBirdDemo() {
   return (
     <DemoCard title="Warm toast, avatar beak-chirp" note="A toast slides in from the corner and dismisses itself; tap the bird for a tiny chirp." span={2}>
       <div className="dlf-toastwrap">
+        <p className="dlf-toast-note">In the app this fires on confirmations: contact saved, post shared, RSVP sent.</p>
         <div className="dlf-toast-controls">
           <button className="v2-btn v2-btn-primary sm" onClick={fire} type="button">Send a toast</button>
 
           <SpringPress as="div" className="dlf-chirpbird" onClick={chirpNow} {...({ role: "button" } as object)}>
+            {/* Tap reaction: a confident 2-state spring that lifts and turns, then settles cleanly.
+               Springs are safe here because each value goes from one keyframe to one (no array). */}
             <motion.span
               key={chirp}
-              animate={chirp > 0 ? { scale: [1, 1.14, 1], rotate: [0, -8, 5, 0] } : { scale: 1, rotate: 0 }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
+              initial={chirp > 0 ? { scale: 1.16, rotate: -9 } : false}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 460, damping: 17, mass: 0.7 }}
               style={{ display: "inline-block" }}
             >
               <BirdAvatar user={{ id: "hoopoe-resident", name: "Hoopoe" }} size={48} />
             </motion.span>
             {chirp > 0 && (
-              <motion.svg
-                key={`arc-${chirp}`}
-                className="dlf-chirp-arc"
-                width="26" height="22" viewBox="0 0 26 22" aria-hidden
-                initial={{ opacity: 0.8, scale: 0.6, x: 0, y: 0 }}
-                animate={{ opacity: 0, scale: 1.1, x: 8, y: -8 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              >
-                <path d="M3 16 Q9 4 14 11" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round" />
-                <path d="M9 18 Q15 8 21 14" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
-              </motion.svg>
+              <span className="dlf-chirp-arcs" aria-hidden>
+                {[0, 1, 2].map((n) => (
+                  <motion.span
+                    key={`${chirp}-${n}`}
+                    className="dlf-chirp-arc"
+                    initial={{ opacity: 0, scale: 0.35 }}
+                    animate={{ opacity: [0, 0.85, 0], scale: 1 }}
+                    transition={{ duration: 0.62, ease: [0.22, 0.61, 0.36, 1], delay: n * 0.09, times: [0, 0.3, 1] }}
+                  />
+                ))}
+              </span>
             )}
             <span className="dlf-chirp-hint">tap the bird</span>
           </SpringPress>
@@ -656,6 +850,7 @@ const CSS = `
 
 /* 3. rsvp */
 .dlf-rsvpwrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.dlf-rsvp-pop { display:inline-flex; }
 .dlf-rsvp { position:relative; overflow:visible; background:color-mix(in srgb, var(--cinnamon) 14%, var(--surface)); color:var(--cinnamon);
   transition:background-color 110ms linear, color 110ms linear; }
 .dlf-rsvp.going { background:var(--primary); color:var(--primary-ink); }
@@ -700,12 +895,33 @@ const CSS = `
   padding:7px 13px; border-radius:999px; color:var(--ink-soft); font:inherit; font-weight:600; font-size:13px; }
 .dlf-iconbtn.liked { color:var(--heart); }
 .dlf-iconbtn.liked svg { color:var(--heart); fill:var(--heart); }
-.dlf-iconswap { display:inline-grid; place-items:center; }
+.dlf-iconswap { display:inline-grid; place-items:center; width:18px; height:18px; }
+.dlf-iconface { display:inline-grid; place-items:center; grid-area:1 / 1; }
 .dlf-sharecheck { color:var(--primary); }
 .dlf-comments { display:flex; flex-direction:column; gap:10px; }
 .dlf-comment { display:flex; gap:9px; align-items:flex-start; padding-top:4px; }
 .dlf-comment p { font-size:12.5px; line-height:1.5; margin:0; color:var(--ink-soft); }
 .dlf-comment b { color:var(--ink); margin-right:5px; }
+
+/* species on hover (profile only) */
+.dlf-species { width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; }
+.dlf-species-flag { font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--cinnamon); background:color-mix(in srgb, var(--cinnamon) 12%, var(--surface));
+  border:1px solid color-mix(in srgb, var(--cinnamon) 30%, var(--border)); padding:4px 10px; border-radius:999px; }
+.dlf-species-row { display:flex; gap:22px; align-items:flex-end; justify-content:center; flex-wrap:wrap; }
+.dlf-species-item { position:relative; display:flex; flex-direction:column; align-items:center; gap:7px; cursor:default;
+  border-radius:14px; padding:6px 8px; outline:none; }
+.dlf-species-item:focus-visible { box-shadow:0 0 0 2px color-mix(in srgb, var(--primary) 55%, transparent); }
+.dlf-species-av { display:inline-grid; place-items:center; }
+.dlf-species-name { font-size:12px; font-weight:600; color:var(--ink-soft); }
+/* static centering wrapper: motion only animates opacity/transform on the tip inside it */
+.dlf-species-tipwrap { position:absolute; bottom:calc(100% - 2px); left:50%; transform:translateX(-50%);
+  display:flex; justify-content:center; pointer-events:none; z-index:2; }
+.dlf-species-tip { position:relative; white-space:nowrap; font-size:11.5px; font-weight:700; color:var(--surface);
+  background:var(--ink); padding:5px 10px; border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,.08), 0 14px 28px -20px rgba(0,0,0,.6); }
+.dlf-species-tail { position:absolute; top:100%; left:50%; width:8px; height:8px; margin-left:-4px; margin-top:-4px;
+  background:var(--ink); transform:rotate(45deg); border-radius:1px; }
 
 /* 7. composer */
 .dlf-composer { width:100%; max-width:620px; }
@@ -724,10 +940,17 @@ const CSS = `
 .dlf-comp-foot { display:flex; justify-content:flex-end; gap:9px; margin-top:13px; }
 
 /* 8. toast + chirp */
-.dlf-toastwrap { position:relative; width:100%; min-height:120px; display:flex; align-items:center; justify-content:center; }
+.dlf-toastwrap { position:relative; width:100%; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+.dlf-toast-note { margin:0; font-size:11.5px; color:var(--ink-soft); text-align:center; max-width:42ch; line-height:1.45; }
 .dlf-toast-controls { display:flex; align-items:center; gap:22px; }
 .dlf-chirpbird { position:relative; display:inline-flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; }
-.dlf-chirp-arc { position:absolute; top:-6px; right:-2px; pointer-events:none; }
+/* clean concentric sound arcs emitting from the beak (top-right of the bird) */
+.dlf-chirp-arcs { position:absolute; top:2px; right:-12px; width:30px; height:30px; pointer-events:none; }
+.dlf-chirp-arc { position:absolute; right:0; top:50%; width:22px; height:22px; margin-top:-11px;
+  border:2px solid var(--blue); border-radius:50%;
+  clip-path:polygon(50% 50%, 100% 6%, 100% 94%); transform-origin:0% 50%; }
+.dlf-chirp-arc:nth-child(2) { width:14px; height:14px; margin-top:-7px; }
+.dlf-chirp-arc:nth-child(1) { width:7px; height:7px; margin-top:-3.5px; }
 .dlf-chirp-hint { font-size:11px; color:var(--ink-soft); }
 .dlf-toaststack { position:absolute; right:6px; bottom:6px; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
 .dlf-toast { display:inline-flex; align-items:center; gap:9px; background:var(--surface); border:1px solid var(--border);
