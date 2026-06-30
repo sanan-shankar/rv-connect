@@ -356,26 +356,29 @@ export function PostCard({
           >
             <motion.span
               className="relative inline-flex will-change-transform"
-              animate={animateBookmark ? { scale: [1, 0.82, 1.22, 1] } : { scale: 1 }}
+              animate={animateBookmark ? { scale: [1, 1.16, 1] } : { scale: 1 }}
               transition={
                 animateBookmark
-                  ? { duration: 0.46, ease: EASE_POP, times: [0, 0.22, 0.55, 1] }
+                  ? { duration: 0.42, ease: EASE_POP, times: [0, 0.5, 1] }
                   : { duration: 0 }
               }
             >
               {/* Resting mark: even outline, cinnamon once saved (inherits the button colour). */}
               <BookmarkSimple size={18} weight={bookmarked ? "fill" : "regular"} />
-              {/* Save sweep: a clipped cinnamon fill floods up from the foot the moment you save. */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 inline-flex origin-bottom overflow-hidden"
-                style={{
-                  transform: animateBookmark ? "scaleY(1)" : "scaleY(0)",
-                  transition: "transform 380ms cubic-bezier(.22,.61,.36,1)",
-                }}
-              >
-                <BookmarkSimple size={18} weight="fill" color="#C2622F" />
-              </span>
+              {/* Save flourish: a cinnamon fill rises up from the foot once, then unmounts
+                  cleanly so there is no retracting slide. transform only. */}
+              {animateBookmark && (
+                <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+                  <motion.span
+                    className="block"
+                    initial={{ y: "100%" }}
+                    animate={{ y: "0%" }}
+                    transition={{ duration: 0.34, ease: [0.22, 0.61, 0.36, 1] }}
+                  >
+                    <BookmarkSimple size={18} weight="fill" color="#C2622F" />
+                  </motion.span>
+                </span>
+              )}
             </motion.span>
           </button>
 

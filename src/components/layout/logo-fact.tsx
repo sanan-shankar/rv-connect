@@ -98,8 +98,8 @@ export function LogoFact({
           variant="two-plane"
           className="shrink-0 -translate-y-px text-sidebar-foreground"
         />
-        <span className="flex min-w-0 flex-col justify-center leading-none">
-          <span className="block truncate font-heading text-[17px] font-bold leading-none tracking-tight text-sidebar-foreground">
+        <span className="flex flex-col justify-center leading-none">
+          <span className="block whitespace-nowrap font-heading text-[17px] font-bold leading-none tracking-tight text-sidebar-foreground">
             Rishi Valley
           </span>
           <span className="mt-1 block text-[10px] uppercase leading-none tracking-[0.2em] text-sidebar-foreground/55">

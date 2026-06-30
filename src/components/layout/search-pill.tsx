@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { SPRINGS, EASE_POP } from "@/components/common/motion";
+import { EASE_POP } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -15,13 +15,25 @@ import { cn } from "@/lib/utils";
  * the same query.
  *
  * The expansion is a motion layout animation: one shared element grows from the
- * resting pill into the full bar on a calm spring (it animates its own size, as
- * an absolute overlay anchored right and growing left, so the header never
- * reflows and nothing to its right is overlapped). The magnifying glass stays
- * mounted across both states and settles into place rather than snapping, the
- * input and placeholder fade in, and a soft focus ring blooms. Collapsing
- * reverses the same way.
+ * resting pill into the full bar (it animates its own size, as an absolute
+ * overlay anchored right and growing left, so the header never reflows and
+ * nothing to its right is overlapped). The magnifying glass stays mounted
+ * across both states and settles into place rather than snapping, the input and
+ * placeholder fade in, and a soft focus ring blooms.
+ *
+ * Motion feel (per owner): opening is delightful, a springy bounce with a touch
+ * of overshoot. Closing is quick and calm, a stiff fast spring while the bar's
+ * chrome fades out, so the collapse reads as a tidy tuck-away rather than an
+ * exaggerated width stretch. The two transitions are deliberately asymmetric.
  */
+
+// Opening: a springy bounce that overshoots a hair, then settles. Lower damping
+// relative to stiffness gives the small tasteful overshoot the owner wants.
+const OPEN_SPRING = { type: "spring", stiffness: 320, damping: 19, mass: 0.85 } as const;
+// Closing: stiff and quick, well damped, so the bar tucks shut fast with no
+// lingering stretch. Paired with a fast content fade below.
+const CLOSE_SPRING = { type: "spring", stiffness: 560, damping: 42, mass: 0.7 } as const;
+
 export function SearchPill() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -54,11 +66,13 @@ export function SearchPill() {
   return (
     <div ref={wrapRef} className="relative h-10 w-10">
       {/* One shared element morphs between the resting icon and the full bar.
-          `layout` springs its width / padding / radius. While closed the whole
-          surface is the open button; while open it hosts the search form. */}
+          `layout` springs its width / padding / radius from measured rects, so
+          it never receives a hand-computed numeric width and can never be fed a
+          non-finite value. The transition is asymmetric: a springy bounce to
+          open, a fast calm spring to close. */}
       <motion.form
         layout
-        transition={SPRINGS.gentle}
+        transition={open ? OPEN_SPRING : CLOSE_SPRING}
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -70,7 +84,8 @@ export function SearchPill() {
             : "w-10 gap-0 border border-border pl-0 pr-0 shadow-[0_1px_2px_rgba(30,28,22,0.04)]"
         )}
       >
-        {/* Soft focus ring blooms in (opacity only) when expanded. */}
+        {/* Soft focus ring blooms in (opacity only) when expanded, and snaps out
+            quickly on collapse so it never trails the contracting bar. */}
         <AnimatePresence>
           {open && (
             <motion.span
@@ -79,18 +94,19 @@ export function SearchPill() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.28, ease: EASE_POP }}
+              transition={{ duration: 0.22, ease: EASE_POP }}
               className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-ring/30"
             />
           )}
         </AnimatePresence>
 
         {/* The magnifying glass stays mounted across both states and settles
-            into place. Closed, it is centered in the 40px pill; open, it sits
-            at the bar's leading edge. */}
+            into place. Closed, it is optically centered in the 40px pill (the
+            handle points down-right, so the glyph is nudged a hair down-right to
+            balance its visual mass); open, it sits at the bar's leading edge. */}
         <motion.span
           layout
-          transition={SPRINGS.snappy}
+          transition={open ? OPEN_SPRING : CLOSE_SPRING}
           aria-hidden
           className={cn(
             "grid shrink-0 place-items-center text-muted-foreground transition-transform duration-150 ease-out",
@@ -103,11 +119,13 @@ export function SearchPill() {
             weight="regular"
             size={open ? 16 : 18}
             className="pointer-events-none"
+            style={open ? undefined : { transform: "translate(0.5px, 0.5px)" }}
           />
         </motion.span>
 
         {/* Input and placeholder fade in just after the bar starts growing, and
-            fade out on collapse so the bar never snaps shut around live text. */}
+            fade out fast on collapse so the bar contracts behind faded content
+            and never reads as a stretch closing around live text. */}
         <AnimatePresence initial={false}>
           {open && (
             <motion.input
@@ -116,7 +134,7 @@ export function SearchPill() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.24, ease: EASE_POP, delay: 0.05 }}
+              transition={{ duration: 0.2, ease: EASE_POP, delay: 0.04 }}
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => {
@@ -144,7 +162,7 @@ export function SearchPill() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: EASE_POP }}
+              transition={{ duration: 0.16, ease: EASE_POP }}
               onClick={() => setOpen(true)}
               aria-label="Search the valley"
               aria-expanded={open}

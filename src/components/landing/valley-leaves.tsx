@@ -175,6 +175,19 @@ function shapeRound(ctx: CanvasRenderingContext2D, s: number, curl: number) {
 }
 
 function drawLeaf(ctx: CanvasRenderingContext2D, l: Leaf) {
+  // never feed a non-finite value into a canvas transform op. A leaf whose
+  // x/y/rot/size somehow went NaN (e.g. measured against a zero-size host
+  // mid-navigation) is skipped this frame rather than corrupting the context.
+  if (
+    !Number.isFinite(l.x) ||
+    !Number.isFinite(l.y) ||
+    !Number.isFinite(l.rot) ||
+    !Number.isFinite(l.size) ||
+    !Number.isFinite(l.flutter) ||
+    !Number.isFinite(l.settle)
+  ) {
+    return;
+  }
   ctx.save();
   ctx.translate(l.x, l.y);
   ctx.rotate(l.rot);
@@ -274,10 +287,15 @@ export function ValleyLeaves() {
     );
 
     function resize() {
-      w = host.clientWidth;
-      h = host.clientHeight;
-      canvas!.width = w * dpr;
-      canvas!.height = h * dpr;
+      // host can report 0 (or, while detaching during navigation away, junk)
+      // dimensions. Clamp to a finite, non-negative size so neither the canvas
+      // backing store nor any leaf spawned from w/h can carry a NaN.
+      const cw = host.clientWidth;
+      const ch = host.clientHeight;
+      w = Number.isFinite(cw) && cw > 0 ? cw : 0;
+      h = Number.isFinite(ch) && ch > 0 ? ch : 0;
+      canvas!.width = Math.max(0, Math.round(w * dpr));
+      canvas!.height = Math.max(0, Math.round(h * dpr));
       canvas!.style.width = w + "px";
       canvas!.style.height = h + "px";
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);

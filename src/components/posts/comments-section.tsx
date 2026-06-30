@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send, Reply } from "lucide-react";
+import { Reply, ArrowUp, X } from "lucide-react";
 import { Heart } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
@@ -16,7 +15,7 @@ import {
 } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion } from "motion/react";
-import { SPRINGS, EASE_POP } from "@/components/common/motion";
+import { SPRINGS, EASE_POP, SpringPress } from "@/components/common/motion";
 
 interface CommentData {
   id: string;
@@ -110,8 +109,12 @@ export function CommentsSection({
     );
   }
 
-  // The panel grows open gracefully when comments are revealed: height auto + opacity.
-  // height auto is allowed here for the reveal; everything else is transform/opacity.
+  // ONE smooth reveal. The panel opens with a single height-auto spring (matches the
+  // preview's comments-open feel). The final layout is rendered from the very first
+  // frame: list area on top, input form on the bottom, both always present. While the
+  // comments are loading we hold a quiet placeholder in the list area, so when the real
+  // rows arrive they cross-fade and stagger in (transform + opacity only) instead of
+  // forcing a second height jump. There is no loading-then-swap that re-opens the panel.
   return (
     <motion.div
       className="mt-3 border-t border-border pt-3"
@@ -120,90 +123,98 @@ export function CommentsSection({
       transition={SPRINGS.gentle}
       style={{ overflow: "hidden" }}
     >
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Loading comments...</p>
-      ) : (
-        <>
-          {/* Comments list */}
-          <motion.div
-            className="space-y-3"
-            variants={LIST_VARIANTS}
-            initial="hidden"
-            animate="show"
-          >
-            {topLevel.map((comment) => (
-              <motion.div key={comment.id} variants={ROW_VARIANTS}>
-                <CommentItem
-                  comment={comment}
-                  onReply={() =>
-                    setReplyTo({ id: comment.id, name: comment.author.name })
-                  }
-                  onLikeToggle={handleLikeToggle}
-                />
-                {/* Replies */}
-                {repliesMap.get(comment.id)?.map((reply) => (
-                  <motion.div
-                    key={reply.id}
-                    className="ml-8 mt-2"
-                    variants={ROW_VARIANTS}
-                  >
-                    <CommentItem
-                      comment={reply}
-                      onReply={() =>
-                        setReplyTo({ id: comment.id, name: reply.author.name })
-                      }
-                      onLikeToggle={handleLikeToggle}
-                    />
-                  </motion.div>
-                ))}
-              </motion.div>
-            ))}
-
-            {comments.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No comments yet. Be the first!
-              </p>
-            )}
-          </motion.div>
-
-          {/* Comment input */}
-          <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
-            <div className="flex-1">
-              {replyTo && (
-                <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Reply className="h-3 w-3" />
-                  Replying to {replyTo.name}
-                  <button
-                    type="button"
-                    onClick={() => setReplyTo(null)}
-                    className="ml-1 text-foreground hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-              <Input
-                placeholder={
-                  replyTo
-                    ? `Reply to ${replyTo.name}...`
-                    : "Write a comment..."
+      {/* Comments list */}
+      <motion.div
+        className="flex flex-col gap-3"
+        variants={LIST_VARIANTS}
+        initial="hidden"
+        animate={loading ? "hidden" : "show"}
+      >
+        {loading ? (
+          <p className="px-1 text-sm text-muted-foreground">Loading comments...</p>
+        ) : comments.length === 0 ? (
+          <p className="px-1 text-sm text-muted-foreground">
+            No comments yet. Be the first.
+          </p>
+        ) : (
+          topLevel.map((comment) => (
+            <motion.div key={comment.id} variants={ROW_VARIANTS}>
+              <CommentItem
+                comment={comment}
+                onReply={() =>
+                  setReplyTo({ id: comment.id, name: comment.author.name })
                 }
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                maxLength={1000}
+                onLikeToggle={handleLikeToggle}
               />
-            </div>
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!newComment.trim() || submitting}
-              variant="leaf"
+              {/* Replies */}
+              {repliesMap.get(comment.id)?.map((reply) => (
+                <motion.div
+                  key={reply.id}
+                  className="ml-9 mt-2"
+                  variants={ROW_VARIANTS}
+                >
+                  <CommentItem
+                    comment={reply}
+                    onReply={() =>
+                      setReplyTo({ id: comment.id, name: reply.author.name })
+                    }
+                    onLikeToggle={handleLikeToggle}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          ))
+        )}
+      </motion.div>
+
+      {/* Comment input */}
+      <form onSubmit={handleSubmit} className="mt-3">
+        {replyTo && (
+          <motion.div
+            className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+            initial={{ opacity: 0, y: 6, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={SPRINGS.snappy}
+          >
+            <Reply className="h-3 w-3 text-leaf" />
+            <span>
+              Replying to{" "}
+              <span className="font-semibold text-foreground">
+                {replyTo.name}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              aria-label="Cancel reply"
+              className="-mr-0.5 ml-0.5 inline-grid size-4 place-items-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
             >
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-        </>
-      )}
+              <X className="h-3 w-3" />
+            </button>
+          </motion.div>
+        )}
+        <div className="flex items-center gap-2">
+          <Input
+            className="flex-1 rounded-full"
+            placeholder={
+              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
+            }
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            maxLength={1000}
+          />
+          <SpringPress
+            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-leaf text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter,opacity] duration-150 hover:brightness-[1.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 focus-visible:ring-offset-1 disabled:opacity-40 disabled:shadow-none"
+            {...({
+              type: "submit",
+              "aria-label": "Post comment",
+              disabled: !newComment.trim() || submitting,
+            } as object)}
+          >
+            <ArrowUp className="h-4 w-4" strokeWidth={2.6} />
+          </SpringPress>
+        </div>
+      </form>
     </motion.div>
   );
 }
@@ -239,27 +250,36 @@ function CommentItem({
   }
 
   return (
-    <div className="flex gap-2">
-      <Link href={`/profile/${comment.author.id}`} aria-label={comment.author.name}>
+    <div className="flex items-start gap-2.5">
+      <Link
+        href={`/profile/${comment.author.id}`}
+        aria-label={comment.author.name}
+        className="mt-0.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
         <BirdAvatar
           user={{ id: comment.author.id, name: comment.author.name }}
           size="xs"
         />
       </Link>
-      <div className="flex-1">
-        <div className="rounded-lg bg-muted px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <div className="inline-block max-w-full rounded-2xl rounded-tl-md bg-muted px-3.5 py-2">
           <PersonName user={comment.author} className="text-xs" />
-          <p className="text-sm leading-relaxed text-foreground">{comment.content}</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-foreground break-words">
+            {comment.content}
+          </p>
         </div>
-        <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="mt-1 flex items-center gap-3 pl-1 text-xs text-muted-foreground">
           <span>{formatTimeAgo(new Date(comment.createdAt))}</span>
-          <button onClick={onReply} className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150">
+          <button
+            onClick={onReply}
+            className="font-medium rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150"
+          >
             Reply
           </button>
           <button
             onClick={handleLike}
             aria-pressed={comment.liked}
-            className={`inline-flex items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+            className={`inline-flex items-center gap-1 font-medium rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
               comment.liked ? "text-heart" : "hover:text-foreground"
             }`}
           >

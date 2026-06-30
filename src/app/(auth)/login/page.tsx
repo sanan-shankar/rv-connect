@@ -38,7 +38,7 @@ export default function LoginPage() {
 
   function onHoopoeReady(api: HoopoeApi) {
     // intro: peek in with a double-blink greeting, then tuck the wings over the
-    // (hidden) password. Cover/peek are Tier-2 (kept under reduced motion).
+    // (hidden) password.
     api.peek();
     api.blinkOnce(true);
     setTimeout(() => {
@@ -144,7 +144,11 @@ export default function LoginPage() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // follow the email as it's typed too, so the bird feels alive across the form
+                  hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 22) * 2 - 1)));
+                }}
                 required
                 autoFocus
               />
@@ -160,9 +164,9 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
-                      // while peeking, the bird follows what you type
-                      if (showPwRef.current)
-                        hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
+                      // the bird follows what you type whether peeking or covered (head tracks
+                      // behind the wings when its eyes are hidden)
+                      hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
                     }}
                     required
                     minLength={8}
