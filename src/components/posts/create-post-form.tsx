@@ -1,24 +1,35 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { ImagePlus, X, BarChart3, Bold, Italic, Feather, Image as ImageIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ImagePlus,
+  X,
+  BarChart3,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Feather,
+  Image as ImageIcon,
+  Plus,
+  Tag as TagIcon,
+  Check,
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { createPost } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
+import { SPRINGS, SpringPress } from "@/components/common/motion";
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
 
 /** Where the composer is posting. Drives the placeholder and the available affordances. */
 export type ComposerScope = "post" | "group" | "letter";
 
-const TAGS = [
-  { value: "campus-memory", label: "Campus Memory", color: "bg-leaf/10 text-leaf" },
-  { value: "life-update", label: "Life Update", color: "bg-cinnamon/10 text-cinnamon" },
-  { value: "looking-for-connections", label: "Looking for Connections", color: "bg-sky/10 text-sky" },
-  { value: "photo", label: "Photo", color: "bg-sky/10 text-sky" },
-  { value: "general", label: "General", color: "bg-muted text-muted-foreground" },
-];
+// One quiet tag, chosen from a small popover (presets plus free text). The tag
+// state still flows into the FormData exactly as before; only the picker changed.
+const TAG_PRESETS = ["Memory", "School update", "Looking for connections"];
 
 const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   post: "Share a memory, a sighting, or a note for the valley",
@@ -44,8 +55,7 @@ export function CreatePostForm({
   // Resolve scope: explicit prop wins, else infer from defaultLetter / groupId.
   const resolvedScope: ComposerScope =
     scope ?? (defaultLetter ? "letter" : groupId ? "group" : "post");
-  const collapsedPlaceholder =
-    placeholder ?? SCOPE_PLACEHOLDER[resolvedScope];
+  const collapsedPlaceholder = placeholder ?? SCOPE_PLACEHOLDER[resolvedScope];
   const [content, setContent] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const [kind, setKind] = useState<"post" | "letter">(defaultLetter ? "letter" : "post");
@@ -58,20 +68,61 @@ export function CreatePostForm({
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(0);
+  const [more, setMore] = useState(false); // overflow ("+") menu: poll + letter live here
+  const [tagOpen, setTagOpen] = useState(false); // tag picker popover
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
 
   const isLetter = kind === "letter";
   const maxLen = isLetter ? 20000 : 5000;
   const effectivePlaceholder = isLetter
     ? "Write your letter to the valley. Take your time."
     : collapsedPlaceholder;
+  const hasContent = content.trim().length > 0;
 
   function expand(startKind?: "post" | "letter") {
     if (startKind) setKind(startKind);
     setExpanded(true);
     setTimeout(() => textareaRef.current?.focus(), 0);
   }
+
+  // Collapse back to the resting pill, closing any open popovers. Letters
+  // default to expanded, so they never retract to a pill.
+  const collapse = useCallback(() => {
+    setMore(false);
+    setTagOpen(false);
+    if (!defaultLetter) setExpanded(false);
+  }, [defaultLetter]);
+
+  // Outside-click + Escape. Empty + outside click (or Escape with nothing open)
+  // retracts to the pill; if the user has typed, an outside click only closes a
+  // popover so a draft is never lost to a stray click.
+  useEffect(() => {
+    if (!expanded) return;
+    function onDown(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        if (!hasContent) collapse();
+        else {
+          setMore(false);
+          setTagOpen(false);
+        }
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (tagOpen) setTagOpen(false);
+      else if (more) setMore(false);
+      else if (!hasContent) collapse();
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [expanded, hasContent, more, tagOpen, collapse]);
 
   function wrapSelection(wrapper: string) {
     const el = textareaRef.current;
@@ -110,9 +161,7 @@ export function CreatePostForm({
 
   function handleMentionSelect(user: { id: string; name: string }) {
     const before = content.slice(0, mentionStart);
-    const after = content.slice(
-      mentionStart + (mentionQuery?.length ?? 0) + 1
-    );
+    const after = content.slice(mentionStart + (mentionQuery?.length ?? 0) + 1);
     const mention = `@[${user.name}](${user.id}) `;
     const newContent = before + mention + after;
     setContent(newContent);
@@ -212,6 +261,8 @@ export function CreatePostForm({
       setImages([]);
       setPreviews([]);
       setPollOptions(null);
+      setMore(false);
+      setTagOpen(false);
       setExpanded(defaultLetter);
       toast.success(
         isLetter ? "Your letter is published" : groupId ? "Posted to the group" : "Post shared!"
@@ -221,11 +272,21 @@ export function CreatePostForm({
     setSubmitting(false);
   }
 
-  // Collapsed: a single pill row (avatar + placeholder + Photo/Poll/Letter), expands on click.
-  // Letters default to expanded, so they skip the pill and open straight into the editor.
+  // The four inline formatting controls. Bold/italic/underline/strikethrough map
+  // to markdown wrappers that renderRichText (and the letter strip regex) handle.
+  const fmtButtons: { wrapper: string; icon: React.ReactNode; label: string }[] = [
+    { wrapper: "**", icon: <Bold className="h-4 w-4" />, label: "Bold" },
+    { wrapper: "*", icon: <Italic className="h-4 w-4" />, label: "Italic" },
+    { wrapper: "__", icon: <Underline className="h-4 w-4" />, label: "Underline" },
+    { wrapper: "~~", icon: <Strikethrough className="h-4 w-4" />, label: "Strikethrough" },
+  ];
+
+  // Collapsed: a single pill row (avatar + placeholder + a quiet Photo control),
+  // expands on click. Letters default to expanded, so they skip the pill.
   if (!expanded) {
     return (
       <div
+        ref={rootRef}
         data-composer
         className="card-elevated flex items-center gap-3 rounded-full border border-border bg-card py-2 pl-3 pr-2"
       >
@@ -239,115 +300,86 @@ export function CreatePostForm({
         >
           {collapsedPlaceholder}
         </button>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <button
-            type="button"
-            onClick={() => expand("post")}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
-          >
-            <ImageIcon className="h-[15px] w-[15px]" />
-            <span className="hidden sm:inline">Photo</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => expand("post")}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
-          >
-            <BarChart3 className="h-[15px] w-[15px]" />
-            <span className="hidden sm:inline">Poll</span>
-          </button>
-          {/* Letters can be written in the main feed and in a group (carrying
-              groupId). The group read view gates group letters to members. */}
-          <button
-            type="button"
-            onClick={() => expand("letter")}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
-          >
-            <Feather className="h-[15px] w-[15px]" />
-            <span className="hidden sm:inline">Letter</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => expand("post")}
+          className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+        >
+          <ImageIcon className="h-[15px] w-[15px]" />
+          <span className="hidden sm:inline">Photo</span>
+        </button>
       </div>
     );
   }
 
   return (
     <div
+      ref={rootRef}
       data-composer
       className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
     >
-      {expanded && (
-        <div className="mb-1 flex gap-1">
-          <button
-            type="button"
-            onClick={() => wrapSelection("**")}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150"
-            title="Bold"
-          >
-            <Bold className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => wrapSelection("*")}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150"
-            title="Italic"
-          >
-            <Italic className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-      {isLetter && (
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title your letter"
-          maxLength={160}
-          className="mb-2 w-full bg-transparent font-heading text-xl font-bold tracking-[-0.01em] text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none"
-        />
-      )}
-      <div className="relative">
-        <textarea
-          ref={textareaRef}
-          placeholder={effectivePlaceholder}
-          value={content}
-          onChange={(e) => handleContentChange(e.target.value)}
-          onFocus={() => setExpanded(true)}
-          rows={isLetter ? 10 : expanded ? 4 : 2}
-          maxLength={maxLen}
-          className="w-full resize-none bg-transparent text-base leading-[1.7] text-foreground placeholder:text-muted-foreground focus:outline-none"
-        />
-        {mentionQuery !== null && (
-          <MentionDropdown
-            query={mentionQuery}
-            onSelect={handleMentionSelect}
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: "auto", opacity: 1 }}
+        transition={SPRINGS.gentle}
+        style={{ overflow: "visible" }}
+      >
+        {/* Inline formatting bar: reveals with the field, not stranded */}
+        <motion.div
+          className="mb-2 flex gap-1"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...SPRINGS.settle, delay: 0.05 }}
+        >
+          {fmtButtons.map((b) => (
+            <SpringPress
+              key={b.wrapper}
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              onClick={() => wrapSelection(b.wrapper)}
+              {...({ type: "button", title: b.label, "aria-label": b.label } as object)}
+            >
+              {b.icon}
+            </SpringPress>
+          ))}
+        </motion.div>
+
+        {isLetter && (
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title your letter"
+            maxLength={160}
+            className="mb-2 w-full bg-transparent font-heading text-xl font-bold tracking-[-0.01em] text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none"
           />
         )}
-      </div>
 
-      {expanded && (
-        <div className="mt-3 space-y-3">
-          {/* Tags (not for letters) */}
-          {!isLetter && (
-            <div className="flex flex-wrap gap-2">
-              {TAGS.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setTag(tag === t.value ? null : t.value)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
-                    tag === t.value
-                      ? `${t.color} ring-2 ring-ring`
-                      : "bg-muted text-muted-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+        {/* The field, with ONE clean focus ring overlay (no stray second box) */}
+        <div className="group relative rounded-[calc(var(--radius)-2px)]">
+          <textarea
+            ref={textareaRef}
+            placeholder={effectivePlaceholder}
+            value={content}
+            onChange={(e) => handleContentChange(e.target.value)}
+            rows={isLetter ? 10 : 4}
+            maxLength={maxLen}
+            className="peer w-full resize-none rounded-[calc(var(--radius)-2px)] bg-transparent px-0.5 text-base leading-[1.7] text-foreground placeholder:text-muted-foreground focus:outline-none"
+          />
+          {/* focus ring lives as an overlay so only opacity/transform animate */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-[calc(var(--radius)-2px)] opacity-0 transition-opacity duration-200 ease-out peer-focus:opacity-100"
+            style={{
+              boxShadow: "0 0 0 2.5px color-mix(in srgb, var(--color-leaf) 22%, transparent)",
+            }}
+          />
+          {mentionQuery !== null && (
+            <MentionDropdown query={mentionQuery} onSelect={handleMentionSelect} />
           )}
+        </div>
 
-          {/* Poll creator */}
+        <div className="mt-3 space-y-3">
+          {/* Poll creator (poll lives behind the + menu; PollCreator unchanged) */}
           {!isLetter && pollOptions && (
             <PollCreator
               options={pollOptions}
@@ -379,8 +411,8 @@ export function CreatePostForm({
           )}
 
           {/* Actions */}
-          <div className="flex items-center justify-between border-t border-border pt-3">
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+            <div className="flex items-center gap-1.5">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -389,6 +421,8 @@ export function CreatePostForm({
                 className="hidden"
                 onChange={handleImageUpload}
               />
+
+              {/* One quiet Photo control stays on the surface */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -399,32 +433,181 @@ export function CreatePostForm({
                 <ImagePlus className="mr-1 h-4 w-4" />
                 {uploading ? "Uploading..." : "Photo"}
               </Button>
-              {!isLetter && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={() => setPollOptions(pollOptions ? null : ["", ""])}
-                  className={pollOptions ? "text-leaf" : ""}
-                >
-                  <BarChart3 className="mr-1 h-4 w-4" />
-                  Poll
-                </Button>
-              )}
-              {!defaultLetter && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
+
+              {/* "+" more menu: poll (in overflow) and letter toggle tuck here */}
+              <div className="relative">
+                <SpringPress
+                  className={`flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                    more ? "bg-accent text-foreground" : ""
+                  }`}
                   onClick={() => {
-                    setKind(isLetter ? "post" : "letter");
-                    if (!isLetter) setPollOptions(null);
+                    setMore((m) => !m);
+                    setTagOpen(false);
                   }}
-                  className={isLetter ? "text-leaf" : ""}
+                  {...({
+                    type: "button",
+                    "aria-label": "More options",
+                    "aria-expanded": more,
+                  } as object)}
                 >
-                  <Feather className="mr-1 h-4 w-4" />
-                  Letter
-                </Button>
+                  <motion.span
+                    animate={{ rotate: more ? 45 : 0 }}
+                    transition={SPRINGS.snappy}
+                    style={{
+                      display: "inline-grid",
+                      placeItems: "center",
+                      transformBox: "view-box",
+                      transformOrigin: "center",
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </motion.span>
+                </SpringPress>
+
+                <AnimatePresence>
+                  {more && (
+                    <motion.div
+                      className="absolute bottom-11 left-0 z-30 w-52 rounded-[var(--radius)] border border-border bg-card p-1.5 shadow-lg"
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                      transition={SPRINGS.snappy}
+                      style={{ transformOrigin: "bottom left" }}
+                    >
+                      {!isLetter && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPollOptions(pollOptions ? null : ["", ""]);
+                            setMore(false);
+                          }}
+                          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent ${
+                            pollOptions ? "text-leaf" : "text-foreground"
+                          }`}
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          <span>{pollOptions ? "Remove poll" : "Add a poll"}</span>
+                        </button>
+                      )}
+                      {!defaultLetter && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setKind(isLetter ? "post" : "letter");
+                            if (!isLetter) setPollOptions(null);
+                            setMore(false);
+                          }}
+                          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent ${
+                            isLetter ? "text-leaf" : "text-foreground"
+                          }`}
+                        >
+                          <Feather className="h-4 w-4" />
+                          <span>{isLetter ? "Back to a post" : "Write as a Letter"}</span>
+                        </button>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Low-profile single tag (not for letters): zero footprint when unset */}
+              {!isLetter && (
+                <div className="relative">
+                  {tag ? (
+                    <motion.span
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-leaf/35 bg-leaf/10 pl-3 pr-1.5 text-xs font-semibold text-leaf"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={SPRINGS.snappy}
+                    >
+                      <TagIcon className="h-3 w-3" />
+                      {tag}
+                      <button
+                        type="button"
+                        aria-label="Remove tag"
+                        onClick={() => setTag(null)}
+                        className="inline-grid h-4 w-4 place-items-center rounded-full text-leaf hover:bg-leaf/20"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </motion.span>
+                  ) : (
+                    <>
+                      <SpringPress
+                        className={`inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                          tagOpen
+                            ? "border-leaf/50 text-leaf"
+                            : "border-border text-muted-foreground hover:border-leaf/50 hover:text-leaf"
+                        }`}
+                        onClick={() => {
+                          setTagOpen((t) => !t);
+                          setMore(false);
+                        }}
+                        {...({
+                          type: "button",
+                          "aria-expanded": tagOpen,
+                        } as object)}
+                      >
+                        <TagIcon className="h-3 w-3" />
+                        Add a tag
+                      </SpringPress>
+
+                      <AnimatePresence>
+                        {tagOpen && (
+                          <motion.div
+                            className="absolute bottom-10 left-0 z-30 w-56 rounded-[var(--radius)] border border-border bg-card p-2 shadow-lg"
+                            initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                            transition={SPRINGS.snappy}
+                            style={{ transformOrigin: "bottom left" }}
+                          >
+                            <div className="flex flex-wrap gap-1.5">
+                              {TAG_PRESETS.map((p) => (
+                                <SpringPress
+                                  key={p}
+                                  className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-foreground hover:border-leaf/50 hover:text-leaf"
+                                  onClick={() => {
+                                    setTag(p);
+                                    setTagOpen(false);
+                                  }}
+                                  {...({ type: "button" } as object)}
+                                >
+                                  {p}
+                                </SpringPress>
+                              ))}
+                            </div>
+                            <form
+                              className="mt-2 flex gap-1.5"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const v = tagInputRef.current?.value.trim();
+                                if (v) {
+                                  setTag(v);
+                                  setTagOpen(false);
+                                }
+                              }}
+                            >
+                              <input
+                                ref={tagInputRef}
+                                placeholder="or type your own"
+                                maxLength={24}
+                                className="h-8 min-w-0 flex-1 rounded-md border border-border bg-secondary px-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-leaf/50 focus:outline-none"
+                              />
+                              <button
+                                type="submit"
+                                aria-label="Add tag"
+                                className="inline-grid h-8 w-8 place-items-center rounded-md bg-leaf text-white"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </button>
+                            </form>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </>
+                  )}
+                </div>
               )}
             </div>
 
@@ -434,18 +617,32 @@ export function CreatePostForm({
                   {content.length}/{maxLen}
                 </span>
               )}
-              <Button
-                onClick={handleSubmit}
-                disabled={!content.trim() || submitting}
-                variant="leaf"
-                size="sm"
+              {/* Quiet until there is content, then springs to life */}
+              <motion.div
+                animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.6 }}
+                whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
+                transition={SPRINGS.snappy}
+                style={{ transformOrigin: "center" }}
               >
-                {submitting ? (isLetter ? "Publishing..." : "Posting...") : isLetter ? "Publish letter" : "Post"}
-              </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!content.trim() || submitting}
+                  variant="leaf"
+                  size="sm"
+                >
+                  {submitting
+                    ? isLetter
+                      ? "Publishing..."
+                      : "Posting..."
+                    : isLetter
+                      ? "Publish letter"
+                      : "Post"}
+                </Button>
+              </motion.div>
             </div>
           </div>
         </div>
-      )}
+      </motion.div>
     </div>
   );
 }

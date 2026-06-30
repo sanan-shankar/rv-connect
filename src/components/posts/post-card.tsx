@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight } from "lucide-react";
-import { Heart, ChatCircle, ShareFat, BookmarkSimple, Feather } from "@phosphor-icons/react";
+import { Heart, ChatCircle, ShareFat, BookmarkSimple, Feather, Check } from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,8 @@ import { PollDisplay } from "./poll-display";
 import { formatTimeAgo, parseJsonArray, renderRichText, batchLine } from "@/lib/utils";
 import { toggleLike, deletePost, toggleBookmark } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
+import { motion } from "motion/react";
+import { SPRINGS, EASE_POP } from "@/components/common/motion";
 
 export interface PostData {
   id: string;
@@ -52,6 +54,13 @@ export interface PostData {
   } | null;
 }
 
+// Tiny flecks that drift up when a heart is liked, in the valley palette.
+const LEAF_FLECKS = [
+  { x: -13, y: -15, c: "#1F8A4C" },
+  { x: 12, y: -17, c: "#C2622F" },
+  { x: 1, y: -21, c: "#34C759" },
+];
+
 export function PostCard({
   post,
   variant = "card",
@@ -69,6 +78,7 @@ export function PostCard({
   const [showEdit, setShowEdit] = useState(false);
   const [animateLike, setAnimateLike] = useState(false);
   const [animateBookmark, setAnimateBookmark] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const images = parseJsonArray(post.images);
   const isLetter = post.kind === "letter";
@@ -94,7 +104,7 @@ export function PostCard({
     setLikeCount(next ? likeCount + 1 : likeCount - 1);
     if (next) {
       setAnimateLike(true);
-      setTimeout(() => setAnimateLike(false), 320);
+      setTimeout(() => setAnimateLike(false), 540);
     }
     const result = await toggleLike(post.id);
     if (result.error) {
@@ -130,6 +140,8 @@ export function PostCard({
       await navigator.clipboard.writeText(
         `${window.location.origin}${path}#${post.id}`
       );
+      setShared(true);
+      setTimeout(() => setShared(false), 1400);
       toast.success("Link copied");
     } catch {
       toast.error("Could not copy the link");
@@ -288,20 +300,40 @@ export function PostCard({
               liked ? "text-heart" : "hover:text-foreground"
             }`}
           >
-            <span
-              className={`inline-flex will-change-transform ${
-                animateLike ? "scale-[1.35]" : ""
-              }`}
-              style={{ transition: "transform 320ms cubic-bezier(.34,1.56,.64,1)" }}
-            >
+            <span className="relative inline-flex">
               {/* Heart is ALWAYS red, painted on the first frame. transition:none stops it
-                  tweening through the dark inherited colour, so it can never flash black. */}
-              <Heart
-                size={18}
-                weight={liked ? "fill" : "duotone"}
-                color="#E03A33"
-                style={{ opacity: liked ? 1 : 0.45, transition: "none" }}
-              />
+                  tweening through the dark inherited colour, so it can never flash black.
+                  Only transform animates: a smooth multi-keyframe pop (tween, never a spring). */}
+              <motion.span
+                className="inline-flex will-change-transform"
+                animate={animateLike ? { scale: [1, 0.86, 1.28, 0.97, 1] } : { scale: 1 }}
+                transition={
+                  animateLike
+                    ? { duration: 0.5, ease: EASE_POP, times: [0, 0.18, 0.5, 0.74, 1] }
+                    : { duration: 0 }
+                }
+              >
+                <Heart
+                  size={18}
+                  weight={liked ? "fill" : "duotone"}
+                  color="#E03A33"
+                  style={{ opacity: liked ? 1 : 0.45, transition: "none" }}
+                />
+              </motion.span>
+              {animateLike && (
+                <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2">
+                  {LEAF_FLECKS.map((f, i) => (
+                    <motion.span
+                      key={i}
+                      className="absolute block rounded-full"
+                      style={{ width: 4, height: 4, marginLeft: -2, marginTop: -2, background: f.c }}
+                      initial={{ opacity: 0, x: 0, y: 0, scale: 0.4 }}
+                      animate={{ opacity: [0, 1, 0], x: f.x, y: f.y, scale: 1 }}
+                      transition={{ duration: 0.52, ease: EASE_POP }}
+                    />
+                  ))}
+                </span>
+              )}
             </span>
             <span>{likeCount}</span>
           </button>
@@ -322,27 +354,29 @@ export function PostCard({
               bookmarked ? "text-cinnamon" : "hover:text-foreground"
             }`}
           >
-            <span
+            <motion.span
               className="relative inline-flex will-change-transform"
-              style={{
-                transform: animateBookmark ? "scale(1.28)" : "scale(1)",
-                transition: "transform 480ms cubic-bezier(.34,1.56,.64,1)",
-              }}
+              animate={animateBookmark ? { scale: [1, 0.82, 1.22, 1] } : { scale: 1 }}
+              transition={
+                animateBookmark
+                  ? { duration: 0.46, ease: EASE_POP, times: [0, 0.22, 0.55, 1] }
+                  : { duration: 0 }
+              }
             >
-              {/* Resting mark: subtle outline, cinnamon once saved. */}
+              {/* Resting mark: even outline, cinnamon once saved (inherits the button colour). */}
               <BookmarkSimple size={18} weight={bookmarked ? "fill" : "regular"} />
-              {/* Save sweep: a clipped cinnamon fill rising bottom-to-top on the moment of saving. */}
+              {/* Save sweep: a clipped cinnamon fill floods up from the foot the moment you save. */}
               <span
                 aria-hidden
                 className="pointer-events-none absolute inset-0 inline-flex origin-bottom overflow-hidden"
                 style={{
                   transform: animateBookmark ? "scaleY(1)" : "scaleY(0)",
-                  transition: "transform 360ms cubic-bezier(.22,.61,.36,1)",
+                  transition: "transform 380ms cubic-bezier(.22,.61,.36,1)",
                 }}
               >
                 <BookmarkSimple size={18} weight="fill" color="#C2622F" />
               </span>
-            </span>
+            </motion.span>
           </button>
 
           <button
@@ -350,7 +384,22 @@ export function PostCard({
             aria-label="Copy link to post"
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            <ShareFat size={18} weight="regular" />
+            <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
+              <motion.span
+                className="absolute inline-flex"
+                animate={{ opacity: shared ? 0 : 1, scale: shared ? 0.6 : 1 }}
+                transition={SPRINGS.snappy}
+              >
+                <ShareFat size={18} weight="regular" />
+              </motion.span>
+              <motion.span
+                className="absolute inline-flex text-leaf"
+                animate={{ opacity: shared ? 1 : 0, scale: shared ? 1 : 0.6 }}
+                transition={SPRINGS.snappy}
+              >
+                <Check size={18} weight="bold" />
+              </motion.span>
+            </span>
           </button>
         </div>
 

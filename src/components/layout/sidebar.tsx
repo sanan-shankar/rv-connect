@@ -17,10 +17,12 @@ import {
   LogOut,
   User as UserIcon,
   Menu,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetTrigger,
   SheetTitle,
@@ -32,8 +34,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { motion } from "motion/react";
+import { SPRINGS } from "@/components/common/motion";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { NotificationBell } from "./notification-bell";
+import { LogoFact } from "./logo-fact";
 import { PeaksMark } from "./peaks-mark";
 
 export interface SidebarUser {
@@ -55,24 +60,30 @@ const NAV = [
   { href: "/about", label: "About", icon: Info },
 ];
 
-// Primary destinations that live on the mobile bottom tab bar; everything else
-// folds into the More sheet.
-const MOBILE_TABS = NAV.slice(0, 4);
-
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-function Brand() {
+function Brand({
+  onNavigate,
+  className = "",
+}: {
+  onNavigate?: () => void;
+  className?: string;
+}) {
   return (
-    <Link href="/feed" className="flex items-center gap-2.5 px-2 py-1">
+    <Link
+      href="/feed"
+      onClick={onNavigate}
+      className={`flex items-center gap-2.5 px-2 py-1 ${className}`}
+    >
       <PeaksMark
         size={28}
         variant="two-plane"
         className="shrink-0 -translate-y-px text-sidebar-foreground"
       />
       <span className="flex min-w-0 flex-col justify-center leading-none">
-        <span className="block whitespace-nowrap font-heading text-[17px] font-bold leading-none tracking-tight text-sidebar-foreground">
+        <span className="block truncate font-heading text-[17px] font-bold leading-none tracking-tight text-sidebar-foreground">
           Rishi Valley
         </span>
         <span className="mt-1 block text-[10px] uppercase leading-none tracking-[0.2em] text-sidebar-foreground/55">
@@ -86,9 +97,13 @@ function Brand() {
 function NavLinks({
   pathname,
   onNavigate,
+  markerId,
 }: {
   pathname: string;
   onNavigate?: () => void;
+  // Each rendered nav list owns its own marker group, so the desktop rail and
+  // the open mobile drawer never try to share (and fight over) one indicator.
+  markerId: string;
 }) {
   return (
     <nav className="flex flex-col gap-0.5">
@@ -99,14 +114,35 @@ function NavLinks({
             key={n.href}
             href={n.href}
             onClick={onNavigate}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 ${
+            aria-current={active ? "page" : undefined}
+            className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 ${
               active
-                ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                ? "font-semibold text-sidebar-accent-foreground"
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground"
             }`}
           >
-            <n.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-            {n.label}
+            {active && (
+              <>
+                {/* The soft pill and the cinnamon edge are two layoutId children.
+                    They glide together to whichever row matches the route,
+                    instead of popping, on one shared spring. */}
+                <motion.span
+                  layoutId={`${markerId}-pill`}
+                  className="absolute inset-0 z-0 rounded-xl bg-sidebar-accent"
+                  transition={SPRINGS.snappy}
+                />
+                <motion.span
+                  layoutId={`${markerId}-bar`}
+                  className="absolute left-1 top-2 bottom-2 z-[1] w-[3px] rounded-full bg-cinnamon"
+                  transition={SPRINGS.snappy}
+                />
+              </>
+            )}
+            <n.icon
+              className="relative z-[2] h-[18px] w-[18px] shrink-0"
+              strokeWidth={1.9}
+            />
+            <span className="relative z-[2]">{n.label}</span>
           </Link>
         );
       })}
@@ -180,54 +216,41 @@ export function Sidebar({
     <>
       {/* Desktop: flush, full-height sidebar */}
       <aside className="sticky top-0 z-10 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
-        <Brand />
-        <NavLinks pathname={pathname} />
+        <LogoFact />
+        <NavLinks pathname={pathname} markerId="nav-desktop" />
         <UserMenu user={user} />
       </aside>
 
-      {/* Mobile: slim brand top bar + a bottom tab bar with a More sheet */}
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-sidebar px-4 md:hidden">
-        <Brand />
-        <div className="flex items-center text-sidebar-foreground">
-          <NotificationBell initialUnreadCount={unreadCount} />
-        </div>
-      </header>
-
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-sidebar-border bg-sidebar px-1 pb-[env(safe-area-inset-bottom)] text-sidebar-foreground md:hidden">
-        {MOBILE_TABS.map((n) => {
-          const active = isActive(pathname, n.href);
-          return (
-            <Link
-              key={n.href}
-              href={n.href}
-              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring/60 active:opacity-70 ${
-                active ? "text-sidebar-primary-foreground" : "text-sidebar-foreground/70"
-              }`}
-            >
-              <span
-                className={`grid h-8 w-12 place-items-center rounded-full ${
-                  active ? "bg-sidebar-accent text-white" : ""
-                }`}
-              >
-                <n.icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
-              </span>
-              {n.label}
-            </Link>
-          );
-        })}
+      {/* Mobile: slim top bar with a hamburger that opens a slide-over drawer
+          (a left Sheet, scrim + slide at z-50, so it covers everything). */}
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-1.5 bg-sidebar px-3 md:hidden">
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium text-sidebar-foreground/70 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring/60 active:opacity-70">
-            <span className="grid h-8 w-12 place-items-center rounded-full">
-              <Menu className="h-[18px] w-[18px]" strokeWidth={1.9} />
-            </span>
-            More
+          <SheetTrigger
+            aria-label="Open menu"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sidebar-foreground/85 transition-colors hover:bg-white/[0.07] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
+          >
+            <Menu className="h-[22px] w-[22px]" strokeWidth={1.9} />
           </SheetTrigger>
-          <SheetContent side="bottom" className="rounded-t-2xl bg-sidebar p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-            <SheetTitle className="sr-only">More</SheetTitle>
-            <div className="mb-3">
-              <Brand />
+          <SheetContent
+            side="left"
+            showCloseButton={false}
+            className="flex w-[82%] max-w-xs flex-col gap-0 overflow-y-auto border-sidebar-border bg-sidebar p-4"
+          >
+            <SheetTitle className="sr-only">Menu</SheetTitle>
+            <div className="mb-4 flex items-center justify-between">
+              <Brand onNavigate={() => setOpen(false)} />
+              <SheetClose
+                aria-label="Close menu"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground/70 transition-colors hover:bg-white/[0.07] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+              >
+                <X className="h-5 w-5" strokeWidth={2} />
+              </SheetClose>
             </div>
-            <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+            <NavLinks
+              pathname={pathname}
+              onNavigate={() => setOpen(false)}
+              markerId="nav-mobile"
+            />
             <div className="mt-3 border-t border-sidebar-border pt-3">
               <Link
                 href={`/profile/${user.id}`}
@@ -265,7 +288,11 @@ export function Sidebar({
             </div>
           </SheetContent>
         </Sheet>
-      </nav>
+        <Brand className="min-w-0 flex-1" />
+        <div className="flex shrink-0 items-center text-sidebar-foreground">
+          <NotificationBell initialUnreadCount={unreadCount} />
+        </div>
+      </header>
     </>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { BirdAvatar } from "@/components/common/bird-avatar";
+import { RsvpButton } from "./rsvp-button";
 import { formatBatch } from "@/lib/utils";
 
 /**
@@ -64,12 +65,7 @@ export async function FeedRail({ userId }: { userId: string }) {
                 <MapPin className="h-[13px] w-[13px] shrink-0" />
                 Rishi Valley, AP
               </div>
-              <button
-                type="button"
-                className="mt-2.5 inline-flex h-[34px] items-center justify-center rounded-full bg-cinnamon/[0.14] px-4 text-[13px] font-semibold text-cinnamon transition-[transform,background-color] duration-150 ease-out hover:bg-cinnamon/[0.22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cinnamon/50 active:scale-[0.97]"
-              >
-                RSVP
-              </button>
+              <RsvpButton />
             </div>
           </div>
         </section>

@@ -77,8 +77,8 @@ export function batchLine(user: {
 }
 
 /**
- * Render rich text: sanitize HTML, then apply markdown-style bold/italic
- * and @[Name](userId) mentions.
+ * Render rich text: sanitize HTML, then apply markdown-style bold/italic/
+ * underline/strikethrough and @[Name](userId) mentions.
  */
 export function renderRichText(text: string): string {
   // 1. Escape HTML entities
@@ -88,13 +88,19 @@ export function renderRichText(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
 
-  // 2. Bold: **text** -> <strong>text</strong>
+  // 2. Bold: **text** -> <strong>text</strong> (run before single *)
   result = result.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
 
   // 3. Italic: *text* -> <em>text</em>
   result = result.replace(/\*(.+?)\*/g, "<em>$1</em>")
 
-  // 4. Mentions: @[Name](userId) -> clickable link
+  // 4. Underline: __text__ -> <u>text</u> (double underscore, distinct from * runs)
+  result = result.replace(/__(.+?)__/g, "<u>$1</u>")
+
+  // 5. Strikethrough: ~~text~~ -> <del>text</del>
+  result = result.replace(/~~(.+?)~~/g, "<del>$1</del>")
+
+  // 6. Mentions: @[Name](userId) -> clickable link
   result = result.replace(
     /@\[([^\]]+)\]\(([^)]+)\)/g,
     '<a href="/profile/$2" class="font-semibold text-leaf hover:underline">@$1</a>'

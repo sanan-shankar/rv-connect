@@ -6,12 +6,13 @@ import { ShowcaseShot } from "@/components/landing/showcase-shot";
 import { TrustSection } from "@/components/landing/trust-section";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { HoppingBird, DriftingLeaves } from "@/components/landing/landing-birds";
+import { ValleySection } from "@/components/landing/valley-section";
 import { SHOTS } from "@/components/landing/shots";
 
 export const metadata: Metadata = {
   title: "Rishi Valley Alumni",
   description:
-    "A quiet, invite-only home for Rishi Valley alumni and teachers. Find each other, share the valley, keep it close.",
+    "A quiet home for Rishi Valley alumni and teachers. Find each other, share the valley, keep it close.",
 };
 
 function Shot({ name, alt }: { name: keyof typeof SHOTS; alt: string }) {
@@ -26,6 +27,9 @@ export default function LandingPage() {
     <div className="bg-background">
       <LandingNav />
       <LandingHero />
+
+      {/* The living valley: drifting leaves, perching birds, hoopoe slot */}
+      <ValleySection />
 
       {/* Intro band, sets the tone before the showcase */}
       <section className="mx-auto max-w-2xl px-6 pt-20 text-center sm:pt-28">
