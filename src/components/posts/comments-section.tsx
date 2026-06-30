@@ -15,6 +15,8 @@ import {
   toggleCommentLike,
 } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
+import { motion } from "motion/react";
+import { SPRINGS, EASE_POP } from "@/components/common/motion";
 
 interface CommentData {
   id: string;
@@ -33,6 +35,17 @@ interface CommentData {
     batchYear: number | null;
   };
 }
+
+// The thread reveal: rows rise in on a calm, quick stagger. Parent gates the children,
+// each child lifts a touch as it arrives. Transform + opacity only.
+const LIST_VARIANTS = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05, delayChildren: 0.04 } },
+};
+const ROW_VARIANTS = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: SPRINGS.gentle },
+};
 
 export function CommentsSection({
   postId,
@@ -91,96 +104,107 @@ export function CommentsSection({
     }
   }
 
-  if (loading) {
-    return (
-      <div className="mt-3 border-t border-border pt-3">
-        <p className="text-sm text-muted-foreground">Loading comments...</p>
-      </div>
+  function handleLikeToggle(id: string, liked: boolean, count: number) {
+    setComments((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, liked, likeCount: count } : c))
     );
   }
 
+  // The panel grows open gracefully when comments are revealed: height auto + opacity.
+  // height auto is allowed here for the reveal; everything else is transform/opacity.
   return (
-    <div className="mt-3 border-t border-border pt-3">
-      {/* Comments list */}
-      <div className="space-y-3">
-        {topLevel.map((comment) => (
-          <div key={comment.id}>
-            <CommentItem
-              comment={comment}
-              onReply={() =>
-                setReplyTo({ id: comment.id, name: comment.author.name })
-              }
-              onLikeToggle={(id, liked, count) => {
-                setComments((prev) =>
-                  prev.map((c) =>
-                    c.id === id ? { ...c, liked, likeCount: count } : c
-                  )
-                );
-              }}
-            />
-            {/* Replies */}
-            {repliesMap.get(comment.id)?.map((reply) => (
-              <div key={reply.id} className="ml-8 mt-2">
+    <motion.div
+      className="mt-3 border-t border-border pt-3"
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      transition={SPRINGS.gentle}
+      style={{ overflow: "hidden" }}
+    >
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading comments...</p>
+      ) : (
+        <>
+          {/* Comments list */}
+          <motion.div
+            className="space-y-3"
+            variants={LIST_VARIANTS}
+            initial="hidden"
+            animate="show"
+          >
+            {topLevel.map((comment) => (
+              <motion.div key={comment.id} variants={ROW_VARIANTS}>
                 <CommentItem
-                  comment={reply}
+                  comment={comment}
                   onReply={() =>
-                    setReplyTo({ id: comment.id, name: reply.author.name })
+                    setReplyTo({ id: comment.id, name: comment.author.name })
                   }
-                  onLikeToggle={(id, liked, count) => {
-                    setComments((prev) =>
-                      prev.map((c) =>
-                        c.id === id ? { ...c, liked, likeCount: count } : c
-                      )
-                    );
-                  }}
+                  onLikeToggle={handleLikeToggle}
                 />
-              </div>
+                {/* Replies */}
+                {repliesMap.get(comment.id)?.map((reply) => (
+                  <motion.div
+                    key={reply.id}
+                    className="ml-8 mt-2"
+                    variants={ROW_VARIANTS}
+                  >
+                    <CommentItem
+                      comment={reply}
+                      onReply={() =>
+                        setReplyTo({ id: comment.id, name: reply.author.name })
+                      }
+                      onLikeToggle={handleLikeToggle}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
             ))}
-          </div>
-        ))}
 
-        {comments.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No comments yet. Be the first!
-          </p>
-        )}
-      </div>
+            {comments.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No comments yet. Be the first!
+              </p>
+            )}
+          </motion.div>
 
-      {/* Comment input */}
-      <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
-        <div className="flex-1">
-          {replyTo && (
-            <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
-              <Reply className="h-3 w-3" />
-              Replying to {replyTo.name}
-              <button
-                type="button"
-                onClick={() => setReplyTo(null)}
-                className="ml-1 text-foreground hover:underline"
-              >
-                Cancel
-              </button>
+          {/* Comment input */}
+          <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
+            <div className="flex-1">
+              {replyTo && (
+                <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  <Reply className="h-3 w-3" />
+                  Replying to {replyTo.name}
+                  <button
+                    type="button"
+                    onClick={() => setReplyTo(null)}
+                    className="ml-1 text-foreground hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              <Input
+                placeholder={
+                  replyTo
+                    ? `Reply to ${replyTo.name}...`
+                    : "Write a comment..."
+                }
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                maxLength={1000}
+              />
             </div>
-          )}
-          <Input
-            placeholder={
-              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
-            }
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            maxLength={1000}
-          />
-        </div>
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!newComment.trim() || submitting}
-          variant="leaf"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </form>
-    </div>
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!newComment.trim() || submitting}
+              variant="leaf"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </>
+      )}
+    </motion.div>
   );
 }
 
@@ -193,12 +217,18 @@ function CommentItem({
   onReply: () => void;
   onLikeToggle: (id: string, liked: boolean, count: number) => void;
 }) {
+  const [animateLike, setAnimateLike] = useState(false);
+
   async function handleLike() {
     const newLiked = !comment.liked;
     const newCount = newLiked
       ? comment.likeCount + 1
       : comment.likeCount - 1;
     onLikeToggle(comment.id, newLiked, newCount);
+    if (newLiked) {
+      setAnimateLike(true);
+      setTimeout(() => setAnimateLike(false), 540);
+    }
 
     const result = await toggleCommentLike(comment.id);
     if (result.error) {
@@ -229,17 +259,30 @@ function CommentItem({
           <button
             onClick={handleLike}
             aria-pressed={comment.liked}
-            className={`inline-flex items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 transition-transform duration-150 ${
+            className={`inline-flex items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
               comment.liked ? "text-heart" : "hover:text-foreground"
             }`}
           >
-            {/* Heart is ALWAYS red on the first frame; transition:none prevents a black flash. */}
-            <Heart
-              size={12}
-              weight={comment.liked ? "fill" : "duotone"}
-              color="#E03A33"
-              style={{ opacity: comment.liked ? 1 : 0.45, transition: "none" }}
-            />
+            {/* Heart is ALWAYS red, painted on the first frame. transition:none stops it
+                tweening through the dark inherited colour, so it can never flash black.
+                Only transform animates: a smooth multi-keyframe pop (tween, never a spring),
+                matching the post-card heart. */}
+            <motion.span
+              className="inline-flex will-change-transform"
+              animate={animateLike ? { scale: [1, 0.86, 1.28, 0.97, 1] } : { scale: 1 }}
+              transition={
+                animateLike
+                  ? { duration: 0.5, ease: EASE_POP, times: [0, 0.18, 0.5, 0.74, 1] }
+                  : { duration: 0 }
+              }
+            >
+              <Heart
+                size={12}
+                weight={comment.liked ? "fill" : "duotone"}
+                color="#E03A33"
+                style={{ opacity: comment.liked ? 1 : 0.45, transition: "none" }}
+              />
+            </motion.span>
             {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
           </button>
         </div>

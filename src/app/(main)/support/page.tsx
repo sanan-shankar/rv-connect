@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { SupportContribute } from "@/components/support/support-contribute";
+import { CostBar } from "@/components/support/cost-bar";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -46,9 +47,6 @@ export default function SupportPage() {
           @keyframes support-sway {
             0%, 100% { transform: rotate(-2deg); }
             50% { transform: rotate(2deg); }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .support-motif { animation: none !important; }
           }
         `}</style>
         <span
@@ -104,6 +102,7 @@ export default function SupportPage() {
             </p>
           </div>
         </div>
+        <CostBar />
         <p className="mt-[var(--space-s)] text-sm leading-relaxed text-muted-foreground">
           These are the real numbers, not rounded up. A few people chipping in is
           enough to cover the whole thing.
@@ -134,7 +133,7 @@ export default function SupportPage() {
         <p className="leading-relaxed text-foreground">
           Your contribution keeps the directory, the feed, the groups, and the
           Valley Collection running, with no ads and no one selling your details.
-          It stays invite only, built for this community and no one else.
+          It stays small, built for this community and no one else.
           Supporting is never a requirement to be here.
         </p>
         <p className="mt-[var(--space-m)] text-sm leading-relaxed text-muted-foreground">

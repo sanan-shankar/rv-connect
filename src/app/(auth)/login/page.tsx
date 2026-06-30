@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Hoopoe } from "@/components/auth/hoopoe";
+import { Hoopoe } from "@/components/mascot/hoopoe";
+import { useHoopoe } from "@/components/mascot/use-hoopoe";
+import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { PeaksMark } from "@/components/layout/peaks-mark";
+import { SPRINGS } from "@/components/common/motion";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,9 +21,32 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [showPw, setShowPw] = useState(false);
 
-  // The hoopoe watches with its eyes open while the password is hidden, and
-  // politely covers them the moment you reveal the password.
-  const hoopoeCovered = showPw;
+  // The hoopoe covers its eyes (wings up) while the password is hidden, and peeks
+  // when you reveal it; while peeking it follows what you type. One mascot, driven
+  // by its controller.
+  const { ref: hoopoeRef, ...hoopoe } = useHoopoe();
+  const showPwRef = useRef(showPw);
+  showPwRef.current = showPw;
+  const introDone = useRef(false);
+
+  // React to reveal toggles after the intro settles.
+  useEffect(() => {
+    if (!introDone.current) return;
+    if (showPw) hoopoe.peek();
+    else hoopoe.coverEyes();
+  }, [showPw, hoopoe]);
+
+  function onHoopoeReady(api: HoopoeApi) {
+    // intro: peek in with a double-blink greeting, then tuck the wings over the
+    // (hidden) password. Cover/peek are Tier-2 (kept under reduced motion).
+    api.peek();
+    api.blinkOnce(true);
+    setTimeout(() => {
+      introDone.current = true;
+      if (showPwRef.current) api.peek();
+      else api.coverEyes();
+    }, 1150);
+  }
 
   const isAdmin =
     process.env.NEXT_PUBLIC_ADMIN_EMAIL &&
@@ -87,11 +114,20 @@ export default function LoginPage() {
         </Link>
       </div>
 
-      {/* Form half: warm panel, centered form */}
+      {/* Form half: warm panel, centered form. Arriving from the landing,
+          the content does a lateral pass: it slides in from the right on the
+          gentle spring while the photo half and its logo stay anchored.
+          Hydration-safe (motion initial/animate on a client component); no
+          reduced-motion branching per owner decision. */}
       <div className="grid min-h-screen place-items-center bg-background px-6 py-10">
-        <div className="w-full max-w-[360px] text-center">
-          <div className="mx-auto mb-1 grid h-[108px] place-items-center">
-            <Hoopoe covered={hoopoeCovered} size={96} />
+        <motion.div
+          className="w-full max-w-[360px] text-center"
+          initial={{ opacity: 0, x: 48 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={SPRINGS.gentle}
+        >
+          <div className="mx-auto mb-1 grid h-[128px] place-items-center">
+            <Hoopoe ref={hoopoeRef} size={102} onReady={onHoopoeReady} />
           </div>
           <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
             Welcome back
@@ -122,7 +158,12 @@ export default function LoginPage() {
                     type={showPw ? "text" : "password"}
                     placeholder="Your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      // while peeking, the bird follows what you type
+                      if (showPwRef.current)
+                        hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
+                    }}
                     required
                     minLength={8}
                     className="pr-10"
@@ -133,7 +174,7 @@ export default function LoginPage() {
                     aria-label={showPw ? "Hide password" : "Show password"}
                     className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                   >
-                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
@@ -155,10 +196,10 @@ export default function LoginPage() {
               href="/signup"
               className="rounded-sm font-medium text-leaf hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
-              Request an invite
+              Join
             </Link>
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
