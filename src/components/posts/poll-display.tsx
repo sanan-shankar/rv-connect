@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
+import { motion } from "motion/react";
+import { SPRINGS } from "@/components/common/motion";
 import { votePoll } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 
@@ -16,6 +18,50 @@ interface PollDisplayProps {
   options: PollOption[];
   totalVotes: number;
   userVotedOptionId: string | null;
+}
+
+/* Per-row stagger so the bars sweep in one after another (about 75ms apart). */
+const ROW_STAGGER = 0.075;
+
+/* A short count-up to the final percentage, paced to land with its bar. The number
+   and the bar share the same delay and a close duration so they read as one motion.
+   The animation re-runs whenever the target changes (a vote, or a switched pick). */
+function CountUp({ value, delay }: { value: number; delay: number }) {
+  // Start at zero so the figure sweeps up the first time results appear, in step
+  // with its bar (which scales in from zero). Later target changes count from the
+  // last shown value rather than snapping.
+  const [shown, setShown] = useState(0);
+  const fromRef = useRef(0);
+  const raf = useRef<number | null>(null);
+
+  useEffect(() => {
+    const from = fromRef.current;
+    const to = value;
+    if (from === to) {
+      // already at target (e.g. first mount, where shown was seeded to value)
+      return;
+    }
+    const dur = 560; // ms, a touch longer than the bar so the figure settles with it
+    const delayMs = delay * 1000;
+    let start = 0; // seeded from the first frame timestamp, not a render-scope clock
+    const tick = (now: number) => {
+      if (!start) start = now;
+      const t = Math.min(1, Math.max(0, (now - start - delayMs) / dur));
+      const e = 1 - Math.pow(1 - t, 3); // ease-out cubic, matches the bar settle
+      setShown(Math.round(from + (to - from) * e));
+      if (t < 1) {
+        raf.current = requestAnimationFrame(tick);
+      } else {
+        fromRef.current = to;
+      }
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, [value, delay]);
+
+  return <>{shown}%</>;
 }
 
 export function PollDisplay({
@@ -67,12 +113,13 @@ export function PollDisplay({
 
   return (
     <div className="mt-3 space-y-2">
-      {localOptions.map((option) => {
+      {localOptions.map((option, i) => {
         const pct =
           localTotal > 0
             ? Math.round((option.voteCount / localTotal) * 100)
             : 0;
         const isSelected = voted === option.id;
+        const delay = i * ROW_STAGGER;
 
         if (!hasVoted) {
           // Voting mode: clickable buttons
@@ -88,24 +135,42 @@ export function PollDisplay({
           );
         }
 
-        // Results mode: percentage bars
+        // Results mode: percentage bars that grow from zero
         return (
           <div
             key={option.id}
             onClick={() => handleVote(option.id)}
             className="relative cursor-pointer overflow-hidden rounded-lg border border-border px-4 py-2.5 transition-colors hover:border-leaf/50"
           >
-            {/* Fill bar */}
-            <div
-              className="absolute inset-y-0 left-0 bg-leaf/15"
-              style={{ width: `${pct}%` }}
+            {/* Fill bar: a full-width block scaled in on the X axis from a left origin.
+                Only transform animates, never width or any layout property. The picked
+                option gets a slightly stronger leaf tint. */}
+            <motion.div
+              className={`absolute inset-y-0 left-0 w-full origin-left ${
+                isSelected ? "bg-leaf/25" : "bg-leaf/15"
+              }`}
+              style={{ transformOrigin: "left" }}
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: pct / 100 }}
+              transition={{ ...SPRINGS.gentle, delay }}
             />
             <div className="relative flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                {isSelected && <Check className="h-3.5 w-3.5 text-leaf" />}
+                {isSelected && (
+                  <motion.span
+                    className="inline-grid h-4 w-4 place-items-center rounded-full bg-leaf text-white"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ ...SPRINGS.snappy, delay: delay + 0.1 }}
+                  >
+                    <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                  </motion.span>
+                )}
                 {option.text}
               </span>
-              <span className="text-sm text-muted-foreground">{pct}%</span>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                <CountUp value={pct} delay={delay} />
+              </span>
             </div>
           </div>
         );

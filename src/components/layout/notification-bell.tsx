@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Bell } from "lucide-react";
+import { motion } from "motion/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ import {
   markAllNotificationsRead,
 } from "@/app/(main)/notifications/actions";
 import { useRouter } from "next/navigation";
+import { SPRINGS, EASE_POP } from "@/components/common/motion";
 
 interface NotificationBellProps {
   initialUnreadCount: number;
@@ -40,22 +42,27 @@ export function NotificationBell({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [loaded, setLoaded] = useState(false);
-  const [shake, setShake] = useState(false);
+  // Bumping this key re-mounts the motion shake so it replays the keyframes.
+  // It only ever rises when the unread count climbs, so the bell gives one
+  // gentle decaying shake per new notification, never on decrement or hover.
+  const [shakeKey, setShakeKey] = useState(0);
   const prevUnread = useRef(initialUnreadCount);
 
-  // Wobble the bell only when the unread count climbs (a new notification
-  // arrived), never on decrement or on hover.
   useEffect(() => {
     if (unreadCount > prevUnread.current) {
-      setShake(true);
-      const t = setTimeout(() => setShake(false), 600);
-      prevUnread.current = unreadCount;
-      return () => clearTimeout(t);
+      setShakeKey((k) => k + 1);
     }
     prevUnread.current = unreadCount;
   }, [unreadCount]);
 
-  const bellClass = shake ? "animate-bell" : undefined;
+  // One transform-only decaying shake, pivoting from the top so it reads as a
+  // wobble. easeInOut tween (never a spring with 5+ keyframes).
+  const shakeAnimate = shakeKey > 0 ? { rotate: [0, -9, 7, -5, 3, 0] } : { rotate: 0 };
+  const shakeTransition = {
+    duration: 0.6,
+    ease: "easeInOut" as const,
+    times: [0, 0.16, 0.36, 0.56, 0.78, 1],
+  };
 
   async function handleOpen() {
     if (!loaded) {
@@ -91,9 +98,22 @@ export function NotificationBell({
           className="bell-trigger relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-transform duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           title="Notifications"
         >
-          <Bell size={18} strokeWidth={1.9} className={bellClass} />
+          <motion.span
+            className="inline-grid place-items-center"
+            style={{ transformOrigin: "50% 12%" }}
+            animate={shakeAnimate}
+            transition={shakeTransition}
+            whileTap={{ scale: 0.9, transition: SPRINGS.snappy }}
+          >
+            <Bell size={18} strokeWidth={1.9} />
+          </motion.span>
           {unreadCount > 0 && (
-            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border-2 border-card bg-cinnamon" />
+            <motion.span
+              className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border-2 border-card bg-cinnamon"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+              transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}
+            />
           )}
           <span className="sr-only">
             {unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
@@ -113,11 +133,24 @@ export function NotificationBell({
   return (
     <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
       <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
-        <Bell size={18} strokeWidth={1.9} className={bellClass} />
+        <motion.span
+          className="inline-grid place-items-center"
+          style={{ transformOrigin: "50% 12%" }}
+          animate={shakeAnimate}
+          transition={shakeTransition}
+          whileTap={{ scale: 0.9, transition: SPRINGS.snappy }}
+        >
+          <Bell size={18} strokeWidth={1.9} />
+        </motion.span>
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <motion.span
+            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cinnamon px-1 text-[10px] font-bold text-white"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1.3, 1], opacity: 1 }}
+            transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}
+          >
             {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
+          </motion.span>
         )}
       </DropdownMenuTrigger>
       <NotificationPanel
