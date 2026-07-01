@@ -1,5 +1,4 @@
 import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
@@ -7,18 +6,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  // Production runs on Vercel with Turso (libSQL). The Postgres branch is an
-  // optional fallback that only activates if DATABASE_URL is a postgres://
-  // connection string; local dev and Turso both use the libSQL adapter.
-  const dbUrl = process.env.DATABASE_URL ?? "";
-  if (dbUrl.startsWith("postgres")) {
-    const adapter = new PrismaPg({ connectionString: dbUrl });
-    return new PrismaClient({ adapter });
+  // Production and local dev both run on Postgres (Supabase in production).
+  // At runtime we connect through the transaction pooler in DATABASE_URL.
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not set");
   }
-
-  const url = process.env.TURSO_DATABASE_URL ?? "file:dev.db";
-  const authToken = process.env.TURSO_AUTH_TOKEN;
-  const adapter = new PrismaLibSql({ url, authToken });
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
 

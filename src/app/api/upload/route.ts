@@ -2,11 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
-import { put } from "@vercel/blob";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-
-const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
+import { putImage } from "@/lib/storage";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -48,7 +44,6 @@ export async function POST(request: Request) {
 
       const buffer = Buffer.from(await file.arrayBuffer());
       const id = createId();
-      const filename = `${id}.webp`;
 
       // Process with sharp: resize + convert to WebP
       const webpBuffer = await sharp(buffer)
@@ -59,25 +54,8 @@ export async function POST(request: Request) {
         .webp({ quality: 80 })
         .toBuffer();
 
-      if (useBlob) {
-        // Production: use Vercel Blob
-        const now = new Date();
-        const blobPath = `uploads/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}/${filename}`;
-        const { url } = await put(blobPath, webpBuffer, {
-          access: "public",
-          contentType: "image/webp",
-        });
-        urls.push(url);
-      } else {
-        // Local dev: write to filesystem
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const uploadDir = path.join(process.cwd(), "public", "uploads", String(year), month);
-        await mkdir(uploadDir, { recursive: true });
-        await writeFile(path.join(uploadDir, filename), webpBuffer);
-        urls.push(`/uploads/${year}/${month}/${filename}`);
-      }
+      const url = await putImage(webpBuffer, "uploads", `${id}.webp`);
+      urls.push(url);
     }
 
     return NextResponse.json({ urls });
