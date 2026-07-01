@@ -11,10 +11,13 @@ Owner rejected the mono-white silhouettes (all looked the same at profile size).
 - **New formula:** each bird has its OWN real colours and is built from big SOFT ROUNDED shapes (no
   thin spikes). Colour carries differentiation at 28-40px; one bold rounded signature gives character.
   Lives in **`src/components/common/bird-avatar-v2.tsx`**; `BirdAvatar` delegates to it via `USE_V2`.
-- **26 species, researched.** A background workflow (eBird/V. Santharam, the RV checklist + book,
-  the Rayalaseema arid-scrub avifauna) pooled 171 species; an art-director pass curated 26 that are
-  both accurate to Rishi Valley AND mutually distinct as round flat avatars (rejected redundant
-  blues, yellow orioles, "small brown jobs", extra owls). Hoopoe, Peafowl, Spotted Owlet are in.
+- **50 species, researched.** A background workflow (eBird/V. Santharam, the RV checklist + book,
+  the Rayalaseema arid-scrub avifauna) pooled 171 species; an art-director pass curated an initial 26
+  (later expanded as the owner named more birds they remember from school). A second curation pass
+  de-collided 22 further requests, keeping 13 (incl. Red Avadavat, Common Kingfisher, Flameback,
+  Brahminy Kite, Bay-backed Shrike, two more sunbirds/flycatchers, green-pigeon, white-eye) and
+  ditching 10 look-alikes. Final = 50, all mutually distinct as round flat avatars. Hoopoe, Peafowl,
+  Spotted Owlet are in.
 - **Optical centering, measured not eyeballed.** `scripts/dev/centroid.mjs` rasterises each bird,
   finds its true pixel centroid + bbox, and writes scale+nudge corrections to
   `src/components/common/bird-adjust.json` (read via `archeTransform`). Converged: every bird centroid
@@ -22,7 +25,7 @@ Owner rejected the mono-white silhouettes (all looked the same at profile size).
 - **Background treatment = NONE (owner choice).** `BG_MODE` in bird-avatar-v2.tsx switches
   none / outline (sticker halo) / inset (bird in disc) in one line; container in bird-avatar.tsx
   stops clipping for the no-disc modes so crests/bills are not cut. No disc => no per-member colour;
-  visual variety is 26 species x 2 poses. Switch to "inset"/"outline" to restore per-member colour.
+  visual variety is 50 species x 2 poses. Switch to "inset"/"outline" to restore per-member colour.
 - **Owner = Hoopoe.** `SPECIES_PINS` in avatar.ts pins user id -> species; sanan (owner) -> Hoopoe (#0),
   applied in BirdAvatar (manual override > pin > hash). Pin is keyed by local id; production should add
   an `avatarSpecies` column + settings UI (User has `avatarColor` but no `avatarSpecies` yet).
@@ -522,4 +525,122 @@ GOTCHA confirmed: editing globals.css needs a full .next clear + restart (HMR si
 plain restart 404'd all routes from a corrupt .next; moved .next to scratchpad to clear since rm/find-delete
 are blocked and in-project copy busts the 5GB cap).
 Birds deferred to a dedicated session (stash@{0} wip-bird-avatars-deferred; recommend drop + redo).
+
+## Session 2026-06-30 — Hoopoe mascot rebuild (Delight Labs)
+Replaced the minimal login/lab hoopoe (a blob with two rotating wing-petals, no tail/legs/brows,
+expressions that only nudged the eyes) with a real rigged CHARACTER. See docs/spec/mascot.md.
+- NEW src/components/mascot/: `hoopoe-kit.ts` (SPRINGS, PARTS map, EXPRESSIONS chord table, types,
+  MascotReducedContext, useValleyMotion, makeDamper), `hoopoe.tsx` (rigged SVG puppet + continuous
+  gaze + idle + the queued/awaitable/interruptible controller via forwardRef), `use-hoopoe.ts`
+  (ergonomic {ref, ...methods} hook).
+- Rig: front-on chibi, viewBox "0 -10 120 152". Parts: crest fan (teardrop feathers, cinnamon ->
+  warm-white sub-band -> black tip), brows, two eyes (round/wide/happy/sleepy cross-faded by
+  opacity), split bill (centered, slender), 2 shoulder-pivoted barred wings (fold + extended-arm
+  paths), 3-sliver tail w/ band, stubby 3-toe legs, body, bodyTurn (3/4 skew), root, shadow,
+  particles. Locomotion is front-on (feet + bob + lean + bodyTurn), no profile asset.
+- Controller (all awaitable, queued, never clobber): walk hop flyTo land turn point wave nod shake
+  crestFlick express(10 chords) smile celebrate(1/2/3 + leaf/heart particles) blinkOnce gaze
+  bindPassword coverEyes peek sequence react(semantic) stop cancel rest isBusy.
+- Palette locked: body #D5854A ("mid", tuned on the cream card vs the spec's #E0975F which washed
+  out the belly). spec discipline kept (warm whites, one shared near-black, pink bill base).
+- Lab REBUILT at /preview/delight/hoopoe: stage + control rail + sequence builder + expression
+  matrix + password/gaze demo + size variants + reduced-motion split. The owner's judging surface.
+- Login wired (src/app/(auth)/login/page.tsx): covers eyes while password hidden, peeks on reveal +
+  follows typing, intro on onReady. Replaces src/components/auth/hoopoe.tsx (old file still present).
+- Two research/critique workflows ran. Adversarial critique fixes applied: P0 queue-wedge (motion
+  control.stop() never resolves .finished -> added an abort token the pump races + re-pump on
+  drain), damper try/finally in every staged verb, reduced-motion short-circuits (express/point/
+  smile/turn/walk/hop/fly), nod direction, sad/worried frown visibility (Math.abs), surprise/alert
+  snappy + root recoil, love wing-hug, react() de-deadlocked (composes via sequence, not enqueued),
+  toLocal zero-guard, celebrate cooldown sandbox guard, api memoized + reducedRef in effect +
+  ambient/live cleanup on unmount. Art: wider crest fan + visible white sub-band + pivot into skull,
+  centered/longer/thinner bill, 3-sliver tail, 3 thicker wing bars, softer brows. tsc + eslint clean.
+- GOTCHA: motion's imperative animate() writes transform-box:fill-box inline, clobbering shared
+  pivots; the rig CSS forces transform-box:view-box + per-part transform-origin with !important.
+- Verified on the dev server (system Chrome via scripts/dev/shot-url.mjs + shot-svg.mjs): every
+  expression reads as a distinct chord; point/cover/peek/celebrate/gaze/walk/full-sequence all work;
+  login desktop + mobile show the covered bird.
+- DEFERRED (surfaced to owner): lock hoopoe out of the member avatar pool (src/lib/avatar.ts is
+  actively-changing WIP, went 37 -> 50 species mid-session; do not stomp). Follow-ups: walk on a
+  master clock; palette as CSS vars for a live color editor; delete old auth/hoopoe.tsx + preview
+  _hoopoe once all usages repointed. NOT committed (left for owner review).
 Full remaining backlog + the next-fork prompt: docs/operations/HANDOFF.md (rewritten) + docs/planning/PUNCHLIST.md.
+
+## Session 2026-06-30 (later) — Hoopoe redesign round 2 (owner feedback)
+
+Owner judged round 1: "step in the right direction" but several concrete fixes. All applied + verified:
+- CUTENESS (the crux): the rest face read like a "strict teacher"; rebuilt as a BABY hoopoe. Bigger
+  rounder head (cx60 cy56 rx30 ry27), huge low catchlit eyes (cx51/69 cy61 rx6.9 ry8.1), rounder
+  smaller body (cx60 cy101 rx22 ry21). Brows now HIDDEN at rest (brow.op 0), fade in only for
+  emotional poses (the stern rest brows were the teacher tell).
+- Removed the smile/mouth element entirely (rig + all chords + verbs + login). Removed the pink cheek
+  blush entirely ("Asian-cartoon", not hoopoe-like). Both gone from the chord model.
+- Bill: was two diverging lines -> ONE clean decurved beak (upper fixed + billLower hinge sharing the
+  y74 edge so the silhouette is continuous; opens cleanly for surprise).
+- Crest (loved, kept) now FOLDS: crest(true) springy fan open, crest(false) collapses to a slim swept
+  tuft. Lab has open/fold/flick controls.
+- Tail made a toggleable prop (default true); lab has a with-tail vs no-tail (legs-only) compare card
+  at big + small sizes for the owner to choose. Tail redrawn as a compact stub + white band.
+- Walk: stiff march -> bouncy baby waddle-hop (side rock + bob + paddling feet + head/crest/tail lag).
+- Point: was a salute (wing to the brow) -> a REAL point; the arm wing telescopes OUT horizontally
+  (scaleX reach) and holds aimed at the target. Wave still raises UP + waggles, so they read distinct.
+- Nod + shake: were jagged/2fps -> soft gentle amplitudes on EASE_SOFT, crest lagging. No spring snap.
+- Turn: dropped the oval squash (bodyTurn skew/scaleX removed) -> a gentle whole-body lean + look-over.
+- Fly: fixed targeting (lands body-center exactly on the tap; absolute viewBox math incl. the -10 y
+  origin that was the bug) + nicer parabolic arc, banking, 8 wingbeats, leg tuck.
+- Eye life: big catchlights + secondary sparkle + an occasional idle springy eye sparkle-bounce.
+- Reduced-motion REMOVED entirely (owner: always active). Stripped from kit/rig/lab; useValleyMotion
+  now only pauses idle on tab-hidden. MascotReducedContext/Provider + the lab reduced-split deleted.
+- Verified: tsc + eslint clean; production build exit 0; runtime check (puppeteer) drove nod/shake/
+  walk/hop/crest/wave + the full sequence (drains, no wedge) + cancel-mid-action recovery, ZERO
+  console errors. Rendered matrix (all 10), tail-compare, point, cover, crest-fold, turn, fly-on-tap,
+  login desktop+mobile. docs/spec/mascot.md rewritten to match. NOT committed (left for owner review).
+
+## Session 2026-06-30 (later still) — Hoopoe round 3 (owner: "amazing, final push")
+
+Owner loved it. Round-3 fixes, all applied + verified:
+- NO-TAIL CRASH (P0): with tail off, every verb that animated [data-part=tail] threw motion's "No
+  valid elements provided" (zero-match selector). Fixed by guarding the A() animate wrapper: a
+  selector matching nothing returns a resolved no-op. Now any verb can animate tail/legs whether or
+  not they're rendered (tail=false, icon variant). Runtime re-check: ZERO console errors.
+- TAIL: decided NO tail. `<Hoopoe tail>` now defaults FALSE (legs only). Lab stage toggle + compare
+  card kept.
+- FLY reworked for grace, not speed: distance-scaled duration (~1.0-1.9s), smooth eased parabola,
+  banking, a GENTLE low-amplitude wing flutter (not the old hard 80deg flap), clear crouch takeoff +
+  cushioned landing. (Owner's vision: bird spawns at Sign-in btn, flies to the hero as panel slides;
+  noted as a future app-level orchestration now that flyTo is smooth enough.)
+- PROPORTION STUDIO: added an interactive tuner to the lab (live sliders: head size, eye size, eye
+  height/forehead, eye spacing) + presets + a small-size strip (32-120px). Hoopoe now takes
+  headScale/eyeScale/eyeY/eyeSpread props (defaults = canonical, so nothing changes unless tuned).
+  Head center pinned at 56 so a smaller cranium shrinks around the eyes (less forehead, narrower) and
+  stays attached to the body. Eye/brow ANIMATION pivots are now CSS vars (--eye-lx/-rx/-y, --brow-y)
+  the SVG sets inline, so gaze/blink keep pivoting on the eye centre at any setting. Owner to pick
+  values; then bake into defaults.
+- TYPING FOLLOW: now fires on every keystroke of email + password in BOTH eye states (was gated on
+  reveal). When covered, the head tracks behind the wings. Updated login + lab PasswordGaze.
+- FULLY CLOSED EYES: blink scaleY 0.1 -> 0.04 (no peek); idle/hop blinks tightened. Cover-eyes lifts
+  the wings higher + flatter (rotate +-163, y -17) so the eyes are FULLY hidden (no catchlight peek).
+- Verified: tsc + eslint clean; production build exit 0; runtime ZERO console errors (incl. no-tail).
+  Rendered studio (default + smaller-head preset), small-size strip, no-tail rest, cover, matrix.
+
+## Session 2026-06-30 (round 4) — owner: "amazing, do the rest"
+
+- BEAK TRACKS GAZE: bill now sits in a `billGaze` group whose rotate (+-7) + small x are driven by the
+  gaze spring, so the beak swings toward where the bird looks. Fixes the "beak stays frozen / collides"
+  problem in turn AND point (both set gaze).
+- BEAK LENGTH knob: new `billLength` prop (bill top pinned at y62.5, hinge/tip/controls scale down);
+  billLower hinge pivot is a CSS var (--bill-y). Studio has a Beak length slider.
+- FLIGHT reworked to feel physical (owner: "two straight lines... give it physics... altitude tied to
+  wing flaps... cruising"). Now FLAP-BOUND: per powerstroke a lift bump + forward thrust, per recovery a
+  slight sag, under an asymmetric envelope (climb fast by t=0.16, cruise, descend). Quick shallow takeoff
+  (no long low crouch). root x/y + wings + body bank + crest/tail + shadow all share one `times` array so
+  the bob syncs to the flaps. Runtime: 0 errors; mid-flight frame confirms airborne + flapping.
+- SAD vs WORRIED separated: sad now uses NEGATIVE brow.ang (inner-up grief tent) + downcast gaze (0.85) +
+  fully wilted crest (0.44); worried keeps the mild furrow. Clearly different in the matrix now.
+- PROPORTION STUDIO presets: save named slots (mini-bird gallery, click to load, x to delete, up to 16,
+  persisted to localStorage key hoopoe-proportions-v1) so the owner can swap + compare. Kept the 3
+  built-in presets. Added the Beak length slider.
+- Eyes-following-typing: owner confirmed it's already there (added round 3); no change.
+- Verified: tsc + eslint clean; build exit 0; runtime 0 console errors (verbs + sequence + cancel +
+  flight). Rendered gaze-beak, matrix (sad/worried), studio (5 sliders), save-slot gallery, mid-flight.
+  NOT committed. Owner still dialing proportions in the studio; will send chosen numbers to bake.
