@@ -69,10 +69,10 @@ export function LandingHero() {
         <div className="w-full px-8 lg:px-16">
           <div className="lg:grid lg:grid-cols-[111px_1fr] lg:gap-x-2.5">
             <div className="lg:col-start-2">
-              <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl md:whitespace-nowrap">
+              <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl lg:whitespace-nowrap">
                 Welcome back to the valley.
               </h1>
-              <p className="mt-4 text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg md:whitespace-nowrap">
+              <p className="mt-4 max-w-[42ch] text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg lg:max-w-none lg:whitespace-nowrap">
                 A space for Rishi Valley alumni to reconnect, share stories, and find each other.
               </p>
               <div className="mt-9 flex flex-wrap items-center gap-3">
@@ -80,7 +80,7 @@ export function LandingHero() {
                   href="/signup"
                   className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
                 >
-                  Request an invite
+                  Join the community
                 </Link>
                 <Link
                   href="/login"

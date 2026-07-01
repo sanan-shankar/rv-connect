@@ -36,7 +36,7 @@ export function PageHeader({
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-2 whitespace-nowrap text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {subtitle}
           </p>
         )}

@@ -156,6 +156,12 @@
   }
   html {
     @apply font-sans;
+    /* Product-wide backstop: the page must never scroll sideways, whatever the
+       viewport. `clip` (not `hidden`) does NOT create a scroll container, so
+       position: sticky (the desktop sidebar) and normal vertical scrolling stay
+       intact. Real overflow is fixed at the component level; this only guards
+       against future regressions. */
+    overflow-x: clip;
   }
   h1, h2, h3, h4 {
     @apply font-heading tracking-tight;

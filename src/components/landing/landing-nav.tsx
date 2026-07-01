@@ -6,21 +6,37 @@ import { PeaksMark } from "@/components/layout/peaks-mark";
 
 /**
  * Slim sticky top bar that appears once the hero is scrolled past, so the
- * Sign in / Request an invite affordances are always one tap away during the
- * long scroll. Hidden in the fold so the hero stays pristine. Transform +
- * opacity only.
+ * Sign in / Join affordances are one tap away during the long scroll. Hidden in
+ * the fold so the hero stays pristine, and hidden again once the closing CTA
+ * band comes into view, so the bottom of the page never shows the same pair
+ * twice. Transform + opacity only.
  */
 export function LandingNav() {
-  const [visible, setVisible] = useState(false);
+  const [scrolledPastHero, setScrolledPastHero] = useState(false);
+  const [atClosingCta, setAtClosingCta] = useState(false);
 
   useEffect(() => {
     const onScroll = () => {
-      setVisible(window.scrollY > window.innerHeight * 0.6);
+      setScrolledPastHero(window.scrollY > window.innerHeight * 0.6);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+
+    // The closing footer band already repeats Join / Sign in. Tuck the bar away
+    // while it is on screen so a scrolled-to-bottom prospect sees only one pair.
+    const cta = document.getElementById("closing-cta");
+    const io = cta
+      ? new IntersectionObserver(([entry]) => setAtClosingCta(entry.isIntersecting))
+      : null;
+    if (cta && io) io.observe(cta);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      io?.disconnect();
+    };
   }, []);
+
+  const visible = scrolledPastHero && !atClosingCta;
 
   return (
     <div
@@ -43,15 +59,15 @@ export function LandingNav() {
         <div className="flex items-center gap-1.5 sm:gap-3">
           <Link
             href="/login"
-            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 active:scale-[0.98] sm:inline-flex"
+            className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 active:scale-[0.98] sm:inline-flex"
           >
             Sign in
           </Link>
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-lg bg-canopy px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform duration-150 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-sm transition-transform duration-150 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
           >
-            Request an invite
+            Join
           </Link>
         </div>
       </div>

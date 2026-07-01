@@ -719,13 +719,14 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
 
   // ----- cover / peek (login; not queued) -----
   // the wings lift (y) + draw inward (x) + rotate so they cover the EYES (peek-a-boo), not the beak.
+  // a springy overshoot (SPRINGS.bounce) gives a little bounce on the way up/down (attention to detail).
   function coverEyes() {
-    A(PARTS.leftWing, { rotate: -163, x: 6, y: -17 }, SPRINGS.gentle as never);
-    A(PARTS.rightWing, { rotate: 163, x: -6, y: -17 }, SPRINGS.gentle as never);
+    A(PARTS.leftWing, { rotate: -163, x: 6, y: -17 }, SPRINGS.bounce as never);
+    A(PARTS.rightWing, { rotate: 163, x: -6, y: -17 }, SPRINGS.bounce as never);
   }
   function peek() {
-    A(PARTS.leftWing, { rotate: 0, x: 0, y: 0 }, SPRINGS.gentle as never);
-    A(PARTS.rightWing, { rotate: 0, x: 0, y: 0 }, SPRINGS.gentle as never);
+    A(PARTS.leftWing, { rotate: 0, x: 0, y: 0 }, SPRINGS.bounce as never);
+    A(PARTS.rightWing, { rotate: 0, x: 0, y: 0 }, SPRINGS.bounce as never);
   }
   function bindPassword(getRevealed: () => boolean) {
     if (getRevealed()) peek();
@@ -754,8 +755,8 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
       gazeY.set(0);
       await Promise.all([
         applyChord(EXPRESSIONS.content),
-        A(PARTS.leftWing, { rotate: 0, scaleX: 1, x: 0, y: 0 }, SPRINGS.settle).finished,
-        A(PARTS.rightWing, { rotate: 0, scaleX: 1, x: 0, y: 0 }, SPRINGS.settle).finished,
+        A(PARTS.leftWing, { rotate: 0, scaleX: 1, x: 0, y: 0 }, SPRINGS.bounce).finished,
+        A(PARTS.rightWing, { rotate: 0, scaleX: 1, x: 0, y: 0 }, SPRINGS.bounce).finished,
         A(PARTS.leftLeg, { rotate: 0 }, SPRINGS.settle).finished,
         A(PARTS.rightLeg, { rotate: 0 }, SPRINGS.settle).finished,
         A(PARTS.body, { rotate: 0 }, SPRINGS.gentle).finished,
@@ -908,10 +909,10 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
   const eyeTX = useTransform(sx, [-1, 1], [-3.4, 3.4]);
   const eyeTY = useTransform(sy, [-1, 1], [-2.6, 2.6]);
   const headRotMv = useTransform(sx, [-1, 1], [-5, 5]);
-  // the beak swings toward where the bird looks (and shifts a touch), so it tracks the eyes
-  // instead of staying frozen while the eyes/head turn.
+  // the beak swings toward where the bird looks AND translates with the eyes (nearly matching eyeTX)
+  // so its top never collides with an eye as the face turns.
   const billRot = useTransform(sx, [-1, 1], [-7, 7]);
-  const billTX = useTransform(sx, [-1, 1], [-1.4, 1.4]);
+  const billTX = useTransform(sx, [-1, 1], [-3.3, 3.3]);
 
   const { api, damper } = useController({
     animate,

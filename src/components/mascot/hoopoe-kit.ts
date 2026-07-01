@@ -26,6 +26,7 @@ export const SPRINGS = {
   snappy: { type: "spring", stiffness: 420, damping: 30 }, // eyes, flicks, pops
   settle: { type: "spring", stiffness: 160, damping: 22 }, // crest + tail follow-through, landings, return-to-rest
   soft: { type: "spring", stiffness: 120, damping: 20, mass: 1.1 }, // the gentlest: nods, shakes, baby head motions
+  bounce: { type: "spring", stiffness: 235, damping: 20, mass: 0.9 }, // marginal overshoot + ~15% slower: cover eyes / peek / rest
 } as const;
 
 // duration-based easings for timeline beats (walk clock, particle drifts)
