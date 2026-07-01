@@ -1,5 +1,7 @@
 # Spec: avatars
 
+> **Stack note (2026-07-01):** Image storage is **Cloudflare R2** (not Vercel Blob); the database is **Supabase Postgres, Mumbai** (not Turso/SQLite/Render). Inline references below to Vercel Blob, Turso, Render, or "the DB move" are **superseded** — `photoUrl` holds an R2 URL. See `docs/STACK_MIGRATION.md`.
+
 > **Implementation status (2026-06-29): SHIPPED — reborn as 50 real Rishi Valley birds in colour.**
 > The original mono-white silhouette system was replaced: the owner found the off-white birds
 > indistinguishable at profile size. The live system is now in **`src/components/common/bird-avatar-v2.tsx`**
