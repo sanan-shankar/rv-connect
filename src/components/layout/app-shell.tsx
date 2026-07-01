@@ -1,5 +1,6 @@
 import { Sidebar, type SidebarUser } from "./sidebar";
 import { Footer } from "./footer";
+import { KonamiEggs } from "./konami-eggs";
 
 /**
  * AppShell: flush full-height sidebar + a warm content column with a faint
@@ -31,6 +32,7 @@ export function AppShell({
         className="valley-tree pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-[0.11]"
         style={{ backgroundImage: "url(/images/landing.jpeg)" }}
       />
+      <KonamiEggs />
       <Sidebar user={user} unreadCount={unreadCount} />
       {/* pb on mobile clears the fixed bottom tab bar */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">

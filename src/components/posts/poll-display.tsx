@@ -152,7 +152,7 @@ export function PollDisplay({
               style={{ transformOrigin: "left" }}
               initial={{ scaleX: 0 }}
               animate={{ scaleX: pct / 100 }}
-              transition={{ ...SPRINGS.gentle, delay }}
+              transition={{ type: "spring", stiffness: 150, damping: 20, delay }}
             />
             <div className="relative flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-medium text-foreground">

@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { motion } from "motion/react";
+import { SPRINGS } from "@/components/common/motion";
 import { registerUser } from "./actions";
 
 export function SignupForm({
@@ -141,13 +143,20 @@ export function SignupForm({
               key={t.value}
               type="button"
               onClick={() => setAccountType(t.value)}
-              className={`rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+              className={`relative rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
                 accountType === t.value
-                  ? "bg-leaf text-white"
+                  ? "text-white"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t.label}
+              {accountType === t.value && (
+                <motion.span
+                  layoutId="signupAccountThumb"
+                  className="absolute inset-0 z-0 rounded-full bg-leaf"
+                  transition={SPRINGS.snappy}
+                />
+              )}
+              <span className="relative z-10">{t.label}</span>
             </button>
           ))}
         </div>

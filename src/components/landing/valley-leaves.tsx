@@ -95,22 +95,6 @@ function midribAndVeins(
   ctx.globalAlpha /= 0.7;
 }
 
-function shadeHalf(ctx: CanvasRenderingContext2D, s: number, sw: Swatch, lean: number) {
-  // overlay the shaded underside on the lean-side half so the blade looks curled
-  ctx.save();
-  ctx.globalAlpha *= 0.55;
-  ctx.fillStyle = sw.shade;
-  ctx.beginPath();
-  ctx.moveTo(0, -s);
-  ctx.lineTo(0, s);
-  ctx.lineTo(lean * s * 1.1, s);
-  ctx.lineTo(lean * s * 1.1, -s);
-  ctx.closePath();
-  ctx.clip();
-  ctx.fillRect(-s * 1.4, -s * 1.4, s * 2.8, s * 2.8);
-  ctx.restore();
-}
-
 function paintBlade(
   ctx: CanvasRenderingContext2D,
   s: number,
@@ -120,16 +104,29 @@ function paintBlade(
   shape: (c: CanvasRenderingContext2D, s: number, curl: number) => void,
   veins: { t: number; spread: number; drop: number }[]
 ) {
-  ctx.fillStyle = sw.lit;
-  ctx.beginPath();
-  shape(ctx, s, curl);
-  ctx.fill();
-  shadeHalf(ctx, s, sw, lean);
-  // re-clip veins to the blade so they never spill outside the silhouette
+  // Clip ONCE to the blade silhouette, then paint the lit face, the shaded
+  // underside, and the veins all INSIDE that clip. The old shadeHalf clipped to
+  // a RECTANGLE and filled it, so the shade bled past the leaf edge and read as a
+  // faded box sitting on half the leaf. Bounding everything to the blade fixes it.
   ctx.save();
   ctx.beginPath();
   shape(ctx, s, curl);
   ctx.clip();
+
+  // lit face across the whole blade
+  ctx.fillStyle = sw.lit;
+  ctx.fillRect(-s * 1.8, -s * 1.8, s * 3.6, s * 3.6);
+
+  // shaded underside on the lean-side half, still inside the blade clip so it
+  // follows the leaf's own silhouette rather than showing a rectangle
+  ctx.save();
+  ctx.globalAlpha *= 0.5;
+  ctx.fillStyle = sw.shade;
+  if (lean >= 0) ctx.fillRect(0, -s * 1.8, s * 1.8, s * 3.6);
+  else ctx.fillRect(-s * 1.8, -s * 1.8, s * 1.8, s * 3.6);
+  ctx.restore();
+
+  // midrib + lateral veins, bounded by the same blade clip
   midribAndVeins(ctx, s, sw, veins);
   ctx.restore();
 }

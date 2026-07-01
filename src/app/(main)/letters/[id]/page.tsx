@@ -4,6 +4,7 @@ import { ArrowLeft, Feather } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BirdAvatar } from "@/components/common/bird-avatar";
+import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { formatBatch, renderRichText, parseJsonArray } from "@/lib/utils";
 
@@ -72,9 +73,7 @@ export default async function LetterPage({
         <span className="text-muted-foreground/70">· {readMinutes} min read</span>
       </div>
 
-      <h1 className="mt-2 font-heading text-3xl font-bold leading-tight tracking-[-0.02em] text-foreground sm:text-4xl">
-        {letterTitle(letter.title, letter.content)}
-      </h1>
+      <LetterTitle title={letterTitle(letter.title, letter.content)} />
 
       <div className="mt-5 flex items-center gap-3 border-b border-border pb-6">
         <Link href={`/profile/${letter.author.id}`} aria-label={letter.author.name}>

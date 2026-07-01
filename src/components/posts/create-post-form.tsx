@@ -286,50 +286,42 @@ export function CreatePostForm({
   // SPRINGS.gentle) and ANIMATES its collapse on exit (the exact reverse), so
   // clicking the backdrop, Cancel, or Escape closes it as smoothly as it opens.
   // Letters default to expanded, so they skip the pill.
+  // One stable card. The avatar is pinned on the left and never moves; the right column swaps the
+  // resting pill for the full editor, and the card's height springs open and shut via `layout`
+  // (SPRINGS.gentle). No AnimatePresence mode="wait" (that fades the pill fully OUT before the panel
+  // grows IN, which read as "it disappears, then expands, then the whole block jumps"). The avatar
+  // stays put, the box grows in place, and the collapse animates the same way in reverse.
   return (
-    <div ref={rootRef} data-composer>
-      <AnimatePresence initial={false} mode="wait">
-        {!expanded ? (
-          <motion.div
-            key="pill"
-            className="card-elevated flex items-center gap-3 rounded-full border border-border bg-card py-2 pl-3 pr-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={SPRINGS.gentle}
-          >
-            {currentUser && (
-              <BirdAvatar user={currentUser} size="sm" className="hidden sm:inline-grid" />
-            )}
+    <motion.div
+      ref={rootRef}
+      data-composer
+      layout
+      transition={SPRINGS.gentle}
+      className="card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-3 sm:p-3.5"
+    >
+      <div className="flex items-start gap-3">
+        {currentUser && (
+          <BirdAvatar user={currentUser} size="sm" className="mt-0.5 hidden shrink-0 sm:inline-grid" />
+        )}
+        <div className="min-w-0 flex-1">
+          {!expanded ? (
             <button
               type="button"
               onClick={() => expand("post")}
-              className="min-w-0 flex-1 truncate rounded-full py-1.5 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+              className="flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
             >
-              {collapsedPlaceholder}
+              <span className="truncate">{collapsedPlaceholder}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => expand("post")}
-              className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.18 }}
             >
-              <ImageIcon className="h-[15px] w-[15px]" />
-              <span className="hidden sm:inline">Photo</span>
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="panel"
-            className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={SPRINGS.gentle}
-            style={{ overflow: "visible" }}
-          >
         {/* Inline formatting bar: reveals with the field, not stranded */}
+        {/* Grouped formatting bar: one tidy toolbar, not four stranded glyphs. Reveals with the field. */}
         <motion.div
-          className="mb-2 flex gap-1"
+          className="mb-2.5 flex w-fit items-center gap-0.5 rounded-[10px] border border-border bg-secondary p-1"
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...SPRINGS.settle, delay: 0.05 }}
@@ -337,7 +329,7 @@ export function CreatePostForm({
           {fmtButtons.map((b) => (
             <SpringPress
               key={b.wrapper}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="inline-grid h-7 w-7 place-items-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               onClick={() => wrapSelection(b.wrapper)}
               {...({ type: "button", title: b.label, "aria-label": b.label } as object)}
             >
@@ -655,9 +647,10 @@ export function CreatePostForm({
             </div>
           </div>
         </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            </motion.div>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 }

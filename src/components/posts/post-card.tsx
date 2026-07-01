@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight } from "lucide-react";
-import { Heart, ChatCircle, ShareFat, BookmarkSimple, Feather, Check } from "@phosphor-icons/react";
+import { Heart, ChatCircle, ShareFat, Feather, Check } from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,7 @@ import { PollDisplay } from "./poll-display";
 import { formatTimeAgo, parseJsonArray, renderRichText, batchLine } from "@/lib/utils";
 import { toggleLike, deletePost, toggleBookmark } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
 
 export interface PostData {
@@ -54,11 +54,12 @@ export interface PostData {
   } | null;
 }
 
-// Tiny flecks that drift up when a heart is liked, in the valley palette.
+// Tiny flecks that drift up when a heart is liked, in the valley palette. Timing/scale ported from
+// the /preview/delight feedback lab so they drift slowly (0.9s) instead of snapping.
 const LEAF_FLECKS = [
-  { x: -13, y: -15, c: "#1F8A4C" },
-  { x: 12, y: -17, c: "#C2622F" },
-  { x: 1, y: -21, c: "#34C759" },
+  { x: -14, y: -34, c: "#1F8A4C" },
+  { x: 13, y: -40, c: "#C2622F" },
+  { x: 2, y: -44, c: "#34C759" },
 ];
 
 export function PostCard({
@@ -104,7 +105,7 @@ export function PostCard({
     setLikeCount(next ? likeCount + 1 : likeCount - 1);
     if (next) {
       setAnimateLike(true);
-      setTimeout(() => setAnimateLike(false), 540);
+      setTimeout(() => setAnimateLike(false), 900);
     }
     const result = await toggleLike(post.id);
     if (result.error) {
@@ -293,10 +294,13 @@ export function PostCard({
 
         {/* Actions */}
         <div className="mt-2 -ml-3.5 flex items-center gap-1 text-muted-foreground">
-          <button
+          <motion.button
             onClick={handleLike}
             aria-pressed={liked}
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 ${
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.93 }}
+            transition={SPRINGS.snappy}
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
               liked ? "text-heart" : "hover:text-foreground"
             }`}
           >
@@ -326,93 +330,138 @@ export function PostCard({
                     <motion.span
                       key={i}
                       className="absolute block rounded-full"
-                      style={{ width: 4, height: 4, marginLeft: -2, marginTop: -2, background: f.c }}
-                      initial={{ opacity: 0, x: 0, y: 0, scale: 0.4 }}
-                      animate={{ opacity: [0, 1, 0], x: f.x, y: f.y, scale: 1 }}
-                      transition={{ duration: 0.52, ease: EASE_POP }}
+                      style={{ width: 7, height: 7, marginLeft: -3.5, marginTop: -3.5, background: f.c }}
+                      initial={{ opacity: 0, x: 0, y: 0, scale: 0.5, rotate: 0 }}
+                      animate={{
+                        opacity: [0, 0.95, 0.95, 0],
+                        x: f.x,
+                        y: f.y,
+                        scale: [0.5, 1, 1, 0.9],
+                        rotate: f.x > 0 ? 40 : -40,
+                      }}
+                      transition={{ duration: 0.9, ease: EASE_POP, times: [0, 0.18, 0.7, 1] }}
                     />
                   ))}
                 </span>
               )}
             </span>
             <span>{likeCount}</span>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
             onClick={() => setShowComments(!showComments)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.93 }}
+            transition={SPRINGS.snappy}
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <ChatCircle size={18} weight="regular" />
             <span>{commentCount}</span>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
             onClick={handleBookmark}
             aria-pressed={bookmarked}
             aria-label={bookmarked ? "Remove bookmark" : "Save post"}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.93 }}
+            transition={SPRINGS.snappy}
             className={`ml-auto flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
               bookmarked ? "text-cinnamon" : "hover:text-foreground"
             }`}
           >
+            {/* Custom ribbon (ported from the delight lab): one even cinnamon stroke all the way
+                round, a clipped fill that rises from the foot on save, and a one-shot scaleY tuck.
+                The mark inherits the button's currentColor (muted at rest, cinnamon once saved). */}
             <motion.span
-              className="relative inline-flex will-change-transform"
-              animate={animateBookmark ? { scale: [1, 1.16, 1] } : { scale: 1 }}
+              className="relative inline-grid place-items-center will-change-transform"
+              animate={animateBookmark ? { scaleY: [1, 0.9, 1.04, 1] } : { scaleY: 1 }}
               transition={
                 animateBookmark
-                  ? { duration: 0.42, ease: EASE_POP, times: [0, 0.5, 1] }
+                  ? { duration: 0.5, ease: EASE_POP, times: [0, 0.32, 0.66, 1] }
                   : { duration: 0 }
               }
+              style={{ transformOrigin: "50% 12%" }}
             >
-              {/* Resting mark: even outline, cinnamon once saved (inherits the button colour). */}
-              <BookmarkSimple size={18} weight={bookmarked ? "fill" : "regular"} />
-              {/* Save flourish: a cinnamon fill rises up from the foot once, then unmounts
-                  cleanly so there is no retracting slide. transform only. */}
-              {animateBookmark && (
-                <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-                  <motion.span
-                    className="block"
-                    initial={{ y: "100%" }}
-                    animate={{ y: "0%" }}
-                    transition={{ duration: 0.34, ease: [0.22, 0.61, 0.36, 1] }}
-                  >
-                    <BookmarkSimple size={18} weight="fill" color="#C2622F" />
-                  </motion.span>
-                </span>
-              )}
+              <svg
+                width="13"
+                height="18"
+                viewBox="0 0 40 56"
+                aria-hidden
+                style={{ overflow: "visible", display: "block" }}
+              >
+                <defs>
+                  <clipPath id={`bm-${post.id}`}>
+                    <path d="M5 4 H35 V52 L20 42 L5 52 Z" />
+                  </clipPath>
+                </defs>
+                <motion.rect
+                  clipPath={`url(#bm-${post.id})`}
+                  x="3"
+                  y="0"
+                  width="34"
+                  height="56"
+                  fill="#C2622F"
+                  style={{ transformBox: "view-box", transformOrigin: "20px 52px" }}
+                  initial={false}
+                  animate={{ scaleY: bookmarked ? 1 : 0 }}
+                  transition={
+                    animateBookmark
+                      ? { duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }
+                      : { duration: bookmarked ? 0 : 0.2, ease: "easeIn" }
+                  }
+                />
+                <path
+                  d="M5 4 H35 V52 L20 42 L5 52 Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
             </motion.span>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
             onClick={handleShare}
             aria-label="Copy link to post"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.93 }}
+            transition={SPRINGS.snappy}
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
+              {/* Clean crossfade to a check, no spring overshoot (that read as a forced wiggle). */}
               <motion.span
                 className="absolute inline-flex"
-                animate={{ opacity: shared ? 0 : 1, scale: shared ? 0.6 : 1 }}
-                transition={SPRINGS.snappy}
+                animate={{ opacity: shared ? 0 : 1, scale: shared ? 0.7 : 1 }}
+                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
               >
                 <ShareFat size={18} weight="regular" />
               </motion.span>
               <motion.span
                 className="absolute inline-flex text-leaf"
-                animate={{ opacity: shared ? 1 : 0, scale: shared ? 1 : 0.6 }}
-                transition={SPRINGS.snappy}
+                animate={{ opacity: shared ? 1 : 0, scale: shared ? 1 : 0.7 }}
+                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
               >
                 <Check size={18} weight="bold" />
               </motion.span>
             </span>
-          </button>
+          </motion.button>
         </div>
 
-        {/* Comments */}
-        {showComments && (
-          <CommentsSection
-            postId={post.id}
-            onCommentAdded={() => setCommentCount((c) => c + 1)}
-          />
-        )}
+        {/* Comments: AnimatePresence so the section animates its collapse on close too,
+            not just its open (it snapped shut before). */}
+        <AnimatePresence initial={false}>
+          {showComments && (
+            <CommentsSection
+              key="comments"
+              postId={post.id}
+              onCommentAdded={() => setCommentCount((c) => c + 1)}
+            />
+          )}
+        </AnimatePresence>
       </article>
 
       {showReport && (

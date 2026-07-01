@@ -24,6 +24,10 @@ export const SPRINGS = {
 export const EASE_POP = [0.34, 1.56, 0.64, 1] as const; // anticipation + overshoot
 export const EASE_SPRING = [0.34, 1.5, 0.64, 1] as const; // softer settle
 
+/* The sidebar active-row marker glides with a touch more weight than `snappy`, so the pill and its
+   cinnamon edge settle rather than snap dead. Shared so any future edge-marker reads the same. */
+export const NAV_MARKER_SPRING = { type: "spring", stiffness: 480, damping: 38, mass: 0.9 } as const;
+
 /* Content rises a touch as it arrives. Hydration-safe: server and client both
    render the initial frame, then the client animates (no reduced-motion branching). */
 export function FadeRise({

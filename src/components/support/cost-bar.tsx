@@ -19,15 +19,36 @@ const TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
 export function CostBar() {
   const ref = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
+  // The figure counts up from 0 to TOTAL paired with the bar fill, on the same
+  // scroll-into-view trigger, so the count and the bar land together.
+  const [amount, setAmount] = useState(0);
+  const raf = useRef<number | null>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Count the figure up on the same trigger as the bar: a rAF ease-out cubic
+    // over ~950ms, seeded from the first frame timestamp (not a render-scope clock).
+    function runCount() {
+      if (raf.current) cancelAnimationFrame(raf.current);
+      const dur = 950;
+      let start = 0;
+      const tick = (now: number) => {
+        if (!start) start = now;
+        const t = Math.min(1, (now - start) / dur);
+        const e = 1 - Math.pow(1 - t, 3);
+        setAmount(Math.round(TOTAL * e));
+        if (t < 1) raf.current = requestAnimationFrame(tick);
+      };
+      raf.current = requestAnimationFrame(tick);
+    }
+
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             setShown(true);
+            runCount();
             io.disconnect();
           }
         });
@@ -35,13 +56,21 @@ export function CostBar() {
       { threshold: 0.4 }
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
   }, []);
 
   return (
     <div ref={ref} className="mt-[var(--space-m)]">
       <div className="flex items-baseline justify-between gap-[var(--space-m)]">
-        <p className="text-sm font-medium text-foreground">Where the monthly bill goes</p>
+        <p className="text-sm font-medium text-foreground">
+          Where the monthly bill goes
+          <span className="ml-[var(--space-xs)] text-sm font-semibold tabular-nums text-foreground">
+            ${amount.toLocaleString()}
+          </span>
+        </p>
         <p className="text-xs text-muted-foreground">a rough split, not exact</p>
       </div>
       <div className="mt-[var(--space-s)] h-3 w-full overflow-hidden rounded-full bg-mist">

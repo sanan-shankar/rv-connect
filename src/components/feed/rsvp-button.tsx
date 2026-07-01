@@ -59,30 +59,29 @@ export function RsvpButton() {
             : "bg-cinnamon/[0.14] text-cinnamon hover:bg-cinnamon/[0.22] focus-visible:ring-cinnamon/50"
         }`}
       >
-        {/* Check draws on when Going. Painted white on the first frame so it never
+        {/* Check draws on only when Going, so at rest the "RSVP" label sits centred
+            with no orphan gap on the left. Painted white on the first frame so it never
             flashes through an inherited colour; only pathLength + opacity animate. */}
-        <span className="grid h-[15px] w-[15px] place-items-center">
-          <svg width="15" height="15" viewBox="0 0 18 18" aria-hidden>
-            <motion.path
-              d="M3.5 9.5 L7.5 13 L14.5 5"
-              fill="none"
-              stroke="#FFFFFF"
-              strokeWidth="2.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              initial={false}
-              animate={{ pathLength: going ? 1 : 0, opacity: going ? 1 : 0 }}
-              transition={
-                going
-                  ? {
-                      pathLength: { duration: 0.3, ease: [0.65, 0, 0.35, 1], delay: 0.06 },
-                      opacity: { duration: 0.12 },
-                    }
-                  : { duration: 0.16, ease: "easeOut" }
-              }
-            />
-          </svg>
-        </span>
+        {going && (
+          <span className="grid h-[15px] w-[15px] place-items-center">
+            <svg width="15" height="15" viewBox="0 0 18 18" aria-hidden>
+              <motion.path
+                d="M3.5 9.5 L7.5 13 L14.5 5"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{
+                  pathLength: { duration: 0.3, ease: [0.65, 0, 0.35, 1], delay: 0.06 },
+                  opacity: { duration: 0.12 },
+                }}
+              />
+            </svg>
+          </span>
+        )}
         <span>{going ? "Going" : "RSVP"}</span>
 
         {/* Flecks lift off the moment it settles into Going. Painted on the first
