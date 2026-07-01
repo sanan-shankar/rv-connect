@@ -5,13 +5,13 @@
  * the salted FNV-1a in src/lib/avatar.ts and verifies, over thousands of cuid-shaped ids, that:
  *   - every species / colour / pose bucket lands within a generous band of its expected share
  *   - the three axes are decorrelated (no triple is wildly over-represented)
- * The set is 37 Rishi Valley species. The rendered avatars are currently background-less
- * (BG_MODE="none"), so the disc colour is not shown and the visual variety is 37 species x 2
+ * The set is 50 Rishi Valley species. The rendered avatars are currently background-less
+ * (BG_MODE="none"), so the disc colour is not shown and the visual variety is 50 species x 2
  * poses (left/right); colour is still hashed so the disc-bearing modes work if re-enabled.
  * It throws (non-zero exit) on failure so it can gate a build if desired.
  */
 
-const SPECIES_COUNT = 37;
+const SPECIES_COUNT = 50;
 const COLOR_COUNT = 10;
 const POSE_COUNT = 4;
 

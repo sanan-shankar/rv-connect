@@ -3,15 +3,15 @@
  *
  * Every member without an uploaded photo gets a bird, derived stably from their id, so it never
  * changes and is evenly distributed. The three axes (species, disc colour, pose) are hashed with
- * different salts so they do not correlate: two members who happen to share a species are very
- * unlikely to also share colour and pose. Combinations:
+ * different salts so they do not correlate. The set is 50 real Rishi Valley species (see
+ * bird-avatar-v2.tsx); the avatars currently render with no background (BG_MODE="none"), so the
+ * visible variety is 50 species x 2 poses (left/right) and the disc colour is held in reserve for
+ * the disc-bearing modes.
  *
- *     52 species  x  10 disc colours  x  4 poses  =  2080
- *
- * which clears the 500 floor with wide headroom and scales past 1000. Photo
- * upload overrides the bird; a manual species/colour can also override the hash (precedence:
- * photo > manual > hash). The same id yields the same bird on the server and the client because
- * this is pure arithmetic over charCodeAt, with no Math.random, Date, or locale.
+ * Photo upload overrides the bird; a manual species/colour or an owner/staff pin can also override
+ * the hash (precedence: photo > manual > pin > hash). The same id yields the same bird on the
+ * server and the client because this is pure arithmetic over charCodeAt, with no Math.random,
+ * Date, or locale.
  */
 
 export const AVATAR_PALETTE = [
@@ -28,7 +28,7 @@ export const AVATAR_PALETTE = [
 ];
 
 // Rishi Valley bird species. Keep in sync with the ARCHES list in bird-avatar-v2.tsx.
-export const BIRD_SPECIES_COUNT = 37;
+export const BIRD_SPECIES_COUNT = 50;
 
 // Pose variations (left/right). Only pose >= 2 mirrors the bird; see bird-avatar-v2.tsx.
 export const BIRD_POSE_COUNT = 4;
