@@ -6,6 +6,8 @@ I now have full grounding. Here is the complete spec for my assigned area.
 
 # Infrastructure, Performance, and the Support Page
 
+> **Stack update (2026-07-01):** This analysis predates the final infra decision. The live stack is now **Vercel** (hosting, `bom1` Mumbai) + **Supabase Postgres, `ap-south-1` Mumbai** (database, via Prisma's `pg` adapter) + **Cloudflare R2** (images, zero egress). The **Render** recommendation and the **Turso/libSQL** and **Vercel Blob** descriptions below are **superseded** and kept for historical context; the Support-page design still applies. See `docs/STACK_MIGRATION.md`.
+
 This section covers three connected things: why the current Turso plus Vercel setup feels sluggish, a prioritized and cost-aware plan to make RV Alumni snappy on Render, and the design and data model for a Support page that funds the owner's hosting. Every recommendation below is grounded in the real code as it exists today, with the bottleneck named and the fix scoped so the owner can decide what is worth paying for.
 
 ## 0. What the code actually does today (the baseline)

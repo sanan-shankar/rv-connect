@@ -13,16 +13,19 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Protected routes: everything under `(main)/` layout requires auth. Public: `/`, `/login`, `/verify`.
 
 ## Database
-- **Prisma ORM** with `@prisma/adapter-libsql`
-- Local: SQLite (`dev.db`)
-- Production: Turso (libSQL), hosted on Vercel
+- **Prisma ORM** with `@prisma/adapter-pg` (Postgres driver adapter)
+- **Supabase Postgres**, region `ap-south-1` (Mumbai), for both production and local dev
+- Runtime connects via the transaction pooler (`DATABASE_URL`, port 6543, `?pgbouncer=true`); the Prisma CLI uses the session pooler (`DIRECT_URL`, port 5432), set in `prisma.config.ts`
 - Schema: `prisma/schema.prisma` — User, Post, Comment, Like, Group, Notification, Report, Poll models
 - Commands: `npx prisma db push`, `npx prisma generate`, `npx prisma studio`
+- Migrated off Turso/libSQL on 2026-07-01; runbook in `docs/STACK_MIGRATION.md`
 
 ## File Storage
-- **Vercel Blob** for user-uploaded images (avatars, post images)
+- **Cloudflare R2** (S3-compatible, zero egress) for user-uploaded images (avatars, post images); bucket `rv-alumni-media`
+- All image bytes flow through the `putImage`/`delImage` shim in `src/lib/storage.ts` (R2 in prod, local filesystem in dev)
 - **Sharp** for WebP conversion before upload
-- Remote image pattern: `*.public.blob.vercel-storage.com`
+- Remote image pattern: `*.r2.dev` (served from a `pub-*.r2.dev` URL; a custom domain can be added before launch)
+- Migrated off Vercel Blob on 2026-07-01
 
 ## Key Patterns
 - App Router with `(auth)` and `(main)` route groups

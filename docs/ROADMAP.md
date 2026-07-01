@@ -2,7 +2,9 @@
 
 _Synthesized by the architecture workflow (wpud23338). Source of truth for build order, decisions, component inventory, and data model._
 
-# RV Alumni — MVP Build Plan (ships to Render)
+> **Stack update (2026-07-01):** The final infrastructure is **Vercel** (hosting) + **Supabase Postgres, `ap-south-1` Mumbai** (database) + **Cloudflare R2** (images). The **Render**, **Render Postgres**, **Turso/libSQL**, and **Vercel Blob** references throughout this document reflect an earlier plan and are **superseded**. The product, feature, and data-model decisions below still stand; only the infra choices changed. See `docs/STACK_MIGRATION.md`.
+
+# RV Alumni — MVP Build Plan
 
 This is the single, contradiction-free build plan synthesized from all area specs. It is light-mode-first, modular-reuse-first, and ordered so shared pieces land before the surfaces that consume them. No em dashes anywhere in shipped copy.
 
