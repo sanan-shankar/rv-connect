@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Reply, ArrowUp, X } from "lucide-react";
 import { Heart } from "@phosphor-icons/react";
-import { Input } from "@/components/ui/input";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
 import Link from "next/link";
@@ -60,6 +59,7 @@ export function CommentsSection({
     null
   );
   const [submitting, setSubmitting] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   useEffect(() => {
     loadComments(postId).then((data) => {
@@ -120,6 +120,7 @@ export function CommentsSection({
       className="mt-3 border-t border-border pt-3"
       initial={{ height: 0, opacity: 0 }}
       animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
       transition={SPRINGS.gentle}
       style={{ overflow: "hidden" }}
     >
@@ -128,7 +129,7 @@ export function CommentsSection({
         className="flex flex-col gap-3"
         variants={LIST_VARIANTS}
         initial="hidden"
-        animate={loading ? "hidden" : "show"}
+        animate="show"
       >
         {loading ? (
           <p className="px-1 text-sm text-muted-foreground">Loading comments...</p>
@@ -194,17 +195,29 @@ export function CommentsSection({
           </motion.div>
         )}
         <div className="flex items-center gap-2">
-          <Input
-            className="flex-1 rounded-full"
-            placeholder={
-              replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."
-            }
+          {/* Clean INSET focus ring (inline so it never depends on Tailwind arbitrary parsing):
+              it lives inside the input, so the panel's overflow-hidden (needed for the open/close
+              height animation) can never clip it into the stray top-and-side shape it showed before. */}
+          <input
+            type="text"
+            className="h-9 flex-1 rounded-full border bg-card px-4 text-sm text-foreground outline-none transition-[box-shadow,border-color] duration-150 ease-out placeholder:text-muted-foreground"
+            placeholder={replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             maxLength={1000}
+            style={{
+              borderColor: focused
+                ? "color-mix(in srgb, var(--color-leaf) 55%, var(--border))"
+                : "var(--border)",
+              boxShadow: focused
+                ? "inset 0 0 0 2px color-mix(in srgb, var(--color-leaf) 28%, transparent)"
+                : "none",
+            }}
           />
           <SpringPress
-            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-leaf text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter,opacity] duration-150 hover:brightness-[1.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 focus-visible:ring-offset-1 disabled:opacity-40 disabled:shadow-none"
+            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-leaf text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 focus-visible:ring-offset-1 disabled:opacity-40 disabled:shadow-none"
             {...({
               type: "submit",
               "aria-label": "Post comment",

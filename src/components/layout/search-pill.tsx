@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { EASE_POP } from "@/components/common/motion";
+import { EASE_POP, SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,18 +21,19 @@ import { cn } from "@/lib/utils";
  * across both states and settles into place rather than snapping, the input and
  * placeholder fade in, and a soft focus ring blooms.
  *
- * Motion feel (per owner): opening is delightful, a springy bounce with a touch
- * of overshoot. Closing is quick and calm, a stiff fast spring while the bar's
- * chrome fades out, so the collapse reads as a tidy tuck-away rather than an
- * exaggerated width stretch. The two transitions are deliberately asymmetric.
+ * Motion feel (per owner): opening is a small crisp spring bounce, closing is
+ * the same short spring bouncing back, both quick and tidy with NO long stretch
+ * distortion. Both directions read as one short spring so the bar never
+ * over-stretches in either direction. The input fades (opacity) rather than
+ * scaling, so only the container width springs, never the glyphs.
  */
 
-// Opening: a springy bounce that overshoots a hair, then settles. Lower damping
-// relative to stiffness gives the small tasteful overshoot the owner wants.
-const OPEN_SPRING = { type: "spring", stiffness: 320, damping: 19, mass: 0.85 } as const;
-// Closing: stiff and quick, well damped, so the bar tucks shut fast with no
-// lingering stretch. Paired with a fast content fade below.
-const CLOSE_SPRING = { type: "spring", stiffness: 560, damping: 42, mass: 0.7 } as const;
+// Opening: the shared `snappy` pill spring (420/30) gives a crisp, subtle
+// bounce that settles fast, matching every other pill in the app.
+const OPEN_SPRING = SPRINGS.snappy;
+// Closing: a hair stiffer so the bar tucks back without a slow over-stretch;
+// reads as the same short spring bouncing closed. Paired with a fast content fade.
+const CLOSE_SPRING = { type: "spring", stiffness: 520, damping: 36 } as const;
 
 export function SearchPill() {
   const router = useRouter();
@@ -101,15 +102,14 @@ export function SearchPill() {
         </AnimatePresence>
 
         {/* The magnifying glass stays mounted across both states and settles
-            into place. Closed, it is optically centered in the 40px pill (the
-            handle points down-right, so the glyph is nudged a hair down-right to
-            balance its visual mass); open, it sits at the bar's leading edge. */}
+            into place. Closed, it sits dead center in the 40px pill; open, it
+            sits at the bar's leading edge. */}
         <motion.span
           layout
           transition={open ? OPEN_SPRING : CLOSE_SPRING}
           aria-hidden
           className={cn(
-            "grid shrink-0 place-items-center text-muted-foreground transition-transform duration-150 ease-out",
+            "grid shrink-0 place-items-center leading-none text-muted-foreground transition-transform duration-150 ease-out",
             open
               ? "h-auto w-auto"
               : "h-10 w-10 group-hover:text-foreground group-active:scale-95"
@@ -119,7 +119,6 @@ export function SearchPill() {
             weight="regular"
             size={open ? 16 : 18}
             className="pointer-events-none"
-            style={open ? undefined : { transform: "translate(0.5px, 0.5px)" }}
           />
         </motion.span>
 

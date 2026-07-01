@@ -56,11 +56,12 @@ export function NotificationBell({
   }, [unreadCount]);
 
   // One transform-only decaying shake, pivoting from the top so it reads as a
-  // wobble. easeInOut tween (never a spring with 5+ keyframes).
+  // wobble. A cubic-bezier tween mirroring the preview lab (never a spring with
+  // 5+ keyframes).
   const shakeAnimate = shakeKey > 0 ? { rotate: [0, -9, 7, -5, 3, 0] } : { rotate: 0 };
   const shakeTransition = {
-    duration: 0.6,
-    ease: "easeInOut" as const,
+    duration: 0.7,
+    ease: [0.36, 0.07, 0.2, 1] as const,
     times: [0, 0.16, 0.36, 0.56, 0.78, 1],
   };
 
@@ -99,6 +100,7 @@ export function NotificationBell({
           title="Notifications"
         >
           <motion.span
+            key={shakeKey}
             className="inline-grid place-items-center"
             style={{ transformOrigin: "50% 12%" }}
             animate={shakeAnimate}

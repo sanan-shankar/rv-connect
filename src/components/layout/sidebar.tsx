@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { motion } from "motion/react";
-import { SPRINGS } from "@/components/common/motion";
+import { NAV_MARKER_SPRING } from "@/components/common/motion";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
@@ -125,19 +125,23 @@ function NavLinks({
               <>
                 {/* The soft pill and the cinnamon edge are two layoutId children.
                     They glide together to whichever row matches the route,
-                    instead of popping, on one shared spring. The pill stays
-                    inset to the row; the bar pulls out to the sidebar's flush
-                    left edge (-16px == the px-4 rail padding) so it reads as a
-                    distinct edge marker, not a hairline crammed inside the pill. */}
+                    instead of popping, on one shared spring (NAV_MARKER_SPRING,
+                    a touch underdamped so they settle with weight). initial=false
+                    means they appear placed on first paint for the current route
+                    rather than playing an enter animation; they only glide on
+                    navigation. The pill stays inset to the row; the bar sits just
+                    outside it as a clean ~3px left edge. */}
                 <motion.span
                   layoutId={`${markerId}-pill`}
+                  initial={false}
                   className="absolute inset-0 z-0 rounded-xl bg-sidebar-accent"
-                  transition={SPRINGS.snappy}
+                  transition={NAV_MARKER_SPRING}
                 />
                 <motion.span
                   layoutId={`${markerId}-bar`}
-                  className="absolute left-[-16px] top-1.5 bottom-1.5 z-[1] w-1 rounded-full bg-cinnamon"
-                  transition={SPRINGS.snappy}
+                  initial={false}
+                  className="absolute left-[-8px] top-1.5 bottom-1.5 z-[1] w-[3px] rounded-sm bg-cinnamon"
+                  transition={NAV_MARKER_SPRING}
                 />
               </>
             )}
