@@ -12,20 +12,10 @@ const USE_V2 = true;
 /**
  * BirdAvatar - the default identity mark across the app.
  *
- * Precedence: uploaded photo > manual (avatarColor/avatarSpecies) > deterministic bird from id.
- * Server-renderable (no hooks). 52 species x 10 disc colours x 4 poses = 2080 distinct birds,
- * selected by a salted FNV-1a hash of the user id so the distribution is even and the axes do
- * not correlate. Every silhouette is an off-white fill CENTERED in the disc (viewBox 0..32,
- * visual mass balanced around 16,16) with a negative-space eye punched in the disc colour.
- *
- * House style (so 52 birds feel like one family, yet each is its own creature):
- *   - One off-white fill (#FBFBF8). No strokes. Subtle opacity drops on wings/tails read as soft
- *     tonal separation, never a second colour.
- *   - Plump, rounded bodies and a big forward eye = cute at 28px.
- *   - Each species carries ONE dominant gesture (crest / beak / tail / posture / neck) so it is
- *     distinguishable from every other at a glance, not a feature-toggle of a shared base.
- *   - Mass kept inside ~radius 13 of centre; long tails/beaks are balanced by offsetting the body
- *     so the centroid stays at 16,16 (no bottom-hanging, no left/right drift).
+ * Precedence: uploaded photo > manual (avatarColor/avatarSpecies) > owner/staff pin > deterministic
+ * bird from id. Server-renderable (no hooks). With USE_V2 on (the default), it delegates to
+ * BirdGlyphV2 — the set of 50 Rishi Valley birds in real colours (see bird-avatar-v2.tsx). The
+ * legacy mono-white silhouette path below runs only when USE_V2 is off.
  *
  * Sizes: 28 (xs / inline + comments + mentions), 40 (sm / post header + composer + rails),
  * 64 (md / directory cards), 104 (lg / profile cover).

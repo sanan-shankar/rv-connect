@@ -12,8 +12,11 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
 
 const BASE = "http://localhost:3000/preview/centroid";
-const SAFE_R = 46; // bird should fit within radius 46 of centre (≈8% margin) so it never kisses the edge
-const TARGET_R = 43; // normalise each bird to roughly this reach so they look the same size
+// Size by visual MASS (area-equivalent radius), not the farthest tip, so birds with a long thin
+// tail/bill/crest (drongo, pond heron, kingfisher, peafowl) get a body as big as the round birds.
+// A cap keeps that thin part from pushing past the frame.
+const TARGET_AREA_R = 40; // each bird's body normalised to this area-equiv radius
+const MAXREACH_CAP = 50; // ...but never scale so far that any point exceeds this radius (the frame)
 const PXV = 6; // 600px / 100 viewBox units
 const ADJUST_PATH = "src/components/common/bird-adjust.json";
 const WRITE = !process.argv.includes("--measure-only");
@@ -57,6 +60,8 @@ for (let i = 0; i < count; i++) {
   const bx0 = minX / PXV, bx1 = maxX / PXV, by0 = minY / PXV, by1 = maxY / PXV;
   // furthest the silhouette reaches from the TARGET centre (50,50)
   const reach = Math.max(50 - bx0, bx1 - 50, 50 - by0, by1 - 50);
+  // area-equivalent radius: the radius of a disc with the same opaque area (the "body size")
+  const rArea = Math.sqrt(sw / Math.PI) / PXV;
   rows.push({
     i, name,
     cx: +cx.toFixed(1), cy: +cy.toFixed(1),
@@ -64,42 +69,48 @@ for (let i = 0; i < count; i++) {
     bbox: `${bx0.toFixed(0)}-${bx1.toFixed(0)} x ${by0.toFixed(0)}-${by1.toFixed(0)}`,
     w: +(bx1 - bx0).toFixed(0), h: +(by1 - by0).toFixed(0),
     reach: +reach.toFixed(1),
+    rArea: +rArea.toFixed(1),
   });
 }
 await browser.close();
 
-console.log("\n#   bird            centroid     nudge(dx,dy)   bbox            w x h     reach  flags");
-console.log("-".repeat(92));
+console.log("\n#   bird            centroid     nudge(dx,dy)   rArea  reach  flags");
+console.log("-".repeat(86));
 for (const r of rows) {
   if (r.empty) { console.log(`${String(r.i).padEnd(3)} ${String(r.name).padEnd(15)} EMPTY`); continue; }
   const flags = [];
-  if (Math.abs(r.dx) > 1.5 || Math.abs(r.dy) > 1.5) flags.push(`OFF-CENTRE`);
-  if (r.reach > SAFE_R) flags.push(`TOO-BIG(${r.reach})`);
-  if (r.reach < 38) flags.push(`too-small`);
+  if (Math.abs(r.dx) > 1.0 || Math.abs(r.dy) > 1.0) flags.push(`OFF-CENTRE`);
+  if (r.reach > MAXREACH_CAP + 1.5) flags.push(`OVER-FRAME(${r.reach})`);
+  // body too small only matters if it is NOT held back by the frame cap
+  if (r.rArea < TARGET_AREA_R - 2.5 && r.reach < MAXREACH_CAP - 1.5) flags.push(`small-body(${r.rArea})`);
   console.log(
     `${String(r.i).padEnd(3)} ${String(r.name).padEnd(15)} ` +
     `(${String(r.cx).padStart(4)},${String(r.cy).padStart(4)})  ` +
-    `(${String(r.dx).padStart(5)},${String(r.dy).padStart(5)})  ` +
-    `${String(r.bbox).padEnd(15)} ${String(r.w).padStart(2)}x${String(r.h).padStart(2)}   ` +
-    `${String(r.reach).padStart(4)}   ${flags.join(" ")}`
+    `(${String(r.dx).padStart(5)},${String(r.dy).padStart(5)})   ` +
+    `${String(r.rArea).padStart(4)}  ${String(r.reach).padStart(4)}   ${flags.join(" ")}`
   );
 }
-const bad = rows.filter((r) => !r.empty && (Math.abs(r.dx) > 1.0 || Math.abs(r.dy) > 1.0 || r.reach > SAFE_R || r.reach < 40));
-console.log("-".repeat(92));
-console.log(`${rows.length} birds. ${bad.length} need attention (centroid >1u off, or reach outside 40..${SAFE_R}).`);
+const bad = rows.filter((r) => !r.empty && (
+  Math.abs(r.dx) > 1.0 || Math.abs(r.dy) > 1.0 ||
+  r.reach > MAXREACH_CAP + 1.5 ||
+  (r.rArea < TARGET_AREA_R - 2.5 && r.reach < MAXREACH_CAP - 1.5)
+));
+console.log("-".repeat(86));
+console.log(`${rows.length} birds. ${bad.length} need attention (centroid off, body too small, or over the frame).`);
 
 if (WRITE) {
   // Compose an incremental correction onto the existing adjust. The measured centroid already
   // reflects existing; new transform T_new is applied on top, so:
   //   s = s_new * s_old ;  t = s_new * t_old + t_new
-  // where s_new = TARGET_R/reach (renormalise size) and t_new = s_new * (dx,dy) (zero residual).
+  // s_new sizes by visual mass (TARGET_AREA_R / rArea) but is capped so the farthest point never
+  // exceeds the frame (MAXREACH_CAP / reach); t_new = s_new * (dx,dy) zeroes the residual offset.
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const next = {};
   for (const r of rows) {
     if (r.empty) continue;
     const old = existing[r.name] || {};
     const so = old.s ?? 1, tox = old.x ?? 0, toy = old.y ?? 0;
-    const sn = clamp(TARGET_R / r.reach, 0.55, 1.9);
+    const sn = clamp(Math.min(TARGET_AREA_R / r.rArea, MAXREACH_CAP / r.reach), 0.55, 1.9);
     const tnx = sn * r.dx, tny = sn * r.dy;
     const s = clamp(so * sn, 0.55, 1.9);
     const x = sn * tox + tnx;

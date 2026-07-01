@@ -1,24 +1,27 @@
 # Spec: avatars
 
-> **Implementation status (2026-06-27): SHIPPED, expanded to 52 species.**
-> The system below is live in `src/lib/avatar.ts` + `src/components/common/bird-avatar.tsx`, with these
-> deltas from the original draft: the species set is now **52** (not 12/16), the disc palette is **10**
-> colours (not 16), and the third axis is **4 poses** (mirror / lift / both / none), giving
-> **52 x 10 x 4 = 2080** deterministic birds. All silhouettes are a single off-white fill centred in a
-> `0 0 32 32` viewBox with a negative-space eye in the disc colour; glyph = `floor(size * 0.66)`.
-> Design rules enforced via the QA harness at **`/preview/birds-qa`** (large render + centre cross +
-> safe-ring + the 40/28 ship sizes): every bird's mass sits centred on (16,16), balanced (not too
-> tall/wide), no dangling legs (waders show body + neck only). Distribution verified by
-> `src/lib/avatar.test.mjs` (2078/2080 combos observed over 16000 ids, even spread).
+> **Implementation status (2026-06-29): SHIPPED — reborn as 50 real Rishi Valley birds in colour.**
+> The original mono-white silhouette system was replaced: the owner found the off-white birds
+> indistinguishable at profile size. The live system is now in **`src/components/common/bird-avatar-v2.tsx`**
+> (`BirdAvatar` delegates to it via the `USE_V2` flag; the legacy mono path remains behind `USE_V2=false`).
 >
-> The 52 species (index -> bird): 0 Hoopoe, 1 Rose-ringed parakeet, 2 Green bee-eater, 3 Purple sunbird,
-> 4 White-throated kingfisher, 5 Red-vented bulbul, 6 Indian roller, 7 Drongo, 8 Coppersmith barbet,
-> 9 Paradise flycatcher, 10 Indian peahen, 11 Tailorbird, 12 Swift, 13 Lapwing, 14 Owl, 15 Munia,
-> 16 Owlet, 17 Duck, 18 Swan, 19 Flamingo, 20 Peacock, 21 Rooster, 22 Hen, 23 Penguin, 24 Pelican,
-> 25 Stork, 26 Crane, 27 Heron, 28 Hornbill, 29 Toucan, 30 Woodpecker, 31 Hummingbird, 32 Dove,
-> 33 Sparrow, 34 Robin, 35 Swallow, 36 Magpie, 37 Cockatiel, 38 Cardinal, 39 Wagtail, 40 Spoonbill,
-> 41 Avocet, 42 Eagle, 43 Falcon, 44 Kite, 45 Goose, 46 Moorhen, 47 Quail, 48 Puffin, 49 Kiwi,
-> 50 Cockatoo, 51 Jay. (To add more: append a `case` in `Species()` and bump `BIRD_SPECIES_COUNT`.)
+> Current system:
+> - **50 species**, each a real bird recorded at/around Rishi Valley, drawn in its **real colours**
+>   from big soft rounded shapes (no thin spikes). Curated so no two read alike at 28-40px.
+> - **No background** (`BG_MODE="none"` in bird-avatar-v2.tsx): the bird floats, no disc. `BG_MODE`
+>   can switch to `"outline"` (sticker halo) or `"inset"` (bird in a coloured disc) in one line.
+>   With no disc the visible variety is 50 species x 2 poses (left/right); disc colour is held in
+>   reserve for the disc-bearing modes.
+> - **Optical centering** is data-driven: `scripts/dev/centroid.mjs` rasterises each bird, finds its
+>   true pixel centroid + area, and writes scale/nudge corrections to
+>   `src/components/common/bird-adjust.json` (read via `archeTransform`). Birds are sized by visual
+>   MASS (area-equivalent radius), not their farthest tip, so a long bill/tail/crest never shrinks
+>   the body. Converged: every bird centroid = (50,50), consistent body size.
+> - **Owner pin**: `SPECIES_PINS` in `src/lib/avatar.ts` pins a user id to a species (the owner is the
+>   Hoopoe). Precedence: photo > manual avatarSpecies > pin > hash. (For production a real
+>   `avatarSpecies` column + a settings picker should replace the local-id pin.)
+> - Previews: **`/preview/birds-rv`** (public gallery, one icon + name each) and **`/preview/centroid`**
+>   (dev harness for the centering script). Distribution verified by `src/lib/avatar.test.mjs`.
 >
 > The original draft below is kept for the rationale (hashing, precedence, accessibility, lightweight goals).
 

@@ -1,8 +1,7 @@
 import { BirdAvatar } from "@/components/common/bird-avatar";
-import { ARCHETYPE_COUNT } from "@/components/common/bird-avatar-v2";
 
 /**
- * Public-facing display of the Rishi Valley bird set — one icon per species with its name.
+ * Public-facing display of the Rishi Valley bird set - one icon per species with its name.
  * These are the deterministic alumni avatars; every member without a photo is one of these birds.
  */
 const NAMES = [
@@ -43,6 +42,19 @@ const NAMES = [
   "Blue-faced Malkoha",
   "Jacobin Cuckoo",
   "Black Eagle",
+  "Red Avadavat",
+  "Common Kingfisher",
+  "Jerdon's Leafbird",
+  "Brahminy Kite",
+  "Black-rumped Flameback",
+  "Bay-backed Shrike",
+  "Purple-rumped Sunbird",
+  "Tickell's Blue Flycatcher",
+  "Chestnut-headed Bee-eater",
+  "Tricolored Munia",
+  "Small Minivet",
+  "Orange-breasted Green-Pigeon",
+  "Indian White-eye",
 ];
 
 export default function BirdGallery() {
@@ -51,10 +63,6 @@ export default function BirdGallery() {
       <div className="mx-auto max-w-6xl">
         <header className="mb-12 text-center">
           <h1 className="font-heading text-4xl tracking-tight">The Birds of the Valley</h1>
-          <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-[#33302B]/65">
-            {ARCHETYPE_COUNT} birds seen at Rishi Valley. Every member of the alumni community is
-            quietly given one of them.
-          </p>
         </header>
 
         <ul className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
