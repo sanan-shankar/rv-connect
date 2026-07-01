@@ -38,12 +38,19 @@ export function TrustSection() {
           </div>
 
           <div className="flex flex-col items-center gap-5 rounded-[var(--radius-2xl)] border border-border bg-leaf/[0.05] px-6 py-10">
-            <div className="flex -space-x-3">
+            {/* The avatar widths are fixed, so a row of five md discs would force
+                the card wider than the narrowest phones (clipping it). Use the
+                smaller, tighter sm discs below the sm breakpoint; full size up. */}
+            <div className="flex -space-x-2.5 sm:hidden">
               {VOUCHED.map((u) => (
-                <span
-                  key={u.id}
-                  className="rounded-full ring-2 ring-card"
-                >
+                <span key={u.id} className="rounded-full ring-2 ring-card">
+                  <BirdAvatar user={u} size="sm" />
+                </span>
+              ))}
+            </div>
+            <div className="hidden -space-x-3 sm:flex">
+              {VOUCHED.map((u) => (
+                <span key={u.id} className="rounded-full ring-2 ring-card">
                   <BirdAvatar user={u} size="md" />
                 </span>
               ))}

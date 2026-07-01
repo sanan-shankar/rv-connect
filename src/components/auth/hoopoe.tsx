@@ -3,37 +3,49 @@
 import { useEffect, useState } from "react";
 
 /**
- * The hoopoe: a login delight. Its wings cover its eyes while the password is
- * hidden, and open like little curtains when you reveal it. covered => eyes hidden.
+ * The hoopoe: a login delight. Its eyes mirror the password field exactly: while
+ * the password is hidden (the default), the wings stay closed over the eyes; the
+ * moment you reveal the password, the wings open like little curtains and the eyes
+ * watch. covered => eyes hidden.
  *
- * On mount it runs a one-shot intro: eyes open, a quick blink, then it settles
- * closed so the reveal interaction gets noticed. Animation is driven by inline
- * styles + transform/opacity only so it never depends on global CSS timing.
+ * On mount it runs a one-shot intro so the interaction gets noticed: the wings
+ * open, the eyes blink twice, then the wings close over the eyes and the bird
+ * hands control back to the `covered` prop. After the intro it simply reacts to
+ * show/hide. Animation is driven by inline styles + transform/opacity only so it
+ * never depends on global CSS timing.
  */
 const WING_T = "transform 0.5s cubic-bezier(0.34, 1.5, 0.64, 1)";
-const EYE_T = "opacity 0.2s ease 0.1s, transform 0.18s ease";
+const EYE_T = "opacity 0.22s ease, transform 0.18s ease";
 
 export function Hoopoe({ covered, size = 120 }: { covered: boolean; size?: number }) {
   // Crest: rounded-tip cinnamon spokes (matches the preview/v2 hoopoe).
   const crest = [-32, -16, 0, 16, 32];
 
-  // One-shot intro choreography: open -> blink -> settle. blink squashes the
-  // eyes (scaleY), settle nudges the whole bird down a hair then back.
+  // One-shot intro choreography, regardless of the password state: settle in,
+  // wings held open, blink twice, then the intro ends and the wings close over
+  // the eyes (the default, since the password is hidden). Two blinks make the
+  // little animation register before it tucks away.
   const [blink, setBlink] = useState(false);
   const [settled, setSettled] = useState(false);
+  const [introActive, setIntroActive] = useState(true);
   useEffect(() => {
-    const b = setTimeout(() => setBlink(true), 620);
-    const b2 = setTimeout(() => setBlink(false), 760);
-    const s = setTimeout(() => setSettled(true), 900);
-    return () => {
-      clearTimeout(b);
-      clearTimeout(b2);
-      clearTimeout(s);
-    };
+    const timers = [
+      setTimeout(() => setSettled(true), 120),
+      setTimeout(() => setBlink(true), 480),
+      setTimeout(() => setBlink(false), 600),
+      setTimeout(() => setBlink(true), 780),
+      setTimeout(() => setBlink(false), 900),
+      setTimeout(() => setIntroActive(false), 1150),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, []);
 
+  // During the intro the wings are held open and the eyes are out; afterwards the
+  // bird follows the real password state.
+  const effectiveCovered = introActive ? false : covered;
+
   const eyeStyle = {
-    opacity: covered ? 0 : 1,
+    opacity: effectiveCovered ? 0 : 1,
     transformBox: "fill-box",
     transformOrigin: "50% 50%",
     transform: blink ? "scaleY(0.12)" : "scaleY(1)",
@@ -81,7 +93,7 @@ export function Hoopoe({ covered, size = 120 }: { covered: boolean; size?: numbe
         style={{
           transformBox: "fill-box",
           transformOrigin: "100% 100%",
-          transform: covered ? "rotate(0deg)" : "rotate(-84deg)",
+          transform: effectiveCovered ? "rotate(0deg)" : "rotate(-84deg)",
           transition: WING_T,
         }}
       />
@@ -91,7 +103,7 @@ export function Hoopoe({ covered, size = 120 }: { covered: boolean; size?: numbe
         style={{
           transformBox: "fill-box",
           transformOrigin: "0% 100%",
-          transform: covered ? "rotate(0deg)" : "rotate(84deg)",
+          transform: effectiveCovered ? "rotate(0deg)" : "rotate(84deg)",
           transition: WING_T,
         }}
       />

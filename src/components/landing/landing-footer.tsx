@@ -9,7 +9,7 @@ import { PeaksMark } from "@/components/layout/peaks-mark";
 export function LandingFooter() {
   return (
     <footer className="relative border-t border-border bg-leaf/[0.06]">
-      <div className="mx-auto max-w-3xl px-6 py-20 text-center sm:py-28">
+      <div id="closing-cta" className="mx-auto max-w-3xl px-6 py-20 text-center sm:py-28">
         <PeaksMark size={20} variant="light" className="mx-auto" />
         <h2 className="mt-6 font-heading text-3xl font-bold tracking-[-0.03em] text-foreground text-balance sm:text-[2.6rem] sm:leading-[1.08]">
           Come back to the valley.
@@ -21,13 +21,13 @@ export function LandingFooter() {
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-xl bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
           >
-            Request an invite
+            Join the community
           </Link>
           <Link
             href="/login"
-            className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-8 py-3.5 font-semibold text-foreground transition-[transform,background-color,border-color] duration-200 hover:scale-[1.02] hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-full border border-border bg-card px-8 py-3.5 font-semibold text-foreground transition-[transform,background-color,border-color] duration-200 hover:scale-[1.02] hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
           >
             Sign in
           </Link>
@@ -43,7 +43,7 @@ export function LandingFooter() {
             </span>
             <span className="uppercase tracking-[0.2em] text-[10px]">Alumni</span>
           </div>
-          <p>A quiet, invite-only home for the people of the valley.</p>
+          <p>A quiet home for the people of the valley.</p>
         </div>
       </div>
     </footer>

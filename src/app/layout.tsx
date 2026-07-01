@@ -19,7 +19,7 @@ const sourceSans = Source_Sans_3({
 export const metadata: Metadata = {
   title: "Rishi Valley Alumni",
   description:
-    "A quiet, invite-only home for Rishi Valley alumni and teachers.",
+    "A quiet home for Rishi Valley alumni and teachers.",
 };
 
 export default function RootLayout({
