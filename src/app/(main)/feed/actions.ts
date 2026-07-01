@@ -4,11 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { postSchema, commentSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
-import { del } from "@vercel/blob";
-import { unlink } from "fs/promises";
-import path from "path";
+import { delImage } from "@/lib/storage";
 
-const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 // ─── Posts ───────────────────────────────────────────
 
@@ -158,12 +155,7 @@ export async function deletePost(postId: string) {
     try {
       const images = JSON.parse(post.images) as string[];
       for (const img of images) {
-        if (useBlob && img.startsWith("http")) {
-          await del(img).catch(() => {});
-        } else {
-          const filepath = path.join(process.cwd(), "public", img);
-          await unlink(filepath).catch(() => {});
-        }
+        await delImage(img);
       }
     } catch {
       // ignore parse errors

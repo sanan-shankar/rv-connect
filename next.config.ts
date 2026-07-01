@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
+      // Cloudflare R2 public dev subdomain (pub-<hash>.r2.dev).
+      {
+        protocol: "https",
+        hostname: "*.r2.dev",
+      },
+      // Legacy Vercel Blob; remove once the Blob store is torn down.
       {
         protocol: "https",
         hostname: "*.public.blob.vercel-storage.com",
