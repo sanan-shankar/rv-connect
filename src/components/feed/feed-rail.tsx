@@ -21,7 +21,6 @@ export async function FeedRail({ userId }: { userId: string }) {
   const memberSelect = {
     id: true,
     name: true,
-    avatarColor: true,
     photoUrl: true,
     batchType: true,
     batchYear: true,
@@ -87,7 +86,6 @@ export async function FeedRail({ userId }: { userId: string }) {
                       user={{
                         id: m.id,
                         name: m.name,
-                        avatarColor: m.avatarColor,
                         photoUrl: m.photoUrl ?? null,
                       }}
                       size="sm"

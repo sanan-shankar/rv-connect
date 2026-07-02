@@ -24,8 +24,11 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 - [x] Use the ruled SHEET layout (not separate tiles).
 - [x] Bird avatars as default (not initials); photo upload overrides.
 - [x] Need 500+ bird avatar variations (scalable to 1000), evenly distributed, well differentiated.
-  640 combinations (16 species x 10 disc colours x 4 poses) from a salted FNV-1a hash of user.id,
-  high-bit-sliced so the axes decorrelate (a real correlation bug between colour parity and pose
+  SUPERSEDED 2026-07-01: the 640-combination (16 species x 10 disc colours x 4 poses) design noted below
+  was replaced by the shipped system — 50 real Rishi Valley bird species in their real colors, no
+  background disc (see `docs/spec/avatars.md` and `docs/ROADMAP.md`'s avatar update banner). Original note,
+  kept for history: 640 combinations (16 species x 10 disc colours x 4 poses) from a salted FNV-1a hash of
+  user.id, high-bit-sliced so the axes decorrelate (a real correlation bug between colour parity and pose
   parity was found and fixed). src/lib/avatar.test.mjs observes all 640 distinct triples evenly spread.
 - [x] Bird glyphs must be CENTERED in their disc.
   Every silhouette is now authored balanced around (16,16) in a 0..32 viewBox; the old low-right
@@ -134,9 +137,11 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
   Separate from the newsletter feature below.
 - [ ] Newsletter feature (Letterloop-style): full Letterloop parity. Anyone can set questions; time periods;
   automated email reminders; UI for adding questions; songs/extras; per-group issue archive; cadence.
-  Needs a backend for scheduled jobs + transactional email (Resend). Needs a DISTINCT name (not "letters").
-  First-time intuitive description of what it is.
-- [D] "Cross-batch letters" idea: owner skeptical; clarify or drop.
+  Needs a backend for scheduled jobs + transactional email (Resend). Name RESOLVED 2026-07-01: "Catch-ups"
+  (see docs/ROADMAP.md's naming update banner; models in docs/spec/catchups.md). First-time intuitive
+  description of what it is still needed.
+- [x] "Cross-batch letters" idea. RESOLVED 2026-07-01 per docs/ROADMAP.md: NOT a separate feature — it's the
+  `targetBatches` audience picker on a Letter, plus arbitrary group membership for Catch-ups.
 
 ## Events
 - [P] Keep small: a single tile that appears only when an event exists, opens details + RSVP; group-scoped

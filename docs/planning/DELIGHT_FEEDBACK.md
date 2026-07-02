@@ -1,3 +1,10 @@
+> **Superseded 2026-07-02.** Current source for motion rules: `docs/spec/DESIGN-SYSTEM.md` sec 7. This
+> doc remains the authoritative record of the owner's per-item verdicts (build/fix/skip/defer) from the
+> `/preview/delight` walkthrough and is the newest feature-detail layer for delight work; consult it
+> for WHAT to build before consulting `docs/planning/DELIGHT_FIX.md` for HOW/where. Kept current for
+> unresolved items (composer rework, loading-ideas gallery, easter-egg verdicts); not all items here
+> have shipped yet.
+
 # Delight lab: owner feedback, tracked line by line
 
 Source: the owner's full walkthrough of `/preview/delight` (2026-06-30). Every instruction is captured

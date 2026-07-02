@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight } from "lucide-react";
-import { Heart, ChatCircle, ShareFat, Feather, Check } from "@phosphor-icons/react";
+import { ChatCircle, ShareFat, Feather, Check } from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ import {
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
+import { LoveButton } from "@/components/common/love-button";
 import { CommentsSection } from "./comments-section";
 import { ReportDialog } from "./report-dialog";
 import { EditPostDialog } from "./edit-post-dialog";
@@ -36,7 +37,6 @@ export interface PostData {
     id: string;
     name: string;
     photoUrl?: string | null;
-    avatarColor: string | null;
     accountType?: string | null;
     verifyState?: string | null;
     batchType: string | null;
@@ -54,14 +54,6 @@ export interface PostData {
   } | null;
 }
 
-// Tiny flecks that drift up when a heart is liked, in the valley palette. Timing/scale ported from
-// the /preview/delight feedback lab so they drift slowly (0.9s) instead of snapping.
-const LEAF_FLECKS = [
-  { x: -14, y: -34, c: "#1F8A4C" },
-  { x: 13, y: -40, c: "#C2622F" },
-  { x: 2, y: -44, c: "#34C759" },
-];
-
 export function PostCard({
   post,
   variant = "card",
@@ -77,7 +69,6 @@ export function PostCard({
   const [expanded, setExpanded] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [animateLike, setAnimateLike] = useState(false);
   const [animateBookmark, setAnimateBookmark] = useState(false);
   const [shared, setShared] = useState(false);
 
@@ -103,10 +94,6 @@ export function PostCard({
     const next = !liked;
     setLiked(next);
     setLikeCount(next ? likeCount + 1 : likeCount - 1);
-    if (next) {
-      setAnimateLike(true);
-      setTimeout(() => setAnimateLike(false), 900);
-    }
     const result = await toggleLike(post.id);
     if (result.error) {
       setLiked(liked);
@@ -161,15 +148,7 @@ export function PostCard({
         <header className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Link href={`/profile/${post.author.id}`} aria-label={post.author.name}>
-              <BirdAvatar
-                user={{
-                  id: post.author.id,
-                  name: post.author.name,
-                  photoUrl: post.author.photoUrl,
-                  avatarColor: post.author.avatarColor,
-                }}
-                size="sm"
-              />
+              <BirdAvatar user={post.author} size="sm" />
             </Link>
             <div className="leading-tight">
               <div className="flex items-center gap-1">
@@ -294,59 +273,7 @@ export function PostCard({
 
         {/* Actions */}
         <div className="mt-2 -ml-3.5 flex items-center gap-1 text-muted-foreground">
-          <motion.button
-            onClick={handleLike}
-            aria-pressed={liked}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.93 }}
-            transition={SPRINGS.snappy}
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-              liked ? "text-heart" : "hover:text-foreground"
-            }`}
-          >
-            <span className="relative inline-flex">
-              {/* Heart is ALWAYS red, painted on the first frame. transition:none stops it
-                  tweening through the dark inherited colour, so it can never flash black.
-                  Only transform animates: a smooth multi-keyframe pop (tween, never a spring). */}
-              <motion.span
-                className="inline-flex will-change-transform"
-                animate={animateLike ? { scale: [1, 0.86, 1.28, 0.97, 1] } : { scale: 1 }}
-                transition={
-                  animateLike
-                    ? { duration: 0.5, ease: EASE_POP, times: [0, 0.18, 0.5, 0.74, 1] }
-                    : { duration: 0 }
-                }
-              >
-                <Heart
-                  size={18}
-                  weight={liked ? "fill" : "duotone"}
-                  color="#E03A33"
-                  style={{ opacity: liked ? 1 : 0.45, transition: "none" }}
-                />
-              </motion.span>
-              {animateLike && (
-                <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2">
-                  {LEAF_FLECKS.map((f, i) => (
-                    <motion.span
-                      key={i}
-                      className="absolute block rounded-full"
-                      style={{ width: 7, height: 7, marginLeft: -3.5, marginTop: -3.5, background: f.c }}
-                      initial={{ opacity: 0, x: 0, y: 0, scale: 0.5, rotate: 0 }}
-                      animate={{
-                        opacity: [0, 0.95, 0.95, 0],
-                        x: f.x,
-                        y: f.y,
-                        scale: [0.5, 1, 1, 0.9],
-                        rotate: f.x > 0 ? 40 : -40,
-                      }}
-                      transition={{ duration: 0.9, ease: EASE_POP, times: [0, 0.18, 0.7, 1] }}
-                    />
-                  ))}
-                </span>
-              )}
-            </span>
-            <span>{likeCount}</span>
-          </motion.button>
+          <LoveButton liked={liked} count={likeCount} onToggle={handleLike} />
 
           <motion.button
             onClick={() => setShowComments(!showComments)}

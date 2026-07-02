@@ -22,6 +22,16 @@ Every decision below states the delta against this baseline.
 
 ## 1. The two avatar realities, and the one shared component
 
+> **Superseded 2026-07-02.** This section's premise (`UserAvatar` initials-only vs a v2 bird
+> `Avatar`, needing convergence) predates the actual convergence. `src/components/common/
+> user-avatar.tsx` no longer exists in the codebase; it has already been replaced by
+> `src/components/profile/profile-avatar.tsx` (profile-specific wrapper) plus the shared
+> `src/components/common/bird-avatar.tsx` / `bird-avatar-v2.tsx` (50-species deterministic-hash
+> system, see `docs/spec/avatars.md`, the canonical avatar doc). There is no `birdVariant`
+> prop/column and no 0..2 variant scheme; species/colour/pose are all derived from salted
+> FNV-1a hashes over the user id (`src/lib/avatar.ts`). The convergence work this section calls
+> for is done, just not in the exact shape described below. Kept for history.
+
 The brief says "reuse shared avatar." There are currently **two** avatar implementations: the real `UserAvatar` (initials) and the v2 `Avatar` (bird glyph + photo + ring). They must converge into **one** shared `UserAvatar` before the profile is built, because the profile is the single place where all three avatar modes (photo, bird, ring) appear at once.
 
 **Decision: extend `src/components/common/user-avatar.tsx` to the superset, do not fork a profile-only avatar.**
@@ -235,6 +245,19 @@ This is primarily the auth/verification area's model, but the profile is where t
 ---
 
 ## 10. Prisma model (full profile fields)
+
+> **Still the target 2026-07-02 (owner decision): build toward this richer model.** The shipped
+> schema currently takes a simpler path, and that flat shape is the **interim MVP, not the final
+> design** — the owner wants the richer profile. What ships today: `avatarColor`/`photoUrl`, `bio`,
+> `about`, and `openTo` (comma-list) as flat `User` columns; `accountType`, nullable
+> `batchType`/`batchYear`, `taughtFrom`/`taughtUntil`, `subjects`, and `verifyState` close to spec.
+> Still to build (this section is the plan): the `UserHouse`/`houses` (house-per-year),
+> `UserLink`/`links` (arbitrary contact links beyond the flat `instagram`/`linkedin`), and
+> `UserMemory`/`memories` tables — today the memory prompts render from a hardcoded
+> `MEMORY_PROMPTS` array with a "Memory prompts are coming to your settings" placeholder (not yet
+> wired to saved per-user answers). (Note: there is **no `birdVariant` column**; the avatar system
+> is the 50-species deterministic hash in `docs/spec/avatars.md` / `src/lib/avatar.ts`. Deploy is
+> Vercel + Supabase Postgres Mumbai for both local and prod.)
 
 Deltas against the current schema. New/changed fields on `User`, plus three small related tables. SQLite local / Postgres prod, so use scalar defaults and relations (no enums in SQLite-friendly form — `kind`/`prompt` are validated `String`s via Zod, matching the existing `batchType`/`role` string-with-comment pattern).
 

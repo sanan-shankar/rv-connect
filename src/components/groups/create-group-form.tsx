@@ -256,7 +256,7 @@ export function CreateGroupForm({ batchYears, currentUserId }: Props) {
       )}
 
       <div className="flex justify-end pt-1">
-        <Button onClick={handleSubmit} disabled={submitting} variant="leaf">
+        <Button onClick={handleSubmit} disabled={submitting} variant="primary">
           {submitting ? "Creating..." : "Create group"}
         </Button>
       </div>

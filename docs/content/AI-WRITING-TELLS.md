@@ -23,6 +23,11 @@ House rule above all else: **no long dashes anywhere in anything we produce.** E
 10. **The "X isn't about Y. It's about Z." reframe.** Same family. Avoid.
 11. **"Ta-da" reveal phrases**: "But here's the thing", "Here's the truth", "But here's what nobody tells you", "The result?", "The best part?". Manufactured suspense.
 12. **Inflated importance words**: delve, leverage, robust, seamless, elevate, unlock, harness, navigate (the complexities of), realm, landscape, tapestry, testament, underscore, pivotal, crucial, vital, ever-evolving, fast-paced, game-changer, cutting-edge, revolutionize, empower, foster, boasts, dive in, embark, journey.
+12a. **"Quiet" as a reflex adjective.** A model default for anything meant to sound understated or tasteful:
+a quiet home, a quiet signal, a quiet confidence, a quiet leaf glyph. It shows up everywhere once you start
+looking, which is exactly the tell: reach for it, and reach for something else instead, or just cut it and
+let the noun stand on its own. Say what is actually restrained about the thing (small, unobtrusive, low-
+contrast, easy to miss) instead of outsourcing the description to "quiet."
 13. **Empty hedging and throat-clearing**: "It is important to note that", "It is worth mentioning", "In today's world", "In the world of X", "When it comes to X", "At the end of the day".
 14. **Correlative scaffolding**: "Whether you are A or B...", "From A to B...", "Not only... but also...". Used once it is fine; as a default sentence shape it is a tell.
 15. **Hollow conclusions**: "Ultimately,", "In conclusion,", "Overall,", "At its core," followed by a vague summary that adds nothing.
@@ -60,7 +65,7 @@ House rule above all else: **no long dashes anywhere in anything we produce.** E
 
 ## A fast pre-publish checklist
 
-Before anything goes out, scan for: long dashes, "not just / it's not just", rule-of-three lists, the words in B.12, em-dash-style interrupters, emoji bullets, "in today's / in the world of", a restated conclusion, and any sentence that names no specific thing. If you hit two or more, rewrite.
+Before anything goes out, scan for: long dashes, "not just / it's not just", rule-of-three lists, the words in B.12 (including "quiet" as a reflex adjective, B.12a), em-dash-style interrupters, emoji bullets, "in today's / in the world of", a restated conclusion, and any sentence that names no specific thing. If you hit two or more, rewrite.
 
 ---
 

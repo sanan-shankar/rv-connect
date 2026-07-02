@@ -1553,19 +1553,17 @@ const INSET_SCALE = 0.66;
 
 /**
  * The bird glyph, sized to `px`. In "none" mode it is just the centred bird on a transparent
- * background (BirdAvatar gives it a non-clipping container so crest/bill are never cut). `colorOverride`
- * (disc colour) and `speciesOverride` mirror the BirdAvatar manual-override path; disc colour is
- * only used by the disc-bearing modes.
+ * background (BirdAvatar gives it a non-clipping container so crest/bill are never cut).
+ * `speciesOverride` mirrors the BirdAvatar manual-override path. There is no colour override: the
+ * disc (in the disc-bearing modes) always derives from the bird's own deterministic colour.
  */
 export function BirdGlyphV2({
   seed,
   px,
-  colorOverride,
   speciesOverride,
 }: {
   seed: string;
   px: number;
-  colorOverride?: string | null;
   speciesOverride?: number | null;
 }) {
   const bird = birdFor(seed);
@@ -1612,7 +1610,7 @@ export function BirdGlyphV2({
   }
 
   // inset: bird inside a coloured disc
-  const disc = colorOverride ? mix(colorOverride, "#FBF6EC", 0.18) : discFor(arche, bird.colorIndex);
+  const disc = discFor(arche, bird.colorIndex);
   return (
     <svg width={px} height={px} viewBox="0 0 100 100" className="block" aria-hidden>
       <circle cx="50" cy="50" r="50" fill={disc} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useMotionGovernor } from "@/components/common/motion";
 
 /** A small leaf glyph, echoing the brand's leaf vocabulary. */
 function Leaf({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
@@ -32,14 +33,16 @@ function BirdGlyph({ className = "" }: { className?: string }) {
 /**
  * The hopping bird that perches on the top edge of a section frame and hops a
  * few times when it scrolls into view, then settles. Decorative, aria-hidden,
- * gated behind in-view + reduced motion so it never burns CPU off-screen.
+ * gated behind in-view so it never burns CPU off-screen. Plays regardless of
+ * the OS reduced-motion setting (animations always play, per the design
+ * system); only a hidden tab pauses it.
  */
 export function HoppingBird({ className = "" }: { className?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [hop, setHop] = useState(false);
+  const { paused } = useMotionGovernor();
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
@@ -60,6 +63,7 @@ export function HoppingBird({ className = "" }: { className?: string }) {
       ref={ref}
       aria-hidden
       className={`pointer-events-none absolute text-canopy ${className} ${hop ? "lb-hop" : ""}`}
+      style={{ animationPlayState: paused ? "paused" : "running" }}
     >
       <BirdGlyph />
       <style>{`
@@ -73,7 +77,6 @@ export function HoppingBird({ className = "" }: { className?: string }) {
           100% { transform: translateY(0) rotate(0); }
         }
         .lb-hop { animation: lb-hop 1.7s cubic-bezier(.34,1.56,.64,1) .15s 1 both; }
-        @media (prefers-reduced-motion: reduce) { .lb-hop { animation: none; } }
       `}</style>
     </span>
   );
@@ -81,15 +84,17 @@ export function HoppingBird({ className = "" }: { className?: string }) {
 
 /**
  * A handful of slow drifting leaves behind a section, looping gently while in
- * view. Light enough that it never reads as snow. Gated behind in-view +
- * reduced motion. Transform/opacity only.
+ * view. Light enough that it never reads as snow. Gated behind in-view.
+ * Plays regardless of the OS reduced-motion setting; a hidden tab pauses the
+ * loop (battery courtesy) and it resumes seamlessly on return.
+ * Transform/opacity only.
  */
 export function DriftingLeaves() {
   const ref = useRef<HTMLDivElement>(null);
   const [drift, setDrift] = useState(false);
+  const { paused } = useMotionGovernor();
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
@@ -126,6 +131,7 @@ export function DriftingLeaves() {
               left: l.left,
               animationDelay: l.delay,
               animationDuration: l.dur,
+              animationPlayState: paused ? "paused" : "running",
               color: l.tint,
             }}
           >
@@ -140,7 +146,6 @@ export function DriftingLeaves() {
           100% { transform: translateY(320px) rotate(220deg); opacity: 0; }
         }
         .lb-drift { animation-name: lb-drift; animation-timing-function: linear; animation-iteration-count: infinite; animation-fill-mode: both; }
-        @media (prefers-reduced-motion: reduce) { .lb-drift { display: none; } }
       `}</style>
     </div>
   );

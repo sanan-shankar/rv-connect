@@ -11,7 +11,7 @@
  * ------------------------------------------------------------------ */
 
 import { motion, type MotionProps } from "motion/react";
-import type { ReactNode, CSSProperties } from "react";
+import { useEffect, useState, type ReactNode, type CSSProperties } from "react";
 
 /* one spring set to rule them all (matches the v2 / lab feel) */
 export const SPRINGS = {
@@ -27,6 +27,33 @@ export const EASE_SPRING = [0.34, 1.5, 0.64, 1] as const; // softer settle
 /* The sidebar active-row marker glides with a touch more weight than `snappy`, so the pill and its
    cinnamon edge settle rather than snap dead. Shared so any future edge-marker reads the same. */
 export const NAV_MARKER_SPRING = { type: "spring", stiffness: 480, damping: 38, mass: 0.9 } as const;
+
+/* ------------------------------------------------------------------ *
+ *  useMotionGovernor — the ONE place that decides whether ambient/
+ *  signature motion runs. Per the design system (sec. 7), animations
+ *  always play: we never derive anything here from the OS
+ *  prefers-reduced-motion setting. The only thing that pauses motion is
+ *  the browser tab being hidden (battery/CPU courtesy, not preference).
+ *
+ *  - `paused`: true while the tab is hidden. Ambient/looping motion
+ *    (idle loops, drifting leaves, hopping birds) should stop advancing
+ *    while this is true and resume seamlessly when it flips back.
+ *  - `ambientReduced`: always false. Kept as a named field (rather than
+ *    just returning `paused`) so call sites read intent-fully and so a
+ *    future, explicitly-owner-approved in-app "reduce motion" toggle
+ *    has one seam to land in without another repointing pass. It must
+ *    NEVER be wired to `window.matchMedia("(prefers-reduced-motion)")`.
+ * ------------------------------------------------------------------ */
+export function useMotionGovernor(): { paused: boolean; ambientReduced: boolean } {
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    const onVis = () => setPaused(document.hidden);
+    document.addEventListener("visibilitychange", onVis);
+    onVis();
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+  return { paused, ambientReduced: false };
+}
 
 /* Content rises a touch as it arrives. Hydration-safe: server and client both
    render the initial frame, then the client animates (no reduced-motion branching). */

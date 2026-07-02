@@ -6,11 +6,10 @@ export default function AboutPage() {
     <div className="mx-auto max-w-3xl">
       <div className="mb-10">
         <h1 className="font-heading text-3xl font-bold tracking-[-0.02em] text-foreground">
-          About RV Alumni
+          About Rishi Valley
         </h1>
         <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-          A space for Rishi Valley alumni to reconnect, share stories, and find
-          each other.
+          A space for the Rishi Valley community to stay connected.
         </p>
       </div>
 
@@ -20,7 +19,7 @@ export default function AboutPage() {
             What is this?
           </h2>
           <p className="mt-4 leading-relaxed text-foreground">
-            RV Alumni is a small, community-run site for people who went to
+            Rishi Valley is a small, community-run site for people who went to
             Rishi Valley School. It is the place to find your batchmates again
             and stay close to the people you grew up with, whether you left
             decades ago or last year.

@@ -36,7 +36,7 @@ export function ComingSoon({
         </div>
         {cta && (
           <Link href={cta.href} className="mt-6 inline-block">
-            <Button variant="leaf" className="rounded-full">
+            <Button variant="primary" className="rounded-full">
               {cta.label}
             </Button>
           </Link>

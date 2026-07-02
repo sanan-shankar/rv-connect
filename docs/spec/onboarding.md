@@ -77,6 +77,12 @@ This is a policy, not a field. There is no "student" account type, and the invit
 
 ## 2. Invite-only entry
 
+> **DROPPED 2026-07-02 (owner decision).** Invite-only signup is not being built. Signup stays
+> open behind the trivia gate only. The `Invite` / `InviteRedemption` / `JoinRequest` models, the
+> `/join` route, and invite-code validation described in this section are **not planned** — treat
+> this whole section as shelved, kept for history only. (Community vouching in §6 is a separate,
+> still-parked idea, not dropped, just not part of MVP.)
+
 Today `/signup` is wide open behind a guessable trivia question. The brief requires genuine invite-only entry. 
 
 ### Decision: signed invite tokens, issued by verified members and admins, redeemable once
@@ -283,6 +289,12 @@ A small set of optional, warm long-form prompts ("A teacher who changed how you 
 Add `accountType`, make `batchType`/`batchYear` optional, add `taughtFrom`/`taughtUntil`/`subjects`/`sections`, and accept a `houseYears: { year: number; house: string }[]` array. Keep existing fields. The avatar photo (below) is a separate upload action, not part of this Zod object.
 
 ### Avatar photo (new field, ties to the bird-default decision)
+
+> **Superseded 2026-07-02.** Storage moved from Vercel Blob to **Cloudflare R2** (see
+> `AGENTS.md`); there is no "Vercel Blob + Sharp/WebP pipeline" anymore, though Sharp/WebP
+> conversion before upload is still accurate. The shipped field is `User.photoUrl`, not
+> `avatarUrl`, and there is no `birdVariant` column — avatar selection is fully
+> hash-derived per `docs/spec/avatars.md` / `src/lib/avatar.ts`, not a stored variant int.
 
 The v2 design uses **bird-glyph avatars as the default with photo override**. Today `User` only has `avatarColor` (used to colour the initials/bird glyph). Add:
 ```

@@ -60,7 +60,7 @@ export function InviteResponse({
           Decline
         </Button>
         <Button
-          variant="leaf"
+          variant="primary"
           size="sm"
           className="rounded-full"
           onClick={() => respond("accept")}

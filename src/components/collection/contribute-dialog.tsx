@@ -238,7 +238,7 @@ export function ContributeDialog({
           <Button
             onClick={handleSubmit}
             disabled={submitting || !file || subjects.length === 0}
-            variant="leaf"
+            variant="primary"
             className="w-full"
           >
             {submitting ? "Adding..." : "Add to the Collection"}

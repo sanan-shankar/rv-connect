@@ -26,7 +26,7 @@ export function NewPostCTA() {
   }
 
   return (
-    <Button variant="leaf" className="h-10 rounded-full px-5" onClick={focusComposer}>
+    <Button variant="primary" className="h-10 rounded-full px-5" onClick={focusComposer}>
       <Plus className="h-[17px] w-[17px]" />
       New post
     </Button>

@@ -1,5 +1,29 @@
 # Spec: directory
 
+> **Superseded 2026-07-02 (partially).** This doc was written against a Render + SQLite-local /
+> Postgres-on-Render deploy target (see "Migration and backfill plan (SQLite local, Postgres on
+> Render)" in §3.5, the "must work on Render" framing throughout §4, and the Render mentions in
+> §4.5 and the summary table). Current ground truth: **Vercel** (app), **Supabase Postgres,
+> `ap-south-1` Mumbai** (database, for both local dev and production — no SQLite anywhere), **
+> Cloudflare R2** (images). Every "works on Render / SQLite-safe / Render-safe" argument below
+> should be read as "works on a small serverless deploy with no heavy paid dependency," which is
+> still the right constraint; only the hosting nouns are wrong.
+>
+> The parts of this doc that are NOT stale: the **world-map tech stack decision actually
+> shipped as specced** — `d3-geo` + `topojson-client` + `supercluster` are real dependencies
+> (`package.json`) and `src/components/directory/alumni-map.tsx` implements the SVG-world +
+> supercluster approach described in §4.2-4.3 (Option A, not MapLibre). The `City` /
+> `HouseYear` / `ProfileTag` schema deltas in §3 are **not yet in `prisma/schema.prisma`** (no
+> `City`, `HouseYear`, `ProfileTag`, or `cityId` model/field exists as of this check) — that
+> remains a live, unimplemented plan, not a stale fact. Kept for history; not current on deploy
+> target.
+>
+> Also note: every `UserAvatar` reference below (§0, §4.4, §5) points at
+> `src/components/common/user-avatar.tsx`, which **no longer exists** — it has been superseded
+> by `ProfileAvatar` / `BirdGlyphV2` per the same correction in `docs/spec/profile.md` §1 and
+> `docs/spec/ia.md` §9. Read "`UserAvatar`" below as "the shared avatar component," not a
+> literal file reference.
+
 Confirmed: no map library installed, no geo/lat-long fields, no house/section/tags model (only `tag` on Post). The `grep` matches for "house"/"map"/"geo" are incidental (CSS, dropdown words). I now have full grounding. Here is the complete spec.
 
 ---

@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { SPRINGS } from "@/components/common/motion";
+import { SPRINGS, useMotionGovernor } from "@/components/common/motion";
 
 const SEGMENTS = [
   { label: "Server", value: 600, color: "#1F8A4C" },
@@ -23,6 +23,12 @@ export function CostBar() {
   // scroll-into-view trigger, so the count and the bar land together.
   const [amount, setAmount] = useState(0);
   const raf = useRef<number | null>(null);
+  // Plays regardless of the OS reduced-motion setting; only a hidden tab
+  // pauses the in-flight count (battery courtesy), resuming from where it
+  // left off rather than jumping.
+  const { paused } = useMotionGovernor();
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   useEffect(() => {
     const el = ref.current;
@@ -32,10 +38,19 @@ export function CostBar() {
     function runCount() {
       if (raf.current) cancelAnimationFrame(raf.current);
       const dur = 950;
-      let start = 0;
+      let start: number | null = null;
+      let elapsed = 0;
+      let lastNow = 0;
       const tick = (now: number) => {
-        if (!start) start = now;
-        const t = Math.min(1, (now - start) / dur);
+        if (start === null) {
+          start = now;
+          lastNow = now;
+        }
+        if (!pausedRef.current) {
+          elapsed += now - lastNow;
+        }
+        lastNow = now;
+        const t = Math.min(1, elapsed / dur);
         const e = 1 - Math.pow(1 - t, 3);
         setAmount(Math.round(TOTAL * e));
         if (t < 1) raf.current = requestAnimationFrame(tick);

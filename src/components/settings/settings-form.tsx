@@ -363,7 +363,7 @@ export function SettingsForm({ user }: { user: User }) {
             <Button
               type="submit"
               disabled={saving}
-              variant="leaf"
+              variant="primary"
             >
               {saving ? "Saving..." : "Save changes"}
             </Button>

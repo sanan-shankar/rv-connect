@@ -179,3 +179,23 @@ This is a **targeted-fix campaign**. Rule: **everything `touchesFoundation` land
 4. **Verify gate per batch:** `tsc` clean + screenshot the touched surface at 1440 (and 390 where mobile matters) + one interaction check (e.g. own-profile loads, heart stays red, bookmark animates, filter re-filters map). Read the PNG, do not assume.
 5. **Per-batch bookkeeping:** update `docs/planning/PUNCHLIST.md` (check off fixed items) and `progress.md` at the end of each batch. Plain conventional commits, no AI attribution.
 6. **Merge order:** rebase each finished fork onto latest `redesign`, run its verify gate again post-rebase, then merge. Foundation first, then forks in any order.
+
+---
+
+## Consolidation follow-ups (2026-07-02)
+
+Added during the docs consolidation; the source docs were archived/deleted, so these are tracked here so nothing is lost.
+
+- **Dead chrome files deleted** (all verified 0 importers, removed 2026-07-02): `src/components/layout/navbar.tsx` (old glassmorphism header `bg-white/55 backdrop-blur-md`), `src/components/auth/hoopoe.tsx` (pre-rewrite mascot), `src/components/layout/dark-mode-toggle.tsx`.
+- **Reconcile the motion governor** (DESIGN-SYSTEM.md sec 7): delete the two divergent `useValleyMotion()` (`preview/delight/_kit.tsx:40` returns `{reduced,paused}`; `mascot/hoopoe-kit.ts:174` returns `{paused}`) and replace with one `useMotionGovernor()` in `common/motion.tsx`. `paused` = tab-hidden only; motion is never gated on OS reduced-motion. Repoint `landing-birds.tsx` / `section-reveal.tsx` / `cost-bar.tsx` (still OS-gated) at it. Full design in git history (`docs/planning/MOTION_ARCHITECTURE.md` sec 3.3, now bannered).
+- **Retire BlinkingOwl from the trivia gate** (`auth/trivia-gate.tsx:8,106`): let the hoopoe carry the trivia gate too, so signup has one consistent mascot rather than two competing birds.
+
+### Corrections to the tables above (verified 2026-07-02)
+- #7 bell-shake: now IS wired in `notification-bell.tsx` (done). #30 dead `landing-client.tsx`: already deleted (done). #109 "Deploy to Render": stale — the stack is Vercel + Supabase Postgres (Mumbai) + Cloudflare R2.
+- Catch-ups (the "Roundup*" rows): being reverted for a GSD rebuild. Naming lock: feature = "Catch-ups", each issue = "Round N", kill "Roundup". Do NOT hand-fix the current Catch-ups code.
+
+### Scope decisions (owner, 2026-07-02)
+- **Invite-only signup: DROPPED.** Bug #5 (no invite enforcement) is no longer a bug — it is the intended state; signup stays trivia-gate-only. The "Request an invite / JoinRequest path" unbuilt item is removed from the roadmap. Community vouching stays parked (unbuilt, not MVP). See `docs/spec/onboarding.md` §2.
+- **Richer profile: CONFIRMED still the target.** The profile-depth unbuilt items (house-per-year, memory prompts + `UserMemory` model, `<RememberableField>`, arbitrary contact links) stay active — the current flat profile is interim MVP. See `docs/spec/profile.md` §10.
+- **Logo `PeaksMark` is FINAL, per owner, 2026-07-02.** No retrace needed. This drops retrace items **#8, #31, #32, #33** (the RIDGE-curve retrace, the solid-fill variant, and the peak-placement adjustment) from this punch-list. Use the mark as-is wherever a logo is needed.
+- **Golden-ratio spacing retrofit (C7) is deferred** to the upcoming lightweight/modularity refactor pass, not this fix campaign. The rule itself (LiftKit `--space-*` tokens, applied app-wide) still stands per `docs/spec/DESIGN-SYSTEM.md` §6; only the retroactive retrofit of existing screens onto it is pushed out.

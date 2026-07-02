@@ -89,7 +89,7 @@ export function PhotoQueue({ photos }: { photos: PendingPhoto[] }) {
           <div className="flex shrink-0 flex-col gap-2">
             <Button
               size="sm"
-              variant="leaf"
+              variant="primary"
               disabled={busy === p.id}
               onClick={() => act(p.id, approvePhoto)}
             >

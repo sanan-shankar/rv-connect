@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
+import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,9 @@ import {
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
+import { Hoopoe } from "@/components/mascot/hoopoe";
+import { useHoopoe } from "@/components/mascot/use-hoopoe";
+import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { registerUser } from "./actions";
 
 export function SignupForm({
@@ -26,6 +30,30 @@ export function SignupForm({
   const [error, setError] = useState("");
   const [accountType, setAccountType] = useState<"alumnus" | "teacher" | "ex_teacher">("alumnus");
   const isAlum = accountType === "alumnus";
+  const [showPw, setShowPw] = useState(false);
+
+  // Same rig as /login: the hoopoe covers its eyes while the password is
+  // hidden and peeks (following what you type) once it's revealed.
+  const { ref: hoopoeRef, ...hoopoe } = useHoopoe();
+  const showPwRef = useRef(showPw);
+  showPwRef.current = showPw;
+  const introDone = useRef(false);
+
+  useEffect(() => {
+    if (!introDone.current) return;
+    if (showPw) hoopoe.peek();
+    else hoopoe.coverEyes();
+  }, [showPw, hoopoe]);
+
+  function onHoopoeReady(api: HoopoeApi) {
+    api.peek();
+    api.blinkOnce(true);
+    setTimeout(() => {
+      introDone.current = true;
+      if (showPwRef.current) api.peek();
+      else api.coverEyes();
+    }, 1150);
+  }
 
   const ACCOUNT_TYPES = [
     { value: "alumnus", label: "Alumnus" },
@@ -110,15 +138,32 @@ export function SignupForm({
       </div>
 
       <div className="space-y-2">
+        <div className="mx-auto -mb-1 grid h-[72px] w-[72px] place-items-center">
+          <Hoopoe ref={hoopoeRef} size={64} onReady={onHoopoeReady} />
+        </div>
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="At least 8 characters"
-          required
-          minLength={8}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={showPw ? "text" : "password"}
+            placeholder="At least 8 characters"
+            required
+            minLength={8}
+            className="pr-10"
+            onChange={(e) => {
+              hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw((s) => !s)}
+            aria-label={showPw ? "Hide password" : "Show password"}
+            className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -242,7 +287,7 @@ export function SignupForm({
 
       <Button
         type="submit"
-        variant="leaf"
+        variant="primary"
         className="w-full"
         disabled={loading}
       >

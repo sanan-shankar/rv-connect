@@ -1,5 +1,8 @@
 # RV Alumni — Feature Ideas & Backlog
 
+> Parked ideas. Diff against `docs/spec/DESIGN-SYSTEM.md` and `docs/ROADMAP.md` before acting; some
+> items may already be decided/rejected.
+
 A living list. Nothing here is committed. It mixes what we already have, what you've
 asked for, and ideas I think could earn their place. Skim it, cross out what you hate,
 star what you love. (Written with no em dashes, per house style.)
@@ -14,8 +17,10 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
   contact links, "Batch of 'XX", house, years attended. Tabs for Posts / About / Photos.
 - [idea] "Where are they now" block: city plus a small map pin. Feeds the directory's real
   purpose (finding someone from your school in any city you travel to).
-- [idea] Bird-themed avatars as a playful default (valley birds: hoopoe, parakeet, bee-eater,
-  sunbird). "Pick your bird." Initials remain a fallback. On-theme, more alive than a letter.
+- [x] Bird-themed avatars as the default. SUPERSEDED 2026-07-01: shipped as fully deterministic
+  (hash-assigned from `User.id`, 50 species), not a user-facing picker — "pick your bird" does not
+  apply. Photo upload and manual override remain the only escape hatches. Initials are the legacy
+  fallback only.
 - [idea] Verified-alumni checkmark (admin-approved) so the directory stays trustworthy.
 - [idea] "Open to" tags: mentoring, hiring, hosting visitors, coffee in my city.
 - [idea] Gentle, dismissable profile-completeness nudge, to enrich the directory over time.
@@ -81,7 +86,8 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
 
 ## 10. Notifications & presence
 - [have] Notification bell plus unread count.
-- [idea] Weekly digest email ("what you missed in the valley").
+- ~~[idea] Weekly digest email ("what you missed in the valley").~~ REJECTED per
+  `docs/planning/FEEDBACK_CHECKLIST.md` (locked ADR): explicitly "NO weekly digest email."
 - [idea] Mention, reply, RSVP, and new-letter notifications.
 
 ## 11. Delight & identity (the "feels like RV" layer)

@@ -187,7 +187,7 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
             <SelectItem value="wander">A wander</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="leaf" className="rounded-full" onClick={() => setDialogOpen(true)}>
+        <Button variant="primary" className="rounded-full" onClick={() => setDialogOpen(true)}>
           <Plus className="mr-1.5 h-4 w-4" />
           Contribute
         </Button>
@@ -202,7 +202,7 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
             The first photographs of the valley will live here: the banyan, Rishi Konda, the
             birds, the light. Add the first one.
           </p>
-          <Button variant="leaf" className="mt-5 rounded-full" onClick={() => setDialogOpen(true)}>
+          <Button variant="primary" className="mt-5 rounded-full" onClick={() => setDialogOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             Contribute a photo
           </Button>

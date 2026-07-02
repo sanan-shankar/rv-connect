@@ -1,3 +1,9 @@
+> **Superseded 2026-07-02.** Current source: `docs/spec/DESIGN-SYSTEM.md` sec 7 (motion rules) and
+> `docs/planning/DELIGHT_FEEDBACK.md` (owner verdicts on what to build/cut). This catalog's ~112 raw
+> ideas are still a useful idea bank for anything not yet built or explicitly rejected below; check
+> DELIGHT_FEEDBACK first for a verdict before pulling an idea from here. Kept for history and as a
+> reference catalog; not current on what has since shipped.
+
 # Delight Plan — Rishi Valley Alumni
 
 The valley should feel alive without ever performing. This plan turns the snap points and empty
@@ -334,3 +340,31 @@ Self-contained under `src/app/preview/delight/`; no core app files touched. Veri
 Next, once favourites are chosen: promote winners into real components (PostCard like/bookmark, sidebar
 marker, route template, login, skeletons) and the landing page, lifting the kit into `src/lib/motion.ts`
 + `src/components/motion/`. Tiny polish: the feedback fundraiser demo uses `$`; switch to `₹`.
+
+---
+
+## Salvaged detailed specs (from the retired docs/spec/delight.md, 2026-07-02)
+
+These two specs were the only non-duplicated content in the old `delight.md` inventory (now deleted). Kept verbatim so no detail is lost. Note: the avatar spec below predates the shipped avatar system, so it references `common/user-avatar.tsx` (now `BirdAvatar` / `bird-avatar.tsx`) and `BirdGlyph` (now shipped as the 50-species engine). Read it for the interaction intent, not the file names.
+
+### 1c. Consolidation decision (cut the owl, or keep it?)
+There are now two hand-built birds on auth: `BlinkingOwl` (trivia gate) and `Hoopoe`. Recommendation: **retire `BlinkingOwl` and let the hoopoe carry the trivia gate too**, peeking instead of blinking-idle, so the signup flow has one consistent mascot rather than two competing birds. Rationale: two different birds on adjacent auth screens reads as inconsistent, not charming. If the owl has sentimental value, the fallback is to keep it but move it off auth entirely (e.g. the 404 page) so the two never appear in the same flow. Either way, do not ship both on signup.
+
+## 2. Avatar easter egg — the bird chirp/wiggle
+
+**Status:** new. The brief's named example. This is the "spread it off auth" anchor, because avatars appear on every surface.
+
+**Decision on scope:** the wiggle fires only on the **bird-glyph** default avatars, not on photo avatars and not on initials avatars. Rationale: a photo of a real person doing a "chirp wiggle" is uncanny; initials wiggling is meaningless. The bird is the only thing it makes sense for, and it doubles as a gentle nudge: "this is a default bird, you can upload a photo." This requires the bird-glyph avatar (currently preview-only `BirdGlyph`) to be promoted into the real `UserAvatar` as the default-when-no-photo rendering, which aligns with the locked v2 design decision ("bird avatars as default + photo upload override").
+
+- **Trigger:** a deliberate **click/tap on your OWN bird avatar** (the user-chip avatar in the sidebar, and your avatar in the composer). Decision: only your own, not other people's, to keep it a private little toy and avoid "why is this stranger's face wiggling" confusion. Optional second trigger: triple-click any bird avatar anywhere (power-user easter egg, undiscoverable by accident).
+- **Animation spec (one beat, ≈420ms):**
+  - The whole glyph does a quick **head-tilt wiggle**: `rotate(0 → -9deg → 7deg → 0)` with origin at the body center, spring easing `cubic-bezier(.34,1.56,.64,1)`.
+  - The **beak** opens once: a tiny `scaleY(1 → 1.35 → 1)` on the beak path (chirp), synced to the first rotation peak.
+  - A single faint **note glyph** (a small ♪ or a 4px dot) fades up and drifts: `opacity 0 → 1 → 0`, `translateY(0 → -10px)` over 500ms, positioned top-right of the avatar, then unmounts. This is the only "added element"; keep it 8px, low-contrast cinnamon, no sound.
+  - **No audio.** Decision: never play actual sound; "chirp" is purely visual. Rationale: sound on click is the fastest route to "intrusive/cringe" and breaks in shared/quiet spaces.
+- **De-dupe:** ignore re-clicks while a wiggle is in flight (a `isWiggling` ref/state gate); the note element keys off a counter so rapid clicks do not stack.
+- **Reduced motion:** the note still fades in/out (opacity only, no drift); the rotation/beak are suppressed. So the easter egg is still acknowledged, just calmly.
+- **Where it lives:** `src/components/common/user-avatar.tsx` (the shared avatar). Gate the behavior behind a prop like `interactive` so it only activates on the self-avatar instances (sidebar user-chip, composer), keeping all other avatars inert and cheap.
+- **Cringe risk:** LOW, provided audio stays off and it is self-only. The note glyph is the one part that could tip twee; keep it tiny and optional behind a flag if the team wants to A/B it.
+
+Note: DELIGHT_FEEDBACK.md's later owner review confirms 'React on tap (rotate + enlarge) is good' but says the chirp noise itself ('two crude curved lines') needs a nicer chirp glyph (clean concentric arcs / little notes) -- this original spec's 'note glyph' idea is the seed of that fix.

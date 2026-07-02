@@ -1,3 +1,9 @@
+> **Superseded 2026-07-02.** Storage is Cloudflare R2 (not Vercel Blob) via the
+> `putImage`/`delImage` shim in `src/lib/storage.ts`; hosting is Vercel (compute
+> never moved to Render). Current source for the stack: `docs/STACK_MIGRATION.md`.
+> The photo/Collection pipeline design below (taxonomy, variants, moderation,
+> data model) is still current; only the storage-provider specifics are stale.
+
 # Spec: media
 
 I now have a thorough grounding in the real codebase: the upload pipeline, image rendering, moderation model, IA, spacing tokens, filter/grid patterns, and avatar conventions. I have everything needed to write the spec. This is my deliverable, returned directly as my final message.
@@ -62,18 +68,15 @@ The grid page is the default. Pagination is cursor/offset based exactly like `lo
 
 ## 4. Cost-aware storage strategy (the load-bearing decision)
 
-The owner's hard constraint: **hosting photos is expensive, storage is limited.** The deploy is moving from Turso+Vercel to **Render**. This changes the storage math and is the single most important decision in this spec.
+The owner's hard constraint: **hosting photos is expensive, storage is limited.** Hosting is Vercel; the database is Supabase Postgres (Mumbai). This changes the storage math and is the single most important decision in this spec.
 
 ### 4.1 Where the bytes live
 
-The existing pipeline (`src/app/api/upload/route.ts`) already does the right thing and must be **reused, not rebuilt**: it keys on `const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN`, processes every upload through `sharp` (`resize(1920,1920,{fit:"inside",withoutEnlargement:true}).webp({quality:80})`), and writes either to Vercel Blob (`put(...)`) or the local filesystem (`public/uploads/YYYY/MM/`). Deletion mirrors this in `feed/actions.ts deletePost` (`del(img)` for Blob, `unlink(...)` for local).
+*(Historical: this section originally proposed keeping Vercel Blob and documented Cloudflare R2 as a fallback if Blob cost became a bottleneck. That fallback is now the actual implementation — see the banner at the top of this file.)*
 
-**Decision: keep Vercel Blob as the photo store even after moving compute to Render.** Vercel Blob is a standalone object store backed by S3/Cloudflare R2 and is reachable from any host; it does not require the app itself to be on Vercel. This means:
-- Zero new infrastructure: the `put`/`del` calls and the `*.public.blob.vercel-storage.com` remote pattern (already in AGENTS.md) keep working unchanged.
-- Render's own disk is ephemeral on the free/standard web service tier and is the wrong place for user uploads anyway, so the local-filesystem branch stays as the **local-dev-only** path (it already is).
-- The single env var `BLOB_READ_WRITE_TOKEN` is the switch; nothing in application code needs to know we moved off Vercel compute.
+The existing pipeline (`src/app/api/upload/route.ts`) already does the right thing and must be **reused, not rebuilt**: every upload is processed through `sharp` (`resize(1920,1920,{fit:"inside",withoutEnlargement:true}).webp({quality:80})`) and written via the storage shim, `src/lib/storage.ts`'s `putImage`/`delImage`. The shim picks Cloudflare R2 (S3-compatible, zero egress) when `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET`/`R2_PUBLIC_BASE_URL` are all set, and falls back to the local filesystem (`public/uploads/YYYY/MM/`) otherwise (local dev only). Deletion mirrors this in `feed/actions.ts deletePost`, calling `delImage(url)` which routes to an R2 `DeleteObjectCommand` or a local `unlink` depending on the URL's shape.
 
-**Documented alternative if Blob cost becomes the bottleneck: Cloudflare R2.** R2 has zero egress fees, which matters a lot for a public gallery that people browse repeatedly (egress, not storage, is what kills photo-app bills). The abstraction needed is tiny: introduce one `src/lib/storage.ts` with `putImage(buffer, path)` and `delImage(url)` that today wraps `@vercel/blob` and tomorrow can wrap the R2 S3-compatible SDK, with the existing `useBlob` switch becoming a `STORAGE_DRIVER` switch. The upload route and `deletePost` should call this shim rather than `@vercel/blob` directly. This is a one-file refactor, recommended *before* the archive ships so the archive never hard-codes Blob.
+**Decision: Cloudflare R2 as the photo store.** R2 has zero egress fees, which matters a lot for a public gallery that people browse repeatedly (egress, not storage, is what kills photo-app bills). It is S3-compatible (`@aws-sdk/client-s3`) and reachable from any host, so it does not couple the photo store to Vercel. The abstraction is exactly the one-file shim this section originally recommended: `src/lib/storage.ts` exports `putImage(buffer, subdir, filename)` and `delImage(url)`; the upload route and `deletePost` call the shim rather than any storage SDK directly, so a future provider swap stays a one-file change.
 
 ### 4.2 Variants: thumbnail, display, original
 
@@ -87,19 +90,19 @@ A gallery cannot serve 1920px WebPs into a grid; that is the expensive mistake. 
 
 The grid loads only `thumbUrl`; the detail view loads `url`; `originalUrl` is fetched only when someone clicks "view full size." This is the difference between a page weighing 1MB and 40MB.
 
-Implementation note: the current route hard-caps file input at `5 * 1024 * 1024` (5MB) and rejects non-`image/` types. For the archive, **raise the input cap to 15MB** (people want to contribute good DSLR shots, the owner explicitly wants "higher-quality shots") but keep the *output* tightly compressed via the three-variant pass, so storage stays bounded regardless of input size. Reject HEIC up front with a clear message, or add `heic-convert`; sharp's HEIC support depends on the libvips build and is not guaranteed on Render, so guard it.
+Implementation note: the current route hard-caps file input at `5 * 1024 * 1024` (5MB) and rejects non-`image/` types. For the archive, **raise the input cap to 15MB** (people want to contribute good DSLR shots, the owner explicitly wants "higher-quality shots") but keep the *output* tightly compressed via the three-variant pass, so storage stays bounded regardless of input size. Reject HEIC up front with a clear message, or add `heic-convert`; sharp's HEIC support depends on the libvips build and is not guaranteed on every deploy target, so guard it.
 
 ### 4.3 Lazy loading, thumbnails, and a blur placeholder
 
 - Every grid `<img>` uses `loading="lazy"` (the post-card already does this, `post-card.tsx` line 211) plus `decoding="async"`.
 - Store a tiny **BlurHash or a 16px base64 LQIP** string on the row (`blurhash` column) generated in the sharp pass (`.resize(16).blur().toBuffer()` then base64, ~200 bytes). The grid renders the blur as a CSS background behind the `<img>` so the masonry does not reflow and the page feels instant. This is cheap and high-impact.
 - Use an `IntersectionObserver`-driven infinite scroll on the grid (same hasMore/page model as `post-feed.tsx`) so only on-screen tiles fetch.
-- Set long cache headers on Blob responses (Blob serves immutable content-addressed URLs, so `Cache-Control: public, max-age=31536000, immutable` is safe and free egress savings).
+- Set long cache headers on stored objects (R2 serves immutable content-addressed URLs, so `Cache-Control: public, max-age=31536000, immutable` is safe; R2 has zero egress fees, so this is a pure cache-hit-rate win rather than a cost-avoidance one — implemented in `putImage`, `src/lib/storage.ts`).
 
 ### 4.4 Storage budget guardrails
 
 - Per-user soft cap surfaced in the UI ("you have contributed 38 photos"); a hard per-upload batch limit of, say, 10 photos to prevent a single bulk dump.
-- The three-variant WebP approach means an average contributed photo costs roughly: thumb ~35KB + display ~250KB + original ~600KB ≈ under 1MB stored per accepted photo. 5,000 accepted photos ≈ under 5GB, comfortably within the project's 5GB folder ceiling and a small Blob bill. If `originalUrl` is dropped, halve that.
+- The three-variant WebP approach means an average contributed photo costs roughly: thumb ~35KB + display ~250KB + original ~600KB ≈ under 1MB stored per accepted photo. 5,000 accepted photos ≈ under 5GB. R2 storage cost past the 10GB free tier is a flat per-GB rate with no egress charge, so a public gallery that gets browsed heavily stays cheap regardless of traffic. If `originalUrl` is dropped, halve the storage figure.
 - Declined photos are deleted from storage immediately on rejection (admin decline calls `delImage` on all variants), so the storage cost is only ever *approved* content.
 
 ## 5. Cataloging: the tag taxonomy (decision-bearing)
@@ -273,7 +276,7 @@ Honouring the "No `transition-all`, only `transform`/`opacity`, spring easing" r
 ## 12. Open questions / decisions to confirm with the owner
 
 1. **Keep `originalUrl`?** It roughly doubles per-photo storage. Recommend launching *without* it (display 1600px is plenty for screens; add download-original later if demand appears).
-2. **Vercel Blob vs Cloudflare R2 at launch.** Recommend shipping on Blob behind a one-file `storage.ts` shim so R2 is a drop-in later if egress cost bites. Confirm whether to do the shim now (recommended) or after MVP.
+2. ~~Vercel Blob vs Cloudflare R2 at launch.~~ **Resolved:** shipped on R2 behind the `storage.ts` shim (see banner and section 4.1).
 3. **Photo reporting at launch?** Recommend MVP relies solely on the upfront approval gate and admin takedown; defer user-facing photo reports (and the `Report.photoId` change) to v2.
 4. **Auto-approve trust flag (`photoTrusted`)** at launch or later? Recommend later, once the queue actually feels heavy.
 5. **Dark mode**: the owner is "light-mode-first, dark mode loses character." The v2 styles already define dark tokens; the grid and detail view will inherit them for free, but the founding curated photos are tuned for the warm light palette. Recommend not spending effort tuning the archive for dark mode in MVP.
@@ -282,8 +285,9 @@ Honouring the "No `transition-all`, only `transform`/`opacity`, spring easing" r
 
 Files this spec is grounded in (all absolute):
 - `/Users/sanan/Documents/rv-alumni/prisma/schema.prisma` (models, conventions, string-enum + comma-join idioms)
-- `/Users/sanan/Documents/rv-alumni/src/app/api/upload/route.ts` (the sharp + Blob/filesystem pipeline to reuse and extend to 3 variants)
-- `/Users/sanan/Documents/rv-alumni/src/app/(main)/feed/actions.ts` (pagination `take:21/skip` idiom, Blob/local `del`/`unlink` deletion to mirror for declined photos)
+- `/Users/sanan/Documents/rv-alumni/src/app/api/upload/route.ts` (the sharp + storage-shim pipeline to reuse and extend to 3 variants)
+- `/Users/sanan/Documents/rv-alumni/src/lib/storage.ts` (the `putImage`/`delImage` shim: R2 in production, local filesystem in dev)
+- `/Users/sanan/Documents/rv-alumni/src/app/(main)/feed/actions.ts` (pagination `take:21/skip` idiom, `delImage` deletion to mirror for declined photos)
 - `/Users/sanan/Documents/rv-alumni/src/components/posts/create-post-form.tsx` and `post-card.tsx` (composer image handling and `loading="lazy"` rendering to reuse via `<CollectionPicker>`)
 - `/Users/sanan/Documents/rv-alumni/src/components/admin/report-management.tsx` + `src/components/profile/admin-actions.ts` (moderation queue pattern to mirror as `PhotoQueue`)
 - `/Users/sanan/Documents/rv-alumni/src/components/directory/directory-client.tsx` (URL-driven filters, debounced search, glass filter panel, empty state to mirror)

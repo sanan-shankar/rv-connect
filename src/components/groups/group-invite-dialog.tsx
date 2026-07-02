@@ -81,7 +81,7 @@ export function GroupInviteDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        render={<Button variant="leaf" size="sm" className="rounded-full" />}
+        render={<Button variant="primary" size="sm" className="rounded-full" />}
       >
         <UserPlus className="mr-1.5 h-3.5 w-3.5" />
         Invite
@@ -137,7 +137,7 @@ export function GroupInviteDialog({
                   </div>
                   <Button
                     size="sm"
-                    variant={done ? "outline" : "leaf"}
+                    variant={done ? "outline" : "primary"}
                     className="shrink-0 rounded-full"
                     disabled={done || pendingId === person.id}
                     onClick={() => handleInvite(person)}

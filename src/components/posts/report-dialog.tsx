@@ -90,7 +90,7 @@ export function ReportDialog({
             <Button
               onClick={handleSubmit}
               disabled={!reason || submitting}
-              variant="leaf"
+              variant="primary"
             >
               {submitting ? "Submitting..." : "Submit Report"}
             </Button>

@@ -18,7 +18,7 @@
  *  reduced-motion branch anywhere in the mascot.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useState } from "react";
+import { useMotionGovernor } from "@/components/common/motion";
 
 /* ---- one spring set, byte-identical to the app's house springs ---- */
 export const SPRINGS = {
@@ -170,15 +170,15 @@ export const EXPRESSIONS: Record<Expression, Chord> = {
    Per the owner the micro-delights are ALWAYS on (no prefers-reduced-motion
    check anywhere). The only thing we still honour is document visibility:
    ambient idle loops pause when the tab is hidden (battery), with zero
-   visible difference while the tab is in view. ---- */
+   visible difference while the tab is in view.
+
+   This is now a thin re-export of the app-wide `useMotionGovernor`
+   (src/components/common/motion.tsx) so the mascot and the rest of the
+   app share one governor instead of two forks. Kept under its old name
+   here since hoopoe.tsx (and any future mascot code) calls it as
+   `useValleyMotion`. ---- */
 export function useValleyMotion(): { paused: boolean } {
-  const [paused, setPaused] = useState(false);
-  useEffect(() => {
-    const onVis = () => setPaused(document.visibilityState === "hidden");
-    document.addEventListener("visibilitychange", onVis);
-    onVis();
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, []);
+  const { paused } = useMotionGovernor();
   return { paused };
 }
 

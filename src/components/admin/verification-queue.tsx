@@ -64,7 +64,7 @@ export function VerificationQueue({ users }: { users: PendingUser[] }) {
                 {u.yearJoined && u.yearLeft && ` · ${u.yearJoined}-${u.yearLeft}`}
               </p>
             </div>
-            <Button size="sm" variant="leaf" disabled={busy === u.id} onClick={() => verify(u.id)}>
+            <Button size="sm" variant="primary" disabled={busy === u.id} onClick={() => verify(u.id)}>
               <BadgeCheck className="mr-1 h-3.5 w-3.5" />
               Verify
             </Button>

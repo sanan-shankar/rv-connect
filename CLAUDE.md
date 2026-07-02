@@ -4,25 +4,30 @@
 
 A full redesign + MVP build is in progress. Before working, read these (they hold the approved
 decisions, so you do not need the owner to re-explain):
+- `docs/spec/DESIGN-SYSTEM.md` — canonical brand + design language (colours, shape, motion, naming). Read before any UI work.
 - `docs/ROADMAP.md` — the phased build plan (decisions, shared components, data model, 13 phases). Source of truth.
 - `docs/spec/` — deep specs per area. `docs/planning/FEEDBACK_CHECKLIST.md` — every owner instruction, tracked.
 - `docs/planning/PUNCHLIST.md` — authoritative verified backlog and fork-sized batches.
-- `task_plan.md` / `progress.md` — current status. `/preview/v2` (and `/preview/logos`) — the approved look to match.
+- `progress.md` — session history. `/preview/v2` (and `/preview/logos`, `/preview/decisions`) — the approved look to match.
 
 Key locked decisions: light-mode-first (dark parked); flush green sidebar nav; warm dimmed surfaces (never pure
-white); ruled-sheet feed; bird avatars (deterministic, 12 species) + photo override; one shared Composer/Feed/PostCard;
-long-form posts = "Letters", newsletter feature = "Roundups", photo archive = "The Valley Collection"; the heart is
+white); ruled-sheet feed; bird avatars (deterministic, 50 species, real colors, no disc — shipped, see
+docs/spec/avatars.md) + photo override; one shared Composer/Feed/PostCard;
+long-form posts = "Letters", newsletter feature = "Catch-ups" (docs/spec/catchups.md; "Roundups" was rejected
+by the owner, see docs/ROADMAP.md), photo archive = "The Valley Collection"; the heart is
 always red `#E03A33`; no em dashes anywhere; deploy to Vercel (database on Supabase Postgres, `ap-south-1` Mumbai, for both production and local dev; user images on Cloudflare R2).
 Brand palette below is SUPERSEDED by the tokens in `src/app/globals.css` (leaf `#1F8A4C`, sidebar `#235C49`,
 sky `#3F7CA6`, cinnamon `#C2622F`).
 
 # Project
 
-Next.js 16 alumni website. Tailwind CSS v4, shadcn/ui (base-nova), Prisma ORM, NextAuth v5 (email+password;
-magic links being removed), Postgres via Prisma's `pg` adapter (Supabase, `ap-south-1` Mumbai, for production and
+Next.js 16 alumni website. Tailwind CSS v4, shadcn/ui (base-nova), Prisma ORM, NextAuth v5 (email+password; magic links removed), Postgres via Prisma's `pg` adapter (Supabase, `ap-south-1` Mumbai, for production and
 local dev). User images on Cloudflare R2. Deployed to Vercel.
 
-**Brand (legacy; see globals.css for live tokens)**: Leaf green `#22A845`/`#34C759`, Bark `#B8860B`/`#DAA520`, Clay `#E8DCC8`, Paper `#F8FBF8`, Ink `#1A1A2E`.
+**Brand**: canonical rulebook is `docs/spec/DESIGN-SYSTEM.md` (live tokens in `src/app/globals.css`). Short
+version: Canopy `#235C49` is the one green for every CTA and the sidebar; Leaf `#1F8A4C` is an accent/highlight
+only, never a button fill; Cinnamon `#C2622F` is the secondary accent; the heart is always `#E03A33`. All
+CTAs/chips/tags are full pills. Do not use the old three-greens palette below except as historical reference.
 **Fonts**: Libre Baskerville (headings), Source Sans 3 (body).
 **Icons**: Lucide React for UI chrome. `@phosphor-icons/react` duotone for decorative/hero contexts.
 **Animation**: `motion` (Framer Motion) for micro-interactions. `@formkit/auto-animate` for list transitions.
@@ -35,6 +40,29 @@ local dev). User images on Cloudflare R2. Deployed to Vercel.
 - **Mobile**: Every desktop UI change MUST be verified on mobile (390×844). Screenshot both viewports.
 - **No `transition-all`**: Only animate `transform` and `opacity`. Use spring-style easing.
 - **No default Tailwind blue/indigo**: Always use the brand palette above.
+
+## Working Agreement
+
+### BEFORE work
+
+- Read `docs/spec/DESIGN-SYSTEM.md` plus the relevant `docs/spec/*` file for the area you're touching.
+- Confirm the shapes you're about to build against `/preview/v2` and `/preview/decisions` (the approved look).
+- Import shared primitives (`Button`, `BirdAvatar`, `LoveButton`, `FeedColumn`, `src/components/common/motion.tsx`)
+  instead of hand-rolling. Do not rebuild what already exists.
+- Check `components.json` for installed shadcn components before adding a new one.
+
+### AFTER work
+
+- Every clickable element has `hover`, `focus-visible`, and `active` states. No exceptions.
+- CTAs are canopy pills (`rounded-full`, Canopy `#235C49` fill).
+- Only `transform`/`opacity` are animated. No `transition-all`. No hand-typed `cubic-bezier(...)`; import
+  `EASE_POP`/`EASE_SPRING`/`SPRINGS` from `src/components/common/motion.tsx` instead.
+- Any new async route ships a `loading.tsx` using the warm shimmer, not a grey pulse.
+- Desktop (1440) and mobile (390) screenshots taken and reviewed, minimum 2 rounds.
+- Run `/simplify`.
+- Run a security review if the change touches auth, data, or forms.
+- No em dashes anywhere in copy.
+- User-facing naming says "Rishi Valley", never "RV Alumni" or "Alumni".
 
 ## Skills — When to Invoke
 
@@ -62,6 +90,13 @@ Use sub-agents liberally to keep the main context clean. Prefer more agents over
 3. Run a security review sub-agent if touching auth/data/forms
 4. Screenshot and verify visually
 
+**Model tiers**: The main session model (`/model`) is the orchestrator; it plans, delegates, and makes judgment calls. Sub-agents (the `Agent` tool's `model` param, or `agent(prompt, { model })` inside a Workflow script) run independently of it:
+- **Sonnet** — default for implementation and review sub-agents: writing code, `/simplify`, `/code-review`, `/security-review`, the pipeline above.
+- **Opus** — the orchestrating session itself, or a sub-agent facing an ambiguous product/design/architecture call the spec docs don't already answer.
+- **Haiku** — trivial mechanical sub-agent work (running a screenshot script, a targeted grep, formatting output).
+
+Saved workflow `.claude/workflows/implement-review.js` runs this pattern end to end: `Workflow({ name: 'implement-review', args: { task: '...' } })` hands the task to a Sonnet implementer, then a second Sonnet agent reviews it before handoff.
+
 **Research Agents**: For complex problems, spawn an Explore agent to research the codebase before implementing. Don't duplicate the research yourself.
 
 **Agent Teams**: For multi-area work (e.g., changing both frontend + backend + database), use multiple agents working in parallel on independent parts.
@@ -86,14 +121,29 @@ Screenshots save to `./temporary screenshots/screenshot-N.png` (auto-incremented
 4. Screenshot mobile → repeat review
 5. **Skip iteration on animated elements** — they produce inconsistent frames
 
+**Gotchas (these have bitten past sessions):**
+1. **Stale `.next` cache.** If every route 404s, or a `globals.css` change does not show up, the Turbopack `.next` cache is corrupt. `rm -rf` is blocked and an in-folder move can exceed the 5GB cap, so move it to the scratchpad (same volume, instant): `mv .next "<scratchpad>/next-old"` then `npm run dev`. Always clear `.next` and restart after editing `globals.css` (HMR does not reliably pick up token/CSS-rule changes).
+2. **Screenshots need real Chrome.** The bundled Puppeteer Chrome is broken here. `scripts/qa/screenshot.mjs` now auto-falls-back to `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`; any sub-agent driving Puppeteer directly must set `PUPPETEER_EXECUTABLE_PATH` to that path or it cannot screenshot.
+3. **Verify at runtime, not just `tsc`.** `tsc --noEmit` has passed a Prisma `select` on a non-existent column that then 500'd the feed. Always screenshot the surface and watch the console / server log for `PrismaClientValidationError` / `pageerror`.
+
 ## Design Guardrails
 
+Canonical rulebook: `docs/spec/DESIGN-SYSTEM.md`. This section is a quick-reference summary; if it ever
+disagrees with that doc, the doc wins.
+
+- **Colour**: Canopy `#235C49` for every CTA and the sidebar (the one green; don't reintroduce a second
+  or third green fill). Leaf `#1F8A4C` is an accent/highlight only. Cinnamon `#C2622F` is the secondary
+  accent. Sky `#3F7CA6` is a sparing cool pop. The heart is always `#E03A33`.
+- **Shape**: CTAs, chips, and tags are full pills (`rounded-full`). Cards are 16px radius; a box nested
+  inside another box is never the same radius as its container. Inputs are 12px (the feed composer's
+  inline post box is the pill exception). Avatars are full circles.
 - **Shadows**: Layered, color-tinted at low opacity. Never flat `shadow-md`.
 - **Typography**: Tight tracking (`-0.03em`) on large headings, generous line-height (`1.7`) on body.
 - **Gradients**: Layer multiple radial gradients. SVG noise for texture where appropriate.
 - **Interactive states**: Every clickable element needs `hover`, `focus-visible`, and `active`. No exceptions.
 - **Spacing**: Use LiftKit golden ratio tokens from `.claude/skills/liftkit-spacing/SKILL.md`. Never arbitrary Tailwind steps.
-- **Depth**: Layering system — base → elevated → floating. Use `.glass` utility for frosted overlays.
+- **Depth**: Layering system: base to elevated to floating. The `.glass` utility (translucent surface plus
+  backdrop blur) exists for sticky nav and overlays; use it, don't hand-roll another frosted effect.
 - **Images**: Gradient overlay (`bg-gradient-to-t from-black/60`) and color treatment with `mix-blend-multiply`.
 - **Micro-animations**: Use `motion` for like hearts, bell shakes, page transitions. Use `@formkit/auto-animate` for list add/remove. Animate only `transform` and `opacity`.
 
