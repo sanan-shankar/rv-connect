@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Newspaper,
+  Notebook,
   Users,
   Feather,
   CalendarDays,
@@ -26,7 +27,7 @@ import {
   GraduationCap,
   Briefcase,
 } from "lucide-react";
-import { CirclesThreeIcon, Heart, ShareFat } from "@phosphor-icons/react";
+import { Heart, ShareFat } from "@phosphor-icons/react";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 
 /* ------------------------------------------------------------------ */
@@ -130,8 +131,8 @@ function Avatar({
 
 const NAV = [
   { icon: Newspaper, label: "Feed" },
-  { icon: Users, label: "Directory" },
-  { icon: CirclesThreeIcon, label: "Groups" },
+  { icon: Notebook, label: "Directory" },
+  { icon: Users, label: "Groups" },
   { icon: Feather, label: "Letters" },
   { icon: CalendarDays, label: "Events" },
   { icon: Info, label: "About" },
