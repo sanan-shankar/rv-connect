@@ -1,10 +1,10 @@
 import {
   Bird,
+  CirclesThreeIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   Newspaper,
   Users,
-  FolderOpen,
   Mail,
   CalendarDays,
   Info,
@@ -312,7 +312,7 @@ function Avatar({ initials, color, size = 38 }: { initials: string; color: strin
 const NAV = [
   { icon: Newspaper, label: "Feed", active: true },
   { icon: Users, label: "Directory" },
-  { icon: FolderOpen, label: "Groups" },
+  { icon: CirclesThreeIcon, label: "Groups" },
   { icon: Mail, label: "Letters" },
   { icon: CalendarDays, label: "Events" },
   { icon: Info, label: "About" },
