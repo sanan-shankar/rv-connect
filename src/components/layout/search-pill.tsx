@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { EASE_POP, SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
@@ -102,8 +102,8 @@ export function SearchPill() {
         </AnimatePresence>
 
         {/* The magnifying glass stays mounted across both states and settles
-            into place. Closed, the lens gets a 0.75px optical nudge so it reads
-            dead center in the 40px pill; open, it sits at the bar's leading edge. */}
+            into place. Closed, the glyph gets a tiny left optical correction so
+            it reads centered in the 40px pill; open, it sits at the bar's leading edge. */}
         <motion.span
           layout
           transition={open ? OPEN_SPRING : CLOSE_SPRING}
@@ -115,12 +115,12 @@ export function SearchPill() {
               : "h-10 w-10 group-hover:text-foreground group-active:scale-95"
           )}
         >
-          <Search
+          <MagnifyingGlassIcon
+            weight="regular"
             size={open ? 16 : 18}
-            strokeWidth={1.9}
             className={cn(
               "pointer-events-none block",
-              !open && "translate-x-[0.75px] translate-y-[0.75px]"
+              !open && "-translate-x-[0.75px]"
             )}
           />
         </motion.span>
