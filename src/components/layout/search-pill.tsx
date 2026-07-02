@@ -119,7 +119,7 @@ export function SearchPill() {
             weight="regular"
             size={open ? 16 : 18}
             stroke="currentColor"
-            strokeWidth={4.4}
+            strokeWidth={6}
             className={cn(
               "pointer-events-none block",
               !open && "-translate-x-[0.75px]"
