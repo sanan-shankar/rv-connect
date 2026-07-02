@@ -57,8 +57,8 @@ Live values in `globals.css`. Surfaces are **never pure white** (`#FFFFFF` is re
   Letters pen, the Events calendar), links, selection states, the focus glow. Never fill a CTA with it.
 - **Leaf-light `#34C759` is retired** as a fill (it's the "cheap" green). Where a highlight is needed,
   use Leaf or Cinnamon instead.
-- **Cinnamon `#C2622F` is the second accent** — expand its use (Events, saved, the hoopoe), and use it
-  to replace the cheap-green place-highlight on the **Directory map / batches**. **(confirming)**
+- **Cinnamon `#C2622F` is the second accent** — expand its use (Events, saved, the hoopoe). (The Directory
+  map's single-city pin stays leaf green per owner, 2026-07-02; do not cinnamon-ify it.)
 
 ### Focus states
 
