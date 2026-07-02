@@ -116,7 +116,7 @@ export function SearchPill() {
           )}
         >
           <MagnifyingGlassIcon
-            weight="regular"
+            weight="bold"
             size={open ? 16 : 18}
             className={cn(
               "pointer-events-none block",
