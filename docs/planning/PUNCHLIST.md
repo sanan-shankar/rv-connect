@@ -199,3 +199,16 @@ Added during the docs consolidation; the source docs were archived/deleted, so t
 - **Richer profile: CONFIRMED still the target.** The profile-depth unbuilt items (house-per-year, memory prompts + `UserMemory` model, `<RememberableField>`, arbitrary contact links) stay active — the current flat profile is interim MVP. See `docs/spec/profile.md` §10.
 - **Logo `PeaksMark` is FINAL, per owner, 2026-07-02.** No retrace needed. This drops retrace items **#8, #31, #32, #33** (the RIDGE-curve retrace, the solid-fill variant, and the peak-placement adjustment) from this punch-list. Use the mark as-is wherever a logo is needed.
 - **Golden-ratio spacing retrofit (C7) is deferred** to the upcoming lightweight/modularity refactor pass, not this fix campaign. The rule itself (LiftKit `--space-*` tokens, applied app-wide) still stands per `docs/spec/DESIGN-SYSTEM.md` §6; only the retroactive retrofit of existing screens onto it is pushed out.
+
+### Performance backlog (salvaged from the deleted PERFORMANCE.md, 2026-07-02)
+
+The old report's "far Turso region" thesis is resolved by the Supabase Mumbai migration, and several fixes shipped (auth `cache()`, notification/comment indexes locally, `optimizePackageImports`, compressed `landing.jpeg`, dropped an unused font weight). Remaining, still-valid optimizations:
+
+- **Remove the DB read from NextAuth `session()`** — read volatile fields (role/ban/batch) from the JWT with a short TTL / `trigger:"update"` refresh instead of a `user.findUnique` per `auth()`. Biggest remaining production-latency win; needs a decision (trades off how fast a role/ban change propagates). Effort M.
+- **Delete the dead v1 bird `Species` path** (~530 lines of SVG in `bird-avatar.tsx`, the `USE_V2=false` branch) still shipping in the shared authed bundle. Safe now that avatars are settled. Effort S.
+- **Dynamic-import the directory world-map** (`alumni-map.tsx`: d3 + topojson + supercluster + a 108KB `countries-110m.json`) behind a skeleton via `next/dynamic({ ssr:false })`; fetch the JSON from `/public` instead of bundling it. Directory route only. Effort M.
+- **Feed query index** — add `@@index([isHidden, groupId, createdAt])` on `Post`; longer term normalize `targetBatches` into a `PostTargetBatch{postId,batch}` join table so the filter is sargable at scale. Effort M.
+- **`landing.jpeg`** (486KB CSS background on every authed page + profile cover) → ship a small WebP or route it through `next/image`; drop the duplicate `notification.count` in `feed/page.tsx` (reuse the layout's); move the 5.9MB `public/images/landing-original.jpeg` out of `public/` so it stops shipping. Effort S.
+- **Apply the local-only indexes to production** — `Notification_userId_read_idx` and `Comment_postId_createdAt_idx` exist only in local dev; run the same `CREATE INDEX` on Supabase (or add `url`/`directUrl` to the datasource and `prisma db push`). Effort S.
+
+Several of these ("cut the dead bird path," "dynamic-import the map") also belong in the lightweight/modularity refactor pass.

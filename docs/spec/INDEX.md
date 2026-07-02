@@ -1,17 +1,15 @@
 # Architecture & Product Specs
 
-Detailed area specs from the architecture workflow. ROADMAP.md is the consolidated build plan; these hold the depth.
+`docs/spec/DESIGN-SYSTEM.md` is the canonical brand + design rulebook; `docs/ROADMAP.md` is the build plan. These hold the per-area depth.
 
-- [ia](spec/ia.md)
-- [letters](spec/letters.md)
-- [catchups](spec/catchups.md)
-- [directory](spec/directory.md)
-- [profile](spec/profile.md)
-- [onboarding](spec/onboarding.md)
-- [color](spec/color.md)
-- [delight](spec/delight.md)
-- [avatars](spec/avatars.md)
-- [mascot](spec/mascot.md)
-- [media](spec/media.md)
-- [landing](spec/landing.md)
-- [infra](spec/infra.md)
+- [DESIGN-SYSTEM](DESIGN-SYSTEM.md) — brand, colour, shape, type, motion (canonical)
+- [ia](ia.md)
+- [letters](letters.md)
+- [catchups](catchups.md)
+- [directory](directory.md)
+- [profile](profile.md)
+- [onboarding](onboarding.md)
+- [avatars](avatars.md)
+- [mascot](mascot.md)
+- [media](media.md)
+- [landing](landing.md)
