@@ -179,8 +179,8 @@ Status: [x] done · [~] applying now (design lock) · [ ] planned for build · [
 
 ## Delight / micro-interactions (as important as everything else)
 > Granular round-2 owner feedback on the `/preview/delight` lab is tracked item-by-item in
-> `docs/planning/DELIGHT_FEEDBACK.md` (verdict + lane + status for every point). This section is the
-> high-level summary; that file is authoritative for the delight work.
+> `docs/content/DELIGHT.md` (verdict + lane + status for every point, merged in at the bottom). This
+> section is the high-level summary; that file is authoritative for the delight work.
 - [~] Hoopoe on password (template): bigger, more obviously a hoopoe, opens then closes on load.
 - [ ] 3 to 5 more tasteful moments across the UI, not just on auth.
 - [ ] Bird avatar click -> tiny beak chirp/wiggle easter egg.
