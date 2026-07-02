@@ -102,9 +102,6 @@ export function LogoFact({
           <span className="block whitespace-nowrap font-heading text-[17px] font-bold leading-none tracking-tight text-sidebar-foreground">
             Rishi Valley
           </span>
-          <span className="mt-1 block text-[10px] uppercase leading-none tracking-[0.2em] text-sidebar-foreground/55">
-            Alumni
-          </span>
         </span>
       </Link>
 

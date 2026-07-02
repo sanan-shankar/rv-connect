@@ -202,7 +202,7 @@ export default async function DirectoryPage({
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
-        title="Alumni Directory"
+        title="Directory"
         subtitle="Find the people who grew up under the same trees."
       />
       <DirectoryClient
