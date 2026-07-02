@@ -2,8 +2,7 @@
 
 **Status:** Canonical for brand + design language, as of 2026-07-02. The live token source is
 `src/app/globals.css`; this doc is the human-readable rulebook that explains what the tokens mean and
-how to use them. It supersedes `docs/spec/color.md` and the scattered delight docs, which are being
-folded in during the docs consolidation with **no information lost**.
+how to use them. The former `docs/spec/color.md` is folded into Appendix B below (no information lost).
 
 A handful of points are tagged **(confirming)** — they came from owner answers that required
 interpretation and are pending a quick sign-off in chat. Everything else is locked.
@@ -174,9 +173,15 @@ bird-watching (hoopoe = founder's favourite bird; parakeets), rocky scrub-valley
 hand-loom textiles, contemplative minimalism, study under trees, houses (e.g. "Krishna").
 Aesthetic target: boutique, intimate, naturalist field-journal, NOT Instagram-for-the-masses.
 
-## Appendix B: Deeper rationale (kept in docs/spec/color.md)
+## Appendix B: Avatar palette + parked dark mode
 
-For the full 10-colour avatar palette (exact hex + contrast ratios), the "heart flashes black" bug
-root-cause and fix (why the shared LoveButton hardcodes `#E03A33`), and the parked dark-mode target
-tokens ("gray not black"), see `docs/spec/color.md`. That is historical rationale; this doc is the
-current rulebook.
+**Avatar / disc palette** (10 colours, assigned deterministically by hash; all ~AA against white glyphs):
+Leaf `#2E9E54`, Office blue `#3F7CA6`, Teal `#1F9C8E`, Coral `#E14B3C`, Cinnamon `#C2622F`,
+Marigold `#C79318`, Plum `#8A5BB0`, Indigo `#5566C4`, Rose `#C7508A`, Forest slate `#4F7E5C`.
+
+**Heart:** the shared `LoveButton` hardcodes `#E03A33` with `transition: none` so it never flashes
+black on the fill-weight swap (the old bug, now fixed by extraction).
+
+**Parked dark mode** (post-MVP; the rule is warm charcoal, never pure black, and accents get *brighter*
+on dark, not dimmer): page `#1C2420`, elevated `#262E29`, recessed `#222A26`, border `#34403A`,
+sidebar `#16332A`, ink `#E8EDE6`, office blue `#5FA6D6`, heart `#FF5B4D`, leaf `#3FD16A`.
