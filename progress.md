@@ -644,3 +644,37 @@ Owner loved it. Round-3 fixes, all applied + verified:
 - Verified: tsc + eslint clean; build exit 0; runtime 0 console errors (verbs + sequence + cancel +
   flight). Rendered gaze-beak, matrix (sad/worried), studio (5 sliders), save-slot gallery, mid-flight.
   NOT committed. Owner still dialing proportions in the studio; will send chosen numbers to bake.
+
+## Session 2026-07-02 — consolidate bug docs + avatar count consistency
+
+- CONSOLIDATED the two owner-feedback trackers into one `docs/planning/bugs.md` (bugs and small fixes
+  only, per owner) and DELETED `docs/planning/FEEDBACK_CHECKLIST.md` + `docs/planning/PUNCHLIST.md`.
+  Re-verified every item against live code first; dropped everything already done. Deliberately did NOT
+  carry forward the superseded "traps" (tree overlay is 0.11 not 0.08; bg #E7E1D3 not #E9E6DD; theme-
+  transition-speed moot under forcedTheme=light; feed ships as tiles not ruled sheet) so no future
+  session re-opens a settled choice. bugs.md records these in a "Settled, do not re-open" section.
+- bugs.md OPEN items (3): (1) feed letter card still shows "Untitled letter" while /letters + reader
+  fall back to first line (post-card.tsx:206); (2) no /saved page though bookmark model+action+sweep
+  ship (dead-end button, no nav slot); (3) /support cost breakdown still says "Render" with Render
+  rupee figures, stale after the Vercel+Turso+R2 move.
+- Non-bug content: already covered elsewhere so deleted with the files (features -> ROADMAP + FEATURES,
+  delight -> DELIGHT.md, decisions -> DESIGN-SYSTEM). The one uncovered idea (data to collect for
+  future insights: house-per-year, sections, sports-day stats, RV trivia; "you have X in common")
+  folded into FEATURES.md, replacing its truncated orphan line.
+- Repointed refs to the deleted files: CLAUDE.md, docs/README.md, .github/PULL_REQUEST_TEMPLATE.md,
+  FEATURES.md (the digest-rejected ADR citation). No dangling links remain (remaining mentions are
+  intentional provenance in bugs.md/README + history in this log).
+- AVATARS: confirmed the shipped count is 50, not 37 (my earlier read was mid-refactor / stale).
+  avatar.ts BIRD_SPECIES_COUNT=50, 50 ARCHES, avatar.test.mjs asserts 50/10/4. Made docs/spec/avatars.md
+  internally consistent: added a strong "everything below is the SUPERSEDED original proposal" divider
+  listing the deltas (50 not 12; real colours + no disc; 50 x 2 poses; real salts species::/color::/
+  pose::; pin in precedence) + fixed the two summary spots (§1 768 block, §12 register). De-staled the
+  "640 combinations" comment in avatar.ts. Left the original 12-species table / disc palette / hash
+  pseudocode as clearly-labeled historical rationale (code is authoritative).
+- GROUPS NAV ICON: a prior agent had changed Groups from FolderOpen to a campfire (Phosphor
+  `CampfireIcon`); the owner rejected campfire as irrelevant. Replaced this session with `CirclesThree`
+  (three soft overlapping circles = communities/groups: reads instantly as "groups", no faces so it
+  stays distinct from Directory's Users, soft/rounded not corporate), applied across sidebar.tsx +
+  preview/_shared.tsx + preview/v2/page.tsx. tsc clean.
+- Committed on main in TWO commits: (1) the doc consolidation + avatar-doc consistency above;
+  (2) the Groups nav icon swap.

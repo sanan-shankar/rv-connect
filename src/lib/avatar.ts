@@ -64,8 +64,8 @@ export interface BirdChoice {
  * modulo. The salting decorrelates the axes' high bits; the high-bit window is what actually
  * matters here, because FNV-1a's final `imul` step couples the LOW bit of the result across
  * salts of equal length (so `color % 10` parity and `pose % 4` parity would otherwise lock
- * together). Slicing from bit 13 upward avoids that coupling and yields all 640 combinations
- * evenly across real cuid ids (verified in avatar.test.mjs).
+ * together). Slicing from bit 13 upward avoids that coupling and spreads all species/colour/pose
+ * combinations evenly across real cuid ids (verified in avatar.test.mjs).
  */
 function axisIndex(seed: string, salt: string, count: number): number {
   return ((fnv1a(salt + seed) >>> 13) >>> 0) % count;
