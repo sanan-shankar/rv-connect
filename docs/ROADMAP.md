@@ -1,10 +1,6 @@
 # RV Alumni — MVP Build Roadmap
 
-_Synthesized by the architecture workflow (wpud23338). Source of truth for build order, decisions, component inventory, and data model._
-
-> **Stack update (2026-07-01):** The final infrastructure is **Vercel** (hosting) + **Supabase Postgres, `ap-south-1` Mumbai** (database) + **Cloudflare R2** (images). The **Render**, **Render Postgres**, **Turso/libSQL**, and **Vercel Blob** references throughout this document reflect an earlier plan and are **superseded**. The product, feature, and data-model decisions below still stand; only the infra choices changed. See `docs/STACK_MIGRATION.md`.
-
-# RV Alumni — MVP Build Plan
+_Synthesized by the architecture workflow (wpud23338). Source of truth for build order, decisions, component inventory, and data model. Infra, avatar, and newsletter-naming details below reflect the 2026-07-01/07-02 decisions (Vercel + Supabase Mumbai + R2; 50-species avatars; "Catch-ups"/"Round N"); see `docs/STACK_MIGRATION.md` for the infra migration runbook._
 
 This is the single, contradiction-free build plan synthesized from all area specs. It is light-mode-first, modular-reuse-first, and ordered so shared pieces land before the surfaces that consume them. No em dashes anywhere in shipped copy.
 
@@ -14,25 +10,25 @@ This is the single, contradiction-free build plan synthesized from all area spec
 
 ### Naming and identity
 - **Long-form post type is "Letters."** A Letter is a `Post` with `kind="letter"` (title + serif reading view), not a new model. Reuses the shared composer and feed. Warm, single-author, on-brand.
-- **Recurring newsletter feature (Letterloop-style), working name "Catch-ups."** ("Roundups" rejected by owner: not self-evident. Alternatives: Circles, Almanac.) Many-author, scheduled, archived; a single instance is an "issue." First-run needs a one-line explanation of what it is. Distinct from "Letters" (long-form post). Name is just a label, easy to swap.
+- **Recurring newsletter feature is "Catch-ups."** ("Roundups" rejected by owner: not self-evident.) Many-author, scheduled, archived; a single instance is a **"Round"** (Round 1, Round 2, ...). First-run needs a one-line explanation of what it is. Distinct from "Letters" (long-form post). Being rebuilt separately per the GSD rebuild track; see `docs/spec/catchups.md` for the current model names (`Catchup`/`CatchupIssue`/`CatchupQuestion`/`CatchupAnswer`).
 - **Photo archive is "The Valley Collection"** (route `/collection`, sidebar label "Collection"). Frames it as a communal, place-not-people body of work; no collision with the profile "Photos" tab or with "Letters."
-- **Default avatar is a procedurally generated valley bird** (12 species x 16 discs x 4 variations = 768 combos), deterministic from `User.id`, off-white silhouette on a saturated disc. Photo upload overrides; initials are the legacy fallback only.
+- **Default avatar is a procedurally generated valley bird.** Shipped as **50 real Rishi Valley bird species, in their real colors, with no background disc** (see `docs/spec/avatars.md` and `src/lib/avatar.ts`), deterministic from `User.id`. Photo upload overrides; if the photo is removed the user returns to the same deterministic bird, never a new random one. Initials are the legacy fallback only.
 - **Directory default landing is a dual-mode browse surface with Map as the default tab** (Map | Batches), never an alphabetical list. The world map is the distinctive draw and has no alphabetical bias.
 
 ### Scope and platform
 - **Dark mode is parked for MVP. Ship light-only.** Remove the toggle, set `forcedTheme="light"`, keep `.dark` scaffolding unshipped. Light mode is the brand's character.
-- **Deploy to Render on an always-on Starter Web Service (~7 USD/mo).** Kills cold starts, the top slowness cause for an infrequently-checked site. Never the free tier for the app.
-- **Database moves to Render Postgres, co-located in the app's region.** Removes the per-query remote-HTTP tax. Start free for launch, move to cheapest paid persistent instance the moment real data lands. Keep the Prisma singleton; no connection pooler for MVP (long-running Node process).
-- **Image storage stays on Vercel Blob** even after compute moves to Render (Render disks are ephemeral). Wrap `put`/`del` in a one-file `src/lib/storage.ts` shim for a future R2 drop-in.
+- **Deploy to Vercel.** Kills cold starts for an infrequently-checked site and matches the rest of the Next.js tooling.
+- **Database is Supabase Postgres, region `ap-south-1` (Mumbai), for both production and local dev.** Runtime connects via the transaction pooler (`DATABASE_URL`, pgbouncer); the Prisma CLI uses the session pooler (`DIRECT_URL`). Keep the Prisma singleton with the `pg` adapter.
+- **Image storage is Cloudflare R2** (S3-compatible, zero egress). All image bytes flow through the `put`/`del` shim in `src/lib/storage.ts` (R2 in prod, local filesystem in dev).
 - **Keep DB-backed sessions, co-located** (not a JWT migration now; the admin-login bypass is fragile).
 - **Magic links removed.** Email + password primary; Resend stays for transactional mail. Delete `/verify` and `magic-link-sent.tsx`.
 
 ### Architecture
 - **One `<Composer/>`, one `<Feed/>`, one `<PostCard/>` everywhere**, parameterized by `scope`. Biggest reuse fix.
 - **`GroupPost` folds into `Post`** via nullable `groupId`. Group posts become real `Post` rows and inherit likes, comments, polls, reports, mentions for free.
-- **A Roundup always belongs to a Group**; participants = members; privacy inherited. No standalone Roundups.
+- **A Catch-up always belongs to a Group**; participants = members; privacy inherited. No standalone Catch-ups.
 - **Feed pagination migrates to keyset (cursor) on `(createdAt, id)`** for recent sort, preserving `{posts, hasMore}`.
-- **Cross-batch Letters is NOT a separate feature**; it is the `targetBatches` audience picker on a Letter plus arbitrary group membership for Roundups.
+- **Cross-batch Letters is NOT a separate feature**; it is the `targetBatches` audience picker on a Letter plus arbitrary group membership for Catch-ups.
 
 ### Visual system
 - **Surfaces dimmed and warmed; pure white only on floating modals.** Base `#E9E6DD`, surface `#FAF8F3`, recessed `#EFEBE1`, border `#DED9CC`, `--surface-float:#FFFFFF`.
@@ -50,7 +46,7 @@ This is the single, contradiction-free build plan synthesized from all area spec
 
 **Shell/nav**
 - `<AppShell rightRail?>` — flush green sidebar + content + optional rail; rail presence switches 3-col (1180px, `minmax(0,1fr) 318px`) vs 2-col (1040px); background image inside `.content`. Replaces `Navbar + max-w-7xl + Footer`.
-- `<Sidebar active user>` (client, `usePathname`) — `#235C49`, sticky full-height. Order: Feed, Directory, Groups, Collection, Letters, Roundups, Events, About; bottom user chip + gated Admin. Below `md`: bottom tab bar + More sheet.
+- `<Sidebar active user>` (client, `usePathname`) — `#235C49`, sticky full-height. Order: Feed, Directory, Groups, Collection, Letters, Catch-ups, Events, About; bottom user chip + gated Admin. Below `md`: bottom tab bar + More sheet.
 - `<PageHeader title subtitle actions>` — shared head; hosts `<NotificationBell>` + expand-on-click search pill; per-page primary CTA.
 
 **Identity**
@@ -80,11 +76,11 @@ This is the single, contradiction-free build plan synthesized from all area spec
 
 **New onboarding/verification:** `Invite`, `InviteRedemption` (`userId @unique`), `JoinRequest`, `Vouch` (`@@unique([voucherId,voucheeId])`).
 
-**New Roundups:** `Roundup`, `RoundupIssue` (`@@unique([roundupId,number])`), `RoundupQuestion`, `RoundupAnswer` (`@@unique([questionId,authorId])`), `RoundupPref` (`@@unique([roundupId,userId])`).
+**New Catch-ups:** `Catchup`, `CatchupIssue` (`@@unique([catchupId,number])`, each issue is a "Round"), `CatchupQuestion`, `CatchupAnswer` (`@@unique([questionId,authorId])`), `CatchupPref` (`@@unique([catchupId,userId])`). See `docs/spec/catchups.md` for the current model; this feature is on a separate GSD rebuild track.
 
 **New Collection/directory/bookmarks:** `Photo` (3 rendition URLs + blurhash + dims + faceted tags + approval, `@@index([approved,isHidden,createdAt])`), `PhotoLove` (`@@unique([userId,photoId])`), `City` (`@@unique([asciiName,countryCode])`), `Bookmark` (`@@unique([userId,postId])`).
 
-**Generalizations:** `Report` gains `targetType`, nullable `postId`, `reportedUserId` (folds flag-this-person + future photo reports into one queue). `Notification.type` gains roundup values (no schema change) + `@@index([userId,read])`. `Group` (and future `Event`) gains `coverPhoto`. **No `Contribution` model for MVP** (UPI-only). Image renditions use a URL-suffix convention (no `Post.images` change).
+**Generalizations:** `Report` gains `targetType`, nullable `postId`, `reportedUserId` (folds flag-this-person + future photo reports into one queue). `Notification.type` gains catch-up values (no schema change) + `@@index([userId,read])`. `Group` (and future `Event`) gains `coverPhoto`. **No `Contribution` model for MVP** (UPI-only). Image renditions use a URL-suffix convention (no `Post.images` change).
 
 **Cleanup:** delete `pickAvatarColor()` + `AVATAR_COLORS`; drop random avatar write at signup; keep `getInitials()`.
 
@@ -92,7 +88,7 @@ This is the single, contradiction-free build plan synthesized from all area spec
 
 ## 4. PHASED ROADMAP
 
-**Phase 0 — Foundation (platform/DB/infra).** Render Starter + Render Postgres same region; switch Prisma provider to `postgresql`, replace libSQL adapter (keep singleton); add `storage.ts` Blob shim; remove magic links + `/verify` + `magic-link-sent.tsx`; pre-size background to <30KB blurred WebP; add `(userId,read)` + `createdAt` indexes. **DoD:** always-on app on Render, login + admin bypass verified, clean `migrate deploy`, no magic-link refs.
+**Phase 0 — Foundation (platform/DB/infra).** Vercel + Supabase Postgres (`ap-south-1` Mumbai) same region for prod and local dev; Prisma provider `postgresql` via the `pg` adapter (keep singleton); add `storage.ts` R2 shim; remove magic links + `/verify` + `magic-link-sent.tsx`; pre-size background to <30KB blurred WebP; add `(userId,read)` + `createdAt` indexes. **DoD:** app deployed on Vercel, login + admin bypass verified, clean `prisma db push`/`migrate deploy`, no magic-link refs.
 
 **Phase 1 — Design system.** Apply token deltas (surfaces/sidebar/accents/`--surface-float`); universal transition -> `background-color`/`border-color` only at 120ms; `forcedTheme="light"` + remove toggle; new 10-color avatar palette; fix heart bug (explicit `#E03A33`, `transition:none`); fix `.dotsep`, bird centroid, button glow, `+` alignment; add global reduced-motion block. **DoD:** warm dim surfaces, no pure white, darker sidebar, heart red on first frame, no `transition-all`, OS dark cannot apply.
 
@@ -108,9 +104,9 @@ This is the single, contradiction-free build plan synthesized from all area spec
 
 **Phase 7 — Groups.** Rewrite `/groups/[id]` onto shared `<Composer>/<Feed>/<PostCard>`; group rail (Members/About); extract `<GroupHeader>/<GroupCard>`; drop `GroupPost` model once unused. **DoD:** full-featured gated group feeds, members link to profiles, `GroupPost` deleted.
 
-**Phase 8 — Letters + Roundups.** Letters: composer mode, feed teaser, `/letters`, `/letters/[id]` (no new infra). Roundups: models + group-scoped CRUD (curate/answer/suggest/compile/archive) shipping **manual cadence first**, then Render Cron tick (`/api/roundups/tick`, secret-guarded) + Resend emails + `RoundupPref` + prompt-library seed. **DoD (Letters):** writes/reads through shared primitives, teaser + permalink, audience picker. **DoD (Roundups):** full manual issue end-to-end; tick opens/reminds/publishes; emails + bell notifications work.
+**Phase 8 — Letters + Catch-ups.** Letters: composer mode, feed teaser, `/letters`, `/letters/[id]` (no new infra). Catch-ups: models + group-scoped CRUD (curate/answer/suggest/compile/archive) shipping **manual cadence first** (each issue is a "Round"), then a Vercel Cron tick (`/api/catchups/tick`, secret-guarded) + Resend emails + `CatchupPref` + prompt-library seed. **DoD (Letters):** writes/reads through shared primitives, teaser + permalink, audience picker. **DoD (Catch-ups):** full manual Round end-to-end; tick opens/reminds/publishes; emails + bell notifications work. This feature is being rebuilt separately per the GSD track; see `docs/spec/catchups.md`.
 
-**Phase 9 — The Valley Collection.** `Photo`+`PhotoLove`; extend upload to 3 WebP renditions + blurhash + dims, raise cap to 15MB, reject HEIC; masonry `/collection` with faceted filters + "A wander" + lazy thumb/LQIP; `/collection/[id]` detail + backlinks; approval gate via Photo queue tab in `/admin` (declined purged from Blob); `<CollectionPicker>` into composer/covers; admin seeds 40-60 founding photos; feed rail card. **DoD:** thumbnails-only grid, working filters + queue, declined photos purged, picker reuses photos without re-upload, mobile masonry verified.
+**Phase 9 — The Valley Collection.** `Photo`+`PhotoLove`; extend upload to 3 WebP renditions + blurhash + dims, raise cap to 15MB, reject HEIC; masonry `/collection` with faceted filters + "A wander" + lazy thumb/LQIP; `/collection/[id]` detail + backlinks; approval gate via Photo queue tab in `/admin` (declined purged from R2); `<CollectionPicker>` into composer/covers; admin seeds 40-60 founding photos; feed rail card. **DoD:** thumbnails-only grid, working filters + queue, declined photos purged, picker reuses photos without re-upload, mobile masonry verified.
 
 **Phase 10 — Onboarding + auth + verification.** Invite/Redemption/JoinRequest/Vouch; `/join/[code]` (+ publicPaths); signup with `<AccountTypeToggle>` + conditional batch + `<RememberableField>`, admission number moved to profile-completion, server-side invite + trivia + `$transaction` redeem; trivia server-side + expanded bank, retire `BlinkingOwl`; `/profile/complete` progressive flow; three-track verification (admin office-list queue + community vouching auto-promote + flag via generalized `Report`); `<VerifiedMark>` everywhere; admin Verification + Invites tabs; grandfather existing users. **DoD:** no account without valid invite (server-enforced), teachers sign up batch-free, "don't remember" stores null, vouch promotes + notifies, flag in shared queue, marker subtle, existing users migrated.
 
@@ -125,13 +121,13 @@ This is the single, contradiction-free build plan synthesized from all area spec
 ## 5. RISKS / OPEN QUESTIONS for the owner
 
 1. **Group-post visibility leak** is the top regression risk of folding `GroupPost` into `Post`. `loadPosts` must hard-enforce `groupId: null` for `scope=all`; dedicated test in Phase 3.
-2. **Render free Postgres expires.** Confirm budget for the cheapest paid persistent instance (~6-7 USD/mo) before real data lands.
-3. **Roundups need new infra** (Render Cron + ongoing Resend volume). Confirm acceptance; manual-cadence Roundups ship first and need neither.
+2. ~~**Postgres budget.**~~ RESOLVED: database is Supabase Postgres (`ap-south-1` Mumbai), on Supabase's plan for both production and local dev.
+3. **Catch-ups need new infra** (cron + ongoing Resend volume, on the Vercel/Supabase/R2 stack). Confirm acceptance; manual-cadence Catch-ups ship first and need neither. This feature is on a separate GSD rebuild track.
 4. **Verification cold start.** RESOLVED: owner releases in stages, so no day-one pile-up. Do NOT auto-grandfather; verification proceeds normally (admin office-list + community vouch + flag).
 5. **Existing-user avatar churn.** Nulling `avatarColor` gives everyone a fresh deterministic bird; confirm that vs remapping old discs to the nearest new palette color.
-6. **Roundups label.** Confirm "Roundups" as the final user-facing name (rejected: Seasons, Dispatches).
+6. ~~**Catch-ups label.** Confirm "Roundups" as the final user-facing name (rejected: Seasons, Dispatches).~~ RESOLVED 2026-07-01: name is "Catch-ups", each issue a "Round."
 7. **Keep `originalUrl` (3000px) in Collection?** Doubles per-photo storage; recommend launching without it.
-8. **Storage shim now or later?** Recommend the `storage.ts` shim before the Collection ships so nothing hard-codes Blob (future R2).
+8. ~~**Storage shim now or later?**~~ RESOLVED: the `storage.ts` shim shipped with the R2 migration; all image bytes flow through it.
 9. **Person-in-focus consent** is opt-out (default false), pushing a member's memory to everyone. Confirm opt-out (not opt-in) is acceptable.
 10. **Teacher batch nullability** ripples into `auth.ts`, `next-auth.d.ts`, the directory `groupBy`, and the shared batchline; must land as one coordinated change in Phase 10 so no workstream assumes a non-null batch.
 11. **Map dependencies** (`d3-geo`, `topojson-client`, `d3-zoom`, `supercluster`, world-atlas TopoJSON, trimmed GeoNames gazetteer) are small/free and fit the 200MB/5GB rules; confirm before adding.

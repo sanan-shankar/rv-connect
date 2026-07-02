@@ -54,13 +54,8 @@ export function LandingHero() {
         style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
       >
         <PeaksMark size={34} className="text-white" />
-        <span className="mt-[2px] flex h-8 flex-col justify-between text-white">
-          <span className="block font-heading text-[21px] font-bold leading-none tracking-tight">
-            Rishi Valley
-          </span>
-          <span className="block text-[10.5px] uppercase leading-none tracking-[0.24em] text-white/85">
-            Alumni
-          </span>
+        <span className="block font-heading text-[21px] font-bold leading-none tracking-tight text-white">
+          Rishi Valley
         </span>
       </div>
 
@@ -73,7 +68,7 @@ export function LandingHero() {
                 Welcome back to the valley.
               </h1>
               <p className="mt-4 max-w-[42ch] text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg lg:max-w-none lg:whitespace-nowrap">
-                A space for Rishi Valley alumni to reconnect, share stories, and find each other.
+                A space for the Rishi Valley community to stay connected.
               </p>
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <Link

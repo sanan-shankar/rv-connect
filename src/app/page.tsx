@@ -10,9 +10,9 @@ import { ValleySection } from "@/components/landing/valley-section";
 import { SHOTS } from "@/components/landing/shots";
 
 export const metadata: Metadata = {
-  title: "Rishi Valley Alumni",
+  title: "Rishi Valley",
   description:
-    "A quiet home for Rishi Valley alumni and teachers. Find each other, share the valley, keep it close.",
+    "A space for the Rishi Valley community to stay connected.",
 };
 
 function Shot({ name, alt }: { name: keyof typeof SHOTS; alt: string }) {

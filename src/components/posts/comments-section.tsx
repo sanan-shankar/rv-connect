@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Reply, ArrowUp, X } from "lucide-react";
-import { Heart } from "@phosphor-icons/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
+import { LoveButton } from "@/components/common/love-button";
 import Link from "next/link";
 import { formatTimeAgo } from "@/lib/utils";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion } from "motion/react";
-import { SPRINGS, EASE_POP, SpringPress } from "@/components/common/motion";
+import { SPRINGS, SpringPress } from "@/components/common/motion";
 
 interface CommentData {
   id: string;
@@ -241,18 +241,12 @@ function CommentItem({
   onReply: () => void;
   onLikeToggle: (id: string, liked: boolean, count: number) => void;
 }) {
-  const [animateLike, setAnimateLike] = useState(false);
-
   async function handleLike() {
     const newLiked = !comment.liked;
     const newCount = newLiked
       ? comment.likeCount + 1
       : comment.likeCount - 1;
     onLikeToggle(comment.id, newLiked, newCount);
-    if (newLiked) {
-      setAnimateLike(true);
-      setTimeout(() => setAnimateLike(false), 540);
-    }
 
     const result = await toggleCommentLike(comment.id);
     if (result.error) {
@@ -289,35 +283,14 @@ function CommentItem({
           >
             Reply
           </button>
-          <button
-            onClick={handleLike}
-            aria-pressed={comment.liked}
-            className={`inline-flex items-center gap-1 font-medium rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-              comment.liked ? "text-heart" : "hover:text-foreground"
-            }`}
-          >
-            {/* Heart is ALWAYS red, painted on the first frame. transition:none stops it
-                tweening through the dark inherited colour, so it can never flash black.
-                Only transform animates: a smooth multi-keyframe pop (tween, never a spring),
-                matching the post-card heart. */}
-            <motion.span
-              className="inline-flex will-change-transform"
-              animate={animateLike ? { scale: [1, 0.86, 1.28, 0.97, 1] } : { scale: 1 }}
-              transition={
-                animateLike
-                  ? { duration: 0.5, ease: EASE_POP, times: [0, 0.18, 0.5, 0.74, 1] }
-                  : { duration: 0 }
-              }
-            >
-              <Heart
-                size={12}
-                weight={comment.liked ? "fill" : "duotone"}
-                color="#E03A33"
-                style={{ opacity: comment.liked ? 1 : 0.45, transition: "none" }}
-              />
-            </motion.span>
-            {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
-          </button>
+          <LoveButton
+            liked={comment.liked}
+            count={comment.likeCount}
+            onToggle={handleLike}
+            size="sm"
+            showCount={comment.likeCount > 0}
+            className="font-medium"
+          />
         </div>
       </div>
     </div>

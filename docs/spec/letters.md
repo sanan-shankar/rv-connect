@@ -1,5 +1,7 @@
 # Spec: letters
 
+> **Naming update (2026-07-01):** The newsletter feature is being built under the name **"Catch-ups"**, per `docs/ROADMAP.md`'s explicit rejection of "Roundups." The `Roundup`/`RoundupIssue`/`RoundupQuestion`/`RoundupAnswer`/`RoundupPref` model family and "Roundup(s)" naming throughout this document are **superseded** by `docs/spec/catchups.md`'s `Catchup`/`CatchupIssue`/`CatchupQuestion`/`CatchupAnswer`/`CatchupAnswerLove`/`CatchupPref` models. The underlying feature design (cadence, lifecycle windows, reminders) is not otherwise contradicted — only the name and model family changed.
+
 I now have a complete, grounded picture of the codebase, the shared composer/feed patterns, the v2 design language, and Letterloop's full feature set. I have everything needed to write the exhaustive spec.
 
 ---

@@ -349,6 +349,19 @@ The user chip in the sidebar links to **own** profile.
 
 ## 9. The unified `<Avatar/>` (consolidating two avatar systems)
 
+> **Superseded 2026-07-02.** This sub-model (the `variant 0-2` disc API, the `style: "birds" |
+> "initials"` toggle, and `UserAvatar`/initials as a fallback) does not match what shipped.
+> Canonical source: `docs/spec/avatars.md` and the real implementation in `src/lib/avatar.ts` +
+> `src/components/common/bird-avatar.tsx` / `bird-avatar-v2.tsx`. What actually shipped: 50 real
+> Rishi Valley bird species (not a 0-2 variant), deterministic per-user via salted FNV-1a hashing
+> over three axes (species/colour/pose), no disc background (`BG_MODE="none"`), no
+> `style="initials"` toggle, and `src/components/common/user-avatar.tsx` no longer exists in the
+> codebase at all (already deleted — the migration this section calls for is done). The
+> "avatar as a `Link` to `/profile/[userId]` when a `userId` is present" **principle** in this
+> section is still live and should be read against `ProfileAvatar`
+> (`src/components/profile/profile-avatar.tsx`), not against the disc/variant API below. Kept
+> for history; not current.
+
 Today `UserAvatar` (initials only) ships; v2 introduces bird glyphs + photo. The owner's locked decision is **bird avatars as default + photo upload override**. Decision: **one `<Avatar/>`** that supersedes `UserAvatar`.
 
 ```ts

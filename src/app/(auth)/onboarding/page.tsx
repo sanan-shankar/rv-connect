@@ -140,7 +140,7 @@ export default function OnboardingPage() {
             </Button>
             <Button
               type="submit"
-              variant="leaf"
+              variant="primary"
               className="flex-1"
               disabled={loading}
             >

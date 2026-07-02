@@ -57,7 +57,7 @@ export default async function GroupsPage() {
         subtitle="Spaces for batches, friends, and shared interests across the valley."
         actions={
           <Link href="/groups/new">
-            <Button variant="leaf">
+            <Button variant="primary">
               <Plus className="mr-1.5 h-4 w-4" />
               New group
             </Button>

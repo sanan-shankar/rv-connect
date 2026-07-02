@@ -6,10 +6,11 @@ A social platform for Rishi Valley School alumni to reconnect, share stories, an
 
 - **Framework:** Next.js 16 (App Router, TypeScript)
 - **Styling:** Tailwind CSS v4 + shadcn/ui
-- **Database:** SQLite (local) / PostgreSQL (production) via Prisma ORM
-- **Auth:** NextAuth.js v5 with magic link login (Resend)
-- **Image Processing:** sharp (WebP conversion)
-- **Icons:** Lucide React
+- **Database:** Supabase Postgres (`ap-south-1`, Mumbai) via Prisma ORM, for both production and local dev
+- **Auth:** NextAuth.js v5 with email + password (bcrypt); admin bypass via `ADMIN_EMAIL`
+- **File Storage:** Cloudflare R2 (S3-compatible, zero egress) for user-uploaded images
+- **Image Processing:** sharp (WebP conversion) before upload
+- **Icons:** Lucide React (UI chrome), Phosphor duotone (decorative/hero)
 
 ## Local Setup
 
@@ -30,8 +31,13 @@ A social platform for Rishi Valley School alumni to reconnect, share stories, an
    ```
    Edit `.env.local` and fill in:
    - `NEXTAUTH_SECRET` — run `openssl rand -base64 32` to generate
-   - `RESEND_API_KEY` — get from [resend.com](https://resend.com) (free tier)
-   - `ADMIN_EMAIL` — your email (gets admin role on first login)
+   - `DATABASE_URL` / `DIRECT_URL` — your Supabase Postgres connection strings
+     (pooled port `6543` for `DATABASE_URL`, direct port `5432` for `DIRECT_URL`)
+   - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
+     `R2_PUBLIC_BASE_URL` — Cloudflare R2 credentials (omit locally to fall back
+     to the filesystem storage driver under `public/uploads/`)
+   - `ADMIN_EMAIL` — your email (gets admin role on first login; also enables
+     the password-less admin bypass at `/api/auth/admin-login`)
 
 4. **Push the database schema:**
    ```bash
@@ -58,7 +64,7 @@ src/
     auth/            Trivia gate, signup form
     posts/           Post card, comments, create form
     directory/       Search, profile cards
-    layout/          Navbar, dark mode toggle, notifications
+    layout/          Sidebar, app shell, notifications
     admin/           User & report management
     settings/        Profile edit form
     profile/         Admin profile tools
@@ -75,14 +81,22 @@ Additional docs are organized under `docs/`; start with `docs/README.md` for the
 
 ## Deploying to Vercel
 
-The app runs on **Vercel** with a **Turso** (libSQL) database and **Vercel Blob**
-for images; local dev stays on SQLite. See `docs/operations/DEPLOY.md` for the
-full walkthrough.
+The app runs on **Vercel**, with the database on **Supabase Postgres** (`ap-south-1`,
+Mumbai — the same database for production and local dev) and user images on
+**Cloudflare R2**.
 
 1. Connect the GitHub repo to a Vercel project (production branch: `main`)
-2. Provision a Turso database and set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`
-3. Set the remaining env vars in the Vercel dashboard: `NEXTAUTH_SECRET`,
-   `NEXTAUTH_URL`, `ADMIN_EMAIL`, `NEXT_PUBLIC_ADMIN_EMAIL`, `BLOB_READ_WRITE_TOKEN`
-   (and `RESEND_API_KEY` once email ships)
-4. `postinstall` runs `prisma generate`; Vercel builds with `next build` automatically
-5. Apply the schema to Turso with `npx prisma db push` (pointed at the Turso URL)
+2. Set the env vars in the Vercel dashboard: `DATABASE_URL` (pooled, port `6543`),
+   `DIRECT_URL` (direct, port `5432`) from Supabase; `R2_ACCOUNT_ID`,
+   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_BASE_URL`
+   from Cloudflare; `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `ADMIN_EMAIL`,
+   `NEXT_PUBLIC_ADMIN_EMAIL`
+3. `postinstall` runs `prisma generate`; Vercel builds with `next build` automatically
+4. Apply the schema to Supabase with `npx prisma db push` (the Prisma CLI uses
+   `DIRECT_URL`, configured in `prisma.config.ts`)
+
+## After deploying
+
+Seed founding content so the app does not look empty: write a first Letter, add
+40-60 photos to the Valley Collection (auto-approved as admin), and set your city
+so the world map has a pin.

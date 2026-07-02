@@ -12,10 +12,13 @@ const USE_V2 = true;
 /**
  * BirdAvatar - the default identity mark across the app.
  *
- * Precedence: uploaded photo > manual (avatarColor/avatarSpecies) > owner/staff pin > deterministic
- * bird from id. Server-renderable (no hooks). With USE_V2 on (the default), it delegates to
- * BirdGlyphV2 — the set of 50 Rishi Valley birds in real colours (see bird-avatar-v2.tsx). The
- * legacy mono-white silhouette path below runs only when USE_V2 is off.
+ * Precedence: uploaded photo > manual avatarSpecies > owner/staff pin > deterministic bird from id.
+ * Server-renderable (no hooks). With USE_V2 on (the default), it delegates to BirdGlyphV2 — the set
+ * of 50 Rishi Valley birds in real colours (see bird-avatar-v2.tsx). The legacy mono-white
+ * silhouette path below runs only when USE_V2 is off. There is no avatarColor override: the bird
+ * always drives its own colour from src/lib/avatar.ts, so removing a photo returns the same
+ * deterministic bird (never a new random one). `avatarColor` is accepted on the type for source
+ * compatibility with existing callers but is intentionally ignored here.
  *
  * Sizes: 28 (xs / inline + comments + mentions), 40 (sm / post header + composer + rails),
  * 64 (md / directory cards), 104 (lg / profile cover).
@@ -25,6 +28,7 @@ export interface AvatarUser {
   id?: string | null;
   name?: string | null;
   photoUrl?: string | null;
+  /** @deprecated unused — the bird always drives its own colour. Kept only so existing callers still typecheck. */
   avatarColor?: string | null;
   avatarSpecies?: number | null;
 }
@@ -637,7 +641,6 @@ export function BirdAvatar({
         <BirdGlyphV2
           seed={seed}
           px={px}
-          colorOverride={user.avatarColor}
           speciesOverride={speciesPick}
         />
         {!user.name ? null : <span className="sr-only">{getInitials(user.name)}</span>}
@@ -646,7 +649,7 @@ export function BirdAvatar({
   }
 
   const bird = birdFor(seed);
-  const color = user.avatarColor || bird.color;
+  const color = bird.color;
   const species = user.avatarSpecies ?? bird.species;
   const glyph = Math.round(px * 0.66);
 

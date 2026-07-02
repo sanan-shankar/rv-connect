@@ -20,7 +20,7 @@ export default function Error({
       </p>
       <Button
         onClick={reset}
-        variant="leaf"
+        variant="primary"
         className="mt-6"
       >
         Try again

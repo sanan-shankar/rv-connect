@@ -154,7 +154,7 @@ export function GroupHeader({ group, members, myRole }: GroupHeaderProps) {
             )}
             {!isMember && !isPrivate && (
               <Button
-                variant="leaf"
+                variant="primary"
                 size="sm"
                 className="rounded-full"
                 onClick={handleJoin}

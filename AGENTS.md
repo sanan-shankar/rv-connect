@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Architecture
 
 ## Auth
-- **NextAuth v5 beta** (`next-auth@5.0.0-beta.30`) with Resend magic link provider
+- **NextAuth v5 beta** (`next-auth@5.0.0-beta.30`) with Credentials (email + password) provider
 - Session strategy: database-backed (Prisma adapter)
 - Admin bypass: `POST /api/auth/admin-login` with `ADMIN_EMAIL` creates a DB session + cookie. Works locally, known bug on Vercel deployment.
 - Protected routes: everything under `(main)/` layout requires auth. Public: `/`, `/login`, `/verify`.
@@ -18,7 +18,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Runtime connects via the transaction pooler (`DATABASE_URL`, port 6543, `?pgbouncer=true`); the Prisma CLI uses the session pooler (`DIRECT_URL`, port 5432), set in `prisma.config.ts`
 - Schema: `prisma/schema.prisma` — User, Post, Comment, Like, Group, Notification, Report, Poll models
 - Commands: `npx prisma db push`, `npx prisma generate`, `npx prisma studio`
-- Migrated off Turso/libSQL on 2026-07-01; runbook in `docs/STACK_MIGRATION.md`
+- Migrated off Turso/libSQL on 2026-07-01
 
 ## File Storage
 - **Cloudflare R2** (S3-compatible, zero egress) for user-uploaded images (avatars, post images); bucket `rv-alumni-media`

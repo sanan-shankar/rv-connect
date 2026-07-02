@@ -617,18 +617,20 @@ export function CreatePostForm({
                 </span>
               )}
               {/* A clean pill Post button: quiet/disabled until there is text, then
-                  it springs to life. Keeps the existing disabled/submitting logic. */}
+                  it springs to life. Keeps the existing disabled/submitting logic.
+                  Canopy fill, matching the shared Button's primary variant
+                  (this button is bespoke/animated so it can't use <Button> directly). */}
               <motion.button
                 type="button"
                 onClick={handleSubmit}
                 disabled={!content.trim() || submitting}
                 className="inline-flex h-10 items-center rounded-full border-0 px-[22px] text-[14px] font-bold text-white"
                 style={{
-                  background: "var(--color-leaf)",
+                  background: "var(--color-canopy)",
                   cursor: hasContent && !submitting ? "pointer" : "default",
                   boxShadow:
                     hasContent && !submitting
-                      ? "0 6px 16px -11px var(--color-leaf), inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent)"
+                      ? "0 6px 16px -11px var(--color-canopy), inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent)"
                       : "none",
                 }}
                 animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}

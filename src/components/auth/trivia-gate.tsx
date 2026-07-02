@@ -118,7 +118,7 @@ export function TriviaGate({ onPass }: { onPass: () => void }) {
         {error && <p className="text-center text-sm text-destructive">{error}</p>}
         <Button
           type="submit"
-          variant="leaf"
+          variant="primary"
           className="w-full"
           disabled={!question || checking}
         >

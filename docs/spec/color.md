@@ -1,5 +1,11 @@
 # Spec: color
 
+> **Superseded 2026-07-02.** Current source: `docs/spec/DESIGN-SYSTEM.md` (section 2, "Colour"). That
+> doc has the live, locked token table (verified against `src/app/globals.css`) and the green-usage rule.
+> This file is kept for history — the worked rationale below (why each value was chosen, the avatar-palette
+> hex list, the like-heart bug root cause, and the parked dark-mode target values) is not duplicated in
+> DESIGN-SYSTEM.md and remains useful background. Not current for decisions; DESIGN-SYSTEM.md wins on conflict.
+
 I have all the grounding I need. Now I'll write the exhaustive spec. This is a substantial decision-bearing design document, so I'll deliver it as my final response in Markdown (per instructions: return findings directly, do not write report files).
 
 Let me load the liftkit-spacing skill knowledge since the spec touches button sizing and alignment, to keep my numbers consistent with the system. Actually, the relevant constraints are already visible in globals.css (the `--space-*` golden ratio tokens). I have enough grounding. I'll write the spec now.

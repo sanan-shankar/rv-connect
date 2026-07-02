@@ -41,9 +41,8 @@ export function LandingFooter() {
             <span className="font-heading font-bold tracking-tight text-foreground">
               Rishi Valley
             </span>
-            <span className="uppercase tracking-[0.2em] text-[10px]">Alumni</span>
           </div>
-          <p>A quiet home for the people of the valley.</p>
+          <p>A space for the Rishi Valley community to stay connected.</p>
         </div>
       </div>
     </footer>

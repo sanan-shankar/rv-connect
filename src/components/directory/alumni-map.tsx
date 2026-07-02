@@ -259,8 +259,8 @@ export function AlumniMap({
                   })
                 }
               >
-                <circle r={r + 3} fill="#1F8A4C" opacity={0.18} />
-                <circle r={r} fill="#1F8A4C" opacity={0.9} stroke="#fff" strokeWidth={1.25} />
+                <circle r={r + 3} fill="#C2622F" opacity={0.18} />
+                <circle r={r} fill="#C2622F" opacity={0.9} stroke="#fff" strokeWidth={1.25} />
                 {leaf.pin.count >= 2 && r > 11 && (
                   <text
                     textAnchor="middle"

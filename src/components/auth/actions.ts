@@ -3,7 +3,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validators";
-import { pickAvatarColor } from "@/lib/utils";
 import { hasPassedTrivia } from "./trivia-actions";
 
 export async function registerUser(formData: FormData) {
@@ -66,7 +65,6 @@ export async function registerUser(formData: FormData) {
       batchYear: parsed.data.batchYear ?? null,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
-      avatarColor: pickAvatarColor(),
     },
   });
 

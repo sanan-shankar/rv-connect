@@ -97,7 +97,7 @@ Order is deliberate: lead with the single strongest reason to join (the director
 | 1 | The Directory | "Find the people, not just the posts." | Screenshot of the directory grid + a profile card | The core reason to join. Lead with it. |
 | 2 | The Feed | "The valley, in one quiet sheet." | Screenshot of the ruled-sheet feed | Shows daily life; reassures it is calm, not noisy. |
 | 3 | Groups | "Your batch, your house, your city." | Screenshot of a group feed | Concrete belonging; uses the same shared feed component. |
-| 4 | Newsletters | "Letters that come round again." | Screenshot of the recurring-newsletter feature | The distinctive Letterloop-style feature; high differentiation. |
+| 4 | Newsletters (shipped name: **Catch-ups**) | "Letters that come round again." | Screenshot of the recurring-newsletter feature | The distinctive Letterloop-style feature; high differentiation. |
 | 5 | Photo Archive | "The valley remembers." | Masonry of archive photos | Emotional payload; nostalgia is the strongest pull. |
 | 6 | Trust / invite-only | "A small place, kept small on purpose." | The non-obvious verified marker, vouching illustration | Converts the hesitant; explains the gate. |
 | 7 | Closing CTA + footer | "Come back to the valley." | Calm band, repeated buttons | The ask. |
@@ -129,7 +129,8 @@ Voice: a person who loves the place writing to another person who loves the plac
 - Directory: "The whole point is the people. Search by batch, house, city, or what someone does now, and actually find the friend you lost touch with in 2009. Bird avatars until you upload a face."
 - Feed: "One ruled sheet, not an endless scroll. A sighting, a memory, a note for the valley. It stays useful even when it is busy, because it was never built to be loud."
 - Groups: "Your batch. Your house, year by year. Your city, wherever the valley scattered you. Same quiet feed, smaller room."
-- Newsletters: "A round-robin letter that comes back every season. You answer a few prompts, everyone's answers arrive together, and the years stay close even when the miles do not." (Note: the public-facing name for the newsletter feature is owned by the newsletter workstream; this section uses whatever distinct name they land on, NOT "Letters", which is reserved for the long-form post type. Placeholder here: "Roundups" / "Seasons". Do not hardcode "Letters".)
+- Newsletters: "A round-robin letter that comes back every season. You answer a few prompts, everyone's answers arrive together, and the years stay close even when the miles do not." (Resolved 2026-07-02: the naming question below is settled. The public-facing name is **"Catch-ups"** (each issue is a "Round N"); see `docs/spec/catchups.md` and CLAUDE.md's locked decisions ("Roundups" was rejected by the owner). The live landing page already ships this: `src/app/page.tsx` and `src/components/landing/valley-section.tsx` both use the "Catch-ups" eyebrow/label, distinct from "Letters." The original note below is kept for history.)
+  Original note (superseded): "the public-facing name for the newsletter feature is owned by the newsletter workstream; this section uses whatever distinct name they land on, NOT 'Letters', which is reserved for the long-form post type. Placeholder here: 'Roundups' / 'Seasons'. Do not hardcode 'Letters'."
 - Photo archive: "Decades of the valley in one place. Founders' Week, the banyan, choir on the steps, the hoopoes that never left. Add the ones only you still have."
 
 ### 3.3 Trust section (6) specifics
@@ -274,7 +275,7 @@ The owner says dark mode "loses character" and is likely parked for MVP. Decisio
 - Mobile (390x844, hard rule): hero buttons stack or wrap (already `flex-wrap`); sections collapse to single column (text then image); screenshot frames scroll-clip inside their own `overflow-x: auto` if a shot is intrinsically wide, so the page body never scrolls horizontally (Artifact/responsive rule applies equally here). Sticky nav collapses to peaks mark + single "Join" pill. Verify both 1440x900 and 390x844 per the screenshot protocol (minimum 2 rounds each, desktop then mobile).
 - Text overflow / i18n: copy is English-only for MVP, but headlines use `text-wrap: balance` and bodies cap at ~60ch so long lines never run edge to edge.
 - Empty/seed data in screenshots: screenshots are staged with the fictional v2 sample data, so there is never an "empty state" shown to prospects.
-- The known Vercel admin-login bug is irrelevant here (landing is unauthenticated), but note the move to Render: nothing on the landing page depends on the deploy target except absolute asset paths, which are all relative to `public/`, so the move is transparent.
+- The known Vercel admin-login bug is irrelevant here (landing is unauthenticated). (Superseded 2026-07-02: this line originally flagged "the move to Render" as the deploy target; ground truth is the app deploys to **Vercel**, not Render. The substance still holds regardless of host: nothing on the landing page depends on the deploy target except absolute asset paths, which are all relative to `public/`, so a host change is transparent.)
 
 ---
 

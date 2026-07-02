@@ -61,6 +61,7 @@ temporary screenshots/
 
 # GSD tooling (reinstallable) + stale build caches
 .claude/gsd-core/
+.planning/
 .claude/**/node_modules/
 .next-stale/
 

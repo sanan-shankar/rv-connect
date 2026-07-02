@@ -12,7 +12,7 @@ export default function NotFound() {
         Looks like you wandered off the path. This page doesn&apos;t exist.
       </p>
       <Link href="/" className="mt-6">
-        <Button variant="leaf">
+        <Button variant="primary">
           Back to home
         </Button>
       </Link>

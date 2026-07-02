@@ -115,7 +115,7 @@ export function EditPostDialog({
             <Button
               onClick={handleSubmit}
               disabled={!content.trim() || submitting}
-              variant="leaf"
+              variant="primary"
             >
               {submitting ? "Saving..." : "Save"}
             </Button>

@@ -186,7 +186,7 @@ export default function LoginPage() {
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button
               type="submit"
-              variant="leaf"
+              variant="primary"
               className="mt-2 w-full"
               disabled={loading}
             >

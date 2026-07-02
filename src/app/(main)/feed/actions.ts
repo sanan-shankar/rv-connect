@@ -453,7 +453,6 @@ export async function loadPosts(opts?: {
         id: true,
         name: true,
         photoUrl: true,
-        avatarColor: true,
         accountType: true,
         verifyState: true,
         batchType: true,

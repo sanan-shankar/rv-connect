@@ -23,8 +23,17 @@ const filename = label
   : `screenshot-${next}.png`;
 const outPath = join(screenshotsDir, filename);
 
+// The bundled Chromium can be missing/broken on some machines; fall back to a
+// locally installed Chrome (override with PUPPETEER_EXECUTABLE_PATH).
+const chromeCandidates = [
+  process.env.PUPPETEER_EXECUTABLE_PATH,
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+].filter(Boolean);
+const executablePath = chromeCandidates.find(p => existsSync(p));
+
 const browser = await puppeteer.launch({
   headless: true,
+  executablePath, // undefined => puppeteer's bundled browser
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
 const page = await browser.newPage();

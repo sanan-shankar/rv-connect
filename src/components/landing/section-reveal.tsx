@@ -7,8 +7,9 @@ import { useRef, useEffect, useState } from "react";
  *
  * No-JS / pre-hydration safe: content renders visible by default and only
  * arms the hidden start state once mounted on the client, so a user without
- * JavaScript (or before hydration) never sees opacity-0 content. Reduced
- * motion is honored both here (skip arming) and by the global stylesheet.
+ * JavaScript (or before hydration) never sees opacity-0 content. Plays
+ * regardless of the OS reduced-motion setting (animations always play, per
+ * the design system) — there is deliberately no reduce-motion branch here.
  */
 export function SectionReveal({
   children,
@@ -24,9 +25,6 @@ export function SectionReveal({
   const [shown, setShown] = useState(true);
 
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return;
-
     const el = ref.current;
     if (!el) return;
 
