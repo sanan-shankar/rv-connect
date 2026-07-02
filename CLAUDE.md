@@ -6,8 +6,8 @@ A full redesign + MVP build is in progress. Before working, read these (they hol
 decisions, so you do not need the owner to re-explain):
 - `docs/spec/DESIGN-SYSTEM.md` — canonical brand + design language (colours, shape, motion, naming). Read before any UI work.
 - `docs/ROADMAP.md` — the phased build plan (decisions, shared components, data model, 13 phases). Source of truth.
-- `docs/spec/` — deep specs per area. `docs/planning/FEEDBACK_CHECKLIST.md` — every owner instruction, tracked.
-- `docs/planning/PUNCHLIST.md` — authoritative verified backlog and fork-sized batches.
+- `docs/spec/` — deep specs per area.
+- `docs/planning/bugs.md` — outstanding bugs and small fixes (consolidated 2026-07-02 from the old feedback checklist + punchlist). `docs/planning/FEATURES.md` — parked feature ideas.
 - `progress.md` — session history. `/preview/v2` (and `/preview/logos`, `/preview/decisions`) — the approved look to match.
 
 Key locked decisions: light-mode-first (dark parked); flush green sidebar nav; warm dimmed surfaces (never pure

@@ -17,10 +17,9 @@ Everything else is grouped here:
 - `docs/spec/` — area specs (avatars, catchups, letters, mascot, onboarding, profile, directory, ia,
   media, landing, infra). Some are superseded in part by DESIGN-SYSTEM.md; superseded ones carry a
   banner at the top pointing there. (The old `delight.md` is archived — see `docs/archive/`.)
-- `docs/planning/` — the working backlog: `PUNCHLIST.md` (authoritative verified backlog),
-  `FEEDBACK_CHECKLIST.md` (every owner instruction, tracked), `FEATURES.md` (parked/uncommitted
-  ideas — diff against DESIGN-SYSTEM.md and ROADMAP.md before acting), plus audits, delight feedback,
-  and rebuild-plan history.
+- `docs/planning/` — the working backlog: `bugs.md` (outstanding bugs and small fixes, consolidated
+  on 2026-07-02 from the old `PUNCHLIST.md` + `FEEDBACK_CHECKLIST.md`), `FEATURES.md` (parked/uncommitted
+  ideas — diff against DESIGN-SYSTEM.md and ROADMAP.md before acting), plus audits and rebuild-plan history.
 - `docs/contract/` — visual contract screenshots and standalone reference.
 - `docs/content/` — copy inventory, writing style, and delight/motion notes.
 - `docs/operations/` — deploy, handoff, and performance notes.

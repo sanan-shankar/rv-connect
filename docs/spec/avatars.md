@@ -25,7 +25,21 @@
 > - Previews: **`/preview/birds-rv`** (public gallery, one icon + name each) and **`/preview/centroid`**
 >   (dev harness for the centering script). Distribution verified by `src/lib/avatar.test.mjs`.
 >
-> The original draft below is kept for the rationale (hashing, precedence, accessibility, lightweight goals).
+> **Everything below this line is the ORIGINAL design proposal. It is superseded by the shipped
+> system described above,** and kept only for the still-valid rationale (why deterministic-from-id,
+> the FNV-1a hashing, precedence, accessibility, lightweight goals, edge cases). Where the draft and
+> the shipped system disagree, the banner above and the code (`src/lib/avatar.ts`,
+> `bird-avatar-v2.tsx`) are authoritative. The main differences to hold in mind while reading:
+> - **50 species, not 12.** Every "12" below, the species table in 1.1, and the `768` math are the
+>   original plan.
+> - The bird is drawn in its **real colours and floats with no disc** (`BG_MODE="none"`). The
+>   off-white-silhouette-on-a-coloured-disc design below, the 16-disc palette in 1.2, and the disc
+>   markup did not ship; the 10-colour palette and disc are held in reserve for the optional
+>   `outline` / `inset` modes.
+> - Visible variety is **50 species x 2 poses** (a left/right mirror), not "16 discs x 4 variations".
+> - The hash salts are `species::` / `color::` / `pose::` over counts `50` / `10` / `4`, not the
+>   `s:` / `c:` sketch in 2.2.
+> - Precedence gained an owner/staff pin: **photo > manual > pin > hash**.
 
 I have everything I need. The current production code uses `UserAvatar` (initials + `avatarColor` random color), `pickAvatarColor()` assigns random colors at signup, and `User.avatarColor` is the only avatar field in the schema. The v2 preview proves out the bird concept with a single `BirdGlyph` and 3 variants. Now I'll write the exhaustive spec.
 
@@ -58,6 +72,8 @@ We *retain* `avatarColor` and add fields only as **optional manual overrides** (
 ---
 
 ## 1. The combinatorial space: how we exceed 500 with margin
+
+> Superseded: the shipped system is **50 real-colour species x 2 poses** (no disc). The 12 x 16 x 4 = 768 model below is the original plan; see the banner at the top of this file.
 
 The avatar is the product of three independent axes:
 
@@ -429,7 +445,7 @@ The chirp **sound** is a 4-6 note pentatonic pluck synthesized with WebAudio (no
 ## 12. Decision register (the load-bearing choices)
 
 1. **Avatar = pure function of `User.id`**, computed at render, not stored. Zero migration, stable across the Render move.
-2. **12 species x 16 discs x 4 variations = 768** > 500, three orthogonal axes.
+2. **Shipped as 50 real-colour species x 2 poses (left/right)**, deterministic from `User.id`, with the disc palette held in reserve. (Original plan: 12 species x 16 discs x 4 variations = 768.)
 3. **FNV-1a 32-bit, separately salted per axis** (`"s:"+id`, `"c:"+id`) for even, decorrelated distribution; correctness enforced by a chi-square test, not assumed.
 4. **One off-white foreground, sixteen saturated discs**; pale brand colors (Clay/Paper) and heart-red are excluded from discs.
 5. **Photo > manual override > hash** precedence. `photoUrl` and `avatarSpecies` are the only new columns; `avatarColor` is repurposed and nulled.

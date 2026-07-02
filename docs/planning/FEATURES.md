@@ -86,8 +86,8 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
 
 ## 10. Notifications & presence
 - [have] Notification bell plus unread count.
-- ~~[idea] Weekly digest email ("what you missed in the valley").~~ REJECTED per
-  `docs/planning/FEEDBACK_CHECKLIST.md` (locked ADR): explicitly "NO weekly digest email."
+- ~~[idea] Weekly digest email ("what you missed in the valley").~~ REJECTED (locked decision):
+  explicitly "NO weekly digest email."
 - [idea] Mention, reply, RSVP, and new-letter notifications.
 
 ## 11. Delight & identity (the "feels like RV" layer)
@@ -109,5 +109,11 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
 - Posts: every post its own tile, a ruled "sheet" of entries (Almanac style), or a hybrid?
 - How much blue / cool accent to introduce for vibrancy without losing the calm?
 
+---
 
-Sports day stats, RV trivia, 
+## Data to collect (even when not shown on the profile)
+- House per year, class sections, admission number, years joined and left, profession, sports-day
+  stats, and RV trivia answers. Gather these quietly at signup or profile completion even when a
+  field is never shown publicly. Later they power insights like "you have X in common" and
+  house-switch patterns across batches. Moved here 2026-07-02 from the owner feedback checklist
+  (its "Data to collect" section) when that file was consolidated into bugs.md.

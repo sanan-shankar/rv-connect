@@ -11,7 +11,7 @@
 ## Before work
 
 - [ ] Read `docs/spec/DESIGN-SYSTEM.md` and the relevant `docs/spec/*` for this area.
-- [ ] Checked `docs/planning/PUNCHLIST.md` / `docs/ROADMAP.md` for existing decisions that
+- [ ] Checked `docs/planning/bugs.md` / `docs/ROADMAP.md` for existing decisions that
       cover this change before designing something new.
 
 ## After work — design system checklist
