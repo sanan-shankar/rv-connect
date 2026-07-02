@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   Newspaper,
+  Notebook,
   Users,
   Images,
   Feather,
@@ -18,7 +19,6 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { CirclesThreeIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import {
   Sheet,
@@ -51,8 +51,8 @@ export interface SidebarUser {
 
 const NAV = [
   { href: "/feed", label: "Feed", icon: Newspaper },
-  { href: "/directory", label: "Directory", icon: Users },
-  { href: "/groups", label: "Groups", icon: CirclesThreeIcon },
+  { href: "/directory", label: "Directory", icon: Notebook },
+  { href: "/groups", label: "Groups", icon: Users },
   { href: "/collection", label: "Collection", icon: Images },
   { href: "/letters", label: "Letters", icon: Feather },
   { href: "/catchups", label: "Catch-ups", icon: MessagesSquare },
