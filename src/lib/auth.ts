@@ -96,6 +96,7 @@ const nextAuth = NextAuth({
             batchYear: true,
             name: true,
             avatarColor: true,
+            photoUrl: true,
           },
         });
         if (dbUser) {
@@ -106,6 +107,7 @@ const nextAuth = NextAuth({
           session.user.batchYear = dbUser.batchYear;
           session.user.name = dbUser.name;
           session.user.avatarColor = dbUser.avatarColor;
+          session.user.photoUrl = dbUser.photoUrl;
         }
       }
       return session;

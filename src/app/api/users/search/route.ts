@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       id: true,
       name: true,
       avatarColor: true,
+      photoUrl: true,
       batchYear: true,
     },
     take: 8,

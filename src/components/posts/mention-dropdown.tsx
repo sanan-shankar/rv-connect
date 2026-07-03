@@ -7,6 +7,7 @@ interface MentionUser {
   id: string;
   name: string;
   avatarColor: string | null;
+  photoUrl?: string | null;
   batchYear: number;
 }
 
@@ -76,6 +77,7 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
                 id: user.id,
                 name: user.name,
                 avatarColor: user.avatarColor,
+                photoUrl: user.photoUrl,
               }}
               avatarSize="xs"
               className="gap-2"

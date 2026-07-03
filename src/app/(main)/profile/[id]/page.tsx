@@ -10,6 +10,7 @@ import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { ProfileAuthorFeed } from "@/components/profile/profile-author-feed";
+import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
 import {
   MapPin,
@@ -174,7 +175,7 @@ export default async function ProfilePage({
     user.currentCity ? `ADR:;;${user.currentCity};;;;` : null,
     user.instagram ? `URL:${socialHref("instagram", user.instagram)}` : null,
     user.linkedin ? `URL:${socialHref("linkedin", user.linkedin)}` : null,
-    `NOTE:${batchLine(user)}, Rishi Valley Alumni`,
+    `NOTE:${batchLine(user)}, Rishi Valley community`,
     "END:VCARD",
   ]
     .filter(Boolean)
@@ -263,36 +264,38 @@ export default async function ProfilePage({
       {/* Cover + identity */}
       <section className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
         <div
-          className="relative h-44 bg-cover bg-center"
+          className="relative h-40 bg-cover bg-center sm:h-48"
           style={{ backgroundImage: `url(${user.coverPhoto || "/images/landing.jpeg"})` }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/30" />
         </div>
-        <div className="px-6 pb-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-            <div className="relative z-[2] -mt-14">
-              <ProfileAvatar
-                user={{ id: user.id, name: user.name, avatarColor: user.avatarColor }}
-                size="lg"
-                ring
-              />
-            </div>
-            <div className="min-w-0 flex-1 sm:pb-1">
-              <h1 className="flex items-center gap-1.5 font-heading text-[26px] font-bold leading-[1.05] tracking-tight text-foreground">
-                {user.name}
-                <VerifiedMark user={user} size={16} />
-              </h1>
-              <div className="mt-[3px] flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-muted-foreground">
-                {metaParts.map((part, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5">
-                    {i > 0 && <span className="dotsep">·</span>}
-                    {i === 1 && <MapPin className="h-3.5 w-3.5" />}
-                    {part}
-                  </span>
-                ))}
+        <div className="px-6 pb-6 pt-[var(--space-s)] sm:pt-[var(--space-m)]">
+          <div className="flex flex-col gap-[var(--space-m)] sm:flex-row sm:items-start sm:justify-between sm:gap-[var(--space-l)]">
+            <div className="flex min-w-0 flex-col gap-[var(--space-l)] sm:flex-row sm:items-start">
+              <div className="relative z-[2] -mt-16 shrink-0">
+                <ProfileAvatar
+                  user={{ id: user.id, name: user.name, avatarColor: user.avatarColor, photoUrl: user.photoUrl }}
+                  size="lg"
+                  ring
+                />
+              </div>
+              <div className="min-w-0 flex-1 sm:pt-[var(--space-s)]">
+                <h1 className="flex flex-wrap items-center gap-[var(--space-xs)] font-heading text-[26px] font-bold leading-[1.15] tracking-tight text-foreground">
+                  {user.name}
+                  <VerifiedMark user={user} size={16} />
+                </h1>
+                <div className="mt-[var(--space-xs)] flex flex-wrap items-center gap-x-[var(--space-xs)] gap-y-[var(--space-xxs)] text-[13px] text-muted-foreground">
+                  {metaParts.map((part, i) => (
+                    <span key={i} className="inline-flex items-center gap-1.5">
+                      {i > 0 && <span className="dotsep">·</span>}
+                      {i === 1 && <MapPin className="h-3.5 w-3.5" />}
+                      {part}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="sm:pb-1">
+            <div className="shrink-0 sm:pt-[var(--space-s)]">
               {isOwnProfile ? (
                 <Link href="/settings">
                   <Button size="sm" className="rounded-full">
@@ -309,11 +312,11 @@ export default async function ProfilePage({
           </div>
 
           {user.bio && (
-            <p className="mt-4 max-w-[64ch] text-[15px] leading-[1.7] text-foreground">{user.bio}</p>
+            <p className="mt-[var(--space-l)] max-w-[64ch] text-[15px] leading-[1.7] text-foreground">{user.bio}</p>
           )}
 
           {openToTags.length > 0 && (
-            <div className="mt-3.5 flex flex-wrap gap-2">
+            <div className="mt-[var(--space-m)] flex flex-wrap gap-2">
               {openToTags.map((t) => (
                 <span
                   key={t}
@@ -325,7 +328,7 @@ export default async function ProfilePage({
             </div>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-4 text-[13px] text-muted-foreground">
+          <div className="mt-[var(--space-l)] flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-[var(--space-m)] text-[13px] text-muted-foreground">
             <span>
               <b className="font-bold text-foreground">{postCount}</b>{" "}
               {postCount === 1 ? "post" : "posts"}
@@ -350,6 +353,7 @@ export default async function ProfilePage({
         {/* Main column: tabs */}
         <ProfileTabs
           showPhotos={photos.length > 0}
+          showSaved={isOwnProfile}
           posts={
             <ProfileAuthorFeed
               authorId={user.id}
@@ -359,6 +363,7 @@ export default async function ProfilePage({
           }
           about={aboutNode}
           photos={photosNode}
+          saved={isOwnProfile ? <SavedPostsFeed /> : null}
         />
 
         {/* Rail */}

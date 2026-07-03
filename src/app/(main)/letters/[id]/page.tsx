@@ -62,7 +62,7 @@ export default async function LetterPage({
     where: { id },
     include: {
       author: {
-        select: { id: true, name: true, avatarColor: true, batchType: true, batchYear: true },
+        select: { id: true, name: true, avatarColor: true, photoUrl: true, batchType: true, batchYear: true },
       },
       _count: { select: { comments: true, likes: true } },
       likes: { where: { userId: session.user.id }, select: { id: true } },
@@ -104,7 +104,7 @@ export default async function LetterPage({
       <LetterTitle title={letterTitle(letter.title, letter.content)} />
 
       <IdentityRow
-        user={{ id: letter.author.id, name: letter.author.name }}
+        user={{ id: letter.author.id, name: letter.author.name, photoUrl: letter.author.photoUrl }}
         avatarSize="md"
         avatarHref={`/profile/${letter.author.id}`}
         avatarLabel={letter.author.name}

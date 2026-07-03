@@ -9,6 +9,7 @@ interface ProfileCardProps {
     id: string;
     name: string;
     avatarColor: string | null;
+    photoUrl?: string | null;
     accountType?: string | null;
     verifyState?: string | null;
     batchType: string | null;
@@ -22,7 +23,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
   return (
     <Link href={`/profile/${user.id}`} className="group block">
       <div className="card-elevated flex h-full flex-col items-center rounded-[var(--radius)] border border-border bg-card p-5 text-center transition-transform duration-200 group-hover:-translate-y-0.5">
-        <BirdAvatar user={{ id: user.id, name: user.name }} size="md" />
+        <BirdAvatar user={{ id: user.id, name: user.name, photoUrl: user.photoUrl }} size="md" />
         <h3 className="mt-3 flex items-center gap-1 font-semibold tracking-tight text-foreground group-hover:underline">
           {user.name}
           <VerifiedMark user={user} />

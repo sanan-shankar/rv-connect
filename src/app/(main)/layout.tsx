@@ -29,6 +29,7 @@ export default async function MainLayout({
         email: session.user.email,
         role: session.user.role,
         avatarColor: session.user.avatarColor,
+        photoUrl: session.user.photoUrl,
       }}
       unreadCount={unreadCount}
     >

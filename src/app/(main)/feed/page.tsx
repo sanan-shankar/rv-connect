@@ -26,14 +26,14 @@ export default async function FeedPage() {
             over the rail. */}
         <PageHeader
           title="Feed"
-          subtitle="What the valley's alumni are sharing today."
+          subtitle="What the valley is sharing today."
           showSearch
           unreadCount={unreadCount}
           actions={<NewPostCTA />}
         />
         <FeedColumn
           showControls={false}
-          currentUser={{ id: session.user.id, name: session.user.name }}
+          currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
         />
       </div>
       {/* The rail starts level with the composer, not the page header, so its

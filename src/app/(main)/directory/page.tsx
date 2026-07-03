@@ -17,6 +17,7 @@ const PERSON_SELECT = {
   id: true,
   name: true,
   avatarColor: true,
+  photoUrl: true,
   accountType: true,
   verifyState: true,
   batchType: true,
@@ -31,6 +32,7 @@ const PIN_SELECT = {
   id: true,
   name: true,
   avatarColor: true,
+  photoUrl: true,
   accountType: true,
   verifyState: true,
   batchType: true,
@@ -43,6 +45,7 @@ type PinRow = {
   id: string;
   name: string;
   avatarColor: string | null;
+  photoUrl: string | null;
   accountType: string | null;
   verifyState: string | null;
   batchType: string | null;
@@ -63,6 +66,7 @@ function buildPins(rows: PinRow[]): { cityPins: CityPin[]; unmappedPeople: PinPe
       id: u.id,
       name: u.name,
       avatarColor: u.avatarColor,
+      photoUrl: u.photoUrl,
       accountType: u.accountType,
       verifyState: u.verifyState,
       batchType: u.batchType,
