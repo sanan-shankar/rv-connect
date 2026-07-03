@@ -44,7 +44,7 @@ export default async function PhotoPage({
   const photo = await prisma.photo.findUnique({
     where: { id },
     include: {
-      uploader: { select: { id: true, name: true, avatarColor: true, batchType: true, batchYear: true } },
+      uploader: { select: { id: true, name: true, avatarColor: true, photoUrl: true, batchType: true, batchYear: true } },
       _count: { select: { loves: true } },
       loves: { where: { userId: session.user.id }, select: { id: true } },
     },
@@ -119,7 +119,7 @@ export default async function PhotoPage({
 
           <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
             <IdentityRow
-              user={{ id: photo.uploader.id, name: photo.uploader.name }}
+              user={{ id: photo.uploader.id, name: photo.uploader.name, photoUrl: photo.uploader.photoUrl }}
               avatarHref={`/profile/${photo.uploader.id}`}
               avatarLabel={photo.uploader.name}
               className="min-w-0 flex-1"

@@ -38,7 +38,7 @@ import { NAV_MARKER_SPRING } from "@/components/common/motion";
 import { IdentityRow } from "@/components/common/identity-row";
 import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
-import { PeaksMark } from "./peaks-mark";
+import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "./peaks-mark";
 
 export interface SidebarUser {
   id: string;
@@ -46,6 +46,7 @@ export interface SidebarUser {
   email: string;
   role: string;
   avatarColor: string | null;
+  photoUrl?: string | null;
 }
 
 const NAV = [
@@ -73,16 +74,16 @@ function Brand({
     <Link
       href="/feed"
       onClick={onNavigate}
-      className={`flex items-end gap-2.5 px-2 py-1 ${className}`}
+      className={`flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98] ${className}`}
     >
       <PeaksMark
-        size={29}
+        size={WORDMARK_LOGO_SIZE}
         variant="two-plane"
         className="shrink-0 text-sidebar-foreground"
       />
       <span
         className="min-w-0 truncate font-heading font-bold tracking-tight text-sidebar-foreground"
-        style={{ fontSize: "18px", lineHeight: 1, transform: "translateY(2.7px)" }}
+        style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
       >
         Rishi Valley
       </span>
@@ -160,7 +161,7 @@ function UserMenu({ user }: { user: SidebarUser }) {
       <DropdownMenu>
         <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center rounded-xl px-1.5 py-1 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
           <IdentityRow
-            user={{ id: user.id, name: user.name }}
+            user={{ id: user.id, name: user.name, photoUrl: user.photoUrl }}
             className="w-full gap-2.5"
             textClassName="flex-1"
             name={user.name}

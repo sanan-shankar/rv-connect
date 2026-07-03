@@ -27,6 +27,7 @@ interface CommentData {
     id: string;
     name: string;
     avatarColor: string | null;
+    photoUrl: string | null;
     accountType?: string | null;
     verifyState?: string | null;
     batchType: string | null;
@@ -217,7 +218,7 @@ export function CommentsSection({
             }}
           />
           <SpringPress
-            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-leaf text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 focus-visible:ring-offset-1 disabled:opacity-40 disabled:shadow-none"
+            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/60 disabled:opacity-40 disabled:shadow-none"
             {...({
               type: "submit",
               "aria-label": "Post comment",
@@ -264,7 +265,7 @@ function CommentItem({
         className="mt-0.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         <BirdAvatar
-          user={{ id: comment.author.id, name: comment.author.name }}
+          user={{ id: comment.author.id, name: comment.author.name, photoUrl: comment.author.photoUrl }}
           size="xs"
         />
       </Link>

@@ -541,6 +541,94 @@ export async function loadPosts(opts?: {
   };
 }
 
+/**
+ * The signed-in member's saved posts (their own bookmarks), most-recently-saved
+ * first. Private by construction: it only ever reads the session user's own
+ * Bookmark rows, so it can never leak another member's saved list even if the
+ * caller lands on someone else's profile. Group posts only surface while the
+ * member still belongs to that group.
+ */
+export async function loadSavedPosts() {
+  const session = await auth();
+  if (!session?.user?.id) return { posts: [] };
+  const userId = session.user.id;
+
+  // Only surface group posts the viewer can still legitimately read.
+  const memberships = await prisma.groupMember.findMany({
+    where: { userId },
+    select: { groupId: true },
+  });
+  const groupIds = memberships.map((m) => m.groupId);
+
+  const rows = await prisma.bookmark.findMany({
+    where: {
+      userId,
+      post: {
+        isHidden: false,
+        OR: [{ groupId: null }, { groupId: { in: groupIds } }],
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 120,
+    include: {
+      post: {
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              photoUrl: true,
+              accountType: true,
+              verifyState: true,
+              batchType: true,
+              batchYear: true,
+            },
+          },
+          _count: { select: { comments: true, likes: true } },
+          likes: { where: { userId }, select: { id: true } },
+          bookmarks: { where: { userId }, select: { id: true } },
+          pollOptions: {
+            orderBy: { position: "asc" as const },
+            include: { _count: { select: { votes: true } } },
+          },
+          pollVotes: { where: { userId }, select: { pollOptionId: true } },
+        },
+      },
+    },
+  });
+
+  return {
+    posts: rows.map(({ post: p }) => ({
+      id: p.id,
+      kind: p.kind,
+      title: p.title,
+      content: p.content,
+      tag: p.tag,
+      images: p.images,
+      groupId: p.groupId,
+      createdAt: p.createdAt.toISOString(),
+      author: p.author,
+      commentCount: p._count.comments,
+      likeCount: p._count.likes,
+      liked: p.likes.length > 0,
+      bookmarked: true,
+      isOwn: p.authorId === userId,
+      poll:
+        p.pollOptions.length > 0
+          ? {
+              options: p.pollOptions.map((o) => ({
+                id: o.id,
+                text: o.text,
+                voteCount: o._count.votes,
+              })),
+              totalVotes: p.pollOptions.reduce((s, o) => s + o._count.votes, 0),
+              userVotedOptionId: p.pollVotes[0]?.pollOptionId ?? null,
+            }
+          : null,
+    })),
+  };
+}
+
 export async function toggleCommentLike(commentId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
@@ -597,6 +685,7 @@ export async function loadComments(postId: string) {
           id: true,
           name: true,
           avatarColor: true,
+          photoUrl: true,
           accountType: true,
           verifyState: true,
           batchType: true,

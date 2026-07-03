@@ -23,6 +23,7 @@ export type PinPerson = {
   id: string;
   name: string;
   avatarColor: string | null;
+  photoUrl?: string | null;
   accountType?: string | null;
   verifyState?: string | null;
   batchType: string | null;
@@ -189,7 +190,7 @@ export function AlumniMap({
         className="block h-full w-full touch-none select-none"
         style={{ cursor: "grab" }}
         role="img"
-        aria-label="World map of where alumni live"
+        aria-label="World map of where members live"
       >
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           {landPaths.map((d, i) => (
@@ -214,7 +215,7 @@ export function AlumniMap({
                     setHover({
                       x: leaf.x * transform.k + transform.x,
                       y: leaf.y * transform.k + transform.y,
-                      label: `${leaf.count} alumni across ${leaf.cities} cities`,
+                      label: `${leaf.count} members across ${leaf.cities} cities`,
                     })
                   }
                   onMouseLeave={() => setHover(null)}
@@ -245,7 +246,7 @@ export function AlumniMap({
                     x: leaf.x * transform.k + transform.x,
                     y: leaf.y * transform.k + transform.y,
                     label: `${leaf.pin.city} - ${leaf.pin.count} ${
-                      leaf.pin.count === 1 ? "alumnus" : "alumni"
+                      leaf.pin.count === 1 ? "member" : "members"
                     }`,
                   })
                 }
@@ -253,7 +254,7 @@ export function AlumniMap({
                 onClick={() =>
                   setDrill({
                     title: `${leaf.pin.city} - ${leaf.pin.count} ${
-                      leaf.pin.count === 1 ? "alumnus" : "alumni"
+                      leaf.pin.count === 1 ? "member" : "members"
                     }`,
                     people: leaf.pin.people,
                   })
@@ -322,7 +323,7 @@ export function AlumniMap({
           type="button"
           onClick={() =>
             setDrill({
-              title: `${unmapped} ${unmapped === 1 ? "alumnus" : "alumni"} not yet on the map`,
+              title: `${unmapped} ${unmapped === 1 ? "person" : "people"} not yet on the map`,
               people: unmappedPeople,
             })
           }
@@ -373,7 +374,7 @@ export function AlumniMap({
                   className="group block rounded-[var(--radius-md)] px-2 py-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
                 >
                   <IdentityRow
-                    user={{ id: p.id, name: p.name }}
+                    user={{ id: p.id, name: p.name, photoUrl: p.photoUrl }}
                     textClassName="flex-1"
                     name={p.name}
                     nameClassName="truncate text-[15px] font-semibold leading-none text-foreground group-hover:underline"

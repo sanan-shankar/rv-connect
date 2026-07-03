@@ -13,6 +13,7 @@ declare module "next-auth" {
       batchType: string | null;
       batchYear: number | null;
       avatarColor: string | null;
+      photoUrl: string | null;
     };
   }
 
@@ -23,6 +24,7 @@ declare module "next-auth" {
     batchType?: string | null;
     batchYear?: number | null;
     avatarColor?: string | null;
+    photoUrl?: string | null;
   }
 }
 

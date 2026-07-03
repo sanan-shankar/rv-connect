@@ -57,9 +57,12 @@ export interface PostData {
 export function PostCard({
   post,
   variant = "card",
+  onBookmarkChange,
 }: {
   post: PostData;
   variant?: "card" | "sheet";
+  /** Fired after a confirmed bookmark toggle. The Saved view uses this to drop a card once un-saved. */
+  onBookmarkChange?: (bookmarked: boolean) => void;
 }) {
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -119,7 +122,9 @@ export function PostCard({
     if (result.error) {
       setBookmarked(!next);
       toast.error(result.error);
+      return;
     }
+    onBookmarkChange?.(next);
   }
 
   async function handleShare() {
