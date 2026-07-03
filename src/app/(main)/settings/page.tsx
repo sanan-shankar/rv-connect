@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SettingsForm } from "@/components/settings/settings-form";
+
+export const metadata: Metadata = {
+  title: "Settings",
+};
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -27,6 +32,7 @@ export default async function SettingsPage() {
       yearJoined: true,
       yearLeft: true,
       admissionNumber: true,
+      updatedAt: true,
     },
   });
 
@@ -37,7 +43,11 @@ export default async function SettingsPage() {
       <h1 className="font-heading text-3xl font-bold text-foreground">
         Settings
       </h1>
-      <SettingsForm user={user} />
+      {/* Keyed by updatedAt so the form fully remounts (re-initializing its
+          uncontrolled defaultValue fields) whenever the saved data actually
+          changes, instead of re-rendering the same instance with stale
+          uncontrolled field state. */}
+      <SettingsForm key={user.updatedAt.toISOString()} user={user} />
     </div>
   );
 }
