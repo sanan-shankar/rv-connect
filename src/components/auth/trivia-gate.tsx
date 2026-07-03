@@ -3,59 +3,24 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { getTriviaQuestion, checkTrivia } from "./trivia-actions";
 
-function BlinkingOwl() {
-  return (
-    <svg
-      width="64"
-      height="64"
-      viewBox="0 0 64 64"
-      className="mx-auto mb-4"
-      aria-hidden="true"
-    >
-      <style>
-        {`
-          @keyframes blink {
-            0%, 90%, 100% { ry: 5; }
-            95% { ry: 0.5; }
-          }
-          .owl-eye { animation: blink 5s infinite; }
-        `}
-      </style>
-      {/* Body */}
-      <ellipse cx="32" cy="38" rx="18" ry="20" fill="#8B6F47" />
-      {/* Head */}
-      <circle cx="32" cy="22" r="14" fill="#A68B5B" />
-      {/* Ears */}
-      <polygon points="20,12 18,2 26,10" fill="#8B6F47" />
-      <polygon points="44,12 46,2 38,10" fill="#8B6F47" />
-      {/* Eye whites */}
-      <circle cx="26" cy="22" r="6" fill="#FAF7F2" />
-      <circle cx="38" cy="22" r="6" fill="#FAF7F2" />
-      {/* Pupils */}
-      <ellipse cx="26" cy="22" rx="3" ry="5" fill="#2C2C2C" className="owl-eye" />
-      <ellipse cx="38" cy="22" rx="3" ry="5" fill="#2C2C2C" className="owl-eye" />
-      {/* Beak */}
-      <polygon points="32,26 29,30 35,30" fill="#C4A76C" />
-      {/* Belly */}
-      <ellipse cx="32" cy="44" rx="10" ry="12" fill="#C4A76C" opacity="0.5" />
-      {/* Feet */}
-      <ellipse cx="26" cy="57" rx="5" ry="2" fill="#8B6F47" />
-      <ellipse cx="38" cy="57" rx="5" ry="2" fill="#8B6F47" />
-    </svg>
-  );
-}
-
-export function TriviaGate({ onPass }: { onPass: () => void }) {
+export function TriviaGate({
+  hoopoe,
+  onPass,
+}: {
+  hoopoe: HoopoeApi;
+  onPass: () => void;
+}) {
   // The question (and its answer) live on the server. We fetch only the prompt
   // after mount so the answer never ships to the browser, and the answer is
   // checked server-side.
   const [question, setQuestion] = useState<{ id: string; question: string } | null>(null);
   const [answer, setAnswer] = useState("");
-  const [shake, setShake] = useState(false);
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
+  const [passed, setPassed] = useState(false);
 
   useEffect(() => {
     getTriviaQuestion().then(setQuestion);
@@ -63,47 +28,35 @@ export function TriviaGate({ onPass }: { onPass: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!question || checking) return;
+    if (!question || checking || passed) return;
     setChecking(true);
     setError("");
+    // the hoopoe looks up and ponders while the server checks
+    hoopoe.react("thinking");
     try {
       const res = await checkTrivia(question.id, answer);
       if (res.ok) {
-        onPass();
+        // a happy nod + crest flick, then hand off to the register step while the
+        // mood is still settling so the same bird carries you into the form.
+        setPassed(true);
+        setChecking(false);
+        hoopoe.react("correct");
+        setTimeout(onPass, 720);
         return;
       }
+      // a wrong answer: the hoopoe shakes its head and looks worried
       setError(res.error ?? "Not quite. Have another go.");
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+      hoopoe.react("wrong");
+      setChecking(false);
     } catch {
       setError("Something went wrong. Please try again.");
-    } finally {
+      hoopoe.react("error");
       setChecking(false);
     }
   }
 
   return (
-    <div
-      className="transition-transform"
-      style={
-        shake
-          ? {
-              animation: "shake 0.5s cubic-bezier(.36,.07,.19,.97) both",
-            }
-          : undefined
-      }
-    >
-      <style>
-        {`
-          @keyframes shake {
-            10%, 90% { transform: translateX(-1px); }
-            20%, 80% { transform: translateX(2px); }
-            30%, 50%, 70% { transform: translateX(-4px); }
-            40%, 60% { transform: translateX(4px); }
-          }
-        `}
-      </style>
-      <BlinkingOwl />
+    <div>
       <p className="mb-4 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
         {question?.question ?? "..."}
       </p>
@@ -111,7 +64,14 @@ export function TriviaGate({ onPass }: { onPass: () => void }) {
         <Input
           placeholder="Your answer..."
           value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
+          onChange={(e) => {
+            setAnswer(e.target.value);
+            // the bird watches what you type, sweeping its gaze across the field
+            hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 18) * 2 - 1)));
+          }}
+          onFocus={() => {
+            if (!passed) hoopoe.express("curious");
+          }}
           autoFocus
           className="text-center"
         />
@@ -120,14 +80,17 @@ export function TriviaGate({ onPass }: { onPass: () => void }) {
           type="submit"
           variant="primary"
           className="w-full"
-          disabled={!question || checking}
+          disabled={!question || checking || passed}
         >
           {checking ? "Checking..." : "Check"}
         </Button>
       </form>
       <p className="mt-3 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <a href="/login" className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+        <a
+          href="/login"
+          className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
           Sign in
         </a>
       </p>
