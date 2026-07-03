@@ -157,7 +157,11 @@ export function PostCard({
           />
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95">
+            {/* -mr-2 pulls the trigger's own padding plus the glyph's internal inset
+                (MoreHorizontal's dots don't reach its viewBox edges) outward, so the DOTS
+                ink lands flush on the card's right line (photo edge / share glyph) instead
+                of sitting ~9px inside it. Hit area is unchanged, just shifted into the gutter. */}
+            <DropdownMenuTrigger className="-mr-2 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95">
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
