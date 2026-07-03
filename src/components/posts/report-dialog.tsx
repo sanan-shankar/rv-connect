@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ReportModal } from "@/components/common/report-modal";
 import {
   Select,
   SelectContent,
@@ -51,52 +45,57 @@ export function ReportDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Report Post</DialogTitle>
-          <DialogDescription>
-            Help us keep the community safe. Tell us why you&apos;re reporting
-            this post.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a reason" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Inappropriate content">
-                Inappropriate content
-              </SelectItem>
-              <SelectItem value="Spam">Spam</SelectItem>
-              <SelectItem value="Harassment">Harassment</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
+    <ReportModal
+      open={open}
+      onClose={onClose}
+      labelledBy="report-post-title"
+      describedBy="report-post-description"
+    >
+      <div className="flex flex-col gap-2">
+        <h2 id="report-post-title" className="font-heading text-base font-medium leading-none">
+          Report Post
+        </h2>
+        <p id="report-post-description" className="text-sm text-muted-foreground">
+          Help us keep the community safe. Tell us why you&apos;re reporting
+          this post.
+        </p>
+      </div>
+      <div className="mt-4 space-y-4">
+        <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a reason" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Inappropriate content">
+              Inappropriate content
+            </SelectItem>
+            <SelectItem value="Spam">Spam</SelectItem>
+            <SelectItem value="Harassment">Harassment</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
 
-          <Textarea
-            placeholder="Additional details (optional)"
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-            maxLength={500}
-            rows={3}
-          />
+        <Textarea
+          placeholder="Additional details (optional)"
+          value={details}
+          onChange={(e) => setDetails(e.target.value)}
+          maxLength={500}
+          rows={3}
+        />
 
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!reason || submitting}
-              variant="primary"
-            >
-              {submitting ? "Submitting..." : "Submit Report"}
-            </Button>
-          </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!reason || submitting}
+            variant="primary"
+          >
+            {submitting ? "Submitting..." : "Submit Report"}
+          </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ReportModal>
   );
 }
