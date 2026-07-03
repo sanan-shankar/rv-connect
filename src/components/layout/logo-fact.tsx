@@ -15,7 +15,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
-import { PeaksMark } from "./peaks-mark";
+import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "./peaks-mark";
 
 // Ten made-up but plausible Rishi Valley facts. One is chosen per page load and
 // stays fixed for the session; a reload picks a different one.
@@ -91,16 +91,16 @@ export function LogoFact({
         onClick={onNavigate}
         aria-label="Rishi Valley, home"
         aria-describedby={reveal ? "logo-fact-card" : undefined}
-        className="flex items-end gap-2.5 rounded-xl px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+        className="flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98]"
       >
         <PeaksMark
-          size={29}
+          size={WORDMARK_LOGO_SIZE}
           variant="two-plane"
           className="shrink-0 text-sidebar-foreground"
         />
         <span
           className="block whitespace-nowrap font-heading font-bold tracking-tight text-sidebar-foreground"
-          style={{ fontSize: "18px", lineHeight: 1, transform: "translateY(2.7px)" }}
+          style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
         >
           Rishi Valley
         </span>

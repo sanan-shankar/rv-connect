@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { PeaksMark } from "@/components/layout/peaks-mark";
+import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
 
 export function LandingHero() {
   const [hovered, setHovered] = useState(false);
@@ -48,28 +48,20 @@ export function LandingHero() {
         }}
       />
 
-      {/* Brand, top-left. Two sizes (not one responsive scale) because the
-          wordmark is set to match the peak's exact cap-height at each size,
-          and at the desktop size "Rishi Valley" is too wide for a phone
-          screen alongside the icon. */}
+      {/* Brand, top-left. One fixed lockup size everywhere on the site (see
+          peaks-mark.tsx) rather than a size tuned to this canvas, so the
+          logotype reads as one constant mark instead of scaling with the
+          hero. It now stays comfortably clear of the phone-width edge, so
+          the old separate mobile/desktop sizes are gone. */}
       <div
         className="relative z-10 px-8 pt-7 lg:px-16"
         style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
       >
-        <div className="flex items-end gap-2 sm:hidden">
-          <PeaksMark size={24} className="text-white" />
+        <div className="flex items-center gap-2.5">
+          <PeaksMark size={WORDMARK_LOGO_SIZE} className="text-white" />
           <span
             className="block font-heading font-bold tracking-tight text-white"
-            style={{ fontSize: "29.39px", lineHeight: 1, transform: "translateY(4.41px)" }}
-          >
-            Rishi Valley
-          </span>
-        </div>
-        <div className="hidden items-end gap-2.5 sm:flex">
-          <PeaksMark size={34} className="text-white" />
-          <span
-            className="block font-heading font-bold tracking-tight text-white"
-            style={{ fontSize: "41.64px", lineHeight: 1, transform: "translateY(6.25px)" }}
+            style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
           >
             Rishi Valley
           </span>
@@ -79,7 +71,7 @@ export function LandingHero() {
       {/* Headline + actions */}
       <div className="relative z-10 flex flex-1 items-center">
         <div className="w-full px-8 lg:px-16">
-          <div className="lg:grid lg:grid-cols-[111px_1fr] lg:gap-x-2.5">
+          <div className="lg:grid lg:grid-cols-[88px_1fr] lg:gap-x-2.5">
             <div className="lg:col-start-2">
               <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl lg:whitespace-nowrap">
                 Welcome back to the valley.
