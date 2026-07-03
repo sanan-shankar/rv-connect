@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,108 @@ import { registerUser } from "./actions";
 const gazeFor = (len: number, over: number) =>
   Math.max(-1, Math.min(1, (len / over) * 2 - 1));
 
+// Devices with a real mouse get the info bubble on hover; touch devices (no
+// fine hover) get it on tap instead. Checked once on mount, not reactively,
+// since a device does not switch input modes mid-session.
+function useHoverCapable() {
+  const [capable, setCapable] = useState(true);
+  useEffect(() => {
+    setCapable(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+  }, []);
+  return capable;
+}
+
+/**
+ * Small circled-i affordance that reveals a short warm note. Opens on hover
+ * for mouse users, on tap for touch users, and on keyboard focus either way
+ * (gated on :focus-visible so a mouse click does not double-fire with the tap
+ * handler). Closes on blur, outside click/tap, or Escape.
+ */
+function InfoTip({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const hoverCapable = useHoverCapable();
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+  const tipId = useId();
+  // Anchored to the trigger's right edge by default, but clamped so the
+  // bubble never runs off either side of a narrow viewport regardless of
+  // where the icon happens to sit.
+  const [tipLeft, setTipLeft] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    function reposition() {
+      const wrap = wrapRef.current;
+      const tip = tipRef.current;
+      if (!wrap || !tip) return;
+      const wrapRect = wrap.getBoundingClientRect();
+      const margin = 12;
+      let left = wrapRect.width - tip.offsetWidth; // right-align to trigger, wrapper-relative
+      const pageLeft = wrapRect.left + left;
+      if (pageLeft < margin) left += margin - pageLeft;
+      const pageRight = wrapRect.left + left + tip.offsetWidth;
+      if (pageRight > window.innerWidth - margin) left -= pageRight - (window.innerWidth - margin);
+      setTipLeft(left);
+    }
+    reposition();
+    window.addEventListener("resize", reposition);
+    function onOutside(e: PointerEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      document.removeEventListener("pointerdown", onOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <span
+      ref={wrapRef}
+      className="relative inline-flex"
+      onMouseEnter={hoverCapable ? () => setOpen(true) : undefined}
+      onMouseLeave={hoverCapable ? () => setOpen(false) : undefined}
+    >
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        aria-describedby={open ? tipId : undefined}
+        onClick={!hoverCapable ? () => setOpen((o) => !o) : undefined}
+        onFocus={(e) => {
+          if (e.currentTarget.matches(":focus-visible")) setOpen(true);
+        }}
+        onBlur={() => setOpen(false)}
+        className="grid h-4 w-4 shrink-0 place-items-center rounded-full text-muted-foreground/70 hover:text-canopy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
+        <Info className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            ref={tipRef}
+            id={tipId}
+            role="tooltip"
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -2 }}
+            transition={SPRINGS.snappy}
+            style={{ left: tipLeft ?? undefined, right: tipLeft == null ? 0 : undefined }}
+            className="absolute top-full z-30 mt-2 w-64 max-w-[80vw] rounded-xl border border-border bg-paper px-3.5 py-2.5 text-[12.5px] leading-relaxed text-foreground shadow-lg"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
+  );
+}
+
 export function SignupForm({
   hoopoe,
   onSuccess,
@@ -26,7 +128,7 @@ export function SignupForm({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [accountType, setAccountType] = useState<"alumnus" | "teacher" | "ex_teacher">("alumnus");
+  const [accountType, setAccountType] = useState<"alumnus" | "teacher">("alumnus");
   const isAlum = accountType === "alumnus";
   const [showPw, setShowPw] = useState(false);
 
@@ -72,7 +174,6 @@ export function SignupForm({
   const ACCOUNT_TYPES = [
     { value: "alumnus", label: "Alumnus" },
     { value: "teacher", label: "Teacher" },
-    { value: "ex_teacher", label: "Former teacher" },
   ] as const;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -219,28 +320,34 @@ export function SignupForm({
       <input type="hidden" name="accountType" value={accountType} />
       <div className="space-y-2">
         <Label>I am a...</Label>
-        <div className="grid grid-cols-3 gap-1.5 rounded-full border border-border bg-paper p-1">
-          {ACCOUNT_TYPES.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => setAccountType(t.value)}
-              className={`relative rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-                accountType === t.value
-                  ? "text-white"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {accountType === t.value && (
-                <motion.span
-                  layoutId="signupAccountThumb"
-                  className="absolute inset-0 z-0 rounded-full bg-canopy"
-                  transition={SPRINGS.snappy}
-                />
-              )}
-              <span className="relative z-10">{t.label}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="grid flex-1 grid-cols-2 gap-1.5 rounded-full border border-border bg-paper p-1">
+            {ACCOUNT_TYPES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setAccountType(t.value)}
+                className={`relative rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                  accountType === t.value
+                    ? "text-white"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {accountType === t.value && (
+                  <motion.span
+                    layoutId="signupAccountThumb"
+                    className="absolute inset-0 z-0 rounded-full bg-canopy"
+                    transition={SPRINGS.snappy}
+                  />
+                )}
+                <span className="relative z-10">{t.label}</span>
+              </button>
+            ))}
+          </div>
+          <InfoTip label="What if I used to teach?">
+            Taught at Rishi Valley at any point? Choose Teacher, it includes
+            teachers who have since moved on too.
+          </InfoTip>
         </div>
       </div>
 
@@ -299,6 +406,15 @@ export function SignupForm({
                 required={isAlum}
               />
             </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+            <span>Joined before 4th grade?</span>
+            <InfoTip label="Guidance for those who joined before 4th grade">
+              Rishi Valley batches count from 4th grade onward. Joined
+              earlier than that? Enter the year you started 4th grade, with
+              grade 4.
+            </InfoTip>
           </div>
 
           <p className="text-[12.5px] leading-relaxed text-muted-foreground">
