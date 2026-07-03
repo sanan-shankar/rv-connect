@@ -20,6 +20,10 @@ import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, AUTH_FORM_VW, LOGIN_TRANSITION_FLAG } 
  *    whole composition in together (never a beige-then-photo pop). If the decode
  *    is genuinely slow (> a short budget), a hopping Hoopoe keeps the empty beige
  *    company; a fast/cached load skips straight to content with no loader flash.
+ *    If the Hoopoe DID appear, revealing also holds the content entrance back by
+ *    `LOADER_EXIT_MS` (matching the Hoopoe's own exit-fade length) so the two
+ *    are never simultaneously semi-visible on top of each other; a fast/cached
+ *    load (loader never shown) gets zero added delay.
  *
  * 2. SIGN-IN EXIT. Clicking "Sign in" (desktop only, where /login has its photo
  *    split) plays an exit: the headline + CTAs slide out, the nudge fades, and
@@ -32,6 +36,11 @@ import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, AUTH_FORM_VW, LOGIN_TRANSITION_FLAG } 
 type Phase = "loading" | "shown" | "exiting";
 
 const REVEAL_STAGGER = 0.07;
+
+// The Hoopoe loader's own exit-fade length. Reused as the content-entrance
+// delay below (single source of truth) so the mascot is fully gone before the
+// photo/content ramps in, instead of the two cross-dissolving on top of each other.
+const LOADER_EXIT_MS = 300;
 
 // The landing-only washes (brand top wash, headline bottom gradient, hover wash)
 // carry the current look and fade out as the headline leaves.
@@ -83,6 +92,11 @@ export function LandingHero() {
   const imgRef = useRef<HTMLImageElement>(null);
   const revealed = useRef(false);
   const loaderTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Whether the loader ever actually appeared on screen. Only then does reveal()
+  // hold the entrance back; a fast/cached load (this stays false) reveals with
+  // zero added delay, same as before.
+  const loaderShown = useRef(false);
+  const entranceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // The photo layer fades/rises in on load, then slides left by the form's width
   // on the sign-in exit (no rescale), landing on the /login crop. slidePx is
@@ -101,7 +115,20 @@ export function LandingHero() {
     if (revealed.current) return;
     revealed.current = true;
     clearTimeout(loaderTimer.current);
-    setPhase((p) => (p === "loading" ? "shown" : p));
+    if (loaderShown.current) {
+      // The Hoopoe was actually on screen: hide it now (its own AnimatePresence
+      // exit fade starts immediately) and hold the content entrance back by the
+      // same span, so the exit finishes before the entrance ramps up instead of
+      // the two overlapping.
+      setShowLoader(false);
+      entranceTimer.current = setTimeout(() => {
+        setPhase((p) => (p === "loading" ? "shown" : p));
+      }, LOADER_EXIT_MS);
+    } else {
+      // Fast/cached load: the loader never appeared, so reveal immediately with
+      // no added delay.
+      setPhase((p) => (p === "loading" ? "shown" : p));
+    }
   }, []);
 
   useEffect(() => {
@@ -113,7 +140,10 @@ export function LandingHero() {
     // Otherwise hold on warm beige; only summon the loader if the wait is real,
     // so a fast/cached load skips straight to content with no loader flash.
     loaderTimer.current = setTimeout(() => {
-      if (!revealed.current) setShowLoader(true);
+      if (!revealed.current) {
+        loaderShown.current = true;
+        setShowLoader(true);
+      }
     }, 220);
     // Safety net: never strand the page on beige if the photo stalls or errors.
     const maxWait = setTimeout(reveal, 6000);
@@ -121,6 +151,7 @@ export function LandingHero() {
     return () => {
       clearTimeout(loaderTimer.current);
       clearTimeout(maxWait);
+      clearTimeout(entranceTimer.current);
     };
   }, [reveal, router]);
 
@@ -280,13 +311,13 @@ export function LandingHero() {
       {/* Slow-load company: a hopping Hoopoe on the warm beige, only if the photo
           is taking a while. Fades away as the hero reveals. */}
       <AnimatePresence>
-        {phase === "loading" && showLoader && (
+        {showLoader && (
           <motion.div
             key="hero-loader"
             className="pointer-events-none absolute inset-x-0 bottom-[26%] z-20 flex justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: 0.35 } }}
-            exit={{ opacity: 0, transition: { duration: 0.3 } }}
+            exit={{ opacity: 0, transition: { duration: LOADER_EXIT_MS / 1000 } }}
           >
             <HeroLoader />
           </motion.div>
