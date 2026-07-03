@@ -18,6 +18,7 @@ import { HoopoeMascot } from "./_hoopoe";
 const ROUTES = [
   { href: "/preview/delight/transitions", title: "Navigation & transitions", desc: "The sliding sidebar marker, the seg thumb, content cross-fade between views, the landing to login lateral pass, and a coordinated first paint." },
   { href: "/preview/delight/composer", title: "The composer, reworked", desc: "A slim pill that unfurls. Photo, poll and letter tucked away, no tag walls, bold and italic and underline and strike, click outside to close." },
+  { href: "/preview/delight/feed-canvas", title: "Feed canvas", desc: "Making the feed feel full: eleven right-rail modules to choose from with a recommended stack, four fixes for the empty top-right rectangle, and the account-type colour call." },
   { href: "/preview/delight/landing", title: "The living valley", desc: "A calm photo hero, then a living section: leaves with real veins the cursor parts, and cute legged birds that walk, peck and hop between frames." },
   { href: "/preview/delight/feedback", title: "Feedback moments", desc: "A smoother heart, an even bookmark that tucks, share without the wiggle, RSVP, poll bars, the bell dot, fund progress, a better chirp." },
   { href: "/preview/delight/loading", title: "Loading states", desc: "Warm valley shimmer that now loops clean, leaves that settle on hand-off, the Letters draw-on, a bird crossing the skeleton rows." },
