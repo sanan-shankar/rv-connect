@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -6,6 +7,33 @@ import { GroupHeader } from "@/components/groups/group-header";
 import { FeedColumn } from "@/components/posts/feed-column";
 import { InviteResponse } from "@/components/groups/invite-response";
 import { Button } from "@/components/ui/button";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user) return { title: "Group" };
+
+  const group = await prisma.group.findUnique({
+    where: { id },
+    select: {
+      name: true,
+      visibility: true,
+      members: { where: { userId: session.user.id }, select: { id: true } },
+    },
+  });
+  if (!group) return { title: "Group" };
+
+  // Private groups are hidden from non-members; do not leak the name in the title.
+  if (group.visibility === "private" && group.members.length === 0) {
+    return { title: "Group" };
+  }
+
+  return { title: group.name };
+}
 
 export default async function GroupPage({
   params,

@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+
+export const metadata: Metadata = {
+  title: "About",
+};
 
 export default function AboutPage() {
   return (

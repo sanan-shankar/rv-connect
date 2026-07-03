@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Feather } from "lucide-react";
 import { auth } from "@/lib/auth";
@@ -6,6 +7,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { LetterComposer } from "@/components/letters/letter-composer";
 import { IdentityRow } from "@/components/common/identity-row";
 import { formatBatch } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Letters",
+};
 
 function readTime(content: string) {
   return Math.max(1, Math.round(content.trim().split(/\s+/).filter(Boolean).length / 200));

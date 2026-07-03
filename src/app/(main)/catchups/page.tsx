@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { MessagesSquare } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ComingSoon } from "@/components/layout/coming-soon";
+
+export const metadata: Metadata = {
+  title: "Catch-ups",
+};
 
 export default function CatchupsPage() {
   return (

@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { CreateGroupForm } from "@/components/groups/create-group-form";
 import { PageHeader } from "@/components/layout/page-header";
+
+export const metadata: Metadata = {
+  title: "Create a group",
+};
 
 export default async function NewGroupPage() {
   const session = await auth();

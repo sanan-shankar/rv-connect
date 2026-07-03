@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -6,6 +7,30 @@ import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
 import { PhotoLoveButton } from "@/components/collection/photo-love-button";
 import { subjectLabel, areaLabel, eraLabel } from "@/lib/collection";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user) return { title: "Collection" };
+
+  const photo = await prisma.photo.findUnique({
+    where: { id },
+    select: { caption: true, isHidden: true, approved: true, uploaderId: true },
+  });
+  if (!photo || photo.isHidden) return { title: "Collection" };
+
+  const isOwn = photo.uploaderId === session.user.id;
+  const isAdmin = session.user.role === "admin";
+  if (!photo.approved && !isOwn && !isAdmin) return { title: "Collection" };
+
+  const caption = photo.caption?.trim();
+  if (!caption) return { title: "Collection" };
+  return { title: caption.length > 70 ? caption.slice(0, 70).trimEnd() + "..." : caption };
+}
 
 export default async function PhotoPage({
   params,

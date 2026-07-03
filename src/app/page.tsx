@@ -10,7 +10,9 @@ import { ValleySection } from "@/components/landing/valley-section";
 import { SHOTS } from "@/components/landing/shots";
 
 export const metadata: Metadata = {
-  title: "Rishi Valley",
+  title: {
+    absolute: "Rishi Valley",
+  },
   description:
     "A space for the Rishi Valley community to stay connected.",
 };

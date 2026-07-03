@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { DirectoryClient } from "@/components/directory/directory-client";
 import { cityCoords } from "@/lib/city-coords";
 import { buildDirectoryWhere, directoryOrderBy } from "./where";
 import type { CityPin, PinPerson } from "@/components/directory/alumni-map";
+
+export const metadata: Metadata = {
+  title: "Directory",
+};
 
 // One page of directory results. Cursor pagination appends another page.
 const PAGE_SIZE = 60;
