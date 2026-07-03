@@ -7,18 +7,18 @@
  */
 
 /**
- * Canonical "PeaksMark + Rishi Valley" wordmark lockup, sized once against the
- * sidebar's active-nav pill (see sidebar.tsx Brand / logo-fact.tsx LogoFact):
- * at this exact mark size, gap, and font size, the mark's left edge lands on
- * the pill's left edge and the wordmark's right edge (the final "y") lands on
- * the pill's right edge, with the two vertically centered against each other.
- * Every lockup on the site (sidebar, landing hero, landing nav, landing
- * footer) uses this same font size and mark size so the brand reads as one
- * fixed logotype at every scale, not a wordmark that grows with the canvas.
- * Auth pages are excluded for now (separate milestone).
+ * Canonical "PeaksMark + Rishi Valley" wordmark lockup. Sized so the mark's
+ * left edge lands on the sidebar nav pill's left edge with the two
+ * vertically centered against each other (see sidebar.tsx Brand /
+ * logo-fact.tsx LogoFact) - the wordmark's right edge no longer needs to
+ * reach the pill's right edge; it now leaves comfortable margin before the
+ * sidebar's own edge. Every lockup on the site (sidebar, landing hero,
+ * landing nav, landing footer, /login, /signup) uses this same font size
+ * and mark size so the brand reads as one fixed logotype at every scale,
+ * not a wordmark that grows with the canvas.
  */
-export const WORDMARK_LOGO_SIZE = 27;
-export const WORDMARK_FONT_SIZE = 20.15;
+export const WORDMARK_LOGO_SIZE = 24;
+export const WORDMARK_FONT_SIZE = 18;
 
 const VIEWBOX_WIDTH = 1140;
 const VIEWBOX_HEIGHT = 350;
