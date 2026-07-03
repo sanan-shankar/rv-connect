@@ -149,7 +149,7 @@ export function GroupHeader({ group, members, myRole }: GroupHeaderProps) {
                 onClick={handleLeave}
                 disabled={busy}
               >
-                <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                <LogOut className="h-3.5 w-3.5" />
                 Leave
               </Button>
             )}

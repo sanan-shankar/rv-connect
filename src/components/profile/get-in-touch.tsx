@@ -65,11 +65,11 @@ export function GetInTouch({
           disabled={!hasMethods}
           title={hasMethods ? undefined : "This member hasn't shared contact details yet."}
         >
-          <Mail className="mr-1.5 h-3.5 w-3.5" />
+          <Mail className="h-3.5 w-3.5" />
           Get in touch
         </Button>
         <Button variant="outline" size="sm" className="rounded-full" onClick={saveContact}>
-          <Download className="mr-1.5 h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5" />
           Save contact
         </Button>
       </div>
@@ -107,7 +107,7 @@ export function GetInTouch({
             })}
           </div>
           <Button variant="outline" className="rounded-full" onClick={saveContact}>
-            <Download className="mr-1.5 h-4 w-4" />
+            <Download className="h-4 w-4" />
             Save contact card
           </Button>
         </DialogContent>

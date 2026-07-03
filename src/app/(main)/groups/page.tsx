@@ -63,7 +63,7 @@ export default async function GroupsPage() {
         actions={
           <Link href="/groups/new">
             <Button variant="primary">
-              <Plus className="mr-1.5 h-4 w-4" />
+              <Plus className="h-4 w-4" />
               New group
             </Button>
           </Link>

@@ -93,7 +93,7 @@ export function PhotoQueue({ photos }: { photos: PendingPhoto[] }) {
               disabled={busy === p.id}
               onClick={() => act(p.id, approvePhoto)}
             >
-              <Check className="mr-1 h-3.5 w-3.5" />
+              <Check className="h-3.5 w-3.5" />
               Approve
             </Button>
             <Button
@@ -102,7 +102,7 @@ export function PhotoQueue({ photos }: { photos: PendingPhoto[] }) {
               disabled={busy === p.id}
               onClick={() => act(p.id, declinePhoto)}
             >
-              <X className="mr-1 h-3.5 w-3.5" />
+              <X className="h-3.5 w-3.5" />
               Decline
             </Button>
           </div>

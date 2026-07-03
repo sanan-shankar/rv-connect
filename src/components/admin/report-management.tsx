@@ -59,17 +59,17 @@ export function ReportManagement({ reports }: { reports: ReportRow[] }) {
                 {report.reportedUserId && (
                   <Link href={`/profile/${report.reportedUserId}`}>
                     <Button variant="outline" size="sm">
-                      <Eye className="mr-1 h-3 w-3" />
+                      <Eye className="h-3 w-3" />
                       View profile
                     </Button>
                   </Link>
                 )}
                 <Button variant="outline" size="sm" onClick={() => handleDismiss(report.id)}>
-                  <XCircle className="mr-1 h-3 w-3" />
+                  <XCircle className="h-3 w-3" />
                   Dismiss
                 </Button>
                 <span className="inline-flex items-center text-xs text-muted-foreground">
-                  <UserX className="mr-1 h-3 w-3" />
+                  <UserX className="h-3 w-3" />
                   Block from the Users list below if needed
                 </span>
               </div>
@@ -91,13 +91,13 @@ export function ReportManagement({ reports }: { reports: ReportRow[] }) {
                 {report.postId && (
                   <Link href={`/feed#${report.postId}`}>
                     <Button variant="outline" size="sm">
-                      <Eye className="mr-1 h-3 w-3" />
+                      <Eye className="h-3 w-3" />
                       View
                     </Button>
                   </Link>
                 )}
                 <Button variant="outline" size="sm" onClick={() => handleDismiss(report.id)}>
-                  <XCircle className="mr-1 h-3 w-3" />
+                  <XCircle className="h-3 w-3" />
                   Dismiss
                 </Button>
                 {report.postId && (
@@ -107,7 +107,7 @@ export function ReportManagement({ reports }: { reports: ReportRow[] }) {
                       size="sm"
                       onClick={() => handleHidePost(report.postId!, report.id)}
                     >
-                      <EyeOff className="mr-1 h-3 w-3" />
+                      <EyeOff className="h-3 w-3" />
                       Hide post
                     </Button>
                     <Button
@@ -116,7 +116,7 @@ export function ReportManagement({ reports }: { reports: ReportRow[] }) {
                       className="text-destructive"
                       onClick={() => handleDeletePost(report.postId!, report.id)}
                     >
-                      <CheckCircle className="mr-1 h-3 w-3" />
+                      <CheckCircle className="h-3 w-3" />
                       Delete post
                     </Button>
                   </>

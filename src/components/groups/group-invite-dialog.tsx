@@ -84,7 +84,7 @@ export function GroupInviteDialog({
       <DialogTrigger
         render={<Button variant="primary" size="sm" className="rounded-full" />}
       >
-        <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+        <UserPlus className="h-3.5 w-3.5" />
         Invite
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -145,7 +145,7 @@ export function GroupInviteDialog({
                   >
                     {done ? (
                       <>
-                        <Check className="mr-1 h-3.5 w-3.5" />
+                        <Check className="h-3.5 w-3.5" />
                         Invited
                       </>
                     ) : pendingId === person.id ? (

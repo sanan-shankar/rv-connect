@@ -312,7 +312,7 @@ export function AlumniMap({
         type="button"
         onClick={() => setFullscreen((v) => !v)}
         aria-label={fullscreen ? "Exit full screen" : "View full screen"}
-        className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-3 py-1.5 text-[12px] font-semibold text-foreground shadow-sm backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+        className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/95 py-1.5 pl-2.5 pr-3 text-[12px] font-semibold text-foreground shadow-sm backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
       >
         {fullscreen ? <X className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         {fullscreen ? "Close" : "Full screen"}
@@ -327,7 +327,7 @@ export function AlumniMap({
               people: unmappedPeople,
             })
           }
-          className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/90 px-3 py-1 text-[12px] text-muted-foreground backdrop-blur transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/90 py-1 pl-2.5 pr-3 text-[12px] text-muted-foreground backdrop-blur transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           <MapPin className="h-3 w-3" />
           {unmapped} not yet on the map

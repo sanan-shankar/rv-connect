@@ -108,7 +108,7 @@ export function AdminProfileTools({
                 : "rounded-full text-cinnamon hover:text-cinnamon"
             }
           >
-            <Ban className="mr-1 h-4 w-4" />
+            <Ban className="h-4 w-4" />
             {blocked ? "Unblock user" : "Block user"}
           </Button>
           <Button
@@ -117,7 +117,7 @@ export function AdminProfileTools({
             onClick={handleDelete}
             className="rounded-full text-destructive hover:text-destructive"
           >
-            <Trash2 className="mr-1 h-4 w-4" />
+            <Trash2 className="h-4 w-4" />
             Delete user
           </Button>
         </div>
