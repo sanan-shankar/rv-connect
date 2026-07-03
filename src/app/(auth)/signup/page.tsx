@@ -11,8 +11,9 @@ import { SignupForm } from "@/components/auth/signup-form";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
-import { PeaksMark } from "@/components/layout/peaks-mark";
+import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
+import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
 
 type Step = "trivia" | "register";
 
@@ -43,25 +44,37 @@ export default function SignupPage() {
           viewport with `fixed` + `inset-y-0` (not part of the grid row), so its size and
           crop are constant no matter how tall the form column gets when switching between
           Alumnus/Teacher fields, error states, etc. The form column scrolls the page under
-          it; the photo never resizes. */}
+          it; the photo never resizes.
+
+          Same geometry as /login: a full 100vw `object-cover` render (landing's scale),
+          right-aligned in this 58.33vw panel and clipped, so both auth pages and the
+          landing hero share one continuous crop. */}
       <div className="fixed inset-y-0 left-0 hidden w-[58.3333%] overflow-hidden lg:block">
-        <Image
-          src="/images/landing.jpeg"
-          alt=""
-          fill
-          priority
-          className="object-cover"
-          sizes="58vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-screen">
+          <Image
+            src={HERO_IMAGE_SRC}
+            alt=""
+            fill
+            priority
+            placeholder="blur"
+            blurDataURL={HERO_IMAGE_BLUR}
+            className="object-cover"
+            sizes="100vw"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent"
+          />
+        </div>
         <Link
           href="/"
-          className="absolute left-8 top-7 inline-flex items-end gap-2.5 rounded-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:left-16"
+          style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
         >
-          <PeaksMark size={34} />
+          <PeaksMark size={WORDMARK_LOGO_SIZE} className="text-white" />
           <span
-            className="font-heading font-bold tracking-tight"
-            style={{ fontSize: "41.64px", lineHeight: 1, transform: "translateY(6.25px)" }}
+            className="block font-heading font-bold tracking-tight"
+            style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
           >
             Rishi Valley
           </span>
