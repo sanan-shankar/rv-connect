@@ -1,16 +1,12 @@
 import Link from "next/link";
-import { MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
-import { RsvpButton } from "./rsvp-button";
 import { formatBatch } from "@/lib/utils";
 
 /**
  * FeedRail: the right-hand companion column on the feed.
  *
- * Three cards, top to bottom, matching the contract:
- *  - "Coming up": the next event, with an iPhone-calendar date chip (cinnamon)
- *    and an RSVP. Static for now; swaps to real data when the Events feature lands.
+ * Two cards, top to bottom, matching the contract:
  *  - "New in the directory": recent joiners, centered bird avatars, names link
  *    to their profile.
  *  - "Your groups": the groups you belong to, with member counts in office-blue.
@@ -45,30 +41,6 @@ export async function FeedRail({ userId }: { userId: string }) {
   return (
     <div className="w-full">
       <div className="sticky top-7 space-y-4">
-        <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
-          <h3 className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
-            Coming up
-          </h3>
-          <div className="flex items-start gap-3">
-            <div className="flex h-14 w-[52px] shrink-0 flex-col items-center justify-center gap-px rounded-[14px] bg-cinnamon/[0.13]">
-              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-cinnamon">
-                Nov
-              </span>
-              <span className="text-[21px] font-bold leading-none text-foreground">14</span>
-            </div>
-            <div className="min-w-0">
-              <div className="text-[14.5px] font-semibold leading-tight text-foreground">
-                Founders&rsquo; Week
-              </div>
-              <div className="mt-1 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
-                <MapPin className="h-[13px] w-[13px] shrink-0" />
-                Rishi Valley, AP
-              </div>
-              <RsvpButton />
-            </div>
-          </div>
-        </section>
-
         {recentMembers.length > 0 && (
           <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
             <h3 className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
