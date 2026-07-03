@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { inviteToGroup } from "@/app/(main)/groups/actions";
 import { toast } from "sonner";
 
@@ -117,24 +117,23 @@ export function GroupInviteDialog({
               const done = invited.has(person.id);
               return (
                 <div key={person.id} className="flex items-center gap-3 py-2.5">
-                  <BirdAvatar
+                  <IdentityRow
                     user={{
                       id: person.id,
                       name: person.name,
                       avatarColor: person.avatarColor,
                     }}
-                    size="sm"
+                    className="min-w-0 flex-1"
+                    textClassName="flex-1"
+                    name={person.name}
+                    nameClassName="truncate text-sm font-semibold leading-none text-foreground"
+                    meta={
+                      person.batchYear != null
+                        ? `Batch of '${String(person.batchYear).slice(-2)}`
+                        : undefined
+                    }
+                    metaClassName="leading-none"
                   />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {person.name}
-                    </p>
-                    {person.batchYear != null && (
-                      <p className="text-[11.5px] text-muted-foreground">
-                        Batch of &apos;{String(person.batchYear).slice(-2)}
-                      </p>
-                    )}
-                  </div>
                   <Button
                     size="sm"
                     variant={done ? "outline" : "primary"}

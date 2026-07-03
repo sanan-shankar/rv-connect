@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
@@ -146,24 +146,26 @@ export function PostCard({
       <article id={post.id} className={wrapClass}>
         {/* Header */}
         <header className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <Link href={`/profile/${post.author.id}`} aria-label={post.author.name}>
-              <BirdAvatar user={post.author} size="sm" />
-            </Link>
-            <div className="leading-tight">
-              <div className="flex items-center gap-1">
-                <PersonName user={post.author} className="text-sm" />
+          <IdentityRow
+            user={post.author}
+            avatarHref={`/profile/${post.author.id}`}
+            avatarLabel={post.author.name}
+            name={
+              <>
+                <PersonName user={post.author} className="text-sm leading-none" />
                 <VerifiedMark user={post.author} />
-              </div>
-              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em]">
-                  {batchLine(post.author)}
-                </span>
+              </>
+            }
+            nameClassName="flex items-center gap-1"
+            meta={
+              <>
+                <span>{batchLine(post.author)}</span>
                 <span className="dotsep">·</span>
                 <span>{formatTimeAgo(new Date(post.createdAt))}</span>
-              </div>
-            </div>
-          </div>
+              </>
+            }
+            metaClassName="flex items-center gap-1.5 leading-none"
+          />
 
           <DropdownMenu>
             <DropdownMenuTrigger className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95">

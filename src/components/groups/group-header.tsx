@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Users, LogOut, Lock, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { GroupInviteDialog } from "./group-invite-dialog";
 import { leaveGroup, joinGroup } from "@/app/(main)/groups/actions";
 import { batchLine, cn } from "@/lib/utils";
@@ -172,24 +172,27 @@ export function GroupHeader({ group, members, myRole }: GroupHeaderProps) {
               <Link
                 key={m.id}
                 href={`/profile/${m.id}`}
-                className="flex items-center gap-2.5 rounded-lg p-1.5 transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+                className="block rounded-lg p-1.5 transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
               >
-                <BirdAvatar user={{ id: m.id, name: m.name, avatarColor: m.avatarColor }} size="sm" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {m.name}
-                  </p>
-                  <p className="text-[11.5px] text-muted-foreground">
-                    {batchLine(m)}
-                    {m.role === "admin" && (
-                      <>
-                        {" "}
-                        <span className="dotsep" aria-hidden>·</span>{" "}
-                        <span className="font-semibold text-leaf">{roleLabel(m.role)}</span>
-                      </>
-                    )}
-                  </p>
-                </div>
+                <IdentityRow
+                  user={{ id: m.id, name: m.name, avatarColor: m.avatarColor }}
+                  className="gap-2.5"
+                  textClassName="flex-1"
+                  name={m.name}
+                  nameClassName="truncate text-sm font-semibold leading-none text-foreground"
+                  meta={
+                    <>
+                      {batchLine(m)}
+                      {m.role === "admin" && (
+                        <>
+                          <span className="dotsep" aria-hidden>·</span>
+                          <span className="font-semibold text-leaf">{roleLabel(m.role)}</span>
+                        </>
+                      )}
+                    </>
+                  }
+                  metaClassName="flex items-center gap-1.5 leading-none"
+                />
               </Link>
             ))}
           </div>

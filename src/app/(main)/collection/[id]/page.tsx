@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { PhotoLoveButton } from "@/components/collection/photo-love-button";
 import { subjectLabel, areaLabel, eraLabel } from "@/lib/collection";
 
@@ -93,24 +93,27 @@ export default async function PhotoPage({
           </div>
 
           <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
-            <Link href={`/profile/${photo.uploader.id}`} aria-label={photo.uploader.name}>
-              <BirdAvatar user={{ id: photo.uploader.id, name: photo.uploader.name }} size="sm" />
-            </Link>
-            <div className="leading-tight">
-              <Link
-                href={`/profile/${photo.uploader.id}`}
-                className="text-[13.5px] font-semibold text-foreground hover:underline"
-              >
-                {photo.uploader.name}
-              </Link>
-              <div className="text-[11.5px] text-muted-foreground">
-                {new Date(photo.createdAt).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </div>
-            </div>
+            <IdentityRow
+              user={{ id: photo.uploader.id, name: photo.uploader.name }}
+              avatarHref={`/profile/${photo.uploader.id}`}
+              avatarLabel={photo.uploader.name}
+              className="min-w-0 flex-1"
+              textClassName="flex-1"
+              name={
+                <Link
+                  href={`/profile/${photo.uploader.id}`}
+                  className="text-[13.5px] font-semibold leading-none text-foreground hover:underline"
+                >
+                  {photo.uploader.name}
+                </Link>
+              }
+              meta={new Date(photo.createdAt).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+              metaClassName="leading-none"
+            />
             <div className="ml-auto">
               <PhotoLoveButton
                 photoId={photo.id}

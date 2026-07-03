@@ -44,33 +44,33 @@ export function ShowcaseShot({
   const y = useTransform(scrollYProgress, [0, 1], [22, -22]);
 
   return (
-    <motion.div
-      ref={ref}
-      style={reduce || !mounted ? undefined : { y }}
-      className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
-      data-shot
-    >
-      {/* Faux in-app top bar */}
-      <div className="flex items-center gap-2.5 border-b border-border bg-card px-4 py-2.5">
-        <PeaksMark size={13} variant="light" />
-        <div className="flex h-6 flex-1 items-center gap-2 rounded-full border border-border bg-muted px-3 text-[11px] text-muted-foreground">
-          <Search className="h-3 w-3" aria-hidden />
-          <span>Search the valley</span>
+    <div ref={ref} className="relative" data-shot>
+      <motion.div
+        style={reduce || !mounted ? undefined : { y }}
+        className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
+      >
+        {/* Faux in-app top bar */}
+        <div className="flex items-center gap-2.5 border-b border-border bg-card px-4 py-2.5">
+          <PeaksMark size={13} variant="light" />
+          <div className="flex h-6 flex-1 items-center gap-2 rounded-full border border-border bg-muted px-3 text-[11px] text-muted-foreground">
+            <Search className="h-3 w-3" aria-hidden />
+            <span>Search the valley</span>
+          </div>
         </div>
-      </div>
-      <div className="overflow-hidden">
-        <Image
-          src={src}
-          alt={alt}
-          width={width}
-          height={height}
-          loading="lazy"
-          sizes="(max-width: 1024px) 100vw, 560px"
-          placeholder={blurDataURL ? "blur" : "empty"}
-          blurDataURL={blurDataURL}
-          className="h-auto w-full"
-        />
-      </div>
-    </motion.div>
+        <div className="overflow-hidden">
+          <Image
+            src={src}
+            alt={alt}
+            width={width}
+            height={height}
+            loading="lazy"
+            sizes="(max-width: 1024px) 100vw, 560px"
+            placeholder={blurDataURL ? "blur" : "empty"}
+            blurDataURL={blurDataURL}
+            className="h-auto w-full"
+          />
+        </div>
+      </motion.div>
+    </div>
   );
 }
