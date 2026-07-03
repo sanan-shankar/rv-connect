@@ -49,7 +49,7 @@ export default function AboutPage() {
             <div>
               <h3 className="font-semibold text-foreground">Directory</h3>
               <p className="mt-1 leading-relaxed text-muted-foreground">
-                Find alumni by name, batch year, or city. Click on any profile
+                Find people by name, batch year, or city. Click on any profile
                 card to see their full details.
               </p>
             </div>

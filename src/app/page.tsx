@@ -42,7 +42,7 @@ export default function LandingPage() {
           Everything the valley scattered, gathered in one quiet place.
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-[1.7] text-muted-foreground">
-          Alumni and teachers, past and present. Built and kept by one of us,
+          Batchmates and teachers, past and present. Built and kept by one of us,
           for all of us.
         </p>
       </section>
@@ -62,7 +62,7 @@ export default function LandingPage() {
           visual={
             <div className="relative">
               <HoppingBird className="-top-5 left-10 z-10" />
-              <Shot name="directory" alt="The alumni directory, with a world map of where members live." />
+              <Shot name="directory" alt="The directory, with a world map of where members live." />
             </div>
           }
         />

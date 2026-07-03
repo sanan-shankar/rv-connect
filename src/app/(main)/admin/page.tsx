@@ -86,7 +86,7 @@ export default async function AdminPage() {
   });
 
   const stats = [
-    { label: "Total Alumni", value: totalUsers, icon: Users },
+    { label: "Total Members", value: totalUsers, icon: Users },
     { label: "Total Posts", value: totalPosts, icon: FileText },
     { label: "New This Week", value: newSignups, icon: UserPlus },
     { label: "Pending Reports", value: pendingReports, icon: AlertTriangle },

@@ -149,7 +149,7 @@ export function CreateGroupForm({ batchYears, currentUserId }: Props) {
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Bengaluru Alumni"
+          placeholder="e.g. Bengaluru circle"
           maxLength={80}
           autoFocus
         />
@@ -196,14 +196,14 @@ export function CreateGroupForm({ batchYears, currentUserId }: Props) {
                 className={cn(
                   "flex items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   active
-                    ? "border-leaf bg-leaf/8"
-                    : "border-border bg-card hover:border-leaf/40"
+                    ? "border-canopy bg-canopy/8"
+                    : "border-border bg-card hover:border-canopy/40"
                 )}
               >
                 <Icon
                   className={cn(
                     "mt-0.5 h-4 w-4 shrink-0",
-                    active ? "text-leaf" : "text-muted-foreground"
+                    active ? "text-canopy" : "text-muted-foreground"
                   )}
                 />
                 <div>
@@ -237,8 +237,8 @@ export function CreateGroupForm({ batchYears, currentUserId }: Props) {
                   className={cn(
                     "relative flex flex-col items-center rounded-lg border p-2.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     selected
-                      ? "border-leaf bg-leaf/10 text-leaf"
-                      : "border-border bg-card text-foreground hover:border-leaf/40"
+                      ? "border-canopy bg-canopy/10 text-canopy"
+                      : "border-border bg-card text-foreground hover:border-canopy/40"
                   )}
                 >
                   {selected && (

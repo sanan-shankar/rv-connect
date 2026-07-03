@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
  */
 
 const UPI_ID = "rvalumni@upi";
-const PAYEE_NAME = "RV Alumni";
+const PAYEE_NAME = "Rishi Valley";
 
 const SUGGESTIONS = [
   { label: "Cover a month", amount: 20, note: "About a month of running costs" },
@@ -33,7 +33,7 @@ function buildUpiLink(amount: number | null) {
   });
   if (amount) {
     params.set("am", String(amount));
-    params.set("tn", "Keeping RV Alumni online");
+    params.set("tn", "Keeping Rishi Valley online");
   }
   return `upi://pay?${params.toString()}`;
 }
