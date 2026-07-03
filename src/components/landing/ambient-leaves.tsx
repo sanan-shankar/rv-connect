@@ -74,7 +74,9 @@ export function AmbientLeaves() {
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
-  const COUNT = isMobile ? 5 : 8;
+  // Small pool + a moderate rest gap between falls keeps concurrent leaves in
+  // the "a few, not a storm" 2-5 band (see density tuning notes below).
+  const COUNT = isMobile ? 4 : 6;
   const PILE_CAP = isMobile ? 6 : 10;
 
   useEffect(() => {
@@ -86,17 +88,25 @@ export function AmbientLeaves() {
     const PILE_TARGET = isMobile ? 5 : 8;
 
     // Seed the falling pool with randomized physics, staggered above the top.
+    // Two different rest-gap regimes: a short one for each leaf's very first
+    // (pre-activation) spawn, so the pool cascades into view quickly once the
+    // layer activates, and a longer steady-state one between subsequent falls
+    // so the pool settles into a handful visible at once, not a downpour.
     const spawn = (l: Leaf, initial: boolean) => {
       l.size = 13 + Math.random() * 9;
       l.baseX = Math.random() * vw();
-      l.y = -40 - Math.random() * (initial ? vh() * 0.9 : 120);
+      l.y = -40 - Math.random() * (initial ? vh() * 0.4 : 120);
       l.fall = 24 + Math.random() * 26; // slow drift
       l.swayAmp = 14 + Math.random() * 26;
       l.swayFreq = 0.5 + Math.random() * 0.7;
       l.phase = Math.random() * Math.PI * 2;
       l.rot = Math.random() * 360;
       l.rotSpeed = (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 34);
-      l.wait = initial ? Math.random() * 5 : 1 + Math.random() * 3.5;
+      l.wait = initial
+        ? Math.random() * (isMobile ? 1.5 : 2) // brief cold-start stagger (activation seeding covers instant visibility)
+        : isMobile
+          ? 7 + Math.random() * 16 // steady-state rest gap between falls
+          : 10 + Math.random() * 22;
       l.poof = 0;
       l.kick = 0;
       l.landed = false;
@@ -172,6 +182,26 @@ export function AmbientLeaves() {
       });
     };
 
+    // On first activation, drop a few leaves straight into the viewport at
+    // varied heights/phases, as if their fall were already in progress —
+    // otherwise every leaf starts above the fold and the first ones take
+    // 15-40s to drift down, reading as an empty layer.
+    let hasSeededView = false;
+    const seedIntoView = () => {
+      const n = Math.min(leaves.length, isMobile ? 2 : 3);
+      const order = leaves.map((_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      for (let k = 0; k < n; k++) {
+        const l = leaves[order[k]];
+        l.wait = 0;
+        l.y = vh() * (0.08 + Math.random() * 0.74);
+        l.phase = Math.random() * Math.PI * 2;
+      }
+    };
+
     // Scroll range gate: leaves are hidden over the hero, appear once scrolled
     // past ~55% of the first viewport, and stay through the footer.
     let active = false;
@@ -184,6 +214,10 @@ export function AmbientLeaves() {
       if (wrap) wrap.style.opacity = active ? "1" : "0";
       const pileWrap = pileWrapRef.current;
       if (pileWrap && SETTLE_PILE) pileWrap.style.opacity = nearBottom ? "1" : "0";
+      if (active && !hasSeededView) {
+        hasSeededView = true;
+        seedIntoView();
+      }
       // Only let the (invisible) leaf sprites take taps while the layer is live,
       // so nothing hit-testable lingers over the hero when scrolled to the top.
       if (active !== wasActive) {
