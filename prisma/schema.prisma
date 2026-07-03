@@ -25,10 +25,11 @@ model User {
   instagram     String?
   linkedin      String?
   accountType   String    @default("alumnus") // "alumnus" | "teacher" | "ex_teacher"
-  batchType     String?   // "ICSE" or "ISC"; null for teachers who never studied here
-  batchYear     Int?      // graduation year; null for teachers
-  yearJoined    Int?
-  yearLeft        Int?
+  batchType     String?   // derived board credential: "ISC" (left in 12), "ICSE" (left in 10/11), null for mid-school leavers and teachers
+  batchYear     Int?      // year the person's class would finish 12th (their "Batch of"); derived, not the year they left
+  yearJoined    Int?      // calendar year they started (beginning of an academic year)
+  yearLeft        Int?    // calendar year they left (end of an academic year)
+  gradeJoined   Int?      // grade they were in when they joined; with yearJoined/yearLeft this pins the batch
   admissionNumber Int?
   taughtFrom    Int?      // teacher tenure start
   taughtUntil   Int?      // null = still teaching
