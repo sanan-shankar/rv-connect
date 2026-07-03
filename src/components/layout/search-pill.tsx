@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { EASE_POP, SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -14,26 +13,34 @@ import { cn } from "@/lib/utils";
  * Submitting routes to the directory search; the feed can later subscribe to
  * the same query.
  *
- * The expansion is a motion layout animation: one shared element grows from the
- * resting pill into the full bar (it animates its own size, as an absolute
- * overlay anchored right and growing left, so the header never reflows and
- * nothing to its right is overlapped). The magnifying glass stays mounted
- * across both states and settles into place rather than snapping, the input and
- * placeholder fade in, and a soft focus ring blooms.
+ * The expansion animates real `width`/`padding`/`gap` values directly (never
+ * Motion's `layout` FLIP animation). `layout` interpolates by scaling the box
+ * with a transform and un-scaling its children back to size every frame; on
+ * an 8x width change like 40px -> 320px that scale/counter-scale is exactly
+ * what read as "stretching". Animating the actual CSS values instead means
+ * the browser reflows the pill each frame like a normal transition, so nested
+ * content (the icon) just glides with it instead of getting warped.
  *
- * Motion feel (per owner): opening is a small crisp spring bounce, closing is
- * the same short spring bouncing back, both quick and tidy with NO long stretch
- * distortion. Both directions read as one short spring so the bar never
- * over-stretches in either direction. The input fades (opacity) rather than
- * scaling, so only the container width springs, never the glyphs.
+ * Motion feel (per owner): opening is one clean expansion with only a slight,
+ * well-damped bounce. Closing has zero overshoot: a critically damped spring
+ * that eases to rest with no stretch or wobble. The two directions
+ * intentionally use different springs (see constants below). The icon itself
+ * is a plain, non-animated element -- it only moves because the parent's
+ * padding/gap move under it, so it can't be scaled or skewed independently
+ * and stays visually centered throughout.
  */
 
-// Opening: the shared `snappy` pill spring (420/30) gives a crisp, subtle
-// bounce that settles fast, matching every other pill in the app.
-const OPEN_SPRING = SPRINGS.snappy;
-// Closing: a hair stiffer so the bar tucks back without a slow over-stretch;
-// reads as the same short spring bouncing closed. Paired with a fast content fade.
-const CLOSE_SPRING = { type: "spring", stiffness: 520, damping: 36 } as const;
+// Opening: `bounce` is Motion's 0-1 "how springy" dial (0 = no overshoot,
+// 1 = extremely springy). 0.15 gives a small, controlled settle-past-target
+// -- a bounce you can feel but that never reads as jumpy.
+const OPEN_SPRING = { type: "spring", bounce: 0.15, duration: 0.32 } as const;
+// Closing: bounce 0 is a critically damped spring -- mathematically
+// guaranteed to approach its target without ever overshooting it, so the bar
+// tucks away with zero stretch.
+const CLOSE_SPRING = { type: "spring", bounce: 0, duration: 0.22 } as const;
+
+const CLOSED_WIDTH = 40; // px, matches the resting h-10 w-10 circle
+const OPEN_WIDTH = 320; // px cap (20rem); `maxWidth: 68vw` below clamps on narrow screens
 
 export function SearchPill() {
   const router = useRouter();
@@ -66,23 +73,28 @@ export function SearchPill() {
 
   return (
     <div ref={wrapRef} className="relative h-10 w-10">
-      {/* One shared element morphs between the resting icon and the full bar.
-          `layout` springs its width / padding / radius from measured rects, so
-          it never receives a hand-computed numeric width and can never be fed a
-          non-finite value. The transition is asymmetric: a springy bounce to
-          open, a fast calm spring to close. */}
+      {/* One persistent element morphs between the resting icon and the full
+          bar. Width, padding, and gap are driven as plain numeric style
+          values under one spring per direction, so the pill reflows smoothly
+          instead of scaling. */}
       <motion.form
-        layout
+        animate={{
+          width: open ? OPEN_WIDTH : CLOSED_WIDTH,
+          paddingLeft: open ? 16 : 0,
+          paddingRight: open ? 8 : 0,
+          gap: open ? 10 : 0,
+        }}
         transition={open ? OPEN_SPRING : CLOSE_SPRING}
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
+        style={{ maxWidth: "68vw" }}
         className={cn(
           "group absolute right-0 top-0 z-20 flex h-10 items-center overflow-hidden rounded-full bg-card",
           open
-            ? "w-[min(20rem,68vw)] gap-2.5 border border-primary pl-4 pr-2 shadow-[0_4px_14px_rgba(30,28,22,0.12)]"
-            : "w-10 gap-0 border border-border pl-0 pr-0 shadow-[0_1px_2px_rgba(30,28,22,0.04)]"
+            ? "border border-primary shadow-[0_4px_14px_rgba(30,28,22,0.12)]"
+            : "border border-border shadow-[0_1px_2px_rgba(30,28,22,0.04)]"
         )}
       >
         {/* Soft focus ring blooms in (opacity only) when expanded, and snaps out
@@ -95,18 +107,19 @@ export function SearchPill() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.22, ease: EASE_POP }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
               className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-ring/30"
             />
           )}
         </AnimatePresence>
 
-        {/* The magnifying glass stays mounted across both states and settles
-            into place. Closed, the glyph gets a tiny left optical correction so
-            it reads centered in the 40px pill; open, it sits at the bar's leading edge. */}
-        <motion.span
-          layout
-          transition={open ? OPEN_SPRING : CLOSE_SPRING}
+        {/* The magnifying glass is a plain, non-motion element that stays a
+            constant size in both states. It never scales or resizes -- its
+            only motion comes from the parent's padding/gap shifting under
+            it, so it stays visually stable and centered throughout. Closed,
+            it gets a tiny left optical correction so it reads centered in
+            the 40px pill. */}
+        <span
           aria-hidden
           className={cn(
             "grid shrink-0 place-items-center leading-none text-muted-foreground transition-transform duration-150 ease-out",
@@ -117,7 +130,7 @@ export function SearchPill() {
         >
           <MagnifyingGlassIcon
             weight="regular"
-            size={open ? 16 : 18}
+            size={17}
             stroke="currentColor"
             strokeWidth={6}
             className={cn(
@@ -125,7 +138,7 @@ export function SearchPill() {
               !open && "-translate-x-[0.75px]"
             )}
           />
-        </motion.span>
+        </span>
 
         {/* Input and placeholder fade in just after the bar starts growing, and
             fade out fast on collapse so the bar contracts behind faded content
@@ -136,9 +149,8 @@ export function SearchPill() {
               key="input"
               ref={inputRef}
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: EASE_POP, delay: 0.04 }}
+              animate={{ opacity: 1, transition: { duration: 0.2, ease: "easeOut", delay: 0.06 } }}
+              exit={{ opacity: 0, transition: { duration: 0.12, ease: "easeOut" } }}
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => {
@@ -166,7 +178,7 @@ export function SearchPill() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.16, ease: EASE_POP }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
               onClick={() => setOpen(true)}
               aria-label="Search the valley"
               aria-expanded={open}
