@@ -68,3 +68,5 @@ temporary screenshots/
 # Local tooling + reference material (not part of the app)
 .claude/
 Inspiration/
+.codex/
+.agents/

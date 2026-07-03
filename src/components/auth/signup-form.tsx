@@ -16,14 +16,18 @@ import {
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
-import { Hoopoe } from "@/components/mascot/hoopoe";
-import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { registerUser } from "./actions";
 
+// keep the gaze sweep bounded to [-1, 1] as the field fills
+const gazeFor = (len: number, over: number) =>
+  Math.max(-1, Math.min(1, (len / over) * 2 - 1));
+
 export function SignupForm({
+  hoopoe,
   onSuccess,
 }: {
+  hoopoe: HoopoeApi;
   onSuccess: () => void;
 }) {
   const [loading, setLoading] = useState(false);
@@ -32,28 +36,26 @@ export function SignupForm({
   const isAlum = accountType === "alumnus";
   const [showPw, setShowPw] = useState(false);
 
-  // Same rig as /login: the hoopoe covers its eyes while the password is
-  // hidden and peeks (following what you type) once it's revealed.
-  const { ref: hoopoeRef, ...hoopoe } = useHoopoe();
+  // The one shared hoopoe (hoisted to the page) covers its eyes while the
+  // password is hidden and peeks (following what you type) once revealed.
   const showPwRef = useRef(showPw);
   showPwRef.current = showPw;
-  const introDone = useRef(false);
+  const mounted = useRef(false);
 
   useEffect(() => {
-    if (!introDone.current) return;
+    if (!mounted.current) {
+      // arriving from the trivia step: let the panel settle, then tuck the wings
+      // over the (hidden) password so it reads as the same bird following you in.
+      mounted.current = true;
+      const t = setTimeout(() => {
+        if (showPwRef.current) hoopoe.peek();
+        else hoopoe.coverEyes();
+      }, 340);
+      return () => clearTimeout(t);
+    }
     if (showPw) hoopoe.peek();
     else hoopoe.coverEyes();
   }, [showPw, hoopoe]);
-
-  function onHoopoeReady(api: HoopoeApi) {
-    api.peek();
-    api.blinkOnce(true);
-    setTimeout(() => {
-      introDone.current = true;
-      if (showPwRef.current) api.peek();
-      else api.coverEyes();
-    }, 1150);
-  }
 
   const ACCOUNT_TYPES = [
     { value: "alumnus", label: "Alumnus" },
@@ -73,12 +75,14 @@ export function SignupForm({
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
+      hoopoe.react("error");
       setLoading(false);
       return;
     }
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      hoopoe.react("error");
       setLoading(false);
       return;
     }
@@ -87,6 +91,7 @@ export function SignupForm({
       const result = await registerUser(formData);
       if (result.error) {
         setError(result.error);
+        hoopoe.react("error");
       } else {
         // User created — sign in with credentials directly
         const email = formData.get("email") as string;
@@ -98,13 +103,18 @@ export function SignupForm({
 
         if (signInResult?.error) {
           setError("Account created but sign in failed. Please log in manually.");
+          hoopoe.react("error");
         } else {
+          // a proper celebration before we hand off to the feed
+          hoopoe.peek();
+          hoopoe.react("success");
           toast.success("Welcome to the jungle!");
-          onSuccess();
+          setTimeout(onSuccess, 700);
         }
       }
     } catch {
       setError("Something went wrong. Please try again.");
+      hoopoe.react("error");
     } finally {
       setLoading(false);
     }
@@ -113,7 +123,7 @@ export function SignupForm({
   const currentYear = new Date().getFullYear();
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 text-left">
       <div className="space-y-2">
         <Label htmlFor="name">Full Name</Label>
         <Input
@@ -123,6 +133,7 @@ export function SignupForm({
           required
           minLength={2}
           autoFocus
+          onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 24))}
         />
       </div>
 
@@ -134,13 +145,11 @@ export function SignupForm({
           type="email"
           placeholder="you@example.com"
           required
+          onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 26))}
         />
       </div>
 
       <div className="space-y-2">
-        <div className="mx-auto -mb-1 grid h-[72px] w-[72px] place-items-center">
-          <Hoopoe ref={hoopoeRef} size={64} onReady={onHoopoeReady} />
-        </div>
         <Label htmlFor="password">Password</Label>
         <div className="relative">
           <Input
@@ -152,7 +161,9 @@ export function SignupForm({
             minLength={8}
             className="pr-10"
             onChange={(e) => {
-              hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
+              // the bird follows what you type whether peeking or covered
+              // (its head tracks behind the wings when its eyes are hidden)
+              hoopoe.gaze(gazeFor(e.target.value.length, 16));
             }}
           />
           <button
