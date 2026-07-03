@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -37,11 +38,19 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline hover:translate-y-0 active:translate-y-0 active:scale-100",
       },
       size: {
+        // Optical centering: an icon glyph carries less ink than its box and
+        // lucide/phosphor icons are drawn with internal whitespace, so with
+        // symmetric padding the icon side READS looser than the text side. We
+        // shave a fixed ~4px optical step off whichever side holds an icon.
+        // Triggered by data-leading-icon / data-trailing-icon, which the Button
+        // sets automatically from its children (see below) so every icon+label
+        // pill is corrected with zero per-call tuning. Icon-only sizes below
+        // deliberately omit these classes (nothing to optically balance).
         default:
-          "h-10 gap-2 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-        xs: "h-8 gap-1 px-3 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-9 gap-1.5 px-3.5 text-[0.8rem] has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-11 gap-2 px-6 text-base has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4",
+          "h-10 gap-2 px-4 data-[leading-icon]:pl-3 data-[trailing-icon]:pr-3",
+        xs: "h-8 gap-1 px-3 text-xs data-[leading-icon]:pl-2 data-[trailing-icon]:pr-2 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-9 gap-1.5 px-3.5 text-[0.8rem] data-[leading-icon]:pl-2.5 data-[trailing-icon]:pr-2.5 [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "h-11 gap-2 px-6 text-base data-[leading-icon]:pl-5 data-[trailing-icon]:pr-5",
         icon: "size-10",
         "icon-xs": "size-8 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-9",
@@ -55,18 +64,60 @@ const buttonVariants = cva(
   }
 )
 
+// An icon child is either a raw <svg> host element or a *component* element
+// (lucide/phosphor). Both forms occur: a client component passes the live
+// <Plus/> element (its `type` is the component object), while a Server
+// Component renders the icon before it reaches this client Button, so it
+// arrives as an already-rendered <svg> whose `type` is the string "svg".
+// Treating both as icons is what makes the correction fire on server AND
+// client pages. A label is a string, a number, or a non-svg host element
+// (<span> etc.). We avoid CSS :first-child/:last-child because they cannot see
+// the bare text node beside a lone <svg> (the svg is then both first and last
+// element child, so position selectors can't tell leading from trailing).
+function isIconChild(child: React.ReactNode): boolean {
+  if (!React.isValidElement(child)) return false
+  const type = child.type
+  return type === "svg" || typeof type !== "string"
+}
+
+/**
+ * Detects whether the button leads and/or trails with an icon, so the shared
+ * optical-centering correction fires automatically. Requires a non-icon
+ * sibling (the label) so a bare icon-only button is never shifted.
+ */
+function detectIconSides(children: React.ReactNode): {
+  leading: boolean
+  trailing: boolean
+} {
+  const items = React.Children.toArray(children)
+  if (items.length < 2) return { leading: false, trailing: false }
+  const first = items[0]
+  const last = items[items.length - 1]
+  return {
+    leading: isIconChild(first) && items.slice(1).some((c) => !isIconChild(c)),
+    trailing:
+      isIconChild(last) && items.slice(0, -1).some((c) => !isIconChild(c)),
+  }
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  children,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  const { leading, trailing } = detectIconSides(children)
   return (
     <ButtonPrimitive
       data-slot="button"
+      data-leading-icon={leading ? "" : undefined}
+      data-trailing-icon={trailing ? "" : undefined}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {children}
+    </ButtonPrimitive>
   )
 }
 
