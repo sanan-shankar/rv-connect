@@ -31,6 +31,8 @@ import {
   deleteAccount,
   updateAvatar,
   removeAvatar,
+  updateCover,
+  removeCover,
 } from "./actions";
 
 interface User {
@@ -38,6 +40,7 @@ interface User {
   name: string;
   email: string;
   photoUrl: string | null;
+  coverPhoto: string | null;
   avatarColor: string | null;
   bio: string | null;
   currentCity: string | null;
@@ -61,6 +64,9 @@ export function SettingsForm({ user }: { user: User }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
   const [photoBusy, setPhotoBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(user.coverPhoto);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const coverRef = useRef<HTMLInputElement>(null);
 
   async function handlePhotoPick(f: File | null) {
     if (!f) return;
@@ -97,6 +103,44 @@ export function SettingsForm({ user }: { user: User }) {
     }
     setPhotoUrl(null);
     toast.success("Photo removed");
+    router.refresh();
+  }
+
+  async function handleCoverPick(f: File | null) {
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      toast.error("Please choose an image");
+      return;
+    }
+    if (f.size > 15 * 1024 * 1024) {
+      toast.error("Photo must be under 15MB");
+      return;
+    }
+    setCoverBusy(true);
+    const fd = new FormData();
+    fd.set("file", f);
+    const result = await updateCover(fd);
+    setCoverBusy(false);
+    if (coverRef.current) coverRef.current.value = "";
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    setCoverPhoto(result.coverPhoto ?? null);
+    toast.success("Header picture updated");
+    router.refresh();
+  }
+
+  async function handleCoverRemove() {
+    setCoverBusy(true);
+    const result = await removeCover();
+    setCoverBusy(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    setCoverPhoto(null);
+    toast.success("Header picture removed");
     router.refresh();
   }
 
@@ -187,6 +231,62 @@ export function SettingsForm({ user }: { user: User }) {
                         onClick={handlePhotoRemove}
                       >
                         Remove photo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Header picture</Label>
+              <input
+                ref={coverRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleCoverPick(e.target.files?.[0] ?? null)}
+              />
+              <div className="space-y-3 rounded-[var(--radius)] border border-border bg-paper/50 p-4">
+                <div
+                  className="relative h-28 overflow-hidden rounded-xl border border-border bg-mist bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${coverPhoto || "/images/landing.jpeg"})`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/30" />
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    {coverPhoto
+                      ? "Shown across the top of your profile."
+                      : "A default valley banner shows until you add your own."}
+                  </p>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={coverBusy}
+                      onClick={() => coverRef.current?.click()}
+                    >
+                      {coverBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ImagePlus className="h-4 w-4" />
+                      )}
+                      {coverPhoto ? "Change header" : "Upload header"}
+                    </Button>
+                    {coverPhoto && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={coverBusy}
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={handleCoverRemove}
+                      >
+                        Remove header
                       </Button>
                     )}
                   </div>

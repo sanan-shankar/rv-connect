@@ -19,6 +19,7 @@ export default async function SettingsPage() {
       name: true,
       email: true,
       photoUrl: true,
+      coverPhoto: true,
       avatarColor: true,
       bio: true,
       currentCity: true,
