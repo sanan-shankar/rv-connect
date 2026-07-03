@@ -46,7 +46,13 @@ export function ScrollHoopoe() {
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
-  const SIZE = isMobile ? 54 : 78;
+  // At phone widths the showcase frame sits in a 24px page gutter (px-6), so
+  // there is only ~24px of true margin to perch in beside it. Trim the bird
+  // and its clearances to fit that margin cleanly instead of clamping hard
+  // against the viewport edge and lapping onto the frame.
+  const SIZE = isMobile ? 26 : 78;
+  const EDGE_GAP = isMobile ? 5 : 10; // clearance from the frame's own edge
+  const EDGE_INSET = isMobile ? 5 : 6; // clearance from the true viewport edge
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -128,9 +134,9 @@ export function ScrollHoopoe() {
         const shotCenterX = r.left + r.width / 2;
         sideRight = shotCenterX > vw / 2;
         targetX = sideRight
-          ? Math.min(r.right + 10, vw - SIZE - 6)
-          : Math.max(6, r.left - SIZE - 10);
-        targetX = Math.max(6, Math.min(vw - SIZE - 6, targetX));
+          ? Math.min(r.right + EDGE_GAP, vw - SIZE - EDGE_INSET)
+          : Math.max(EDGE_INSET, r.left - SIZE - EDGE_GAP);
+        targetX = Math.max(EDGE_INSET, Math.min(vw - SIZE - EDGE_INSET, targetX));
         targetY = Math.max(72, Math.min(vh - SIZE - 24, r.top + r.height * 0.3));
 
         if (best !== activeIndex) {
@@ -174,6 +180,7 @@ export function ScrollHoopoe() {
     <div ref={layerRef} aria-hidden className="pointer-events-none fixed inset-0 z-30 overflow-hidden">
       <div
         ref={perchRef}
+        data-hoopoe-perch
         className="absolute left-0 top-0 opacity-0 will-change-transform"
         style={{ width: SIZE, height: SIZE }}
       >
