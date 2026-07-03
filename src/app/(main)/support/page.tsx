@@ -5,25 +5,25 @@ import { CostBar } from "@/components/support/cost-bar";
 
 export const metadata: Metadata = {
   title: "Support",
-  description: "Help keep the RV Alumni network in the valley alive.",
+  description: "Help keep the Rishi Valley community running.",
 };
 
 // The owner's real recurring costs, in plain language. Honesty is the whole
 // point of this page; these are the figures from the infra plan, not inflated.
 const COSTS = [
   {
-    label: "Server (always on)",
-    detail: "Render, kept warm so the first visit each day is not slow",
+    label: "Hosting",
+    detail: "Vercel, so every page loads fast wherever you are",
     amount: "about ₹600 / month",
   },
   {
     label: "Database",
-    detail: "Where every profile, post, and photo lives",
+    detail: "Supabase Postgres in Mumbai, where every profile, post, and photo lives",
     amount: "about ₹550 / month",
   },
   {
     label: "Image storage and delivery",
-    detail: "Hosting and serving the photos people share",
+    detail: "Cloudflare R2, hosting and serving the photos people share",
     amount: "a few hundred, usage based",
   },
   {
@@ -64,7 +64,7 @@ export default function SupportPage() {
           Keep the network in the valley alive.
         </h1>
         <p className="mt-[var(--space-s)] text-lg leading-relaxed text-muted-foreground">
-          RV Alumni runs on a small monthly bill. If it has helped you find an
+          Rishi Valley runs on a small monthly bill. If it has helped you find an
           old friend or a lost batchmate, you can help keep it going. There is no
           pressure, and the site is always free to use.
         </p>

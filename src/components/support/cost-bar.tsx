@@ -10,7 +10,7 @@ import { motion } from "motion/react";
 import { SPRINGS, useMotionGovernor } from "@/components/common/motion";
 
 const SEGMENTS = [
-  { label: "Server", value: 600, color: "#1F8A4C" },
+  { label: "Hosting", value: 600, color: "#1F8A4C" },
   { label: "Database", value: 550, color: "#3F7CA6" },
   { label: "Everything else", value: 300, color: "#C2622F" },
 ];
