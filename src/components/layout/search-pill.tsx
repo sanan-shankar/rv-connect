@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
  * Submitting routes to the directory search; the feed can later subscribe to
  * the same query.
  *
- * The expansion animates real `width`/`padding`/`gap` values directly (never
+ * The expansion animates real `width`/`padding` values directly (never
  * Motion's `layout` FLIP animation). `layout` interpolates by scaling the box
  * with a transform and un-scaling its children back to size every frame; on
  * an 8x width change like 40px -> 320px that scale/counter-scale is exactly
@@ -26,8 +26,9 @@ import { cn } from "@/lib/utils";
  * that eases to rest with no stretch or wobble. The two directions
  * intentionally use different springs (see constants below). The icon itself
  * is a plain, non-animated element -- it only moves because the parent's
- * padding/gap move under it, so it can't be scaled or skewed independently
- * and stays visually centered throughout.
+ * padding moves under it (plus its own static right margin when expanded),
+ * so it can't be scaled or skewed independently and stays visually centered
+ * throughout.
  */
 
 // Opening: `bounce` is Motion's 0-1 "how springy" dial (0 = no overshoot,
@@ -41,6 +42,20 @@ const CLOSE_SPRING = { type: "spring", bounce: 0, duration: 0.22 } as const;
 
 const CLOSED_WIDTH = 40; // px, matches the resting h-10 w-10 circle
 const OPEN_WIDTH = 320; // px cap (20rem); `maxWidth: 68vw` below clamps on narrow screens
+
+// Expanded-state optical correction (owner feedback): the icon should tuck
+// slightly into the pill's curved left cap rather than sitting flush after
+// the straight wall starts, and the typed text needs more breathing room off
+// the icon. Both are LiftKit "half-step" nudges (x/sqrt(phi) ~= x/1.272) off
+// the original 16/10 pair -- a small, deliberate move in each direction, not
+// a full golden-ratio step (that would overshoot and read as obviously
+// off-center). Note: the gap is applied as a static `marginRight` on the
+// icon (below), not as flex `gap` on the motion.form -- Motion does not
+// animate the CSS `gap`/`column-gap` properties (confirmed: they freeze at
+// their initial value no matter the target), so a real gap has to live on
+// the icon itself.
+const OPEN_PADDING_LEFT = 13; // px, was 16 (16 / 1.272 = half-step down)
+const ICON_TEXT_GAP = 13; // px, was a non-functional `gap: 10` (10 x 1.272 = half-step up)
 
 export function SearchPill() {
   const router = useRouter();
@@ -74,15 +89,14 @@ export function SearchPill() {
   return (
     <div ref={wrapRef} className="relative h-10 w-10">
       {/* One persistent element morphs between the resting icon and the full
-          bar. Width, padding, and gap are driven as plain numeric style
-          values under one spring per direction, so the pill reflows smoothly
+          bar. Width and padding are driven as plain numeric style values
+          under one spring per direction, so the pill reflows smoothly
           instead of scaling. */}
       <motion.form
         animate={{
           width: open ? OPEN_WIDTH : CLOSED_WIDTH,
-          paddingLeft: open ? 16 : 0,
+          paddingLeft: open ? OPEN_PADDING_LEFT : 0,
           paddingRight: open ? 8 : 0,
-          gap: open ? 10 : 0,
         }}
         transition={open ? OPEN_SPRING : CLOSE_SPRING}
         onSubmit={(e) => {
@@ -115,10 +129,10 @@ export function SearchPill() {
 
         {/* The magnifying glass is a plain, non-motion element that stays a
             constant size in both states. It never scales or resizes -- its
-            only motion comes from the parent's padding/gap shifting under
-            it, so it stays visually stable and centered throughout. Closed,
-            it gets a tiny left optical correction so it reads centered in
-            the 40px pill. */}
+            only motion comes from the parent's padding shifting under it (and,
+            expanded, its own static right margin below), so it stays visually
+            stable and centered throughout. Closed, it gets a tiny left optical
+            correction so it reads centered in the 40px pill. */}
         <span
           aria-hidden
           className={cn(
@@ -127,6 +141,7 @@ export function SearchPill() {
               ? "h-auto w-auto"
               : "h-10 w-10 group-hover:text-foreground group-active:scale-95"
           )}
+          style={open ? { marginRight: ICON_TEXT_GAP } : undefined}
         >
           <MagnifyingGlassIcon
             weight="regular"
