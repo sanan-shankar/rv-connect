@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
-import { PeaksMark } from "@/components/layout/peaks-mark";
+import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
+import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, LOGIN_TRANSITION_FLAG } from "@/components/landing/hero-photo";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,6 +22,38 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPw, setShowPw] = useState(false);
+
+  // Play the sign-in form's lateral slide-in ONLY when we arrived via the
+  // landing "Sign in" transition, which sets this session flag right before it
+  // pushes here. Decide it before first paint via a lazy initializer so there
+  // is no flash: on the transition (a soft client navigation) the flag is
+  // present and the form animates in; on a direct visit / reload (a full SSR
+  // load) server and client both see no flag, so the form renders at rest
+  // (initial={false}) with no entry animation and no hydration mismatch.
+  //
+  // The read here is PURE (no clear): React Strict Mode double-invokes state
+  // initializers in dev, so clearing inside it would wipe the flag on the first
+  // call and make the second call (whose value React keeps) return false,
+  // killing the animation. We consume the one-shot flag in the effect below.
+  const [arrivedViaTransition] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.sessionStorage.getItem(LOGIN_TRANSITION_FLAG) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  // Consume the one-shot flag after mount so a later reload or a fresh direct
+  // visit within the same tab session does not replay the entry animation.
+  useEffect(() => {
+    if (!arrivedViaTransition) return;
+    try {
+      window.sessionStorage.removeItem(LOGIN_TRANSITION_FLAG);
+    } catch {
+      // storage disabled: nothing to clear
+    }
+  }, [arrivedViaTransition]);
 
   // The hoopoe covers its eyes (wings up) while the password is hidden, and peeks
   // when you reveal it; while peeking it follows what you type. One mascot, driven
@@ -104,40 +137,57 @@ export default function LoginPage() {
       {/* Photo half: the valley, with the brand overlaid. Pinned to the viewport with
           `fixed` + `inset-y-0` (not part of the grid row), so its size and crop stay
           constant regardless of form height (password field toggling, error text, etc).
-          The form column scrolls the page under it; the photo never resizes. */}
+          The form column scrolls the page under it; the photo never resizes.
+
+          Geometry note: the inner box is a full 100vw `object-cover` render (the SAME
+          scale the landing hero uses), right-aligned inside this 58.33vw panel and
+          clipped by `overflow-hidden`. So the panel shows exactly the RIGHT slice of the
+          landing composition, at the landing's zoom, with the left part cropped off. That
+          is what the landing "Sign in" slide lands on, so the handoff has no jump. */}
       <div className="fixed inset-y-0 left-0 hidden w-[58.3333%] overflow-hidden lg:block">
-        <Image
-          src="/images/landing.jpeg"
-          alt=""
-          fill
-          priority
-          className="object-cover"
-          sizes="58vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-screen">
+          <Image
+            src={HERO_IMAGE_SRC}
+            alt=""
+            fill
+            priority
+            placeholder="blur"
+            blurDataURL={HERO_IMAGE_BLUR}
+            className="object-cover"
+            sizes="100vw"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent"
+          />
+        </div>
+        {/* Canonical wordmark lockup (same size + position as the landing hero, so it
+            stays put across the sign-in handoff). */}
         <Link
           href="/"
-          className="absolute left-8 top-7 inline-flex items-end gap-2.5 rounded-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:left-16"
+          style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
         >
-          <PeaksMark size={34} />
+          <PeaksMark size={WORDMARK_LOGO_SIZE} className="text-white" />
           <span
-            className="font-heading font-bold tracking-tight"
-            style={{ fontSize: "41.64px", lineHeight: 1, transform: "translateY(6.25px)" }}
+            className="block font-heading font-bold tracking-tight"
+            style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
           >
             Rishi Valley
           </span>
         </Link>
       </div>
 
-      {/* Form half: warm panel, centered form. Arriving from the landing,
-          the content does a lateral pass: it slides in from the right on the
-          gentle spring while the photo half and its logo stay anchored.
-          Hydration-safe (motion initial/animate on a client component); no
-          reduced-motion branching per owner decision. */}
+      {/* Form half: warm panel, centered form. Arriving from the landing "Sign
+          in" slide, the content does a lateral pass: it slides in from the
+          right on the gentle spring while the photo half and its logo stay
+          anchored. On a direct visit or reload (no transition flag) it renders
+          at rest with no entry animation. Hydration-safe; no reduced-motion
+          branching per owner decision. */}
       <div className="grid min-h-screen place-items-center bg-background px-6 py-10">
         <motion.div
           className="w-full max-w-[360px] text-center"
-          initial={{ opacity: 0, x: 48 }}
+          initial={arrivedViaTransition ? { opacity: 0, x: 48 } : false}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
         >
