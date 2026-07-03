@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { ReportModal } from "@/components/common/report-modal";
 import { toast } from "sonner";
 import { reportUser } from "@/components/posts/report-action";
 
@@ -50,43 +44,48 @@ export function FlagPersonDialog({ userId, name }: { userId: string; name: strin
         Flag
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-xl">Flag {name}</DialogTitle>
-            <DialogDescription>
-              For identity concerns only. An admin reviews every flag.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              {REASONS.map((r) => (
-                <label key={r} className="flex items-center gap-2.5 text-sm text-foreground">
-                  <input
-                    type="radio"
-                    name="flag-reason"
-                    checked={reason === r}
-                    onChange={() => setReason(r)}
-                    className="accent-leaf"
-                  />
-                  {r}
-                </label>
-              ))}
-            </div>
-            <textarea
-              value={detail}
-              onChange={(e) => setDetail(e.target.value)}
-              placeholder="Anything else that helps (optional)"
-              rows={3}
-              maxLength={400}
-              className="w-full resize-none rounded-lg border border-border bg-paper px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            />
-            <Button onClick={handleSubmit} disabled={submitting} variant="destructive" className="w-full">
-              {submitting ? "Sending..." : "Send flag"}
-            </Button>
+      <ReportModal
+        open={open}
+        onClose={() => setOpen(false)}
+        labelledBy="flag-person-title"
+        describedBy="flag-person-description"
+      >
+        <div className="flex flex-col gap-2">
+          <h2 id="flag-person-title" className="font-heading text-xl font-medium leading-none">
+            Flag {name}
+          </h2>
+          <p id="flag-person-description" className="text-sm text-muted-foreground">
+            For identity concerns only. An admin reviews every flag.
+          </p>
+        </div>
+        <div className="mt-4 space-y-3">
+          <div className="space-y-1.5">
+            {REASONS.map((r) => (
+              <label key={r} className="flex items-center gap-2.5 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name="flag-reason"
+                  checked={reason === r}
+                  onChange={() => setReason(r)}
+                  className="accent-leaf"
+                />
+                {r}
+              </label>
+            ))}
           </div>
-        </DialogContent>
-      </Dialog>
+          <textarea
+            value={detail}
+            onChange={(e) => setDetail(e.target.value)}
+            placeholder="Anything else that helps (optional)"
+            rows={3}
+            maxLength={400}
+            className="w-full resize-none rounded-lg border border-border bg-paper px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          />
+          <Button onClick={handleSubmit} disabled={submitting} variant="destructive" className="w-full">
+            {submitting ? "Sending..." : "Send flag"}
+          </Button>
+        </div>
+      </ReportModal>
     </>
   );
 }

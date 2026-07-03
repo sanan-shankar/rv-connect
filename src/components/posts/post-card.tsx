@@ -393,13 +393,14 @@ export function PostCard({
         </AnimatePresence>
       </article>
 
-      {showReport && (
-        <ReportDialog
-          postId={post.id}
-          open={showReport}
-          onClose={() => setShowReport(false)}
-        />
-      )}
+      {/* Always mounted (not gated on showReport) so ReportDialog's own
+          AnimatePresence can play the close animation instead of the whole
+          tree being yanked out from under it. */}
+      <ReportDialog
+        postId={post.id}
+        open={showReport}
+        onClose={() => setShowReport(false)}
+      />
 
       {showEdit && (
         <EditPostDialog
