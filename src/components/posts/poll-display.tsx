@@ -158,7 +158,7 @@ export function PollDisplay({
               <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                 {isSelected && (
                   <motion.span
-                    className="inline-grid h-4 w-4 place-items-center rounded-full bg-leaf text-white"
+                    className="inline-grid h-4 w-4 place-items-center rounded-full bg-canopy text-white"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ ...SPRINGS.snappy, delay: delay + 0.1 }}
