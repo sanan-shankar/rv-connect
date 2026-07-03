@@ -10,8 +10,7 @@ import {
   Underline,
   Strikethrough,
   Feather,
-  Image as ImageIcon,
-  Plus,
+  ChevronDown,
   Tag as TagIcon,
   Check,
 } from "lucide-react";
@@ -318,26 +317,6 @@ export function CreatePostForm({
               animate={{ opacity: 1 }}
               transition={{ duration: 0.18 }}
             >
-        {/* Inline formatting bar: reveals with the field, not stranded */}
-        {/* Grouped formatting bar: one tidy toolbar, not four stranded glyphs. Reveals with the field. */}
-        <motion.div
-          className="mb-2.5 flex w-fit items-center gap-0.5 rounded-[10px] border border-border bg-secondary p-1"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...SPRINGS.settle, delay: 0.05 }}
-        >
-          {fmtButtons.map((b) => (
-            <SpringPress
-              key={b.wrapper}
-              className="inline-grid h-7 w-7 place-items-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-              onClick={() => wrapSelection(b.wrapper)}
-              {...({ type: "button", title: b.label, "aria-label": b.label } as object)}
-            >
-              {b.icon}
-            </SpringPress>
-          ))}
-        </motion.div>
-
         {isLetter && (
           <input
             type="text"
@@ -377,41 +356,27 @@ export function CreatePostForm({
           )}
         </div>
 
-        <div className="mt-3 space-y-3">
-          {/* Poll creator (poll lives behind the + menu; PollCreator unchanged) */}
-          {!isLetter && pollOptions && (
-            <PollCreator
-              options={pollOptions}
-              onChange={setPollOptions}
-              onRemove={() => setPollOptions(null)}
-            />
-          )}
-
-          {/* Image previews */}
-          {previews.length > 0 && (
-            <div className="flex gap-2">
-              {previews.map((preview, i) => (
-                <div key={i} className="relative h-20 w-20">
-                  <img
-                    src={preview}
-                    alt=""
-                    className="h-full w-full rounded-lg object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
+        <div className="mt-2 space-y-2.5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <motion.div
+              className="flex w-fit shrink-0 items-center gap-0.5 rounded-[10px] border border-border bg-secondary p-1"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...SPRINGS.settle, delay: 0.05 }}
+            >
+              {fmtButtons.map((b) => (
+                <SpringPress
+                  key={b.wrapper}
+                  className="inline-grid h-7 w-7 place-items-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  onClick={() => wrapSelection(b.wrapper)}
+                  {...({ type: "button", title: b.label, "aria-label": b.label } as object)}
+                >
+                  {b.icon}
+                </SpringPress>
               ))}
-            </div>
-          )}
+            </motion.div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-            <div className="flex items-center gap-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:flex-1 sm:justify-end">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -421,23 +386,23 @@ export function CreatePostForm({
                 onChange={handleImageUpload}
               />
 
-              {/* One quiet Photo control stays on the surface */}
               <Button
                 variant="ghost"
-                size="sm"
+                size="xs"
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={images.length >= 3 || uploading}
               >
-                <ImagePlus className="mr-1 h-4 w-4" />
+                <ImagePlus className="h-3.5 w-3.5" />
                 {uploading ? "Uploading..." : "Photo"}
               </Button>
 
-              {/* "+" more menu: poll (in overflow) and letter toggle tuck here */}
               <div className="relative">
                 <SpringPress
-                  className={`flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-                    more ? "bg-accent text-foreground" : ""
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                    more
+                      ? "border-leaf/50 bg-accent text-foreground"
+                      : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                   onClick={() => {
                     setMore((m) => !m);
@@ -445,33 +410,25 @@ export function CreatePostForm({
                   }}
                   {...({
                     type: "button",
-                    "aria-label": "More options",
+                    "aria-label": "More post options",
                     "aria-expanded": more,
                   } as object)}
                 >
-                  <motion.span
-                    animate={{ rotate: more ? 45 : 0 }}
-                    transition={SPRINGS.snappy}
-                    style={{
-                      display: "inline-grid",
-                      placeItems: "center",
-                      transformBox: "view-box",
-                      transformOrigin: "center",
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </motion.span>
+                  More
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform ${more ? "rotate-180" : ""}`}
+                  />
                 </SpringPress>
 
                 <AnimatePresence>
                   {more && (
                     <motion.div
-                      className="absolute bottom-11 left-0 z-30 w-52 rounded-[var(--radius)] border border-border bg-card p-1.5 shadow-lg"
-                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      className="absolute right-0 top-10 z-30 w-52 rounded-[var(--radius)] border border-border bg-card p-1.5 shadow-lg"
+                      initial={{ opacity: 0, y: -4, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                      exit={{ opacity: 0, y: -3, scale: 0.97 }}
                       transition={SPRINGS.snappy}
-                      style={{ transformOrigin: "bottom left" }}
+                      style={{ transformOrigin: "top right" }}
                     >
                       {!isLetter && (
                         <button
@@ -509,7 +466,6 @@ export function CreatePostForm({
                 </AnimatePresence>
               </div>
 
-              {/* Low-profile single tag (not for letters): zero footprint when unset */}
               {!isLetter && (
                 <div className="relative">
                   {tag ? (
@@ -554,12 +510,12 @@ export function CreatePostForm({
                       <AnimatePresence>
                         {tagOpen && (
                           <motion.div
-                            className="absolute bottom-10 left-0 z-30 w-56 rounded-[var(--radius)] border border-border bg-card p-2 shadow-lg"
-                            initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                            className="absolute right-0 top-10 z-30 w-56 rounded-[var(--radius)] border border-border bg-card p-2 shadow-lg"
+                            initial={{ opacity: 0, y: -4, scale: 0.96 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                            exit={{ opacity: 0, y: -3, scale: 0.97 }}
                             transition={SPRINGS.snappy}
-                            style={{ transformOrigin: "bottom left" }}
+                            style={{ transformOrigin: "top right" }}
                           >
                             <div className="flex flex-wrap gap-1.5">
                               {TAG_PRESETS.map((p) => (
@@ -610,7 +566,7 @@ export function CreatePostForm({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2 self-end sm:self-auto">
               {content.length > 0 && (
                 <span className="text-xs text-muted-foreground">
                   {content.length}/{maxLen}
@@ -648,6 +604,35 @@ export function CreatePostForm({
               </motion.button>
             </div>
           </div>
+
+          {!isLetter && pollOptions && (
+            <PollCreator
+              options={pollOptions}
+              onChange={setPollOptions}
+              onRemove={() => setPollOptions(null)}
+            />
+          )}
+
+          {previews.length > 0 && (
+            <div className="flex gap-2">
+              {previews.map((preview, i) => (
+                <div key={i} className="relative h-20 w-20">
+                  <img
+                    src={preview}
+                    alt=""
+                    className="h-full w-full rounded-lg object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
             </motion.div>
           )}

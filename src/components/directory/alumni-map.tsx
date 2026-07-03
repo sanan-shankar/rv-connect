@@ -10,7 +10,7 @@ import { feature } from "topojson-client";
 import Supercluster from "supercluster";
 import worldData from "world-atlas/countries-110m.json";
 import type { Feature, Geometry } from "geojson";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine } from "@/lib/utils";
 import {
   Sheet,
@@ -76,7 +76,7 @@ function sqrtRadius(count: number, max: number) {
  * One pin per city, sqrt-scaled and counted. Cities that overlap at the current
  * zoom collapse into supercluster super-pins (click a super-pin to zoom in).
  * Pan and zoom via d3-zoom on the SVG group transform. Clicking a city pin opens
- * a drilldown panel listing that city's people (BirdAvatar + PersonName linking
+ * a drilldown panel listing that city's people (IdentityRow linking
  * to profiles). Renders inline by default and full-screen on demand.
  */
 export function AlumniMap({
@@ -370,17 +370,16 @@ export function AlumniMap({
                 <Link
                   key={p.id}
                   href={`/profile/${p.id}`}
-                  className="group flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  className="group block rounded-[var(--radius-md)] px-2 py-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
                 >
-                  <BirdAvatar user={{ id: p.id, name: p.name }} size="sm" />
-                  <span className="min-w-0">
-                    <span className="block text-[15px] font-semibold text-foreground group-hover:underline">
-                      {p.name}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {[batchLine(p), p.jobTitle].filter(Boolean).join(" · ")}
-                    </span>
-                  </span>
+                  <IdentityRow
+                    user={{ id: p.id, name: p.name }}
+                    textClassName="flex-1"
+                    name={p.name}
+                    nameClassName="truncate text-[15px] font-semibold leading-none text-foreground group-hover:underline"
+                    meta={[batchLine(p), p.jobTitle].filter(Boolean).join(" · ")}
+                    metaClassName="truncate leading-none"
+                  />
                 </Link>
               ))
             )}

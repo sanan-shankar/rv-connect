@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Feather } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { formatBatch, renderRichText, parseJsonArray } from "@/lib/utils";
@@ -75,27 +75,32 @@ export default async function LetterPage({
 
       <LetterTitle title={letterTitle(letter.title, letter.content)} />
 
-      <div className="mt-5 flex items-center gap-3 border-b border-border pb-6">
-        <Link href={`/profile/${letter.author.id}`} aria-label={letter.author.name}>
-          <BirdAvatar user={{ id: letter.author.id, name: letter.author.name }} size="md" />
-        </Link>
-        <div className="leading-tight">
+      <IdentityRow
+        user={{ id: letter.author.id, name: letter.author.name }}
+        avatarSize="md"
+        avatarHref={`/profile/${letter.author.id}`}
+        avatarLabel={letter.author.name}
+        className="mt-5 border-b border-border pb-6"
+        name={
           <Link
             href={`/profile/${letter.author.id}`}
-            className="font-semibold text-foreground hover:underline"
+            className="font-semibold leading-none text-foreground hover:underline"
           >
             {letter.author.name}
           </Link>
-          <div className="mt-0.5 text-[12.5px] text-muted-foreground">
+        }
+        meta={
+          <>
             {formatBatch(letter.author.batchType, letter.author.batchYear)} ·{" "}
             {new Date(letter.createdAt).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "long",
               year: "numeric",
             })}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+        metaClassName="leading-none"
+      />
 
       <div
         className="mt-7 whitespace-pre-wrap font-heading text-[17px] leading-[1.8] text-foreground [&_a]:font-sans [&_strong]:font-bold"

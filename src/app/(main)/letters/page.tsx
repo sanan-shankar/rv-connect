@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { LetterComposer } from "@/components/letters/letter-composer";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { formatBatch } from "@/lib/utils";
 
 function readTime(content: string) {
@@ -98,20 +98,24 @@ export default async function LettersPage() {
                   {excerpt(l.content)}
                 </p>
                 <div className="mt-4 flex items-center gap-2.5 border-t border-border pt-3.5">
-                  <BirdAvatar user={{ id: l.author.id, name: l.author.name }} size="sm" />
-                  <div className="min-w-0 leading-tight">
-                    <div className="truncate text-[13px] font-semibold text-foreground">
-                      {l.author.name}
-                    </div>
-                    <div className="text-[11.5px] text-muted-foreground">
-                      {formatBatch(l.author.batchType, l.author.batchYear)} ·{" "}
-                      {new Date(l.createdAt).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </div>
-                  </div>
+                  <IdentityRow
+                    user={{ id: l.author.id, name: l.author.name }}
+                    className="min-w-0 flex-1 gap-2.5"
+                    textClassName="flex-1"
+                    name={l.author.name}
+                    nameClassName="truncate text-[13px] font-semibold leading-none text-foreground"
+                    meta={
+                      <>
+                        {formatBatch(l.author.batchType, l.author.batchYear)} ·{" "}
+                        {new Date(l.createdAt).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </>
+                    }
+                    metaClassName="truncate leading-none"
+                  />
                   <span className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-leaf opacity-0 transition-opacity group-hover:opacity-100">
                     Read
                     <ArrowRight size={15} />

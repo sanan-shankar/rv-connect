@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { RsvpButton } from "./rsvp-button";
 import { formatBatch } from "@/lib/utils";
 
@@ -76,34 +76,33 @@ export async function FeedRail({ userId }: { userId: string }) {
             </h3>
             <div className="[&>div+div]:border-t [&>div+div]:border-border">
               {recentMembers.map((m) => (
-                <div key={m.id} className="flex items-center gap-3 py-2.5">
-                  <Link
-                    href={`/profile/${m.id}`}
-                    aria-label={m.name}
-                    className="shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
-                  >
-                    <BirdAvatar
-                      user={{
-                        id: m.id,
-                        name: m.name,
-                        photoUrl: m.photoUrl ?? null,
-                      }}
-                      size="sm"
-                    />
-                  </Link>
-                  <div className="min-w-0">
+                <IdentityRow
+                  key={m.id}
+                  user={{
+                    id: m.id,
+                    name: m.name,
+                    photoUrl: m.photoUrl ?? null,
+                  }}
+                  avatarHref={`/profile/${m.id}`}
+                  avatarLabel={m.name}
+                  className="py-2.5"
+                  textClassName="flex-1"
+                  name={
                     <Link
                       href={`/profile/${m.id}`}
-                      className="block truncate text-[13.5px] font-semibold leading-tight text-foreground hover:underline focus-visible:outline-none focus-visible:underline"
+                      className="block truncate text-[13.5px] font-semibold leading-none text-foreground hover:underline focus-visible:outline-none focus-visible:underline"
                     >
                       {m.name}
                     </Link>
-                    <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+                  }
+                  meta={
+                    <>
                       {formatBatch(m.batchType, m.batchYear)}
                       {m.currentCity ? ` · ${m.currentCity}` : ""}
-                    </div>
-                  </div>
-                </div>
+                    </>
+                  }
+                  metaClassName="truncate leading-none"
+                />
               ))}
             </div>
           </section>

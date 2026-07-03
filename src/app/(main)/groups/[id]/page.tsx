@@ -1,9 +1,11 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { GroupHeader } from "@/components/groups/group-header";
 import { FeedColumn } from "@/components/posts/feed-column";
 import { InviteResponse } from "@/components/groups/invite-response";
+import { Button } from "@/components/ui/button";
 
 export default async function GroupPage({
   params,
@@ -35,7 +37,23 @@ export default async function GroupPage({
     },
   });
 
-  if (!group) notFound();
+  if (!group) {
+    return (
+      <div className="mx-auto max-w-3xl text-center">
+        <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
+            This group is not available.
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            The demo data may have been reset, or this link points to an older group id.
+          </p>
+          <Link href="/groups" className="mt-5 inline-flex">
+            <Button variant="primary">View current groups</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const membership = group.members.find((m) => m.userId === session.user.id);
   const myRole = membership?.role ?? null;

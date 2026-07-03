@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion } from "motion/react";
 import { NAV_MARKER_SPRING } from "@/components/common/motion";
-import { BirdAvatar } from "@/components/common/bird-avatar";
+import { IdentityRow } from "@/components/common/identity-row";
 import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
 import { PeaksMark } from "./peaks-mark";
@@ -157,16 +157,16 @@ function UserMenu({ user }: { user: SidebarUser }) {
   return (
     <div className="mt-auto flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1.5 py-1 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
-          <BirdAvatar user={{ id: user.id, name: user.name }} size="sm" />
-          <span className="min-w-0">
-            <span className="block truncate text-[13px] font-semibold text-sidebar-foreground">
-              {user.name}
-            </span>
-            <span className="block truncate text-[11px] text-sidebar-foreground/55">
-              {user.email}
-            </span>
-          </span>
+        <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center rounded-xl px-1.5 py-1 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
+          <IdentityRow
+            user={{ id: user.id, name: user.name }}
+            className="w-full gap-2.5"
+            textClassName="flex-1"
+            name={user.name}
+            nameClassName="truncate text-[13px] font-semibold leading-none text-sidebar-foreground"
+            meta={user.email}
+            metaClassName="truncate text-[11px] font-normal normal-case leading-none tracking-normal text-sidebar-foreground/55"
+          />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="top" className="w-52">
           <DropdownMenuItem onClick={() => router.push(`/profile/${user.id}`)}>
