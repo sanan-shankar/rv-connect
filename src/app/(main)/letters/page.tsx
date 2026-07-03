@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { LetterComposer } from "@/components/letters/letter-composer";
 import { IdentityRow } from "@/components/common/identity-row";
-import { formatBatch } from "@/lib/utils";
+import { formatBatch, letterTitle } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Letters",
@@ -22,19 +22,6 @@ function excerpt(content: string) {
     .replace(/\s+/g, " ")
     .trim();
   return plain.length > 240 ? plain.slice(0, 240).trimEnd() + "..." : plain;
-}
-
-// Untitled letters fall back to their first line / opening words rather than a
-// literal "Untitled letter" placeholder.
-function letterTitle(title: string | null, content: string) {
-  if (title && title.trim()) return title.trim();
-  const firstLine = content
-    .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .split(/\n/)
-    .map((l) => l.trim())
-    .find(Boolean);
-  if (!firstLine) return "A letter";
-  return firstLine.length > 80 ? firstLine.slice(0, 80).trimEnd() + "..." : firstLine;
 }
 
 export default async function LettersPage() {
@@ -97,7 +84,7 @@ export default async function LettersPage() {
                   <span className="text-muted-foreground/70">· {readTime(l.content)} min read</span>
                 </div>
                 <h2 className="mt-2 font-heading text-2xl font-bold leading-snug tracking-[-0.01em] text-foreground group-hover:text-leaf">
-                  {letterTitle(l.title, l.content)}
+                  {letterTitle(l.title, l.content, 80)}
                 </h2>
                 <p className="mt-2 line-clamp-2 text-[14.5px] leading-relaxed text-muted-foreground">
                   {excerpt(l.content)}

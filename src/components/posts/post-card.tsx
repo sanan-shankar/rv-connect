@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight } from "lucide-react";
-import { ChatCircle, ShareFat, Feather, Check } from "@phosphor-icons/react";
+import { ChatCircle, Feather } from "@phosphor-icons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,15 +14,17 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
+import { BookmarkButton } from "@/components/common/bookmark-button";
+import { ShareButton } from "@/components/common/share-button";
 import { CommentsSection } from "./comments-section";
 import { ReportDialog } from "./report-dialog";
 import { EditPostDialog } from "./edit-post-dialog";
 import { PollDisplay } from "./poll-display";
-import { formatTimeAgo, parseJsonArray, renderRichText, batchLine } from "@/lib/utils";
+import { formatTimeAgo, parseJsonArray, renderRichText, batchLine, letterTitle } from "@/lib/utils";
 import { toggleLike, deletePost, toggleBookmark } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { SPRINGS, EASE_POP } from "@/components/common/motion";
+import { SPRINGS } from "@/components/common/motion";
 
 export interface PostData {
   id: string;
@@ -72,8 +74,6 @@ export function PostCard({
   const [expanded, setExpanded] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [animateBookmark, setAnimateBookmark] = useState(false);
-  const [shared, setShared] = useState(false);
 
   const images = parseJsonArray(post.images);
   const isLetter = post.kind === "letter";
@@ -114,10 +114,6 @@ export function PostCard({
   async function handleBookmark() {
     const next = !bookmarked;
     setBookmarked(next);
-    if (next) {
-      setAnimateBookmark(true);
-      setTimeout(() => setAnimateBookmark(false), 480);
-    }
     const result = await toggleBookmark(post.id);
     if (result.error) {
       setBookmarked(!next);
@@ -127,19 +123,7 @@ export function PostCard({
     onBookmarkChange?.(next);
   }
 
-  async function handleShare() {
-    const path = post.groupId ? `/groups/${post.groupId}` : "/feed";
-    try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}${path}#${post.id}`
-      );
-      setShared(true);
-      setTimeout(() => setShared(false), 1400);
-      toast.success("Link copied");
-    } catch {
-      toast.error("Could not copy the link");
-    }
-  }
+  const shareHref = `${post.groupId ? `/groups/${post.groupId}` : "/feed"}#${post.id}`;
 
   const wrapClass =
     variant === "sheet"
@@ -210,7 +194,7 @@ export function PostCard({
               <span className="text-muted-foreground/70">· {readMinutes} min read</span>
             </div>
             <h3 className="mt-2 font-heading text-xl font-bold leading-snug tracking-[-0.01em] text-foreground">
-              {post.title || "Untitled letter"}
+              {letterTitle(post.title, post.content)}
             </h3>
             {letterExcerpt && (
               <p className="mt-1.5 line-clamp-2 text-[14px] leading-relaxed text-muted-foreground">
@@ -278,12 +262,18 @@ export function PostCard({
           </>
         )}
 
-        {/* Actions */}
-        <div className="mt-2 -ml-3.5 flex items-center gap-1 text-muted-foreground">
+        {/* Actions. The negative margin pulls the buttons' padding outward so the heart GLYPH's
+            left edge sits flush with the content's left line (avatar/text/photo) and the share
+            GLYPH's right edge sits flush with the content's right line (photo edge / the dots
+            menu). Touch targets stay full-size; only the padding overhangs into the card gutter. */}
+        <div className="mt-2 -mx-2.5 flex items-center gap-1 text-muted-foreground">
           <LoveButton liked={liked} count={likeCount} onToggle={handleLike} />
 
           <motion.button
             onClick={() => setShowComments(!showComments)}
+            aria-expanded={showComments}
+            aria-controls={`comments-${post.id}`}
+            aria-label={showComments ? "Hide comments" : "Show comments"}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.93 }}
             transition={SPRINGS.snappy}
@@ -293,96 +283,15 @@ export function PostCard({
             <span>{commentCount}</span>
           </motion.button>
 
-          <motion.button
-            onClick={handleBookmark}
-            aria-pressed={bookmarked}
-            aria-label={bookmarked ? "Remove bookmark" : "Save post"}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.93 }}
-            transition={SPRINGS.snappy}
-            className={`ml-auto flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-              bookmarked ? "text-cinnamon" : "hover:text-foreground"
-            }`}
-          >
-            {/* Custom ribbon (ported from the delight lab): one even cinnamon stroke all the way
-                round, a clipped fill that rises from the foot on save, and a one-shot scaleY tuck.
-                The mark inherits the button's currentColor (muted at rest, cinnamon once saved). */}
-            <motion.span
-              className="relative inline-grid place-items-center will-change-transform"
-              animate={animateBookmark ? { scaleY: [1, 0.9, 1.04, 1] } : { scaleY: 1 }}
-              transition={
-                animateBookmark
-                  ? { duration: 0.5, ease: EASE_POP, times: [0, 0.32, 0.66, 1] }
-                  : { duration: 0 }
-              }
-              style={{ transformOrigin: "50% 12%" }}
-            >
-              <svg
-                width="13"
-                height="18"
-                viewBox="0 0 40 56"
-                aria-hidden
-                style={{ overflow: "visible", display: "block" }}
-              >
-                <defs>
-                  <clipPath id={`bm-${post.id}`}>
-                    <path d="M5 4 H35 V52 L20 42 L5 52 Z" />
-                  </clipPath>
-                </defs>
-                <motion.rect
-                  clipPath={`url(#bm-${post.id})`}
-                  x="3"
-                  y="0"
-                  width="34"
-                  height="56"
-                  fill="#C2622F"
-                  style={{ transformBox: "view-box", transformOrigin: "20px 52px" }}
-                  initial={false}
-                  animate={{ scaleY: bookmarked ? 1 : 0 }}
-                  transition={
-                    animateBookmark
-                      ? { duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }
-                      : { duration: bookmarked ? 0 : 0.2, ease: "easeIn" }
-                  }
-                />
-                <path
-                  d="M5 4 H35 V52 L20 42 L5 52 Z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.4"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </motion.span>
-          </motion.button>
+          <BookmarkButton
+            saved={bookmarked}
+            onToggle={handleBookmark}
+            id={post.id}
+            className="ml-auto"
+            label={bookmarked ? "Remove bookmark" : "Save post"}
+          />
 
-          <motion.button
-            onClick={handleShare}
-            aria-label="Copy link to post"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.93 }}
-            transition={SPRINGS.snappy}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          >
-            <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
-              {/* Clean crossfade to a check, no spring overshoot (that read as a forced wiggle). */}
-              <motion.span
-                className="absolute inline-flex"
-                animate={{ opacity: shared ? 0 : 1, scale: shared ? 0.7 : 1 }}
-                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-              >
-                <ShareFat size={18} weight="regular" />
-              </motion.span>
-              <motion.span
-                className="absolute inline-flex text-leaf"
-                animate={{ opacity: shared ? 1 : 0, scale: shared ? 1 : 0.7 }}
-                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-              >
-                <Check size={18} weight="bold" />
-              </motion.span>
-            </span>
-          </motion.button>
+          <ShareButton href={shareHref} label="Copy link to post" />
         </div>
 
         {/* Comments: AnimatePresence so the section animates its collapse on close too,
