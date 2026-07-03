@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { PeaksMark } from "@/components/layout/peaks-mark";
+import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
 
 /**
  * Slim sticky top bar that appears once the hero is scrolled past, so the
@@ -49,12 +49,12 @@ export function LandingNav() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
         <Link
           href="/"
-          className="flex items-end gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+          className="flex items-center gap-2.5 rounded-md outline-none transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-leaf/50 active:scale-[0.98]"
         >
-          <PeaksMark size={15} variant="light" />
+          <PeaksMark size={WORDMARK_LOGO_SIZE} variant="light" />
           <span
             className="font-heading font-bold tracking-tight text-foreground"
-            style={{ fontSize: "18.37px", lineHeight: 1, transform: "translateY(2.76px)" }}
+            style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
           >
             Rishi Valley
           </span>
