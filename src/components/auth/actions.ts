@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validators";
+import { computeBatchFromSchooling } from "@/lib/utils";
 import { hasPassedTrivia } from "./trivia-actions";
 
 export async function registerUser(formData: FormData) {
@@ -20,26 +21,41 @@ export async function registerUser(formData: FormData) {
 
   const accountType = (formData.get("accountType") as string) || "alumnus";
   const isAlum = accountType === "alumnus";
+  const num = (key: string) =>
+    formData.get(key) ? Number(formData.get(key)) : undefined;
   const raw = {
     name: formData.get("name") as string,
     email: formData.get("email") as string,
     password,
     accountType,
-    batchType: isAlum ? (formData.get("batchType") as string) || undefined : undefined,
-    batchYear: isAlum && formData.get("batchYear")
-      ? Number(formData.get("batchYear"))
-      : undefined,
-    yearJoined: formData.get("yearJoined")
-      ? Number(formData.get("yearJoined"))
-      : undefined,
-    yearLeft: formData.get("yearLeft")
-      ? Number(formData.get("yearLeft"))
-      : undefined,
+    // Alumni describe their schooling with three plain facts; the batch is
+    // derived below. Teachers send none of these.
+    yearJoined: isAlum ? num("yearJoined") : undefined,
+    yearLeft: isAlum ? num("yearLeft") : undefined,
+    gradeJoined: isAlum ? num("gradeJoined") : undefined,
   };
 
   const parsed = signupSchema.safeParse(raw);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
+  }
+
+  // Derive the batch from the three schooling facts (server-side source of
+  // truth; the form shows the same computation live). batchType/batchYear are
+  // outputs here, never taken verbatim from the form.
+  let batchYear: number | null = null;
+  let batchType: "ICSE" | "ISC" | null = null;
+  if (isAlum) {
+    const batch = computeBatchFromSchooling(
+      parsed.data.yearJoined!,
+      parsed.data.yearLeft!,
+      parsed.data.gradeJoined!
+    );
+    if (!batch.ok) {
+      return { error: batch.error };
+    }
+    batchYear = batch.batchYear;
+    batchType = batch.batchType;
   }
 
   // Check if user already exists
@@ -55,18 +71,67 @@ export async function registerUser(formData: FormData) {
   const hashedPassword = await bcrypt.hash(password, 12);
 
   // Create the user
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       name: parsed.data.name,
       email: parsed.data.email,
       password: hashedPassword,
       accountType: parsed.data.accountType,
-      batchType: parsed.data.batchType ?? null,
-      batchYear: parsed.data.batchYear ?? null,
+      batchType,
+      batchYear,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
+      gradeJoined: parsed.data.gradeJoined ?? null,
     },
   });
 
+  // Every alumnus is auto-added to their batch group ("Batch of {year}"), which
+  // is created on demand by the first person from that batch to join. No manual
+  // joining. Teachers have no batch and skip this. A failure here must not sink
+  // an otherwise-successful registration, so it is best-effort.
+  if (isAlum && batchYear != null) {
+    try {
+      await joinBatchGroup(user.id, batchYear);
+    } catch (err) {
+      console.error("Batch group auto-join failed", err);
+    }
+  }
+
   return { success: true, email: parsed.data.email };
+}
+
+/**
+ * Find-or-create the "Batch of {year}" group and add the user as a member.
+ * Idempotent on membership via the GroupMember (groupId, userId) unique
+ * constraint, so re-running is safe.
+ */
+async function joinBatchGroup(userId: string, batchYear: number) {
+  const name = `Batch of ${batchYear}`;
+
+  // Group.name is not unique in the schema, so match by exact name. The first
+  // person from a batch creates the group (they become its creator only to
+  // satisfy the required FK; everyone joins as a plain member since a batch
+  // group has no keeper).
+  let group = await prisma.group.findFirst({
+    where: { name },
+    select: { id: true },
+  });
+
+  if (!group) {
+    group = await prisma.group.create({
+      data: {
+        name,
+        description: `Everyone from the batch of ${batchYear}.`,
+        visibility: "public",
+        creatorId: userId,
+      },
+      select: { id: true },
+    });
+  }
+
+  await prisma.groupMember.upsert({
+    where: { groupId_userId: { groupId: group.id, userId } },
+    create: { groupId: group.id, userId, role: "member" },
+    update: {},
+  });
 }

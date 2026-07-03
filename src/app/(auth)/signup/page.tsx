@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -34,13 +35,23 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.4fr_1fr]">
-      {/* Photo half: the valley, with the brand overlaid (matches /login) */}
-      <div className="relative hidden overflow-hidden lg:block">
-        <img
+    // Not a grid: the photo half is viewport-fixed (below), so it must never take part
+    // in row-height sizing with the form column. `lg:pl-[...]` reserves the same width
+    // the fixed panel occupies, so the form content starts right where the photo ends.
+    <div className="min-h-screen lg:pl-[58.3333%]">
+      {/* Photo half: the valley, with the brand overlaid (matches /login). Pinned to the
+          viewport with `fixed` + `inset-y-0` (not part of the grid row), so its size and
+          crop are constant no matter how tall the form column gets when switching between
+          Alumnus/Teacher fields, error states, etc. The form column scrolls the page under
+          it; the photo never resizes. */}
+      <div className="fixed inset-y-0 left-0 hidden w-[58.3333%] overflow-hidden lg:block">
+        <Image
           src="/images/landing.jpeg"
           alt=""
-          className="h-full w-full object-cover"
+          fill
+          priority
+          className="object-cover"
+          sizes="58vw"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent" />
         <Link

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { signIn } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -96,13 +97,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.4fr_1fr]">
-      {/* Photo half: the valley, with the brand overlaid */}
-      <div className="relative hidden overflow-hidden lg:block">
-        <img
+    // Not a grid: the photo half is viewport-fixed (below), so it must never take part
+    // in row-height sizing with the form column. `lg:pl-[...]` reserves the same width
+    // the fixed panel occupies, so the form content starts right where the photo ends.
+    <div className="min-h-screen lg:pl-[58.3333%]">
+      {/* Photo half: the valley, with the brand overlaid. Pinned to the viewport with
+          `fixed` + `inset-y-0` (not part of the grid row), so its size and crop stay
+          constant regardless of form height (password field toggling, error text, etc).
+          The form column scrolls the page under it; the photo never resizes. */}
+      <div className="fixed inset-y-0 left-0 hidden w-[58.3333%] overflow-hidden lg:block">
+        <Image
           src="/images/landing.jpeg"
           alt=""
-          className="h-full w-full object-cover"
+          fill
+          priority
+          className="object-cover"
+          sizes="58vw"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent" />
         <Link

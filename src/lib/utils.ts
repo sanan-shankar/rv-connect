@@ -64,6 +64,10 @@ export function formatBatch(
 /**
  * The single line shown under a person's name everywhere. Alumni get
  * "Batch of '09"; teachers get a role label since they have no batch.
+ *
+ * Note: this reads batchYear only, never batchType, so a mid-school leaver who
+ * has no board credential (batchType null) still reads "Batch of '09" as long
+ * as batchYear was computed. See computeBatchFromSchooling below.
  */
 export function batchLine(user: {
   accountType?: string | null
@@ -74,6 +78,105 @@ export function batchLine(user: {
   if (user.accountType === "ex_teacher") return "Former teacher"
   if (user.batchYear == null) return "Member"
   return `Batch of '${String(user.batchYear).slice(-2)}`
+}
+
+export type BatchComputation =
+  | {
+      ok: true
+      /** the grade the person was in during their final academic year */
+      gradeAtLeaving: number
+      /** the year that grade cohort finishes 12th (their "Batch of") */
+      batchYear: number
+      /** derived board credential; null for a leaver who never sat a board */
+      batchType: "ICSE" | "ISC" | null
+    }
+  | { ok: false; error: string }
+
+/**
+ * Work out which batch someone belongs to from three plain facts: the year they
+ * joined, the year they left, and the grade they joined in. This is the single
+ * source of truth for placing an alumnus, used by both the live sign-up preview
+ * (client) and registration (server), so the two can never disagree.
+ *
+ * Model: a joining year is the START of an academic year, a leaving year is the
+ * END of one, and the grade climbs by one each academic year. So the number of
+ * academic years attended is (yearLeft - yearJoined), and the grade in the final
+ * year is gradeJoined + (yearLeft - yearJoined) - 1. The batch is the year that
+ * final cohort would finish 12th: yearLeft + (12 - gradeAtLeaving).
+ *
+ * Worked examples:
+ *   joined 2014 in grade 4, left 2021 -> grade 10 at leaving -> Batch of 2023
+ *   joined 2019 in grade 11, left 2021 -> grade 12 at leaving -> Batch of 2021
+ *   a 12th-grade leaver -> gradeAtLeaving 12 -> batchYear == yearLeft
+ */
+export function computeBatchFromSchooling(
+  yearJoined: number,
+  yearLeft: number,
+  gradeJoined: number
+): BatchComputation {
+  const thisYear = new Date().getFullYear()
+
+  if (
+    !Number.isInteger(yearJoined) ||
+    !Number.isInteger(yearLeft) ||
+    !Number.isInteger(gradeJoined)
+  ) {
+    return { ok: false, error: "Please enter whole numbers for the years and grade." }
+  }
+  if (gradeJoined < 1 || gradeJoined > 12) {
+    return { ok: false, error: "The grade you joined in should be between 1 and 12." }
+  }
+  if (yearJoined < 1926 || yearJoined > thisYear) {
+    return { ok: false, error: `The year you joined should be between 1926 and ${thisYear}.` }
+  }
+  if (yearLeft < 1926 || yearLeft > thisYear + 1) {
+    return { ok: false, error: `The year you left should be between 1926 and ${thisYear + 1}.` }
+  }
+  if (yearLeft < yearJoined) {
+    return { ok: false, error: "The year you left cannot be before the year you joined." }
+  }
+
+  const gradeAtLeaving = gradeJoined + (yearLeft - yearJoined) - 1
+
+  if (gradeAtLeaving < gradeJoined) {
+    return {
+      ok: false,
+      error: "That is too short a stay to place you. Check the years you entered.",
+    }
+  }
+  if (gradeAtLeaving > 12) {
+    return {
+      ok: false,
+      error: "Those years add up to past 12th grade. Check your joining grade and years.",
+    }
+  }
+
+  const batchYear = yearLeft + (12 - gradeAtLeaving)
+  const batchType: "ICSE" | "ISC" | null =
+    gradeAtLeaving >= 12 ? "ISC" : gradeAtLeaving >= 10 ? "ICSE" : null
+
+  return { ok: true, gradeAtLeaving, batchYear, batchType }
+}
+
+/**
+ * The display title for a letter. Untitled letters fall back to their first
+ * non-empty line (markdown stripped, truncated) rather than a literal
+ * "Untitled letter" placeholder. Shared by the letters index, the letter
+ * reading page, and the feed letter-card so all three read identically.
+ */
+export function letterTitle(
+  title: string | null | undefined,
+  content: string,
+  maxLen = 90
+): string {
+  if (title && title.trim()) return title.trim()
+  const firstLine = content
+    .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .split(/\n/)
+    .map((l) => l.trim())
+    .find(Boolean)
+  if (!firstLine) return "A letter"
+  return firstLine.length > maxLen ? firstLine.slice(0, maxLen).trimEnd() + "..." : firstLine
 }
 
 /**
