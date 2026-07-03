@@ -23,6 +23,7 @@ const ROUTES = [
   { href: "/preview/delight/loading", title: "Loading states", desc: "Warm valley shimmer that now loops clean, leaves that settle on hand-off, the Letters draw-on, a bird crossing the skeleton rows." },
   { href: "/preview/delight/loading-ideas", title: "Loading, ideas round 2", desc: "Richer living scenes to choose from before we build: sports-day athletes, foraging birds, one reusable relay, sleepers that wake." },
   { href: "/preview/delight/eggs", title: "Easter eggs & ambient", desc: "Hover the logo for a valley fact (ten of them), the konami valley flash, and an honest note on what we parked." },
+  { href: "/preview/delight/mascot-moments", title: "Mascot moments", desc: "Where and how the one hoopoe shows up across the product: a guided tour, the login fly-in, empty states, loading, a 404, quiet easter eggs. Ideas to react to, five of them live." },
   { href: "/preview/delight/hoopoe", title: "The hoopoe mascot", desc: "One resident bird, many poses. Built in a separate session, linked here so the whole cast lives in one place." },
 ];
 
