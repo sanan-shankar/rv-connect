@@ -38,7 +38,7 @@ export function FlagPersonDialog({ userId, name }: { userId: string; name: strin
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="inline-flex items-center gap-1.5 rounded-full border border-border py-1.5 pl-2.5 pr-3 text-[13px] font-medium text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         <Flag className="h-3.5 w-3.5" />
         Flag

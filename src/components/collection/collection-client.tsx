@@ -188,7 +188,7 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
           </SelectContent>
         </Select>
         <Button variant="primary" className="rounded-full" onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           Contribute
         </Button>
       </div>
@@ -203,7 +203,7 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
             birds, the light. Add the first one.
           </p>
           <Button variant="primary" className="mt-5 rounded-full" onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Contribute a photo
           </Button>
         </div>

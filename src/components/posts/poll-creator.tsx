@@ -73,7 +73,7 @@ export function PollCreator({ options, onChange, onRemove }: PollCreatorProps) {
           onClick={addOption}
           className="mt-2"
         >
-          <Plus className="mr-1 h-3 w-3" />
+          <Plus className="h-3 w-3" />
           Add option
         </Button>
       )}
