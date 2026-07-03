@@ -1,21 +1,30 @@
 import { z } from "zod/v4";
 import { SUBJECT_VALUES, AREA_VALUES, ERA_VALUES } from "./collection";
 
+// Alumni now describe their schooling with three plain facts (year joined, year
+// left, grade joined) and the batch is derived server-side via
+// computeBatchFromSchooling. batchType/batchYear are outputs of that derivation,
+// not user-entered fields, so they are not part of this input schema.
 export const signupSchema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters").max(100),
     email: z.email("Please enter a valid email"),
     password: z.string().min(8, "Password must be at least 8 characters").max(128),
     accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).default("alumnus"),
-    batchType: z.enum(["ICSE", "ISC"]).optional(),
-    batchYear: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
     yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
-    yearLeft: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
+    yearLeft: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
+    gradeJoined: z.number().int().min(1).max(12).optional(),
   })
-  .refine((d) => d.accountType !== "alumnus" || (d.batchType && d.batchYear), {
-    message: "Please add a batch type and graduation year",
-    path: ["batchYear"],
-  });
+  .refine(
+    (d) =>
+      d.accountType !== "alumnus" ||
+      (d.yearJoined != null && d.yearLeft != null && d.gradeJoined != null),
+    {
+      message:
+        "Alumni need the year they joined, the year they left, and the grade they joined in.",
+      path: ["yearJoined"],
+    }
+  );
 
 export const profileSchema = z.object({
   name: z.string().min(2).max(100),

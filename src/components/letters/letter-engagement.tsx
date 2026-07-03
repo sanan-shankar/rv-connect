@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ShareNetwork, BookmarkSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { toggleLike, toggleBookmark } from "@/app/(main)/feed/actions";
 import { CommentsSection } from "@/components/posts/comments-section";
 import { LoveButton } from "@/components/common/love-button";
+import { BookmarkButton } from "@/components/common/bookmark-button";
+import { ShareButton } from "@/components/common/share-button";
 
 export function LetterEngagement({
   postId,
@@ -49,41 +50,30 @@ export function LetterEngagement({
     }
   }
 
-  async function handleShare() {
-    const path = groupId ? `/groups/${groupId}` : `/letters/${postId}`;
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
-      toast.success("Link copied");
-    } catch {
-      toast.error("Could not copy the link");
-    }
-  }
+  const shareHref = groupId ? `/groups/${groupId}` : `/letters/${postId}`;
 
   return (
     <div className="mt-10 border-t border-border pt-4">
-      <div className="flex items-center gap-1 text-muted-foreground">
+      {/* Same shared action row as the feed/group PostCard: one heart, one bookmark, one share.
+          The negative margin keeps the heart glyph flush with the letter's text column. */}
+      <div className="-mx-2.5 flex items-center gap-1 text-muted-foreground">
         <LoveButton liked={liked} count={likeCount} onToggle={handleLike} />
         <span className="px-2.5 py-1.5 text-sm">{commentCount} comments</span>
-        <button
-          onClick={handleBookmark}
-          aria-pressed={bookmarked}
-          aria-label={bookmarked ? "Remove bookmark" : "Save letter"}
-          className={`ml-auto flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-            bookmarked ? "text-leaf" : "hover:text-foreground"
-          }`}
-        >
-          <BookmarkSimple size={18} weight={bookmarked ? "fill" : "regular"} />
-        </button>
-        <button
-          onClick={handleShare}
-          aria-label="Copy link to letter"
-          className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        >
-          <ShareNetwork size={18} weight="regular" />
-        </button>
+        <BookmarkButton
+          saved={bookmarked}
+          onToggle={handleBookmark}
+          id={postId}
+          className="ml-auto"
+          label={bookmarked ? "Remove bookmark" : "Save letter"}
+        />
+        <ShareButton href={shareHref} label="Copy link to letter" />
       </div>
 
-      <CommentsSection postId={postId} onCommentAdded={() => setCommentCount((c) => c + 1)} />
+      <CommentsSection
+        postId={postId}
+        onCommentAdded={() => setCommentCount((c) => c + 1)}
+        alwaysOpen
+      />
     </div>
   );
 }

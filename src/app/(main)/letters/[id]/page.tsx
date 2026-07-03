@@ -7,20 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
 import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
-import { formatBatch, renderRichText, parseJsonArray } from "@/lib/utils";
-
-// Untitled letters fall back to their first line / opening words rather than a
-// literal "Untitled letter" placeholder.
-function letterTitle(title: string | null, content: string) {
-  if (title && title.trim()) return title.trim();
-  const firstLine = content
-    .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .split(/\n/)
-    .map((l) => l.trim())
-    .find(Boolean);
-  if (!firstLine) return "A letter";
-  return firstLine.length > 90 ? firstLine.slice(0, 90).trimEnd() + "..." : firstLine;
-}
+import { formatBatch, renderRichText, parseJsonArray, letterTitle } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
