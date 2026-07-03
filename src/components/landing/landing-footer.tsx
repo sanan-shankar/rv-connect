@@ -36,9 +36,12 @@ export function LandingFooter() {
 
       <div className="border-t border-border/70">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-7 text-[13px] text-muted-foreground sm:flex-row">
-          <div className="flex items-center gap-2">
+          <div className="flex items-end gap-2">
             <PeaksMark size={13} variant="light" />
-            <span className="font-heading font-bold tracking-tight text-foreground">
+            <span
+              className="font-heading font-bold tracking-tight text-foreground"
+              style={{ fontSize: "15.92px", lineHeight: 1, transform: "translateY(2.39px)" }}
+            >
               Rishi Valley
             </span>
           </div>

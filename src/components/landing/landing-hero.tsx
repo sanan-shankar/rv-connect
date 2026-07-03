@@ -48,15 +48,32 @@ export function LandingHero() {
         }}
       />
 
-      {/* Brand, top-left */}
+      {/* Brand, top-left. Two sizes (not one responsive scale) because the
+          wordmark is set to match the peak's exact cap-height at each size,
+          and at the desktop size "Rishi Valley" is too wide for a phone
+          screen alongside the icon. */}
       <div
-        className="relative z-10 flex items-center gap-2.5 px-8 pt-7 lg:px-16"
+        className="relative z-10 px-8 pt-7 lg:px-16"
         style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
       >
-        <PeaksMark size={34} className="text-white" />
-        <span className="block font-heading text-[21px] font-bold leading-none tracking-tight text-white">
-          Rishi Valley
-        </span>
+        <div className="flex items-end gap-2 sm:hidden">
+          <PeaksMark size={24} className="text-white" />
+          <span
+            className="block font-heading font-bold tracking-tight text-white"
+            style={{ fontSize: "29.39px", lineHeight: 1, transform: "translateY(4.41px)" }}
+          >
+            Rishi Valley
+          </span>
+        </div>
+        <div className="hidden items-end gap-2.5 sm:flex">
+          <PeaksMark size={34} className="text-white" />
+          <span
+            className="block font-heading font-bold tracking-tight text-white"
+            style={{ fontSize: "41.64px", lineHeight: 1, transform: "translateY(6.25px)" }}
+          >
+            Rishi Valley
+          </span>
+        </div>
       </div>
 
       {/* Headline + actions */}

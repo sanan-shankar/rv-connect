@@ -91,17 +91,18 @@ export function LogoFact({
         onClick={onNavigate}
         aria-label="Rishi Valley, home"
         aria-describedby={reveal ? "logo-fact-card" : undefined}
-        className="flex items-center gap-2.5 rounded-xl px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+        className="flex items-end gap-2.5 rounded-xl px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
       >
         <PeaksMark
-          size={28}
+          size={29}
           variant="two-plane"
-          className="shrink-0 -translate-y-px text-sidebar-foreground"
+          className="shrink-0 text-sidebar-foreground"
         />
-        <span className="flex flex-col justify-center leading-none">
-          <span className="block whitespace-nowrap font-heading text-[17px] font-bold leading-none tracking-tight text-sidebar-foreground">
-            Rishi Valley
-          </span>
+        <span
+          className="block whitespace-nowrap font-heading font-bold tracking-tight text-sidebar-foreground"
+          style={{ fontSize: "18px", lineHeight: 1, transform: "translateY(2.7px)" }}
+        >
+          Rishi Valley
         </span>
       </Link>
 

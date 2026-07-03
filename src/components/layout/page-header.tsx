@@ -49,7 +49,12 @@ export function PageHeader({
             </div>
           )}
           {unreadCount !== undefined && (
-            <NotificationBell initialUnreadCount={unreadCount} variant="header" />
+            // Below `md` the sidebar's mobile top bar already renders its own
+            // bell next to the hamburger, so this one stays hidden there to
+            // avoid a duplicate notifications entry point.
+            <div className="hidden md:block">
+              <NotificationBell initialUnreadCount={unreadCount} variant="header" />
+            </div>
           )}
           {actions}
           {children}

@@ -107,10 +107,15 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent" />
         <Link
           href="/"
-          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="absolute left-8 top-7 inline-flex items-end gap-2.5 rounded-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
-          <PeaksMark size={18} />
-          <span className="font-heading text-lg tracking-tight">Rishi Valley</span>
+          <PeaksMark size={34} />
+          <span
+            className="font-heading font-bold tracking-tight"
+            style={{ fontSize: "41.64px", lineHeight: 1, transform: "translateY(6.25px)" }}
+          >
+            Rishi Valley
+          </span>
         </Link>
       </div>
 

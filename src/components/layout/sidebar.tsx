@@ -10,7 +10,6 @@ import {
   Images,
   Feather,
   MessagesSquare,
-  CalendarDays,
   Info,
   Settings,
   Shield,
@@ -56,7 +55,6 @@ const NAV = [
   { href: "/collection", label: "Collection", icon: Images },
   { href: "/letters", label: "Letters", icon: Feather },
   { href: "/catchups", label: "Catch-ups", icon: MessagesSquare },
-  { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/about", label: "About", icon: Info },
 ];
 
@@ -75,14 +73,17 @@ function Brand({
     <Link
       href="/feed"
       onClick={onNavigate}
-      className={`flex items-center gap-2.5 px-2 py-1 ${className}`}
+      className={`flex items-end gap-2.5 px-2 py-1 ${className}`}
     >
       <PeaksMark
-        size={28}
+        size={29}
         variant="two-plane"
-        className="shrink-0 -translate-y-px text-sidebar-foreground"
+        className="shrink-0 text-sidebar-foreground"
       />
-      <span className="min-w-0 truncate font-heading text-[17px] font-bold leading-none tracking-tight text-sidebar-foreground">
+      <span
+        className="min-w-0 truncate font-heading font-bold tracking-tight text-sidebar-foreground"
+        style={{ fontSize: "18px", lineHeight: 1, transform: "translateY(2.7px)" }}
+      >
         Rishi Valley
       </span>
     </Link>
