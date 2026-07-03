@@ -525,7 +525,7 @@ export function CreatePostForm({
       <div
         ref={rootRef}
         data-composer
-        className="card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-3 sm:p-3.5"
+        className="card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-4"
       >
         <div className="flex items-start gap-3">
           {currentUser && (
@@ -553,7 +553,7 @@ export function CreatePostForm({
     <div
       ref={rootRef}
       data-composer
-      className="card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-3 sm:p-3.5"
+      className="card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-4"
     >
       <div className="flex items-start gap-3">
         {currentUser && (
