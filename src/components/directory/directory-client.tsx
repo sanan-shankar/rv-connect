@@ -23,6 +23,7 @@ interface User {
   id: string;
   name: string;
   avatarColor: string | null;
+  photoUrl?: string | null;
   accountType?: string | null;
   verifyState?: string | null;
   batchType: string | null;
@@ -188,7 +189,6 @@ export function DirectoryClient({
           <Button
             variant={showFilters ? "default" : "outline"}
             onClick={() => setShowFilters(!showFilters)}
-            className={showFilters ? "bg-primary text-primary-foreground" : ""}
           >
             <Filter className="mr-2 h-4 w-4" />
             Filters
@@ -280,14 +280,14 @@ export function DirectoryClient({
             onClick={() => setBrowseView(v)}
             className={`relative rounded-full px-4 py-1.5 text-[13px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
               browseView === v
-                ? "text-primary-foreground"
+                ? "text-white"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {browseView === v && (
               <motion.span
                 layoutId="directoryViewThumb"
-                className="absolute inset-0 z-0 rounded-full bg-primary"
+                className="absolute inset-0 z-0 rounded-full bg-canopy"
                 transition={SPRINGS.snappy}
               />
             )}
@@ -305,7 +305,7 @@ export function DirectoryClient({
               {yearLabel && (
                 <span className="mr-1 font-medium text-foreground">{yearLabel}</span>
               )}
-              {resultCount} {resultCount === 1 ? "alumnus" : "alumni"} found
+              {resultCount} {resultCount === 1 ? "person" : "people"} found
               {resultCount > results.length && (
                 <span className="text-muted-foreground/80"> · showing {results.length}</span>
               )}
@@ -315,7 +315,7 @@ export function DirectoryClient({
           {results.length === 0 ? (
             <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
               <p className="font-heading text-lg text-foreground">
-                No alumni match your search.
+                No one matches your search.
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 Try a shorter search or clear a filter.
@@ -351,8 +351,8 @@ export function DirectoryClient({
           <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
             <p className="font-heading text-lg tracking-tight text-foreground">
               {hasFilter
-                ? "No alumni on the map match your filters."
-                : "The map fills in as alumni add their city."}
+                ? "No one on the map matches your filters."
+                : "The map fills in as people add their city."}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               {hasFilter
@@ -400,7 +400,7 @@ export function DirectoryClient({
                 &apos;{String(year).slice(-2)}
               </span>
               <span className="mt-1 text-xs text-muted-foreground">
-                {count} {count === 1 ? "alumnus" : "alumni"}
+                {count} {count === 1 ? "person" : "people"}
               </span>
             </button>
           ))}

@@ -20,7 +20,7 @@ export function VerifiedMark({
       ? "Verified teacher"
       : user.accountType === "ex_teacher"
         ? "Verified former teacher"
-        : "Verified alumnus";
+        : "Verified member";
 
   return (
     <span

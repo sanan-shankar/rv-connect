@@ -159,7 +159,7 @@ export function ContributeDialog({
                   onClick={() => toggleSubject(s.value)}
                   className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                     subjects.includes(s.value)
-                      ? "bg-leaf text-white"
+                      ? "bg-canopy text-white"
                       : "bg-muted text-muted-foreground hover:bg-accent"
                   }`}
                 >
