@@ -24,16 +24,17 @@ export function TrustSection() {
               Invite only
             </p>
             <h3 className="mt-3 max-w-[20ch] font-heading text-[1.9rem] font-bold leading-[1.12] tracking-[-0.03em] text-foreground text-balance sm:text-4xl">
-              A small place, kept small on purpose.
+              Small on purpose.
             </h3>
             <p className="mt-4 max-w-[52ch] text-[15.5px] leading-[1.7] text-muted-foreground">
-              Members vouch for members, and the alumni office confirms. No open
-              sign-ups, no strangers, no growth targets. You will know the place
-              by who is in it.
+              Someone already in vouches for you, and the school checks your name
+              against the rolls. There are no open sign-ups here, and nobody is
+              chasing a bigger number. You will know the place by who turns up in it.
             </p>
             <p className="mt-5 max-w-[52ch] text-[15.5px] font-medium leading-[1.7] text-foreground">
-              Not another feed to keep up with. Not Facebook. Just the valley,
-              and the people in it.
+              It will not ask you to keep up with it. There is no algorithm and no
+              one selling your attention. Only the people you grew up with, and the
+              valley you grew up in.
             </p>
           </div>
 
@@ -56,11 +57,11 @@ export function TrustSection() {
               ))}
             </div>
             <p className="rounded-full border border-leaf/25 bg-leaf/10 px-4 py-1.5 text-[13px] font-semibold text-leaf">
-              10 members vouched
+              10 people vouched
             </p>
             <p className="max-w-[28ch] text-center text-[13px] leading-relaxed text-muted-foreground">
-              A bird until you upload a face. You will know the verified mark
-              when you see it.
+              Everyone starts as a bird. Add a photo of your face whenever you
+              are ready, or keep the bird.
             </p>
           </div>
         </div>

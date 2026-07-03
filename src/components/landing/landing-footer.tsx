@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
 
 /**
- * Closing CTA band plus a quiet footer. Server-rendered: the ask and the links
+ * Closing CTA band plus a low-key footer. Server-rendered: the ask and the links
  * work with no JavaScript. The band repeats the two hero affordances so a
  * prospect who has scrolled the whole showcase can act without scrolling back.
  */
@@ -14,9 +14,9 @@ export function LandingFooter() {
         <h2 className="mt-6 font-heading text-3xl font-bold tracking-[-0.03em] text-foreground text-balance sm:text-[2.6rem] sm:leading-[1.08]">
           Come back to the valley.
         </h2>
-        <p className="mx-auto mt-4 max-w-md text-[15.5px] leading-[1.7] text-muted-foreground">
-          If you grew up here or taught here, there is a place for you. It stays
-          small on purpose, and it keeps the valley close.
+        <p className="mx-auto mt-4 max-w-md text-[15.5px] leading-[1.7] text-muted-foreground text-balance">
+          If you grew up here, or taught here, or looked after the place while the
+          rest of us grew up, you already belong. Come and find everyone else.
         </p>
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <Link

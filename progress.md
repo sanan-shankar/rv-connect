@@ -678,3 +678,39 @@ Owner loved it. Round-3 fixes, all applied + verified:
   preview/_shared.tsx + preview/v2/page.tsx. tsc clean.
 - Committed on main in TWO commits: (1) the doc consolidation + avatar-doc consistency above;
   (2) the Groups nav icon swap.
+
+## Session 2026-07-03 — landing showcase screenshots regenerated from the live post-redesign app
+
+- The five `public/images/landing/*.webp` used by `FeatureSection` (via `src/components/landing/shots.ts`)
+  predated the redesign (old sidebar-less mockups). Regenerated four of them from the real, currently
+  running app: feed, directory, letters, catchups.
+- Staged demo content as admin via direct Postgres inserts (not the UI, for precise control and clean
+  removal): 4 feed posts across 4 existing `@demo.valley.test` alumni (one a poll on Founders' Week
+  dorms-vs-guest-house with 4 votes, one a valley-life hornbill sighting, one a life update, one campus
+  nostalgia) plus 1 letter ("The line for evening milk" by Rohan Mehta). All in-voice, no em dashes.
+  Deleted every row straight after capture and re-verified table counts match the pre-session baseline
+  exactly (Post 7->2, PollOption/PollVote 2/4->0, everything else untouched).
+- Directory shot uses the People grid (`?yearFrom=1990&yearTo=2030` to reach it without narrowing
+  results, then the Filters panel closed again) rather than the map (only 2 city pins with 7 users) or
+  the Batches tiles (seven repetitive "1 person" cards) -- the bird-avatar grid photographed best.
+  Collection was left untouched: zero contributed photos on the live DB, so the pre-redesign capture
+  stays until real photos exist.
+- FOUND A REAL BUG while seeding: rows written via raw `pg` (bypassing Prisma) come back from Prisma
+  reads 5:30 (IST) ahead of the stored value -- `Post.createdAt`/`updatedAt` are `timestamp without
+  time zone`, and whatever the Prisma driver adapter does with that type does not round-trip with plain
+  `pg`. Symptom: any post apparently created less than ~5.5h ago rendered "just now" because the (too
+  future) createdAt made the client's elapsed-time computation go negative. Only surfaced here because
+  the seeding bypassed Prisma; posts created through the real `createPost` action are self-consistent
+  (same driver writes and reads), so this likely does NOT affect real production data, but it is a trap
+  for the next raw-SQL seed script (worked around here by writing timestamps 5:30 early so the app's
+  read lands back on the intended value). Also noted: `toLocaleDateString` without an explicit
+  `timeZone` on the server (letters index date) resolves to IST too, off by a calendar day right at the
+  UTC/IST midnight boundary; cosmetic, left alone.
+- Also hit a dev-only image-cache trap: `/_next/image` caches by URL and does not re-check the source
+  file's mtime, so overwriting `feed.webp` etc. in place kept serving the old cached render (confirmed
+  via direct `curl` against the optimizer: some width buckets served fresh bytes, others a stale HIT,
+  no relation to how much time had passed). Renamed the four regenerated files with a `-v2` suffix
+  instead of overwriting, which sidesteps the cache outright; comment in shots.ts explains the trap for
+  next time. `.next` was not touched (out of scope for this session's constraints).
+- Verified: `tsc --noEmit` clean, both the four surfaces in isolation and the full scrolled landing page
+  screenshotted twice (rounds: initial capture, then again after the timezone/crop/cache fixes).
