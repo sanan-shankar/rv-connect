@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -44,6 +45,20 @@ function socialHref(kind: "instagram" | "linkedin" | "website", value: string): 
   if (kind === "instagram") return `https://instagram.com/${v.replace(/^@/, "")}`;
   if (v.startsWith("http")) return v;
   return `https://${v}`;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { name: true, isBlocked: true },
+  });
+  if (!user || user.isBlocked) return { title: "Profile" };
+  return { title: user.name };
 }
 
 export default async function ProfilePage({

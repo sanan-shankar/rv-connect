@@ -19,7 +19,7 @@ const sourceSans = Source_Sans_3({
 export const metadata: Metadata = {
   title: {
     default: "Rishi Valley",
-    template: "%s · Rishi Valley",
+    template: "Rishi Valley · %s",
   },
   description:
     "A space for the Rishi Valley community to stay connected.",

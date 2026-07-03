@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -6,6 +7,10 @@ import { Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { GroupCard, type GroupCardData } from "@/components/groups/group-card";
+
+export const metadata: Metadata = {
+  title: "Groups",
+};
 
 export default async function GroupsPage() {
   const session = await auth();

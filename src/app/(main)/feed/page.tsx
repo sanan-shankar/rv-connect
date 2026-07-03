@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FeedColumn } from "@/components/posts/feed-column";
 import { PageHeader } from "@/components/layout/page-header";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { NewPostCTA } from "@/components/feed/new-post-cta";
+
+export const metadata: Metadata = {
+  title: "Feed",
+};
 
 export default async function FeedPage() {
   const session = await auth();

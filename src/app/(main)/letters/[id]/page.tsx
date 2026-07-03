@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Feather } from "lucide-react";
@@ -19,6 +20,33 @@ function letterTitle(title: string | null, content: string) {
     .find(Boolean);
   if (!firstLine) return "A letter";
   return firstLine.length > 90 ? firstLine.slice(0, 90).trimEnd() + "..." : firstLine;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user) return { title: "Letter" };
+
+  const letter = await prisma.post.findUnique({
+    where: { id },
+    select: { title: true, content: true, kind: true, isHidden: true, groupId: true },
+  });
+  if (!letter || letter.kind !== "letter" || letter.isHidden) return { title: "Letter" };
+
+  // Group letters are private to members; do not leak the title to non-members.
+  if (letter.groupId) {
+    const membership = await prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId: letter.groupId, userId: session.user.id } },
+      select: { id: true },
+    });
+    if (!membership) return { title: "Letter" };
+  }
+
+  return { title: letterTitle(letter.title, letter.content) };
 }
 
 export default async function LetterPage({

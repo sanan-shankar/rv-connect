@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { CollectionClient } from "@/components/collection/collection-client";
 import { myPendingPhotos } from "./actions";
+
+export const metadata: Metadata = {
+  title: "Collection",
+};
 
 export default async function CollectionPage() {
   const session = await auth();
