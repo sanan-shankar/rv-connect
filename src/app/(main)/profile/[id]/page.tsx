@@ -264,64 +264,26 @@ export default async function ProfilePage({
       {/* Cover + identity */}
       <section className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
         <div
-          className="relative h-40 bg-cover bg-center sm:h-48"
+          className="relative h-44 bg-cover bg-center"
           style={{ backgroundImage: `url(${user.coverPhoto || "/images/landing.jpeg"})` }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/30" />
         </div>
-        <div className="px-[var(--space-l)] pb-[var(--space-l)]">
-          {/* Avatar dips only a little into the cover; the action button sits
-              top-right on the same line (wraps below the avatar if cramped). */}
-          <div className="flex flex-wrap items-start justify-between gap-[var(--space-m)]">
-            <div className="relative z-[2] -mt-9 shrink-0">
+        <div className="px-6 pb-5 pt-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="relative z-[2] -mt-14">
               <ProfileAvatar
                 user={{ id: user.id, name: user.name, avatarColor: user.avatarColor, photoUrl: user.photoUrl }}
                 size="lg"
                 ring
               />
             </div>
-            <div className="shrink-0 pt-[var(--space-m)]">
-              {isOwnProfile ? (
-                <Link href="/settings">
-                  <Button size="sm" className="rounded-full">
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                    Edit profile
-                  </Button>
-                </Link>
-              ) : (
-                <GetInTouch name={user.name} methods={methods} vcard={vcard} />
-              )}
-            </div>
-          </div>
-
-          {/* Identity block, pushed down so it sits well below the cover edge.
-              The batch/location/profession meta line lands last, just above the
-              divider, rather than floating high under the name. */}
-          <div className="mt-[var(--space-m)]">
-            <h1 className="flex flex-wrap items-center gap-[var(--space-xs)] font-heading text-[26px] font-bold leading-[1.15] tracking-tight text-foreground">
-              {user.name}
-              <VerifiedMark user={user} size={16} />
-            </h1>
-
-            {user.bio && (
-              <p className="mt-[var(--space-m)] max-w-[64ch] text-[15px] leading-[1.7] text-foreground">{user.bio}</p>
-            )}
-
-            {openToTags.length > 0 && (
-              <div className="mt-[var(--space-m)] flex flex-wrap gap-2">
-                {openToTags.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full bg-leaf/10 px-3 py-1.5 text-[12px] font-semibold text-leaf"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {metaParts.length > 0 && (
-              <div className="mt-[var(--space-l)] flex flex-wrap items-center gap-x-[var(--space-xs)] gap-y-[var(--space-xxs)] text-[13px] text-muted-foreground">
+            <div className="min-w-0 flex-1 sm:pb-1">
+              <h1 className="flex items-center gap-1.5 font-heading text-[26px] font-bold leading-[1.05] tracking-tight text-foreground">
+                {user.name}
+                <VerifiedMark user={user} size={16} />
+              </h1>
+              <div className="mt-[3px] flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-muted-foreground">
                 {metaParts.map((part, i) => (
                   <span key={i} className="inline-flex items-center gap-1.5">
                     {i > 0 && <span className="dotsep">·</span>}
@@ -330,10 +292,41 @@ export default async function ProfilePage({
                   </span>
                 ))}
               </div>
-            )}
+            </div>
+            <div className="sm:pb-1">
+              {isOwnProfile ? (
+                <Link href="/settings">
+                  <Button size="sm" className="rounded-full">
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                    Edit profile
+                  </Button>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <GetInTouch name={user.name} methods={methods} vcard={vcard} />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="mt-[var(--space-m)] flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-[var(--space-m)] text-[13px] text-muted-foreground">
+          {user.bio && (
+            <p className="mt-4 max-w-[64ch] text-[15px] leading-[1.7] text-foreground">{user.bio}</p>
+          )}
+
+          {openToTags.length > 0 && (
+            <div className="mt-3.5 flex flex-wrap gap-2">
+              {openToTags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full bg-leaf/10 px-3 py-1.5 text-[12px] font-semibold text-leaf"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-4 text-[13px] text-muted-foreground">
             <span>
               <b className="font-bold text-foreground">{postCount}</b>{" "}
               {postCount === 1 ? "post" : "posts"}
