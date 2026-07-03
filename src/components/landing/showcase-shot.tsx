@@ -44,16 +44,22 @@ export function ShowcaseShot({
   const y = useTransform(scrollYProgress, [0, 1], [22, -22]);
 
   return (
-    <div ref={ref} className="relative" data-shot>
+    <div ref={ref} className="relative @container" data-shot>
       <motion.div
         style={reduce || !mounted ? undefined : { y }}
         className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
       >
-        {/* Faux in-app top bar */}
-        <div className="flex items-center gap-2.5 border-b border-border bg-card px-4 py-2.5">
-          <PeaksMark size={13} variant="light" />
-          <div className="flex h-6 flex-1 items-center gap-2 rounded-full border border-border bg-muted px-3 text-[11px] text-muted-foreground">
-            <Search className="h-3 w-3" aria-hidden />
+        {/* Faux in-app top bar. Sized in em off a cqw-driven font-size so the bar
+            stays a constant fraction of the shot at every width. That keeps the
+            shot's internal proportions identical desktop-to-mobile, so the
+            annotation arrows (positioned in %) land on the same spot at both. */}
+        <div
+          className="flex items-center gap-[0.7em] border-b border-border bg-card px-[1.1em] py-[0.72em]"
+          style={{ fontSize: "clamp(7.5px, 2.35cqw, 11px)" }}
+        >
+          <PeaksMark size="1.15em" variant="light" />
+          <div className="flex h-[1.95em] flex-1 items-center gap-[0.6em] rounded-full border border-border bg-muted px-[1em] text-[1em] text-muted-foreground">
+            <Search className="h-[1.1em] w-[1.1em]" aria-hidden />
             <span>Search the valley</span>
           </div>
         </div>

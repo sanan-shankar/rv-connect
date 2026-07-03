@@ -69,11 +69,16 @@ export function PeaksMark({
   className = "",
   variant = "solid",
 }: {
-  size?: number;
+  /** Height. A number is px; a CSS length string (e.g. "1.15em") scales with
+   * font-size, with width left to the viewBox aspect ratio. */
+  size?: number | string;
   className?: string;
   variant?: "two-plane" | "light" | "outline" | "solid";
 }) {
-  const w = Math.round((size * VIEWBOX_WIDTH) / VIEWBOX_HEIGHT);
+  const w =
+    typeof size === "number"
+      ? Math.round((size * VIEWBOX_WIDTH) / VIEWBOX_HEIGHT)
+      : undefined;
   return (
     <svg
       width={w}
