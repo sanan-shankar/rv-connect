@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Libre_Baskerville, Source_Sans_3 } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
+import { MascotFlightLayer } from "@/components/mascot/mascot-flight-layer";
 import "./globals.css";
 
 const libreBaskerville = Libre_Baskerville({
@@ -42,6 +43,11 @@ export default function RootLayout({
           forcedTheme="light"
         >
           {children}
+          {/* The ONE hoopoe, mid-flight: renders nothing until a landing CTA
+              launches a button-to-perch flight, then carries the puppet across
+              the route change and hands off to the destination's own hoopoe.
+              Lives here (root layout) so it survives that navigation. */}
+          <MascotFlightLayer />
           <Toaster position="bottom-right" />
         </ThemeProvider>
       </body>

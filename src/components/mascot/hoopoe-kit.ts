@@ -109,6 +109,14 @@ export interface HoopoeApi {
   hop(count?: number, dir?: Dir): Promise<void>;
   flyTo(target: Target): Promise<void>;
   land(): Promise<void>;
+  // Cross-screen flight primitives. Unlike `flyTo` (which translates the bird
+  // WITHIN its own SVG), these three drive only the puppet's pose so an outer
+  // layer can carry the same rigged bird anywhere on the page: `takeOff` snaps
+  // to the launch pose (wings up, legs tucked), `glide` runs a continuous
+  // wing-flap + bank (not queued, like gaze), `perch` folds back down and settles.
+  takeOff(): Promise<void>;
+  glide(dir?: 1 | -1): void;
+  perch(): Promise<void>;
   turn(dir: Dir | 0): Promise<void>;
   point(target: Target | Dir, opts?: { label?: string; hold?: number }): Promise<void>;
   wave(times?: number): Promise<void>;

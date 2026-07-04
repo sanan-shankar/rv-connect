@@ -15,6 +15,7 @@ import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, LOGIN_TRANSITION_FLAG } from "@/components/landing/hero-photo";
+import { reportPerch, onHandoff, FLIGHT_FLAG } from "@/components/mascot/mascot-flight";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -44,6 +45,20 @@ export default function LoginPage() {
     }
   });
 
+  // Whether the ONE hoopoe is flying in from the landing CTA (button-to-perch
+  // flight). When true, this page keeps its own hoopoe hidden and at rest until
+  // the flyer lands and hands off, so only one bird is ever on screen. Read
+  // pure (no clear) for the same Strict-Mode reason as above; consumed in the
+  // handoff effect so a reload does not re-hide the bird.
+  const [arrivedViaFlight] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.sessionStorage.getItem(FLIGHT_FLAG) === "login";
+    } catch {
+      return false;
+    }
+  });
+
   // Consume the one-shot flag after mount so a later reload or a fresh direct
   // visit within the same tab session does not replay the entry animation.
   useEffect(() => {
@@ -62,6 +77,17 @@ export default function LoginPage() {
   const showPwRef = useRef(showPw);
   showPwRef.current = showPw;
   const introDone = useRef(false);
+  // Tracks the runIntro settle timer so a fast navigation (browser back, logo
+  // click) can cancel it on unmount instead of letting it fire mascot verbs
+  // against an already-unmounted rig.
+  const introTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The tight box around the hoopoe SVG. Its client rect is the flyer's exact
+  // landing target, so the perched flyer and this hoopoe end up pixel-aligned.
+  const hoopoeBoxRef = useRef<HTMLDivElement>(null);
+  const hoopoeApiRef = useRef<HoopoeApi | null>(null);
+  // Hidden until the flyer hands off when arriving via a flight; shown from the
+  // start on a direct visit (there is no flyer to wait for).
+  const [hoopoeShown, setHoopoeShown] = useState(!arrivedViaFlight);
 
   // React to reveal toggles after the intro settles.
   useEffect(() => {
@@ -70,16 +96,65 @@ export default function LoginPage() {
     else hoopoe.coverEyes();
   }, [showPw, hoopoe]);
 
-  function onHoopoeReady(api: HoopoeApi) {
-    // intro: peek in with a double-blink greeting, then tuck the wings over the
-    // (hidden) password.
+  // The password peek-a-boo intro: peek in with a double-blink greeting, then
+  // tuck the wings over the (hidden) password. On a flight arrival this runs at
+  // handoff (the flyer having just landed) instead of at mount.
+  function runIntro(api: HoopoeApi) {
     api.peek();
     api.blinkOnce(true);
-    setTimeout(() => {
+    introTimeoutRef.current = setTimeout(() => {
+      introTimeoutRef.current = null;
       introDone.current = true;
       if (showPwRef.current) api.peek();
       else api.coverEyes();
     }, 1150);
+  }
+
+  function onHoopoeReady(api: HoopoeApi) {
+    hoopoeApiRef.current = api;
+    if (!arrivedViaFlight) runIntro(api);
+  }
+
+  // Belt-and-suspenders: cancel any pending intro timer on unmount so a fast
+  // navigation away from /login (browser back, logo click) can never fire
+  // coverEyes()/peek() against a rig that is already gone.
+  useEffect(() => {
+    return () => {
+      if (introTimeoutRef.current) clearTimeout(introTimeoutRef.current);
+    };
+  }, []);
+
+  // Flight handoff: report where this hoopoe will rest once the entry settles
+  // (see the form's onAnimationComplete), and reveal + start the intro when the
+  // flyer lands. A fallback timer guarantees the bird is never stranded hidden
+  // if the flight stalls; it is set longer than the flyer's own failsafe so the
+  // two never both show.
+  useEffect(() => {
+    if (!arrivedViaFlight) return;
+    try {
+      window.sessionStorage.removeItem(FLIGHT_FLAG);
+    } catch {
+      // storage disabled: nothing to clear
+    }
+    const reveal = () => {
+      setHoopoeShown(true);
+      const api = hoopoeApiRef.current;
+      if (api && !introDone.current) runIntro(api);
+    };
+    const unsub = onHandoff(reveal);
+    const fallback = setTimeout(reveal, 4000);
+    return () => {
+      unsub();
+      clearTimeout(fallback);
+    };
+  }, [arrivedViaFlight]);
+
+  function reportPerchRect() {
+    if (!arrivedViaFlight) return;
+    const el = hoopoeBoxRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    reportPerch({ left: r.left, top: r.top, width: r.width, height: r.height });
   }
 
   const isAdmin =
@@ -190,9 +265,18 @@ export default function LoginPage() {
           initial={arrivedViaTransition ? { opacity: 0, x: 48 } : false}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
+          onAnimationComplete={reportPerchRect}
         >
           <div className="mx-auto mb-1 grid h-[128px] place-items-center">
-            <Hoopoe ref={hoopoeRef} size={102} onReady={onHoopoeReady} />
+            {/* Tight box around the SVG so its rect is the exact perch target.
+                Hidden (at rest) until the flyer hands off; idle breathing is off
+                while hidden so the swap matches the flyer's still rest pose. */}
+            <div
+              ref={hoopoeBoxRef}
+              style={{ opacity: hoopoeShown ? 1 : 0, transition: "opacity 160ms ease" }}
+            >
+              <Hoopoe ref={hoopoeRef} size={102} onReady={onHoopoeReady} idle={hoopoeShown} />
+            </div>
           </div>
           <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
             Welcome back

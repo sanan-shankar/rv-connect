@@ -234,7 +234,10 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   const NOOP = { finished: Promise.resolve(), stop() {} } as unknown as AnimationPlaybackControls;
   const A = (sel: string, target: Record<string, unknown>, opts?: Record<string, unknown>) => {
     const root = scopeEl();
-    if (root && root.querySelector(sel) === null) return NOOP;
+    // root is null once the rig unmounts (e.g. a fast navigation racing an in-flight
+    // verb); falling through to motion's animate() with no root crashes inside
+    // resolveElements, so bail out to the same no-op every other missing-target case uses.
+    if (!root || root.querySelector(sel) === null) return NOOP;
     const controls = anim(sel, target, opts);
     live.add(controls);
     controls.finished.finally(() => live.delete(controls));
@@ -645,6 +648,78 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
       await A(PARTS.body, { scaleY: [1.04, 0.95, 1], y: [0, 2, 0] }, { duration: 0.4, ease: EASE_SPRING }).finished;
     });
 
+  // ---- cross-screen flight pose primitives ----
+  // The bird's TRANSLATION across the viewport is owned by an outer layer (the
+  // app's mascot flight layer, which carries this rig in a portal from a CTA to
+  // the destination form). These verbs drive only the PUPPET so the same bird
+  // that flaps here can be positioned anywhere on the page. Values reuse the
+  // proven poses from flyCore so a cross-screen flight reads like the in-SVG one.
+  const glideCtls = useRef<AnimationPlaybackControls[]>([]).current;
+  function stopGlide() {
+    for (const c of glideCtls) c.stop();
+    glideCtls.length = 0;
+  }
+  // 1. launch pose: swap to flight (arm) wings, raise them into a V, tuck the
+  //    legs up, and give a quick crouch-push off the ground.
+  async function takeOffRaw(dir: 1 | -1 = 1) {
+    await Promise.all([
+      A(PARTS.leftWingFold, { opacity: 0 }, { duration: 0.1 }).finished,
+      A(PARTS.rightWingFold, { opacity: 0 }, { duration: 0.1 }).finished,
+      A(PARTS.leftWingArm, { opacity: 1 }, { duration: 0.1 }).finished,
+      A(PARTS.rightWingArm, { opacity: 1 }, { duration: 0.1 }).finished,
+      A(PARTS.body, { scaleY: [1, 0.88, 1], y: [0, 5, 0], rotate: dir * 4 }, { duration: 0.26, ease: "easeOut" }).finished,
+      A(PARTS.leftWing, { rotate: -74 }, SPRINGS.snappy).finished,
+      A(PARTS.rightWing, { rotate: 74 }, SPRINGS.snappy).finished,
+      A(PARTS.leftLeg, { rotate: 138 }, SPRINGS.gentle).finished,
+      A(PARTS.rightLeg, { rotate: -138 }, SPRINGS.gentle).finished,
+    ]);
+  }
+  // NOT queued: the flight layer owns the take-off -> glide -> perch timing
+  // externally, so these must not go through the puppet's action queue. (Queuing
+  // take-off would also wedge the pump: glide supersedes take-off's wing
+  // animation, and a superseded motion animation's `.finished` never resolves,
+  // so an awaited-in-queue take-off would hang the pump forever.)
+  const takeOff = () => (variant === "icon" ? Promise.resolve() : takeOffRaw());
+
+  // 2. cruise: continuous wingbeats (up -74 .. down -26) plus a steady bank into
+  //    the direction of travel and streamed-back crest/tail. Not queued (a live
+  //    loop, like gaze); `perch` stops it. dir: +1 travelling right, -1 left.
+  function glide(dir: 1 | -1 = 1) {
+    if (variant === "icon") return;
+    stopGlide();
+    // Use the guarded A() so a zero-match selector (the tail when tail={false},
+    // which is the flyer's default) is a no-op instead of motion's "No valid
+    // elements provided" throw. A() also tracks these in `live` for stop().
+    const lw = A(PARTS.leftWing, { rotate: [-74, -26, -74] }, { duration: 0.44, repeat: Infinity, ease: "easeInOut" });
+    const rw = A(PARTS.rightWing, { rotate: [74, 26, 74] }, { duration: 0.44, repeat: Infinity, ease: "easeInOut" });
+    A(PARTS.body, { rotate: dir * 5 }, SPRINGS.gentle);
+    A(PARTS.crest, { rotate: -dir * 7 }, SPRINGS.gentle);
+    A(PARTS.tail, { rotate: -dir * 9 }, SPRINGS.gentle);
+    glideCtls.push(lw, rw);
+  }
+
+  // 3. landing: stop the flap, fold the wings back, drop the legs, and cushion
+  //    down with a soft squash + level out. Leaves the bird in a clean rest pose.
+  async function perchRaw() {
+    stopGlide();
+    await Promise.all([
+      A(PARTS.leftWing, { rotate: 0 }, SPRINGS.settle).finished,
+      A(PARTS.rightWing, { rotate: 0 }, SPRINGS.settle).finished,
+      A(PARTS.leftWingArm, { opacity: 0 }, { duration: 0.2 }).finished,
+      A(PARTS.rightWingArm, { opacity: 0 }, { duration: 0.2 }).finished,
+      A(PARTS.leftWingFold, { opacity: 1 }, { duration: 0.2 }).finished,
+      A(PARTS.rightWingFold, { opacity: 1 }, { duration: 0.2 }).finished,
+      A(PARTS.leftLeg, { rotate: 0 }, SPRINGS.gentle).finished,
+      A(PARTS.rightLeg, { rotate: 0 }, SPRINGS.gentle).finished,
+      A(PARTS.crest, { rotate: 0 }, SPRINGS.settle).finished,
+      A(PARTS.tail, { rotate: 0 }, SPRINGS.settle).finished,
+      A(PARTS.body, { scaleY: [1.08, 0.95, 1], y: [0, 3, 0], rotate: 0 }, { duration: 0.45, ease: EASE_SPRING }).finished,
+    ]);
+  }
+  // NOT queued (see takeOff). perchRaw stops the glide loop itself, and nothing
+  // supersedes its fold, so its `.finished` resolves and the layer can await it.
+  const perch = () => (variant === "icon" ? Promise.resolve() : perchRaw());
+
   const celebrate = (level: Level = 2) =>
     enqueue(async () => {
       const now = safeNow();
@@ -737,6 +812,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   // ----- control -----
   function stop() {
     queue.length = 0;
+    stopGlide();
     for (const c of live) c.stop(); // commit current values (no snap-back)
     live.clear();
     clearAmbient();
@@ -827,7 +903,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   // so freezing the object keeps it correct while giving useImperativeHandle a stable identity.
   const api = useMemo<HoopoeApi>(
     () => ({
-      walk, hop, flyTo, land, turn, point, wave, nod, shake, crest, crestFlick,
+      walk, hop, flyTo, land, takeOff, glide, perch, turn, point, wave, nod, shake, crest, crestFlick,
       express, celebrate, blinkOnce, gaze: gazeTo, bindPassword,
       coverEyes, peek, sequence, react, stop, cancel, rest, isBusy,
     }),
