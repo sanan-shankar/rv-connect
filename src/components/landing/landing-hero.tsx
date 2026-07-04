@@ -11,6 +11,7 @@ import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { SPRINGS, EASE_SPRING } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, AUTH_FORM_VW, LOGIN_TRANSITION_FLAG } from "./hero-photo";
+import { launchFlight, FLIGHT_FLAG, type FlightTarget } from "@/components/mascot/mascot-flight";
 
 /**
  * Landing hero. Two coordinated behaviours live here:
@@ -89,6 +90,10 @@ export function LandingHero() {
   const [showLoader, setShowLoader] = useState(false);
   const [slidePx, setSlidePx] = useState(0);
   const pushed = useRef(false);
+  // Which auth route this exit is bound for (set at click). Both share the same
+  // photo-slide choreography and the same panel geometry, so the only thing that
+  // differs is where we push and which flag the destination reads.
+  const exitTarget = useRef<FlightTarget>("login");
   const imgRef = useRef<HTMLImageElement>(null);
   const revealed = useRef(false);
   const loaderTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -148,6 +153,7 @@ export function LandingHero() {
     // Safety net: never strand the page on beige if the photo stalls or errors.
     const maxWait = setTimeout(reveal, 6000);
     router.prefetch("/login");
+    router.prefetch("/signup");
     return () => {
       clearTimeout(loaderTimer.current);
       clearTimeout(maxWait);
@@ -155,14 +161,28 @@ export function LandingHero() {
     };
   }, [reveal, router]);
 
-  function startExit(e: React.MouseEvent<HTMLAnchorElement>) {
+  function startExit(e: React.MouseEvent<HTMLAnchorElement>, target: FlightTarget) {
     // Let modified clicks / non-desktop viewports navigate normally. The photo
-    // split (and therefore the slide) only exists at lg+, so mobile falls back
-    // to a plain, clean navigation with no intermediate state.
+    // split (and therefore the slide + flight) only exists at lg+, so mobile
+    // falls back to a plain, clean navigation with no intermediate state and no
+    // flight (the mobile layout has no photo panel and a short button-to-perch
+    // hop would add jank for little gain — see summary).
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     if (typeof window === "undefined" || !window.matchMedia("(min-width: 1024px)").matches) return;
     e.preventDefault();
     if (phase === "exiting") return;
+    exitTarget.current = target;
+    // Launch the hoopoe from exactly this CTA. Measure it now (it is about to
+    // slide out), mark the destination so it keeps its own hoopoe hidden until
+    // the flyer hands off, then fire the flight in parallel with the slide.
+    const r = e.currentTarget.getBoundingClientRect();
+    try {
+      window.sessionStorage.setItem(FLIGHT_FLAG, target);
+    } catch {
+      // storage disabled: the flight still flies; the destination just shows
+      // its own hoopoe normally (no handoff), which is a graceful fallback.
+    }
+    launchFlight({ from: { x: r.left + r.width / 2, y: r.top + r.height / 2 }, target });
     setSlidePx(-Math.round((window.innerWidth * AUTH_FORM_VW) / 100));
     setPhase("exiting");
   }
@@ -184,17 +204,18 @@ export function LandingHero() {
         onAnimationComplete={(def) => {
           if (def === "exiting" && !pushed.current) {
             pushed.current = true;
+            const target = exitTarget.current;
             // Tell /login this arrival is the landing slide, so its sign-in form
             // plays the lateral entry; /login reads and clears it on mount. A
             // direct visit / reload never sees this flag and gets no entry
-            // animation. Set immediately before the push so the flag is present
-            // when the /login component mounts.
+            // animation. (/signup's entry is unconditional, so it needs no such
+            // flag.) Set immediately before the push so it is present at mount.
             try {
-              window.sessionStorage.setItem(LOGIN_TRANSITION_FLAG, "1");
+              if (target === "login") window.sessionStorage.setItem(LOGIN_TRANSITION_FLAG, "1");
             } catch {
               // Private-mode / storage-disabled: fall back to no entry animation.
             }
-            router.push("/login");
+            router.push(target === "signup" ? "/signup" : "/login");
           }
         }}
       >
@@ -282,13 +303,14 @@ export function LandingHero() {
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <Link
                   href="/signup"
+                  onClick={(e) => startExit(e, "signup")}
                   className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
                 >
                   Join the community
                 </Link>
                 <Link
                   href="/login"
-                  onClick={startExit}
+                  onClick={(e) => startExit(e, "login")}
                   className="inline-flex items-center justify-center rounded-full border border-white/55 bg-white/10 px-6 py-2.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
                 >
                   Sign in

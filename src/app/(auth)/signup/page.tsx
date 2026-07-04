@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
+import { reportPerch, onHandoff, FLIGHT_FLAG } from "@/components/mascot/mascot-flight";
 
 type Step = "trivia" | "register";
 
@@ -29,10 +30,64 @@ export default function SignupPage() {
   // only on the step swap, so the forwarded object identity stays steady.
   const { ref: hoopoeRef, ...hoopoe } = useHoopoe();
 
-  function onHoopoeReady(api: HoopoeApi) {
-    // a warm wave-and-nod greeting, then it leans in, curious, ready to quiz you
+  // When the ONE hoopoe is flying in from the landing "Join" CTA, keep this
+  // page's own hoopoe hidden + at rest until the flyer lands and hands off, so
+  // only one bird is ever on screen. A direct visit shows it from the start.
+  const [arrivedViaFlight] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.sessionStorage.getItem(FLIGHT_FLAG) === "signup";
+    } catch {
+      return false;
+    }
+  });
+  const hoopoeBoxRef = useRef<HTMLDivElement>(null);
+  const hoopoeApiRef = useRef<HoopoeApi | null>(null);
+  const introDone = useRef(false);
+  const [hoopoeShown, setHoopoeShown] = useState(!arrivedViaFlight);
+
+  // a warm wave-and-nod greeting, then it leans in, curious, ready to quiz you.
+  // On a flight arrival this runs at handoff (the flyer having just landed).
+  function runIntro(api: HoopoeApi) {
     api.react("greet");
     api.express("curious");
+    introDone.current = true;
+  }
+
+  function onHoopoeReady(api: HoopoeApi) {
+    hoopoeApiRef.current = api;
+    if (!arrivedViaFlight) runIntro(api);
+  }
+
+  // Flight handoff: reveal + greet when the flyer lands; the fallback timer (set
+  // longer than the flyer's own failsafe) guarantees the bird is never stranded
+  // hidden. The perch rect itself is reported once the entry settles (below).
+  useEffect(() => {
+    if (!arrivedViaFlight) return;
+    try {
+      window.sessionStorage.removeItem(FLIGHT_FLAG);
+    } catch {
+      // storage disabled: nothing to clear
+    }
+    const reveal = () => {
+      setHoopoeShown(true);
+      const api = hoopoeApiRef.current;
+      if (api && !introDone.current) runIntro(api);
+    };
+    const unsub = onHandoff(reveal);
+    const fallback = setTimeout(reveal, 4000);
+    return () => {
+      unsub();
+      clearTimeout(fallback);
+    };
+  }, [arrivedViaFlight]);
+
+  function reportPerchRect() {
+    if (!arrivedViaFlight) return;
+    const el = hoopoeBoxRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    reportPerch({ left: r.left, top: r.top, width: r.width, height: r.height });
   }
 
   return (
@@ -99,9 +154,17 @@ export default function SignupPage() {
           initial={{ opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
+          onAnimationComplete={reportPerchRect}
         >
           <div className="mx-auto mb-1 grid h-[112px] place-items-center">
-            <Hoopoe ref={hoopoeRef} size={96} onReady={onHoopoeReady} />
+            {/* Tight box around the SVG so its rect is the exact perch target;
+                hidden + idle-off until the flyer hands off. */}
+            <div
+              ref={hoopoeBoxRef}
+              style={{ opacity: hoopoeShown ? 1 : 0, transition: "opacity 160ms ease" }}
+            >
+              <Hoopoe ref={hoopoeRef} size={96} onReady={onHoopoeReady} idle={hoopoeShown} />
+            </div>
           </div>
 
           <AnimatePresence mode="wait" initial={false}>
