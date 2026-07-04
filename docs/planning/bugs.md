@@ -27,31 +27,73 @@ Status: `[ ]` open · `[x]` done (kept briefly for the record, then removed).
 
 ## Open
 
-### 1. Feed letter card shows "Untitled letter"
-A titleless Letter still renders the literal "Untitled letter" in the compact feed card, even though
-`/letters` and `/letters/[id]` already fall back to the first line (or "A letter"). Make the card use
-the same fallback so the three surfaces agree.
-- Where: `src/components/posts/post-card.tsx:206` (`{post.title || "Untitled letter"}`).
-- Origin: PUNCHLIST P2 #27 (2026-06-27). It was fixed for the list and the reader, and missed on the card.
+All three items from the 2026-07-02 consolidation were closed in the 2026-07-03/04 bug blitz: the
+letter-card title fallback shipped (shared `letterTitle()` in `src/lib/utils.ts`), saved posts live
+as an owner-only tab on your own profile (`src/components/profile/saved-posts-feed.tsx`; a
+standalone `/saved` route was deliberately not built), and the support page now describes
+Vercel/Supabase/R2. What remains below is new, found during that blitz.
+
+### 1. Secondary city (blocked on a one-line DB migration)
+Design agreed: `currentCity` stays the primary (shown everywhere), new optional `secondaryCity`
+shown on the profile ("also in ...") and matched by directory search. Blocked until the owner runs
+`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "secondaryCity" TEXT;` in the Supabase SQL editor;
+after that, add `secondaryCity String?` to `prisma/schema.prisma`, run `npx prisma generate`, then
+build settings/profile/directory support. NOTE: `prisma db push` is unusable on this DB until the
+leftover `CatchupIssue`/`CatchupQuestion` tables (from the deleted Catch-ups build, 14 rows) are
+either re-modelled or intentionally dropped; use raw additive SQL meanwhile.
+- Size: small once unblocked.
+
+### 2. Collection landing screenshot is stale
+`public/images/landing/collection.webp` still shows the pre-redesign UI because the Photo table has
+zero rows (an empty-state capture would undersell the feature). Recapture once real photos exist;
+use a new `-v3` filename (the dev `/_next/image` cache serves stale bytes when a file is
+overwritten in place; see the `shots.ts` header comment).
 - Size: small.
 
-### 2. No page to see saved posts
-Bookmarking is fully wired: the model, the `toggleBookmark` action, and the cinnamon save-sweep pop on
-the card all ship. But there is nowhere to view saved posts and no sidebar slot, so the bookmark button
-is a dead end. Build a `/saved` route reusing the shared `<Feed>`, and decide where it sits in the nav.
-- Where: no `src/app/(main)/saved/` route exists; the bookmark button is in `post-card.tsx`.
-- Origin: FEEDBACK "Feed" ("Saved/bookmarked posts, with a cute colored bookmark animation"). The
-  animation shipped; the page did not. Also noted as an idea in `FEATURES.md` section 3.
-- Size: small.
+### 3. Cosmetic pill trims that dodged the sweep
+`profile/[id]/page.tsx` Pencil icon still carries `mr-1.5`; the `post-card.tsx` comment-count pill
+and `create-post-form.tsx` More-options pill lack the 4px optical trim; `alumni-map.tsx` (2 pills)
+and `flag-person-dialog.tsx` trim 2px where the Button convention is 4px.
+- Size: tiny.
 
-### 3. Support page cost breakdown is stale (still says "Render")
-The `/support` cost rows describe hosting as "Render, kept warm..." with Render-based rupee figures,
-but the deploy moved to Vercel plus Turso (Supabase Postgres, Mumbai) and Cloudflare R2 for images.
-The public support page is showing wrong information. Update the platform names and the amounts (owner
-has the real figures).
-- Where: `src/app/(main)/support/page.tsx:16` and the amounts around `:15-37` and `:101`.
-- Origin: found on 2026-07-02 during this consolidation. It is not in either old file, because both
-  predate the Vercel/Turso decision and still described Render.
+### 4. Support page email line + UPI handle
+The "Email" cost row still says "Sign-in links and invites" though magic links were removed
+(credentials-only auth now). And `UPI_ID = "rvalumni@upi"` in `support-contribute.tsx` looks like
+placeholder data; the owner must confirm the real handle before launch (`PAYEE_NAME` "RV Alumni" is
+the payment-facing account name and stays as data).
+- Size: tiny, plus owner confirmation.
+
+### 5. No desktop notifications affordance outside the feed
+Pre-existing: Directory/Groups/Letters/Collection/Catch-ups never pass `unreadCount` to their
+PageHeader, so desktop (>=768px) has no bell there (mobile keeps the sidebar-bar bell). Needs a
+product decision on a global pattern.
+- Size: medium (decision first).
+
+### 6. Raw-SQL timestamp trap (latent)
+`Post.createdAt` etc. are `timestamp without time zone`; rows written via raw `pg` read back 5h30m
+(IST) ahead through Prisma. The app's own Prisma write+read path is self-consistent, but any future
+import script, migration, or admin tool writing timestamps outside Prisma will hit it. Related:
+server-side `toLocaleDateString` without an explicit timeZone can show a date one day off near the
+UTC/IST midnight boundary (e.g. the letters index).
+- Size: investigation.
+
+### 7. Demo data in the shared DB (owner decision)
+5 seed users (`*@demo.valley.test`) and the `[Demo]` groups (one literally named "[Demo] Roundup",
+a rejected term) still live in the production database. Purge or keep before launch; the
+map/directory demos currently lean on them.
+- Size: owner decision, then small cleanup.
+
+### 8. Mobile scroll-hoopoe is tiny (design trade-off)
+At 390px the landing gutter is only 24px, so the scroll companion shrank to 26px (desktop 78px) to
+perch without overlapping the frames. If more presence is wanted on phones it needs a different
+treatment (perch on frame tops like the ambient birds, or sit mobile out).
+- Size: small (design call first).
+
+### 9. Hoopoe flight is hero-only (deliberate scope)
+Only the hero "Sign in" / "Join the community" buttons launch the fly-and-perch (the photo-slide
+transition only exists from the hero). The sticky nav and closing-band CTAs navigate plainly. The
+mascot flight layer (`src/components/mascot/mascot-flight.ts`) is reusable from anywhere via
+launchFlight/reportPerch if the owner wants more flights.
 - Size: small.
 
 ---
