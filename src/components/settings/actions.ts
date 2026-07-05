@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { putImage, delImage } from "@/lib/storage";
 import { profileSchema } from "@/lib/validators";
+import { computeBatchFromSchooling } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
@@ -24,13 +25,14 @@ export async function updateUserProfile(formData: FormData) {
     phone: (formData.get("phone") as string) || undefined,
     instagram: (formData.get("instagram") as string) || undefined,
     linkedin: (formData.get("linkedin") as string) || undefined,
-    batchType: formData.get("batchType") as string,
-    batchYear: Number(formData.get("batchYear")),
     yearJoined: formData.get("yearJoined")
       ? Number(formData.get("yearJoined"))
       : undefined,
     yearLeft: formData.get("yearLeft")
       ? Number(formData.get("yearLeft"))
+      : undefined,
+    gradeJoined: formData.get("gradeJoined")
+      ? Number(formData.get("gradeJoined"))
       : undefined,
     admissionNumber: formData.get("admissionNumber")
       ? Number(formData.get("admissionNumber"))
@@ -40,6 +42,27 @@ export async function updateUserProfile(formData: FormData) {
   const parsed = profileSchema.safeParse(raw);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
+  }
+
+  // The batch is derived, never taken directly off the form. Only recompute
+  // it when all three schooling facts are present and valid; otherwise leave
+  // whatever batch is already on file untouched (e.g. someone just fixing
+  // their job title shouldn't have a correct batch wiped by a blank field).
+  let batchUpdate: { batchYear?: number | null; batchType?: string | null } = {};
+  if (
+    parsed.data.yearJoined != null &&
+    parsed.data.yearLeft != null &&
+    parsed.data.gradeJoined != null
+  ) {
+    const batch = computeBatchFromSchooling(
+      parsed.data.yearJoined,
+      parsed.data.yearLeft,
+      parsed.data.gradeJoined
+    );
+    if (!batch.ok) {
+      return { error: batch.error };
+    }
+    batchUpdate = { batchYear: batch.batchYear, batchType: batch.batchType };
   }
 
   await prisma.user.update({
@@ -53,11 +76,11 @@ export async function updateUserProfile(formData: FormData) {
       phone: parsed.data.phone || null,
       instagram: parsed.data.instagram || null,
       linkedin: parsed.data.linkedin || null,
-      batchType: parsed.data.batchType,
-      batchYear: parsed.data.batchYear,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
+      gradeJoined: parsed.data.gradeJoined ?? null,
       admissionNumber: parsed.data.admissionNumber ?? null,
+      ...batchUpdate,
     },
   });
 

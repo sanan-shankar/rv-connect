@@ -1,21 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { AnimatePresence, motion } from "motion/react";
 import { ImagePlus, Loader2 } from "lucide-react";
+import { SPRINGS } from "@/components/common/motion";
+import { computeBatchFromSchooling } from "@/lib/utils";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -49,10 +45,10 @@ interface User {
   phone: string | null;
   instagram: string | null;
   linkedin: string | null;
-  batchType: string | null;
   batchYear: number | null;
   yearJoined: number | null;
   yearLeft: number | null;
+  gradeJoined: number | null;
   admissionNumber: number | null;
 }
 
@@ -67,6 +63,22 @@ export function SettingsForm({ user }: { user: User }) {
   const [coverPhoto, setCoverPhoto] = useState<string | null>(user.coverPhoto);
   const [coverBusy, setCoverBusy] = useState(false);
   const coverRef = useRef<HTMLInputElement>(null);
+
+  // The three plain schooling facts that place someone in a batch (same three
+  // fields the sign-up form collects). Kept controlled so the batch can be
+  // previewed live as they're corrected, matching signup's live preview.
+  const [yearJoined, setYearJoined] = useState(user.yearJoined?.toString() ?? "");
+  const [yearLeft, setYearLeft] = useState(user.yearLeft?.toString() ?? "");
+  const [gradeJoined, setGradeJoined] = useState(user.gradeJoined?.toString() ?? "");
+
+  const batch = useMemo(() => {
+    if (!yearJoined || !yearLeft || !gradeJoined) return null;
+    return computeBatchFromSchooling(
+      Number(yearJoined),
+      Number(yearLeft),
+      Number(gradeJoined)
+    );
+  }, [yearJoined, yearLeft, gradeJoined]);
 
   async function handlePhotoPick(f: File | null) {
     if (!f) return;
@@ -319,55 +331,85 @@ export function SettingsForm({ user }: { user: User }) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="batchType">Batch Type</Label>
-                <Select name="batchType" defaultValue={user.batchType ?? undefined}>
-                  <SelectTrigger id="batchType">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ICSE">ICSE</SelectItem>
-                    <SelectItem value="ISC">ISC</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-3">
+              <div>
+                <Label>Schooling</Label>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                  Your batch is worked out from these three facts, even if you
+                  left before 12th. Correct them here if your batch looks wrong.
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="batchYear">Batch Year</Label>
-                <Input
-                  id="batchYear"
-                  name="batchYear"
-                  type="number"
-                  defaultValue={user.batchYear ?? undefined}
-                  min={1926}
-                  max={currentYear + 1}
-                />
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="yearJoined">Year joined</Label>
+                  <Input
+                    id="yearJoined"
+                    name="yearJoined"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="2014"
+                    value={yearJoined}
+                    onChange={(e) => setYearJoined(e.target.value)}
+                    min={1926}
+                    max={currentYear}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="yearLeft">Year left</Label>
+                  <Input
+                    id="yearLeft"
+                    name="yearLeft"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="2021"
+                    value={yearLeft}
+                    onChange={(e) => setYearLeft(e.target.value)}
+                    min={1926}
+                    max={currentYear + 1}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gradeJoined">Grade joined</Label>
+                  <Input
+                    id="gradeJoined"
+                    name="gradeJoined"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="4"
+                    value={gradeJoined}
+                    onChange={(e) => setGradeJoined(e.target.value)}
+                    min={1}
+                    max={12}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="yearJoined">Year Joined</Label>
-                <Input
-                  id="yearJoined"
-                  name="yearJoined"
-                  type="number"
-                  defaultValue={user.yearJoined || ""}
-                  min={1926}
-                  max={currentYear}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="yearLeft">Year Left</Label>
-                <Input
-                  id="yearLeft"
-                  name="yearLeft"
-                  type="number"
-                  defaultValue={user.yearLeft || ""}
-                  min={1926}
-                  max={currentYear}
-                />
-              </div>
+              <AnimatePresence mode="wait" initial={false}>
+                {batch && (
+                  <motion.div
+                    key={batch.ok ? `ok-${batch.batchYear}` : `err-${batch.error}`}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={SPRINGS.snappy}
+                  >
+                    {batch.ok ? (
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-canopy/25 bg-canopy/10 px-3.5 py-2.5">
+                        <span className="text-[13px] text-muted-foreground">
+                          Your batch
+                        </span>
+                        <span className="font-heading text-[15px] font-semibold text-canopy">
+                          Batch of {batch.batchYear}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="rounded-xl border border-cinnamon/30 bg-cinnamon/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-cinnamon">
+                        {batch.error}
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="space-y-2">
@@ -395,29 +437,13 @@ export function SettingsForm({ user }: { user: User }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="workplace">Industry</Label>
-                <Select name="workplace" defaultValue={user.workplace || ""}>
-                  <SelectTrigger id="workplace">
-                    <SelectValue placeholder="Select industry" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Not specified</SelectItem>
-                    <SelectItem value="Technology">Technology</SelectItem>
-                    <SelectItem value="Finance">Finance</SelectItem>
-                    <SelectItem value="Healthcare">Healthcare</SelectItem>
-                    <SelectItem value="Education">Education</SelectItem>
-                    <SelectItem value="Arts & Media">Arts & Media</SelectItem>
-                    <SelectItem value="Law">Law</SelectItem>
-                    <SelectItem value="Government">Government</SelectItem>
-                    <SelectItem value="Non-profit">Non-profit</SelectItem>
-                    <SelectItem value="Research">Research</SelectItem>
-                    <SelectItem value="Consulting">Consulting</SelectItem>
-                    <SelectItem value="Entrepreneurship">Entrepreneurship</SelectItem>
-                    <SelectItem value="Agriculture">Agriculture</SelectItem>
-                    <SelectItem value="Student">Student</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="workplace">Company / Organisation</Label>
+                <Input
+                  id="workplace"
+                  name="workplace"
+                  defaultValue={user.workplace || ""}
+                  placeholder="e.g. Tata Consultancy Services"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="jobTitle">Job Title</Label>
@@ -425,7 +451,7 @@ export function SettingsForm({ user }: { user: User }) {
                   id="jobTitle"
                   name="jobTitle"
                   defaultValue={user.jobTitle || ""}
-                  placeholder="e.g. Software Engineer"
+                  placeholder="e.g. Teacher"
                 />
               </div>
             </div>

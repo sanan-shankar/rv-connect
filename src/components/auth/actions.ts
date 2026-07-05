@@ -24,7 +24,8 @@ export async function registerUser(formData: FormData) {
   const num = (key: string) =>
     formData.get(key) ? Number(formData.get(key)) : undefined;
   const raw = {
-    name: formData.get("name") as string,
+    firstName: formData.get("firstName") as string,
+    lastName: formData.get("lastName") as string,
     email: formData.get("email") as string,
     password,
     accountType,
@@ -70,10 +71,15 @@ export async function registerUser(formData: FormData) {
   // Hash the password
   const hashedPassword = await bcrypt.hash(password, 12);
 
+  // First name and surname are collected separately but stored as one plain
+  // name, joined by a single space. Both halves are already trimmed by the
+  // schema, so this cannot produce leading/trailing/double spaces.
+  const name = `${parsed.data.firstName} ${parsed.data.lastName}`;
+
   // Create the user
   const user = await prisma.user.create({
     data: {
-      name: parsed.data.name,
+      name,
       email: parsed.data.email,
       password: hashedPassword,
       accountType: parsed.data.accountType,
