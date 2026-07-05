@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ImagePlus,
   X,
@@ -10,7 +10,7 @@ import {
   Underline,
   Strikethrough,
   Feather,
-  ChevronDown,
+  Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,74 @@ import { toast } from "sonner";
 import { createPost } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
+import { cn } from "@/lib/utils";
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
+
+/* ------------------------------------------------------------------ *
+ *  Rich text <-> markdown bridge. The editor is a contentEditable
+ *  surface so Bold/Italic/Underline/Strikethrough render live (execCommand
+ *  applies a real <b>/<i>/<u>/<s> to the selection, so the field never
+ *  shows raw "**"). On every input we walk the DOM and serialize it back
+ *  to the SAME markdown wire format renderRichText() already expects
+ *  (src/lib/utils.ts), so post storage/rendering/search never change.
+ *  Mentions stay a literal "@[Name](id) " text insertion, matching the
+ *  plain-text behaviour the old textarea already had.
+ * ------------------------------------------------------------------ */
+function isBoldNode(el: HTMLElement) {
+  return el.tagName === "B" || el.tagName === "STRONG" || el.style.fontWeight === "bold" || el.style.fontWeight === "700";
+}
+function isItalicNode(el: HTMLElement) {
+  return el.tagName === "I" || el.tagName === "EM" || el.style.fontStyle === "italic";
+}
+function isUnderlineNode(el: HTMLElement) {
+  const deco = el.style.textDecorationLine || el.style.textDecoration || "";
+  return el.tagName === "U" || deco.includes("underline");
+}
+function isStrikeNode(el: HTMLElement) {
+  const deco = el.style.textDecorationLine || el.style.textDecoration || "";
+  return el.tagName === "S" || el.tagName === "STRIKE" || el.tagName === "DEL" || deco.includes("line-through");
+}
+
+function serializeNode(node: ChildNode): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  const el = node as HTMLElement;
+  if (el.tagName === "BR") return "\n";
+  let inner = Array.from(el.childNodes).map(serializeNode).join("");
+  if (inner && isBoldNode(el)) inner = `**${inner}**`;
+  if (inner && isItalicNode(el)) inner = `*${inner}*`;
+  if (inner && isUnderlineNode(el)) inner = `__${inner}__`;
+  if (inner && isStrikeNode(el)) inner = `~~${inner}~~`;
+  if (el.tagName === "DIV" || el.tagName === "P") return "\n" + inner;
+  return inner;
+}
+
+/** Walk a contentEditable root and serialize its live formatting back to markdown. */
+function serializeEditableToMarkdown(root: HTMLElement): string {
+  return Array.from(root.childNodes)
+    .map(serializeNode)
+    .join("")
+    .replace(/^\n/, "");
+}
+
+/** If the caret sits right after an "@partial" run in a single text node, return the
+ *  Range spanning it (for the mention dropdown) plus the partial query text. */
+function computeMentionRange(): { range: Range; query: string } | null {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return null;
+  const range = sel.getRangeAt(0);
+  const container = range.startContainer;
+  if (container.nodeType !== Node.TEXT_NODE) return null;
+  const text = container.textContent ?? "";
+  const before = text.slice(0, range.startOffset);
+  const match = before.match(/@(\w*)$/);
+  if (!match) return null;
+  const mentionRange = document.createRange();
+  mentionRange.setStart(container, range.startOffset - match[0].length);
+  mentionRange.setEnd(container, range.startOffset);
+  return { range: mentionRange, query: match[1] };
+}
 
 /** Where the composer is posting. Drives the placeholder and the available affordances. */
 export type ComposerScope = "post" | "group" | "letter";
@@ -64,17 +130,18 @@ export function CreatePostForm({
   const [expanded, setExpanded] = useState(defaultLetter);
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const [mentionStart, setMentionStart] = useState(0);
   const [more, setMore] = useState(false); // overflow ("+") menu: poll + letter live here
   // Explicit, measured height for the one clean downward growth / contraction.
   const [colHeight, setColHeight] = useState<number>(COLLAPSED_H);
   // True only once the grow animation has fully settled; gates overflow so the
   // "More" popover can escape the box, while the unfurl/contraction stays clipped.
   const [settled, setSettled] = useState(false);
+  const [fmt, setFmt] = useState({ bold: false, italic: false, underline: false, strike: false });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  const richRef = useRef<HTMLDivElement>(null);
+  const mentionRangeRef = useRef<Range | null>(null);
 
   const isLetter = kind === "letter";
   const maxLen = isLetter ? 20000 : 5000;
@@ -87,15 +154,21 @@ export function CreatePostForm({
     if (startKind) setKind(startKind);
     setSettled(false);
     setExpanded(true);
-    setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 0);
+    setTimeout(() => richRef.current?.focus({ preventScroll: true }), 0);
   }
 
   // Collapse back to the resting pill, closing any open popovers. Letters
-  // default to expanded, so they never retract to a pill.
+  // default to expanded, so they never retract to a pill. Only ever called
+  // while empty (see the outside-click/Escape handler below), but the DOM is
+  // cleared defensively too: a contentEditable can be left holding a stray
+  // empty <div><br></div> even once its text content is gone.
   const collapse = useCallback(() => {
     setMore(false);
     setSettled(false);
     if (!defaultLetter) setExpanded(false);
+    if (richRef.current) richRef.current.innerHTML = "";
+    setContent("");
+    setFmt({ bold: false, italic: false, underline: false, strike: false });
   }, [defaultLetter]);
 
   // Measure the editor's natural height and animate the box to it. A
@@ -140,57 +213,86 @@ export function CreatePostForm({
     };
   }, [expanded, hasContent, more, collapse]);
 
-  function wrapSelection(wrapper: string) {
-    const el = textareaRef.current;
+  // Re-derive the markdown mirror + mention query from the live DOM. Called after
+  // every keystroke, paste, and formatting toggle so `content` (used for the Post
+  // button's enabled state, the char counter, and the submit payload) never drifts
+  // from what the editor visually shows.
+  const handleRichInput = useCallback(() => {
+    const el = richRef.current;
     if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const before = content.slice(0, start);
-    const selected = content.slice(start, end);
-    const after = content.slice(end);
-    const newContent = before + wrapper + selected + wrapper + after;
-    setContent(newContent);
-    setTimeout(() => {
-      el.selectionStart = start + wrapper.length;
-      el.selectionEnd = end + wrapper.length;
-      el.focus();
-    }, 0);
-  }
-
-  function handleContentChange(value: string) {
-    setContent(value);
-    const el = textareaRef.current;
-    if (!el) {
-      setMentionQuery(null);
-      return;
-    }
-    const cursorPos = el.selectionStart;
-    const textBefore = value.slice(0, cursorPos);
-    const atMatch = textBefore.match(/@(\w*)$/);
-    if (atMatch) {
-      setMentionQuery(atMatch[1]);
-      setMentionStart(cursorPos - atMatch[1].length - 1);
+    setContent(serializeEditableToMarkdown(el));
+    const found = computeMentionRange();
+    if (found) {
+      setMentionQuery(found.query);
+      mentionRangeRef.current = found.range;
     } else {
       setMentionQuery(null);
+      mentionRangeRef.current = null;
     }
+  }, []);
+
+  // Live selection-format state, so the toolbar buttons show which formats are
+  // active at the caret/selection (bold stays highlighted while typing inside it).
+  const syncFmt = useCallback(() => {
+    if (typeof document.queryCommandState !== "function") return;
+    try {
+      setFmt({
+        bold: document.queryCommandState("bold"),
+        italic: document.queryCommandState("italic"),
+        underline: document.queryCommandState("underline"),
+        strike: document.queryCommandState("strikeThrough"),
+      });
+    } catch {
+      /* queryCommandState throws when focus is elsewhere; ignore */
+    }
+  }, []);
+
+  // Apply a live format to the current selection. execCommand is deprecated but
+  // remains the simplest reliable way to make the SELECTED TEXT visually bold
+  // (or italic/underlined/struck) in place, with no raw markdown ever on screen.
+  function applyFormat(command: string) {
+    richRef.current?.focus();
+    try {
+      document.execCommand(command, false);
+    } catch {
+      /* no-op: unsupported in this browser */
+    }
+    syncFmt();
+    handleRichInput();
+  }
+
+  // Force plain-text paste: clipboard formatting never bleeds into the editor,
+  // so bold/italic only ever comes from the toolbar (or existing markdown the
+  // user types by hand, which still round-trips through renderRichText).
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    try {
+      document.execCommand("insertText", false, text);
+    } catch {
+      /* no-op: unsupported in this browser */
+    }
+    handleRichInput();
   }
 
   function handleMentionSelect(user: { id: string; name: string }) {
-    const before = content.slice(0, mentionStart);
-    const after = content.slice(mentionStart + (mentionQuery?.length ?? 0) + 1);
-    const mention = `@[${user.name}](${user.id}) `;
-    const newContent = before + mention + after;
-    setContent(newContent);
+    const range = mentionRangeRef.current;
+    const el = richRef.current;
+    if (range && el) {
+      range.deleteContents();
+      const mentionNode = document.createTextNode(`@[${user.name}](${user.id}) `);
+      range.insertNode(mentionNode);
+      const after = document.createRange();
+      after.setStartAfter(mentionNode);
+      after.collapse(true);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(after);
+      el.focus();
+      setContent(serializeEditableToMarkdown(el));
+    }
     setMentionQuery(null);
-    setTimeout(() => {
-      const el = textareaRef.current;
-      if (el) {
-        const pos = before.length + mention.length;
-        el.selectionStart = pos;
-        el.selectionEnd = pos;
-        el.focus();
-      }
-    }, 0);
+    mentionRangeRef.current = null;
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -269,12 +371,16 @@ export function CreatePostForm({
     if (result.error) {
       toast.error(result.error);
     } else {
+      // The editor is uncontrolled contentEditable, so clearing `content` alone
+      // does not clear what's on screen: clear the DOM explicitly too.
+      if (richRef.current) richRef.current.innerHTML = "";
       setContent("");
       setTitle("");
       setKind(defaultLetter ? "letter" : "post");
       setImages([]);
       setPreviews([]);
       setPollOptions(null);
+      setFmt({ bold: false, italic: false, underline: false, strike: false });
       setMore(false);
       setSettled(false);
       setExpanded(defaultLetter);
@@ -286,13 +392,13 @@ export function CreatePostForm({
     setSubmitting(false);
   }
 
-  // The four inline formatting controls. Bold/italic/underline/strikethrough map
-  // to markdown wrappers that renderRichText (and the letter strip regex) handle.
-  const fmtButtons: { wrapper: string; icon: React.ReactNode; label: string }[] = [
-    { wrapper: "**", icon: <Bold className="h-4 w-4" />, label: "Bold" },
-    { wrapper: "*", icon: <Italic className="h-4 w-4" />, label: "Italic" },
-    { wrapper: "__", icon: <Underline className="h-4 w-4" />, label: "Underline" },
-    { wrapper: "~~", icon: <Strikethrough className="h-4 w-4" />, label: "Strikethrough" },
+  // The four inline formatting controls. Each maps to a live execCommand plus
+  // the fmt-state key that reports whether it's active at the current selection.
+  const fmtButtons: { key: keyof typeof fmt; command: string; icon: ReactNode; label: string }[] = [
+    { key: "bold", command: "bold", icon: <Bold className="h-4 w-4" />, label: "Bold" },
+    { key: "italic", command: "italic", icon: <Italic className="h-4 w-4" />, label: "Italic" },
+    { key: "underline", command: "underline", icon: <Underline className="h-4 w-4" />, label: "Underline" },
+    { key: "strike", command: "strikeThrough", icon: <Strikethrough className="h-4 w-4" />, label: "Strikethrough" },
   ];
 
   // The full editor surface. Shared by the collapsible feed composer and the
@@ -310,18 +416,29 @@ export function CreatePostForm({
         />
       )}
 
-      {/* The field, with ONE clean focus ring overlay. The textarea is `block` so
-          its wrapper carries no inline descender gap: the overlay's inset-0 box
-          traces the textarea's border box exactly on all four edges. */}
+      {/* The field, with ONE clean focus ring overlay. A contentEditable surface
+          (not a textarea) so Bold/Italic/etc. render live: execCommand applies a
+          real <b>/<i>/<u>/<s> to the selection, so raw "**" never shows on screen.
+          The overlay's inset-0 box traces the field's border box on all four edges. */}
       <div className="group relative rounded-[var(--radius)]">
-        <textarea
-          ref={textareaRef}
-          placeholder={effectivePlaceholder}
-          value={content}
-          onChange={(e) => handleContentChange(e.target.value)}
-          rows={isLetter ? 10 : 4}
-          maxLength={maxLen}
-          className="peer block w-full resize-none rounded-[var(--radius)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] text-foreground placeholder:text-muted-foreground focus:outline-none"
+        <div
+          ref={richRef}
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-multiline="true"
+          aria-label={isLetter ? "Write your letter" : "Write your post"}
+          data-empty={content.trim().length === 0 ? "true" : "false"}
+          data-placeholder={effectivePlaceholder}
+          onInput={handleRichInput}
+          onKeyUp={syncFmt}
+          onMouseUp={syncFmt}
+          onPaste={handlePaste}
+          style={{ minHeight: isLetter ? 260 : 96 }}
+          className={cn(
+            "peer block w-full resize-none whitespace-pre-wrap break-words rounded-[var(--radius)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] text-foreground outline-none",
+            "data-[empty=true]:before:pointer-events-none data-[empty=true]:before:text-muted-foreground data-[empty=true]:before:content-[attr(data-placeholder)]"
+          )}
         />
         {/* focus ring lives as an overlay so only opacity/transform animate, and
             there is never a stray second box behind the field */}
@@ -338,25 +455,38 @@ export function CreatePostForm({
         )}
       </div>
 
-      <div className="mt-2 space-y-2.5">
+      {/* Staged reveal: everything below the editor rises in as ONE block, on a
+          beat's delay after the field fades in, instead of snapping into place
+          while the tile is still expanding. */}
+      <motion.div
+        className="mt-2 space-y-2.5"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0, transition: { ...SPRINGS.settle, delay: 0.16 } }}
+      >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <motion.div
-            className="flex w-fit shrink-0 items-center gap-0.5 rounded-[10px] border border-border bg-secondary p-1"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...SPRINGS.settle, delay: 0.05 }}
-          >
+          {/* Formatting: plain icons, no boxed group. Active format highlights
+              canopy with a small underline dot; hover/idle colors unchanged. */}
+          <div className="flex w-fit shrink-0 items-center gap-0.5">
             {fmtButtons.map((b) => (
               <SpringPress
-                key={b.wrapper}
-                className="inline-grid h-7 w-7 place-items-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                onClick={() => wrapSelection(b.wrapper)}
-                {...({ type: "button", title: b.label, "aria-label": b.label } as object)}
+                key={b.key}
+                className={cn(
+                  "relative inline-grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  fmt[b.key] &&
+                    "text-canopy after:absolute after:bottom-1 after:left-1/2 after:h-[3px] after:w-[3px] after:-translate-x-1/2 after:rounded-full after:bg-canopy"
+                )}
+                onClick={() => applyFormat(b.command)}
+                {...({
+                  type: "button",
+                  title: b.label,
+                  "aria-label": b.label,
+                  "aria-pressed": fmt[b.key],
+                } as object)}
               >
                 {b.icon}
               </SpringPress>
             ))}
-          </motion.div>
+          </div>
 
           <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:flex-1 sm:justify-end">
             <input
@@ -379,24 +509,29 @@ export function CreatePostForm({
               {uploading ? "Uploading..." : "Photo"}
             </Button>
 
+            {/* "More" is now a plain, unboxed plus that opens a labelled menu
+                (icon + label rows), so it reads the same as the format icons
+                rather than a separate boxed control. */}
             <div className="relative">
               <SpringPress
-                className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-                  more
-                    ? "border-leaf/50 bg-accent text-foreground"
-                    : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                className={cn(
+                  "inline-grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  more && "bg-accent text-foreground"
+                )}
                 onClick={() => setMore((m) => !m)}
                 {...({
                   type: "button",
-                  "aria-label": "More post options",
+                  "aria-label": "Add to your post",
                   "aria-expanded": more,
                 } as object)}
               >
-                More
-                <ChevronDown
-                  className={`h-3.5 w-3.5 transition-transform ${more ? "rotate-180" : ""}`}
-                />
+                <motion.span
+                  className="inline-grid place-items-center"
+                  animate={{ rotate: more ? 45 : 0 }}
+                  transition={SPRINGS.snappy}
+                >
+                  <Plus className="h-4 w-4" />
+                </motion.span>
               </SpringPress>
 
               <AnimatePresence>
@@ -513,7 +648,7 @@ export function CreatePostForm({
             ))}
           </div>
         )}
-      </div>
+      </motion.div>
     </>
   );
 
@@ -567,16 +702,24 @@ export function CreatePostForm({
           onAnimationComplete={() => setSettled(expanded)}
           style={{ overflow: settled ? "visible" : "hidden" }}
         >
-          <button
+          {/* The pill's own opacity now runs on the SAME spring as the box height
+              (SPRINGS.gentle) instead of snapping instantly, so on collapse it
+              cross-fades in underneath the editor as the tile shrinks: one clock,
+              no children popping into place. `ring-inset` keeps the focus ring
+              fully inside the pill's bounds so its rounded caps are never cut off
+              by this wrapper's overflow-hidden clipping during expand/collapse. */}
+          <motion.button
             type="button"
             onClick={() => expand("post")}
             aria-hidden={expanded}
             tabIndex={expanded ? -1 : 0}
-            style={{ opacity: expanded ? 0 : 1, pointerEvents: expanded ? "none" : undefined }}
-            className="flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+            animate={{ opacity: expanded ? 0 : 1 }}
+            transition={SPRINGS.gentle}
+            style={{ pointerEvents: expanded ? "none" : undefined }}
+            className="flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 active:scale-[0.99]"
           >
             <span className="truncate">{collapsedPlaceholder}</span>
-          </button>
+          </motion.button>
 
           <AnimatePresence>
             {expanded && (
@@ -585,9 +728,8 @@ export function CreatePostForm({
                 ref={editorRef}
                 className="absolute inset-x-0 top-0"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.18 }}
+                animate={{ opacity: 1, transition: { duration: 0.18 } }}
+                exit={{ opacity: 0, transition: SPRINGS.gentle }}
               >
                 {editorBody}
               </motion.div>
