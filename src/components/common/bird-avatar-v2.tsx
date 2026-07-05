@@ -967,36 +967,65 @@ const ARCHES: Arche[] = [
     },
   },
   // 32 - PEREGRINE FALCON. Slate back, pale barred belly, dark hood + black moustache, hooked beak.
+  // Redrawn for a sleek/fast read: a long swept scythe wing that clears the body outline (the
+  // classic pointed-wing silhouette that reads "stoop", not a soaring eagle or forked kite), a
+  // tilted torpedo body instead of a ball, and a yellow eye-ring to match the raptor's colour pop.
   {
     name: "Peregrine Falcon",
     skip: [],
     draw: () => {
-      const SLATE = "#5C6E7E", SLATED = mix(SLATE, "#000", 0.22);
+      const SLATE = "#5C6E7E", SLATEL = mix(SLATE, "#fff", 0.18), SLATED = mix(SLATE, "#000", 0.24);
             const HOOD = "#3C4753", HOODL = mix(HOOD, "#5C6E7E", 0.4);
             const PALE = "#ECE7DA", BAR = mix(PALE, "#7E8488", 0.5);
-            const CERE = "#E2B43E", BEAK = "#4A4C52", MALAR = "#343C46";
+            const CERE = "#E2B43E", BEAK = "#3A3D42", MALAR = "#2E343D";
             return (
               <g>
-                {/* folded wing sweeping down-back: one blade with a rounded scallop trailing edge -
-                    the broad-shouldered raptor power-stance that breaks the plain circle */}
-                <path d="M54 50 Q31 47 19 61 Q14 69 21 71 Q28 67 34 69 Q31 75 37 75 Q44 69 50 69 Q56 61 57 53 Q56 49 54 50 Z" fill={SLATE} />
-                <path d="M24 58 Q35 58 45 63" stroke={SLATED} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.4" />
-                {/* tilted teardrop body (broad shoulders, tapering low) - not a plain ball */}
-                <ellipse cx="51" cy="57" rx="29" ry="30" fill={SLATE} transform="rotate(-10 51 57)" />
-                {/* clean pale breast: one smooth rounded panel up the front to the throat */}
-                <path d="M52 42 Q74 46 73 70 Q69 84 54 84 Q45 70 47 56 Q48 47 52 42 Z" fill={PALE} />
-                {/* simplified barred belly: just two faint short bars, kept crisp */}
-                <path d="M53 64 Q62 66 70 64" stroke={BAR} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5" />
-                <path d="M54 72 Q62 74 69 72" stroke={BAR} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.45" />
+                {/* long scythe wing, swept back and clearly past the body's edge - the single
+                    biggest "fast flier" cue in the set. Two soft scalloped bumps for feathers, tip
+                    rounded (never a needle, per the beak-sharpness ceiling). Kept inside the 0..100
+                    viewBox with margin after optical-centre scaling (an earlier, wider sweep put its
+                    tip at x<0 once scaled - the centroid script's screenshot-based bbox can't see
+                    clipped pixels, so it reported a false "converged"; verify with real math, not
+                    just the script, after touching this path or the torpedo-body ellipse below).
+                    Current containment (current archeTransform x:-0.14 y:-11.34 s:1.383), verified
+                    three ways after the 2026-07-05 wing/adjust pass: hand math on the raw path's
+                    control-point hull, an isolated centroid.mjs-style pixel/alpha-mass measurement
+                    of just this glyph, and a grow-the-viewBox-and-pixel-diff check (render once
+                    clipped, once with the viewBox padded out, diff for newly-visible pixels) - all
+                    three agree the full glyph (wing + torpedo body) sits inside x:[4.2,91.2]
+                    y:[6.2,96.8], reach 46.8 of the 50 cap. If re-checking, do NOT trust
+                    getBoundingClientRect()/getBBox() on the transformed <g> alone: for a rotated
+                    child (the ellipse below has `transform="rotate(...)"`), both APIs report the
+                    bounding box of the UNROTATED box's corners rotated as a rigid rectangle, not the
+                    true rotated-ellipse extent - that overshoot is exactly what produced the
+                    "clipped" false-positive here (it reported a bottom overflow that wasn't real).
+                    Cross-check with real pixels (a screenshot, or the padded-viewBox diff above)
+                    before believing a DOM-measured clip on any archetype that rotates an ellipse. */}
+                <path d="M57 48 Q43 42 29 46 Q18 49 17 60 Q23 63 28 59 Q26 65 31 67 Q38 63 40 57 Q42 62 46 62 Q51 57 52 51 Q54 49 57 48 Z" fill={SLATE} />
+                <path d="M30 50 Q38 49 45 53" stroke={SLATED} strokeWidth="1.7" fill="none" strokeLinecap="round" opacity="0.4" />
+                <path d="M25 56 Q32 55 38 59" stroke={SLATED} strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.3" />
+                {/* streamlined torpedo body: elongated + steeply tilted, tapering to the tail - a
+                    stooping lean instead of a plain round ball */}
+                <ellipse cx="49" cy="61" rx="22" ry="32" fill={SLATE} transform="rotate(-19 49 61)" />
+                {/* lit shoulder so the dark mass is not a flat void */}
+                <ellipse cx="59" cy="49" rx="10" ry="7.5" fill={SLATEL} opacity="0.5" transform="rotate(-24 59 49)" />
+                {/* clean pale breast: one smooth panel following the body's forward lean */}
+                <path d="M57 45 Q77 51 74 71 Q69 86 54 87 Q43 79 45 63 Q46 51 57 45 Z" fill={PALE} />
+                {/* barred belly: two short bars angled with the lean */}
+                <path d="M51 63 Q60 66 68 63" stroke={BAR} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5" />
+                <path d="M52 72 Q60 75 67 72" stroke={BAR} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.45" />
                 {/* slate HELMET hood: crown + nape as one wrapping shape (the peregrine signature) */}
                 <path d="M49 29 Q66 25 72 38 Q74 49 67 54 Q62 57 57 54 Q53 50 51 44 Q48 36 49 29 Z" fill={HOOD} />
                 <circle cx="58" cy="40" r="13.5" fill={HOOD} />
                 {/* lit crown sheen so the dark hood is not a flat void */}
                 <ellipse cx="55" cy="34" rx="8" ry="4.5" fill={HOODL} opacity="0.7" transform="rotate(-14 55 34)" />
+                {/* thin yellow eye-ring, the raptor colour pop (mirrors the Black Eagle's cere+eye) */}
+                <circle cx="61" cy="44" r="5.6" fill={CERE} opacity="0.85" />
                 {/* big pale cheek showing under the helmet - the eye sits HERE, on pale */}
                 <path d="M58 44 Q70 44 71 56 Q69 63 61 62 Q55 58 55 50 Q55 45 58 44 Z" fill={PALE} />
-                {/* ONE clean malar sideburn dropping below the eye through the cheek (rounded) */}
-                <path d="M62 47 Q65 55 63 61 Q61 63 60 61 Q59 55 60 48 Q60 46 62 47 Z" fill={MALAR} />
+                {/* bold black malar "sideburn" dropping from the eye - widened for a clearer
+                    signature mark against the pale cheek */}
+                <path d="M63 47 Q67 56 65 62 Q62 65 60 62 Q58 55 60 48 Q61 46 63 47 Z" fill={MALAR} />
                 {/* hooked beak: short stout yellow cere then a dark rounded hook (blunter than the chisel ceiling) */}
                 <path d="M66 42 Q71 41.6 71.5 45 Q71.5 47.4 66 47 Q65 44.5 66 42 Z" fill={CERE} />
                 <path d="M70 42.6 Q79 42.6 80 46.4 Q80 49.6 76.4 50 Q77.6 47.9 75.6 46.7 Q72.6 45.9 70 46.3 Q69 44.2 70 42.6 Z" fill={BEAK} />

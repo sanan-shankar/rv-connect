@@ -35,11 +35,17 @@ export const BIRD_POSE_COUNT = 4;
 
 /**
  * Manual species pins by user id, until a settings UI lets members pick their own bird.
- * The site owner is the Common Hoopoe (#0) — the valley's signature bird.
- * (For production this should migrate to an avatarSpecies column; ids differ per database.)
+ * The owner (the account matching ADMIN_EMAIL in .env.local) is pinned to the Indian Roller (#3)
+ * so their personal avatar reads distinctly from the Hoopoe, which stays reserved for the app's
+ * flying mascot rather than doubling as anyone's member identity (see docs/spec/mascot.md, "Open
+ * follow-ups").
+ * (For production this should migrate to an avatarSpecies column; ids differ per database, so the
+ * seed-demo id below is kept for the local demo-seed flow and the production id was resolved once
+ * against the live database for the ADMIN_EMAIL account.)
  */
 export const SPECIES_PINS: Record<string, number> = {
-  cmmz0vvws0000ynsg3ueb9scp: 0, // sanan (owner) -> Hoopoe
+  cmmz0vvws0000ynsg3ueb9scp: 3, // seed-demo owner -> Indian Roller
+  cmr1uahuj000004jx4dc4p8co: 3, // production owner (ADMIN_EMAIL) -> Indian Roller
 };
 
 /** FNV-1a 32-bit hash. Stable across runtimes, good spread for short strings like ids. */
