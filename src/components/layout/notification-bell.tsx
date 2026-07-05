@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Bell } from "lucide-react";
+import { Check, Bell, HelpCircle, PenLine, Clock, BookOpen, Heart } from "lucide-react";
 import { motion } from "motion/react";
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import {
 } from "@/app/(main)/notifications/actions";
 import { useRouter } from "next/navigation";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
+import type { CatchupNotifyKind } from "@/lib/catchups-types";
 
 interface NotificationBellProps {
   initialUnreadCount: number;
@@ -32,6 +33,24 @@ interface Notification {
   link: string | null;
   read: boolean;
   createdAt: string;
+}
+
+/**
+ * Catch-ups notification type -> icon/label mapping (spec section 5). Every
+ * other `Notification.type` (the pre-existing "like" | "comment" | "reply" |
+ * "admin", and anything future) stays unmapped and falls back to the plain
+ * `Bell` glyph below, so this addition never changes how those already read.
+ */
+const CATCHUP_NOTIFICATION_META: Partial<Record<CatchupNotifyKind, { icon: typeof Bell; label: string }>> = {
+  catchup_questions_open: { icon: HelpCircle, label: "Questions open" },
+  catchup_answers_open: { icon: PenLine, label: "Answers open" },
+  catchup_reminder: { icon: Clock, label: "Reminder" },
+  catchup_published: { icon: BookOpen, label: "Round published" },
+  catchup_love: { icon: Heart, label: "Loved your answer" },
+};
+
+function notificationIcon(type: string): typeof Bell {
+  return CATCHUP_NOTIFICATION_META[type as CatchupNotifyKind]?.icon ?? Bell;
 }
 
 export function NotificationBell({
@@ -209,20 +228,29 @@ function NotificationPanel({
             Loading...
           </div>
         )}
-        {notifications.map((notif) => (
-          <DropdownMenuItem
-            key={notif.id}
-            onClick={() => onClickNotification(notif)}
-            className={`flex-col items-start gap-0 px-3 py-2 ${
-              !notif.read ? "bg-leaf/5" : ""
-            }`}
-          >
-            <p className="text-sm text-foreground">{notif.message}</p>
-            <p className="text-xs text-muted-foreground">
-              {formatTimeAgo(new Date(notif.createdAt))}
-            </p>
-          </DropdownMenuItem>
-        ))}
+        {notifications.map((notif) => {
+          const Icon = notificationIcon(notif.type);
+          return (
+            <DropdownMenuItem
+              key={notif.id}
+              onClick={() => onClickNotification(notif)}
+              className={`items-start gap-2.5 px-3 py-2 ${!notif.read ? "bg-leaf/5" : ""}`}
+            >
+              <span
+                aria-hidden
+                className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground"
+              >
+                <Icon className="size-3.5" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <p className="text-sm text-foreground">{notif.message}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatTimeAgo(new Date(notif.createdAt))}
+                </p>
+              </span>
+            </DropdownMenuItem>
+          );
+        })}
       </div>
     </DropdownMenuContent>
   );
