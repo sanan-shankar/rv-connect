@@ -17,8 +17,20 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "secondaryCity" TEXT;
 -- Six brand-new empty tables for the Catch-ups feature. New names on purpose:
 -- they do not collide with the dead CatchupIssue/CatchupQuestion tables left by
 -- the old reverted build, so nothing here depends on Section 3.
+--
+-- IMPORTANT (found 2026-07-05 via live introspection): the old reverted build
+-- ALSO left physical "Catchup" and "CatchupPref" tables behind with columns
+-- that do NOT match this schema (legacy Catchup has "creatorId" not
+-- "createdById"; legacy CatchupPref has "optedOut boolean" not
+-- "reminderMode"). Naming the tables below "Catchup"/"CatchupPref" would be a
+-- silent no-op against those legacy tables (CREATE TABLE IF NOT EXISTS sees
+-- them and does nothing) and the app would keep reading/writing the wrong
+-- columns. So this section creates "CatchupSeries" / "CatchupReminderPref"
+-- instead; the Prisma models are still named Catchup/CatchupPref via
+-- `@@map(...)` in schema.prisma, so no app code changes. See
+-- docs/spec/catchups.md section 6 for the full writeup.
 
-CREATE TABLE IF NOT EXISTS "Catchup" (
+CREATE TABLE IF NOT EXISTS "CatchupSeries" (
   "id"          TEXT PRIMARY KEY,
   "groupId"     TEXT NOT NULL,
   "createdById" TEXT,
@@ -79,36 +91,36 @@ CREATE TABLE IF NOT EXISTS "CatchupEntryLove" (
   "entryId" TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS "CatchupPref" (
+CREATE TABLE IF NOT EXISTS "CatchupReminderPref" (
   "id"           TEXT PRIMARY KEY,
   "catchupId"    TEXT NOT NULL,
   "userId"       TEXT NOT NULL,
   "reminderMode" TEXT NOT NULL DEFAULT 'all'
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "Catchup_groupId_key"                 ON "Catchup" ("groupId");
-CREATE INDEX        IF NOT EXISTS "Catchup_status_nextOpensAt_idx"      ON "Catchup" ("status", "nextOpensAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "CatchupSeries_groupId_key"           ON "CatchupSeries" ("groupId");
+CREATE INDEX        IF NOT EXISTS "CatchupSeries_status_nextOpensAt_idx" ON "CatchupSeries" ("status", "nextOpensAt");
 CREATE UNIQUE INDEX IF NOT EXISTS "CatchupEdition_catchupId_number_key" ON "CatchupEdition" ("catchupId", "number");
 CREATE INDEX        IF NOT EXISTS "CatchupEdition_status_publishAt_idx" ON "CatchupEdition" ("status", "publishAt");
 CREATE INDEX        IF NOT EXISTS "CatchupPrompt_editionId_position_idx" ON "CatchupPrompt" ("editionId", "position");
 CREATE UNIQUE INDEX IF NOT EXISTS "CatchupEntry_promptId_authorId_key"  ON "CatchupEntry" ("promptId", "authorId");
 CREATE INDEX        IF NOT EXISTS "CatchupEntry_editionId_idx"          ON "CatchupEntry" ("editionId");
 CREATE UNIQUE INDEX IF NOT EXISTS "CatchupEntryLove_userId_entryId_key" ON "CatchupEntryLove" ("userId", "entryId");
-CREATE UNIQUE INDEX IF NOT EXISTS "CatchupPref_catchupId_userId_key"    ON "CatchupPref" ("catchupId", "userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "CatchupReminderPref_catchupId_userId_key" ON "CatchupReminderPref" ("catchupId", "userId");
 
 DO $$ BEGIN
-  ALTER TABLE "Catchup" ADD CONSTRAINT "Catchup_groupId_fkey"
+  ALTER TABLE "CatchupSeries" ADD CONSTRAINT "CatchupSeries_groupId_fkey"
     FOREIGN KEY ("groupId") REFERENCES "Group"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  ALTER TABLE "Catchup" ADD CONSTRAINT "Catchup_createdById_fkey"
+  ALTER TABLE "CatchupSeries" ADD CONSTRAINT "CatchupSeries_createdById_fkey"
     FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   ALTER TABLE "CatchupEdition" ADD CONSTRAINT "CatchupEdition_catchupId_fkey"
-    FOREIGN KEY ("catchupId") REFERENCES "Catchup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    FOREIGN KEY ("catchupId") REFERENCES "CatchupSeries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -147,20 +159,28 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  ALTER TABLE "CatchupPref" ADD CONSTRAINT "CatchupPref_catchupId_fkey"
-    FOREIGN KEY ("catchupId") REFERENCES "Catchup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  ALTER TABLE "CatchupReminderPref" ADD CONSTRAINT "CatchupReminderPref_catchupId_fkey"
+    FOREIGN KEY ("catchupId") REFERENCES "CatchupSeries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  ALTER TABLE "CatchupPref" ADD CONSTRAINT "CatchupPref_userId_fkey"
+  ALTER TABLE "CatchupReminderPref" ADD CONSTRAINT "CatchupReminderPref_userId_fkey"
     FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- SECTION 3 (optional, DESTRUCTIVE): drop the two dead tables -----------------
--- These are leftovers from the old reverted Catch-ups build (14 junk rows).
--- Nothing references them. Dropping them also makes `prisma db push` usable
--- again for future schema changes. Run when you are comfortable; nothing above
--- depends on it. Uncomment to run:
+-- SECTION 3 (optional, DESTRUCTIVE): drop the dead tables ---------------------
+-- Leftovers from the old reverted Catch-ups build: CatchupIssue/CatchupQuestion
+-- (the two originally flagged) PLUS Catchup/CatchupPref/CatchupAnswer/
+-- CatchupAnswerLove (found in the 2026-07-05 introspection above; Catchup has
+-- 3 rows, CatchupAnswer has 22, the rest are empty). Section 2 above no longer
+-- touches any of these six (it uses CatchupSeries/CatchupReminderPref
+-- instead), so nothing depends on this section. Dropping them also makes
+-- `prisma db push` usable again for future schema changes. Run when you are
+-- comfortable; check for content worth preserving first. Uncomment to run:
 --
 -- DROP TABLE IF EXISTS "CatchupQuestion" CASCADE;
 -- DROP TABLE IF EXISTS "CatchupIssue" CASCADE;
+-- DROP TABLE IF EXISTS "CatchupAnswerLove" CASCADE;
+-- DROP TABLE IF EXISTS "CatchupAnswer" CASCADE;
+-- DROP TABLE IF EXISTS "CatchupPref" CASCADE;
+-- DROP TABLE IF EXISTS "Catchup" CASCADE;

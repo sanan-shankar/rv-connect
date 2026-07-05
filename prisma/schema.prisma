@@ -64,6 +64,13 @@ model User {
   photos         Photo[]     @relation("PhotoUploader")
   approvedPhotos Photo[]     @relation("PhotoApprover")
   photoLoves     PhotoLove[]
+
+  // Catch-ups (the recurring group newsletter). Back-relations for the six Catchup* models.
+  catchupsKept    Catchup[]          @relation("CatchupsKept")
+  catchupPrompts  CatchupPrompt[]    @relation("CatchupPromptsAuthored")
+  catchupEntries  CatchupEntry[]     @relation("CatchupEntriesAuthored")
+  catchupLoves    CatchupEntryLove[] @relation("CatchupLoves")
+  catchupPrefs    CatchupPref[]      @relation("CatchupPrefs")
 }
 
 model Photo {
@@ -126,6 +133,7 @@ model Group {
   members  GroupMember[]
   posts    Post[]
   invites  GroupInvite[]
+  catchup  Catchup?
 
   @@index([visibility, createdAt])
 }
@@ -322,4 +330,132 @@ model CommentLike {
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commentId])
+}
+
+// ─── Catch-ups: the recurring per-group newsletter ───────────────────────────
+// Table names are chosen to NOT collide with the dead tables left by the
+// reverted build: CatchupEdition (not CatchupIssue) and CatchupPrompt (not
+// CatchupQuestion) are genuinely absent, no rename needed. BUT live DB
+// introspection (2026-07-05) found the reverted build ALSO left physical
+// "Catchup" and "CatchupPref" tables behind with THESE EXACT NAMES, and their
+// columns do not match this schema (legacy Catchup has `creatorId`, not
+// `createdById`; legacy CatchupPref has `optedOut boolean`, not
+// `reminderMode`). Without a rename, `prisma.catchup.*` / `prisma.catchupPref.*`
+// would silently read/write the wrong table (some queries "succeed" against
+// stale columns, others throw missing-column errors) instead of the intended
+// P2021 "table does not exist" pre-migration signal. `@@map` below points
+// these two models at fresh physical table names so the section 6.3 migration
+// SQL creates genuinely new tables; the Prisma Client property names
+// (`prisma.catchup`, `prisma.catchupPref`) are unchanged, so no app code
+// outside this file needs to change. See docs/spec/catchups.md section 6.
+// The legacy Catchup/CatchupPref/CatchupAnswer/CatchupAnswerLove/CatchupIssue/
+// CatchupQuestion tables are left untouched (contain leftover rows from the
+// reverted build); dropping them is a separate, optional owner action.
+
+model Catchup {
+  id          String    @id @default(cuid())
+  groupId     String    @unique
+  createdById String?                       // the Keeper; nullable so the Catch-up survives if they leave
+  title       String?                       // optional custom name; UI falls back to "{group} Catch-ups"
+  intro       String?                       // one-line description on the home
+  cadence     String    @default("monthly") // "biweekly" | "monthly" | "quarterly"
+  status      String    @default("active")  // "active" | "paused" | "ended"
+  nextOpensAt DateTime?                      // when the next Round auto-opens (recurring cadences)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  group     Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy User?            @relation("CatchupsKept", fields: [createdById], references: [id], onDelete: SetNull)
+  editions  CatchupEdition[]
+  prefs     CatchupPref[]
+
+  @@index([status, nextOpensAt])
+  @@map("CatchupSeries") // see collision note above; legacy "Catchup" table exists with incompatible columns
+}
+
+model CatchupEdition {
+  id               String    @id @default(cuid())
+  catchupId        String
+  number           Int
+  theme            String?
+  status           String    @default("collecting") // draft|collecting|answering|preparing|published
+  questionsCloseAt DateTime?
+  answersCloseAt   DateTime?
+  publishAt        DateTime?                          // = answersCloseAt + 24h (the preparing ritual)
+  publishedAt      DateTime?
+  remindersSent    Int       @default(0)              // bitmask: 1=two-days, 2=last-day, 4=extended-once
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  catchup Catchup         @relation(fields: [catchupId], references: [id], onDelete: Cascade)
+  prompts CatchupPrompt[]
+  entries CatchupEntry[]
+
+  @@unique([catchupId, number])
+  @@index([status, publishAt])
+}
+
+model CatchupPrompt {
+  id        String   @id @default(cuid())
+  editionId String
+  authorId  String                          // always stored, even when shown anonymously
+  text      String
+  category  String?                          // library set id (e.g. "valley-days") or null for custom
+  source    String   @default("member")     // "library" | "member" | "keeper"
+  showAsker Boolean  @default(true)          // false = submitted anonymously
+  accepted  Boolean  @default(false)         // curated into the Round by the Keeper
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  edition CatchupEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  author  User           @relation("CatchupPromptsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+  entries CatchupEntry[]
+
+  @@index([editionId, position])
+}
+
+model CatchupEntry {
+  id        String   @id @default(cuid())
+  editionId String                          // denormalized for fast whole-Round reads
+  promptId  String
+  authorId  String
+  body      String?
+  images    String?                          // JSON array of R2 urls (reuse /api/upload)
+  songUrl   String?
+  songTitle String?
+  songArt   String?                          // Spotify oembed thumbnail_url
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  edition CatchupEdition    @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  prompt  CatchupPrompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  author  User              @relation("CatchupEntriesAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+  loves   CatchupEntryLove[]
+
+  @@unique([promptId, authorId])
+  @@index([editionId])
+}
+
+model CatchupEntryLove {
+  id      String @id @default(cuid())
+  userId  String
+  entryId String
+
+  user  User         @relation("CatchupLoves", fields: [userId], references: [id], onDelete: Cascade)
+  entry CatchupEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entryId])
+}
+
+model CatchupPref {
+  id           String @id @default(cuid())
+  catchupId    String
+  userId       String
+  reminderMode String @default("all")       // "all" | "last" | "off"
+
+  catchup Catchup @relation(fields: [catchupId], references: [id], onDelete: Cascade)
+  user    User    @relation("CatchupPrefs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([catchupId, userId])
+  @@map("CatchupReminderPref") // see collision note above; legacy "CatchupPref" table has `optedOut boolean`, not `reminderMode`
 }
