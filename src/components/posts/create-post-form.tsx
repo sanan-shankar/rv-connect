@@ -87,7 +87,7 @@ export function CreatePostForm({
     if (startKind) setKind(startKind);
     setSettled(false);
     setExpanded(true);
-    setTimeout(() => textareaRef.current?.focus(), 0);
+    setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 0);
   }
 
   // Collapse back to the resting pill, closing any open popovers. Letters
