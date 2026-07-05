@@ -25,8 +25,21 @@ export async function adminDeleteUser(userId: string) {
     return { error: "Not authorized" };
   }
 
-  await prisma.user.delete({ where: { id: userId } });
+  try {
+    // Report.reporterId is intentionally not a cascading relation (a filed
+    // report should normally outlive the person who filed it), but that
+    // means the FK is RESTRICT: deleting a user who has ever filed a report
+    // throws and the whole delete rolls back silently. Clear their filed
+    // reports first; reports filed against them already cascade.
+    await prisma.report.deleteMany({ where: { reporterId: userId } });
+    await prisma.user.delete({ where: { id: userId } });
+  } catch (err) {
+    console.error("adminDeleteUser failed:", err);
+    return { error: "Could not delete this user. Check the server log." };
+  }
+
   revalidatePath("/directory");
+  revalidatePath("/admin");
   return { success: true };
 }
 
@@ -84,7 +97,7 @@ export async function adminUnverifyUser(userId: string) {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { verifyState: "pending", verifyMethod: null, verifiedAt: null },
+    data: { verifyState: "unverified", verifyMethod: null, verifiedAt: null },
   });
 
   revalidatePath("/admin");
