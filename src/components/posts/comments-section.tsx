@@ -273,8 +273,10 @@ export function CommentsSection({
         height: 0,
         opacity: 0,
         transition: {
-          height: { duration: 0.26, ease: "easeInOut" },
-          opacity: { duration: 0.16, ease: "easeOut" },
+          // Noticeably slower than the open (owner feedback: close read as an abrupt snap).
+          // Open timing (SPRINGS.gentle below) is untouched.
+          height: { duration: 0.55, ease: "easeInOut" },
+          opacity: { duration: 0.32, ease: "easeOut" },
         },
       }}
       transition={{
@@ -328,7 +330,12 @@ function CommentItem({
           <PersonName user={comment.author} className="mr-1.5 align-baseline" />
           {comment.content}
         </p>
-        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+        {/* -mt-1.5 cancels leading-relaxed's own bottom half-leading on the name/content line
+            above (an invisible ~5-6px the line box carries below the glyphs), so the avatar +
+            name + time read as one tight unit instead of the row sitting low. h-5 matches
+            LoveButton's own resting height (see the [&>span] override below) so the row never
+            needs to fight or clip its child. */}
+        <div className="-mt-1.5 flex h-5 items-center gap-3 text-xs text-muted-foreground">
           <span>{formatTimeAgo(new Date(comment.createdAt))}</span>
           <button
             onClick={onReply}
@@ -342,7 +349,16 @@ function CommentItem({
             onToggle={handleLike}
             size="sm"
             showCount={comment.likeCount > 0}
-            className="-ml-1 font-medium"
+            /* LoveButton's count `<span>` is plain text, so it inherits text-sm's 20px
+               line-height while the icon-only span next to it sizes to the 12px heart glyph.
+               That mismatch made the WHOLE BUTTON (an `items-center` flex row) grow ~8px the
+               instant a like made the count mount, which grew this row (and the comment) on
+               like, and previously required an under-sized h-5 clamp that let the button's own
+               hover pill / focus ring bleed upward into the text above. Pinning both of the
+               button's direct-child spans to a 12px line box (matching the icon's actual
+               height) makes the button genuinely 20px tall (12px content + 4px+4px py-1
+               padding) in EITHER state, so nothing needs to be clamped or can overflow. */
+            className="-ml-1 font-medium [&>span]:leading-[12px]"
           />
         </div>
       </div>
