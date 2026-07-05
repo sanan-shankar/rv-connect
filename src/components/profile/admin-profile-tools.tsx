@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Shield, Ban, Trash2, StickyNote } from "lucide-react";
+import { Shield, Ban, Trash2, StickyNote, BadgeCheck, BadgeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -9,31 +9,41 @@ import {
   adminBlockUser,
   adminDeleteUser,
   adminUpdateNote,
+  adminVerifyUser,
+  adminUnverifyUser,
 } from "./admin-actions";
 
 export function AdminProfileTools({
   userId,
   isBlocked,
   adminNote,
+  verifyState,
 }: {
   userId: string;
   isBlocked: boolean;
   adminNote: string | null;
+  verifyState: string;
 }) {
   const [note, setNote] = useState(adminNote || "");
   const [blocked, setBlocked] = useState(isBlocked);
+  const [verified, setVerified] = useState(verifyState === "verified");
+  const [verifying, setVerifying] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function handleBlock() {
     const action = blocked ? "unblock" : "block";
     if (!confirm(`Are you sure you want to ${action} this user?`)) return;
 
-    const result = await adminBlockUser(userId, !blocked);
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      setBlocked(!blocked);
-      toast.success(`User ${action}ed`);
+    try {
+      const result = await adminBlockUser(userId, !blocked);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        setBlocked(!blocked);
+        toast.success(`User ${action}ed`);
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
     }
   }
 
@@ -45,24 +55,62 @@ export function AdminProfileTools({
     )
       return;
 
-    const result = await adminDeleteUser(userId);
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("User deleted");
-      window.location.href = "/directory";
+    try {
+      const result = await adminDeleteUser(userId);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("User deleted");
+        window.location.href = "/directory";
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
+  }
+
+  async function handleVerifyToggle() {
+    const action = verified ? "unverify" : "verify";
+    if (
+      !confirm(
+        verified
+          ? "Take back this member's verification? Their leaf mark disappears and they return to the review queue."
+          : "Verify this member manually?"
+      )
+    )
+      return;
+
+    setVerifying(true);
+    try {
+      const result = verified
+        ? await adminUnverifyUser(userId)
+        : await adminVerifyUser(userId, "admin_manual");
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        setVerified(!verified);
+        toast.success(action === "verify" ? "Member verified" : "Verification removed");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setVerifying(false);
     }
   }
 
   async function handleSaveNote() {
     setSaving(true);
-    const result = await adminUpdateNote(userId, note);
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("Note saved");
+    try {
+      const result = await adminUpdateNote(userId, note);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Note saved");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   return (
@@ -98,6 +146,20 @@ export function AdminProfileTools({
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleVerifyToggle}
+            disabled={verifying}
+            className={
+              verified
+                ? "rounded-full text-cinnamon hover:text-cinnamon"
+                : "rounded-full text-leaf hover:text-leaf"
+            }
+          >
+            {verified ? <BadgeX className="h-4 w-4" /> : <BadgeCheck className="h-4 w-4" />}
+            {verified ? "Unverify member" : "Verify member"}
+          </Button>
           <Button
             variant="outline"
             size="sm"

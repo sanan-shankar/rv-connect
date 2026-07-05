@@ -32,16 +32,24 @@ export function UserManagement({ users }: { users: UserRow[] }) {
   );
 
   async function handleBlock(userId: string, block: boolean) {
-    const result = await adminBlockUser(userId, block);
-    if (result.error) toast.error(result.error);
-    else toast.success(block ? "User blocked" : "User unblocked");
+    try {
+      const result = await adminBlockUser(userId, block);
+      if (result.error) toast.error(result.error);
+      else toast.success(block ? "User blocked" : "User unblocked");
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
   }
 
   async function handleDelete(userId: string) {
     if (!confirm("Delete this user permanently?")) return;
-    const result = await adminDeleteUser(userId);
-    if (result.error) toast.error(result.error);
-    else toast.success("User deleted");
+    try {
+      const result = await adminDeleteUser(userId);
+      if (result.error) toast.error(result.error);
+      else toast.success("User deleted");
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
   }
 
   return (

@@ -344,7 +344,12 @@ export default async function ProfilePage({
       </section>
 
       {isAdmin && !isOwnProfile && (
-        <AdminProfileTools userId={user.id} isBlocked={user.isBlocked} adminNote={user.adminNote} />
+        <AdminProfileTools
+          userId={user.id}
+          isBlocked={user.isBlocked}
+          adminNote={user.adminNote}
+          verifyState={user.verifyState}
+        />
       )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_290px]">

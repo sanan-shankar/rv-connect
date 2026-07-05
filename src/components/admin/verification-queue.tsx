@@ -35,10 +35,15 @@ export function VerificationQueue({ users }: { users: PendingUser[] }) {
 
   async function verify(id: string) {
     setBusy(id);
-    const result = await adminVerifyUser(id, "office_list");
-    setBusy(null);
-    if (result.error) toast.error(result.error);
-    else toast.success("Verified");
+    try {
+      const result = await adminVerifyUser(id, "office_list");
+      if (result.error) toast.error(result.error);
+      else toast.success("Verified");
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   return (
