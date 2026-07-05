@@ -11,7 +11,7 @@ import { SignupForm } from "@/components/auth/signup-form";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
-import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
+import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
 import { reportPerch, onHandoff, FLIGHT_FLAG } from "@/components/mascot/mascot-flight";
@@ -126,13 +126,7 @@ export default function SignupPage() {
           className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:left-16"
           style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
         >
-          <PeaksMark size={WORDMARK_LOGO_SIZE} className="text-white" />
-          <span
-            className="block font-heading font-bold tracking-tight"
-            style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
-          >
-            Rishi Valley
-          </span>
+          <Wordmark markClassName="text-white" textClassName="block" />
         </Link>
       </div>
 
@@ -140,7 +134,7 @@ export default function SignupPage() {
           gentle spring while the photo half stays anchored (lateral pass from the
           landing), the way /login does. The hoopoe sits above the steps and stays
           mounted across the trivia -> register swap; only the step content crossfades. */}
-      <div className="flex min-h-screen flex-col bg-background px-6 py-8">
+      <div className="flex min-h-screen flex-col bg-background px-[var(--space-l)] py-[var(--space-l)]">
         <Link
           href="/"
           className="inline-flex items-center gap-1 self-start rounded-sm text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
