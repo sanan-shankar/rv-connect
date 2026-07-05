@@ -20,11 +20,11 @@ export function Footer() {
             Rishi Valley School
             <ExternalLink className="h-3 w-3" />
           </a>
-          <span className="dotsep hidden sm:inline">·</span>
+          <span className="dotsep" aria-hidden="true">·</span>
           <Link href="/support" className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors duration-150">
             Support
           </Link>
-          <span className="dotsep hidden sm:inline">·</span>
+          <span className="dotsep" aria-hidden="true">·</span>
           {/* Combined bug reports + feature requests. Opens the Tally form as a
               centered modal; the href is a graceful fallback to the hosted form
               if the embed script has not loaded yet (the embed calls
