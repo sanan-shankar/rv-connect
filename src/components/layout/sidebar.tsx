@@ -38,7 +38,7 @@ import { NAV_MARKER_SPRING } from "@/components/common/motion";
 import { IdentityRow } from "@/components/common/identity-row";
 import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
-import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "./peaks-mark";
+import { Wordmark } from "./peaks-mark";
 
 export interface SidebarUser {
   id: string;
@@ -76,17 +76,12 @@ function Brand({
       onClick={onNavigate}
       className={`flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98] ${className}`}
     >
-      <PeaksMark
-        size={WORDMARK_LOGO_SIZE}
+      <Wordmark
         variant="two-plane"
-        className="shrink-0 text-sidebar-foreground"
+        className="min-w-0"
+        markClassName="shrink-0 text-sidebar-foreground"
+        textClassName="min-w-0 truncate text-sidebar-foreground"
       />
-      <span
-        className="min-w-0 truncate font-heading font-bold tracking-tight text-sidebar-foreground"
-        style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
-      >
-        Rishi Valley
-      </span>
     </Link>
   );
 }
