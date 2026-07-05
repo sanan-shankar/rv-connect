@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
+import { PeaksMark, Wordmark } from "@/components/layout/peaks-mark";
 
 /**
  * Closing CTA band plus a low-key footer. Server-rendered: the ask and the links
@@ -37,13 +37,7 @@ export function LandingFooter() {
       <div className="border-t border-border/70">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-7 text-[13px] text-muted-foreground sm:flex-row">
           <div className="flex items-center gap-2.5">
-            <PeaksMark size={WORDMARK_LOGO_SIZE} variant="light" />
-            <span
-              className="font-heading font-bold tracking-tight text-foreground"
-              style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
-            >
-              Rishi Valley
-            </span>
+            <Wordmark variant="light" textClassName="text-foreground" />
           </div>
           <p>A space for the Rishi Valley community to stay connected.</p>
         </div>

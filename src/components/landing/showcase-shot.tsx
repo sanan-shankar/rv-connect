@@ -50,9 +50,8 @@ export function ShowcaseShot({
         className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
       >
         {/* Faux in-app top bar. Sized in em off a cqw-driven font-size so the bar
-            stays a constant fraction of the shot at every width. That keeps the
-            shot's internal proportions identical desktop-to-mobile, so the
-            annotation arrows (positioned in %) land on the same spot at both. */}
+            stays a constant fraction of the shot at every width, keeping the
+            shot's internal proportions identical desktop-to-mobile. */}
         <div
           className="flex items-center gap-[0.7em] border-b border-border bg-card px-[1.1em] py-[0.72em]"
           style={{ fontSize: "clamp(7.5px, 2.35cqw, 11px)" }}

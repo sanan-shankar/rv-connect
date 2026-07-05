@@ -7,8 +7,6 @@ import { TrustSection } from "@/components/landing/trust-section";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { AmbientLeaves } from "@/components/landing/ambient-leaves";
 import { PerchingBirds } from "@/components/landing/perching-birds";
-import { ScrollHoopoe } from "@/components/landing/scroll-hoopoe";
-import { Annotation, type ArrowSpec } from "@/components/landing/annotation";
 import { SectionReveal } from "@/components/landing/section-reveal";
 import { SHOTS } from "@/components/landing/shots";
 
@@ -27,43 +25,17 @@ function Shot({ name, alt }: { name: keyof typeof SHOTS; alt: string }) {
   );
 }
 
-/* Three hand-drawn arrows, spread across the page (not on every section). Each
-   unfurls on scroll and points from a margin note to one real thing in a shot:
-   a bird avatar, the poll, the contribute button. Geometry is tuned against the
-   captured shots; see the shot images in public/images/landing. */
-const ARROW_TO_AVATAR: ArrowSpec = {
-  viewBox: "0 0 132 104",
-  d: "M120 96 C 96 74, 110 52, 74 48 C 50 45, 44 34, 30 14",
-  head: "M30 14 L 45 20 M30 14 L 27 31",
-  className: "bottom-full right-1 mb-1 w-[24cqw]",
-};
-
-const ARROW_TO_POLL: ArrowSpec = {
-  viewBox: "0 0 150 80",
-  d: "M138 58 C 102 54, 118 34, 66 36 C 44 37, 32 40, 16 44",
-  head: "M16 44 L 33 38 M16 44 L 27 55",
-  className: "right-full top-1 mr-1 w-[27cqw]",
-};
-
-const ARROW_TO_CONTRIBUTE: ArrowSpec = {
-  viewBox: "0 0 92 116",
-  d: "M56 104 C 36 82, 66 62, 46 40 C 40 32, 44 24, 46 12",
-  head: "M46 12 L 35 25 M46 12 L 57 23",
-  className: "bottom-full right-5 mb-1 w-[16cqw]",
-};
-
 export default function LandingPage() {
   return (
     <div className="bg-background">
       <LandingNav />
 
-      {/* Page-wide ambient life: sparse falling (tappable) leaves, hop-physics
-          birds on the showcase frames, and the one hoopoe as a scroll companion.
-          All are fixed layers that stay clear of the hero and never block the
-          page (pointer-events pass through, except on the leaves themselves). */}
+      {/* Page-wide ambient life: sparse falling (tappable) leaves and hop-physics
+          birds on the showcase frames. Both are fixed layers that stay clear of
+          the hero and never block the page (pointer-events pass through, except
+          on the leaves themselves). */}
       <AmbientLeaves />
       <PerchingBirds />
-      <ScrollHoopoe />
 
       <LandingHero />
 
@@ -73,7 +45,7 @@ export default function LandingPage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-cinnamon">
             What is inside
           </p>
-          <h2 className="mx-auto mt-3 max-w-[24ch] font-heading text-3xl font-bold tracking-[-0.03em] text-foreground text-balance sm:text-[2.6rem] sm:leading-[1.08]">
+          <h2 className="mx-auto mt-3 max-w-[24ch] font-heading text-3xl font-bold leading-[1.3] tracking-[-0.03em] text-foreground text-balance sm:text-[2.6rem]">
             The valley scattered everyone. This is where they find each other.
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-[15.5px] leading-[1.7] text-muted-foreground text-balance">
@@ -96,13 +68,8 @@ export default function LandingPage() {
           ]}
           accent="blue"
           visual={
-            <div className="relative @container">
+            <div className="relative">
               <Shot name="directory" alt="The directory: a grid of people, each with a bird for an avatar." />
-              <Annotation
-                caption="the bird you get until you add a face"
-                className="bottom-[6%] right-[5%] w-[30cqw] text-right"
-                arrow={ARROW_TO_AVATAR}
-              />
             </div>
           }
         />
@@ -115,13 +82,8 @@ export default function LandingPage() {
           accent="leaf"
           reverse
           visual={
-            <div className="relative @container">
+            <div className="relative">
               <Shot name="feed" alt="The feed: posts from the valley, one after another down the page." />
-              <Annotation
-                caption="settle it with a poll"
-                className="top-[45%] right-[2.5%] w-[20cqw] text-right"
-                arrow={ARROW_TO_POLL}
-              />
             </div>
           }
         />
@@ -161,13 +123,8 @@ export default function LandingPage() {
             body="Photographs going back decades. The banyan before the storm took the far branch. Choir on the assembly steps. Founders' Week, class by class. The light coming off Rishikonda at six in the morning."
             accent="cinnamon"
             visual={
-              <div className="relative @container">
+              <div className="relative">
                 <Shot name="collection" alt="The Valley Collection, a shared archive of valley photographs." />
-                <Annotation
-                  caption="add the ones only you still have"
-                  className="top-[30%] right-[3%] w-[24cqw] text-right"
-                  arrow={ARROW_TO_CONTRIBUTE}
-                />
               </div>
             }
           />

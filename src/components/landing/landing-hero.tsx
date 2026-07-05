@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import { ChevronDown } from "lucide-react";
-import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
+import { Wordmark } from "@/components/layout/peaks-mark";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { SPRINGS, EASE_SPRING } from "@/components/common/motion";
@@ -278,15 +278,7 @@ export function LandingHero() {
         style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
         variants={brandVariants}
       >
-        <div className="flex items-center gap-2.5">
-          <PeaksMark size={WORDMARK_LOGO_SIZE} className="text-white" />
-          <span
-            className="block font-heading font-bold tracking-tight text-white"
-            style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
-          >
-            Rishi Valley
-          </span>
-        </div>
+        <Wordmark markClassName="text-white" textClassName="block text-white" />
       </motion.div>
 
       {/* Headline + actions (the middle block that slides out on the exit) */}
