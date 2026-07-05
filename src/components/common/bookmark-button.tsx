@@ -105,7 +105,7 @@ export function BookmarkButton({
             d="M5 4 H35 V52 L20 42 L5 52 Z"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.4"
+            strokeWidth="4"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
