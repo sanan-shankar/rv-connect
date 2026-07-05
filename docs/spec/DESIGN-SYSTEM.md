@@ -69,6 +69,16 @@ Live values in `globals.css`. Surfaces are **never pure white** (`#FFFFFF` is re
 
 - Parked (`forcedTheme="light"`). Leave the scaffold; revisit later.
 
+### Feature label accents
+
+The owner likes the small uppercase eyebrow labels on the landing page's feature sections
+(`FeatureSection`'s `eyebrow` prop, e.g. "The Directory", "The Feed") in these three colours for
+small-label use — a good default rotation whenever a short label needs a colour accent:
+
+- Sky `#3F7CA6` — Directory
+- Leaf `#1F8A4C` — Feed, Catch-ups
+- Cinnamon `#C2622F` — Letters, The Valley Collection
+
 ---
 
 ## 3. Shape & radii
