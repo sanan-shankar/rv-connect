@@ -180,6 +180,20 @@ export function letterTitle(
 }
 
 /**
+ * Plain-text excerpt of a post/letter body: markdown syntax stripped,
+ * whitespace collapsed, truncated to `maxLen` characters. Used by the feed
+ * rail's Letters module for its compact teaser.
+ */
+export function plainExcerpt(content: string, maxLen = 160): string {
+  const plain = content
+    .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (plain.length <= maxLen) return plain
+  return plain.slice(0, maxLen).trimEnd() + "..."
+}
+
+/**
  * Render rich text: sanitize HTML, then apply markdown-style bold/italic/
  * underline/strikethrough and @[Name](userId) mentions.
  */
