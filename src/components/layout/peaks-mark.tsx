@@ -15,7 +15,9 @@
  * sidebar's own edge. Every lockup on the site (sidebar, landing hero,
  * landing nav, landing footer, /login, /signup) uses this same font size
  * and mark size so the brand reads as one fixed logotype at every scale,
- * not a wordmark that grows with the canvas.
+ * not a wordmark that grows with the canvas. Use the `Wordmark` component
+ * below to render the pairing; it carries the pair's optical nudges so
+ * they only ever need tuning in one place.
  */
 export const WORDMARK_LOGO_SIZE = 24;
 export const WORDMARK_FONT_SIZE = 18;
@@ -112,5 +114,45 @@ export function PeaksMark({
         />
       )}
     </svg>
+  );
+}
+
+/**
+ * The mark paired with "Rishi Valley", used everywhere the two appear
+ * together (sidebar, landing nav/hero/footer, /login, /signup). Centralized
+ * here so the one hairline optical correction - the pairing sits a couple
+ * px left and the wordmark's baseline sits a touch high of where they read
+ * best - only ever needs tuning in this one place. Both nudges are
+ * transforms (paint-only), so they never reflow layout or disturb a
+ * surrounding flex row's other children.
+ */
+export function Wordmark({
+  size = WORDMARK_LOGO_SIZE,
+  fontSize = WORDMARK_FONT_SIZE,
+  variant = "solid",
+  markClassName = "",
+  textClassName = "",
+  className = "",
+}: {
+  size?: number;
+  fontSize?: number;
+  variant?: "two-plane" | "light" | "outline" | "solid";
+  markClassName?: string;
+  textClassName?: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2.5 ${className}`}
+      style={{ transform: "translateX(3px)" }}
+    >
+      <PeaksMark size={size} variant={variant} className={markClassName} />
+      <span
+        className={`font-heading font-bold tracking-tight ${textClassName}`}
+        style={{ fontSize, lineHeight: 1, transform: "translateY(2px)" }}
+      >
+        Rishi Valley
+      </span>
+    </span>
   );
 }
