@@ -64,7 +64,11 @@ type Leaf =
   | { kind: "cluster"; x: number; y: number; count: number; cities: number; clusterId: number };
 
 const MIN_Z = 1;
-const MAX_Z = 8;
+// Cities are only located at city-level precision, so this stays a "close
+// enough" cap rather than street-level zoom. Bumped from 8 -> 12 (~one more
+// +/- step) so two nearby cities (e.g. Chennai and Bangalore) can pull apart
+// instead of crowding at the old ceiling.
+const MAX_Z = 12;
 
 function sqrtRadius(count: number, max: number) {
   // Area proportional to count, so a 200-count city is not 200x the diameter.

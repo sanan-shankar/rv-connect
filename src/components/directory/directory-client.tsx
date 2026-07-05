@@ -278,16 +278,16 @@ export function DirectoryClient({
           <button
             key={v}
             onClick={() => setBrowseView(v)}
-            className={`relative rounded-full px-4 py-1.5 text-[13px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+            className={`relative rounded-full px-4 py-1.5 text-[13px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] ${
               browseView === v
-                ? "text-white"
+                ? "text-canopy"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {browseView === v && (
               <motion.span
                 layoutId="directoryViewThumb"
-                className="absolute inset-0 z-0 rounded-full bg-canopy"
+                className="absolute inset-0 z-0 rounded-full border-[1.5px] border-canopy bg-background"
                 transition={SPRINGS.snappy}
               />
             )}
