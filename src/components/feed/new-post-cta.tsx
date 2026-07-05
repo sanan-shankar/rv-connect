@@ -4,18 +4,15 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
- * NewPostCTA: the header primary action on the feed. Brings the composer into
- * view and focuses it. The composer (FeedColumn) exposes itself via the
- * `data-composer` attribute so this stays decoupled from its internals.
+ * NewPostCTA: the header primary action on the feed. Opens/focuses the
+ * composer wherever it already sits on the page -- it never moves the
+ * viewport. The composer (FeedColumn) exposes itself via the `data-composer`
+ * attribute so this stays decoupled from its internals.
  */
 export function NewPostCTA() {
   function focusComposer() {
     const el = document.querySelector<HTMLElement>("[data-composer]");
-    if (!el) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!el) return;
     const field = el.querySelector<HTMLElement>("textarea, [contenteditable], input");
     if (field) {
       field.focus({ preventScroll: true });
