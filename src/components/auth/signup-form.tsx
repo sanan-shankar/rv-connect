@@ -251,17 +251,30 @@ export function SignupForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
-      <div className="space-y-2">
-        <Label htmlFor="name">Full Name</Label>
-        <Input
-          id="name"
-          name="name"
-          placeholder="Your full name"
-          required
-          minLength={2}
-          autoFocus
-          onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 24))}
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">First name</Label>
+          <Input
+            id="firstName"
+            name="firstName"
+            placeholder="Your first name"
+            required
+            minLength={1}
+            autoFocus
+            onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lastName">Surname</Label>
+          <Input
+            id="lastName"
+            name="lastName"
+            placeholder="Your surname"
+            required
+            minLength={1}
+            onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -322,27 +335,31 @@ export function SignupForm({
         <Label>I am a...</Label>
         <div className="flex items-center gap-2">
           <div className="grid flex-1 grid-cols-2 gap-1.5 rounded-full border border-border bg-paper p-1">
-            {ACCOUNT_TYPES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setAccountType(t.value)}
-                className={`relative rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-                  accountType === t.value
-                    ? "text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {accountType === t.value && (
-                  <motion.span
-                    layoutId="signupAccountThumb"
-                    className="absolute inset-0 z-0 rounded-full bg-canopy"
-                    transition={SPRINGS.snappy}
-                  />
-                )}
-                <span className="relative z-10">{t.label}</span>
-              </button>
-            ))}
+            {ACCOUNT_TYPES.map((t) => {
+              const selected = accountType === t.value;
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setAccountType(t.value)}
+                  aria-pressed={selected}
+                  className={`relative rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                    selected
+                      ? "text-canopy"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {selected && (
+                    <motion.span
+                      layoutId="signupAccountThumb"
+                      className="absolute inset-0 z-0 rounded-full border border-canopy bg-canopy/10"
+                      transition={SPRINGS.snappy}
+                    />
+                  )}
+                  <span className="relative z-10">{t.label}</span>
+                </button>
+              );
+            })}
           </div>
           <InfoTip label="What if I used to teach?">
             Taught at Rishi Valley at any point? Choose Teacher, it includes
@@ -383,7 +400,7 @@ export function SignupForm({
                 name="yearLeft"
                 type="number"
                 inputMode="numeric"
-                placeholder="2021"
+                placeholder="2023"
                 min={1926}
                 max={currentYear + 1}
                 value={yearLeft}
@@ -411,16 +428,10 @@ export function SignupForm({
           <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
             <span>Joined before 4th grade?</span>
             <InfoTip label="Guidance for those who joined before 4th grade">
-              Rishi Valley batches count from 4th grade onward. Joined
-              earlier than that? Enter the year you started 4th grade, with
-              grade 4.
+              If you joined before 4th grade, enter the year you started 4th
+              grade and put the grade joined as 4.
             </InfoTip>
           </div>
-
-          <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-            When you joined, when you left, and the grade you started in. We work
-            out your batch from that, even if you left before 12th.
-          </p>
 
           <AnimatePresence mode="wait" initial={false}>
             {batch && (

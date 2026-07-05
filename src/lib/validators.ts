@@ -5,9 +5,14 @@ import { SUBJECT_VALUES, AREA_VALUES, ERA_VALUES } from "./collection";
 // left, grade joined) and the batch is derived server-side via
 // computeBatchFromSchooling. batchType/batchYear are outputs of that derivation,
 // not user-entered fields, so they are not part of this input schema.
+//
+// First name and surname are collected as two separate fields and joined with
+// a single space into the stored `name` (see registerUser), so each half is
+// validated and trimmed on its own here.
 export const signupSchema = z
   .object({
-    name: z.string().min(2, "Name must be at least 2 characters").max(100),
+    firstName: z.string().trim().min(1, "First name is required").max(50),
+    lastName: z.string().trim().min(1, "Surname is required").max(50),
     email: z.email("Please enter a valid email"),
     password: z.string().min(8, "Password must be at least 8 characters").max(128),
     accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).default("alumnus"),
@@ -26,6 +31,10 @@ export const signupSchema = z
     }
   );
 
+// Settings re-uses the same three schooling facts as sign-up (year joined,
+// year left, grade joined). batchType/batchYear are derived from them via
+// computeBatchFromSchooling in the settings server action, so, as with
+// signupSchema above, they are outputs and not part of this input schema.
 export const profileSchema = z.object({
   name: z.string().min(2).max(100),
   bio: z.string().max(1000).optional(),
@@ -36,10 +45,9 @@ export const profileSchema = z.object({
   instagram: z.string().max(100).optional(),
   linkedin: z.string().max(200).optional(),
   accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).optional(),
-  batchType: z.enum(["ICSE", "ISC"]).optional(),
-  batchYear: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
   yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
-  yearLeft: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
+  yearLeft: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
+  gradeJoined: z.number().int().min(1).max(12).optional(),
   admissionNumber: z.number().int().min(0).max(10000).optional(),
   taughtFrom: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
   taughtUntil: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
