@@ -5,14 +5,14 @@ import { motion } from "motion/react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
-import { PeaksMark, WORDMARK_LOGO_SIZE, WORDMARK_FONT_SIZE } from "@/components/layout/peaks-mark";
+import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, LOGIN_TRANSITION_FLAG } from "@/components/landing/hero-photo";
 import { reportPerch, onHandoff, FLIGHT_FLAG } from "@/components/mascot/mascot-flight";
@@ -24,18 +24,21 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [showPw, setShowPw] = useState(false);
 
-  // Play the sign-in form's lateral slide-in ONLY when we arrived via the
-  // landing "Sign in" transition, which sets this session flag right before it
-  // pushes here. Decide it before first paint via a lazy initializer so there
-  // is no flash: on the transition (a soft client navigation) the flag is
-  // present and the form animates in; on a direct visit / reload (a full SSR
-  // load) server and client both see no flag, so the form renders at rest
-  // (initial={false}) with no entry animation and no hydration mismatch.
+  // One-shot flag: the landing "Sign in" transition sets this session flag
+  // right before it pushes here, purely so the handoff machinery below can
+  // tell a genuine hero transition apart from every other arrival. Decide it
+  // before first paint via a lazy initializer so there is no flash: on the
+  // transition (a soft client navigation) the flag is present; on a direct
+  // visit / reload (a full SSR load) server and client both see no flag. The
+  // sign-in form's lateral slide-in itself now plays for BOTH cases (see the
+  // motion.div below) so ordinary arrivals get the same pleasant entrance
+  // /signup has always had, instead of just popping in.
   //
   // The read here is PURE (no clear): React Strict Mode double-invokes state
   // initializers in dev, so clearing inside it would wipe the flag on the first
   // call and make the second call (whose value React keeps) return false,
-  // killing the animation. We consume the one-shot flag in the effect below.
+  // silently breaking the hero-transition detection below. We consume the
+  // one-shot flag in the effect below instead.
   const [arrivedViaTransition] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -60,7 +63,9 @@ export default function LoginPage() {
   });
 
   // Consume the one-shot flag after mount so a later reload or a fresh direct
-  // visit within the same tab session does not replay the entry animation.
+  // visit within the same tab session does not mistake itself for a hero
+  // transition (the flag is otherwise unused now that the entrance below
+  // plays for every arrival, but this keeps it from lingering as stale state).
   useEffect(() => {
     if (!arrivedViaTransition) return;
     try {
@@ -243,26 +248,29 @@ export default function LoginPage() {
           className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:left-16"
           style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
         >
-          <PeaksMark size={WORDMARK_LOGO_SIZE} className="text-white" />
-          <span
-            className="block font-heading font-bold tracking-tight"
-            style={{ fontSize: WORDMARK_FONT_SIZE, lineHeight: 1 }}
-          >
-            Rishi Valley
-          </span>
+          <Wordmark markClassName="text-white" textClassName="block" />
         </Link>
       </div>
 
-      {/* Form half: warm panel, centered form. Arriving from the landing "Sign
-          in" slide, the content does a lateral pass: it slides in from the
-          right on the gentle spring while the photo half and its logo stay
-          anchored. On a direct visit or reload (no transition flag) it renders
-          at rest with no entry animation. Hydration-safe; no reduced-motion
-          branching per owner decision. */}
-      <div className="grid min-h-screen place-items-center bg-background px-6 py-10">
+      {/* Form half: warm panel with a top-left "Back" link (matches /signup)
+          and a centered form below it. The content always does a lateral pass
+          on mount: it slides in from the right on the gentle spring while the
+          photo half and its logo stay anchored, whether you arrived via the
+          landing "Sign in" slide or any other navigation (direct visit,
+          reload, back button). Hydration-safe; no reduced-motion branching per
+          owner decision. */}
+      <div className="flex min-h-screen flex-col bg-background px-[var(--space-l)] py-[var(--space-l)]">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 self-start rounded-sm text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Link>
+
         <motion.div
-          className="w-full max-w-[360px] text-center"
-          initial={arrivedViaTransition ? { opacity: 0, x: 48 } : false}
+          className="my-auto w-full max-w-[360px] self-center text-center"
+          initial={{ opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
           onAnimationComplete={reportPerchRect}
