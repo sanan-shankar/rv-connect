@@ -46,22 +46,54 @@ defaults.
 
 ## Controller (HoopoeApi)
 
-- Locomotion: `walk(steps, dir)`, `hop(count, dir)`, `flyTo(target)`, `land()`, `turn(dir | 0)`.
-- Gesture: `point(target | "left" | "right", { label, hold })`, `wave(times)`, `nod(times)`, `shake(times)`, `crest(open)`, `crestFlick()`.
-- Expression: `express(name, { hold })`, `celebrate(level 1 | 2 | 3)`, `blinkOnce(double)`.
+- Locomotion: `walk(steps, dir)`, `hop(count, dir)`, `flyTo(target)`, `flyIn(edge, target?)`, `land()`, `turn(dir | 0)`.
+- Gesture: `point(target | "left" | "right", { label, hold })`, `wave(times)`, `nod(times)`, `shake(times)`, `crest(open)`, `crestFlick()`, `preen()`, `peck()`.
+- Expression: `express(name, { hold })`, `celebrate(level 1 | 2 | 3)`, `blinkOnce(double)`, `sleep()`, `wake()`.
 - Continuous (not queued): `gaze(number | target)`, `coverEyes()`, `peek()`, `bindPassword(getRevealed)`.
 - Composition + control: `sequence(...steps)`, `react(event)`, `stop()`, `cancel()`, `rest()`, `isBusy()`.
 
 `Step` is a verb tuple (`["walk", 4, "right"]`), a thunk, `wait(ms)`, or `parallel(...steps)`.
 
-`Expression`: content, curious, happy, surprise, sad, sleepy, love, alert, proud, worried. Each is a
+`Expression`: content, curious, happy, surprise, sad, sleepy, love, alert, proud, worried, asleep. Each is a
 CHORD: crest spread + height, brows (height + angle + opacity), eye shape, bill open, head tilt, body lean,
 tail move together. The crest carries most of the emotion (full fan = surprise/alert, collapsed =
-sad/sleepy/worried, perked = curious). Brows are HIDDEN at rest (`brow.op` 0) and fade in only for the
+sad/sleepy/worried/asleep, perked = curious). Brows are HIDDEN at rest (`brow.op` 0) and fade in only for the
 emotional poses — visible rest brows were what made the old face read "strict / teacherly". There is no
 mouth and no cheek blush. `sad` vs `worried` are deliberately separated: `sad` uses NEGATIVE `brow.ang`
 (inner corners lift into a grief tent) + downcast gaze + a fully wilted crest; `worried` keeps a mild
-positive-ang furrow.
+positive-ang furrow. Per the owner's emotional guidance, bias every moment toward `happy`/`content`/`curious`;
+reach for `sad`/`worried`/`asleep` sparingly.
+
+`asleep` is a new, deeper cousin of `sleepy`: eyes fully SHUT (a near-flat lid, new `closed` eye shape) rather
+than sleepy's drowsy-but-open hooded curve, crest wilted further, head tucked down. It is paired with two new
+verbs, `sleep()` and `wake()` (both queued, both no-ops if already in that state): `sleep()` applies the
+`asleep` chord AND, unlike a plain `express("sleepy")`, also suspends the ambient idle loop (breathe/blink/
+sparkle/crest-flick) for as long as it holds — a resident bird meant to look genuinely asleep (e.g. a sidebar
+perch during a long idle stretch) shouldn't still be blinking and sparkling at random. `wake()` plays a small
+stretch (crest flick + a light wing shrug), returns to `content`, resumes the idle loop, then a soft
+double-blink as the eyes flutter open. An interrupted `sleep()` (`stop()`/`cancel()` mid-hold) releases the
+idle-loop suspension immediately, same as every other damper hold in the controller — it never wedges the
+bird's breathing off.
+
+`preen()` and `peck()` are small idle-life reactions with no dependency on tail/legs, so they work in both
+rig variants: `preen()` dips the bill into a wing (a random side each time) for a self-groom, ending with a
+`crestFlick`; `peck()` is a quick foraging lunge (head + body dip, bill snaps open then shut) followed by a
+happy little upward beat, as if it just caught something. Both are queued verbs like every other gesture.
+"Look around" and "a happy hop" (also mentioned in the moments catalogue) did not need new verbs — they
+compose from what already exists: a look-around is `gaze(-x)` → `gaze(x)` → `gaze(0)` (optionally paired with
+`turn`), and a happy hop is `hop()` alongside `express("happy")`.
+
+`flyIn(edge, target?)` is a same-mount off-canvas entrance for a spot with no CTA-click origin to launch a
+cross-page flight from (e.g. a small mobile auth panel with nothing to fly in FROM). `edge` is `"top"`
+(default), `"left"`, or `"right"`. It instantly (no animated travel) warps the puppet to just outside its own
+rendered box on that edge, already posed for flight, then runs the exact same cruise-and-land arc `flyTo`
+uses onto `target` (defaults to the rig's own rest anchor, i.e. wherever it is mounted). It shares its
+arc/landing math with `flyTo` via an internal `arcAndLand` helper so the two moves read identically; the only
+difference is `flyIn` skips `flyTo`'s ground-takeoff crouch, since the bird is meant to already be mid-flight
+the instant it appears. This is a same-component primitive, not a replacement for the cross-page
+`mascot-flight.ts` bus (`launchFlight`/`onLaunch`/`glide`/`perch`) — reach for that instead when the flight
+needs to survive a client navigation between routes (as the landing-to-login/signup button flight already
+does); reach for `flyIn` when the bird just needs to swoop onto a spot within one already-mounted page.
 
 `react(event)` is app-semantic sugar so feature code never touches bones: `correct`, `wrong`, `success`,
 `error`, `thinking`, `greet`, `idleBored`.
@@ -119,13 +151,24 @@ positive-ang furrow.
   peek-a-boo) while the password is hidden, peeks when revealed, and follows what you type in BOTH states
   (gaze fires on every keystroke of email + password; when covered the head still tracks behind the wings).
   Intro on `onReady`: peek + double-blink, then cover. Replaces the old `src/components/auth/hoopoe.tsx`.
+- Celebrations (`src/components/mascot/moments/`): three "earned" one-shot moments from the
+  mascot-moments board. `celebration-signals.tsx` (mounted on `/feed`) reads the numbers server-side and
+  hands them to `celebration-detector.tsx`, which one-shot-latches (`one-shot.ts`, per user id) and hands
+  the actual play to `celebration-hoopoe.tsx`: **post-signup welcome** (`flyIn` + wave + `celebrate(1)`,
+  fires once within 30 minutes of account creation), **your first Letter** (`react("success")`, fires on
+  the 0→1 letter transition), and a **proud moment** (`express("proud")` + wave + `crest(true)` + nod,
+  fires on finishing your profile or crossing a post milestone every 10). One-hoopoe rule: the detector
+  polls `anotherHoopoeOnScreen()` (`one-hoopoe-guard.ts`) before ever mounting the celebration's `<Hoopoe>`.
+  Also wired: **rare idle behaviours** (`rare-idle-behaviors.ts`) — a ~1% roll, checked once as the
+  sidebar's idle-rest bird (`sidebar-hoopoe.tsx`) glides in, to preen/peck/happy-hop before it settles to
+  sleep instead of going straight there.
 
 ## Open follow-ups
 
 - Lock the hoopoe out of the member avatar pool: in `src/lib/avatar.ts`, exclude species index 0 from
-  `birdFor()` (`species = 1 + axisIndex(s, "species::", BIRD_SPECIES_COUNT - 1)`) and reassign the owner's
-  `SPECIES_PINS` pin off 0; update `avatar.test.mjs` to assert no species 0. NOT done yet because the
-  avatar files are actively-changing uncommitted WIP (they should be edited once that work settles).
+  `birdFor()` (`species = 1 + axisIndex(s, "species::", BIRD_SPECIES_COUNT - 1)`); update `avatar.test.mjs`
+  to assert no species 0. NOT done yet (avatar files are still actively-changing WIP elsewhere).
+  The owner's `SPECIES_PINS` pin has already been reassigned off Hoopoe, to the Indian Roller (#3).
 - Tail: DECIDED — no tail (default `tail={false}`; legs only). The compare card stays in the lab.
 - Proportions: the owner is dialing head/eye/beak size + position in the lab's Proportion Studio (saving
   slots to compare). Once they pick, bake the chosen `headScale`/`eyeScale`/`eyeY`/`eyeSpread`/`billLength`
