@@ -35,6 +35,7 @@ import {
   awaitPerch,
   getLatestPerch,
   signalHandoff,
+  normalizeFlightSpeed,
   type FlightLaunch,
   type FlightTarget,
   type PerchRect,
@@ -57,6 +58,26 @@ const RIG_SIZE: Record<FlightTarget, number> = { login: 102, signup: 96 };
 const BOX_H = (size: number) => (size * 152) / 120;
 const BODY_CX = (size: number) => size / 2; // viewBox x60 of 120
 const BODY_CY = (size: number) => (size * 111) / 152; // viewBox y101 above origin y-10
+
+// The destination pages' own hard-coded reveal fallback (see /login and
+// /signup's `fallback = setTimeout(reveal, 4000)`). Referenced only in this
+// comment, not imported — those pages don't depend on this module. At the
+// default speed (1, every current call site) the failsafe below is 3600ms
+// and the perch-timeout is 2500ms, both comfortably under that 4000ms, same
+// as before `speed` existed.
+//
+// Both timers scale by the same 1/speed factor as every other duration in
+// this flight (via `ms()` below), so a slower-than-default flight gets a
+// proportionally longer safety net instead of a fixed-length one. An earlier
+// version capped the failsafe at a hard-coded 3600ms ceiling meant to keep it
+// under the destination's fallback for any speed; that silently defeated the
+// scaling for speed < 1 (Math.min(ms(3600), 3600) is just 3600 whenever
+// ms(3600) > 3600), so a slow flight's failsafe fired while the — correctly
+// slowed-down — cruise animation was still mid-air, aborting it early and
+// making the hoopoe vanish. No current caller passes speed !== 1, so this
+// only matters for a future slow-flight caller; if one appears and needs the
+// failsafe to also stay under the destination's fallback, that page's own
+// timer should learn about `speed` too (out of this file's scope).
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 // C2-smooth ease (gentle takeoff + landing), same family flyCore uses.
@@ -133,17 +154,29 @@ export function MascotFlightLayer() {
     ranId.current = flight.id;
     abortRef.current = false;
 
+    // Speed multiplier: 1 (or anything missing/invalid) reproduces today's
+    // pace exactly. 2x speed halves every duration below; `ms()` is the one
+    // place that conversion happens so every timing stays proportional.
+    const speed = normalizeFlightSpeed(flight.speed);
+    const ms = (baseMs: number) => baseMs / speed;
+
     // Hard ceiling: never leave a flight (or a hidden destination hoopoe)
     // stranded if something stalls. Force the handoff + teardown after this.
-    // Kept below the destination pages' own fallback-reveal timer (4000ms) so
-    // the flyer always hands off + tears down BEFORE a page would reveal its own
-    // hoopoe on its own — the two are never on screen together.
+    // At the default speed (1, every current call site) this is 3600ms —
+    // comfortably below the destination pages' own fallback-reveal timer
+    // (4000ms) so the flyer always hands off + tears down BEFORE a page would
+    // reveal its own hoopoe on its own. Scaled by speed like every other
+    // duration below, uncapped, so a slower flight's safety net stays
+    // proportionally longer than the (also slower) real animation instead of
+    // firing mid-flight — see the comment above for why an earlier
+    // hard-coded ceiling here was a bug, not a feature.
+    const failsafeMs = ms(3600);
     const failsafe = setTimeout(() => {
       abortRef.current = true;
       signalHandoff();
       cancelAnimationFrame(rafRef.current);
       setActive(null);
-    }, 3600);
+    }, failsafeMs);
 
     try {
       // Take-off top-left: place the drawn body-centre on the clicked CTA centre.
@@ -156,7 +189,7 @@ export function MascotFlightLayer() {
       // controller), so fire-and-forget: glide takes the wings over smoothly.
       setTransform(A.x, A.y, dir * 3, 0.74, 0);
       void api.takeOff();
-      await tween(240, (t) => {
+      await tween(ms(240), (t) => {
         setTransform(A.x, A.y, dir * 3 * (1 - t), 0.74 + 0.26 * t, Math.min(1, t * 2));
       });
       if (abortRef.current) return;
@@ -165,13 +198,18 @@ export function MascotFlightLayer() {
       // flap-synced undulation + a bank, retargeting smoothly onto the perch.
       api.glide(dir);
       // Kick the perch waiter; it resolves as soon as the destination reports.
+      // 2500 < 3600, so dividing both sides by the same positive `speed`
+      // preserves that inequality at every speed — perchTimeoutMs is
+      // always < failsafeMs with no extra capping needed, leaving the
+      // graceful hover fallback room to run before the hard abort fires.
       let perchReady = getLatestPerch() != null;
-      void awaitPerch(2500).then(() => {
+      const perchTimeoutMs = ms(2500);
+      void awaitPerch(perchTimeoutMs).then(() => {
         perchReady = true;
       });
 
       const dist = Math.hypot(prov.left - A.x, prov.top - A.y);
-      const flyMs = clamp(820 + dist * 0.45, 820, 1120);
+      const flyMs = ms(clamp(820 + dist * 0.45, 820, 1120));
       const peak = clamp(70 + dist * 0.12, 70, 165);
       const flaps = 4;
       const undAmp = 5;
@@ -224,10 +262,10 @@ export function MascotFlightLayer() {
       // Phase 3 — hand off. The destination reveals its own hoopoe at the same
       // rest pose + rect; we crossfade out over it so the swap is unseen.
       signalHandoff();
-      await tween(150, (t) => {
+      await tween(ms(150), (t) => {
         setTransform(finalPerch.left, finalPerch.top, 0, fs, 1 - t);
       });
-      await sleep(20);
+      await sleep(ms(20));
     } finally {
       clearTimeout(failsafe);
       cancelAnimationFrame(rafRef.current);
