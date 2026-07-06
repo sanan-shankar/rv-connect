@@ -134,16 +134,15 @@ of `/preview`):
   valley, clarity). The judge favored "Postcard."
 - Size: owner decision, then a build phase per pick.
 
-### 13. Copy rewrite pass not started; inventory is now stale
-`docs/content/COPY-INVENTORY.md` and `.copy-review/inventory.json` (831 strings) were generated
-once, at the start of the 2026-07-05/06 session, before that session's own builds landed (Catch-ups,
-the feed rail and greeting strip, the guided welcome flow, the rebuilt composer, the new mascot
-moment strings). Neither file has been touched since. The plan is for the owner to work through the
-dev-only `/copy-editor` UI (`src/app/copy-editor/`, reads and writes `.copy-review/inventory.json`)
-entry by entry, after which the replacements get applied codebase-wide and the tool deleted. Before
-that pass is useful, a delta sweep needs to run over everything this session added and append those
-entries to both files, or the owner's pass will miss every string in those five new surfaces.
-- Size: small (delta sweep), then owner's pass, then a codebase-wide apply.
+### 13. Copy rewrite pass not started (inventory is current)
+`docs/content/COPY-INVENTORY.md` and `.copy-review/inventory.json` now hold 1308 strings: the
+original 831 plus a 477-entry delta sweep (end of the 2026-07-05/06 session) covering everything
+that session built (Catch-ups incl. the 30-question library and notification templates, the feed
+rail and greeting strip, the guided welcome flow, the rebuilt composer, the mascot moment strings).
+The owner works through the dev-only `/copy-editor` UI (`src/app/copy-editor/`, reads and writes
+`.copy-review/inventory.json`; leaving a box empty keeps the current text), after which the
+replacements get applied codebase-wide and the tool plus `.copy-review/` get deleted.
+- Size: owner's pass, then a codebase-wide apply.
 
 ### 14. Vercel environment variable duplicates (owner will handle)
 Duplicate-named env vars in the Vercel dashboard; the owner said he will clean these up himself.
