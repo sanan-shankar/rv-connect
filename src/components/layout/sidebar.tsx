@@ -40,6 +40,7 @@ import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
 import { Wordmark } from "./peaks-mark";
 import { SidebarHoopoe } from "@/components/mascot/sidebar-hoopoe";
+import { LogoEasterEgg } from "@/components/mascot/moments/logo-easter-egg-hoopoe";
 
 export interface SidebarUser {
   id: string;
@@ -216,7 +217,9 @@ export function Sidebar({
     <>
       {/* Desktop: flush, full-height sidebar */}
       <aside className="sticky top-0 z-10 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
-        <LogoFact />
+        <LogoEasterEgg>
+          <LogoFact />
+        </LogoEasterEgg>
         <NavLinks pathname={pathname} markerId="nav-desktop" />
         {/* relative anchor for the idle-rest hoopoe, which perches just above
             this row (see sidebar-hoopoe.tsx) */}

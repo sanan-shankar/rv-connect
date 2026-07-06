@@ -152,16 +152,52 @@ does); reach for `flyIn` when the bird just needs to swoop onto a spot within on
   (gaze fires on every keystroke of email + password; when covered the head still tracks behind the wings).
   Intro on `onReady`: peek + double-blink, then cover. Replaces the old `src/components/auth/hoopoe.tsx`.
 - Celebrations (`src/components/mascot/moments/`): three "earned" one-shot moments from the
-  mascot-moments board. `celebration-signals.tsx` (mounted on `/feed`) reads the numbers server-side and
-  hands them to `celebration-detector.tsx`, which one-shot-latches (`one-shot.ts`, per user id) and hands
+  mascot-moments board. `celebration-signals.tsx` (mounted on `/feed` AND on `/welcome`, the post-signup
+  onboarding wizard added 2026-07-06) reads the numbers server-side and hands them to
+  `celebration-detector.tsx`, which one-shot-latches (`one-shot.ts`, per user id) and hands
   the actual play to `celebration-hoopoe.tsx`: **post-signup welcome** (`flyIn` + wave + `celebrate(1)`,
-  fires once within 30 minutes of account creation), **your first Letter** (`react("success")`, fires on
+  fires once within 30 minutes of account creation, and in practice now plays on `/welcome` since that is
+  the first page a fresh signup lands on; the one-shot latch means it never repeats when they reach
+  `/feed` afterward), **your first Letter** (`react("success")`, fires on
   the 0→1 letter transition), and a **proud moment** (`express("proud")` + wave + `crest(true)` + nod,
   fires on finishing your profile or crossing a post milestone every 10). One-hoopoe rule: the detector
   polls `anotherHoopoeOnScreen()` (`one-hoopoe-guard.ts`) before ever mounting the celebration's `<Hoopoe>`.
   Also wired: **rare idle behaviours** (`rare-idle-behaviors.ts`) — a ~1% roll, checked once as the
   sidebar's idle-rest bird (`sidebar-hoopoe.tsx`) glides in, to preen/peck/happy-hop before it settles to
   sleep instead of going straight there.
+- **Bell delivery** (`moments/bell-delivery-hoopoe.tsx`, idea #11 off the board): opening the notifications
+  bell (`src/components/layout/notification-bell.tsx`, both the "header" and "sidebar" variants) can pop a
+  hoopoe up to `flyIn` onto the bell carrying a small letter (a Lucide `Mail` glyph), `land()`, drop the
+  letter, and `nod()` before it fades. Owner's two conditions, both enforced: it only offers this when there
+  ARE unread notifications AND at most once per calendar day per browser (`shouldOfferBellDelivery`, a plain
+  localStorage date stamp, not the per-user `one-shot.ts`, since the rule is per-browser not per-account),
+  and the notifications panel is a CONTROLLED dropdown that only actually opens once the delivery's
+  `onDelivered` fires (a `cancel()` on the open attempt defers it) — with a ~6s failsafe timer so a stalled
+  animation can never leave the panel stuck shut (the delivery's own real runtime measured ~3.7-4.1s end to
+  end, so this leaves real headroom rather than racing it). One-hoopoe rule + a narrow, scoped
+  `prefers-reduced-motion` check both gate the offer itself (checked at click time via
+  `anotherHoopoeOnScreen()`); when either blocks it, or the daily stamp is already spent, the panel just
+  opens immediately like any ungated click. This is the one place in the mascot system that reads OS
+  reduced-motion — deliberately narrow to this one blocking-the-UI decision, not a change to the app-wide
+  "motion always runs" policy (`src/components/common/motion.tsx`).
+  **`<BellDeliveryHoopoe>` is mounted unconditionally** by `notification-bell.tsx` for the page's whole life
+  (`anchorRect` starts/returns to `null` between deliveries) rather than only while a delivery is playing —
+  see that file's banner comment for the real bug this fixes: React dev-only Strict Mode double-invokes any
+  effect that mounts in the same commit as another, and a plain `useEffect(() => () => clearTimeout(...), [])`
+  cleanup on a component that mounted fresh alongside its `<Hoopoe>` child was silently clearing the child's
+  just-armed `onReady` timer before it ever got a turn to fire — so `play()` never ran, the letter never
+  delivered, and the bird sat on screen forever (confirmed empirically, then fixed and re-verified: the panel
+  now opens via the real `onDelivered` signal in every trial, the failsafe timer is armed but never fires, and
+  the bird fades and unmounts within ~1s of delivery). Same shape as `sidebar-hoopoe.tsx` and
+  `logo-easter-egg-hoopoe.tsx`, both already structured this way (ref-owning wrapper mounted early, puppet
+  mounted on demand) and unaffected by this hazard.
+- **Logo easter egg** (`moments/logo-easter-egg-hoopoe.tsx`, idea #10 off the board): three rapid clicks
+  (owner's tweak from the board's original five) on the desktop sidebar's peaks logo pop a small hoopoe up
+  from behind it for a `celebrate(3)` + `crest(true)`, then it tucks away. A capture-phase click counter on
+  a wrapper around `LogoFact` — it only observes, so the logo's own hover fact-card and its `Link`
+  navigation are untouched. Gated by the one-hoopoe rule at the moment the third click lands; otherwise
+  fires every time the gesture is landed clean (no daily cap — `celebrate()`'s own internal cooldown is the
+  only frequency limit).
 
 ## Open follow-ups
 
