@@ -13,16 +13,13 @@
  *  field-journal, not a flat card). It is decorative texture, not literal
  *  writing guides, so it is not pinned to the text's exact line box.
  *
- *  Footer carries the shared LoveButton (via EntryLoveButton) and a DORMANT
- *  reply slot: inert, non-interactive markup that leaves room for comments
- *  later without wiring them now (spec 3.6 / scope fence sec 8). It is
- *  deliberately not a <button> - a control that does nothing would fail the
- *  "every clickable has hover/focus/active" rule by being clickable with no
- *  effect, so it is plain text instead.
+ *  Footer carries only the shared LoveButton (via EntryLoveButton). The
+ *  "replies aren't open yet" note used to repeat on every card (spec 3.6
+ *  polish fix); it is now stated once, under the masthead, instead of ~15
+ *  times down the page.
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
-import { ChatCircleDots } from "@phosphor-icons/react/dist/ssr";
 import { IdentityRow } from "@/components/common/identity-row";
 import { SpotifyCard } from "@/components/catchups/round/spotify-card";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
@@ -33,12 +30,19 @@ export type RoundEntry = CatchupEntryView & { authorMeta: string };
 
 // alignment + max-width, cycling every three cards so the stack breathes
 // without ever feeling random. Mobile always goes full-width (spec: the one
-// legitimate single column).
+// legitimate single column). Kept close together (90/96/86%) — narrower
+// swings read as an empty right-hand void beside the sticky TOC rather than
+// intentional rhythm (polish pass: the reading column should stay populated).
 const STAGGER = [
-  { align: "self-start", width: "lg:max-w-[88%]" },
-  { align: "self-end", width: "lg:max-w-[94%]" },
-  { align: "self-start", width: "lg:max-w-[78%]" },
+  { align: "self-start", width: "lg:max-w-[90%]" },
+  { align: "self-end", width: "lg:max-w-[96%]" },
+  { align: "self-start", width: "lg:max-w-[86%]" },
 ];
+
+// A photo entry is the one variant that goes near-full-bleed regardless of
+// its position in the cycle (spec polish: photos are the visual anchor of
+// the stack, not another staggered text card).
+const PHOTO_STAGGER = { align: "self-center", width: "lg:max-w-full" } as const;
 
 const RULED_LINES_STYLE = {
   backgroundImage:
@@ -47,6 +51,10 @@ const RULED_LINES_STYLE = {
 
 function AnswerPhotos({ images }: { images: string[] }) {
   const cols = images.length === 1 ? "grid-cols-1" : images.length === 2 ? "grid-cols-2" : "grid-cols-3";
+  // A lone photo is the near-full-bleed hero (spec polish): a wide landscape
+  // crop reads as "a photo shared" rather than a cropped thumbnail. Multiple
+  // photos stay square so the grid tiles evenly.
+  const heroAspect = images.length === 1 ? "aspect-[16/10] sm:aspect-[21/9]" : "aspect-square";
   return (
     <div className={cn("mt-[var(--space-m)] grid gap-2", cols)}>
       {images.map((src, i) => (
@@ -56,7 +64,7 @@ function AnswerPhotos({ images }: { images: string[] }) {
           src={src}
           alt=""
           loading="lazy"
-          className="aspect-square w-full rounded-[var(--radius-md)] border border-border object-cover"
+          className={cn("w-full rounded-[var(--radius-md)] border border-border object-cover", heroAspect)}
         />
       ))}
     </div>
@@ -64,11 +72,13 @@ function AnswerPhotos({ images }: { images: string[] }) {
 }
 
 export function AnswerCard({ entry, index }: { entry: RoundEntry; index: number }) {
-  const stagger = STAGGER[index % STAGGER.length];
   const hasBody = Boolean(entry.body && entry.body.trim());
   const hasPhotos = entry.images.length > 0;
   const hasSong = Boolean(entry.song);
   const sharedNothing = !hasBody && !hasPhotos && !hasSong;
+  // Photos are the stack's visual anchor (spec polish), so they break the
+  // text-card stagger rather than following it.
+  const stagger = hasPhotos ? PHOTO_STAGGER : STAGGER[index % STAGGER.length];
 
   return (
     <article
@@ -111,12 +121,8 @@ export function AnswerCard({ entry, index }: { entry: RoundEntry; index: number 
         </>
       )}
 
-      <div className="mt-[var(--space-m)] flex items-center justify-between border-t border-border/70 pt-[var(--space-s)]">
+      <div className="mt-[var(--space-m)] border-t border-border/70 pt-[var(--space-s)]">
         <EntryLoveButton entryId={entry.id} initialLoved={entry.lovedByViewer} initialCount={entry.loveCount} />
-        <p className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground/70">
-          <ChatCircleDots size={14} weight="duotone" />
-          Replies aren&apos;t open yet
-        </p>
       </div>
     </article>
   );

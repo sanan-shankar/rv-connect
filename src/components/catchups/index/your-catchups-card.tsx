@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { cn } from "@/lib/utils";
-import type { CatchupIndexCard, EditionStatus } from "@/lib/catchups-types";
+import type { CatchupIndexCard, CatchupPersonRef, EditionStatus } from "@/lib/catchups-types";
 
 const STATUS_TONE: Partial<Record<EditionStatus, string>> = {
   collecting: "text-leaf",
@@ -19,10 +19,21 @@ const STATUS_TONE: Partial<Record<EditionStatus, string>> = {
   draft: "text-muted-foreground",
 };
 
-export function YourCatchupsCard({ card }: { card: CatchupIndexCard }) {
+/** `CatchupIndexCard` plus the "who has answered" data the live row needs
+ *  for real pull (spec polish: the answering row should not read as the
+ *  same weight as a dormant "Start one" row). Local to this screen since
+ *  the shared `CatchupIndexCard` type has no other consumer that needs it. */
+export type IndexCardView = CatchupIndexCard & {
+  memberCount: number;
+  answeredCount: number;
+  answeredMembers: CatchupPersonRef[];
+};
+
+export function YourCatchupsCard({ card }: { card: IndexCardView }) {
   const overflow = Math.max(0, card.members.length - 5);
   const tone = card.editionStatus ? (STATUS_TONE[card.editionStatus] ?? "text-muted-foreground") : "text-muted-foreground";
   const href = card.cta?.href ?? "/catchups";
+  const isAnswering = card.editionStatus === "answering";
 
   return (
     <Link
@@ -53,6 +64,23 @@ export function YourCatchupsCard({ card }: { card: CatchupIndexCard }) {
             {card.statusLine}
           </p>
         </div>
+
+        {/* Live pull: who has already answered + a mini N-of-M count, so this
+            row visibly outweighs the dormant "Start one" rows below it. */}
+        {isAnswering && (
+          <div className="mt-2.5 flex items-center gap-2">
+            {card.answeredMembers.length > 0 && (
+              <div className="flex -space-x-1.5">
+                {card.answeredMembers.slice(0, 4).map((m) => (
+                  <BirdAvatar key={m.id} user={m} size="xs" ring />
+                ))}
+              </div>
+            )}
+            <span className="text-[12px] font-bold text-cinnamon">
+              {card.answeredCount} of {card.memberCount} shared
+            </span>
+          </div>
+        )}
       </div>
 
       {card.cta && (

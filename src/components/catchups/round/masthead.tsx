@@ -17,6 +17,7 @@
  * ------------------------------------------------------------------ */
 
 import { MessagesSquare } from "lucide-react";
+import { ChatCircleDots } from "@phosphor-icons/react/dist/ssr";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { roundLabel } from "@/lib/catchups";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
@@ -100,6 +101,10 @@ export function RoundMasthead({
             {title}
           </h1>
           {metaLine && <p className="mt-[var(--space-s)] text-sm text-muted-foreground">{metaLine}</p>}
+          <p className="mt-[var(--space-xs)] flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground/70">
+            <ChatCircleDots size={13} weight="duotone" />
+            Replies aren&apos;t open yet
+          </p>
         </div>
 
         {/* The plate number: a real sequence marker (this Catch-up's Nth

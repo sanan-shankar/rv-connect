@@ -98,8 +98,8 @@ export function KeeperRail({
           {live && edition.status === "answering" && (
             <>
               <Button
-                variant="primary"
-                className="w-full justify-center"
+                variant="outline"
+                className="w-full justify-center border-canopy/50 text-canopy hover:bg-canopy/10"
                 disabled={busy}
                 onClick={() => run(() => closeAndPrepare(edition.id), "Closing and preparing the Round.")}
               >
