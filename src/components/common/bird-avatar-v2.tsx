@@ -1559,6 +1559,18 @@ export const ARCHETYPE_COUNT = ARCHES.length;
 /** Exposed for the optical-centering harness (preview/centroid + scripts/dev/centroid.mjs). */
 export const ARCHETYPES = ARCHES;
 
+/**
+ * The species name for a member's deterministic bird (same precedence as
+ * BirdGlyphV2: a manual override wins, otherwise the id-derived hash). Used
+ * anywhere copy wants to say "You're a Hoopoe" instead of just showing the
+ * glyph, e.g. the onboarding photo step's "proudly keep your bird" option.
+ */
+export function speciesNameFor(seed: string, speciesOverride?: number | null): string {
+  const bird = birdFor(seed);
+  const arche = ARCHES[(speciesOverride ?? bird.species) % ARCHES.length];
+  return arche.name;
+}
+
 /** Pick a disc colour that does not clash with the archetype's body hue. */
 function discFor(arche: Arche, colorIndex: number): string {
   let idx = colorIndex % AVATAR_PALETTE.length;
