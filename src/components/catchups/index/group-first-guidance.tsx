@@ -1,3 +1,5 @@
+"use client";
+
 /* ------------------------------------------------------------------ *
  *  <GroupFirstGuidance> — the shared "a Catch-up lives inside a group"
  *  empty state (spec section 3.1 + 3.2). Used two places: the index
@@ -5,12 +7,18 @@
  *  no-group short-circuit (which swaps which CTA is primary so the
  *  create-a-group action leads, per spec 3.2). Never a dead end: both
  *  CTAs are always present, just reordered.
+ *
+ *  One-hoopoe rule: gated on `useSoloHoopoe()` like every other mascot
+ *  moment. When another bird is already on screen, the hoopoe simply
+ *  drops out of the flex column -- the shared `gap-5` closes the space
+ *  on its own, so the heading just leads the card instead.
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
 import { Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Hoopoe } from "@/components/mascot/hoopoe";
+import { useSoloHoopoe } from "@/components/mascot/moments/moment-hoopoe";
 
 export function GroupFirstGuidance({
   primaryHref = "/groups",
@@ -27,6 +35,8 @@ export function GroupFirstGuidance({
   secondaryLabel?: string;
   secondaryIcon?: typeof Users;
 }) {
+  const solo = useSoloHoopoe();
+
   return (
     <div className="card-elevated relative mx-auto flex max-w-2xl flex-col items-center gap-5 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-8 text-center sm:p-10">
       <div
@@ -38,9 +48,11 @@ export function GroupFirstGuidance({
         }}
       />
 
-      <div className="relative">
-        <Hoopoe size={96} />
-      </div>
+      {solo && (
+        <div className="relative">
+          <Hoopoe size={96} />
+        </div>
+      )}
 
       <div className="relative max-w-md">
         <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground">
