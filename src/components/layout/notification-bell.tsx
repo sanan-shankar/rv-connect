@@ -19,6 +19,23 @@ import {
 import { useRouter } from "next/navigation";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
 import type { CatchupNotifyKind } from "@/lib/catchups-types";
+import {
+  BellDeliveryHoopoe,
+  shouldOfferBellDelivery,
+  markBellDeliveryShownToday,
+  type BellRect,
+} from "@/components/mascot/moments/bell-delivery-hoopoe";
+import { anotherHoopoeOnScreen } from "@/components/mascot/moments/one-hoopoe-guard";
+
+// Sane failsafe (idea #11's brief: "the notification thing opens only after
+// the bird lands and delivers the letter" -- but a hiccup mid-animation must
+// never leave the panel stuck shut). The delivery's own real runtime (the
+// off-canvas flyIn's distance-scaled cruise, capped at 1.9s, plus its landing
+// squash, plus land()'s own squash, plus the sleep(240) beat, plus nod())
+// measured ~3.7-4.1s end to end in runtime verification -- NOT "well under
+// 2.5s" as an earlier pass here claimed. This sits comfortably above that
+// with real headroom for a slower device/browser rather than racing it.
+const DELIVERY_FAILSAFE_MS = 6000;
 
 interface NotificationBellProps {
   initialUnreadCount: number;
@@ -74,6 +91,72 @@ export function NotificationBell({
     prevUnread.current = unreadCount;
   }, [unreadCount]);
 
+  // ---- letter-delivery gate (mascot-moments idea #11) ----
+  // The dropdown is now a CONTROLLED menu so an "open" attempt can be
+  // deferred: when the gate fires we cancel base-ui's own open handling and
+  // only flip `open` true ourselves once the hoopoe has actually delivered
+  // the letter (see BellDeliveryHoopoe's onDelivered below).
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const [deliveryRect, setDeliveryRect] = useState<BellRect | null>(null);
+  const deliveryActiveRef = useRef(false);
+  const openedRef = useRef(false);
+  const failsafeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearDeliveryFailsafe() {
+    if (failsafeRef.current !== null) {
+      clearTimeout(failsafeRef.current);
+      failsafeRef.current = null;
+    }
+  }
+
+  // Never leaves a pending failsafe timer trying to setState after this
+  // bell (a route change, a mobile/desktop swap) has already unmounted.
+  useEffect(() => clearDeliveryFailsafe, []);
+
+  // The one place `open` actually flips true, whether that's a plain click
+  // with nothing to deliver, the delivery's own onDelivered, or the failsafe
+  // firing because something about the animation hiccuped. Idempotent so
+  // onDelivered and the failsafe can never both fire real side effects.
+  function openPanelNow() {
+    clearDeliveryFailsafe();
+    if (openedRef.current) return;
+    openedRef.current = true;
+    setOpen(true);
+    void handleOpen();
+  }
+
+  function finishDelivery() {
+    deliveryActiveRef.current = false;
+    setDeliveryRect(null);
+  }
+
+  function handleOpenChange(next: boolean, eventDetails?: { cancel: () => void }) {
+    if (!next) {
+      setOpen(false);
+      openedRef.current = false;
+      return;
+    }
+    if (deliveryActiveRef.current) {
+      // An impatient second click mid-delivery: never trap them behind the
+      // animation, just open immediately. The bird finishes its own beat
+      // independently and fades out on its own.
+      openPanelNow();
+      return;
+    }
+    const bell = bellRef.current;
+    if (bell && shouldOfferBellDelivery(unreadCount > 0) && !anotherHoopoeOnScreen()) {
+      eventDetails?.cancel();
+      markBellDeliveryShownToday();
+      deliveryActiveRef.current = true;
+      openedRef.current = false;
+      setDeliveryRect(bell.getBoundingClientRect());
+      failsafeRef.current = setTimeout(openPanelNow, DELIVERY_FAILSAFE_MS);
+      return;
+    }
+    openPanelNow();
+  }
+
   // One transform-only decaying shake, pivoting from the top so it reads as a
   // wobble. A cubic-bezier tween mirroring the preview lab (never a spring with
   // 5+ keyframes).
@@ -111,10 +194,25 @@ export function NotificationBell({
     setUnreadCount(0);
   }
 
+  // Always mounted (anchorRect starts/returns to null between deliveries) —
+  // see bell-delivery-hoopoe.tsx's file banner for why a conditional
+  // `deliveryRect && <BellDeliveryHoopoe .../>` here reintroduces a real
+  // Strict-Mode-only bug where the delivery's own onReady timer gets
+  // cleared before it fires and the letter never delivers.
+  const deliveryOverlay = (
+    <BellDeliveryHoopoe
+      anchorRect={deliveryRect}
+      onDelivered={openPanelNow}
+      onFinished={finishDelivery}
+    />
+  );
+
   if (variant === "header") {
     return (
-      <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
+      <>
+      <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger
+          ref={bellRef}
           className="bell-trigger relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-transform duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           title="Notifications"
         >
@@ -152,12 +250,15 @@ export function NotificationBell({
           onClickNotification={handleClickNotification}
         />
       </DropdownMenu>
+      {deliveryOverlay}
+      </>
     );
   }
 
   return (
-    <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
-      <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
+    <>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
+      <DropdownMenuTrigger ref={bellRef} className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
         <motion.span
           className="inline-grid place-items-center"
           style={{ transformOrigin: "50% 12%" }}
@@ -186,6 +287,8 @@ export function NotificationBell({
         onClickNotification={handleClickNotification}
       />
     </DropdownMenu>
+    {deliveryOverlay}
+    </>
   );
 }
 
