@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { NewPostCTA } from "@/components/feed/new-post-cta";
 import { GreetingStrip } from "@/components/feed/greeting-strip";
+import { FinishSetupCard } from "@/components/feed/finish-setup-card";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
 
 export const metadata: Metadata = {
@@ -16,15 +17,29 @@ export default async function FeedPage() {
   const session = await auth();
   if (!session?.user) return null;
 
-  const unreadCount = await prisma.notification.count({
-    where: { userId: session.user.id, read: false },
-  });
+  const [unreadCount, profileUser] = await Promise.all([
+    prisma.notification.count({
+      where: { userId: session.user.id, read: false },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { admissionNumber: true, about: true, bio: true },
+    }),
+  ]);
+
+  // Onboarding "finish setting up" nudge (docs/spec/onboarding.md's brief):
+  // shown only while something the wizard collects is still missing.
+  const admissionNumberMissing = profileUser?.admissionNumber == null;
+  const aboutMissing = !profileUser?.about?.trim() && !profileUser?.bio?.trim();
 
   return (
     <>
       {/* Post-signup welcome, first-Letter, and proud-moment celebrations
           (mascot-moments board). Invisible unless a one-shot is due; see
-          src/components/mascot/moments/celebration-signals.tsx. */}
+          src/components/mascot/moments/celebration-signals.tsx. The
+          post-signup welcome piece itself now plays on /welcome (a fresh
+          signup lands there first, before ever reaching this page) — this
+          mount stays for the other two, which are unrelated to onboarding. */}
       <CelebrationSignals userId={session.user.id} />
       <div className="grid grid-cols-1 gap-x-[30px] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
         <div className="min-w-0">
@@ -37,6 +52,11 @@ export default async function FeedPage() {
             showSearch
             unreadCount={unreadCount}
             actions={<NewPostCTA />}
+          />
+          <FinishSetupCard
+            userId={session.user.id}
+            admissionNumberMissing={admissionNumberMissing}
+            aboutMissing={aboutMissing}
           />
           <FeedColumn
             showControls={false}

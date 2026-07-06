@@ -260,7 +260,7 @@ export default function SignupPage() {
                 <p className="mx-auto mb-6 mt-2 max-w-[34ch] text-sm leading-relaxed text-muted-foreground">
                   Tell us a bit about yourself so your batchmates can find you.
                 </p>
-                <SignupForm hoopoe={hoopoe} onSuccess={() => router.push("/feed")} />
+                <SignupForm hoopoe={hoopoe} onSuccess={() => router.push("/welcome")} />
               </motion.div>
             )}
           </AnimatePresence>

@@ -13,6 +13,14 @@
 
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "secondaryCity" TEXT;
 
+-- Unblocks house-per-year history collected in the post-signup onboarding
+-- wizard's "Houses" step (src/components/onboarding/steps/houses-step.tsx).
+-- Stored as a JSON string ([{ "year": 2003, "house": "Krishna" }, ...]) until
+-- a real HouseYear child table lands; the onboarding server action probes
+-- for this column and falls back to localStorage when it is absent, so
+-- adding it here is all this migration needs to do.
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "houses" TEXT;
+
 -- SECTION 2 (required): Catch-ups tables --------------------------------------
 -- Six brand-new empty tables for the Catch-ups feature. New names on purpose:
 -- they do not collide with the dead CatchupIssue/CatchupQuestion tables left by
