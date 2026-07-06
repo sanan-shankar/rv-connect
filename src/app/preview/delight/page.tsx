@@ -26,6 +26,7 @@ const ROUTES = [
   { href: "/preview/delight/eggs", title: "Easter eggs & ambient", desc: "Hover the logo for a valley fact (ten of them), the konami valley flash, and an honest note on what we parked." },
   { href: "/preview/delight/mascot-moments", title: "Mascot moments", desc: "Where and how the one hoopoe shows up across the product: a guided tour, the login fly-in, empty states, loading, a 404, quiet easter eggs. Ideas to react to, five of them live." },
   { href: "/preview/delight/profiles", title: "Profiles", desc: "Five directions for the profile page rework, reviewed against one realistic alumnus: letterhead, field guide, editorial, valley terrain, and dossier. No open-to tags, no banner-photo header, admission number never a hashtag." },
+  { href: "/preview/delight/landings", title: "Landing pages", desc: "Five full-page directions for the public landing redesign, all pulling the same approved hero/feature copy: Postcard, Notice Board, Prospectus, Living Valley, and Clarity." },
   { href: "/preview/delight/hoopoe", title: "The hoopoe mascot", desc: "One resident bird, many poses. Built in a separate session, linked here so the whole cast lives in one place." },
 ];
 
