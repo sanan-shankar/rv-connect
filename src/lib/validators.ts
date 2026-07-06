@@ -39,6 +39,7 @@ export const profileSchema = z.object({
   name: z.string().min(2).max(100),
   bio: z.string().max(1000).optional(),
   currentCity: z.string().max(100).optional(),
+  secondaryCity: z.string().trim().max(100).optional(),
   workplace: z.string().max(100).optional(),
   jobTitle: z.string().max(100).optional(),
   phone: z.string().max(20).optional(),

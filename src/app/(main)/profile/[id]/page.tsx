@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
+import type { ReactNode } from "react";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
@@ -131,12 +132,29 @@ export default async function ProfilePage({
     user.accountType !== "alumnus" && user.subjects
       ? { icon: BookOpen, label: `Taught ${user.subjects}` }
       : null,
-    user.currentCity ? { icon: MapPin, label: `Based in ${user.currentCity}` } : null,
+    user.currentCity || user.secondaryCity
+      ? {
+          icon: MapPin,
+          label: user.currentCity ? (
+            <>
+              Based in {user.currentCity}
+              {user.secondaryCity && (
+                <span className="text-muted-foreground/70">
+                  {" "}
+                  &middot; also in {user.secondaryCity}
+                </span>
+              )}
+            </>
+          ) : (
+            <>Based in {user.secondaryCity}</>
+          ),
+        }
+      : null,
     profession ? { icon: Briefcase, label: profession } : null,
     (isOwnProfile || isAdmin) && user.admissionNumber
       ? { icon: Hash, label: `Admission no. ${user.admissionNumber}`, privateNote: true }
       : null,
-  ].filter(Boolean) as { icon: typeof MapPin; label: string; privateNote?: boolean }[];
+  ].filter(Boolean) as { icon: typeof MapPin; label: ReactNode; privateNote?: boolean }[];
 
   // Contact methods (email always available to signed-in members; rest if shared).
   const methods: ContactMethod[] = [

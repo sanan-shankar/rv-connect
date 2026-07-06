@@ -18,7 +18,8 @@ model User {
   bio           String?
   about         String?   // long-form "in their words" paragraph (profile About tab)
   openTo        String?   // comma list of soft "Open to" tags (mentoring, hosting, etc.)
-  currentCity   String?
+  currentCity   String?   // primary city, shown everywhere
+  secondaryCity String?   // optional second base, shown on the profile and searchable
   workplace     String?
   jobTitle      String?
   phone         String?

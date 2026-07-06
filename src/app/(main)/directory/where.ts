@@ -34,6 +34,7 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
     where.OR = [
       { name: { contains: filters.q, ...insensitive } },
       { currentCity: { contains: filters.q, ...insensitive } },
+      { secondaryCity: { contains: filters.q, ...insensitive } },
       { workplace: { contains: filters.q, ...insensitive } },
       { jobTitle: { contains: filters.q, ...insensitive } },
     ];
@@ -50,11 +51,15 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
     };
   }
   if (filters.city) {
+    // A person counts for a city filter whether it's their primary or
+    // secondary city, so both fields are checked against every known
+    // spelling of the requested city.
     const variants = cityNameVariants(filters.city);
-    const cityOr =
-      variants.length > 0
-        ? variants.map((v) => ({ currentCity: { contains: v, ...insensitive } }))
-        : [{ currentCity: { contains: filters.city, ...insensitive } }];
+    const targets = variants.length > 0 ? variants : [filters.city];
+    const cityOr = targets.flatMap((v) => [
+      { currentCity: { contains: v, ...insensitive } },
+      { secondaryCity: { contains: v, ...insensitive } },
+    ]);
     where.AND = [...((where.AND as unknown[]) ?? []), { OR: cityOr }];
   }
   if (filters.industry) where.workplace = filters.industry;
