@@ -7,6 +7,7 @@ import { GroupHeader } from "@/components/groups/group-header";
 import { FeedColumn } from "@/components/posts/feed-column";
 import { InviteResponse } from "@/components/groups/invite-response";
 import { Button } from "@/components/ui/button";
+import { GroupCatchupCard } from "@/components/catchups/group-catchup-card";
 
 export async function generateMetadata({
   params,
@@ -63,6 +64,7 @@ export default async function GroupPage({
         },
         orderBy: { joinedAt: "asc" },
       },
+      _count: { select: { posts: true } },
     },
   });
 
@@ -87,6 +89,8 @@ export default async function GroupPage({
   const membership = group.members.find((m) => m.userId === session.user.id);
   const myRole = membership?.role ?? null;
   const isPrivate = group.visibility === "private";
+  // No posts and no one has joined beyond the Keeper: genuinely no activity yet.
+  const isEmpty = group._count.posts === 0 && group.members.length <= 1;
 
   // A pending invite lets a non-member preview the group and accept/decline,
   // even when it is private (this is the bell's "invited you" entry point).
@@ -140,6 +144,7 @@ export default async function GroupPage({
           role: m.role,
         }))}
         myRole={myRole}
+        isEmpty={isEmpty}
       />
 
       {hasPendingInvite && (
@@ -151,14 +156,17 @@ export default async function GroupPage({
       )}
 
       {membership ? (
-        <FeedColumn
-          groupId={group.id}
-          showControls={false}
-          placeholder={`Share something with ${group.name}...`}
-          currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
-          emptyTitle="No posts yet in this group."
-          emptyHint="Be the first to share something with the group."
-        />
+        <>
+          <GroupCatchupCard groupId={group.id} groupName={group.name} />
+          <FeedColumn
+            groupId={group.id}
+            showControls={false}
+            placeholder={`Share something with ${group.name}...`}
+            currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
+            emptyTitle="No posts yet in this group."
+            emptyHint="Be the first to share something with the group."
+          />
+        </>
       ) : (
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-8 text-center">
           <p className="font-heading text-lg tracking-tight text-foreground">

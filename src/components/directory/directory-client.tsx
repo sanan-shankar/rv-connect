@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ProfileCard } from "./profile-card";
 import { AlumniMap, type CityPin, type PinPerson } from "./alumni-map";
 import { loadDirectoryPage } from "@/app/(main)/directory/actions";
+import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 
 interface User {
   id: string;
@@ -314,6 +315,9 @@ export function DirectoryClient({
 
           {results.length === 0 ? (
             <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
+              <div className="mb-3 flex justify-center">
+                <NoResultsHoopoe size={76} />
+              </div>
               <p className="font-heading text-lg text-foreground">
                 No one matches your search.
               </p>

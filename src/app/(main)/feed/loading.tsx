@@ -1,6 +1,9 @@
+import { LoadingCompanion } from "@/components/mascot/moments/loading-companion";
+
 export default function FeedLoading() {
   return (
     <div className="space-y-6">
+      <LoadingCompanion />
       {/* Create post skeleton */}
       <div className="rounded-xl border border-border bg-card p-6">
         <div className="skeleton-warm h-20 w-full rounded-md" />

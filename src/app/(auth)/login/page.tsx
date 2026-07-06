@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
@@ -62,6 +62,30 @@ export default function LoginPage() {
     }
   });
 
+  // Mobile has no Sign-in button to launch a cross-page flight from (the photo
+  // panel and its CTA only exist at lg+), so on a narrow viewport the owner
+  // wants the SAME "one bird" feeling delivered a different way: the page
+  // loads bare, then ~500ms later the hoopoe flies in from off-screen and
+  // perches exactly where the static mascot would otherwise sit. Decided once
+  // at mount via the identical `min-width: 1024px` gate the landing hero's
+  // desktop-only flight uses, so this never fires on a viewport wide enough to
+  // have gotten the button-to-perch flight instead. The `arrivedViaFlight`
+  // check is belt-and-suspenders against the (practically-impossible but
+  // guarded-for) case of a desktop flight landing on a since-narrowed
+  // viewport: that arrival already has its own reveal path above and must
+  // never also trigger this one, or two hoopoes could end up in the air.
+  const [mobileFlyIn] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (arrivedViaFlight) return false;
+    try {
+      return !window.matchMedia("(min-width: 1024px)").matches;
+    } catch {
+      return false;
+    }
+  });
+  // Guards the scheduled fly-in so it can only ever fire once.
+  const mobileFlyInFired = useRef(false);
+
   // Consume the one-shot flag after mount so a later reload or a fresh direct
   // visit within the same tab session does not mistake itself for a hero
   // transition (the flag is otherwise unused now that the entrance below
@@ -91,8 +115,26 @@ export default function LoginPage() {
   const hoopoeBoxRef = useRef<HTMLDivElement>(null);
   const hoopoeApiRef = useRef<HoopoeApi | null>(null);
   // Hidden until the flyer hands off when arriving via a flight; shown from the
-  // start on a direct visit (there is no flyer to wait for).
+  // start on a direct visit (there is no flyer to wait for). Deliberately does
+  // NOT also fold in `mobileFlyIn` here: a mismatched inline `style` attribute
+  // between the server render (which can never know the viewport) and the
+  // client's first hydration pass is a class of hydration error React does not
+  // patch up (it leaves the server value in place until some unrelated update
+  // touches the node), so computing this from a client-only viewport check
+  // would leave the hoopoe wrongly VISIBLE at its rest pose through the whole
+  // hidden window instead of hidden. The mobile fly-in effect below hides it
+  // instead, via a plain client-only state update after mount (not a
+  // hydration commit), which React always reconciles correctly.
   const [hoopoeShown, setHoopoeShown] = useState(!arrivedViaFlight);
+
+  // Mobile fly-in, part 1: the instant we know this is a fly-in viewport, hide
+  // the hoopoe before the browser paints (useLayoutEffect, not useEffect), so
+  // the SSR-rendered "already sitting there" frame is never actually shown.
+  // This is a genuine post-hydration update, so it is exempt from the
+  // attribute-hydration-mismatch pitfall the comment above describes.
+  useLayoutEffect(() => {
+    if (mobileFlyIn) setHoopoeShown(false);
+  }, [mobileFlyIn]);
 
   // React to reveal toggles after the intro settles.
   useEffect(() => {
@@ -117,7 +159,7 @@ export default function LoginPage() {
 
   function onHoopoeReady(api: HoopoeApi) {
     hoopoeApiRef.current = api;
-    if (!arrivedViaFlight) runIntro(api);
+    if (!arrivedViaFlight && !mobileFlyIn) runIntro(api);
   }
 
   // Belt-and-suspenders: cancel any pending intro timer on unmount so a fast
@@ -153,6 +195,29 @@ export default function LoginPage() {
       clearTimeout(fallback);
     };
   }, [arrivedViaFlight]);
+
+  // Mobile fly-in, part 2: ~500ms after the page settles, reveal the (now
+  // hidden, per the layout effect above) hoopoe and have it fly itself in
+  // from off-screen onto its own rest anchor (no target = wherever it is
+  // mounted), landing exactly where the static mascot would otherwise sit.
+  // `flyIn` is a same-mount primitive (no cross-page bus involved), so no
+  // `reportPerch`/`onHandoff` wiring is needed here; it only ever fires when
+  // `arrivedViaFlight` is false, so it can never race the flight-bus reveal
+  // above.
+  useEffect(() => {
+    if (!mobileFlyIn) return;
+    const timer = setTimeout(() => {
+      if (mobileFlyInFired.current) return;
+      const api = hoopoeApiRef.current;
+      if (!api) return;
+      mobileFlyInFired.current = true;
+      setHoopoeShown(true);
+      api.flyIn("top").then(() => {
+        if (!introDone.current) runIntro(api);
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [mobileFlyIn]);
 
   function reportPerchRect() {
     if (!arrivedViaFlight) return;

@@ -49,6 +49,7 @@ import {
   type Chord,
   type Dir,
   type Expression,
+  type FlyInEdge,
   type HoopoeApi,
   type Level,
   type SemanticEvent,
@@ -178,6 +179,10 @@ function EyeShapes({ cx, cy, s }: { cx: number; cy: number; s: number }) {
       <g data-eyeshape="sleepy" opacity={0}>
         <path d={`M${cx - 5.4 * s} ${cy - 0.6 * s} Q${cx} ${cy + 3.8 * s} ${cx + 5.4 * s} ${cy - 0.6 * s}`} stroke={C.eye} strokeWidth={3.4} fill="none" strokeLinecap="round" />
       </g>
+      {/* fully shut: a near-flat lid, distinct from sleepy's drowsy-but-open curve above */}
+      <g data-eyeshape="closed" opacity={0}>
+        <path d={`M${cx - 5.6 * s} ${cy} Q${cx} ${cy + 1.4 * s} ${cx + 5.6 * s} ${cy}`} stroke={C.eye} strokeWidth={3} fill="none" strokeLinecap="round" />
+      </g>
     </>
   );
 }
@@ -275,7 +280,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
 
   // ----- eye shape cross-fade -----
   function setEye(shape: string) {
-    (["round", "wide", "happy", "sleepy"] as const).forEach((s) =>
+    (["round", "wide", "happy", "sleepy", "closed"] as const).forEach((s) =>
       A(`[data-eyeshape=${s}]`, { opacity: s === shape ? 1 : 0 }, { duration: 0.12 })
     );
   }
@@ -387,6 +392,58 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
       if (open) await A(PARTS.crest, { scaleX: [null as never, 1.16, 1], scaleY: [null as never, 1.06, 1], rotate: 0 }, { duration: 0.6, ease: EASE_SPRING }).finished;
       else await A(PARTS.crest, { scaleX: 0.18, scaleY: 0.86, rotate: 0 }, SPRINGS.gentle).finished;
     });
+
+  // PREEN: a self-groom, bill dipping into a wing (picks left/right at random so it
+  // doesn't always favour a side), then a little crest flick to finish. A rare-idle
+  // beat, not a reaction to anything.
+  async function preenRaw() {
+    const left = Math.random() < 0.5;
+    const wing = left ? PARTS.leftWing : PARTS.rightWing;
+    const s = left ? -1 : 1;
+    damper.suspend();
+    try {
+      gazeTo(s * 0.6);
+      await Promise.all([
+        A(PARTS.head, { rotate: s * 14, y: 4 }, SPRINGS.gentle).finished,
+        A(wing, { rotate: s * 18 }, SPRINGS.gentle).finished,
+        A(PARTS.billLower, { rotate: 6 }, SPRINGS.gentle).finished,
+      ]);
+      for (let i = 0; i < 2; i++)
+        await A(PARTS.head, { rotate: [s * 14, s * 20, s * 14] }, { duration: 0.32, ease: EASE_SOFT }).finished;
+      await Promise.all([
+        A(PARTS.head, { rotate: 0, y: 0 }, SPRINGS.settle).finished,
+        A(wing, { rotate: 0 }, SPRINGS.settle).finished,
+        A(PARTS.billLower, { rotate: 0 }, SPRINGS.settle).finished,
+      ]);
+      gazeTo(0);
+      await crestFlickRaw();
+    } finally {
+      damper.resume();
+    }
+  }
+  const preen = () => enqueue(() => preenRaw());
+
+  // PECK: a quick foraging lunge (head + body dip, bill snaps open then shut) then a
+  // happy little upward beat, as if it just caught something. A rare-idle beat.
+  async function peckRaw() {
+    damper.suspend();
+    try {
+      await Promise.all([
+        A(PARTS.head, { y: [0, 10, 0] }, { duration: 0.3, ease: EASE_SPRING }).finished,
+        A(PARTS.billLower, { rotate: [0, 16, 0] }, { duration: 0.3, ease: EASE_SPRING }).finished,
+        A(PARTS.body, { y: [0, 3, 0] }, { duration: 0.3, ease: EASE_SOFT }).finished,
+      ]);
+      setEye("happy");
+      await Promise.all([
+        A(PARTS.root, { y: [rootY.current, rootY.current - 6, rootY.current] }, { duration: 0.32, ease: EASE_SPRING }).finished,
+        A(PARTS.tail, { rotate: [0, 8, 0] }, { duration: 0.32 }).finished,
+      ]);
+      setEye("round");
+    } finally {
+      damper.resume();
+    }
+  }
+  const peck = () => enqueue(() => peckRaw());
 
   const express = (name: Expression, opts?: { hold?: number }) =>
     enqueue(async () => {
@@ -550,16 +607,87 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
 
   // FLY: lands the bird's body-center exactly on the target. Graceful parabolic arc,
   // smooth continuous wingbeats, body banking into the direction of travel.
-  async function flyCore(target: Target) {
-    const p = rootTranslateFor(target);
-    const startX = rootX.current;
-    const startY = rootY.current;
+  //
+  // The cruise + landing (phases 2-3) are factored into `arcAndLand` so `flyIn`
+  // (an off-canvas entrance that skips the ground-takeoff crouch of phase 1,
+  // since it starts already airborne) can reuse the exact same flight math
+  // instead of duplicating it. `flyCore`'s own behavior is unchanged: it still
+  // reads `rootX.current`/`rootY.current` right before calling `arcAndLand`,
+  // which is the same moment the old inline version captured `startX`/`startY`
+  // (phase 1 never touches PARTS.root, so the value is identical either way).
+  async function arcAndLand(startX: number, startY: number, p: { x: number; y: number }) {
     const dx = p.x - startX;
     const dy = p.y - startY;
     const dist = Math.hypot(dx, dy);
     // distance-scaled so a long glide takes its time and never feels rushed; capped both ends
     const dur = clamp(0.95 + dist / 150, 1.0, 1.9);
     const dir = Math.sign(dx) || 1;
+    // flight: ONE continuous, smooth trajectory. The body follows a graceful analytic path
+    // (eased glide across + a smooth arch + a SMALL flap-synced lift bob); only the wings flap in
+    // intervals. We densely sample the smooth functions and play them with ease:"linear" so the
+    // body's velocity never eases to a stop at each beat (that stop/go was the jaggedness). A real
+    // bird cruises smoothly while its wings beat - this matches that.
+    const flaps = clamp(Math.round(dist / 70) + 2, 3, 6); // wingbeats over the whole flight
+    const cruise = 38 + dist * 0.08; // arch height above the start->end chord
+    const bobAmp = 6; // gentle altitude ripple from each beat
+    const wMid = -50;
+    const wAmp = 24; // wing sweep -74 (up) .. -26 (down)
+    const N = 56;
+    const smoother = (u: number) => u * u * u * (u * (u * 6 - 15) + 10); // C2-smooth ease (gentle takeoff + landing)
+    const txs: number[] = [];
+    const tys: number[] = [];
+    const lw: number[] = [];
+    const rw: number[] = [];
+    const bodyRot: number[] = [];
+    const stream: number[] = [];
+    const shScale: number[] = [];
+    const shOp: number[] = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const th = 2 * Math.PI * flaps * t;
+      const arch = Math.sin(Math.PI * t); // 0..1..0, smooth
+      const bob = -bobAmp * Math.cos(th) * arch; // lift on the downstroke, faded to nothing at the ends
+      txs.push(startX + dx * smoother(t));
+      tys.push(startY + dy * t - cruise * arch - bob);
+      const w = wMid - wAmp * Math.cos(th); // -74 up .. -26 down
+      lw.push(w);
+      rw.push(-w);
+      bodyRot.push(dir * 6 * arch);
+      stream.push(-dir * 8 * arch);
+      shScale.push(1 - 0.5 * arch);
+      shOp.push(0.18 - 0.12 * arch);
+    }
+    // pin the landing exactly on target
+    txs[N] = p.x;
+    tys[N] = p.y;
+    await Promise.all([
+      A(PARTS.root, { x: txs, y: tys }, { duration: dur, ease: "linear" }).finished,
+      A(PARTS.leftWing, { rotate: lw }, { duration: dur, ease: "linear" }).finished,
+      A(PARTS.rightWing, { rotate: rw }, { duration: dur, ease: "linear" }).finished,
+      A(PARTS.body, { rotate: bodyRot, scaleY: 1, y: 0 }, { duration: dur, ease: "linear" }).finished,
+      A(PARTS.crest, { rotate: stream }, { duration: dur, ease: "linear" }).finished,
+      A(PARTS.tail, { rotate: stream.map((v) => v * 1.2) }, { duration: dur, ease: "linear" }).finished,
+      A(PARTS.shadow, { scaleX: shScale, opacity: shOp }, { duration: dur, ease: "linear" }).finished,
+    ]);
+    rootX.current = p.x;
+    rootY.current = p.y;
+    // land: wings fold back, legs reach down, a soft cushioned squash, shadow restores
+    await Promise.all([
+      A(PARTS.leftWing, { rotate: 0 }, SPRINGS.settle).finished,
+      A(PARTS.rightWing, { rotate: 0 }, SPRINGS.settle).finished,
+      A(PARTS.leftWingArm, { opacity: 0 }, { duration: 0.2 }).finished,
+      A(PARTS.rightWingArm, { opacity: 0 }, { duration: 0.2 }).finished,
+      A(PARTS.leftWingFold, { opacity: 1 }, { duration: 0.2 }).finished,
+      A(PARTS.rightWingFold, { opacity: 1 }, { duration: 0.2 }).finished,
+      A(PARTS.leftLeg, { rotate: 0 }, SPRINGS.gentle).finished,
+      A(PARTS.rightLeg, { rotate: 0 }, SPRINGS.gentle).finished,
+      A(PARTS.shadow, { scaleX: 1, opacity: 0.18 }, SPRINGS.gentle).finished,
+      A(PARTS.body, { scaleY: [1.08, 0.95, 1], y: [0, 3, 0], rotate: 0 }, { duration: 0.45, ease: EASE_SPRING }).finished,
+    ]);
+  }
+
+  async function flyCore(target: Target) {
+    const p = rootTranslateFor(target);
     damper.suspend();
     try {
       // 1. takeoff: a quick, shallow crouch + a push off the legs (kept short so it leaves the
@@ -575,73 +703,60 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
         A(PARTS.leftLeg, { rotate: 138 }, SPRINGS.gentle).finished,
         A(PARTS.rightLeg, { rotate: -138 }, SPRINGS.gentle).finished,
       ]);
-      // 2. flight: ONE continuous, smooth trajectory. The body follows a graceful analytic path
-      //    (eased glide across + a smooth arch + a SMALL flap-synced lift bob); only the wings flap in
-      //    intervals. We densely sample the smooth functions and play them with ease:"linear" so the
-      //    body's velocity never eases to a stop at each beat (that stop/go was the jaggedness). A real
-      //    bird cruises smoothly while its wings beat - this matches that.
-      const flaps = clamp(Math.round(dist / 70) + 2, 3, 6); // wingbeats over the whole flight
-      const cruise = 38 + dist * 0.08; // arch height above the start->end chord
-      const bobAmp = 6; // gentle altitude ripple from each beat
-      const wMid = -50;
-      const wAmp = 24; // wing sweep -74 (up) .. -26 (down)
-      const N = 56;
-      const smoother = (u: number) => u * u * u * (u * (u * 6 - 15) + 10); // C2-smooth ease (gentle takeoff + landing)
-      const txs: number[] = [];
-      const tys: number[] = [];
-      const lw: number[] = [];
-      const rw: number[] = [];
-      const bodyRot: number[] = [];
-      const stream: number[] = [];
-      const shScale: number[] = [];
-      const shOp: number[] = [];
-      for (let i = 0; i <= N; i++) {
-        const t = i / N;
-        const th = 2 * Math.PI * flaps * t;
-        const arch = Math.sin(Math.PI * t); // 0..1..0, smooth
-        const bob = -bobAmp * Math.cos(th) * arch; // lift on the downstroke, faded to nothing at the ends
-        txs.push(startX + dx * smoother(t));
-        tys.push(startY + dy * t - cruise * arch - bob);
-        const w = wMid - wAmp * Math.cos(th); // -74 up .. -26 down
-        lw.push(w);
-        rw.push(-w);
-        bodyRot.push(dir * 6 * arch);
-        stream.push(-dir * 8 * arch);
-        shScale.push(1 - 0.5 * arch);
-        shOp.push(0.18 - 0.12 * arch);
-      }
-      // pin the landing exactly on target
-      txs[N] = p.x;
-      tys[N] = p.y;
-      await Promise.all([
-        A(PARTS.root, { x: txs, y: tys }, { duration: dur, ease: "linear" }).finished,
-        A(PARTS.leftWing, { rotate: lw }, { duration: dur, ease: "linear" }).finished,
-        A(PARTS.rightWing, { rotate: rw }, { duration: dur, ease: "linear" }).finished,
-        A(PARTS.body, { rotate: bodyRot, scaleY: 1, y: 0 }, { duration: dur, ease: "linear" }).finished,
-        A(PARTS.crest, { rotate: stream }, { duration: dur, ease: "linear" }).finished,
-        A(PARTS.tail, { rotate: stream.map((v) => v * 1.2) }, { duration: dur, ease: "linear" }).finished,
-        A(PARTS.shadow, { scaleX: shScale, opacity: shOp }, { duration: dur, ease: "linear" }).finished,
-      ]);
-      rootX.current = p.x;
-      rootY.current = p.y;
-      // 3. land: wings fold back, legs reach down, a soft cushioned squash, shadow restores
-      await Promise.all([
-        A(PARTS.leftWing, { rotate: 0 }, SPRINGS.settle).finished,
-        A(PARTS.rightWing, { rotate: 0 }, SPRINGS.settle).finished,
-        A(PARTS.leftWingArm, { opacity: 0 }, { duration: 0.2 }).finished,
-        A(PARTS.rightWingArm, { opacity: 0 }, { duration: 0.2 }).finished,
-        A(PARTS.leftWingFold, { opacity: 1 }, { duration: 0.2 }).finished,
-        A(PARTS.rightWingFold, { opacity: 1 }, { duration: 0.2 }).finished,
-        A(PARTS.leftLeg, { rotate: 0 }, SPRINGS.gentle).finished,
-        A(PARTS.rightLeg, { rotate: 0 }, SPRINGS.gentle).finished,
-        A(PARTS.shadow, { scaleX: 1, opacity: 0.18 }, SPRINGS.gentle).finished,
-        A(PARTS.body, { scaleY: [1.08, 0.95, 1], y: [0, 3, 0], rotate: 0 }, { duration: 0.45, ease: EASE_SPRING }).finished,
-      ]);
+      // 2-3. cruise + land, shared with flyIn.
+      await arcAndLand(rootX.current, rootY.current, p);
     } finally {
       damper.resume();
     }
   }
   const flyTo = (target: Target) => enqueue(() => (variant === "icon" ? Promise.resolve() : flyCore(target)));
+
+  // FLY-IN: an off-canvas entrance for a mount with no CTA-click origin to launch a
+  // cross-page flight from (e.g. a small mobile auth panel). Instantly (no animated
+  // travel) warps the puppet to just outside its own rendered box on the given edge,
+  // already posed for flight, then runs the identical cruise-and-land arc `flyTo`
+  // uses onto `target` (defaults to the rig's own rest anchor). Requires the SVG's
+  // own overflow:visible (already set on the root <motion.svg>) and enough clearance
+  // in the mounting page for the off-canvas start point not to get clipped.
+  function offCanvasStart(edge: FlyInEdge): { x: number; y: number } {
+    const svg = scopeEl();
+    const r = svg?.getBoundingClientRect();
+    const w = r?.width || 120;
+    const h = r?.height || 152;
+    // convert a px clearance margin into this rig's own viewBox units, so the start
+    // point clears the box by the same visual amount regardless of the `size` prop.
+    const vbPerPxX = 120 / (w || 1);
+    const vbPerPxY = 152 / (h || 1);
+    const marginPx = Math.max(w, h) * 1.15;
+    if (edge === "left") return { x: -marginPx * vbPerPxX, y: -marginPx * 0.25 * vbPerPxY };
+    if (edge === "right") return { x: marginPx * vbPerPxX, y: -marginPx * 0.25 * vbPerPxY };
+    return { x: 0, y: -marginPx * vbPerPxY }; // "top" (default)
+  }
+  async function flyInRaw(edge: FlyInEdge, target?: Target) {
+    const start = offCanvasStart(edge);
+    const end = target ? rootTranslateFor(target) : { x: 0, y: 0 }; // {0,0} = the rig's own rest anchor
+    damper.suspend();
+    try {
+      // snap straight to the airborne pose at the off-canvas point; no ground crouch
+      // to play since the bird is meant to already be mid-flight when it appears.
+      rootX.current = start.x;
+      rootY.current = start.y;
+      A(PARTS.root, { x: start.x, y: start.y }, { duration: 0 });
+      A(PARTS.leftWingFold, { opacity: 0 }, { duration: 0 });
+      A(PARTS.rightWingFold, { opacity: 0 }, { duration: 0 });
+      A(PARTS.leftWingArm, { opacity: 1 }, { duration: 0 });
+      A(PARTS.rightWingArm, { opacity: 1 }, { duration: 0 });
+      A(PARTS.leftLeg, { rotate: 138 }, { duration: 0 });
+      A(PARTS.rightLeg, { rotate: -138 }, { duration: 0 });
+      A(PARTS.leftWing, { rotate: -50 }, { duration: 0 });
+      A(PARTS.rightWing, { rotate: 50 }, { duration: 0 });
+      await arcAndLand(start.x, start.y, end);
+    } finally {
+      damper.resume();
+    }
+  }
+  const flyIn = (edge: FlyInEdge = "top", target?: Target) =>
+    enqueue(() => (variant === "icon" ? Promise.resolve() : flyInRaw(edge, target)));
 
   const land = () =>
     enqueue(async () => {
@@ -809,6 +924,39 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     return () => {};
   }
 
+  // ----- sleep / wake (deep-idle rest; suspends the ambient loop for as long as it holds) -----
+  const asleepRef = useRef(false);
+  async function sleepRaw() {
+    if (asleepRef.current) return; // already asleep, no-op
+    asleepRef.current = true;
+    // suspend()'s partner resume() lives in wakeRaw (or stop(), if interrupted) rather
+    // than a finally block here — unlike every other verb, this hold is meant to
+    // persist well past this single async call, for as long as the bird is "asleep".
+    damper.suspend();
+    gazeX.set(0);
+    gazeY.set(0);
+    await applyChord(EXPRESSIONS.asleep, { spring: SPRINGS.soft });
+  }
+  const sleepVerb = () => enqueue(() => sleepRaw());
+  async function wakeRaw() {
+    if (!asleepRef.current) return; // already awake, no-op
+    // a small stretch before opening the eyes: crest flick + a light wing shrug
+    await Promise.all([
+      A(PARTS.crest, { rotate: [null as never, -6, 3, 0], scaleX: [null as never, 1.08, 1] }, { duration: 0.5, ease: EASE_SPRING }).finished,
+      A(PARTS.leftWing, { rotate: [0, -12, 0] }, { duration: 0.5, ease: EASE_SOFT }).finished,
+      A(PARTS.rightWing, { rotate: [0, 12, 0] }, { duration: 0.5, ease: EASE_SOFT }).finished,
+    ]);
+    await applyChord(EXPRESSIONS.content, { spring: SPRINGS.gentle });
+    asleepRef.current = false;
+    damper.resume(); // idle breathe/blink/sparkle/flick pick back up
+    // a soft double-blink as the eyes flutter open (inlined, not the queued blinkOnce()
+    // verb: calling another enqueue()'d verb from inside a step that is itself running
+    // as part of the queue would deadlock the single pump — see react()'s note below).
+    await A(PARTS.eyeBlink, { scaleY: [1, 0.05, 1] }, { duration: 0.2, ease: "easeInOut" }).finished;
+    await A(PARTS.eyeBlink, { scaleY: [1, 0.05, 1] }, { duration: 0.2, ease: "easeInOut" }).finished;
+  }
+  const wakeVerb = () => enqueue(() => wakeRaw());
+
   // ----- control -----
   function stop() {
     queue.length = 0;
@@ -819,6 +967,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     abortRef.current.aborted = true;
     abortRef.current.release(); // unblock pump's race so it exits cleanly
     arm();
+    asleepRef.current = false; // an interrupted sleep no longer owns the damper hold below
     while (damper.active) damper.resume();
   }
   function cancel() {
@@ -904,8 +1053,9 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   const api = useMemo<HoopoeApi>(
     () => ({
       walk, hop, flyTo, land, takeOff, glide, perch, turn, point, wave, nod, shake, crest, crestFlick,
+      preen, peck, flyIn,
       express, celebrate, blinkOnce, gaze: gazeTo, bindPassword,
-      coverEyes, peek, sequence, react, stop, cancel, rest, isBusy,
+      coverEyes, peek, sleep: sleepVerb, wake: wakeVerb, sequence, react, stop, cancel, rest, isBusy,
     }),
     // verbs are stable by construction (see note above); intentionally build once
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 
 type SortBy = "recent" | "liked" | "commented";
 type TimeFilter = "all" | "today" | "week" | "month" | "year";
@@ -208,6 +209,11 @@ export function PostFeed({
         </div>
       ) : posts.length === 0 ? (
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
+          {search && (
+            <div className="mb-3 flex justify-center">
+              <NoResultsHoopoe size={76} />
+            </div>
+          )}
           <p className="font-heading text-lg tracking-tight text-foreground">
             {search
               ? "No posts match your search."

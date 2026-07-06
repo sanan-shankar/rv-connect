@@ -650,7 +650,10 @@ export function BirdAvatar({
 
   const bird = birdFor(seed);
   const color = bird.color;
-  const species = user.avatarSpecies ?? bird.species;
+  // Manual override > owner/staff pin > deterministic hash - same precedence as the USE_V2 path
+  // above and profile-avatar.tsx, so the owner's pin still applies if this legacy flag is ever
+  // flipped back on.
+  const species = user.avatarSpecies ?? SPECIES_PINS[seed] ?? bird.species;
   const glyph = Math.round(px * 0.66);
 
   return (
