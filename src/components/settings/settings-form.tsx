@@ -40,6 +40,7 @@ interface User {
   avatarColor: string | null;
   bio: string | null;
   currentCity: string | null;
+  secondaryCity: string | null;
   workplace: string | null;
   jobTitle: string | null;
   phone: string | null;
@@ -425,14 +426,25 @@ export function SettingsForm({ user }: { user: User }) {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="currentCity">Current City</Label>
-              <Input
-                id="currentCity"
-                name="currentCity"
-                defaultValue={user.currentCity || ""}
-                placeholder="e.g. Bangalore"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentCity">City</Label>
+                <Input
+                  id="currentCity"
+                  name="currentCity"
+                  defaultValue={user.currentCity || ""}
+                  placeholder="e.g. Bangalore"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="secondaryCity">Also in</Label>
+                <Input
+                  id="secondaryCity"
+                  name="secondaryCity"
+                  defaultValue={user.secondaryCity || ""}
+                  placeholder="e.g. Chennai (optional)"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

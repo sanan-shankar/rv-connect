@@ -23,6 +23,7 @@ export default async function SettingsPage() {
       avatarColor: true,
       bio: true,
       currentCity: true,
+      secondaryCity: true,
       workplace: true,
       jobTitle: true,
       phone: true,
