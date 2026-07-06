@@ -57,6 +57,10 @@ export default async function FeedPage() {
             admissionNumberMissing={admissionNumberMissing}
             aboutMissing={aboutMissing}
           />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-x-[30px] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
+        <div className="min-w-0">
           <FeedColumn
             showControls={false}
             currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
