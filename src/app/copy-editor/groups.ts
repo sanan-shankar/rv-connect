@@ -53,6 +53,7 @@ export const GROUP_ORDER: GroupDef[] = [
   { id: "login", label: "Login" },
   { id: "signup", label: "Signup" },
   { id: "onboarding", label: "Onboarding" },
+  { id: "welcome", label: "Welcome" },
   { id: "global-chrome", label: "Global chrome" },
   { id: "feed", label: "Feed" },
   { id: "letters", label: "Letters" },
@@ -75,8 +76,10 @@ const ROUTE_KEYWORDS: Array<[string, string]> = [
   ["about", "about"],
   ["login", "login"],
   ["signup", "signup"],
+  ["welcome", "welcome"],
   ["onboarding", "onboarding"],
-  ["catchups", "catchups"],
+  ["catchup", "catchups"], // covers code identifiers too: CATCHUP_PROMPT_SETS, createCatchup, GroupCatchupCard
+  ["catch-up", "catchups"], // covers hyphenated human-readable names: "Catch-up home shell"
   ["collection", "collection"],
   ["directory", "directory"],
   ["support", "support"],
@@ -88,8 +91,22 @@ const ROUTE_KEYWORDS: Array<[string, string]> = [
   ["letters", "letters"],
 ];
 
-export function classifyGroup(entry: Pick<InventoryEntry, "kind" | "route">): string {
-  const { kind, route } = entry;
+// Fallback for entries whose `route` is a descriptive component/action name
+// rather than a path (e.g. "AnswerCard", "KeeperRail", "submitPrompt
+// action") and so matches none of the keywords above. Their `file` path is
+// reliable, so key off the source directory instead.
+const FILE_PREFIX_GROUPS: Array<[string, string]> = [
+  ["src/app/(main)/catchups", "catchups"],
+  ["src/components/catchups/", "catchups"],
+  ["src/lib/catchups.ts", "catchups"],
+  ["src/lib/catchups-notify.ts", "catchups"],
+  ["src/app/(main)/welcome", "welcome"],
+  ["src/components/onboarding/", "welcome"],
+  ["src/lib/houses.ts", "welcome"],
+];
+
+export function classifyGroup(entry: Pick<InventoryEntry, "kind" | "route" | "file">): string {
+  const { kind, route, file } = entry;
   const rl = route.toLowerCase();
 
   if (kind === "toast") return "toasts";
@@ -99,6 +116,10 @@ export function classifyGroup(entry: Pick<InventoryEntry, "kind" | "route">): st
 
   for (const [needle, group] of ROUTE_KEYWORDS) {
     if (rl.includes(needle)) return group;
+  }
+
+  for (const [prefix, group] of FILE_PREFIX_GROUPS) {
+    if (file.startsWith(prefix)) return group;
   }
 
   if (rl.includes("notification") || rl.includes("bell")) return "notifications-chrome";

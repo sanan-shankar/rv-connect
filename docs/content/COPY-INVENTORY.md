@@ -6,6 +6,8 @@ Each entry shows the exact text as a quote, followed by the situation that trigg
 
 Sections run: landing page, /about, /login, /signup, /onboarding, global chrome (sidebar, footer, header, shared components), /feed, Letters, /directory, /groups, /catchups, /collection, /profile, /settings, notifications (bell/panel chrome), /support, /admin, 404/error pages, then three cross-cutting groups that pull matching strings out of every route above: validation messages, notification templates, and toasts.
 
+Delta appended 2026-07-06: the built-out Catch-ups feature (/catchups, /catchups/new, /catchups/[catchupId], /catchups/[catchupId]/answer, /catchups/round/[editionId], and their shared components/actions/notifications) folded into the existing /catchups section, a new /welcome section for the post-signup onboarding wizard, and additional strings folded into /feed, Letters, /profile/[id], /settings, and /signup.
+
 ## Landing page (/)
 
 > Rishi Valley
@@ -412,6 +414,23 @@ Sections run: landing page, /about, /login, /signup, /onboarding, global chrome 
 
 > If you joined before 4th grade, enter the year you started 4th grade and put the grade joined as 4.
 - where: body text of the info tooltip opened by the circled-i next to 'Joined before 4th grade?' (the previously recorded tooltip body text for this file does not match what is actually in the code); file: src/components/auth/signup-form.tsx; kind: tooltip
+> Batch of {batch.batchYear}
+- where: Live batch preview value alongside 'You'll join'; file: src/components/auth/signup-form.tsx:451; kind: body-text
+
+> {batch.error}
+- where: Inline error shown instead of the batch preview when schooling fields are invalid (shares computeBatchFromSchooling with settings, see /settings entries for each message); file: src/components/auth/signup-form.tsx:456; kind: error
+
+> Creating account...
+- where: Submit button while the request is in flight; file: src/components/auth/signup-form.tsx:473; kind: button
+
+> Join
+- where: Submit button, idle state; file: src/components/auth/signup-form.tsx:473; kind: button
+
+> Show password
+- where: aria-label toggling password visibility, hidden state; file: src/components/auth/signup-form.tsx:312; kind: aria-label
+
+> Hide password
+- where: aria-label toggling password visibility, revealed state; file: src/components/auth/signup-form.tsx:312; kind: aria-label
 
 ## /onboarding
 
@@ -471,6 +490,167 @@ Sections run: landing page, /about, /login, /signup, /onboarding, global chrome 
 
 > Save & continue / Saving...
 - where: submit button, label swaps to the loading variant while saving; file: src/app/(auth)/onboarding/page.tsx:147; kind: button
+
+## /welcome
+
+> Welcome
+- where: Metadata title for the welcome/onboarding route; file: src/app/(main)/welcome/page.tsx:9; kind: metadata-title
+
+> Step {index + 1} of {dotSteps.length}
+- where: Step dots group aria-label, shown while wizard is on any step but 'done'; file: src/components/onboarding/onboarding-flow.tsx:126; kind: aria-label
+
+> Go back to step {i + 1}
+- where: aria-label on each step dot button; file: src/components/onboarding/onboarding-flow.tsx:134; kind: aria-label
+
+> Finish later
+- where: Header link, visible on every step except 'done'; drops the user straight to /feed; file: src/components/onboarding/onboarding-flow.tsx:153; kind: button
+
+> Welcome, {firstName}.
+- where: Step 1 heading, greets by first name (falls back to 'there' if name is blank); file: src/components/onboarding/steps/welcome-step.tsx:19; kind: heading
+
+> Rishi Valley is a space for the whole community, alumni and teachers, to stay in touch. Let's get your page ready so people can find you.
+- where: Step 1 intro paragraph; file: src/components/onboarding/steps/welcome-step.tsx:21; kind: body-text
+
+> Four quick steps. Skip anything you'd rather do later, nothing here is required to start using the feed.
+- where: Step 1 secondary line, sets expectation that every step is skippable; file: src/components/onboarding/steps/welcome-step.tsx:27; kind: body-text
+
+> Let's go
+- where: Primary CTA advancing to the register step; file: src/components/onboarding/steps/welcome-step.tsx:32; kind: button
+
+> A few details for the register
+- where: Step 2 heading; file: src/components/onboarding/steps/register-step.tsx:49; kind: heading
+
+> This helps us match you to the school's records and helps batchmates place you.
+- where: Step 2 intro paragraph; file: src/components/onboarding/steps/register-step.tsx:52; kind: body-text
+
+> Admission number
+- where: Field label for admission number input; file: src/components/onboarding/steps/register-step.tsx:59; kind: label
+
+> e.g. 1234
+- where: Placeholder for admission number input; file: src/components/onboarding/steps/register-step.tsx:66; kind: placeholder
+
+> Don't remember it? Leave this blank, you can add it later.
+- where: Helper text under admission number field; file: src/components/onboarding/steps/register-step.tsx:71; kind: helper-text
+
+> Current city
+- where: Field label for current city input; file: src/components/onboarding/steps/register-step.tsx:76; kind: label
+
+> e.g. Bengaluru
+- where: Placeholder for current city input; file: src/components/onboarding/steps/register-step.tsx:81; kind: placeholder
+
+> Profession
+- where: Field label for profession (jobTitle) input; file: src/components/onboarding/steps/register-step.tsx:87; kind: label
+
+> e.g. Teacher
+- where: Placeholder for profession input; file: src/components/onboarding/steps/register-step.tsx:92; kind: placeholder
+
+> Organisation
+- where: Field label for organisation (workplace) input; file: src/components/onboarding/steps/register-step.tsx:96; kind: label
+
+> e.g. Rishi Valley School
+- where: Placeholder for organisation input; file: src/components/onboarding/steps/register-step.tsx:101; kind: placeholder
+
+> Back
+- where: Back button; file: src/components/onboarding/steps/register-step.tsx:110; kind: button
+
+> Skip for now
+- where: Skip button for this step; file: src/components/onboarding/steps/register-step.tsx:114; kind: button
+
+> Save & continue
+- where: Submit button, idle state (spinner replaces the trailing arrow while saving); file: src/components/onboarding/steps/register-step.tsx:118; kind: button
+
+> {result.error}
+- where: Toast when saveOnboardingRegister returns a validation error (e.g. bad admission number); file: src/components/onboarding/steps/register-step.tsx:38; kind: toast-error
+
+> Saved
+- where: Toast on successful save of register step; file: src/components/onboarding/steps/register-step.tsx:41; kind: toast-success
+
+> Not authenticated
+- where: Server-side error when saveOnboardingRegister is called without a session; file: src/components/onboarding/actions.ts:25; kind: error
+
+> Which house, which year?
+- where: Step 3 heading; file: src/components/onboarding/steps/houses-step.tsx:130; kind: heading
+
+> Houses change year to year for a lot of us. Leave a year blank if you don't remember it.
+- where: Step 3 intro paragraph; file: src/components/onboarding/steps/houses-step.tsx:133; kind: body-text
+
+> Year
+- where: aria-label on the year input of each house row; file: src/components/onboarding/steps/houses-step.tsx:149; kind: aria-label
+
+> House
+- where: aria-label on the house select of each row; file: src/components/onboarding/steps/houses-step.tsx:163; kind: aria-label
+
+> Don't remember
+- where: Placeholder shown in the house select when no house chosen for that year; file: src/components/onboarding/steps/houses-step.tsx:164; kind: placeholder
+
+> Krishna / Cauvery / Ganga / Aditi
+- where: Options list in the house select for a year row; PLACEHOLDER DATA pending owner confirmation of the real house names; file: src/lib/houses.ts:11; kind: select-options
+
+> Remove this year
+- where: aria-label on the remove-row button; disabled when only one row remains; file: src/components/onboarding/steps/houses-step.tsx:178; kind: aria-label
+
+> Add a year
+- where: Button to add another year row; file: src/components/onboarding/steps/houses-step.tsx:188; kind: button
+
+> Back
+- where: Back button; file: src/components/onboarding/steps/houses-step.tsx:196; kind: button
+
+> Skip for now
+- where: Skip button for this step; file: src/components/onboarding/steps/houses-step.tsx:200; kind: button
+
+> Save & continue
+- where: Submit button, idle state; file: src/components/onboarding/steps/houses-step.tsx:205; kind: button
+
+> That doesn't look like a valid set of years and houses.
+- where: Toast when saveOnboardingHouses fails validation (malformed rows); file: src/components/onboarding/actions.ts:95; kind: toast-error
+
+> Saved, this will finish syncing once we turn on house history.
+- where: Toast on save when the `houses` DB column does not exist yet (pending migration); data is parked in localStorage instead; file: src/components/onboarding/steps/houses-step.tsx:118; kind: toast-success
+
+> Saved
+- where: Toast on save when the `houses` DB column exists and the write succeeds; file: src/components/onboarding/steps/houses-step.tsx:121; kind: toast-success
+
+> Add a photo, or keep your bird
+- where: Step 4 heading; file: src/components/onboarding/steps/photo-step.tsx:62; kind: heading
+
+> Every member gets a valley bird by default. Upload a photo any time you like, from here or from settings.
+- where: Step 4 intro paragraph; file: src/components/onboarding/steps/photo-step.tsx:66; kind: body-text
+
+> You're a {speciesName}.
+- where: Shown under the avatar only when no photo has been uploaded; names the member's deterministic bird species; file: src/components/onboarding/steps/photo-step.tsx:85; kind: body-text
+
+> Please choose an image
+- where: Toast when a non-image file is picked; file: src/components/onboarding/steps/photo-step.tsx:38; kind: toast-error
+
+> Photo must be under 15MB
+- where: Toast when the picked file exceeds 15MB; file: src/components/onboarding/steps/photo-step.tsx:42; kind: toast-error
+
+> Looking good
+- where: Toast on successful photo upload; file: src/components/onboarding/steps/photo-step.tsx:56; kind: toast-success
+
+> Upload a photo
+- where: Upload button, shown when no photo set yet; file: src/components/onboarding/steps/photo-step.tsx:96; kind: button
+
+> Change photo
+- where: Upload button label, shown once a photo is already set; file: src/components/onboarding/steps/photo-step.tsx:96; kind: button
+
+> Proudly keep my bird
+- where: Skip button, only shown while no photo has been uploaded; file: src/components/onboarding/steps/photo-step.tsx:108; kind: button
+
+> Back
+- where: Back button; file: src/components/onboarding/steps/photo-step.tsx:103; kind: button
+
+> Continue
+- where: Continue button; file: src/components/onboarding/steps/photo-step.tsx:112; kind: button
+
+> All set, {firstName}.
+- where: Step 5 heading, greets by first name; file: src/components/onboarding/steps/done-step.tsx:25; kind: heading
+
+> Thank you for filling that in. Whatever you skipped is waiting for you, whenever you feel like it, from a small card on your feed.
+- where: Step 5 closing paragraph; file: src/components/onboarding/steps/done-step.tsx:27; kind: body-text
+
+> Take me to the feed
+- where: Final CTA out of the wizard; file: src/components/onboarding/steps/done-step.tsx:39; kind: button
 
 ## Global chrome (sidebar, footer, header, tab titles, shared components)
 
@@ -811,6 +991,116 @@ Sections run: landing page, /about, /login, /signup, /onboarding, global chrome 
 
 > Comment not found
 - where: returned by deleteComment if the comment no longer exists; presently unreachable in the UI since no comment-delete button is wired up yet; file: src/app/(main)/feed/actions.ts:366; kind: error
+> Finish setting up your profile
+- where: Heading on the dismissible finish-setup nudge, shown when admission number, bio, or houses is still missing; file: src/components/feed/finish-setup-card.tsx:79; kind: heading
+
+> Still missing {bits.join(", ")}.
+- where: Body of the finish-setup nudge, lists whichever of admission number/houses/bio are still missing, joined with commas; file: src/components/feed/finish-setup-card.tsx:81; kind: body-text
+
+> Your houses are saved already, just waiting to finish syncing.
+- where: Appended to the finish-setup nudge body only when a houses submission is parked in localStorage awaiting the pending DB migration; file: src/components/feed/finish-setup-card.tsx:82; kind: body-text
+
+> your admission number
+- where: Text fragment for a missing admission number, joined into the nudge's 'Still missing ...' sentence; file: src/components/feed/finish-setup-card.tsx:71; kind: body-text-fragment
+
+> your houses
+- where: Text fragment for pending houses, joined into the nudge's 'Still missing ...' sentence; file: src/components/feed/finish-setup-card.tsx:72; kind: body-text-fragment
+
+> a line or two about yourself
+- where: Text fragment for a missing bio, joined into the nudge's 'Still missing ...' sentence; file: src/components/feed/finish-setup-card.tsx:73; kind: body-text-fragment
+
+> Finish now
+- where: CTA on the finish-setup nudge, links to whichever incomplete step matters most; file: src/components/feed/finish-setup-card.tsx:93; kind: cta label
+
+> Dismiss
+- where: aria-label on the dismiss (X) button of the finish-setup nudge; file: src/components/feed/finish-setup-card.tsx:100; kind: aria-label
+
+> This week in Letters
+- where: Feed rail, "This week in Letters" module header (shown when a Letter was posted to the main feed in the trailing 7 days); file: src/components/feed/rail/letters-module.tsx:43; kind: label
+
+> New letter
+- where: Letters rail module: small badge above the letter title, next to a Feather icon; file: src/components/feed/rail/letters-module.tsx:51; kind: label
+
+> From the Collection
+- where: Feed rail, "From the Collection" module header (shown when at least one approved, visible photo exists in the Valley Collection); file: src/components/feed/rail/collection-module.tsx:27; kind: label
+
+> A photo from the Valley Collection
+- where: Collection rail module: img alt text fallback, used when the featured photo has no caption; file: src/components/feed/rail/collection-module.tsx:36; kind: alt-text
+
+> New in the directory
+- where: Feed rail, "New in the directory" module header (shown when at least one other member exists); file: src/components/feed/rail/directory-module.tsx:31; kind: label
+
+> Your groups
+- where: Feed rail, "Your groups" module header (always shown for the viewer, even with zero groups); file: src/components/feed/rail/groups-module.tsx:21; kind: label
+
+> You have not joined any groups yet.
+- where: Your groups rail module empty state, shown when the viewer belongs to no groups; file: src/components/feed/rail/groups-module.tsx:24; kind: empty-state
+
+> Find one
+- where: Your groups rail module empty state: link into /groups, immediately after "You have not joined any groups yet."; file: src/components/feed/rail/groups-module.tsx:26; kind: link-text
+
+> Signs of life
+- where: Feed rail, "Signs of life" module header (last module; only shown when the past week has >=3 posts from >=2 distinct authors sitewide); file: src/components/feed/rail/pulse-module.tsx:31; kind: label
+
+> posts shared this week
+- where: Signs of life module: post-count row, following the bold post count number, e.g. "12 posts shared this week"; file: src/components/feed/rail/pulse-module.tsx:39; kind: text
+
+> people behind them
+- where: Signs of life module: distinct-author row, following the bold author count number, e.g. "7 people behind them"; file: src/components/feed/rail/pulse-module.tsx:47; kind: text
+
+> Good morning
+- where: Greeting strip heading, shown before noon IST, followed by the member's first name (e.g. "Good morning, Amy"); file: src/components/feed/greeting-strip.tsx:18; kind: text
+
+> Good afternoon
+- where: Greeting strip heading, shown between 12:00 and 16:59 IST, followed by the member's first name; file: src/components/feed/greeting-strip.tsx:19; kind: text
+
+> Good evening
+- where: Greeting strip heading, shown from 17:00 IST onward, followed by the member's first name; file: src/components/feed/greeting-strip.tsx:20; kind: text
+
+> J. Krishnamurti
+- where: Greeting strip: attribution shown after the rotating quote, in the form “{quote}” J. Krishnamurti; file: src/components/feed/greeting-strip.tsx:51; kind: text
+
+> Truth is a pathless land, and you cannot approach it by any path whatsoever.
+- where: Greeting strip quote #1 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 0); file: src/components/feed/greeting-quotes.ts:13; kind: quote
+
+> The observer is the observed.
+- where: Greeting strip quote #2 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 1); file: src/components/feed/greeting-quotes.ts:14; kind: quote
+
+> The description is not the described.
+- where: Greeting strip quote #3 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 2); file: src/components/feed/greeting-quotes.ts:15; kind: quote
+
+> One is never afraid of the unknown; one is afraid of the known coming to an end.
+- where: Greeting strip quote #4 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 3); file: src/components/feed/greeting-quotes.ts:16; kind: quote
+
+> Freedom is at the very beginning, not at the end.
+- where: Greeting strip quote #5 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 4); file: src/components/feed/greeting-quotes.ts:17; kind: quote
+
+> The only freedom is the freedom from the known.
+- where: Greeting strip quote #6 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 5); file: src/components/feed/greeting-quotes.ts:18; kind: quote
+
+> It is truth that liberates, not your effort to be free.
+- where: Greeting strip quote #7 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 6); file: src/components/feed/greeting-quotes.ts:19; kind: quote
+
+> You can only be afraid of what you think you know.
+- where: Greeting strip quote #8 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 7); file: src/components/feed/greeting-quotes.ts:20; kind: quote
+
+> Without freedom, without the open mind, there can be no understanding.
+- where: Greeting strip quote #9 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 8); file: src/components/feed/greeting-quotes.ts:21; kind: quote
+
+> Freedom is to be a light to oneself.
+- where: Greeting strip quote #10 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 9); file: src/components/feed/greeting-quotes.ts:22; kind: quote
+
+> Tradition becomes our security, and when the mind is secure it is in decay.
+- where: Greeting strip quote #11 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 10); file: src/components/feed/greeting-quotes.ts:23; kind: quote
+
+> The constant assertion of belief is an indication of fear.
+- where: Greeting strip quote #12 of 12, rotates deterministically by IST day-of-year (day-of-year mod 12 == 11); file: src/components/feed/greeting-quotes.ts:24; kind: quote
+
+> Write your post
+- where: Screen-reader label on the composer's contentEditable field, for a normal post or group post (kind !== "letter"); replaces the old plain <textarea> with no aria-label; file: src/components/posts/create-post-form.tsx:430; kind: aria-label
+
+> Add to your post
+- where: Screen-reader label on the composer toolbar's icon-only plus/more toggle that opens the Add a poll / Write as a Letter menu; the button lost its visible "More" text and this aria-label changed from the old "More post options"; file: src/components/posts/create-post-form.tsx:524; kind: aria-label
 
 ## Letters (/letters)
 
@@ -873,6 +1163,8 @@ Sections run: landing page, /about, /login, /signup, /onboarding, global chrome 
 
 > Save letter
 - where: aria-label on the bookmark/save button under a Letter when the letter is not yet saved; file: src/components/letters/letter-engagement.tsx; kind: label
+> Write your letter
+- where: Screen-reader label on the composer's contentEditable field, when the composer is in Letter mode (kind === "letter"); replaces the old plain <textarea> with no aria-label; file: src/components/posts/create-post-form.tsx:430; kind: aria-label
 
 ## /directory
 
@@ -1287,6 +1579,1112 @@ Sections run: landing page, /about, /login, /signup, /onboarding, global chrome 
 
 > Browse your groups
 - where: always visible, placeholder-page CTA; file: src/app/(main)/catchups/page.tsx:21; kind: button
+> Your Catch-ups
+- where: Left column section heading above the list of the viewer's Catch-ups; file: src/app/(main)/catchups/page.tsx:258; kind: heading
+
+> No Catch-up here yet
+- where: Status line on a card for a group with no Catch-up yet; file: src/app/(main)/catchups/page.tsx:112; kind: status text
+
+> Start one
+- where: CTA on a group card with no Catch-up yet; file: src/app/(main)/catchups/page.tsx:113; kind: cta label
+
+> View archive
+- where: CTA when the Catch-up has ended; file: src/app/(main)/catchups/page.tsx:33; kind: cta label
+
+> View
+- where: CTA when the Catch-up is paused; file: src/app/(main)/catchups/page.tsx:34; kind: cta label
+
+> Answer now
+- where: CTA when the Round is answering; file: src/app/(main)/catchups/page.tsx:38; kind: cta label
+
+> Read the Round
+- where: CTA when the Round is published; file: src/app/(main)/catchups/page.tsx:41; kind: cta label
+
+> Add a question
+- where: CTA when the Round is collecting (default); file: src/app/(main)/catchups/page.tsx:48; kind: cta label
+
+> Paused
+- where: Status line when the Catch-up is paused; file: src/app/(main)/catchups/page.tsx:125; kind: status text
+
+> Ended
+- where: Status line when the Catch-up has ended; file: src/app/(main)/catchups/page.tsx:126; kind: status text
+
+> Getting started
+- where: Status line when a Catch-up exists but has no rendered edition yet; file: src/app/(main)/catchups/page.tsx:130; kind: status text
+
+> {answeredCount} of {memberCount} shared
+- where: Live 'answering now' card, N of M members who have already shared; file: src/app/(main)/catchups/page.tsx / your-catchups-card.tsx:80; kind: status text
+
+> (no user-visible text; decorative skeleton only)
+- where: Skeleton-only screen, no visible text (aria-hidden shimmer blocks); file: src/app/(main)/catchups/loading.tsx:1; kind: loading state
+
+> Start a Catch-up
+- where: Browser tab title for the create-a-Catch-up flow; file: src/app/(main)/catchups/new/page.tsx:15; kind: metadata title
+
+> Everyone answers a few questions. Their replies become one issue the whole group reads.
+- where: Page header subtitle once a group is confirmed (form step); file: src/app/(main)/catchups/new/page.tsx:120; kind: subtitle
+
+> (no user-visible text; decorative skeleton only)
+- where: Skeleton-only screen, no visible text; file: src/app/(main)/catchups/new/loading.tsx:1; kind: loading state
+
+> Catch-ups
+- where: Browser tab title when the Catch-up can't be resolved (missing/error); file: src/app/(main)/catchups/[catchupId]/page.tsx:56; kind: metadata title
+
+> {catchup title or '{group} Catch-ups'}
+- where: Browser tab title when the Catch-up resolves; uses catchupTitle() fallback logic; file: src/app/(main)/catchups/[catchupId]/page.tsx:57; kind: metadata title
+
+> This Catch-up is not available.
+- where: Catch-up not found (deleted/bad link); file: src/app/(main)/catchups/[catchupId]/page.tsx:341; kind: heading (empty/error state)
+
+> It may have been removed, or this link points somewhere that no longer exists.
+- where: Catch-up not found, body copy; file: src/app/(main)/catchups/[catchupId]/page.tsx:342; kind: body text (error state)
+
+> Back to Catch-ups
+- where: Catch-up not found, CTA back to index; file: src/app/(main)/catchups/[catchupId]/page.tsx:343; kind: cta label
+
+> This Catch-up is for group members.
+- where: Viewer is not a member of the owning group; file: src/app/(main)/catchups/[catchupId]/page.tsx:351; kind: heading (error state)
+
+> Join {groupName} to add questions, answer, and read the archive.
+- where: Viewer is not a member, body copy with {groupName} interpolated; file: src/app/(main)/catchups/[catchupId]/page.tsx:352; kind: body text (error state)
+
+> View the group
+- where: Viewer is not a member, CTA to the group; file: src/app/(main)/catchups/[catchupId]/page.tsx:353; kind: cta label
+
+> A gentle round of questions for {groupName}, answered together and gathered into one issue.
+- where: Page header subtitle for the Catch-up home, {groupName} interpolated; file: src/app/(main)/catchups/[catchupId]/page.tsx:362; kind: subtitle
+
+> (no user-visible text; decorative skeleton only)
+- where: Skeleton-only screen, no visible text; file: src/app/(main)/catchups/[catchupId]/loading.tsx:1; kind: loading state
+
+> {groupName}'s Catch-up has not opened its Round yet.
+- where: Redirect toast: Round is still in draft, hasn't opened; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:29; kind: toast (redirect)
+
+> Questions are still open. Answering starts once the Keeper opens it.
+- where: Redirect toast: Round is still collecting questions; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:31; kind: toast (redirect)
+
+> Answers are in. This Round is being put together.
+- where: Redirect toast: Round is preparing (answers closed, being assembled); file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:33; kind: toast (redirect)
+
+> This Round is already out. Come read it.
+- where: Redirect toast: Round already published; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:35; kind: toast (redirect)
+
+> Answering is not open for this Round right now.
+- where: Redirect toast: fallback for any other non-answering status; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:37; kind: toast (redirect)
+
+> Answering now.
+- where: Page subtitle: no answersCloseAt set; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:42; kind: subtitle
+
+> Answers are closing.
+- where: Page subtitle: window already past close; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:44; kind: subtitle
+
+> Answers close today.
+- where: Page subtitle: 1 day or less left; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:46; kind: subtitle
+
+> Answers close in {days} days.
+- where: Page subtitle: more than 1 day left, {days} interpolated; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:47; kind: subtitle
+
+> This Catch-up is not available.
+- where: Catch-up not found for this id; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:86; kind: heading (error state)
+
+> It may have been removed, or this link points somewhere that no longer exists.
+- where: Catch-up not found, body copy; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:87; kind: body text (error state)
+
+> Back to Catch-ups
+- where: Catch-up not found, CTA; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:88; kind: cta label
+
+> This Catch-up is for group members.
+- where: Viewer not a member of the owning group; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:101; kind: heading (error state)
+
+> Join {groupName} to add questions, answer, and read the archive.
+- where: Viewer not a member, body copy with {groupName}; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:102; kind: body text (error state)
+
+> View the group
+- where: Viewer not a member, CTA; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:103; kind: cta label
+
+> This Catch-up has not opened a Round yet.
+- where: Catch-up exists but has never opened a Round; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:117; kind: heading (empty state)
+
+> Check back once the first Round starts collecting questions.
+- where: No Round opened yet, body copy; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:118; kind: body text (empty state)
+
+> Go to the Catch-up
+- where: No Round opened yet, CTA; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:119; kind: cta label
+
+> This Round may have been removed.
+- where: Edition vanished between reads, body copy; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:141; kind: body text (error state)
+
+> No questions in this Round yet.
+- where: Round is answering but the Keeper hasn't accepted any questions yet; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:181; kind: heading (empty state)
+
+> Check back once the Keeper has added a few questions to answer.
+- where: No accepted questions, body copy; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:182; kind: body text (empty state)
+
+> {catchup title or '{group} Catch-ups'}
+- where: Back link above the page header, uses catchupTitle(); file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:214; kind: link text
+
+> Round {number}
+- where: Page header title for the Round being answered; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:217; kind: heading
+
+> Catch-ups
+- where: Missing Catch-up tables (pre-migration) fallback header; file: src/app/(main)/catchups/[catchupId]/answer/page.tsx:233; kind: heading (empty/holding state)
+
+> (no user-visible text; decorative skeleton only)
+- where: Skeleton-only screen, no visible text; file: src/app/(main)/catchups/[catchupId]/answer/loading.tsx:1; kind: loading state
+
+> Catch-ups
+- where: Fallback title: no session, not published yet, or not a member; file: src/app/(main)/catchups/round/[editionId]/page.tsx:108; kind: metadata title
+
+> {Round N} - {catchup title}
+- where: Published Round, viewer is a member: tab title; file: src/app/(main)/catchups/round/[editionId]/page.tsx:125; kind: metadata title
+
+> {title} - {Round N}
+- where: Round status is 'preparing': the 24h secrecy hold eyebrow; file: src/app/(main)/catchups/round/[editionId]/page.tsx:174; kind: eyebrow text
+
+> Putting your Catch-up together.
+- where: Round status is 'preparing': holding-scene title; file: src/app/(main)/catchups/round/[editionId]/page.tsx:175; kind: heading (loading/holding state)
+
+> Every answer is being gathered into one issue. No one can read them yet, not even the Keeper - the reveal lands all at once, very soon.
+- where: Round status is 'preparing': holding-scene body, secrecy rule explained; file: src/app/(main)/catchups/round/[editionId]/page.tsx:176; kind: body text (holding state)
+
+> This Round did not gather any questions.
+- where: Round has no accepted questions at all (rare edge); file: src/app/(main)/catchups/round/[editionId]/page.tsx:309; kind: empty state
+
+> (no user-visible text; decorative skeleton only)
+- where: Skeleton-only screen, no visible text; file: src/app/(main)/catchups/round/[editionId]/loading.tsx:1; kind: loading state
+
+> Catch-ups is not set up for this community yet. Please check back soon.
+- where: Server action hits a missing Catch-up* table (pre-migration); file: src/app/(main)/catchups/actions.ts:143; kind: error message
+
+> Something went wrong. Please try again.
+- where: Server action throws an unexpected error; file: src/app/(main)/catchups/actions.ts:146; kind: error message
+
+> Not authenticated
+- where: Not signed in; file: src/app/(main)/catchups/actions.ts:270; kind: error message
+
+> {first zod issue message}
+- where: Zod validation failure on the create form payload; file: src/app/(main)/catchups/actions.ts:273; kind: error message
+
+> Join this group before starting a Catch-up.
+- where: Viewer picked a group they don't belong to; file: src/app/(main)/catchups/actions.ts:277; kind: error message
+
+> Group not found.
+- where: Group id no longer resolves; file: src/app/(main)/catchups/actions.ts:283; kind: error message
+
+> This group already has a Catch-up.
+- where: Group already has a Catch-up (checked before insert); file: src/app/(main)/catchups/actions.ts:287; kind: error message
+
+> Your Catch-up is live
+- where: Catch-up created successfully, toast on the client; file: src/components/catchups/create/create-catchup-form.tsx:63; kind: toast (success)
+
+> Starting...
+- where: Submit button label while request in flight; file: src/components/catchups/create/create-catchup-form.tsx:106; kind: button label (loading)
+
+> Start the first Round
+- where: Submit button default label; file: src/components/catchups/create/create-catchup-form.tsx:106; kind: button label
+
+> Invalid request.
+- where: catchupId missing/invalid; file: src/app/(main)/catchups/actions.ts:347; kind: error message
+
+> Pick a valid rhythm.
+- where: cadence value fails schema check; file: src/app/(main)/catchups/actions.ts:349; kind: error message
+
+> Catch-up not found.
+- where: Catch-up id not found; file: src/app/(main)/catchups/actions.ts:352; kind: error message
+
+> You are not a member of this group.
+- where: Viewer not a member of the group; file: src/app/(main)/catchups/actions.ts:353; kind: error message
+
+> Only the Keeper can change the rhythm.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:361; kind: error message
+
+> Rhythm updated.
+- where: Cadence changed successfully, toast; file: src/components/catchups/home/keeper-settings-dialog.tsx:59; kind: toast (success)
+
+> Only the Keeper can pause this Catch-up.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:387; kind: error message
+
+> This Catch-up has already ended.
+- where: Catch-up already ended (cannot pause); file: src/app/(main)/catchups/actions.ts:389; kind: error message
+
+> Only the Keeper can resume this Catch-up.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:414; kind: error message
+
+> This Catch-up is not paused.
+- where: Catch-up is not currently paused; file: src/app/(main)/catchups/actions.ts:416; kind: error message
+
+> Catch-up resumed.
+- where: Resume succeeds, toast on the paused/ended banner; file: src/components/catchups/home/catchup-home-shell.tsx:97; kind: toast (success)
+
+> Catch-up resumed.
+- where: Resume via the settings dialog succeeds; file: src/components/catchups/home/keeper-settings-dialog.tsx:72; kind: toast (success)
+
+> Catch-up paused.
+- where: Pause via the settings dialog succeeds; file: src/components/catchups/home/keeper-settings-dialog.tsx:72; kind: toast (success)
+
+> Only the Keeper can end this Catch-up.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:441; kind: error message
+
+> End this Catch-up? Past Rounds stay readable, but no new one will open.
+- where: Confirm dialog (browser confirm()) before ending a Catch-up; file: src/components/catchups/home/keeper-settings-dialog.tsx:78; kind: confirm dialog text
+
+> Catch-up ended.
+- where: End succeeds, toast; file: src/components/catchups/home/keeper-settings-dialog.tsx:86; kind: toast (success)
+
+> {zod issue: 'Ask something for the group.' or 'Keep it under 300 characters.'}
+- where: Zod validation fails (empty or >300 chars); file: src/app/(main)/catchups/actions.ts:106; kind: error message
+
+> Catch-up round not found.
+- where: Edition not found; file: src/app/(main)/catchups/actions.ts:477; kind: error message
+
+> The question window for this Round is closed.
+- where: Question window already closed; file: src/app/(main)/catchups/actions.ts:481; kind: error message
+
+> This Round already has its 12 questions. Remove one to add another.
+- where: Keeper tries to add beyond the 12-question cap; file: src/app/(main)/catchups/actions.ts:508; kind: error message
+
+> You can have up to 3 questions waiting on the Keeper at a time.
+- where: Regular member already has 3 pending questions; file: src/app/(main)/catchups/actions.ts:515; kind: error message
+
+> Ask something for the group first.
+- where: Client-side guard before calling the action when text is blank; file: src/components/catchups/home/console-collecting.tsx:120; kind: toast (error)
+
+> Added to the Round.
+- where: Submission accepted immediately (viewer is Keeper); file: src/components/catchups/home/console-collecting.tsx:131; kind: toast (success)
+
+> Sent to the Keeper.
+- where: Submission pending Keeper curation; file: src/components/catchups/home/console-collecting.tsx:131; kind: toast (success)
+
+> Only the Keeper can reorder questions.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:575; kind: error message
+
+> Questions can only be reordered while the window is open.
+- where: Question window already closed; file: src/app/(main)/catchups/actions.ts:578; kind: error message
+
+> Question not found.
+- where: Prompt id not found; file: src/app/(main)/catchups/actions.ts:605; kind: error message
+
+> Only the Keeper can curate questions.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:618; kind: error message
+
+> Questions can only be curated while the window is open.
+- where: Question window already closed; file: src/app/(main)/catchups/actions.ts:621; kind: error message
+
+> Only the Keeper can open answering.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:664; kind: error message
+
+> This Round is not collecting questions right now.
+- where: Round not currently collecting; file: src/app/(main)/catchups/actions.ts:667; kind: error message
+
+> This Round already moved on.
+- where: Compare-and-swap lost to a concurrent transition; file: src/app/(main)/catchups/actions.ts:688; kind: error message
+
+> Answering is open.
+- where: Open answering succeeds, toast; file: src/components/catchups/home/keeper-rail.tsx:83; kind: toast (success)
+
+> Open answering now
+- where: 'Open answering now' button label; file: src/components/catchups/home/keeper-rail.tsx:85; kind: button label
+
+> Only the Keeper can close and prepare early.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:717; kind: error message
+
+> This Round is not open for answers right now.
+- where: Round not currently answering; file: src/app/(main)/catchups/actions.ts:720; kind: error message
+
+> No one has answered yet, so the window was extended by 3 days.
+- where: Zero-entry extension applied, success message returned to caller; file: src/app/(main)/catchups/actions.ts:749; kind: success message
+
+> Closing and preparing the Round.
+- where: 'Close and prepare now' button toast on success; file: src/components/catchups/home/keeper-rail.tsx:104; kind: toast (success)
+
+> Close and prepare now
+- where: 'Close and prepare now' button label; file: src/components/catchups/home/keeper-rail.tsx:106; kind: button label
+
+> Nudged everyone who hasn't answered.
+- where: 'Nudge the group' button toast on success; file: src/components/catchups/home/keeper-rail.tsx:113; kind: toast (success)
+
+> Nudge the group
+- where: 'Nudge the group' button label; file: src/components/catchups/home/keeper-rail.tsx:116; kind: button label
+
+> Only the Keeper can publish early.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:783; kind: error message
+
+> This Round is not ready to publish yet.
+- where: Round not currently preparing; file: src/app/(main)/catchups/actions.ts:786; kind: error message
+
+> Round published.
+- where: 'Publish now' succeeds, toast; file: src/components/catchups/home/keeper-rail.tsx:126; kind: toast (success)
+
+> Publish now
+- where: 'Publish now' button label; file: src/components/catchups/home/keeper-rail.tsx:128; kind: button label
+
+> Publishing...
+- where: Button label while request in flight; file: src/components/catchups/round/publish-now-button.tsx:27; kind: button label (loading)
+
+> Publish now
+- where: Default button label; file: src/components/catchups/round/publish-now-button.tsx:27; kind: button label
+
+> Keep it under 6000 characters.
+- where: Body exceeds 6000 chars; file: src/app/(main)/catchups/actions.ts:124; kind: error message
+
+> Up to 3 photos.
+- where: More than 3 image URLs submitted; file: src/app/(main)/catchups/actions.ts:125; kind: error message
+
+> This question is not part of the Round.
+- where: Prompt id not found or not accepted; file: src/app/(main)/catchups/actions.ts:851; kind: error message
+
+> Answering is not open for this Round right now.
+- where: Round not currently answering; file: src/app/(main)/catchups/actions.ts:858; kind: error message
+
+> Answer not found.
+- where: Entry id not found; file: src/app/(main)/catchups/actions.ts:928; kind: error message
+
+> Hearts open once the Round is published.
+- where: Round not published (hearts locked during preparing/etc.); file: src/app/(main)/catchups/actions.ts:935; kind: error message
+
+> Pick a valid reminder setting.
+- where: reminderMode fails schema check; file: src/app/(main)/catchups/actions.ts:974; kind: error message
+
+> Only the Keeper can nudge the group.
+- where: Viewer is not the effective Keeper; file: src/app/(main)/catchups/actions.ts:1013; kind: error message
+
+> Nudges only make sense while answers are open.
+- where: Round not currently answering; file: src/app/(main)/catchups/actions.ts:1016; kind: error message
+
+> Paste a Spotify link to add a song.
+- where: Empty Spotify URL submitted; file: src/lib/catchups.ts:482; kind: error message
+
+> That does not look like a link. Paste a Spotify track, album, or playlist.
+- where: Input is not a parseable URL; file: src/lib/catchups.ts:490; kind: error message
+
+> Only Spotify links work here. Paste one from open.spotify.com.
+- where: URL is not https://open.spotify.com; file: src/lib/catchups.ts:495; kind: error message
+
+> Paste a link to a Spotify track, album, or playlist.
+- where: Host is correct but path is not a track/album/playlist; file: src/lib/catchups.ts:500; kind: error message
+
+> Catch-ups
+- where: Missing Catch-up tables (pre-migration) holding scene, default eyebrow; file: src/components/catchups/almost-ready.tsx:32; kind: eyebrow text
+
+> Catch-ups are almost ready.
+- where: Default holding-scene title; file: src/components/catchups/almost-ready.tsx:33; kind: heading (holding state)
+
+> A gentle group newsletter is being wired up. Everyone answers a few questions, and their replies become one warm issue the whole group reads together. Check back in a moment.
+- where: Default holding-scene body; file: src/components/catchups/almost-ready.tsx:34; kind: body text (holding state)
+
+> Round {number}
+- where: Round is preparing: AlmostReady eyebrow override; file: src/components/catchups/home/catchup-home-shell.tsx:54; kind: eyebrow text
+
+> Putting your Catch-up together.
+- where: Round is preparing: AlmostReady title override; file: src/components/catchups/home/catchup-home-shell.tsx:55; kind: heading (holding state)
+
+> Every answer is being gathered into one warm issue. No one, not even the Keeper, can read them yet. Check back soon and it will be ready.
+- where: Round is preparing: AlmostReady body override; file: src/components/catchups/home/catchup-home-shell.tsx:56; kind: body text (holding state)
+
+> This Catch-up is paused.
+- where: Catch-up is paused, banner heading; file: src/components/catchups/home/catchup-home-shell.tsx:116; kind: heading
+
+> This Catch-up has ended.
+- where: Catch-up has ended, banner heading; file: src/components/catchups/home/catchup-home-shell.tsx:116; kind: heading
+
+> {groupName}'s rhythm is on hold for now. Past Rounds are still here to read on the right.
+- where: Paused banner body, {groupName} interpolated; file: src/components/catchups/home/catchup-home-shell.tsx:120; kind: body text
+
+> Its rhythm has closed, but every Round {groupName} shared is still here to read on the right.
+- where: Ended banner body, {groupName} interpolated; file: src/components/catchups/home/catchup-home-shell.tsx:121; kind: body text
+
+> Resuming...
+- where: Paused + viewer is Keeper: resume button label while busy; file: src/components/catchups/home/catchup-home-shell.tsx:127; kind: button label (loading)
+
+> Resume this Catch-up
+- where: Paused + viewer is Keeper: resume button default label; file: src/components/catchups/home/catchup-home-shell.tsx:127; kind: button label
+
+> Setting up {groupName}'s first Round...
+- where: Catch-up is active but has no edition yet (near-impossible edge); file: src/components/catchups/home/catchup-home-shell.tsx:141; kind: heading (loading state)
+
+> Give it a moment and refresh the page.
+- where: No-edition edge, body copy; file: src/components/catchups/home/catchup-home-shell.tsx:144; kind: body text
+
+> Catch-ups
+- where: Eyebrow label on the full teaching card; file: src/components/catchups/index/explainer-band.tsx:60; kind: eyebrow text
+
+> A Catch-up is a gentle group newsletter on a rhythm. Everyone in the group answers the same few questions during an open window, and once it closes their replies are gathered into one warm issue the whole group reads together.
+- where: Concept explainer paragraph; file: src/components/catchups/index/explainer-band.tsx:63; kind: body text
+
+> Ask
+- where: Three-beat labels: Ask / Answer / Read; file: src/components/catchups/index/explainer-band.tsx:18; kind: label
+
+> Answer
+- where: Three-beat labels: Ask / Answer / Read; file: src/components/catchups/index/explainer-band.tsx:19; kind: label
+
+> Read
+- where: Three-beat labels: Ask / Answer / Read; file: src/components/catchups/index/explainer-band.tsx:20; kind: label
+
+> a gentle group newsletter on a rhythm.
+- where: Trailing descriptor after the beats, desktop only; file: src/components/catchups/index/explainer-band.tsx:40; kind: body text
+
+> Fresh off the press
+- where: Right-rail heading; file: src/components/catchups/index/fresh-off-the-press.tsx:29; kind: heading
+
+> Published Rounds from your groups will show up here once the first one is out.
+- where: No published Rounds across the viewer's groups yet; file: src/components/catchups/index/fresh-off-the-press.tsx:33; kind: empty state
+
+> {Round N} · {groupName}
+- where: Each row's title line, Round number + group name; file: src/components/catchups/index/fresh-off-the-press.tsx:45; kind: body text
+
+> "{teaser}"
+- where: Each row's quoted teaser from the most-loved answer; file: src/components/catchups/index/fresh-off-the-press.tsx:53; kind: body text
+
+> {contributorCount} wrote in
+- where: Contributor count under each row; file: src/components/catchups/index/fresh-off-the-press.tsx:57; kind: body text
+
+> A Catch-up lives inside a group
+- where: Card heading; file: src/components/catchups/index/group-first-guidance.tsx:58; kind: heading
+
+> Create or join a group first, then start a Catch-up from it.
+- where: Card body copy; file: src/components/catchups/index/group-first-guidance.tsx:61; kind: body text
+
+> Find a group
+- where: Default primary CTA (index context); file: src/components/catchups/index/group-first-guidance.tsx:25; kind: cta label
+
+> Create a group
+- where: Default secondary CTA (index context); file: src/components/catchups/index/group-first-guidance.tsx:27; kind: cta label
+
+> Create a group
+- where: Primary CTA when reached from the create flow with no groups; file: src/app/(main)/catchups/new/page.tsx:126; kind: cta label
+
+> Find a group
+- where: Secondary CTA when reached from the create flow with no groups; file: src/app/(main)/catchups/new/page.tsx:128; kind: cta label
+
+> (uses catchupTitle / describeEditionStatus copy, see lib/catchups.ts entries)
+- where: Fallback status line default (no status tone match); file: src/components/catchups/index/your-catchups-card.tsx:34; kind: status text
+
+> {answeredCount} of {memberCount} shared
+- where: Live answering row, N of M shared count; file: src/components/catchups/index/your-catchups-card.tsx:81; kind: body text
+
+> Rhythm
+- where: Rhythm segmented control accessible label; file: src/components/catchups/create/cadence-control.tsx:35; kind: aria-label
+
+> Biweekly
+- where: Rhythm option labels (from CADENCE_LABELS); file: src/lib/catchups.ts:93; kind: label
+
+> Monthly
+- where: Rhythm option labels; file: src/lib/catchups.ts:94; kind: label
+
+> Quarterly
+- where: Rhythm option labels; file: src/lib/catchups.ts:95; kind: label
+
+> You can change this anytime.
+- where: Helper text under the rhythm control; file: src/components/catchups/create/cadence-control.tsx:59; kind: helper text
+
+> Group
+- where: Group section label; file: src/components/catchups/create/create-catchup-form.tsx:72; kind: label
+
+> Rhythm
+- where: Rhythm section label; file: src/components/catchups/create/create-catchup-form.tsx:87; kind: label
+
+> First questions
+- where: First questions section label; file: src/components/catchups/create/create-catchup-form.tsx:96; kind: label
+
+> Which group is this for?
+- where: Picker heading; file: src/components/catchups/create/group-picker.tsx:36; kind: heading
+
+> A Catch-up always belongs to a group. Pick one to start its first Round.
+- where: Picker body copy; file: src/components/catchups/create/group-picker.tsx:39; kind: body text
+
+> {count} member
+- where: Member count under each eligible group, singular; file: src/components/catchups/create/group-picker.tsx:56; kind: body text
+
+> {count} members
+- where: Member count under each eligible group, plural; file: src/components/catchups/create/group-picker.tsx:56; kind: body text
+
+> Every group you belong to already has a Catch-up.
+- where: Every one of the viewer's groups already has a Catch-up; file: src/components/catchups/create/group-picker.tsx:66; kind: empty state
+
+> Open {groupName}
+- where: Link to an existing group's Catch-up in the all-claimed state; file: src/components/catchups/create/group-picker.tsx:76; kind: link text
+
+> Preview
+- where: Eyebrow label; file: src/components/catchups/create/round-preview-card.tsx:25; kind: eyebrow text
+
+> Round 1 · {groupName}
+- where: Preview heading, Round 1 + group name; file: src/components/catchups/create/round-preview-card.tsx:27; kind: heading
+
+> {cadenceLabel} rhythm
+- where: Cadence label under the heading; file: src/components/catchups/create/round-preview-card.tsx:30; kind: body text
+
+> Add a question to see it here.
+- where: No seed questions added yet; file: src/components/catchups/create/round-preview-card.tsx:35; kind: empty state
+
+> Members will add their own questions once this opens.
+- where: Footer note about members adding their own questions; file: src/components/catchups/create/round-preview-card.tsx:51; kind: helper text
+
+> Remove "{text}"
+- where: Remove-question button accessible label, {text} interpolated; file: src/components/catchups/create/seed-questions-picker.tsx:73; kind: aria-label
+
+> No starter questions yet. Add one below, everyone else adds their own once the window opens.
+- where: No starter questions added yet; file: src/components/catchups/create/seed-questions-picker.tsx:82; kind: empty state
+
+> {count} of 12 questions. Members will also add their own during the question window.
+- where: Running count of seed questions vs the 12 cap; file: src/components/catchups/create/seed-questions-picker.tsx:89; kind: helper text
+
+> Write your own question...
+- where: Custom-question input placeholder; file: src/components/catchups/create/seed-questions-picker.tsx:104; kind: placeholder
+
+> Add
+- where: Add-custom-question button label; file: src/components/catchups/create/seed-questions-picker.tsx:116; kind: button label
+
+> Add from the library
+- where: Toggle to open the library of prompt sets; file: src/components/catchups/create/seed-questions-picker.tsx:121; kind: button label
+
+> Catch-ups are coming to {groupName}
+- where: Missing Catch-up tables (pre-migration) stub heading, {groupName} interpolated; file: src/components/catchups/group-catchup-card.tsx:111; kind: heading (holding state)
+
+> A gentle group newsletter is being wired up. Check back soon.
+- where: Missing-tables stub body; file: src/components/catchups/group-catchup-card.tsx:114; kind: body text (holding state)
+
+> No Catch-up here yet
+- where: No Catch-up exists yet for this group; file: src/components/catchups/group-catchup-card.tsx:139; kind: heading
+
+> Everyone answers a few questions. Their replies become one issue the whole group reads.
+- where: No Catch-up yet, body copy; file: src/components/catchups/group-catchup-card.tsx:142; kind: body text
+
+> Start one
+- where: No Catch-up yet, CTA; file: src/components/catchups/group-catchup-card.tsx:147; kind: cta label
+
+> This Catch-up is paused
+- where: Catch-up paused, status line; file: src/components/catchups/group-catchup-card.tsx:162; kind: status text
+
+> This Catch-up has ended
+- where: Catch-up ended, status line; file: src/components/catchups/group-catchup-card.tsx:164; kind: status text
+
+> Getting started
+- where: Catch-up active with no edition yet; file: src/components/catchups/group-catchup-card.tsx:167; kind: status text
+
+> {answeredCount} of {memberCount} shared
+- where: Live answering row, N of M shared; file: src/components/catchups/group-catchup-card.tsx:216; kind: body text
+
+> The archive
+- where: Section heading; file: src/components/catchups/home/archive-shelf.tsx:27; kind: heading
+
+> Once {groupName}'s first Round is published, it lives here for good.
+- where: No published Rounds yet, {groupName} interpolated; file: src/components/catchups/home/archive-shelf.tsx:33; kind: empty state
+
+> Round {number}
+- where: Each archived Round's title; file: src/components/catchups/home/archive-shelf.tsx:45; kind: heading
+
+> "{teaser}"
+- where: Quoted teaser from that Round's most-loved answer; file: src/components/catchups/home/archive-shelf.tsx:53; kind: body text
+
+> {count} person wrote in
+- where: Contributor count, singular; file: src/components/catchups/home/archive-shelf.tsx:57; kind: body text
+
+> {count} people wrote in
+- where: Contributor count, plural; file: src/components/catchups/home/archive-shelf.tsx:57; kind: body text
+
+> Round {number} · Collecting
+- where: Status card eyebrow, Round number + phase; file: src/components/catchups/home/console-collecting.tsx:57; kind: eyebrow text
+
+> Question window
+- where: Progress ring sublabel; file: src/components/catchups/home/console-collecting.tsx:65; kind: label
+
+> Be the first to ask something.
+- where: Hero prompt when the Round has zero questions so far; file: src/components/catchups/home/console-collecting.tsx:149; kind: heading (empty state)
+
+> Ask everyone something
+- where: Non-hero submission panel heading; file: src/components/catchups/home/console-collecting.tsx:152; kind: heading
+
+> Ask everyone something...
+- where: Question textarea placeholder; file: src/components/catchups/home/console-collecting.tsx:160; kind: placeholder
+
+> Ask as {firstName}
+- where: Ask-as-self toggle option, {firstName} interpolated; file: src/components/catchups/home/console-collecting.tsx:169; kind: toggle label
+
+> Ask anonymously
+- where: Ask-anonymously toggle option; file: src/components/catchups/home/console-collecting.tsx:170; kind: toggle label
+
+> Up to {MAX_PENDING_PROMPTS_PER_MEMBER} questions waiting on the Keeper at a time.
+- where: Cap helper text under the submission panel; file: src/components/catchups/home/console-collecting.tsx:194; kind: helper text
+
+> Asking...
+- where: Submit button while in flight; file: src/components/catchups/home/console-collecting.tsx:197; kind: button label (loading)
+
+> Ask the group
+- where: Submit button default label; file: src/components/catchups/home/console-collecting.tsx:197; kind: button label
+
+> In this Round · {acceptedCount} of {MAX_ACCEPTED_PROMPTS_PER_EDITION}
+- where: Accepted-questions section heading with running count; file: src/components/catchups/home/console-collecting.tsx:261; kind: heading
+
+> Waiting for you to curate
+- where: Pending-questions section heading, Keeper view; file: src/components/catchups/home/console-collecting.tsx:309; kind: heading
+
+> Waiting for the Keeper
+- where: Pending-questions section heading, non-Keeper view; file: src/components/catchups/home/console-collecting.tsx:309; kind: heading
+
+> You
+- where: Own question, shown attributed; file: src/components/catchups/home/console-collecting.tsx:364; kind: body text
+
+> You (anonymous)
+- where: Own question, submitted anonymously; file: src/components/catchups/home/console-collecting.tsx:365; kind: body text
+
+> Someone in the group
+- where: Someone else's question with hidden identity; file: src/components/catchups/home/console-collecting.tsx:368; kind: body text
+
+> Round {number} · Answering
+- where: Status card eyebrow; file: src/components/catchups/home/console-answering.tsx:34; kind: eyebrow text
+
+> {answeredCount} of {memberCount} have shared
+- where: Progress ring label, N of M shared; file: src/components/catchups/home/console-answering.tsx:40; kind: label
+
+> Who has answered
+- where: 'Who has answered' section label above the member strip; file: src/components/catchups/home/console-answering.tsx:45; kind: label
+
+> Answer now
+- where: CTA to the answering screen; file: src/components/catchups/home/console-answering.tsx:55; kind: cta label
+
+> This Round's questions
+- where: Frozen question list heading; file: src/components/catchups/home/console-answering.tsx:66; kind: heading
+
+> asked by you
+- where: Per-question asker line, own question; file: src/components/catchups/home/console-answering.tsx:84; kind: body text
+
+> asked by {name}
+- where: Per-question asker line, named asker; file: src/components/catchups/home/console-answering.tsx:84; kind: body text
+
+> suggested for the group
+- where: Per-question asker line, anonymous; file: src/components/catchups/home/console-answering.tsx:84; kind: body text
+
+> {groupName} Catch-ups
+- where: Eyebrow, {groupName} interpolated; file: src/components/catchups/home/console-published.tsx:36; kind: eyebrow text
+
+> Round {number} is out.
+- where: Heading announcing the new Round; file: src/components/catchups/home/console-published.tsx:39; kind: heading
+
+> {answeredCount} of {memberCount} wrote in. Read the whole issue together.
+- where: Body copy, N of M wrote in; file: src/components/catchups/home/console-published.tsx:42; kind: body text
+
+> Read the Round
+- where: CTA to the reader; file: src/components/catchups/home/console-published.tsx:48; kind: cta label
+
+> Keeper controls
+- where: Rail heading; file: src/components/catchups/home/keeper-rail.tsx:73; kind: heading
+
+> Added to the Round.
+- where: Add-from-library success toast (Keeper quick add); file: src/components/catchups/home/keeper-rail.tsx:65; kind: toast (success)
+
+> Add a question from the library
+- where: 'Add a question from the library' trigger label; file: src/components/catchups/home/keeper-rail.tsx:91; kind: button label
+
+> This Round is live. The next one opens on its own rhythm.
+- where: Round already published, informational line; file: src/components/catchups/home/keeper-rail.tsx:135; kind: body text
+
+> This Catch-up has ended.
+- where: Catch-up ended, informational line; file: src/components/catchups/home/keeper-rail.tsx:142; kind: body text
+
+> This Catch-up is paused. Resume it above to pick the rhythm back up.
+- where: Catch-up paused, informational line; file: src/components/catchups/home/keeper-rail.tsx:143; kind: body text
+
+> Settings
+- where: Settings button/trigger label; file: src/components/catchups/home/keeper-settings-dialog.tsx:95; kind: button label
+
+> Catch-up settings
+- where: Dialog title; file: src/components/catchups/home/keeper-settings-dialog.tsx:99; kind: dialog title
+
+> Change the rhythm, or pause / end this Catch-up.
+- where: Dialog description; file: src/components/catchups/home/keeper-settings-dialog.tsx:100; kind: dialog description
+
+> Rhythm
+- where: Rhythm section label; file: src/components/catchups/home/keeper-settings-dialog.tsx:104; kind: label
+
+> Biweekly
+- where: Rhythm option labels; file: src/components/catchups/home/keeper-settings-dialog.tsx:30; kind: label
+
+> Monthly
+- where: Rhythm option labels; file: src/components/catchups/home/keeper-settings-dialog.tsx:31; kind: label
+
+> Quarterly
+- where: Rhythm option labels; file: src/components/catchups/home/keeper-settings-dialog.tsx:32; kind: label
+
+> You can change this anytime.
+- where: Helper text under rhythm options; file: src/components/catchups/home/keeper-settings-dialog.tsx:134; kind: helper text
+
+> Resume this Catch-up
+- where: Pause/resume button, resume case; file: src/components/catchups/home/keeper-settings-dialog.tsx:148; kind: button label
+
+> Pause this Catch-up
+- where: Pause/resume button, pause case; file: src/components/catchups/home/keeper-settings-dialog.tsx:153; kind: button label
+
+> End this Catch-up
+- where: Destructive end button label; file: src/components/catchups/home/keeper-settings-dialog.tsx:169; kind: button label
+
+> From the library
+- where: Default trigger label; file: src/components/catchups/home/library-picker-dialog.tsx:28; kind: button label
+
+> Ask something from the library
+- where: Dialog title; file: src/components/catchups/home/library-picker-dialog.tsx:53; kind: dialog title
+
+> Pick a question. You can still edit it before it goes to the group.
+- where: Dialog description; file: src/components/catchups/home/library-picker-dialog.tsx:54; kind: dialog description
+
+> Reminders
+- where: Section heading; file: src/components/catchups/home/reminder-pref-control.tsx:49; kind: heading
+
+> When to nudge you about this Catch-up while answers are open.
+- where: Explainer body copy; file: src/components/catchups/home/reminder-pref-control.tsx:54; kind: body text
+
+> All
+- where: Reminder mode options; file: src/components/catchups/home/reminder-pref-control.tsx:19; kind: toggle label
+
+> Last day
+- where: Reminder mode options; file: src/components/catchups/home/reminder-pref-control.tsx:20; kind: toggle label
+
+> Off
+- where: Reminder mode options; file: src/components/catchups/home/reminder-pref-control.tsx:21; kind: toggle label
+
+> Question {position} of {total}
+- where: Question counter eyebrow; file: src/components/catchups/answer/answer-card.tsx:89; kind: eyebrow text
+
+> asked by {name}
+- where: Asker attribution line, {name} interpolated; file: src/components/catchups/answer/answer-card.tsx:99; kind: body text
+
+> Take your time...
+- where: Answer textarea placeholder; file: src/components/catchups/answer/answer-card.tsx:112; kind: placeholder
+
+> Saving...
+- where: Save-state indicator, in flight; file: src/components/catchups/answer/answer-card.tsx:132; kind: status text
+
+> Saved
+- where: Save-state indicator, saved; file: src/components/catchups/answer/answer-card.tsx:132; kind: status text
+
+> Back
+- where: Back button label (not shown on first question); file: src/components/catchups/answer/answer-card.tsx:128; kind: button label
+
+> Skip for now
+- where: Secondary link when the card is empty of content; file: src/components/catchups/answer/answer-card.tsx:147; kind: button label
+
+> Share
+- where: Primary advance button, last question; file: src/components/catchups/answer/answer-card.tsx:79; kind: button label
+
+> Next
+- where: Primary advance button, not last question; file: src/components/catchups/answer/answer-card.tsx:79; kind: button label
+
+> You have shared with {othersAnsweredCount} other{s} so far.
+- where: Viewer has answered something already, N others count with cluster avatars; file: src/components/catchups/answer/answer-experience.tsx:109; kind: body text
+
+> {count} person has already shared. Add your voice whenever you are ready.
+- where: Viewer hasn't answered yet, but others have; file: src/components/catchups/answer/answer-experience.tsx:113; kind: body text
+
+> {count} people have already shared. Add your voice whenever you are ready.
+- where: Viewer hasn't answered yet, others have (plural); file: src/components/catchups/answer/answer-experience.tsx:113; kind: body text
+
+> Be the first to share in this Round.
+- where: Nobody has answered anything yet in this Round; file: src/components/catchups/answer/answer-experience.tsx:117; kind: body text
+
+> {server error message}
+- where: submitEntry fails while autosaving body/images; file: src/components/catchups/answer/answer-experience.tsx:72; kind: toast (error)
+
+> Taking you back to the Catch-up...
+- where: Redirect landing message shown while router.replace runs; file: src/components/catchups/answer/answer-redirect.tsx:26; kind: body text (loading state)
+
+> That is you in this Round.
+- where: Completion heading; file: src/components/catchups/answer/completion-card.tsx:49; kind: heading
+
+> See you when {groupName}'s Catch-up is out.
+- where: Viewer shared at least one answer, {groupName} interpolated; file: src/components/catchups/answer/completion-card.tsx:53; kind: body text
+
+> Come back any time before answers close. Even one line is plenty.
+- where: Viewer shared nothing (all skipped); file: src/components/catchups/answer/completion-card.tsx:54; kind: body text
+
+> Back to the Catch-up
+- where: CTA back to the Catch-up home; file: src/components/catchups/answer/completion-card.tsx:57; kind: cta label
+
+> {title prop, see per-route entries above}
+- where: Generic not-available heading (as passed by callers); file: src/components/catchups/answer/not-available.tsx:22; kind: heading (error state)
+
+> Up to 3 photos per answer.
+- where: Uploading beyond the 3-photo cap; file: src/components/catchups/answer/photo-attachments.tsx:34; kind: toast (error)
+
+> Each photo must be under 5MB.
+- where: A selected file exceeds 5MB; file: src/components/catchups/answer/photo-attachments.tsx:40; kind: toast (error)
+
+> {data.error} or fallback below
+- where: Upload API returns a non-OK response with a message; file: src/components/catchups/answer/photo-attachments.tsx:53; kind: toast (error)
+
+> That photo would not upload. Try again.
+- where: Upload fails (network/parse error, or API returned no message); file: src/components/catchups/answer/photo-attachments.tsx:53; kind: toast (error)
+
+> Remove photo
+- where: Remove-photo button accessible label; file: src/components/catchups/answer/photo-attachments.tsx:87; kind: aria-label
+
+> Add a photo
+- where: Add-photo button accessible label; file: src/components/catchups/answer/photo-attachments.tsx:98; kind: aria-label
+
+> Adding...
+- where: Add-photo button label while uploading; file: src/components/catchups/answer/photo-attachments.tsx:102; kind: button label (loading)
+
+> {done} of {total} shared
+- where: Progress summary line, N of M shared; file: src/components/catchups/answer/progress-rail.tsx:65; kind: label
+
+> Every question is optional.
+- where: Helper text under the progress summary; file: src/components/catchups/answer/progress-rail.tsx:67; kind: helper text
+
+> Questions in this Round
+- where: Accessible nav label for the question list; file: src/components/catchups/answer/progress-rail.tsx:71; kind: aria-label
+
+> Question {currentIndex+1} of {total}
+- where: Current position label; file: src/components/catchups/answer/progress-rail.tsx:118; kind: label
+
+> {done} shared
+- where: Shared count label; file: src/components/catchups/answer/progress-rail.tsx:120; kind: label
+
+> Open in Spotify
+- where: Saved song card, 'open in Spotify' link; file: src/components/catchups/answer/song-attachment.tsx:96; kind: link text
+
+> Remove song
+- where: Remove-song button accessible label; file: src/components/catchups/answer/song-attachment.tsx:104; kind: aria-label
+
+> Paste a Spotify link
+- where: Spotify URL input placeholder; file: src/components/catchups/answer/song-attachment.tsx:133; kind: placeholder
+
+> Adding...
+- where: Saving indicator while resolving/saving a pasted link; file: src/components/catchups/answer/song-attachment.tsx:137; kind: status text
+
+> {resolveSpotify error text, see lib/catchups.ts entries}
+- where: Inline error when a pasted link fails to resolve (fail-soft); file: src/components/catchups/answer/song-attachment.tsx:139; kind: error message (inline)
+
+> Showed up for this Round without adding anything here.
+- where: Member showed up but left nothing on this question; file: src/components/catchups/round/answer-card.tsx:110; kind: body text (empty state)
+
+> Remove your heart from this answer
+- where: Accessible label, currently loved (click removes); file: src/components/catchups/round/entry-love-button.tsx:48; kind: aria-label
+
+> Heart this answer
+- where: Accessible label, not yet loved (click adds); file: src/components/catchups/round/entry-love-button.tsx:48; kind: aria-label
+
+> Next Round opens {date}.
+- where: Active recurring Catch-up, next Round date known; file: src/components/catchups/round/footer-tease.tsx:34; kind: body text
+
+> Back to {groupName} Catch-ups
+- where: Link back to the Catch-up home, {groupName} interpolated; file: src/components/catchups/round/footer-tease.tsx:40; kind: link text
+
+> Catch-ups
+- where: Eyebrow above the title; file: src/components/catchups/round/masthead.tsx:98; kind: eyebrow text
+
+> Published {date}
+- where: Meta line date fragment, {date} interpolated; file: src/components/catchups/round/masthead.tsx:71; kind: body text
+
+> Replies aren't open yet
+- where: Secrecy-rule note under the meta line; file: src/components/catchups/round/masthead.tsx:106; kind: body text
+
+> No one has written in yet.
+- where: No one wrote in for this Round; file: src/components/catchups/round/masthead.tsx:35; kind: body text (empty state)
+
+> A quiet Round. {name} wrote in.
+- where: Exactly one contributor, {name} interpolated; file: src/components/catchups/round/masthead.tsx:36; kind: body text
+
+> A quiet Round. {name1} and {name2} wrote in.
+- where: Exactly two contributors; file: src/components/catchups/round/masthead.tsx:37; kind: body text
+
+> A quiet Round. {name1}, {name2}, and {name3} wrote in.
+- where: Exactly three contributors; file: src/components/catchups/round/masthead.tsx:39; kind: body text
+
+> {n} of the group wrote in.
+- where: Four or more contributors; file: src/components/catchups/round/masthead.tsx:41; kind: body text
+
+> Round masthead
+- where: Accessible label for the whole masthead section; file: src/components/catchups/round/masthead.tsx:81; kind: aria-label
+
+> {Round N} is not out yet
+- where: Heading, {Round N} interpolated; file: src/components/catchups/round/not-yet-published.tsx:33; kind: heading (error/edge state)
+
+> {status description}. Come back once it is published to read what {groupName} shared.
+- where: Body copy combining describeEditionStatus with the group name; file: src/components/catchups/round/not-yet-published.tsx:35; kind: body text
+
+> Go to the Catch-up
+- where: CTA back to the Catch-up; file: src/components/catchups/round/not-yet-published.tsx:39; kind: cta label
+
+> Q{index+1}
+- where: Question index label, e.g. Q1; file: src/components/catchups/round/question-section.tsx:32; kind: label
+
+> asked by {name}
+- where: Asker attribution line; file: src/components/catchups/round/question-section.tsx:41; kind: body text
+
+> No one took this one.
+- where: No one answered this particular question; file: src/components/catchups/round/question-section.tsx:49; kind: body text (empty state)
+
+> Open in Spotify
+- where: Outlink label; file: src/components/catchups/round/spotify-card.tsx:37; kind: link text
+
+> In this Round
+- where: Rail heading; file: src/components/catchups/round/toc.tsx:82; kind: heading
+
+> Jump to a question
+- where: Accessible nav label; file: src/components/catchups/round/toc.tsx:80; kind: aria-label
+
+> {index+1}. {truncated question text}...
+- where: Uses the same items/labels as the desktop rail, truncated to 44 chars + ellipsis in page.tsx; file: src/app/(main)/catchups/round/[editionId]/page.tsx:290; kind: label
+
+> Draft
+- where: Edition status is draft; file: src/lib/catchups.ts:443; kind: status text
+
+> Questions open, {daysLeft}
+- where: Collecting with a known days-left label; file: src/lib/catchups.ts:446; kind: status text
+
+> Questions open
+- where: Collecting with no computable close date; file: src/lib/catchups.ts:446; kind: status text
+
+> Answering now, {daysLeft}
+- where: Answering with a known days-left label; file: src/lib/catchups.ts:450; kind: status text
+
+> Answering now
+- where: Answering with no computable close date; file: src/lib/catchups.ts:450; kind: status text
+
+> Preparing the Round
+- where: Preparing; file: src/lib/catchups.ts:453; kind: status text
+
+> {Round N} published
+- where: Published; file: src/lib/catchups.ts:455; kind: status text
+
+> closing
+- where: Window has already passed its close timestamp; file: src/lib/catchups.ts:426; kind: status text
+
+> last day
+- where: 1 day or less remaining; file: src/lib/catchups.ts:428; kind: status text
+
+> {days} days left
+- where: More than 1 day remaining, {days} interpolated; file: src/lib/catchups.ts:429; kind: status text
+
+> {groupName} Catch-ups
+- where: No custom title set on the Catchup, {groupName} interpolated; file: src/lib/catchups.ts:211; kind: body text / title fallback
+
+> Round {n}
+- where: Used everywhere a Round number is rendered; file: src/lib/catchups.ts:206; kind: label
+
+> Valley days
+- where: Prompt set label: Valley days; file: src/lib/catchups.ts:109; kind: label (question library)
+
+> Which corner of campus could you find your way to with your eyes closed?
+- where: Valley days question 1; file: src/lib/catchups.ts:111; kind: question text (library)
+
+> Who was the teacher whose class you never wanted to miss, and why?
+- where: Valley days question 2; file: src/lib/catchups.ts:112; kind: question text (library)
+
+> What is a sound from the Valley you can still hear if you shut your eyes?
+- where: Valley days question 3; file: src/lib/catchups.ts:113; kind: question text (library)
+
+> Tell us about a rule you were happy to break.
+- where: Valley days question 4; file: src/lib/catchups.ts:114; kind: question text (library)
+
+> What did you always order, trade for, or sneak from the dining hall?
+- where: Valley days question 5; file: src/lib/catchups.ts:115; kind: question text (library)
+
+> Which friendship from those years surprised you by lasting?
+- where: Valley days question 6; file: src/lib/catchups.ts:116; kind: question text (library)
+
+> Right now
+- where: Prompt set label: Right now; file: src/lib/catchups.ts:121; kind: label (question library)
+
+> Where in the world are you reading this from?
+- where: Right now question 1; file: src/lib/catchups.ts:123; kind: question text (library)
+
+> What does an ordinary Tuesday look like for you these days?
+- where: Right now question 2; file: src/lib/catchups.ts:124; kind: question text (library)
+
+> What have you been making, fixing, or growing lately?
+- where: Right now question 3; file: src/lib/catchups.ts:125; kind: question text (library)
+
+> Who or what has been keeping you company this season?
+- where: Right now question 4; file: src/lib/catchups.ts:126; kind: question text (library)
+
+> What is something you have changed your mind about recently?
+- where: Right now question 5; file: src/lib/catchups.ts:127; kind: question text (library)
+
+> What is a small win from the last few weeks worth mentioning?
+- where: Right now question 6; file: src/lib/catchups.ts:128; kind: question text (library)
+
+> Most likely to
+- where: Prompt set label: Most likely to; file: src/lib/catchups.ts:133; kind: label (question library)
+
+> Who from our years ended up exactly where you always pictured them?
+- where: Most likely to question 1; file: src/lib/catchups.ts:135; kind: question text (library)
+
+> Who could always be counted on to have a book you had never heard of?
+- where: Most likely to question 2; file: src/lib/catchups.ts:136; kind: question text (library)
+
+> Who would you call first if you were stuck somewhere at two in the morning?
+- where: Most likely to question 3; file: src/lib/catchups.ts:137; kind: question text (library)
+
+> Who seems to be ageing in reverse, going by the group photos?
+- where: Most likely to question 4; file: src/lib/catchups.ts:138; kind: question text (library)
+
+> Who gave the best advice back then, whether or not you took it?
+- where: Most likely to question 5; file: src/lib/catchups.ts:139; kind: question text (library)
+
+> Who should have been running the whole place all along?
+- where: Most likely to question 6; file: src/lib/catchups.ts:140; kind: question text (library)
+
+> On the horizon
+- where: Prompt set label: On the horizon; file: src/lib/catchups.ts:145; kind: label (question library)
+
+> What are you quietly working toward this year?
+- where: On the horizon question 1; file: src/lib/catchups.ts:147; kind: question text (library)
+
+> Where do you hope to be standing this time next year?
+- where: On the horizon question 2; file: src/lib/catchups.ts:148; kind: question text (library)
+
+> What is a trip you keep meaning to take?
+- where: On the horizon question 3; file: src/lib/catchups.ts:149; kind: question text (library)
+
+> What is something you want to learn before you run out of excuses?
+- where: On the horizon question 4; file: src/lib/catchups.ts:150; kind: question text (library)
+
+> If the group met up somewhere next year, where should it be?
+- where: On the horizon question 5; file: src/lib/catchups.ts:151; kind: question text (library)
+
+> What would make this next chapter a good one for you?
+- where: On the horizon question 6; file: src/lib/catchups.ts:152; kind: question text (library)
+
+> Small things
+- where: Prompt set label: Small things; file: src/lib/catchups.ts:157; kind: label (question library)
+
+> What is on repeat for you right now? Drop the song.
+- where: Small things question 1; file: src/lib/catchups.ts:159; kind: question text (library)
+
+> Share a photo from your week, no explanation needed.
+- where: Small things question 2; file: src/lib/catchups.ts:160; kind: question text (library)
+
+> What is the best thing you have eaten lately?
+- where: Small things question 3; file: src/lib/catchups.ts:161; kind: question text (library)
+
+> What are you reading, watching, or listening to that the rest of us should too?
+- where: Small things question 4; file: src/lib/catchups.ts:162; kind: question text (library)
+
+> What is a small ritual that quietly makes your day better?
+- where: Small things question 5; file: src/lib/catchups.ts:163; kind: question text (library)
+
+> Send a photo of the view from wherever you are sitting.
+- where: Small things question 6; file: src/lib/catchups.ts:164; kind: question text (library)
+
+> {groupName} is starting a Catch-up. Add a question you want everyone to answer.
+- where: Trigger: a Round enters `collecting` (Catch-up created, or the cadence auto-opens the next Round). Sent to every group member except the actor.; file: src/lib/catchups-notify.ts:90; kind: notification message
+
+> Answers are open for {groupName}'s Catch-up. Share yours.
+- where: Trigger: a Round enters `answering` (question window closed or Keeper opened it early). Sent to every group member except the actor.; file: src/lib/catchups-notify.ts:105; kind: notification message
+
+> Two days left to answer {groupName}'s Catch-up.
+- where: Trigger: automatic two-days-left reminder to non-answerers whose reminderMode allows it.; file: src/lib/catchups-notify.ts:137; kind: notification message
+
+> Last day to answer {groupName}'s Catch-up.
+- where: Trigger: automatic last-day reminder to non-answerers whose reminderMode allows it.; file: src/lib/catchups-notify.ts:135; kind: notification message
+
+> {keeperName or 'The Keeper'} is waiting on you for {groupName}'s Catch-up.
+- where: Trigger: Keeper clicks 'Nudge the group' (bypassOff=true); reaches every non-answerer regardless of their reminder pref.; file: src/lib/catchups-notify.ts:134; kind: notification message
+
+> Your {groupName} Catch-up is ready to read.
+- where: Trigger: a Round enters `published` (24h hold elapsed, or Keeper published early). Sent to every group member except the actor.; file: src/lib/catchups-notify.ts:157; kind: notification message
+
+> {likerName} loved your answer in {groupName}'s Catch-up.
+- where: Trigger: someone hearts your published answer (coalesced to at most one unread per author per Round).; file: src/lib/catchups-notify.ts:178; kind: notification message
 
 ## /collection
 
@@ -1720,6 +3118,29 @@ Sections run: landing page, /about, /login, /signup, /onboarding, global chrome 
 
 > Could not delete this user. Check the server log.
 - where: shown when adminDeleteUser throws (e.g. a DB constraint failure) instead of succeeding; file: src/components/profile/admin-actions.ts; kind: error
+> Based in {user.currentCity} · also in {user.secondaryCity}
+- where: Detail-row fragment when both a primary and secondary city are set; file: src/app/(main)/profile/[id]/page.tsx:140; kind: body-text
+
+> Based in {user.secondaryCity}
+- where: Detail-row fragment when only a secondary city is set (no primary city); file: src/app/(main)/profile/[id]/page.tsx:149; kind: body-text
+
+> Take back this member's verification? Their leaf mark disappears and they return to the review queue.
+- where: Confirm-dialog prompt when an admin clicks 'Unverify member' on someone currently verified; file: src/components/profile/admin-profile-tools.tsx:76; kind: confirm-dialog
+
+> Verify this member manually?
+- where: Confirm-dialog prompt when an admin clicks 'Verify member' on someone currently unverified; file: src/components/profile/admin-profile-tools.tsx:77; kind: confirm-dialog
+
+> Unverify member
+- where: Admin tools button, toggles to this label once the member is verified; file: src/components/profile/admin-profile-tools.tsx:161; kind: button
+
+> Verify member
+- where: Admin tools button, shown while the member is not verified; file: src/components/profile/admin-profile-tools.tsx:161; kind: button
+
+> Verification removed
+- where: Toast after an admin successfully unverifies a member; file: src/components/profile/admin-profile-tools.tsx:91; kind: toast-success
+
+> Member verified
+- where: Toast after an admin successfully verifies a member; file: src/components/profile/admin-profile-tools.tsx:91; kind: toast-success
 
 ## /settings
 
@@ -1896,6 +3317,14 @@ Sections run: landing page, /about, /login, /signup, /onboarding, global chrome 
 
 > Batch of {batch.batchYear}
 - where: right-hand value inside the live batch-preview chip, e.g. 'Batch of 2015'; file: src/components/settings/settings-form.tsx; kind: body
+> City
+- where: Field label for the primary city input (shortened from 'Current City' tonight); file: src/components/settings/settings-form.tsx:431; kind: label
+
+> Also in
+- where: Field label for the new secondary city input; file: src/components/settings/settings-form.tsx:440; kind: label
+
+> e.g. Chennai (optional)
+- where: Placeholder for the secondary city input; file: src/components/settings/settings-form.tsx:445; kind: placeholder
 
 ## Notifications (bell and panel chrome)
 
