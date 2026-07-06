@@ -5,7 +5,6 @@ import { FeedColumn } from "@/components/posts/feed-column";
 import { PageHeader } from "@/components/layout/page-header";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { NewPostCTA } from "@/components/feed/new-post-cta";
-import { GreetingStrip } from "@/components/feed/greeting-strip";
 import { FinishSetupCard } from "@/components/feed/finish-setup-card";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
 
@@ -63,15 +62,8 @@ export default async function FeedPage() {
             currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
           />
         </div>
-        {/* The greeting strip fills the top-right rectangle beside the page header
-            (the owner's pick from /preview/delight/feed-canvas). The rail below it
-            still starts level with the composer, not the header, so its first card
-            aligns with the composer tile (per the contract). */}
         <aside className="hidden min-[1180px]:block">
-          <div className="flex flex-col gap-4">
-            <GreetingStrip name={session.user.name} />
-            <FeedRail userId={session.user.id} />
-          </div>
+          <FeedRail userId={session.user.id} />
         </aside>
       </div>
     </>
