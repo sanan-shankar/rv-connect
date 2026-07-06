@@ -31,17 +31,8 @@ All three items from the 2026-07-02 consolidation were closed in the 2026-07-03/
 letter-card title fallback shipped (shared `letterTitle()` in `src/lib/utils.ts`), saved posts live
 as an owner-only tab on your own profile (`src/components/profile/saved-posts-feed.tsx`; a
 standalone `/saved` route was deliberately not built), and the support page now describes
-Vercel/Supabase/R2. What remains below is new, found during that blitz.
-
-### 1. Secondary city (blocked on a one-line DB migration)
-Design agreed: `currentCity` stays the primary (shown everywhere), new optional `secondaryCity`
-shown on the profile ("also in ...") and matched by directory search. Blocked until the owner runs
-`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "secondaryCity" TEXT;` in the Supabase SQL editor;
-after that, add `secondaryCity String?` to `prisma/schema.prisma`, run `npx prisma generate`, then
-build settings/profile/directory support. NOTE: `prisma db push` is unusable on this DB until the
-leftover `CatchupIssue`/`CatchupQuestion` tables (from the deleted Catch-ups build, 14 rows) are
-either re-modelled or intentionally dropped; use raw additive SQL meanwhile.
-- Size: small once unblocked.
+Vercel/Supabase/R2. Item 1 and item 8 from the 2026-07-03/04 batch closed overnight on 2026-07-05/06
+(see Settled). What remains below is current.
 
 ### 2. Collection landing screenshot is stale
 `public/images/landing/collection.webp` still shows the pre-redesign UI because the Photo table has
@@ -51,9 +42,13 @@ overwritten in place; see the `shots.ts` header comment).
 - Size: small.
 
 ### 3. Cosmetic pill trims that dodged the sweep
-`profile/[id]/page.tsx` Pencil icon still carries `mr-1.5`; the `post-card.tsx` comment-count pill
-and `create-post-form.tsx` More-options pill lack the 4px optical trim; `alumni-map.tsx` (2 pills)
-and `flag-person-dialog.tsx` trim 2px where the Button convention is 4px.
+`profile/[id]/page.tsx` Pencil icon still carries `mr-1.5`; `post-card.tsx`'s comment-count pill
+still lacks the 4px optical trim; `alumni-map.tsx` (2 pills, full-screen and "not yet on the map")
+and `flag-person-dialog.tsx` still trim 2px where the Button convention is 4px. Checked against the
+2026-07-05/06 session: `profile/[id]/page.tsx` and `alumni-map.tsx` were both touched overnight for
+unrelated features (secondary city, delete-user, map zoom) and the trims were not fixed in passing.
+The `create-post-form.tsx` More-options item is moot: that composer was rebuilt overnight
+(staged-reveal, `96f7ae3`) and More is now a plain unboxed plus, not a pill.
 - Size: tiny.
 
 ### 4. Support page email line + UPI handle
@@ -80,21 +75,72 @@ UTC/IST midnight boundary (e.g. the letters index).
 ### 7. Demo data in the shared DB (owner decision)
 5 seed users (`*@demo.valley.test`) and the `[Demo]` groups (one literally named "[Demo] Roundup",
 a rejected term) still live in the production database. Purge or keep before launch; the
-map/directory demos currently lean on them.
+map/directory demos currently lean on them. The Catch-ups build added a second, separate demo seed
+(`scripts/dev/seed-catchup.mjs`, more `*@demo.valley.test` users plus `[Demo] Collecting` / `[Demo]
+Answering` / `[Demo] Roundup` groups) and a smoke-test script (`scripts/qa/catchups-smoke.mjs`) that
+ran repeatedly overnight on 2026-07-05/06; both clean up after themselves and the smoke test does
+before/after row-count verification on every table it touches, so no leftover QA rows were left in
+the DB from tonight's session. The original 5 demo users (and whichever `[Demo]` groups the owner
+wants kept for the map/directory demo) are the only demo data still there by design.
 - Size: owner decision, then small cleanup.
 
-### 8. Mobile scroll-hoopoe is tiny (design trade-off)
-At 390px the landing gutter is only 24px, so the scroll companion shrank to 26px (desktop 78px) to
-perch without overlapping the frames. If more presence is wanted on phones it needs a different
-treatment (perch on frame tops like the ambient birds, or sit mobile out).
-- Size: small (design call first).
-
-### 9. Hoopoe flight is hero-only (deliberate scope)
+### 9. Hoopoe flight is hero-only on the landing page (deliberate scope)
 Only the hero "Sign in" / "Join the community" buttons launch the fly-and-perch (the photo-slide
-transition only exists from the hero). The sticky nav and closing-band CTAs navigate plainly. The
+transition only exists from the hero); the sticky nav and closing-band CTAs still navigate plainly.
+This is narrower than it sounds: the mascot now flies in several other places shipped overnight on
+2026-07-05/06 (rare bell letter delivery gating the notification panel, the mobile auth pages'
+fly-in-and-perch, the sidebar eyes-closed sleep-on-idle, assorted empty-state and celebration
+moments across the app). The landing page itself, though, still only flies from the hero CTAs. The
 mascot flight layer (`src/components/mascot/mascot-flight.ts`) is reusable from anywhere via
-launchFlight/reportPerch if the owner wants more flights.
+launchFlight/reportPerch if the owner wants more landing-page flights.
 - Size: small.
+
+### 10. Houses column not migrated; house names are placeholder
+`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "houses" TEXT;` sits in section 1 of
+`prisma/pending-migration.sql`, appended after the owner already ran the file for the secondary-city
+column, so it has not been run. Until it is, the `/welcome` onboarding flow's Houses step
+(`src/components/onboarding/steps/houses-step.tsx`) probes for the column and parks each person's
+house-per-year answers in `localStorage` instead of the database. Separately, and regardless of the
+migration: the four house names in `src/lib/houses.ts` (Krishna, Cauvery, Ganga, Aditi) are an
+explicitly flagged placeholder list pending the owner confirming the real, exhaustive set; every
+call site reads from that one file, so swapping the list later is a one-file change.
+- Size: small once the owner runs the migration, plus owner confirmation on the house list.
+
+### 11. Legacy Catch-ups tables still live; `prisma db push` still unusable
+The old, reverted Catch-ups build left six physical tables behind with columns that don't match the
+current schema: `Catchup`, `CatchupPref`, `CatchupAnswer`, `CatchupAnswerLove`, `CatchupIssue`,
+`CatchupQuestion`. The new Catch-ups feature deliberately used different table names
+(`CatchupSeries`, `CatchupReminderPref`, etc., mapped via `@@map` in `schema.prisma`) specifically to
+avoid colliding with these. Section 3 of `prisma/pending-migration.sql` has the `DROP TABLE`
+statements for all six, commented out and optional. Until the owner runs it, `prisma db push`
+remains unusable on this database; schema changes keep going through raw additive SQL.
+- Size: owner decision, then small cleanup (unblocks `prisma db push` for good).
+
+### 12. Owner decisions pending on two preview-only redesigns
+Both shipping-blocker areas got full concept spreads on preview pages, judged by a purpose-fit
+review, but neither pick is final until the owner confirms it and it gets built for real (moved out
+of `/preview`):
+- Profiles: `/preview/delight/profiles` (five concepts: letterhead, field guide, editorial, valley
+  terrain, dossier). The purpose-fit judge favored "Field guide."
+- Landing: `/preview/delight/landings` (five concepts: postcard, notice board, prospectus, living
+  valley, clarity). The judge favored "Postcard."
+- Size: owner decision, then a build phase per pick.
+
+### 13. Copy rewrite pass not started; inventory is now stale
+`docs/content/COPY-INVENTORY.md` and `.copy-review/inventory.json` (831 strings) were generated
+once, at the start of the 2026-07-05/06 session, before that session's own builds landed (Catch-ups,
+the feed rail and greeting strip, the guided welcome flow, the rebuilt composer, the new mascot
+moment strings). Neither file has been touched since. The plan is for the owner to work through the
+dev-only `/copy-editor` UI (`src/app/copy-editor/`, reads and writes `.copy-review/inventory.json`)
+entry by entry, after which the replacements get applied codebase-wide and the tool deleted. Before
+that pass is useful, a delta sweep needs to run over everything this session added and append those
+entries to both files, or the owner's pass will miss every string in those five new surfaces.
+- Size: small (delta sweep), then owner's pass, then a codebase-wide apply.
+
+### 14. Vercel environment variable duplicates (owner will handle)
+Duplicate-named env vars in the Vercel dashboard; the owner said he will clean these up himself.
+Left here only so it isn't forgotten before launch.
+- Size: owner action, five minutes.
 
 ---
 
@@ -117,3 +163,8 @@ so a future session does not "fix" one of these back to a state the owner delibe
   directory filters/city-normalize/case-insensitive/pagination, group batch-add notification and browse
   empty state, collection seed variety, dead `landing-client.tsx` removed, stale Card primitive de-glassed.
 - Logo, password hoopoe, and sign-in button: owner-confirmed finished on 2026-07-02.
+- Secondary city shipped overnight on 2026-07-05/06 (`ab90b19`): `currentCity` stays primary, the
+  new `secondaryCity` column is live and wired through settings, the profile "also in ..." line,
+  and directory search.
+- Mobile scroll-hoopoe is moot: the landing scroll companion was removed entirely by owner decision
+  (`0cface8`), desktop and mobile both. The one remaining landing hoopoe flutters near the footer.
