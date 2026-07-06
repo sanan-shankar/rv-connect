@@ -16,13 +16,16 @@ import { useMotionGovernor } from "@/components/common/motion";
  *    reading as a storm by the SAME staggered per-leaf rest-gap cadence
  *    (see COUNT/wait tuning below) — the cadence logic is untouched,
  *    only the pool size, sizing and palette were dialed up.
- *  - Three glyph "species" (a broad blade, a round leaf, a slim willow
+ *  - Three glyph "species" (a broad blade, an ovate leaf, a slim willow
  *    leaf) plus a wider size range and a warmer, brighter, more
  *    yellow-leaning palette read as real variety, not a repeated sprite.
- *  - Clearly interactive: cursor affordance while the layer is live, a
- *    hover brighten-and-lift (mouse), and a tap puff + spin (touch or
- *    click) — all transform/opacity, smoothed per-frame, no CSS
- *    transition/filter animation.
+ *  - Clearly interactive: a smooth, eased dodge away from the cursor while
+ *    it is nearby (mouse only — no persistent pointer on touch), and a tap
+ *    puff + spin + flick (touch or click) — all transform/opacity, smoothed
+ *    per-frame, no CSS transition/filter animation.
+ *  - Sits BEHIND the page's real content (headings, copy, screenshot
+ *    frames, CTAs) and above the plain section backgrounds — see the
+ *    z-0 note on the layer below.
  *  - Fades in only once the hero is scrolled past, so the photo hero
  *    stays pristine, and pauses entirely when off-range or tab hidden.
  *  - Footer drift: while the footer is in view, a fuller, capped pile
@@ -33,14 +36,16 @@ import { useMotionGovernor } from "@/components/common/motion";
  *    after mount (no hydration mismatch).
  * ------------------------------------------------------------------ */
 
-// Brightened + more saturated pass: canopy's near-black green disappeared
-// against the warm #EDE7DA/#F6F2E8 background, so it's dropped in favour of
-// doubled weight on lit leaf-green and a punchier cinnamon, keeping the golds
-// for variety. Still natural, autumn-leaf hues — no saturated primaries.
+// Retuned off real foliage, not app-UI green: the brand `--color-leaf` /
+// `--color-leaf-light` tokens are saturated brand swatches (one is iOS's
+// system green) that read as plastic against drifting leaves, so the green
+// slots use literal, desaturated olive/sap/moss tones instead — three
+// distinct natural greens rather than two copies of one bright one. The
+// warm cinnamon/gold/yellow weight the owner asked for stays untouched.
 const LEAF_TINTS = [
-  "var(--color-leaf-light)", // vivid lit green, the highest-contrast pop
-  "var(--color-leaf-light)",
-  "var(--color-leaf)",
+  "#7C8F4E", // sap green, lit — the highest-contrast green pop, still muted
+  "#5E7A3D", // mid olive green
+  "#47592E", // deep moss green
   "#E0672A", // bright cinnamon-orange, more saturated than the base accent
   "#E0672A",
   "var(--color-cinnamon)",
@@ -52,8 +57,8 @@ const LEAF_TINTS = [
 ];
 
 // Footer-pile-only palette: a narrower, warmer band (mostly cinnamon/gold,
-// one green pop for contrast) so the settled drift reads as a single autumn
-// mass rather than the full mixed drift palette above.
+// one natural green pop for contrast) so the settled drift reads as a single
+// autumn mass rather than the full mixed drift palette above.
 const PILE_TINTS = [
   "#E0672A",
   "#E0672A",
@@ -61,7 +66,7 @@ const PILE_TINTS = [
   "#EDB730",
   "#F2C94C",
   "#DB8A2A",
-  "var(--color-leaf-light)",
+  "#5E7A3D",
 ];
 
 /** One drifting leaf's live physics state (viewport px unless noted). */
@@ -80,8 +85,8 @@ type Leaf = {
   poof: number; // remaining tap-puff progress (seconds), 0 = none
   kick: number; // decaying horizontal impulse from a tap (px/s)
   landed: boolean; // captured into the footer pile
-  hoverOn: boolean; // pointer is currently over this leaf
-  hoverT: number; // smoothed 0..1 hover boost (brighten + lift)
+  avoidX: number; // eased px offset dodging the cursor (desktop only)
+  avoidY: number;
 };
 
 /** A settled leaf in the footer pile. */
@@ -97,6 +102,10 @@ export function AmbientLeaves() {
   const { paused } = useMotionGovernor();
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
+  // Last-known mouse position (viewport px), for the cursor-dodge below.
+  // Touch never sets `active` (no persistent pointer to dodge there — the
+  // tap puff + flick is that platform's interactive affordance instead).
+  const mouseRef = useRef({ x: -9999, y: -9999, active: false });
 
   // SSR-safe responsive density: desktop default until mount, then phone-lighter.
   const [isMobile, setIsMobile] = useState(false);
@@ -107,10 +116,10 @@ export function AmbientLeaves() {
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
-  // Doubled again this pass (previous pool still read as sparse singles) —
-  // the SAME staggered rest-gap cadence as before (unchanged below) keeps it
-  // full without turning into a downpour.
-  const COUNT = isMobile ? 20 : 40;
+  // Trimmed a step back down from the previous (denser) pass — the SAME
+  // staggered rest-gap cadence as before (unchanged below) keeps it full
+  // without turning into a downpour.
+  const COUNT = isMobile ? 16 : 33;
   const PILE_CAP = isMobile ? 12 : 16;
 
   useEffect(() => {
@@ -149,8 +158,8 @@ export function AmbientLeaves() {
       l.poof = 0;
       l.kick = 0;
       l.landed = false;
-      l.hoverOn = false;
-      l.hoverT = 0;
+      l.avoidX = 0;
+      l.avoidY = 0;
       if (l.el) {
         l.el.style.color = LEAF_TINTS[Math.floor(Math.random() * LEAF_TINTS.length)];
         l.el.style.width = `${l.size}px`;
@@ -174,8 +183,8 @@ export function AmbientLeaves() {
         poof: 0,
         kick: 0,
         landed: false,
-        hoverOn: false,
-        hoverT: 0,
+        avoidX: 0,
+        avoidY: 0,
       };
       spawn(l, true);
       return l;
@@ -191,31 +200,34 @@ export function AmbientLeaves() {
       l.kick = (Math.random() < 0.5 ? -1 : 1) * (60 + Math.random() * 60);
       l.rotSpeed += (l.rotSpeed >= 0 ? 1 : -1) * 260;
     };
-    // Hover: brighten + lift while the pointer is over a leaf (mouse only,
-    // in practice — touch fires its own tap puff instead). Smoothed toward
-    // its target in the tick loop below; still transform/opacity only.
-    const onHoverOn = (i: number) => () => {
-      const l = leaves[i];
-      if (l && !l.landed) l.hoverOn = true;
-    };
-    const onHoverOff = (i: number) => () => {
-      const l = leaves[i];
-      if (l) l.hoverOn = false;
-    };
     const cleanups = leaves.map((l, i) => {
       if (!l.el) return () => {};
       const down = onTap(i);
-      const enter = onHoverOn(i);
-      const leave = onHoverOff(i);
       l.el.addEventListener("pointerdown", down);
-      l.el.addEventListener("pointerenter", enter);
-      l.el.addEventListener("pointerleave", leave);
       return () => {
         l.el?.removeEventListener("pointerdown", down);
-        l.el?.removeEventListener("pointerenter", enter);
-        l.el?.removeEventListener("pointerleave", leave);
       };
     });
+
+    // Cursor dodge: track the live mouse position at the window level (fires
+    // regardless of the layer's own pointer-events, which stay off except on
+    // the sprites themselves) so every leaf can smoothly ease away from it in
+    // the tick loop below. Touch never sets this — there is no persistent
+    // pointer to dodge there, and the tap above already covers "interactive".
+    const mouse = mouseRef.current;
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+    };
+    // `pointerout` with no relatedTarget fires when the pointer leaves the
+    // browser viewport entirely, so leaves stop dodging a stale last position.
+    const onPointerOut = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && !e.relatedTarget) mouse.active = false;
+    };
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerout", onPointerOut, { passive: true });
 
     // Footer pile bookkeeping.
     const pile: Piled[] = pileRefs.current.slice(0, PILE_CAP).map((el) => ({ el }));
@@ -385,8 +397,13 @@ export function AmbientLeaves() {
       }
 
       const height = vh();
-      // Higher = a snappier hover response; still eased per-frame (never a jump-cut).
-      const hoverRate = 12;
+      // Cursor dodge tuning: desktop only (no persistent pointer on touch,
+      // where the tap-flick below is the interactive affordance instead). A
+      // firm-but-gentle radius, eased at the SAME rate both approaching and
+      // settling back, so a leaf never snaps toward or away from the cursor.
+      const AVOID_RADIUS = isMobile ? 0 : 130;
+      const AVOID_PUSH = 46; // px, strongest push right at the cursor's center
+      const AVOID_RATE = 9;
       for (const l of leaves) {
         if (!l.el || l.landed) continue;
         if (l.wait > 0) {
@@ -402,19 +419,6 @@ export function AmbientLeaves() {
           l.baseX += l.kick * dt;
           l.kick *= Math.max(0, 1 - dt * 3); // decay the tap impulse
           if (Math.abs(l.kick) < 2) l.kick = 0;
-        }
-        // Smoothed hover boost toward its on/off target — brighten + lift on
-        // mouseover, transform/opacity only, eased so it never snaps.
-        l.hoverT += ((l.hoverOn ? 1 : 0) - l.hoverT) * Math.min(1, dt * hoverRate);
-
-        let scale = 1 + l.hoverT * 0.2;
-        let op = 0.82 + l.hoverT * 0.18;
-        const lift = l.hoverT * 9; // px risen while hovered
-        if (l.poof > 0) {
-          l.poof = Math.max(0, l.poof - dt);
-          const p = 1 - l.poof / 0.5; // 0..1
-          scale += 0.5 * Math.sin(p * Math.PI);
-          op += 0.32 * Math.sin(p * Math.PI);
         }
         const x = l.baseX + Math.sin(l.phase) * l.swayAmp;
 
@@ -432,8 +436,39 @@ export function AmbientLeaves() {
           spawn(l, false);
           continue;
         }
+
+        // Smoothly avoid the cursor: eased toward a push vector pointing away
+        // from it while within range, eased back to zero once the cursor
+        // moves off or out of range — never a jump-cut in either direction.
+        let targetAvoidX = 0;
+        let targetAvoidY = 0;
+        if (AVOID_RADIUS > 0 && mouseRef.current.active) {
+          const dx = x - mouseRef.current.x;
+          const dy = l.y - mouseRef.current.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < AVOID_RADIUS) {
+            const strength = 1 - dist / AVOID_RADIUS;
+            const inv = dist > 0.001 ? 1 / dist : 0;
+            targetAvoidX = dx * inv * strength * AVOID_PUSH;
+            targetAvoidY = dy * inv * strength * AVOID_PUSH;
+          }
+        }
+        const ease = Math.min(1, dt * AVOID_RATE);
+        l.avoidX += (targetAvoidX - l.avoidX) * ease;
+        l.avoidY += (targetAvoidY - l.avoidY) * ease;
+        const avoidMag = Math.min(1, Math.hypot(l.avoidX, l.avoidY) / AVOID_PUSH);
+
+        let scale = 1 + avoidMag * 0.1;
+        let op = 0.82 + avoidMag * 0.16;
+        if (l.poof > 0) {
+          l.poof = Math.max(0, l.poof - dt);
+          const p = 1 - l.poof / 0.5; // 0..1
+          scale += 0.5 * Math.sin(p * Math.PI);
+          op += 0.32 * Math.sin(p * Math.PI);
+        }
+
         l.el.style.opacity = String(Math.min(1, op));
-        l.el.style.transform = `translate3d(${x}px, ${l.y - lift}px, 0) rotate(${l.rot}deg) scale(${scale})`;
+        l.el.style.transform = `translate3d(${x + l.avoidX}px, ${l.y + l.avoidY}px, 0) rotate(${l.rot}deg) scale(${scale})`;
       }
     };
     raf = requestAnimationFrame(tick);
@@ -443,6 +478,8 @@ export function AmbientLeaves() {
       window.removeEventListener("scroll", recomputeRange);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("load", computeSeams);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerout", onPointerOut);
       cleanups.forEach((c) => c());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -453,7 +490,14 @@ export function AmbientLeaves() {
       <div
         ref={wrapRef}
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-30 overflow-hidden opacity-0 transition-opacity duration-700 ease-out"
+        // z-0: every SectionReveal-wrapped block below (intro copy, each
+        // FeatureSection's heading + screenshot, the trust card) is its own
+        // z-0 stacking context that comes LATER in the DOM, so it paints on
+        // top of this one at the same level — leaves stay tucked behind the
+        // page's real content while still painting above the plain section
+        // backgrounds underneath (those are unpositioned, so they paint
+        // first regardless of z-index). Do not raise this back up.
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-0 transition-opacity duration-700 ease-out"
       >
         {Array.from({ length: COUNT }).map((_, i) => (
           <span
@@ -473,7 +517,9 @@ export function AmbientLeaves() {
         <div
           ref={pileWrapRef}
           aria-hidden
-          className="pointer-events-none fixed inset-x-0 bottom-0 z-30 h-20 overflow-hidden opacity-0 transition-opacity duration-500 ease-out"
+          // Same z-0 reasoning as the falling layer above: behind the
+          // footer's own content, above the plain background it settles on.
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-0 h-20 overflow-hidden opacity-0 transition-opacity duration-500 ease-out"
         >
           {Array.from({ length: PILE_CAP }).map((_, i) => (
             <span
@@ -493,8 +539,9 @@ export function AmbientLeaves() {
 }
 
 /** Three glyph species so the drift reads as varied leaves, not one repeated
- * sprite — a broad blade, a round leaf, and a slim willow leaf. All share the
- * same soft, single-vein construction so they still read as one family. */
+ * sprite — a broad blade, an ovate leaf with a pointed drip-tip (like a
+ * peepal or fig leaf), and a slim willow leaf. All share the same soft,
+ * single-vein construction so they still read as one family. */
 const LEAF_SHAPES = ["blade", "round", "slim"] as const;
 type LeafShape = (typeof LEAF_SHAPES)[number];
 
@@ -515,8 +562,11 @@ function LeafGlyph({ shape }: { shape: LeafShape }) {
       )}
       {shape === "round" && (
         <>
-          <path d="M12 3c5.5 0 8.5 3.8 8.5 9s-3 9-8.5 9-8.5-3.8-8.5-9 3-9 8.5-9Z" fill="currentColor" opacity="0.9" />
-          <path d="M12 5v14" stroke="var(--color-paper)" strokeWidth="1" strokeLinecap="round" opacity="0.5" />
+          {/* Ovate leaf, wide but unmistakably a leaf: a pointed drip-tip at
+              top, a rounded taper into the (unseen) stem at the base — not
+              the symmetric near-circle this replaced. */}
+          <path d="M12 2c5 4.5 6.5 10.5 3.5 16.5C14 21 12.7 22 12 22s-2-1-3.5-3.5C5.5 12.5 7 6.5 12 2Z" fill="currentColor" opacity="0.9" />
+          <path d="M12 4.5v16" stroke="var(--color-paper)" strokeWidth="1" strokeLinecap="round" opacity="0.5" />
         </>
       )}
       {shape === "slim" && (

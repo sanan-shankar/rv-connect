@@ -102,8 +102,9 @@ type Plumage = { body: string; wing: string; breast: string; head: string; bill:
 const SPECIES: Plumage[] = [
   // Purple Sunbird — glossy blackish body, mustard breast flash
   { body: "#33283F", wing: "#211A2B", breast: "#D9A73B", head: "#33283F", bill: "#1C1712" },
-  // Rose-ringed Parakeet — leaf green, deeper green wing, coral bill
-  { body: "var(--color-leaf)", wing: "#136B38", breast: "#D9EFB0", head: "var(--color-leaf)", bill: "var(--color-cinnamon)" },
+  // Rose-ringed Parakeet — natural grass green (dialed back from the flat
+  // brand `--color-leaf` swatch, which read as plastic), deeper olive wing
+  { body: "#6E9143", wing: "#4C6B2E", breast: "#D9EFB0", head: "#6E9143", bill: "var(--color-cinnamon)" },
   // White-throated Kingfisher — sky-blue back, chestnut head and breast
   { body: "var(--color-sky)", wing: "#2C5C7C", breast: "#8B4A2B", head: "#8B4A2B", bill: "#A6301F" },
   // Indian Grey Hornbill — soft grey body, cream breast, ochre bill
