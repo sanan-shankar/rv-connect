@@ -64,6 +64,14 @@ PageHeader, so desktop (>=768px) has no bell there (mobile keeps the sidebar-bar
 product decision on a global pattern.
 - Size: medium (decision first).
 
+### 5b. Signed-out visitors never see the custom 404
+`src/proxy.ts` redirects any route outside the public allowlist to `/login` (307) before Next can
+resolve `not-found.tsx`, so a logged-out person following a dead or mistyped link lands on the
+login page, not the hoopoe 404 (signed-in users see it fine). Found in the 2026-07-06 integrated
+smoke pass; pre-existing routing behavior, needs a product decision (allowlist unknown paths to
+404 publicly, or keep the login bounce).
+- Size: small (decision first).
+
 ### 6. Raw-SQL timestamp trap (latent)
 `Post.createdAt` etc. are `timestamp without time zone`; rows written via raw `pg` read back 5h30m
 (IST) ahead through Prisma. The app's own Prisma write+read path is self-consistent, but any future
