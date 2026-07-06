@@ -29,31 +29,33 @@ export function ConsoleAnswering({
   return (
     <div className="space-y-5">
       <FadeRise>
-        <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-6">
+        <div className="card-elevated max-w-[640px] rounded-[var(--radius)] border border-border bg-card p-6">
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-cinnamon">
             Round {edition.number} &middot; Answering
           </p>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-5">
+          <div className="mt-4 flex flex-wrap items-center gap-x-7 gap-y-4">
             <ProgressRing
               ratio={edition.ringRatio}
               label={`${edition.answeredCount} of ${data.memberCount} have shared`}
               sublabel={edition.statusLabel}
               tone="cinnamon"
             />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                Who has answered
+              </p>
+              <MemberStrip members={data.members} highlightIds={answeredIds} className="mt-1.5" max={10} size={26} />
+            </div>
+          </div>
+
+          <div className="mt-5 border-t border-border pt-4">
             <Link href={`/catchups/${data.catchupId}/answer`}>
               <Button variant="primary" size="lg">
                 Answer now
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-          </div>
-
-          <div className="mt-5 border-t border-border pt-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              Who has answered
-            </p>
-            <MemberStrip members={data.members} highlightIds={answeredIds} className="mt-2.5" max={16} />
           </div>
         </div>
       </FadeRise>
@@ -78,11 +80,9 @@ export function ConsoleAnswering({
                 )}
                 <div className="min-w-0">
                   <p className="text-sm leading-snug text-foreground">{p.text}</p>
-                  {p.author && (
-                    <p className="mt-1 text-[11px] font-medium text-muted-foreground">
-                      asked by {p.isOwn ? "you" : p.author.name}
-                    </p>
-                  )}
+                  <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                    {p.isOwn ? "asked by you" : p.author ? `asked by ${p.author.name}` : "suggested for the group"}
+                  </p>
                 </div>
               </div>
             ))}

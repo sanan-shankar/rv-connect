@@ -20,10 +20,12 @@ import { SongAttachment } from "./song-attachment";
 import type { AnswerEntryDraft, AnswerPromptData, SongState } from "./types";
 
 // A quiet ruled-sheet texture behind the textarea (spec 3.4: "warm Paper,
-// ruled-sheet lines behind the text area"). Decorative only; line spacing is
-// generous enough that wrapped text never fights the rule.
+// ruled-sheet lines behind the text area"). Decorative only; the 29px pitch
+// matches the serif textarea's own 17px/1.7 line box below, so wrapped text
+// sits ON the rule rather than fighting it (the letter-writing feel the
+// polish pass asked for, not just a generic textarea with lines behind it).
 const RULED_SHEET_BG =
-  "repeating-linear-gradient(180deg, transparent 0 31px, color-mix(in srgb, var(--color-ink) 6%, transparent) 31px 32px)";
+  "repeating-linear-gradient(180deg, transparent 0 28px, color-mix(in srgb, var(--color-ink) 7%, transparent) 28px 29px)";
 
 export function AnswerCard({
   prompt,
@@ -70,13 +72,11 @@ export function AnswerCard({
   }
 
   const hasContent = Boolean(body.trim() || entry.images.length || entry.song);
-  const advanceLabel = isLast
-    ? hasContent
-      ? "Finish"
-      : "Skip and finish"
-    : hasContent
-      ? "Next"
-      : "Skip for now";
+  // The primary pill is always "Next"/"Share" (spec polish: the empty first
+  // frame should still invite writing, not lead with an exit). It just
+  // disables until there is something to advance with; "Skip for now" stays
+  // reachable as a quiet secondary action beside it, never the only option.
+  const advanceLabel = isLast ? "Share" : "Next";
 
   return (
     <div className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-6 sm:p-8">
@@ -110,8 +110,8 @@ export function AnswerCard({
           }}
           onBlur={flushBody}
           placeholder="Take your time..."
-          className="block w-full resize-none bg-card px-4 py-4 text-[15.5px] leading-[32px] text-foreground placeholder:text-muted-foreground focus:outline-none"
-          style={{ backgroundImage: RULED_SHEET_BG, minHeight: 168 }}
+          className="block w-full resize-none bg-card px-4 py-4 font-heading text-[17px] leading-[1.7] text-foreground placeholder:text-foreground/40 focus:outline-none"
+          style={{ backgroundImage: RULED_SHEET_BG, minHeight: 174 }}
         />
       </div>
 
@@ -134,16 +134,31 @@ export function AnswerCard({
           )}
         </div>
 
-        <Button
-          type="button"
-          variant={hasContent ? "primary" : "outline"}
-          onClick={() => {
-            flushBody();
-            onAdvance();
-          }}
-        >
-          {advanceLabel}
-        </Button>
+        <div className="flex items-center gap-4">
+          {!hasContent && (
+            <button
+              type="button"
+              onClick={() => {
+                flushBody();
+                onAdvance();
+              }}
+              className="rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            >
+              Skip for now
+            </button>
+          )}
+          <Button
+            type="button"
+            variant="primary"
+            disabled={!hasContent}
+            onClick={() => {
+              flushBody();
+              onAdvance();
+            }}
+          >
+            {advanceLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );

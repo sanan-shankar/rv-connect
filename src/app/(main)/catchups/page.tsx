@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { ExplainerBand } from "@/components/catchups/index/explainer-band";
-import { YourCatchupsCard } from "@/components/catchups/index/your-catchups-card";
+import { YourCatchupsCard, type IndexCardView } from "@/components/catchups/index/your-catchups-card";
 import { FreshOffThePress, type FreshRoundItem } from "@/components/catchups/index/fresh-off-the-press";
 import { GroupFirstGuidance } from "@/components/catchups/index/group-first-guidance";
 import { advanceDueCatchups, describeEditionStatus, isMissingCatchupTable } from "@/lib/catchups";
-import type { CatchupIndexCard, CatchupStatus, EditionStatus } from "@/lib/catchups-types";
+import type { CatchupPersonRef, CatchupStatus, EditionStatus } from "@/lib/catchups-types";
 
 export const metadata: Metadata = {
   title: "Catch-ups",
@@ -66,6 +66,7 @@ async function loadIndexData(userId: string) {
         select: {
           id: true,
           name: true,
+          _count: { select: { members: true } },
           members: {
             take: 6,
             select: { user: { select: { id: true, name: true, photoUrl: true } } },
@@ -93,14 +94,16 @@ async function loadIndexData(userId: string) {
   });
 
   const now = new Date();
-  const cards: CatchupIndexCard[] = memberships.map(({ group }) => {
+  const cards: IndexCardView[] = memberships.map(({ group }) => {
     const members = group.members.map((m) => m.user);
+    const memberCount = group._count.members;
 
     if (!group.catchup) {
       return {
         groupId: group.id,
         groupName: group.name,
         members,
+        memberCount,
         catchupId: null,
         catchupStatus: null,
         editionId: null,
@@ -108,6 +111,8 @@ async function loadIndexData(userId: string) {
         roundNumber: null,
         statusLine: "No Catch-up here yet",
         cta: { label: "Start one", href: `/catchups/new?group=${group.id}` },
+        answeredCount: 0,
+        answeredMembers: [],
       };
     }
 
@@ -128,6 +133,7 @@ async function loadIndexData(userId: string) {
       groupId: group.id,
       groupName: group.name,
       members,
+      memberCount,
       catchupId: group.catchup.id,
       catchupStatus,
       editionId: edition?.id ?? null,
@@ -140,8 +146,34 @@ async function loadIndexData(userId: string) {
         catchupId: group.catchup.id,
         editionId: edition?.id ?? null,
       }),
+      answeredCount: 0,
+      answeredMembers: [],
     };
   });
+
+  // The live "Answering now" row needs real pull (spec polish: who-has-
+  // answered avatars + a mini N-of-M badge) so it reads as more alive than
+  // the dormant "Start one" rows beneath it. Fetched separately, scoped to
+  // just the editions actually answering right now.
+  const answeringCards = cards.filter((c) => c.editionStatus === "answering" && c.editionId);
+  if (answeringCards.length > 0) {
+    const answeredRows = await prisma.catchupEntry.findMany({
+      where: { editionId: { in: answeringCards.map((c) => c.editionId as string) } },
+      distinct: ["editionId", "authorId"],
+      select: { editionId: true, author: { select: { id: true, name: true, photoUrl: true } } },
+    });
+    const byEdition = new Map<string, CatchupPersonRef[]>();
+    for (const row of answeredRows) {
+      const arr = byEdition.get(row.editionId) ?? [];
+      arr.push(row.author);
+      byEdition.set(row.editionId, arr);
+    }
+    for (const card of answeringCards) {
+      const answered = byEdition.get(card.editionId as string) ?? [];
+      card.answeredCount = answered.length;
+      card.answeredMembers = answered;
+    }
+  }
 
   cards.sort((a, b) => {
     const pa = a.catchupId ? (STATUS_PRIORITY[a.editionStatus ?? "draft"] ?? 50) : 90;
@@ -215,7 +247,7 @@ export default async function CatchupsPage() {
       />
 
       <div className="mb-7">
-        <ExplainerBand />
+        <ExplainerBand compact={data.cards.some((c) => c.catchupId !== null)} />
       </div>
 
       {!data.hasGroups ? (

@@ -15,13 +15,22 @@
  *   1. Tables absent (P2021): calm "coming soon" stub, not a link.
  *   2. No Catch-up yet for this group: "Start one" -> the create flow.
  *   3. A Catch-up exists: current status + the CTA for that Round state.
+ *      While a Round is answering, this also carries the same "who has
+ *      answered" pull the Catch-up home console gives it (spec polish:
+ *      the group page's card should not read as a thinner, lesser copy
+ *      of the real thing).
+ *
+ *  Layout is a vertical stack, not a left-label/right-pill split — the CTA
+ *  sits directly under its own title rather than stranded at the far edge
+ *  of a full-width card (spec polish).
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
 import { ArrowRight, MessagesSquare } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { BirdAvatar } from "@/components/common/bird-avatar";
 import { catchupTitle, describeEditionStatus, isMissingCatchupTable } from "@/lib/catchups";
-import type { CatchupStatus, EditionStatus } from "@/lib/catchups-types";
+import type { CatchupPersonRef, CatchupStatus, EditionStatus } from "@/lib/catchups-types";
 
 function buildCta(opts: {
   catchupStatus: CatchupStatus;
@@ -56,6 +65,7 @@ async function loadGroupCatchup(groupId: string) {
       id: true,
       title: true,
       status: true,
+      group: { select: { _count: { select: { members: true } } } },
       editions: {
         orderBy: { number: "desc" },
         take: 1,
@@ -71,11 +81,12 @@ async function loadGroupCatchup(groupId: string) {
   });
 }
 
-const ICON_MEDALLION = "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-leaf/10 text-leaf";
+const ICON_MEDALLION_LEAF = "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-leaf/10 text-leaf";
+const ICON_MEDALLION_CINNAMON = "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-cinnamon/10 text-cinnamon";
 const CARD_SHELL =
-  "card-elevated group relative flex flex-col gap-4 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-5 transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 sm:flex-row sm:items-center sm:justify-between";
+  "card-elevated group relative flex flex-col gap-4 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-5 transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0";
 const CTA_PILL =
-  "relative inline-flex shrink-0 items-center gap-1.5 rounded-full bg-canopy px-4 py-2 text-[13px] font-semibold text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-transform duration-150 group-hover:scale-[1.03]";
+  "relative inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-canopy px-4 py-2 text-[13px] font-semibold text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-transform duration-150 group-hover:scale-[1.03]";
 
 export async function GroupCatchupCard({
   groupId,
@@ -92,7 +103,7 @@ export async function GroupCatchupCard({
     // Tables absent (pre-migration): a calm, on-theme stub. Never a broken card.
     return (
       <div className="card-elevated relative flex items-center gap-4 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-5">
-        <div className={ICON_MEDALLION}>
+        <div className={ICON_MEDALLION_LEAF}>
           <MessagesSquare className="h-5 w-5" />
         </div>
         <div className="min-w-0">
@@ -120,7 +131,7 @@ export async function GroupCatchupCard({
           }}
         />
         <div className="relative flex items-center gap-4">
-          <div className={ICON_MEDALLION}>
+          <div className={ICON_MEDALLION_LEAF}>
             <MessagesSquare className="h-5 w-5" />
           </div>
           <div className="min-w-0">
@@ -144,6 +155,7 @@ export async function GroupCatchupCard({
   const rawEdition = catchup.editions[0] ?? null;
   const edition = rawEdition ? { ...rawEdition, status: rawEdition.status as EditionStatus } : null;
   const now = new Date();
+  const memberCount = catchup.group._count.members;
 
   const statusLine =
     catchupStatus === "paused"
@@ -161,21 +173,51 @@ export async function GroupCatchupCard({
     editionId: edition?.id ?? null,
   });
 
+  // Live pull (spec polish): while a Round is answering, show the same
+  // who-has-answered read the Catch-up home console gives it, so this card
+  // does not read as a thinner copy of the real thing.
+  let answered: CatchupPersonRef[] = [];
+  if (catchupStatus === "active" && edition?.status === "answering") {
+    const rows = await prisma.catchupEntry.findMany({
+      where: { editionId: edition.id },
+      distinct: ["authorId"],
+      select: { author: { select: { id: true, name: true, photoUrl: true } } },
+    });
+    answered = rows.map((r) => r.author);
+  }
+
   return (
     <Link href={cta.href} className={CARD_SHELL}>
       <div className="relative flex items-center gap-4">
-        <div className={ICON_MEDALLION}>
+        <div className={ICON_MEDALLION_CINNAMON}>
           <MessagesSquare className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-leaf">
             {catchupTitle(catchup.title, groupName)}
+            {edition && catchupStatus === "active" && ` · Round ${edition.number}`}
           </p>
           <p className="mt-0.5 font-heading text-[15px] font-semibold tracking-tight text-foreground">
             {statusLine}
           </p>
         </div>
       </div>
+
+      {edition?.status === "answering" && (
+        <div className="relative flex items-center gap-2.5 pl-[60px]">
+          {answered.length > 0 && (
+            <div className="flex -space-x-1.5">
+              {answered.slice(0, 4).map((m) => (
+                <BirdAvatar key={m.id} user={m} size="xs" ring />
+              ))}
+            </div>
+          )}
+          <span className="text-[12px] font-bold text-cinnamon">
+            {answered.length} of {memberCount} shared
+          </span>
+        </div>
+      )}
+
       <span className={CTA_PILL}>
         {cta.label}
         <ArrowRight className="h-3.5 w-3.5" />
