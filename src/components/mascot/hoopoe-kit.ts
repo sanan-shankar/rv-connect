@@ -65,14 +65,17 @@ export const PARTS = {
   eyeWide: "[data-eyeshape=wide]",
   eyeHappy: "[data-eyeshape=happy]",
   eyeSleepy: "[data-eyeshape=sleepy]",
+  eyeClosed: "[data-eyeshape=closed]",
 } as const;
 
-export type EyeShape = "round" | "wide" | "happy" | "sleepy";
+export type EyeShape = "round" | "wide" | "happy" | "sleepy" | "closed";
 
 /* ---- public types ---- */
 export type Dir = "left" | "right";
 export type Target = HTMLElement | DOMRect | { x: number; y: number } | null;
 export type Level = 1 | 2 | 3;
+// Off-canvas entry edge for `flyIn`: the two side edges, or the top (default).
+export type FlyInEdge = Dir | "top";
 
 export type Expression =
   | "content"
@@ -84,7 +87,12 @@ export type Expression =
   | "love"
   | "alert"
   | "proud"
-  | "worried";
+  | "worried"
+  // Fully shut eyes + a deeper wilt than `sleepy`, paired with the `sleep()`/`wake()`
+  // verbs below (which additionally pause the ambient idle loop while it holds —
+  // `express("sleepy")` alone does not, so a bird resting in `sleepy` still blinks
+  // and sparkles at random, which reads wrong for a genuinely sleeping resident bird).
+  | "asleep";
 
 export type SemanticEvent =
   | "correct"
@@ -124,6 +132,20 @@ export interface HoopoeApi {
   shake(times?: number): Promise<void>;
   crest(open: boolean): Promise<void>;
   crestFlick(): Promise<void>;
+  // Quick reactions (idle-corner life). Bill-into-wing self-groom, and a foraging
+  // peck-and-perk-up (a quick head lunge + bill snap, then a happy little beat).
+  preen(): Promise<void>;
+  peck(): Promise<void>;
+  // Off-canvas entrance: warps the puppet (no animated travel, just an instant pose
+  // change) to just outside the rig's own box on the given edge, already in the
+  // flight pose, then flies the same arc-and-land `flyTo` uses onto `target`
+  // (defaults to the rig's own rest anchor, i.e. wherever it is mounted). For a
+  // same-component "the bird swoops in" entrance (e.g. a small mobile auth panel
+  // with no CTA-click origin to launch a cross-page flight from). For a flight that
+  // must survive a client navigation between routes, use the mascot-flight bus
+  // instead (`launchFlight`/`onLaunch` in mascot-flight.ts) — this is a same-mount
+  // primitive, not a replacement for it.
+  flyIn(edge?: FlyInEdge, target?: Target): Promise<void>;
   express(name: Expression, opts?: { hold?: number }): Promise<void>;
   celebrate(level?: Level): Promise<void>;
   blinkOnce(double?: boolean): Promise<void>;
@@ -131,6 +153,14 @@ export interface HoopoeApi {
   bindPassword(getRevealed: () => boolean): () => void;
   coverEyes(): void;
   peek(): void;
+  // Deep-idle rest: closes the eyes, wilts the crest more than `sleepy`, and
+  // (unlike a plain `express("sleepy")`) PAUSES the ambient blink/sparkle/crest-flick/
+  // breathe loop until `wake()` — a resident bird that is meant to look genuinely
+  // asleep (e.g. the sidebar) shouldn't still be blinking at random. `wake()` plays
+  // a small stretch (crest flick + wing shrug) and a soft double-blink back open,
+  // then resumes the idle loop. Both are no-ops if already in that state.
+  sleep(): Promise<void>;
+  wake(): Promise<void>;
   sequence(...steps: Step[]): Promise<void>;
   react(event: SemanticEvent): Promise<void>;
   stop(): void;
@@ -172,6 +202,11 @@ export const EXPRESSIONS: Record<Expression, Chord> = {
   alert: { crest: { sx: 1.06, sy: 1.22, rot: 0 }, brow: { y: -5.5, ang: -1, op: 0.7 }, eye: "wide", bill: 0, head: { rot: 0, y: -3 }, body: { sy: 1.06, y: -3 }, tail: { rot: 11, sx: 1 } },
   proud: { crest: { sx: 1.14, sy: 1.14, rot: 0 }, brow: { y: -2, ang: -2, op: 0.3 }, eye: "round", bill: 0, head: { rot: -7, y: -1 }, body: { sy: 1.06, y: -1 }, tail: { rot: 5, sx: 1.05 } },
   worried: { crest: { sx: 0.58, sy: 0.88, rot: -3 }, brow: { y: -1, ang: 4, op: 0.85 }, eye: "round", bill: 0, head: { rot: 0, y: 1 }, body: { sy: 0.99, y: 1 }, tail: { rot: -7, sx: 0.95 } },
+  // asleep: eyes fully shut (not sleepy's drowsy hooded curve), crest wilted further
+  // than sleepy, head tucked down and to the side. No brows (a resting bird, not an
+  // emotional one). Paired with the sleep()/wake() verbs, which also still the
+  // ambient idle loop for as long as this pose holds.
+  asleep: { crest: { sx: 0.4, sy: 0.68, rot: -11 }, brow: { y: 0, ang: 0, op: 0 }, eye: "closed", bill: 0, head: { rot: 9, y: 5 }, body: { sy: 1, y: 1 }, tail: { rot: -11, sx: 0.92 } },
 };
 
 /* ---- motion governor ----

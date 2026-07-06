@@ -39,6 +39,7 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
 import { Wordmark } from "./peaks-mark";
+import { SidebarHoopoe } from "@/components/mascot/sidebar-hoopoe";
 
 export interface SidebarUser {
   id: string;
@@ -152,7 +153,7 @@ function NavLinks({
 function UserMenu({ user }: { user: SidebarUser }) {
   const router = useRouter();
   return (
-    <div className="mt-auto flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
+    <div className="flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center rounded-xl px-1.5 py-1 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
           <IdentityRow
@@ -217,7 +218,12 @@ export function Sidebar({
       <aside className="sticky top-0 z-10 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
         <LogoFact />
         <NavLinks pathname={pathname} markerId="nav-desktop" />
-        <UserMenu user={user} />
+        {/* relative anchor for the idle-rest hoopoe, which perches just above
+            this row (see sidebar-hoopoe.tsx) */}
+        <div className="relative mt-auto">
+          <SidebarHoopoe />
+          <UserMenu user={user} />
+        </div>
       </aside>
 
       {/* Mobile: slim top bar with a hamburger that opens a slide-over drawer

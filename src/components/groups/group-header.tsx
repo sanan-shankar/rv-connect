@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Users, LogOut, Lock, Globe } from "lucide-react";
@@ -10,6 +10,7 @@ import { GroupInviteDialog } from "./group-invite-dialog";
 import { leaveGroup, joinGroup } from "@/app/(main)/groups/actions";
 import { batchLine, cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { EmptyGroupHoopoe } from "@/components/mascot/moments/empty-group-hoopoe";
 
 /** Warm name for the group organizer. Stored as role "admin" in the DB. */
 export function roleLabel(role: string): string {
@@ -37,16 +38,23 @@ interface GroupHeaderProps {
   members: MemberView[];
   /** The viewer's role, or null when they are not a member. */
   myRole: string | null;
+  /** No posts and no one but the Keeper yet — the group has no activity at all. */
+  isEmpty?: boolean;
 }
 
-export function GroupHeader({ group, members, myRole }: GroupHeaderProps) {
+export function GroupHeader({ group, members, myRole, isEmpty = false }: GroupHeaderProps) {
   const router = useRouter();
   const [showMembers, setShowMembers] = useState(false);
   const [busy, setBusy] = useState(false);
+  const inviteRef = useRef<HTMLDivElement>(null);
 
   const isMember = myRole !== null;
   const isKeeper = myRole === "admin";
   const isPrivate = group.visibility === "private";
+  // Only the Keeper has an Invite classmates button to point at, so the
+  // moment only plays for them; pointing at a control a viewer can't see
+  // would fight the page's own semantics instead of helping it.
+  const showEmptyMoment = isEmpty && isKeeper;
 
   async function handleLeave() {
     if (!confirm("Leave this group?")) return;
@@ -85,6 +93,12 @@ export function GroupHeader({ group, members, myRole }: GroupHeaderProps) {
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        {/* Already perched, in the margin of the cover, never over the title below. */}
+        {showEmptyMoment && (
+          <div className="absolute bottom-0 right-3 sm:right-5">
+            <EmptyGroupHoopoe inviteRef={inviteRef} size={64} />
+          </div>
+        )}
       </div>
 
       <div className="p-5">
@@ -139,7 +153,9 @@ export function GroupHeader({ group, members, myRole }: GroupHeaderProps) {
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {isKeeper && (
-              <GroupInviteDialog groupId={group.id} groupName={group.name} />
+              <div ref={inviteRef}>
+                <GroupInviteDialog groupId={group.id} groupName={group.name} />
+              </div>
             )}
             {isMember && !isKeeper && (
               <Button

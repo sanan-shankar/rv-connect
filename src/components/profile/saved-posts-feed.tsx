@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { BookmarkSimple, Bird } from "@phosphor-icons/react";
+import { BookmarkSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { PostCard, type PostData } from "@/components/posts/post-card";
 import { loadSavedPosts } from "@/app/(main)/feed/actions";
 import { parseJsonArray } from "@/lib/utils";
+import { LoadingCompanion } from "@/components/mascot/moments/loading-companion";
+import { NoSavedHoopoe } from "@/components/mascot/moments/no-saved-hoopoe";
 
 /**
  * The owner-only "Saved" tab on a profile. Reuses the shared PostCard so hearts,
@@ -115,6 +117,7 @@ export function SavedPostsFeed() {
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const { ref, cols } = useContainerColumns();
+  const bookmarkRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,6 +146,7 @@ export function SavedPostsFeed() {
   if (loading) {
     return (
       <div ref={ref}>
+        <LoadingCompanion />
         <SavedSkeleton cols={cols} />
       </div>
     );
@@ -152,15 +156,15 @@ export function SavedPostsFeed() {
     return (
       <div ref={ref}>
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card px-6 py-12 text-center">
-          <div className="relative mx-auto mb-[var(--space-m)] grid h-16 w-16 place-items-center rounded-full bg-cinnamon/10 text-cinnamon">
-            <BookmarkSimple size={30} weight="duotone" />
-            {/* A small bird perched on the ribbon: the quiet valley touch. */}
-            <Bird
-              size={22}
-              weight="duotone"
-              className="absolute -right-1.5 -top-1.5 -scale-x-100 text-leaf"
-              aria-hidden
-            />
+          <div className="mb-[var(--space-m)] flex items-end justify-center gap-1">
+            <div
+              ref={bookmarkRef}
+              className="grid h-16 w-16 place-items-center rounded-full bg-cinnamon/10 text-cinnamon"
+            >
+              <BookmarkSimple size={30} weight="duotone" />
+            </div>
+            {/* The hoopoe sits by the empty bookmark: the quiet valley touch. */}
+            <NoSavedHoopoe bookmarkRef={bookmarkRef} size={60} />
           </div>
           <p className="font-heading text-lg tracking-tight text-foreground">
             Nothing saved yet
