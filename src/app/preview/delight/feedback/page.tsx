@@ -16,11 +16,11 @@ import {
 // Read-only core lookups (same pattern as preview/centroid and preview/birds-bg): used only to
 // name the species behind a deterministic avatar for the hover tooltip. Nothing here is mutated.
 import { birdFor } from "@/lib/avatar";
-import { ARCHETYPES } from "@/components/common/bird-avatar-v2";
+import { ARCHETYPES, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";
 
 /** The species name that a given seed's avatar actually renders (mirrors BirdGlyphV2's lookup). */
 function speciesNameFor(seed: string): string {
-  return ARCHETYPES[birdFor(seed).species % ARCHETYPES.length]?.name ?? "Valley bird";
+  return SPECIES_FULL_NAMES[birdFor(seed).species % ARCHETYPES.length] ?? "Valley bird";
 }
 
 /* ------------------------------------------------------------------ *

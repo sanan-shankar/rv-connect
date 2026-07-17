@@ -1550,15 +1550,76 @@ export const ARCHETYPE_COUNT = ARCHES.length;
 export const ARCHETYPES = ARCHES;
 
 /**
+ * Full common names, 1:1 by index with ARCHES. `arche.name` stays a short internal key (it indexes
+ * ADJUST_MAP in bird-adjust.json and the centroid tooling in scripts/dev/centroid.mjs, so it is not
+ * renamed); this is the user-facing name everywhere a member's species is shown ("You're a X",
+ * profile tooltip, the all-species gallery). Keep in sync with ARCHES order if a species is added,
+ * removed, or reordered.
+ */
+export const SPECIES_FULL_NAMES: string[] = [
+  "Hoopoe",
+  "Indian Peafowl",
+  "Spotted Owlet",
+  "Indian Roller",
+  "White-throated Kingfisher",
+  "Indian Pitta",
+  "Rose-ringed Parakeet",
+  "Plum-headed Parakeet",
+  "Green Bee-eater",
+  "Coppersmith Barbet",
+  "Indian Grey Hornbill",
+  "Sirkeer Malkoha",
+  "Yellow-throated Bulbul",
+  "Red-whiskered Bulbul",
+  "Oriental Magpie-Robin",
+  "Indian Robin",
+  "Asian Koel",
+  "Black Drongo",
+  "Greater Coucal",
+  "Rufous Treepie",
+  "Black-hooded Oriole",
+  "Baya Weaver",
+  "Purple Sunbird",
+  "Brahminy Starling",
+  "Yellow-wattled Lapwing",
+  "Painted Spurfowl",
+  "Asian Paradise Flycatcher",
+  "Indian Pond Heron",
+  "Little Cormorant",
+  "Indian Golden Oriole",
+  "Cattle Egret",
+  "Verditer Flycatcher",
+  "Peregrine Falcon",
+  "Orange-headed Thrush",
+  "Blue-faced Malkoha",
+  "Jacobin Cuckoo",
+  "Black Eagle",
+  "Red Avadavat",
+  "Common Kingfisher",
+  "Jerdon's Leafbird",
+  "Brahminy Kite",
+  "Black-rumped Flameback",
+  "Bay-backed Shrike",
+  "Purple-rumped Sunbird",
+  "Tickell's Blue Flycatcher",
+  "Chestnut-headed Bee-eater",
+  "Tricolored Munia",
+  "Small Minivet",
+  "Orange-breasted Green-Pigeon",
+  "Indian White-eye",
+];
+
+/**
  * The species name for a member's deterministic bird (same precedence as
  * BirdGlyphV2: a manual override wins, otherwise the id-derived hash). Used
  * anywhere copy wants to say "You're a Hoopoe" instead of just showing the
  * glyph, e.g. the onboarding photo step's "proudly keep your bird" option.
+ * Returns the full common name (e.g. "Indian Roller", not "Roller").
  */
 export function speciesNameFor(seed: string, speciesOverride?: number | null): string {
   const bird = birdFor(seed);
-  const arche = ARCHES[(speciesOverride ?? bird.species) % ARCHES.length];
-  return arche.name;
+  const index = (speciesOverride ?? bird.species) % ARCHES.length;
+  return SPECIES_FULL_NAMES[index] ?? ARCHES[index].name;
 }
 
 /** Pick a disc colour that does not clash with the archetype's body hue. */

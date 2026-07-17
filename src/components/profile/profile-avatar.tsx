@@ -14,7 +14,7 @@
  *
  *   2. SPECIES ON HOVER/FOCUS: hovering or keyboard-focusing the avatar
  *      shows the same chip, naming its bird species (derived the same way
- *      BirdGlyphV2 does, via birdFor + the ARCHETYPES display name). A
+ *      BirdGlyphV2 does, via birdFor + the SPECIES_FULL_NAMES display name). A
  *      real uploaded photo has no species, so the chip is hidden then.
  *
  *  Light-mode app. transform/opacity only. Motion runs by choice (no
@@ -25,7 +25,7 @@ import { useRef, useState } from "react";
 import { motion, AnimatePresence, useAnimationControls } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { birdFor, SPECIES_PINS } from "@/lib/avatar";
-import { ARCHETYPES } from "@/components/common/bird-avatar-v2";
+import { ARCHETYPES, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";
 import { SPRINGS } from "@/components/common/motion";
 
 type SizeToken = "xs" | "sm" | "md" | "lg";
@@ -39,7 +39,7 @@ function speciesNameFor(user: AvatarUser): string | null {
   if (user.photoUrl) return null;
   const seed = user.id || user.name || "valley";
   const pick = user.avatarSpecies ?? SPECIES_PINS[seed] ?? birdFor(seed).species;
-  return ARCHETYPES[pick % ARCHETYPES.length]?.name ?? "Valley bird";
+  return SPECIES_FULL_NAMES[pick % ARCHETYPES.length] ?? "Valley bird";
 }
 
 export function ProfileAvatar({
@@ -108,7 +108,15 @@ export function ProfileAvatar({
       }}
     >
       {/* Species chip: solid warm ink chip, opaque + shadowed so it reads over
-          any cover photo. Centred above the avatar; rises + fades on show. */}
+          any cover photo. Centred above the avatar; rises + fades on show.
+          Capped at 168px (w-max so it only widens/wraps when the name
+          actually needs it, never using the tiny avatar-sized containing
+          block as its available width) and allowed to wrap to two lines:
+          some full species names ("Orange-breasted Green-Pigeon") are long
+          enough that a single-line nowrap pill centred on a left-aligned
+          profile avatar would clip past the left edge of a 390px viewport
+          (verified while restoring full names in this task). Wrapping keeps
+          every name fully visible instead of silently cutting it off. */}
       {species && (
         <span
           className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-[3] -translate-x-1/2"
@@ -118,7 +126,7 @@ export function ProfileAvatar({
             {showTip && (
               <motion.span
                 id={tipId}
-                className="relative block whitespace-nowrap rounded-full bg-foreground px-3 py-1.5 text-[11.5px] font-bold text-background"
+                className="relative block w-max max-w-[168px] whitespace-normal rounded-2xl bg-foreground px-3 py-1.5 text-center text-[11.5px] font-bold leading-snug text-background"
                 style={{
                   boxShadow:
                     "0 1px 2px rgba(35,36,30,0.28), 0 10px 24px -12px rgba(35,36,30,0.7)",
