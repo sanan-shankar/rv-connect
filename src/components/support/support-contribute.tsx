@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Copy, Check, QrCode } from "lucide-react";
 import { toast } from "sonner";
@@ -12,17 +12,21 @@ import { cn } from "@/lib/utils";
  * copy-to-clipboard interaction, the suggested-amount chips, and the UPI deep
  * link. Office blue (the `sky` token) is reserved for the one primary action.
  *
- * No payment processor, no amount is ever required. The chips only prefill a
- * suggestion in the user's own UPI app.
+ * One-time amounts only, never monthly. No payment processor, no amount is
+ * ever required. The chips only prefill a suggestion in the user's own UPI app.
  */
 
+// TODO(owner): confirm this is the real UPI handle before launch (bugs.md #4).
+// PAYEE_NAME is the payment-facing account name shown inside the UPI app.
 const UPI_ID = "rvalumni@upi";
 const PAYEE_NAME = "Rishi Valley";
 
 const SUGGESTIONS = [
-  { label: "Cover a month", amount: 20, note: "About a month of running costs" },
-  { label: "Cover a quarter", amount: 60, note: "Three quiet months kept online" },
-  { label: "Whatever feels right", amount: null, note: "Any amount is genuinely appreciated" },
+  { label: "₹200", amount: 200 },
+  { label: "₹500", amount: 500 },
+  { label: "₹1,000", amount: 1000 },
+  { label: "₹2,000", amount: 2000 },
+  { label: "₹5,000", amount: 5000 },
 ] as const;
 
 function buildUpiLink(amount: number | null) {
@@ -40,10 +44,19 @@ function buildUpiLink(amount: number | null) {
 
 export function SupportContribute() {
   const [copied, setCopied] = useState(false);
-  const [selected, setSelected] = useState<number | null>(0);
+  const [selected, setSelected] = useState(1);
+  // The upi:// deep link opens a UPI app reliably on Android but mostly does
+  // not on iOS Safari/Chrome, so iPhone visitors get a small honest hint
+  // steering them to the QR code and copy-the-ID path above instead.
+  // SSR-safe: false until mount (no hydration mismatch), then detected once.
+  const [isIOS, setIsIOS] = useState(false);
 
-  const active = selected !== null ? SUGGESTIONS[selected] : null;
-  const amount = active?.amount ?? null;
+  useEffect(() => {
+    const detect = () => setIsIOS(/iPhone|iPad|iPod/.test(navigator.userAgent));
+    detect();
+  }, []);
+
+  const amount = SUGGESTIONS[selected].amount;
 
   async function copyUpi() {
     try {
@@ -115,7 +128,7 @@ export function SupportContribute() {
 
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
-            A gentle suggestion
+            Pick an amount
           </p>
           <div className="mt-[var(--space-xs)] flex flex-wrap gap-[var(--space-xs)]">
             {SUGGESTIONS.map((s, i) => {
@@ -127,7 +140,7 @@ export function SupportContribute() {
                   aria-pressed={on}
                   onClick={() => setSelected(i)}
                   className={cn(
-                    "inline-flex items-center gap-[var(--space-xxs)] rounded-full border px-[var(--space-m)] py-[var(--space-s)] text-sm font-medium",
+                    "inline-flex items-center gap-[var(--space-xxs)] rounded-full border px-[var(--space-m)] py-[var(--space-s)] text-sm font-semibold tabular-nums",
                     "transition-[transform,background-color,border-color,color] duration-150 ease-out",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
                     on
@@ -136,17 +149,12 @@ export function SupportContribute() {
                   )}
                 >
                   {s.label}
-                  {s.amount && (
-                    <span className="text-xs font-semibold tabular-nums opacity-80">
-                      ₹{s.amount}
-                    </span>
-                  )}
                 </button>
               );
             })}
           </div>
           <p className="mt-[var(--space-s)] text-sm leading-relaxed text-muted-foreground">
-            {active?.note ?? "Any amount is genuinely appreciated."}
+            A one-time thank-you, however much feels right. Never a subscription.
           </p>
         </div>
 
@@ -161,12 +169,12 @@ export function SupportContribute() {
           )}
         >
           Open my UPI app
-          {amount && <span className="tabular-nums opacity-90">· ₹{amount}</span>}
+          <span className="tabular-nums opacity-90">· {SUGGESTIONS[selected].label}</span>
         </a>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          The button opens your UPI app with the ID filled in. On a laptop, scan the
-          code or copy the ID into your phone. Card and international options are
-          coming for those abroad.
+          {isIOS
+            ? "On iPhone, this usually will not open a UPI app. Scan the QR code above, or copy the ID and paste it into your UPI app instead."
+            : "The button opens your UPI app with the ID and amount filled in. On a laptop, scan the code above or copy the ID into your phone. Card and international options are coming for those abroad."}
         </p>
       </div>
     </div>
