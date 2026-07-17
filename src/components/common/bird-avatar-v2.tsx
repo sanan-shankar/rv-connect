@@ -1,4 +1,10 @@
-import { birdFor, AVATAR_PALETTE } from "@/lib/avatar";
+import {
+  birdFor,
+  AVATAR_PALETTE,
+  hashSpeciesFor,
+  HOOPOE_SPECIES_INDEX,
+  HOOPOE_RESERVED_USER_ID,
+} from "@/lib/avatar";
 import ADJUST from "@/components/common/bird-adjust.json";
 
 /**
@@ -1611,15 +1617,53 @@ export const SPECIES_FULL_NAMES: string[] = [
 
 /**
  * The species name for a member's deterministic bird (same precedence as
- * BirdGlyphV2: a manual override wins, otherwise the id-derived hash). Used
- * anywhere copy wants to say "You're a Hoopoe" instead of just showing the
- * glyph, e.g. the onboarding photo step's "proudly keep your bird" option.
+ * BirdGlyphV2: a manual override wins, otherwise the id-derived hash, with the
+ * Hoopoe exclusion applied). Used anywhere copy wants to say "You're a Hoopoe"
+ * instead of just showing the glyph, e.g. the onboarding photo step's
+ * "proudly keep your bird" option.
  * Returns the full common name (e.g. "Indian Roller", not "Roller").
  */
 export function speciesNameFor(seed: string, speciesOverride?: number | null): string {
-  const bird = birdFor(seed);
-  const index = (speciesOverride ?? bird.species) % ARCHES.length;
+  const index = (speciesOverride ?? hashSpeciesFor(seed)) % ARCHES.length;
   return SPECIES_FULL_NAMES[index] ?? ARCHES[index].name;
+}
+
+/** kebab-case a full species name into the slug stored in `User.birdOverride`. */
+function slugifySpecies(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Species slugs, 1:1 by index with ARCHES/SPECIES_FULL_NAMES (e.g. "peregrine-falcon"). */
+export const SPECIES_SLUGS: string[] = SPECIES_FULL_NAMES.map(slugifySpecies);
+
+const SLUG_TO_SPECIES_INDEX: Record<string, number> = SPECIES_SLUGS.reduce(
+  (acc, slug, index) => {
+    acc[slug] = index;
+    return acc;
+  },
+  {} as Record<string, number>
+);
+
+/**
+ * Resolves a `User.birdOverride` slug (e.g. "peregrine-falcon") to a species index, enforcing the
+ * Hoopoe reservation: the Hoopoe slug only resolves for the Anonymous placeholder account
+ * (HOOPOE_RESERVED_USER_ID); for any other user id it is ignored (falls through to the pin/hash
+ * tiers), so a stray or malicious "hoopoe" override can never dress a real member as the mascot.
+ * Unknown slugs are also ignored. Returns undefined when there is no applicable override.
+ */
+export function resolveBirdOverride(
+  userId: string | null | undefined,
+  birdOverride: string | null | undefined
+): number | undefined {
+  if (!birdOverride) return undefined;
+  const index = SLUG_TO_SPECIES_INDEX[birdOverride];
+  if (index === undefined) return undefined;
+  if (index === HOOPOE_SPECIES_INDEX && userId !== HOOPOE_RESERVED_USER_ID) return undefined;
+  return index;
 }
 
 /** Pick a disc colour that does not clash with the archetype's body hue. */
@@ -1659,7 +1703,7 @@ export function BirdGlyphV2({
   speciesOverride?: number | null;
 }) {
   const bird = birdFor(seed);
-  const arche = ARCHES[(speciesOverride ?? bird.species) % ARCHES.length];
+  const arche = ARCHES[(speciesOverride ?? hashSpeciesFor(seed)) % ARCHES.length];
   const flip = bird.pose >= 2;
   const inner = (
     <g transform={flip ? "translate(100 0) scale(-1 1)" : undefined}>

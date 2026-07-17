@@ -57,6 +57,7 @@ export default async function GroupPage({
               name: true,
               avatarColor: true,
               photoUrl: true,
+              birdOverride: true,
               accountType: true,
               batchYear: true,
             },
@@ -139,6 +140,7 @@ export default async function GroupPage({
           name: m.user.name,
           avatarColor: m.user.avatarColor,
           photoUrl: m.user.photoUrl,
+          birdOverride: m.user.birdOverride,
           accountType: m.user.accountType,
           batchYear: m.user.batchYear,
           role: m.role,
@@ -162,7 +164,7 @@ export default async function GroupPage({
             groupId={group.id}
             showControls={false}
             placeholder={`Share something with ${group.name}...`}
-            currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
+            currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl, birdOverride: session.user.birdOverride }}
             emptyTitle="No posts yet in this group."
             emptyHint="Be the first to share something with the group."
           />

@@ -43,7 +43,7 @@ async function loadCreateContext(userId: string, groupParam: string | undefined)
           catchup: { select: { id: true } },
           members: {
             take: 4,
-            select: { user: { select: { id: true, name: true, photoUrl: true } } },
+            select: { user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
           },
         },
       },

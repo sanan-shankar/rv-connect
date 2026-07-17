@@ -52,6 +52,7 @@ export interface SidebarUser {
   role: string;
   avatarColor: string | null;
   photoUrl?: string | null;
+  birdOverride?: string | null;
 }
 
 const NAV = [
@@ -164,7 +165,7 @@ function UserMenu({ user }: { user: SidebarUser }) {
       <DropdownMenu>
         <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center rounded-xl px-1.5 py-1 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
           <IdentityRow
-            user={{ id: user.id, name: user.name, photoUrl: user.photoUrl }}
+            user={{ id: user.id, name: user.name, photoUrl: user.photoUrl, birdOverride: user.birdOverride }}
             className="w-full gap-2.5"
             textClassName="flex-1"
             name={user.name}

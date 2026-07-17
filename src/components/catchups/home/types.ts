@@ -22,6 +22,7 @@ export type HomePersonRef = {
   id: string;
   name: string;
   photoUrl: string | null;
+  birdOverride?: string | null;
 };
 
 /** Soft caps mirrored from `catchups/actions.ts` (not exported there - a

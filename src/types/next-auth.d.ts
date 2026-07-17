@@ -14,6 +14,7 @@ declare module "next-auth" {
       batchYear: number | null;
       avatarColor: string | null;
       photoUrl: string | null;
+      birdOverride: string | null;
     };
   }
 
@@ -25,6 +26,7 @@ declare module "next-auth" {
     batchYear?: number | null;
     avatarColor?: string | null;
     photoUrl?: string | null;
+    birdOverride?: string | null;
   }
 }
 

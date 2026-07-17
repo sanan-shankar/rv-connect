@@ -10,6 +10,7 @@ const PERSON_SELECT = {
   name: true,
   avatarColor: true,
   photoUrl: true,
+  birdOverride: true,
   accountType: true,
   verifyState: true,
   batchType: true,
@@ -24,6 +25,7 @@ export type DirectoryUser = {
   name: string;
   avatarColor: string | null;
   photoUrl: string | null;
+  birdOverride: string | null;
   accountType: string | null;
   verifyState: string | null;
   batchType: string | null;

@@ -1,6 +1,11 @@
 import { getInitials } from "@/lib/utils";
-import { birdFor, BIRD_SPECIES_COUNT, BIRD_POSE_COUNT, SPECIES_PINS } from "@/lib/avatar";
-import { BirdGlyphV2, BG_MODE } from "@/components/common/bird-avatar-v2";
+import {
+  birdFor,
+  BIRD_SPECIES_COUNT,
+  BIRD_POSE_COUNT,
+  speciesForMember,
+} from "@/lib/avatar";
+import { BirdGlyphV2, BG_MODE, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
 
 /**
  * Render the Rishi Valley colour bird set (v2). Flip to `false` to fall back to the legacy
@@ -12,13 +17,16 @@ const USE_V2 = true;
 /**
  * BirdAvatar - the default identity mark across the app.
  *
- * Precedence: uploaded photo > manual avatarSpecies > owner/staff pin > deterministic bird from id.
- * Server-renderable (no hooks). With USE_V2 on (the default), it delegates to BirdGlyphV2 — the set
- * of 50 Rishi Valley birds in real colours (see bird-avatar-v2.tsx). The legacy mono-white
- * silhouette path below runs only when USE_V2 is off. There is no avatarColor override: the bird
- * always drives its own colour from src/lib/avatar.ts, so removing a photo returns the same
- * deterministic bird (never a new random one). `avatarColor` is accepted on the type for source
- * compatibility with existing callers but is intentionally ignored here.
+ * Precedence: uploaded photo > birdOverride (manual per-user species slug, DB column) > owner/staff
+ * pin (SPECIES_PINS) > deterministic bird from id (with the Hoopoe mascot slot excluded - see
+ * hashSpeciesFor in src/lib/avatar.ts). Server-renderable (no hooks). With USE_V2 on (the default),
+ * it delegates to BirdGlyphV2 — the set of 50 Rishi Valley birds in real colours (see
+ * bird-avatar-v2.tsx). The legacy mono-white silhouette path below runs only when USE_V2 is off.
+ * There is no avatarColor override: the bird always drives its own colour from src/lib/avatar.ts,
+ * so removing a photo returns the same deterministic bird (never a new random one). `avatarColor`
+ * is accepted on the type for source compatibility with existing callers but is intentionally
+ * ignored here. `avatarSpecies` is likewise accepted for source compatibility with older preview
+ * mocks but no longer takes part in the real precedence chain — use `birdOverride` instead.
  *
  * Sizes: 28 (xs / inline + comments + mentions), 40 (sm / post header + composer + rails),
  * 64 (md / directory cards), 104 (lg / profile cover).
@@ -30,7 +38,10 @@ export interface AvatarUser {
   photoUrl?: string | null;
   /** @deprecated unused — the bird always drives its own colour. Kept only so existing callers still typecheck. */
   avatarColor?: string | null;
+  /** @deprecated unused in the real precedence chain — kept for older preview-mock callers. Use `birdOverride`. */
   avatarSpecies?: number | null;
+  /** Manual per-user species override (DB column `User.birdOverride`), a slug like "peregrine-falcon". */
+  birdOverride?: string | null;
 }
 
 const SIZE_TOKENS = { xs: 28, sm: 40, md: 64, lg: 104 } as const;
@@ -622,8 +633,9 @@ export function BirdAvatar({
   }
 
   const seed = user.id || user.name || "valley";
-  // Manual override > owner/staff pin > deterministic hash.
-  const speciesPick = user.avatarSpecies ?? SPECIES_PINS[seed];
+  // birdOverride (resolved, Hoopoe-guarded) > owner/staff pin > deterministic hash (Hoopoe-excluded).
+  const overrideIndex = resolveBirdOverride(user.id, user.birdOverride);
+  const speciesPick = speciesForMember(seed, overrideIndex);
 
   if (USE_V2) {
     // No-disc modes ("none"/"outline") must NOT clip to a circle, or the crest/bill get cut.
@@ -650,10 +662,11 @@ export function BirdAvatar({
 
   const bird = birdFor(seed);
   const color = bird.color;
-  // Manual override > owner/staff pin > deterministic hash - same precedence as the USE_V2 path
-  // above and profile-avatar.tsx, so the owner's pin still applies if this legacy flag is ever
-  // flipped back on.
-  const species = user.avatarSpecies ?? SPECIES_PINS[seed] ?? bird.species;
+  // Same fully-resolved precedence as the USE_V2 path above and profile-avatar.tsx, so the
+  // birdOverride/pin/Hoopoe-exclusion behaviour matches if this legacy flag is ever flipped back
+  // on. (The legacy silhouette set's case order does not match ARCHES 1:1, so this index is
+  // approximate for that dead path - it is not used while USE_V2 is on.)
+  const species = speciesPick;
   const glyph = Math.round(px * 0.66);
 
   return (

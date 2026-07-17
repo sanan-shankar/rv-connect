@@ -19,6 +19,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
       id: true,
       name: true,
       photoUrl: true,
+      birdOverride: true,
       batchType: true,
       batchYear: true,
       currentCity: true,
@@ -33,7 +34,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
         {recentMembers.map((m) => (
           <IdentityRow
             key={m.id}
-            user={{ id: m.id, name: m.name, photoUrl: m.photoUrl ?? null }}
+            user={{ id: m.id, name: m.name, photoUrl: m.photoUrl ?? null, birdOverride: m.birdOverride }}
             avatarHref={`/profile/${m.id}`}
             avatarLabel={m.name}
             className="py-2.5"

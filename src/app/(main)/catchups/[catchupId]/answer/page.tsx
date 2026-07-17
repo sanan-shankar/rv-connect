@@ -161,7 +161,7 @@ export default async function CatchupAnswerPage({
           id: true,
           text: true,
           showAsker: true,
-          author: { select: { id: true, name: true, photoUrl: true } },
+          author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
         },
       }),
       prisma.catchupEntry.findMany({
@@ -171,7 +171,7 @@ export default async function CatchupAnswerPage({
       prisma.catchupEntry.findMany({
         where: { editionId: edition.id },
         distinct: ["authorId"],
-        select: { authorId: true, author: { select: { id: true, name: true, photoUrl: true } } },
+        select: { authorId: true, author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
       }),
     ]);
 
@@ -220,7 +220,12 @@ export default async function CatchupAnswerPage({
           catchupId={catchup.id}
           groupName={catchup.group.name}
           prompts={promptData}
-          currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
+          currentUser={{
+            id: session.user.id,
+            name: session.user.name,
+            photoUrl: session.user.photoUrl,
+            birdOverride: session.user.birdOverride,
+          }}
           othersAnsweredCount={others.length}
           clusterPeople={others.slice(0, 3).map((r) => r.author)}
         />

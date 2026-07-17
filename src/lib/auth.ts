@@ -97,6 +97,7 @@ const nextAuth = NextAuth({
             name: true,
             avatarColor: true,
             photoUrl: true,
+            birdOverride: true,
           },
         });
         if (dbUser) {
@@ -108,6 +109,7 @@ const nextAuth = NextAuth({
           session.user.name = dbUser.name;
           session.user.avatarColor = dbUser.avatarColor;
           session.user.photoUrl = dbUser.photoUrl;
+          session.user.birdOverride = dbUser.birdOverride;
         }
       }
       return session;

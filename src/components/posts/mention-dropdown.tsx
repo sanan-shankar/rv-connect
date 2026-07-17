@@ -8,6 +8,7 @@ interface MentionUser {
   name: string;
   avatarColor: string | null;
   photoUrl?: string | null;
+  birdOverride?: string | null;
   batchYear: number;
 }
 
@@ -78,6 +79,7 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
                 name: user.name,
                 avatarColor: user.avatarColor,
                 photoUrl: user.photoUrl,
+                birdOverride: user.birdOverride,
               }}
               avatarSize="xs"
               className="gap-2"
