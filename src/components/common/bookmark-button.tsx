@@ -101,11 +101,14 @@ export function BookmarkButton({
                 : { duration: saved ? 0 : 0.16, ease: "easeIn" }
             }
           />
+          {/* strokeWidth 2.5 (was 4): at this viewBox scale, 4 rendered visibly heavier than
+              the Lucide/Phosphor regular-weight strokes on the sibling comment/share icons in
+              this same row -- 2.5 matches their optical weight. */}
           <path
             d="M5 4 H35 V52 L20 42 L5 52 Z"
             fill="none"
             stroke="currentColor"
-            strokeWidth="4"
+            strokeWidth="2.5"
             strokeLinejoin="round"
             strokeLinecap="round"
           />

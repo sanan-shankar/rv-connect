@@ -37,7 +37,15 @@ export function ReportModal({
     };
     document.addEventListener("keydown", onKeyDown);
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // `clip`, not `hidden`: setting `overflow: hidden` directly on <body> makes body itself a
+    // scrolling container, which knocks the desktop sidebar's `position: sticky` (an ancestor
+    // relationship, body sits between it and the viewport) off the viewport and onto body's own
+    // box instead. That is the "green rail scrolls away / renders as a partial sliver" bug seen
+    // after reporting a post: the sidebar was still sized/positioned against body for the split
+    // second this modal was open. `clip` blocks scrolling the same way `hidden` does but, per
+    // the spec, never establishes a scroll container, so the sidebar keeps tracking the
+    // viewport the whole time (same reasoning as `overflow-x: clip` on <html> in globals.css).
+    document.body.style.overflow = "clip";
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
