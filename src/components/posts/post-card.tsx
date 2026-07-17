@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight } from "lucide-react";
+import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight, ShieldAlert, MapPin } from "lucide-react";
 import { ChatCircle, Feather } from "@phosphor-icons/react";
 import {
   DropdownMenu,
@@ -20,8 +20,9 @@ import { CommentsSection } from "./comments-section";
 import { ReportDialog } from "./report-dialog";
 import { EditPostDialog } from "./edit-post-dialog";
 import { PollDisplay } from "./poll-display";
+import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import { formatTimeAgo, parseJsonArray, renderRichText, batchLine, letterTitle } from "@/lib/utils";
-import { toggleLike, deletePost, toggleBookmark } from "@/app/(main)/feed/actions";
+import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
@@ -34,11 +35,14 @@ export interface PostData {
   tag: string | null;
   images: string | null;
   groupId?: string | null;
+  /** Null = everyone; otherwise the city short-name this post is limited to. */
+  cityScope?: string | null;
   createdAt: string;
   author: {
     id: string;
     name: string;
     photoUrl?: string | null;
+    birdOverride?: string | null;
     accountType?: string | null;
     verifyState?: string | null;
     batchType: string | null;
@@ -49,6 +53,8 @@ export interface PostData {
   liked: boolean;
   bookmarked?: boolean;
   isOwn: boolean;
+  /** True when the signed-in viewer is an admin (site moderation, not group role). */
+  viewerIsAdmin?: boolean;
   poll: {
     options: { id: string; text: string; voteCount: number }[];
     totalVotes: number;
@@ -74,6 +80,8 @@ export function PostCard({
   const [expanded, setExpanded] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showModeration, setShowModeration] = useState(false);
+  const [removed, setRemoved] = useState(false);
 
   const images = parseJsonArray(post.images);
   const isLetter = post.kind === "letter";
@@ -111,6 +119,12 @@ export function PostCard({
     if (result.error) toast.error(result.error);
   }
 
+  async function handleModerationConfirm(note: string) {
+    const result = await adminRemovePost(post.id, note || undefined);
+    if (!result.error) setRemoved(true);
+    return result;
+  }
+
   async function handleBookmark() {
     const next = !bookmarked;
     setBookmarked(next);
@@ -129,6 +143,10 @@ export function PostCard({
     variant === "sheet"
       ? "px-5 py-4 border-b border-border last:border-0"
       : "card-elevated rounded-[var(--radius)] border border-border bg-card p-4";
+
+  // Removed optimistically the moment an admin confirms the moderation dialog,
+  // rather than waiting on the revalidatePath round trip.
+  if (removed) return null;
 
   return (
     <>
@@ -177,14 +195,29 @@ export function PostCard({
                   </DropdownMenuItem>
                 </>
               ) : (
-                <DropdownMenuItem onClick={() => setShowReport(true)}>
-                  <Flag className="mr-2 h-4 w-4" />
-                  Report
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => setShowReport(true)}>
+                    <Flag className="mr-2 h-4 w-4" />
+                    Report
+                  </DropdownMenuItem>
+                  {post.viewerIsAdmin && (
+                    <DropdownMenuItem onClick={() => setShowModeration(true)} variant="destructive">
+                      <ShieldAlert className="mr-2 h-4 w-4" />
+                      Remove (admin)
+                    </DropdownMenuItem>
+                  )}
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
+
+        {post.cityScope && (
+          <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-sky/10 px-2.5 py-0.5 text-[11px] font-semibold text-sky">
+            <MapPin className="h-3 w-3" />
+            {post.cityScope} only
+          </span>
+        )}
 
         {isLetter ? (
           /* Compact letter card: title + excerpt + read time, opens the reading view */
@@ -306,6 +339,8 @@ export function PostCard({
               key="comments"
               postId={post.id}
               onCommentAdded={() => setCommentCount((c) => c + 1)}
+              onCommentRemoved={() => setCommentCount((c) => Math.max(0, c - 1))}
+              viewerIsAdmin={post.viewerIsAdmin}
             />
           )}
         </AnimatePresence>
@@ -329,6 +364,15 @@ export function PostCard({
           initialTag={post.tag}
           open={showEdit}
           onClose={() => setShowEdit(false)}
+        />
+      )}
+
+      {post.viewerIsAdmin && (
+        <ModerationDialog
+          open={showModeration}
+          onClose={() => setShowModeration(false)}
+          itemLabel={isLetter ? "letter" : "post"}
+          onConfirm={handleModerationConfirm}
         />
       )}
     </>

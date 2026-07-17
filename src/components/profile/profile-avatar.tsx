@@ -22,23 +22,26 @@
  * ------------------------------------------------------------------ */
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence, useAnimationControls } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
-import { birdFor, SPECIES_PINS } from "@/lib/avatar";
-import { ARCHETYPES, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";
+import { speciesForMember } from "@/lib/avatar";
+import { ARCHETYPES, SPECIES_FULL_NAMES, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
 import { SPRINGS } from "@/components/common/motion";
 
 type SizeToken = "xs" | "sm" | "md" | "lg";
+const SIZE_PX: Record<SizeToken, number> = { xs: 28, sm: 40, md: 64, lg: 104 };
 
 /**
  * The species name behind a member's avatar, mirroring BirdGlyphV2's lookup
- * (manual avatarSpecies > owner/staff pin > deterministic hash). Returns null
- * when the member uses a real uploaded photo, so the caller can hide the chip.
+ * (birdOverride > owner/staff pin > deterministic hash, Hoopoe-excluded). Returns null when the
+ * member uses a real uploaded photo, so the caller can hide the chip.
  */
 function speciesNameFor(user: AvatarUser): string | null {
   if (user.photoUrl) return null;
   const seed = user.id || user.name || "valley";
-  const pick = user.avatarSpecies ?? SPECIES_PINS[seed] ?? birdFor(seed).species;
+  const overrideIndex = resolveBirdOverride(user.id, user.birdOverride);
+  const pick = speciesForMember(seed, overrideIndex);
   return SPECIES_FULL_NAMES[pick % ARCHETYPES.length] ?? "Valley bird";
 }
 
@@ -46,13 +49,17 @@ export function ProfileAvatar({
   user,
   size = "lg",
   ring = false,
+  priority = false,
   className = "",
 }: {
   user: AvatarUser;
   size?: SizeToken | number;
   ring?: boolean;
+  /** Paint an uploaded photo eagerly (next/image priority) so it lands with the page, not ~1s late. */
+  priority?: boolean;
   className?: string;
 }) {
+  const px = typeof size === "number" ? size : SIZE_PX[size];
   const species = speciesNameFor(user);
   const [hovered, setHovered] = useState(false);
   const [chirped, setChirped] = useState(false);
@@ -144,14 +151,34 @@ export function ProfileAvatar({
         </span>
       )}
 
-      {/* the bird itself: driven by animation controls for the tap bounce */}
+      {/* the bird (or photo): driven by animation controls for the tap bounce.
+          An uploaded photo paints via next/image with priority so it lands
+          with the rest of the page instead of lazy-loading ~1s later; the bird
+          SVG already paints instantly, so it keeps the plain BirdAvatar path. */}
       <motion.span
         className="inline-grid place-items-center rounded-full group-focus-visible:ring-2 group-focus-visible:ring-ring/60"
         animate={controls}
         initial={false}
         style={{ willChange: "transform" }}
       >
-        <BirdAvatar user={user} size={size} ring={ring} />
+        {user.photoUrl ? (
+          <span
+            className="relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full"
+            style={{ width: px, height: px, ...(ring ? { boxShadow: "0 0 0 4px var(--card)" } : {}) }}
+          >
+            <Image
+              src={user.photoUrl}
+              alt={user.name ?? "Member"}
+              width={px}
+              height={px}
+              priority={priority}
+              fetchPriority={priority ? "high" : "auto"}
+              className="h-full w-full object-cover"
+            />
+          </span>
+        ) : (
+          <BirdAvatar user={user} size={size} ring={ring} />
+        )}
       </motion.span>
     </span>
   );

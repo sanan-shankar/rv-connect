@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
 import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
+import { canViewCityScope } from "@/lib/city-scope";
 import { formatBatch, renderRichText, parseJsonArray, letterTitle } from "@/lib/utils";
 
 export async function generateMetadata({
@@ -20,7 +21,7 @@ export async function generateMetadata({
 
   const letter = await prisma.post.findUnique({
     where: { id },
-    select: { title: true, content: true, kind: true, isHidden: true, groupId: true },
+    select: { title: true, content: true, kind: true, isHidden: true, groupId: true, cityScope: true },
   });
   if (!letter || letter.kind !== "letter" || letter.isHidden) return { title: "Letter" };
 
@@ -32,6 +33,9 @@ export async function generateMetadata({
     });
     if (!membership) return { title: "Letter" };
   }
+
+  // Same city-scope visibility rule as the page body: do not leak the title.
+  if (!(await canViewCityScope(letter.cityScope, session.user))) return { title: "Letter" };
 
   return { title: letterTitle(letter.title, letter.content) };
 }
@@ -49,7 +53,7 @@ export default async function LetterPage({
     where: { id },
     include: {
       author: {
-        select: { id: true, name: true, avatarColor: true, photoUrl: true, batchType: true, batchYear: true },
+        select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, batchType: true, batchYear: true },
       },
       _count: { select: { comments: true, likes: true } },
       likes: { where: { userId: session.user.id }, select: { id: true } },
@@ -67,6 +71,10 @@ export default async function LetterPage({
     });
     if (!membership) notFound();
   }
+
+  // City-scoped letters: same visibility rule as the feed query, checked here
+  // too since this page reads the row directly instead of through loadPosts.
+  if (!(await canViewCityScope(letter.cityScope, session.user))) notFound();
 
   const images = parseJsonArray(letter.images);
   const words = letter.content.trim().split(/\s+/).filter(Boolean).length;
@@ -144,6 +152,7 @@ export default async function LetterPage({
         initialLikeCount={letter._count.likes}
         initialBookmarked={letter.bookmarks.length > 0}
         initialCommentCount={letter._count.comments}
+        viewerIsAdmin={session.user.role === "admin"}
       />
     </article>
   );

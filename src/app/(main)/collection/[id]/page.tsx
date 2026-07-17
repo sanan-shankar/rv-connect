@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
 import { PhotoLoveButton } from "@/components/collection/photo-love-button";
+import { PhotoModerationControl } from "@/components/collection/photo-moderation-control";
 import { subjectLabel, areaLabel, eraLabel } from "@/lib/collection";
 
 export async function generateMetadata({
@@ -44,7 +45,7 @@ export default async function PhotoPage({
   const photo = await prisma.photo.findUnique({
     where: { id },
     include: {
-      uploader: { select: { id: true, name: true, avatarColor: true, photoUrl: true, batchType: true, batchYear: true } },
+      uploader: { select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, batchType: true, batchYear: true } },
       _count: { select: { loves: true } },
       loves: { where: { userId: session.user.id }, select: { id: true } },
     },
@@ -119,7 +120,12 @@ export default async function PhotoPage({
 
           <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
             <IdentityRow
-              user={{ id: photo.uploader.id, name: photo.uploader.name, photoUrl: photo.uploader.photoUrl }}
+              user={{
+                id: photo.uploader.id,
+                name: photo.uploader.name,
+                photoUrl: photo.uploader.photoUrl,
+                birdOverride: photo.uploader.birdOverride,
+              }}
               avatarHref={`/profile/${photo.uploader.id}`}
               avatarLabel={photo.uploader.name}
               className="min-w-0 flex-1"
@@ -139,12 +145,13 @@ export default async function PhotoPage({
               })}
               metaClassName="leading-none"
             />
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
               <PhotoLoveButton
                 photoId={photo.id}
                 initialLoved={photo.loves.length > 0}
                 initialCount={photo._count.loves}
               />
+              {isAdmin && <PhotoModerationControl photoId={photo.id} />}
             </div>
           </div>
         </div>

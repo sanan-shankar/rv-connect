@@ -21,9 +21,10 @@ export default async function SettingsPage() {
       photoUrl: true,
       coverPhoto: true,
       avatarColor: true,
-      bio: true,
-      currentCity: true,
-      secondaryCity: true,
+      birdOverride: true,
+      about: true,
+      displayEmail: true,
+      houses: true,
       workplace: true,
       jobTitle: true,
       phone: true,
@@ -35,6 +36,7 @@ export default async function SettingsPage() {
       gradeJoined: true,
       admissionNumber: true,
       updatedAt: true,
+      places: { orderBy: { position: "asc" }, select: { placeId: true, label: true, city: true, lat: true, lng: true } },
     },
   });
 
@@ -43,12 +45,10 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="font-heading text-3xl font-bold text-foreground">
-        Settings
+        Your profile
       </h1>
       {/* Keyed by updatedAt so the form fully remounts (re-initializing its
-          uncontrolled defaultValue fields) whenever the saved data actually
-          changes, instead of re-rendering the same instance with stale
-          uncontrolled field state. */}
+          uncontrolled defaultValue fields) whenever the saved data changes. */}
       <SettingsForm key={user.updatedAt.toISOString()} user={user} />
     </div>
   );

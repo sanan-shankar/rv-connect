@@ -11,6 +11,7 @@ import {
   Strikethrough,
   Feather,
   Plus,
+  MapPin,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { SPRINGS, SpringPress } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
+import { useTourAnchor } from "@/components/tour/tour-anchors";
 
 /* ------------------------------------------------------------------ *
  *  Rich text <-> markdown bridge. The editor is a contentEditable
@@ -110,6 +112,7 @@ export function CreatePostForm({
   placeholder,
   defaultLetter = false,
   currentUser,
+  userPlaces,
   onPosted,
 }: {
   groupId?: string;
@@ -117,12 +120,19 @@ export function CreatePostForm({
   placeholder?: string;
   defaultLetter?: boolean;
   currentUser?: AvatarUser;
+  /** The poster's own cities (their UserPlace list). Drives the "Show to" audience
+   *  control below; omitted or empty means the control simply doesn't render. */
+  userPlaces?: string[];
   onPosted?: () => void;
 } = {}) {
   // Resolve scope: explicit prop wins, else infer from defaultLetter / groupId.
   const resolvedScope: ComposerScope =
     scope ?? (defaultLetter ? "letter" : groupId ? "group" : "post");
   const collapsedPlaceholder = placeholder ?? SCOPE_PLACEHOLDER[resolvedScope];
+  // Tour spotlight target (walkthrough spec sec 2): only the feed's own
+  // top-level composer, never a group's or a letter's.
+  const isFeedComposer = resolvedScope === "post" && !groupId;
+  const tourAnchorRef = useTourAnchor<HTMLButtonElement>("feed-composer", isFeedComposer);
   const [content, setContent] = useState("");
   const [kind, setKind] = useState<"post" | "letter">(defaultLetter ? "letter" : "post");
   const [title, setTitle] = useState("");
@@ -138,6 +148,11 @@ export function CreatePostForm({
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [more, setMore] = useState(false); // overflow ("+") menu: poll + letter live here
+  // City-scoped audience: null = "Everyone" (the default); otherwise one of the
+  // poster's own cities. Never offered for a group post -- the group's own
+  // membership already scopes who reads it.
+  const [audienceCity, setAudienceCity] = useState<string | null>(null);
+  const audienceOptions = resolvedScope === "group" ? [] : userPlaces ?? [];
   // Explicit, measured height for the one clean downward growth / contraction.
   const [colHeight, setColHeight] = useState<number>(COLLAPSED_H);
   // True only once the grow animation has fully settled; gates overflow so the
@@ -404,6 +419,7 @@ export function CreatePostForm({
     formData.set("kind", kind);
     if (isLetter && title.trim()) formData.set("title", title.trim());
     if (groupId) formData.set("groupId", groupId);
+    if (audienceCity) formData.set("cityScope", audienceCity);
     if (images.length > 0) formData.set("images", JSON.stringify(images));
     if (!isLetter && pollOptions) {
       const validOptions = pollOptions.filter((o) => o.trim());
@@ -427,6 +443,7 @@ export function CreatePostForm({
       setPollOptions(null);
       setFmt({ bold: false, italic: false, underline: false, strike: false });
       setMore(false);
+      setAudienceCity(null);
       setSettled(false);
       setExpanded(defaultLetter);
       toast.success(
@@ -624,10 +641,60 @@ export function CreatePostForm({
                         <span>{isLetter ? "Back to a post" : "Write as a Letter"}</span>
                       </button>
                     )}
+                    {audienceOptions.length > 0 && (
+                      <div className="mt-1 border-t border-border pt-1.5">
+                        <p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                          Show to
+                        </p>
+                        <div className="flex flex-wrap gap-1 px-2 pb-1">
+                          <button
+                            type="button"
+                            onClick={() => setAudienceCity(null)}
+                            className={cn(
+                              "rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
+                              !audienceCity
+                                ? "bg-canopy text-white"
+                                : "bg-muted text-muted-foreground hover:bg-accent"
+                            )}
+                          >
+                            Everyone
+                          </button>
+                          {audienceOptions.map((city) => (
+                            <button
+                              key={city}
+                              type="button"
+                              onClick={() => setAudienceCity(city)}
+                              className={cn(
+                                "rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
+                                audienceCity === city
+                                  ? "bg-canopy text-white"
+                                  : "bg-muted text-muted-foreground hover:bg-accent"
+                              )}
+                            >
+                              {city}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
+
+            {/* A small persistent indicator once an audience is chosen, so it stays
+                legible without reopening the "+" menu -- clicking it reopens the
+                menu to change or clear it. */}
+            {audienceCity && (
+              <button
+                type="button"
+                onClick={() => setMore(true)}
+                className="inline-flex items-center gap-1 rounded-full bg-sky/10 px-2.5 py-1 text-[11.5px] font-semibold text-sky hover:bg-sky/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+              >
+                <MapPin className="h-3 w-3" />
+                {audienceCity} only
+              </button>
+            )}
           </div>
 
           <div className="ml-auto flex items-center gap-2 self-end sm:self-auto">
@@ -758,7 +825,9 @@ export function CreatePostForm({
               fully inside the pill's bounds so its rounded caps are never cut off
               by this wrapper's overflow-hidden clipping during expand/collapse. */}
           <motion.button
+            ref={tourAnchorRef}
             type="button"
+            data-tour={isFeedComposer ? "feed-composer" : undefined}
             onClick={() => expand("post")}
             aria-hidden={expanded}
             tabIndex={expanded ? -1 : 0}

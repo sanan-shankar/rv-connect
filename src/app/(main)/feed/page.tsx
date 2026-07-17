@@ -5,7 +5,6 @@ import { FeedColumn } from "@/components/posts/feed-column";
 import { PageHeader } from "@/components/layout/page-header";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { NewPostCTA } from "@/components/feed/new-post-cta";
-import { FinishSetupCard } from "@/components/feed/finish-setup-card";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
 
 export const metadata: Metadata = {
@@ -22,20 +21,16 @@ export default async function FeedPage({
 
   const { q } = await searchParams;
 
-  const [unreadCount, profileUser] = await Promise.all([
+  const [unreadCount, userPlaces] = await Promise.all([
     prisma.notification.count({
       where: { userId: session.user.id, read: false },
     }),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { admissionNumber: true, about: true, bio: true },
+    prisma.userPlace.findMany({
+      where: { userId: session.user.id },
+      orderBy: { position: "asc" },
+      select: { city: true },
     }),
   ]);
-
-  // Onboarding "finish setting up" nudge (docs/spec/onboarding.md's brief):
-  // shown only while something the wizard collects is still missing.
-  const admissionNumberMissing = profileUser?.admissionNumber == null;
-  const aboutMissing = !profileUser?.about?.trim() && !profileUser?.bio?.trim();
 
   return (
     <>
@@ -59,11 +54,6 @@ export default async function FeedPage({
             unreadCount={unreadCount}
             actions={<NewPostCTA />}
           />
-          <FinishSetupCard
-            userId={session.user.id}
-            admissionNumberMissing={admissionNumberMissing}
-            aboutMissing={aboutMissing}
-          />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-x-[30px] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
@@ -71,7 +61,8 @@ export default async function FeedPage({
           <FeedColumn
             showControls={false}
             initialSearch={q}
-            currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
+            currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl, birdOverride: session.user.birdOverride }}
+            userPlaces={userPlaces.map((p) => p.city)}
           />
         </div>
         <aside className="hidden min-[1180px]:block">
