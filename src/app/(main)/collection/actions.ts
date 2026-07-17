@@ -6,10 +6,35 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { putImage, delImage } from "@/lib/storage";
 import { photoSchema } from "@/lib/validators";
+import { eraFromYear } from "@/lib/collection";
 import { revalidatePath } from "next/cache";
 
-const MAX_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
+const MAX_INPUT = 20 * 1024 * 1024; // 20MB input; output is tightly compressed
 const PAGE_SIZE = 24;
+
+/** True for iPhone photos exported as HEIC/HEIF. sharp's prebuilt binary has
+ *  no HEVC decoder (patent licensing), so these fail with an opaque "unsupported
+ *  image format" error from sharp; catch them earlier with a message that
+ *  actually explains what to do. file.type is occasionally blank for these on
+ *  some mobile browsers, so the filename extension is checked too. */
+function isUnsupportedHeic(file: File) {
+  return (
+    file.type === "image/heic" || file.type === "image/heif" || /\.hei[cf]$/i.test(file.name)
+  );
+}
+
+/** Turn a sharp processing error into a message that names the actual reason
+ *  instead of a raw libvips exception string. */
+function describeProcessingError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/unsupported image format/i.test(message)) {
+    return "This photo's format isn't supported. Please export it as JPG or PNG and try again.";
+  }
+  if (/premature end|truncated|invalid/i.test(message)) {
+    return "This photo looks corrupted or only partially uploaded. Please try again.";
+  }
+  return `Could not process the photo: ${message}`;
+}
 
 export type PhotoData = {
   id: string;
@@ -73,26 +98,34 @@ export async function contributePhoto(formData: FormData) {
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
   if (!file.type.startsWith("image/")) return { error: "Only image files are allowed" };
-  if (file.type === "image/heic" || file.type === "image/heif")
-    return { error: "HEIC is not supported yet. Please export as JPG or PNG." };
-  if (file.size > MAX_INPUT) return { error: "Photo must be under 15MB" };
-
-  let subjects: string[] = [];
-  try {
-    const raw = formData.get("subject") as string;
-    subjects = raw ? JSON.parse(raw) : [];
-  } catch {
-    return { error: "Invalid subjects" };
+  if (isUnsupportedHeic(file)) {
+    return {
+      error:
+        'This is a HEIC/HEIF photo, which isn\'t supported yet. Export it as JPG or PNG (or turn off "High Efficiency" in your camera settings) and try again.',
+    };
   }
+  if (file.size > MAX_INPUT) {
+    return { error: `Photo is over the 20MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` };
+  }
+
+  const yearRaw = formData.get("photoYear") as string | null;
+  const monthRaw = formData.get("photoMonth") as string | null;
 
   const parsed = photoSchema.safeParse({
     caption: (formData.get("caption") as string) || undefined,
-    subject: subjects,
     area: (formData.get("area") as string) || undefined,
     era: (formData.get("era") as string) || undefined,
-    freeTags: (formData.get("freeTags") as string) || undefined,
+    datePrecision: (formData.get("datePrecision") as string) || undefined,
+    photoYear: yearRaw ? Number(yearRaw) : undefined,
+    photoMonth: monthRaw ? Number(monthRaw) : undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  // The decade bucket other Collection surfaces (browse filters, admin queue)
+  // already key off. Derived from the exact year when given, else whatever
+  // decade fallback the contributor picked.
+  const era =
+    parsed.data.photoYear !== undefined ? eraFromYear(parsed.data.photoYear) : parsed.data.era || "unknown";
 
   let thumbUrl: string;
   let url: string;
@@ -121,8 +154,7 @@ export async function contributePhoto(formData: FormData) {
       putImage(thumb, "collection", `${id}-t.webp`),
     ]);
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    return { error: `Could not process the photo: ${message}` };
+    return { error: describeProcessingError(e) };
   }
 
   // Admins and trusted contributors skip the approval queue.
@@ -140,10 +172,16 @@ export async function contributePhoto(formData: FormData) {
       width,
       height,
       caption: parsed.data.caption || null,
-      subject: parsed.data.subject.join(","),
+      // Subject tagging and the bird/species free-tag field were removed from
+      // the form (2026-07-18 rework); kept as empty/null for older rows and
+      // any other Collection surface still reading them.
+      subject: "",
       area: parsed.data.area || null,
-      era: parsed.data.era || "unknown",
-      freeTags: parsed.data.freeTags || null,
+      era,
+      freeTags: null,
+      photoYear: parsed.data.photoYear ?? null,
+      photoMonth: parsed.data.photoMonth ?? null,
+      datePrecision: parsed.data.datePrecision ?? (parsed.data.photoYear !== undefined ? "year" : "unknown"),
       approved: autoApprove,
       approvedAt: autoApprove ? new Date() : null,
       approvedById: autoApprove ? session.user.id : null,

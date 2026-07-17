@@ -20,8 +20,28 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { SUBJECTS, AREAS, ERAS } from "@/lib/collection";
+import { ERAS, PHOTO_YEAR_MIN, eraLabel } from "@/lib/collection";
 import { contributePhoto } from "@/app/(main)/collection/actions";
+
+const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20MB
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+const NOT_SURE = "not-sure";
+const NO_MONTH = "no-month";
+
+function currentYear() {
+  return new Date().getFullYear();
+}
+
+function yearOptions(): number[] {
+  const years: number[] = [];
+  for (let y = currentYear(); y >= PHOTO_YEAR_MIN; y--) years.push(y);
+  return years;
+}
 
 export function ContributeDialog({
   open,
@@ -33,11 +53,14 @@ export function ContributeDialog({
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [area, setArea] = useState<string>("");
-  const [era, setEra] = useState<string>("unknown");
   const [caption, setCaption] = useState("");
-  const [freeTags, setFreeTags] = useState("");
+  const [area, setArea] = useState("");
+  // "When": either an exact year (+ optional month), or -- if not sure -- a
+  // decade fallback from ERAS. yearChoice holds NOT_SURE until a real year is
+  // picked, which is when the (optional) month select appears.
+  const [yearChoice, setYearChoice] = useState<string>(NOT_SURE);
+  const [monthChoice, setMonthChoice] = useState<string>(NO_MONTH);
+  const [decade, setDecade] = useState<string>("unknown");
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -45,11 +68,11 @@ export function ContributeDialog({
     setFile(null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
-    setSubjects([]);
-    setArea("");
-    setEra("unknown");
     setCaption("");
-    setFreeTags("");
+    setArea("");
+    setYearChoice(NOT_SURE);
+    setMonthChoice(NO_MONTH);
+    setDecade("unknown");
   }
 
   function pickFile(f: File | null) {
@@ -58,8 +81,12 @@ export function ContributeDialog({
       toast.error("Please choose an image");
       return;
     }
-    if (f.size > 15 * 1024 * 1024) {
-      toast.error("Photo must be under 15MB");
+    if (f.type === "image/heic" || f.type === "image/heif" || /\.hei[cf]$/i.test(f.name)) {
+      toast.error('HEIC photos aren\'t supported yet. Export as JPG or PNG (or turn off "High Efficiency" in your camera settings).');
+      return;
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      toast.error(`Photo must be under 20MB (this one is ${(f.size / (1024 * 1024)).toFixed(1)}MB)`);
       return;
     }
     if (preview) URL.revokeObjectURL(preview);
@@ -67,25 +94,39 @@ export function ContributeDialog({
     setPreview(URL.createObjectURL(f));
   }
 
-  function toggleSubject(v: string) {
-    setSubjects((prev) =>
-      prev.includes(v) ? prev.filter((s) => s !== v) : [...prev, v]
-    );
-  }
-
   async function handleSubmit() {
     if (!file) return toast.error("Choose a photo first");
-    if (subjects.length === 0) return toast.error("Pick at least one subject");
     setSubmitting(true);
     const fd = new FormData();
     fd.set("file", file);
-    fd.set("subject", JSON.stringify(subjects));
-    if (area) fd.set("area", area);
-    fd.set("era", era);
     if (caption.trim()) fd.set("caption", caption.trim());
-    if (freeTags.trim()) fd.set("freeTags", freeTags.trim());
+    if (area.trim()) fd.set("area", area.trim());
 
-    const result = await contributePhoto(fd);
+    if (yearChoice !== NOT_SURE) {
+      fd.set("photoYear", yearChoice);
+      const monthIndex = MONTHS.indexOf(monthChoice); // -1 when NO_MONTH
+      if (monthIndex >= 0) {
+        fd.set("photoMonth", String(monthIndex + 1));
+        fd.set("datePrecision", "month");
+      } else {
+        fd.set("datePrecision", "year");
+      }
+    } else {
+      fd.set("era", decade);
+      fd.set("datePrecision", decade === "unknown" ? "unknown" : "decade");
+    }
+
+    let result: Awaited<ReturnType<typeof contributePhoto>>;
+    try {
+      result = await contributePhoto(fd);
+    } catch {
+      // The request can be dropped before contributePhoto ever runs (a
+      // truncated body, whether from a lost connection or an oversized
+      // photo look identical here), so name both possibilities.
+      setSubmitting(false);
+      toast.error("The upload didn't make it through. The photo may be too large, or the connection dropped. Try again.");
+      return;
+    }
     setSubmitting(false);
     if (result.error) {
       toast.error(result.error);
@@ -130,7 +171,7 @@ export function ContributeDialog({
                   setPreview(null);
                   setFile(null);
                 }}
-                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background"
+                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
                 aria-label="Remove photo"
               >
                 <X className="h-4 w-4" />
@@ -142,70 +183,9 @@ export function ContributeDialog({
               className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-paper/50 py-10 text-muted-foreground transition-colors hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <ImagePlus className="h-7 w-7" />
-              <span className="text-sm font-medium">Choose a photo (up to 15MB)</span>
+              <span className="text-sm font-medium">Choose a photo (up to 20MB)</span>
             </button>
           )}
-
-          {/* Subjects */}
-          <div>
-            <label className="mb-1.5 block text-[13px] font-semibold text-foreground">
-              What is in it?
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {SUBJECTS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => toggleSubject(s.value)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    subjects.includes(s.value)
-                      ? "bg-canopy text-white"
-                      : "bg-muted text-muted-foreground hover:bg-accent"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Area + Era */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block text-[13px] font-semibold text-foreground">
-                Part of school
-              </label>
-              <Select value={area} onValueChange={(v) => setArea(v ?? "")}>
-                <SelectTrigger className="bg-card">
-                  <SelectValue placeholder="Optional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AREAS.map((a) => (
-                    <SelectItem key={a.value} value={a.value}>
-                      {a.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[13px] font-semibold text-foreground">
-                Roughly when?
-              </label>
-              <Select value={era} onValueChange={(v) => setEra(v ?? "unknown")}>
-                <SelectTrigger className="bg-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ERAS.map((e) => (
-                    <SelectItem key={e.value} value={e.value}>
-                      {e.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
           {/* Caption */}
           <div>
@@ -221,23 +201,80 @@ export function ContributeDialog({
             />
           </div>
 
-          {/* Free tags */}
+          {/* Part of school */}
           <div>
             <label className="mb-1.5 block text-[13px] font-semibold text-foreground">
-              Bird or species names <span className="font-normal text-muted-foreground">(optional)</span>
+              Part of school <span className="font-normal text-muted-foreground">(optional)</span>
             </label>
             <Input
-              value={freeTags}
-              onChange={(e) => setFreeTags(e.target.value)}
-              placeholder="hoopoe, paradise flycatcher"
-              maxLength={200}
+              value={area}
+              onChange={(e) => setArea(e.target.value)}
+              placeholder="Junior school, the dining hall, Rishi Konda..."
+              maxLength={100}
               className="bg-card"
             />
           </div>
 
+          {/* When */}
+          <div>
+            <label className="mb-1.5 block text-[13px] font-semibold text-foreground">
+              When
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <Select value={yearChoice} onValueChange={(v) => { setYearChoice(v ?? NOT_SURE); setMonthChoice(NO_MONTH); }}>
+                <SelectTrigger className="bg-card">
+                  {/* Explicit label render: the underlying Select only learns an
+                      item's label once its SelectContent has mounted, so the
+                      NOT_SURE sentinel would otherwise show its raw value on
+                      first paint instead of "Not sure of the year". */}
+                  <SelectValue placeholder="Year">
+                    {(v: string) => (v === NOT_SURE ? "Not sure of the year" : v)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NOT_SURE}>Not sure of the year</SelectItem>
+                  {yearOptions().map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {yearChoice !== NOT_SURE ? (
+                <Select value={monthChoice} onValueChange={(v) => setMonthChoice(v ?? NO_MONTH)}>
+                  <SelectTrigger className="bg-card">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_MONTH}>Month (optional)</SelectItem>
+                    {MONTHS.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select value={decade} onValueChange={(v) => setDecade(v ?? "unknown")}>
+                  <SelectTrigger className="bg-card">
+                    <SelectValue placeholder="Decade">{(v: string) => eraLabel(v)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ERAS.map((e) => (
+                      <SelectItem key={e.value} value={e.value}>
+                        {e.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !file || subjects.length === 0}
+            disabled={submitting || !file}
             variant="primary"
             className="w-full"
           >
