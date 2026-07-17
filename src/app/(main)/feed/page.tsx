@@ -12,9 +12,15 @@ export const metadata: Metadata = {
   title: "Feed",
 };
 
-export default async function FeedPage() {
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) return null;
+
+  const { q } = await searchParams;
 
   const [unreadCount, profileUser] = await Promise.all([
     prisma.notification.count({
@@ -49,6 +55,7 @@ export default async function FeedPage() {
             title="Feed"
             subtitle="What the valley is sharing today."
             showSearch
+            searchScope="posts"
             unreadCount={unreadCount}
             actions={<NewPostCTA />}
           />
@@ -63,6 +70,7 @@ export default async function FeedPage() {
         <div className="min-w-0">
           <FeedColumn
             showControls={false}
+            initialSearch={q}
             currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl }}
           />
         </div>

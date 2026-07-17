@@ -19,6 +19,7 @@ export function FeedColumn({
   currentUser,
   emptyTitle,
   emptyHint,
+  initialSearch,
 }: {
   groupId?: string;
   scope?: FeedScope;
@@ -28,6 +29,9 @@ export function FeedColumn({
   currentUser?: AvatarUser;
   emptyTitle?: string;
   emptyHint?: string;
+  /** Seeds the feed's search (e.g. `?q=` from the header search pill) even
+   *  when the inline search/filter row (`showControls`) is hidden. */
+  initialSearch?: string;
 }) {
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -47,6 +51,7 @@ export function FeedColumn({
         reloadKey={reloadKey}
         emptyTitle={emptyTitle}
         emptyHint={emptyHint}
+        initialSearch={initialSearch}
       />
     </div>
   );

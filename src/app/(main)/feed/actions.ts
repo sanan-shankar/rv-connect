@@ -6,6 +6,13 @@ import { postSchema, commentSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
 import { delImage } from "@/lib/storage";
 
+// Postgres accepts `mode: "insensitive"` on `contains`; SQLite's Prisma
+// adapter rejects it (and SQLite `LIKE` is already case-insensitive for
+// ASCII), so it's only added when the live provider is Postgres. Same
+// detection as `src/app/(main)/directory/where.ts`.
+const IS_POSTGRES = (process.env.DATABASE_URL ?? "").startsWith("postgres");
+const searchInsensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
+
 
 // ─── Posts ───────────────────────────────────────────
 
@@ -436,7 +443,21 @@ export async function loadPosts(opts?: {
     ...(opts?.authorId ? { authorId: opts.authorId } : {}),
     ...(opts?.tag ? { tag: opts.tag } : {}),
     ...(opts?.kind ? { kind: opts.kind } : {}),
-    ...(opts?.search ? { content: { contains: opts.search } } : {}),
+    // Matches title (letters) or content, case-insensitive on Postgres.
+    // Nested under `AND` (not a bare top-level `OR`) so it composes safely
+    // with the batch-targeting `OR` added below for the main feed.
+    ...(opts?.search
+      ? {
+          AND: [
+            {
+              OR: [
+                { title: { contains: opts.search, ...searchInsensitive } },
+                { content: { contains: opts.search, ...searchInsensitive } },
+              ],
+            },
+          ],
+        }
+      : {}),
     ...(timeDate ? { createdAt: { gte: timeDate } } : {}),
   };
 
