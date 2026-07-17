@@ -263,6 +263,7 @@ model Comment {
   authorId  String
   postId    String
   parentId  String?
+  isHidden  Boolean  @default(false) // admin soft-hide (moderation); matches Post.isHidden / Photo.isHidden
   createdAt DateTime @default(now())
 
   author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -272,6 +273,7 @@ model Comment {
   commentLikes CommentLike[]
 
   @@index([postId, createdAt])
+  @@index([postId, isHidden])
 }
 
 model Like {
@@ -303,7 +305,7 @@ model Report {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // "like" | "comment" | "reply" | "admin"
+  type      String   // "like" | "comment" | "reply" | "admin" | "admin_note"
   message   String
   link      String?
   read      Boolean  @default(false)

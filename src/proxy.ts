@@ -1,8 +1,35 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// The old default Vercel-assigned domain. Exact match only -- preview
+// deployment hosts (e.g. "rv-alumni-git-branch-team.vercel.app" or
+// "rv-alumni-<hash>.vercel.app") must keep working unredirected, so this is
+// never a prefix/suffix/contains check.
+const LEGACY_HOST = "rv-alumni.vercel.app";
+const CANONICAL_ORIGIN = "https://rishivalley.space";
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Canonical-domain redirect: send the old Vercel host to the real domain,
+  // preserving the full path and query string. Runs before the auth check
+  // below (and before the public-path allowlist) so it applies to every
+  // route, logged in or not. NEXTAUTH_URL on Vercel should also be checked
+  // against the env dashboard -- if it still points at the legacy host,
+  // auth callbacks/cookies can mismatch even though this redirect fires.
+  //
+  // Reads the raw `Host` header rather than `request.nextUrl.hostname`:
+  // verified locally (curl with a spoofed Host header against `next dev`)
+  // that `nextUrl.hostname` stays "localhost" and does NOT pick up the
+  // incoming Host header, while `headers.get("host")` reflects it exactly --
+  // and that's also what Vercel's edge sets from the actual request domain,
+  // so this is the reliable field in both places. Split off a port defensively
+  // even though production Vercel traffic never carries one on this header.
+  const requestHost = (request.headers.get("host") ?? request.nextUrl.hostname).split(":")[0];
+  if (requestHost === LEGACY_HOST) {
+    const target = new URL(pathname + request.nextUrl.search, CANONICAL_ORIGIN);
+    return NextResponse.redirect(target, 308);
+  }
 
   // Public routes that don't require auth
   // NOTE: "/preview" is temporary — design-direction mockups; remove before shipping.

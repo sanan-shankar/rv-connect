@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { toggleLike, toggleBookmark } from "@/app/(main)/feed/actions";
+import { ShieldAlert } from "lucide-react";
+import { toggleLike, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { CommentsSection } from "@/components/posts/comments-section";
+import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import { LoveButton } from "@/components/common/love-button";
 import { BookmarkButton } from "@/components/common/bookmark-button";
 import { ShareButton } from "@/components/common/share-button";
@@ -15,6 +18,7 @@ export function LetterEngagement({
   initialLikeCount,
   initialBookmarked,
   initialCommentCount,
+  viewerIsAdmin = false,
 }: {
   postId: string;
   groupId: string | null;
@@ -22,11 +26,15 @@ export function LetterEngagement({
   initialLikeCount: number;
   initialBookmarked: boolean;
   initialCommentCount: number;
+  /** Site admin reading this letter: shows "Remove letter" and per-comment moderation. */
+  viewerIsAdmin?: boolean;
 }) {
+  const router = useRouter();
   const [liked, setLiked] = useState(initialLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [commentCount, setCommentCount] = useState(initialCommentCount);
+  const [showModeration, setShowModeration] = useState(false);
 
   async function handleLike() {
     const next = !liked;
@@ -50,6 +58,12 @@ export function LetterEngagement({
     }
   }
 
+  async function handleModerationConfirm(note: string) {
+    const result = await adminRemovePost(postId, note || undefined);
+    if (!result.error) router.push(groupId ? `/groups/${groupId}` : "/letters");
+    return result;
+  }
+
   const shareHref = groupId ? `/groups/${groupId}` : `/letters/${postId}`;
 
   return (
@@ -67,13 +81,34 @@ export function LetterEngagement({
           label={bookmarked ? "Remove bookmark" : "Save letter"}
         />
         <ShareButton href={shareHref} label="Copy link to letter" />
+        {viewerIsAdmin && (
+          <button
+            onClick={() => setShowModeration(true)}
+            aria-label="Remove letter (admin)"
+            title="Remove letter (admin)"
+            className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          >
+            <ShieldAlert className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <CommentsSection
         postId={postId}
         onCommentAdded={() => setCommentCount((c) => c + 1)}
+        onCommentRemoved={() => setCommentCount((c) => Math.max(0, c - 1))}
         alwaysOpen
+        viewerIsAdmin={viewerIsAdmin}
       />
+
+      {viewerIsAdmin && (
+        <ModerationDialog
+          open={showModeration}
+          onClose={() => setShowModeration(false)}
+          itemLabel="letter"
+          onConfirm={handleModerationConfirm}
+        />
+      )}
     </div>
   );
 }
