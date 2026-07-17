@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, type Variants } from "motion/react";
+import { ChevronDown } from "lucide-react";
 import { Wordmark } from "@/components/layout/peaks-mark";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
@@ -318,6 +319,7 @@ export function LandingHero() {
         variants={nudgeVariants}
       >
         <span className="text-[11px] font-medium uppercase tracking-[0.18em]">See what&apos;s inside</span>
+        <ChevronDown className="h-5 w-5 animate-bounce" aria-hidden />
       </motion.div>
 
       {/* Slow-load company: a hopping Hoopoe on the warm beige, only if the photo

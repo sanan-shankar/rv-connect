@@ -8,12 +8,23 @@
  *  reactions every now and then... a reward for scrolling."
  *
  *  Behaviour, on a slow randomized cadence:
- *   - most of the time: a short flutter (the rig's own flyTo arc) to a
- *     different one of 3 fixed perch spots along the ledge
+ *   - most of the time: a short hop-and-slide to a different one of 3
+ *     fixed perch spots along the ledge
  *   - sometimes: a small in-place reaction - preen, peck, a look
  *     left-then-right, or a crest flick
  *  All of it composes existing hoopoe-kit verbs; nothing here touches
  *  the rig itself.
+ *
+ *  Perch travel deliberately does NOT use the rig's `flyTo` verb: that
+ *  arc is built for long cross-page glides (see mascot-flight.ts) and
+ *  enforces a tall minimum arc + a full leg tuck for its whole airborne
+ *  span regardless of distance. Reused for this ledge's few-pixel-apart
+ *  perches, it launched the bird high out of the ledge with its legs
+ *  tucked out of sight (hidden behind the body, which paints over them)
+ *  for the entire trip - the bug this file now avoids. `flutterTo`
+ *  below instead slides the puppet's own wrapper sideways (a plain
+ *  transform, eased with SPRINGS.gentle) while `hop()` gives it a small
+ *  in-place bounce; legs stay visibly bent throughout, never hidden.
  *
  *  Polish pass (judged as "reads like a stray corner sticker"):
  *   - sized up to a real payoff (was a 44px afterthought tucked at 22%
@@ -55,7 +66,8 @@
  *
  *  Cheap by construction: no rAF loop, just one IntersectionObserver
  *  and one self-rescheduling setTimeout. Only transform + opacity ever
- *  animate (all inside the rig's own controller).
+ *  animate, whether inside the rig's own controller or on this file's own
+ *  wrapper layers (bob/tilt, the flutter slide).
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
@@ -149,7 +161,7 @@ export function FooterHoopoe() {
   const puppetWrapRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<HoopoeApi | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const perchIdx = useRef(0);
+  const perchIdx = useRef(1); // starts centered (PERCH_FRACTIONS[1]), matching startFrac below
   const inViewRef = useRef(false);
   const mountedRef = useRef(true);
 
@@ -173,7 +185,7 @@ export function FooterHoopoe() {
   // One intentional idle beat on top of the rig's own always-on breathing: a
   // slow bob + side-to-side tilt on the puppet's OWN wrapper (a different
   // element than anything the rig's verbs touch, so it never fights preen,
-  // peck, or a flyTo mid-flight - it just keeps the resting bird feeling
+  // peck, or a flutterTo hop mid-move - it just keeps the resting bird feeling
   // alive). transform-only; stands down to a level, static pose under
   // reduced motion, same scoped exception as the rest of this file.
   const [bobUp, setBobUp] = useState(false);
@@ -186,6 +198,12 @@ export function FooterHoopoe() {
     t = setTimeout(loop, rand(900, 1800));
     return () => clearTimeout(t);
   }, []);
+
+  // Horizontal offset (px) of the puppet's own wrapper from the ledge's
+  // center perch, recomputed fresh (not accumulated) on every flutter so it
+  // self-corrects against viewport resizes. Purely a transform (see the
+  // JSX below), animated with SPRINGS.gentle.
+  const [xOffset, setXOffset] = useState(0);
 
   useEffect(() => {
     const el = ledgeRef.current;
@@ -211,11 +229,18 @@ export function FooterHoopoe() {
     timerRef.current = setTimeout(tick, delayMs ?? rand(CYCLE_MIN_MS, CYCLE_MAX_MS));
   }
 
-  function perchPoint(idx: number): { x: number; y: number } | null {
+  // Slides the puppet wrapper sideways to a new perch (a plain transform, see
+  // the JSX) with a small in-place hop for flourish, instead of api.flyTo -
+  // see the docblock above for why. `hop()` keeps the legs visibly bent the
+  // whole time (never the flight tuck), so nothing disappears mid-move.
+  async function flutterTo(next: number) {
+    const api = apiRef.current;
     const el = ledgeRef.current;
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return { x: r.left + r.width * PERCH_FRACTIONS[idx], y: r.bottom - FOOT_INSET };
+    if (!api || !el) return;
+    const width = el.getBoundingClientRect().width || 1;
+    setXOffset((PERCH_FRACTIONS[next] - PERCH_FRACTIONS[1]) * width);
+    await api.hop(2);
+    perchIdx.current = next;
   }
 
   async function tick() {
@@ -238,11 +263,7 @@ export function FooterHoopoe() {
       if (roll < 0.45) {
         const choices = PERCH_FRACTIONS.map((_, i) => i).filter((i) => i !== perchIdx.current);
         const next = choices[Math.floor(Math.random() * choices.length)];
-        const target = perchPoint(next);
-        if (target) {
-          await api.flyTo(target);
-          perchIdx.current = next;
-        }
+        await flutterTo(next);
       } else if (roll < 0.65) {
         await api.preen();
       } else if (roll < 0.8) {
@@ -276,12 +297,19 @@ export function FooterHoopoe() {
         className="pointer-events-none absolute z-40"
         style={{ left: `${startFrac * 100}%`, bottom: FOOT_INSET, transform: "translateX(-50%)" }}
       >
-        <motion.div
-          style={{ transformOrigin: "bottom center" }}
-          animate={reducedMotion ? { y: 0, rotate: 0 } : { y: bobUp ? -4 : 0, rotate: bobUp ? -2.5 : 2.5 }}
-          transition={SPRINGS.settle}
-        >
-          <Hoopoe size={RIG_SIZE} onReady={handleReady} />
+        {/* Carries the puppet sideways between perches (see flutterTo above).
+            A separate layer from the centering transform on the parent div
+            (which stays static) and from the bob/tilt layer below (which
+            keeps its own independent motion), so the three transforms never
+            fight each other. */}
+        <motion.div animate={{ x: xOffset }} transition={SPRINGS.gentle}>
+          <motion.div
+            style={{ transformOrigin: "bottom center" }}
+            animate={reducedMotion ? { y: 0, rotate: 0 } : { y: bobUp ? -4 : 0, rotate: bobUp ? -2.5 : 2.5 }}
+            transition={SPRINGS.settle}
+          >
+            <Hoopoe size={RIG_SIZE} onReady={handleReady} />
+          </motion.div>
         </motion.div>
       </div>
     </div>
