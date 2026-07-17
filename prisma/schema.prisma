@@ -91,11 +91,21 @@ model Photo {
 
   caption      String?
 
-  // faceted taxonomy (fixed enums validated by Zod; comma-joined where multi)
+  // faceted taxonomy (fixed enums validated by Zod; comma-joined where multi).
+  // subject/freeTags are no longer collected by the contribute form (2026-07-18
+  // rework) but stay on the model for old rows and any other Collection reader.
   subject      String    // e.g. "banyan,landscape"
-  area         String?   // junior-school | senior-school | whole-campus | off-campus
-  era          String    @default("unknown")
+  area         String?   // free text, "Part of school" (was a fixed picklist)
+  era          String    @default("unknown") // decade bucket, derived from photoYear when given
   freeTags     String?   // comma-joined free text, mainly bird/species names
+
+  // "When", as given by the contributor: an exact year (photoYear), an
+  // optional month alongside it, or -- when they weren't sure of the exact
+  // year -- just the decade fallback stored in `era` above. datePrecision
+  // records which of those they actually gave.
+  photoYear     Int?
+  photoMonth    Int?      // 1-12; only meaningful alongside photoYear
+  datePrecision String?   // "month" | "year" | "decade" | "unknown"
 
   approved     Boolean   @default(false)
   isHidden     Boolean   @default(false)

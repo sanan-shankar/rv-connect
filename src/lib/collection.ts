@@ -48,3 +48,15 @@ const ERA_LABELS = Object.fromEntries(ERAS.map((e) => [e.value, e.label]));
 export const subjectLabel = (v: string) => SUBJECT_LABELS[v] ?? v;
 export const areaLabel = (v: string) => AREA_LABELS[v] ?? v;
 export const eraLabel = (v: string) => ERA_LABELS[v] ?? v;
+
+/** The oldest year the contribute form's year dropdown offers. */
+export const PHOTO_YEAR_MIN = 1926;
+
+/** Map an exact year to its ERA_VALUES decade bucket, so a contributor who
+ *  gives a precise year still shows up under the right era filter. */
+export function eraFromYear(year: number): string {
+  if (year < 1960) return "pre-1960s";
+  const decade = Math.floor(year / 10) * 10;
+  const bucket = `${decade}s`;
+  return (ERA_VALUES as readonly string[]).includes(bucket) ? bucket : "unknown";
+}

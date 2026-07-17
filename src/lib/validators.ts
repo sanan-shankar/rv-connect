@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { SUBJECT_VALUES, AREA_VALUES, ERA_VALUES } from "./collection";
+import { ERA_VALUES } from "./collection";
 
 // Alumni now describe their schooling with three plain facts (year joined, year
 // left, grade joined) and the batch is derived server-side via
@@ -68,13 +68,30 @@ export const postSchema = z.object({
   pollOptions: z.array(z.string().min(1).max(200)).min(2).max(4).optional(),
 });
 
-export const photoSchema = z.object({
-  caption: z.string().max(300).optional(),
-  subject: z.array(z.enum(SUBJECT_VALUES as [string, ...string[]])).min(1, "Pick at least one subject"),
-  area: z.enum(AREA_VALUES as [string, ...string[]]).optional(),
-  era: z.enum(ERA_VALUES as [string, ...string[]]).optional(),
-  freeTags: z.string().max(200).optional(),
-});
+// The Collection contribute form (contribute-dialog.tsx) simplified to three
+// facts: a caption, which part of school it's from (free text, no longer a
+// fixed picklist), and when. "When" is either an exact year (with an optional
+// month) or, when the contributor isn't sure, a decade fallback from ERA_VALUES
+// (see docs: subject tagging and the bird/species free-tag field were removed
+// per the owner's rework, 2026-07-18).
+export const photoSchema = z
+  .object({
+    caption: z.string().trim().max(300).optional(),
+    area: z.string().trim().max(100).optional(),
+    photoYear: z
+      .number()
+      .int()
+      .min(1926, "Rishi Valley opened in 1926")
+      .max(new Date().getFullYear(), "That year hasn't happened yet")
+      .optional(),
+    photoMonth: z.number().int().min(1).max(12).optional(),
+    era: z.enum(ERA_VALUES as [string, ...string[]]).optional(),
+    datePrecision: z.enum(["month", "year", "decade", "unknown"]).optional(),
+  })
+  .refine((d) => d.photoMonth === undefined || d.photoYear !== undefined, {
+    message: "A month needs a year",
+    path: ["photoMonth"],
+  });
 
 export const commentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty").max(1000),
