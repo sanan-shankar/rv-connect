@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Bell, HelpCircle, PenLine, Clock, BookOpen, Heart } from "lucide-react";
+import {
+  Check,
+  Bell,
+  HelpCircle,
+  PenLine,
+  Clock,
+  BookOpen,
+  Heart,
+  MessageCircle,
+  Users,
+  ShieldCheck,
+} from "lucide-react";
 import { motion } from "motion/react";
 import {
   DropdownMenu,
@@ -18,24 +29,6 @@ import {
 } from "@/app/(main)/notifications/actions";
 import { useRouter } from "next/navigation";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
-import type { CatchupNotifyKind } from "@/lib/catchups-types";
-import {
-  BellDeliveryHoopoe,
-  shouldOfferBellDelivery,
-  markBellDeliveryShownToday,
-  type BellRect,
-} from "@/components/mascot/moments/bell-delivery-hoopoe";
-import { anotherHoopoeOnScreen } from "@/components/mascot/moments/one-hoopoe-guard";
-
-// Sane failsafe (idea #11's brief: "the notification thing opens only after
-// the bird lands and delivers the letter" -- but a hiccup mid-animation must
-// never leave the panel stuck shut). The delivery's own real runtime (the
-// off-canvas flyIn's distance-scaled cruise, capped at 1.9s, plus its landing
-// squash, plus land()'s own squash, plus the sleep(240) beat, plus nod())
-// measured ~3.7-4.1s end to end in runtime verification -- NOT "well under
-// 2.5s" as an earlier pass here claimed. This sits comfortably above that
-// with real headroom for a slower device/browser rather than racing it.
-const DELIVERY_FAILSAFE_MS = 6000;
 
 interface NotificationBellProps {
   initialUnreadCount: number;
@@ -53,21 +46,35 @@ interface Notification {
 }
 
 /**
- * Catch-ups notification type -> icon/label mapping (spec section 5). Every
- * other `Notification.type` (the pre-existing "like" | "comment" | "reply" |
- * "admin", and anything future) stays unmapped and falls back to the plain
- * `Bell` glyph below, so this addition never changes how those already read.
+ * Every `Notification.type` written anywhere in the app (feed/actions.ts,
+ * groups/actions.ts, admin-actions.ts, collection/actions.ts,
+ * catchups-notify.ts -- see `CatchupNotifyKind` in catchups-types.ts for the
+ * five Catch-up kinds) maps to one glyph here. Unknown/future types fall back
+ * to the plain `Bell` so a new type never renders blank.
+ *
+ * `heart: true` marks the two love/like kinds: the heart is ALWAYS
+ * `#E03A33`, filled, painted with `transition: none` so it can never flash
+ * through an inherited colour first (same rule as `LoveButton`).
  */
-const CATCHUP_NOTIFICATION_META: Partial<Record<CatchupNotifyKind, { icon: typeof Bell; label: string }>> = {
+const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolean; label: string }> = {
+  // Feed: likes/loves and comment activity.
+  like: { icon: Heart, heart: true, label: "Liked" },
+  comment: { icon: MessageCircle, label: "Comment" },
+  reply: { icon: MessageCircle, label: "Reply" },
+  // Groups.
+  group_invite: { icon: Users, label: "Group" },
+  // Admin/moderation notices.
+  admin: { icon: ShieldCheck, label: "Rishi Valley" },
+  // Catch-ups (spec section 5).
   catchup_questions_open: { icon: HelpCircle, label: "Questions open" },
   catchup_answers_open: { icon: PenLine, label: "Answers open" },
   catchup_reminder: { icon: Clock, label: "Reminder" },
   catchup_published: { icon: BookOpen, label: "Round published" },
-  catchup_love: { icon: Heart, label: "Loved your answer" },
+  catchup_love: { icon: Heart, heart: true, label: "Loved your answer" },
 };
 
-function notificationIcon(type: string): typeof Bell {
-  return CATCHUP_NOTIFICATION_META[type as CatchupNotifyKind]?.icon ?? Bell;
+function notificationIconMeta(type: string) {
+  return NOTIFICATION_ICON_META[type] ?? { icon: Bell, label: "Notification" };
 }
 
 export function NotificationBell({
@@ -91,70 +98,11 @@ export function NotificationBell({
     prevUnread.current = unreadCount;
   }, [unreadCount]);
 
-  // ---- letter-delivery gate (mascot-moments idea #11) ----
-  // The dropdown is now a CONTROLLED menu so an "open" attempt can be
-  // deferred: when the gate fires we cancel base-ui's own open handling and
-  // only flip `open` true ourselves once the hoopoe has actually delivered
-  // the letter (see BellDeliveryHoopoe's onDelivered below).
-  const bellRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [deliveryRect, setDeliveryRect] = useState<BellRect | null>(null);
-  const deliveryActiveRef = useRef(false);
-  const openedRef = useRef(false);
-  const failsafeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function clearDeliveryFailsafe() {
-    if (failsafeRef.current !== null) {
-      clearTimeout(failsafeRef.current);
-      failsafeRef.current = null;
-    }
-  }
-
-  // Never leaves a pending failsafe timer trying to setState after this
-  // bell (a route change, a mobile/desktop swap) has already unmounted.
-  useEffect(() => clearDeliveryFailsafe, []);
-
-  // The one place `open` actually flips true, whether that's a plain click
-  // with nothing to deliver, the delivery's own onDelivered, or the failsafe
-  // firing because something about the animation hiccuped. Idempotent so
-  // onDelivered and the failsafe can never both fire real side effects.
-  function openPanelNow() {
-    clearDeliveryFailsafe();
-    if (openedRef.current) return;
-    openedRef.current = true;
-    setOpen(true);
-    void handleOpen();
-  }
-
-  function finishDelivery() {
-    deliveryActiveRef.current = false;
-    setDeliveryRect(null);
-  }
-
-  function handleOpenChange(next: boolean, eventDetails?: { cancel: () => void }) {
-    if (!next) {
-      setOpen(false);
-      openedRef.current = false;
-      return;
-    }
-    if (deliveryActiveRef.current) {
-      // An impatient second click mid-delivery: never trap them behind the
-      // animation, just open immediately. The bird finishes its own beat
-      // independently and fades out on its own.
-      openPanelNow();
-      return;
-    }
-    const bell = bellRef.current;
-    if (bell && shouldOfferBellDelivery(unreadCount > 0) && !anotherHoopoeOnScreen()) {
-      eventDetails?.cancel();
-      markBellDeliveryShownToday();
-      deliveryActiveRef.current = true;
-      openedRef.current = false;
-      setDeliveryRect(bell.getBoundingClientRect());
-      failsafeRef.current = setTimeout(openPanelNow, DELIVERY_FAILSAFE_MS);
-      return;
-    }
-    openPanelNow();
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (next) void handleOpen();
   }
 
   // One transform-only decaying shake, pivoting from the top so it reads as a
@@ -194,25 +142,10 @@ export function NotificationBell({
     setUnreadCount(0);
   }
 
-  // Always mounted (anchorRect starts/returns to null between deliveries) —
-  // see bell-delivery-hoopoe.tsx's file banner for why a conditional
-  // `deliveryRect && <BellDeliveryHoopoe .../>` here reintroduces a real
-  // Strict-Mode-only bug where the delivery's own onReady timer gets
-  // cleared before it fires and the letter never delivers.
-  const deliveryOverlay = (
-    <BellDeliveryHoopoe
-      anchorRect={deliveryRect}
-      onDelivered={openPanelNow}
-      onFinished={finishDelivery}
-    />
-  );
-
   if (variant === "header") {
     return (
-      <>
       <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger
-          ref={bellRef}
           className="bell-trigger relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-transform duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           title="Notifications"
         >
@@ -250,15 +183,12 @@ export function NotificationBell({
           onClickNotification={handleClickNotification}
         />
       </DropdownMenu>
-      {deliveryOverlay}
-      </>
     );
   }
 
   return (
-    <>
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      <DropdownMenuTrigger ref={bellRef} className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
+      <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
         <motion.span
           className="inline-grid place-items-center"
           style={{ transformOrigin: "50% 12%" }}
@@ -287,8 +217,6 @@ export function NotificationBell({
         onClickNotification={handleClickNotification}
       />
     </DropdownMenu>
-    {deliveryOverlay}
-    </>
   );
 }
 
@@ -332,7 +260,7 @@ function NotificationPanel({
           </div>
         )}
         {notifications.map((notif) => {
-          const Icon = notificationIcon(notif.type);
+          const { icon: Icon, heart, label } = notificationIconMeta(notif.type);
           return (
             <DropdownMenuItem
               key={notif.id}
@@ -341,9 +269,25 @@ function NotificationPanel({
             >
               <span
                 aria-hidden
-                className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground"
+                title={label}
+                className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full ${
+                  heart ? "bg-heart/10" : "bg-muted text-muted-foreground"
+                }`}
               >
-                <Icon className="size-3.5" strokeWidth={1.9} />
+                {heart ? (
+                  // The heart is ALWAYS #E03A33, filled, painted on the first frame
+                  // with transition: none -- it can never tween through the muted
+                  // icon colour used by every other type above.
+                  <Icon
+                    className="size-3.5"
+                    strokeWidth={1.9}
+                    fill="#E03A33"
+                    stroke="#E03A33"
+                    style={{ transition: "none" }}
+                  />
+                ) : (
+                  <Icon className="size-3.5" strokeWidth={1.9} />
+                )}
               </span>
               <span className="min-w-0 flex-1">
                 <p className="text-sm text-foreground">{notif.message}</p>

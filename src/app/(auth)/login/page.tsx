@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
+import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
 import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, LOGIN_TRANSITION_FLAG } from "@/components/landing/hero-photo";
@@ -427,6 +428,11 @@ export default function LoginPage() {
           </p>
         </motion.div>
       </div>
+
+      {/* Warms the flight rig off-screen in case a visitor lands here directly
+          and bounces back to the landing hero to fly again. See
+          hoopoe-warmup.tsx. */}
+      <HoopoeWarmup />
     </div>
   );
 }
