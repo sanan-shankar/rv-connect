@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Maximize2, X, MapPin } from "lucide-react";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
@@ -11,7 +12,7 @@ import Supercluster from "supercluster";
 import worldData from "world-atlas/countries-110m.json";
 import type { Feature, Geometry } from "geojson";
 import { IdentityRow } from "@/components/common/identity-row";
-import { batchLine } from "@/lib/utils";
+import { batchLine, cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -292,8 +293,15 @@ export function AlumniMap({
         </div>
       )}
 
-      {/* Zoom controls */}
-      <div className="absolute right-3 top-3 z-20 flex flex-col gap-1.5">
+      {/* Zoom controls. Fullscreen on mobile adds a dedicated exit pill in this
+          same corner (below), so these drop down to clear it; sm: and up
+          resets to the usual top-3 since that pill is mobile-only. */}
+      <div
+        className={cn(
+          "absolute right-3 z-20 flex flex-col gap-1.5",
+          fullscreen ? "top-16 sm:top-3" : "top-3"
+        )}
+      >
         <button
           type="button"
           aria-label="Zoom in"
@@ -321,6 +329,27 @@ export function AlumniMap({
         {fullscreen ? <X className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         {fullscreen ? "Close" : "Full screen"}
       </button>
+
+      {/* Dedicated mobile exit affordance. The top-left toggle above already
+          closes fullscreen too, but on a phone it reads small next to the
+          system chrome, so fullscreen mode gets its own unmistakable X pill
+          in the top-right corner (sm: and up hides it, relying on the toggle
+          above instead). Safe-area aware so it clears the notch / Dynamic
+          Island in landscape or on devices with inset display cutouts. */}
+      {fullscreen && (
+        <button
+          type="button"
+          onClick={() => setFullscreen(false)}
+          aria-label="Exit full screen"
+          className="absolute z-30 grid h-11 w-11 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-md backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 sm:hidden"
+          style={{
+            top: "max(0.75rem, env(safe-area-inset-top))",
+            right: "max(0.75rem, env(safe-area-inset-right))",
+          }}
+        >
+          <X className="h-5 w-5" strokeWidth={2.25} />
+        </button>
+      )}
 
       {unmapped > 0 && (
         <button
@@ -350,12 +379,21 @@ export function AlumniMap({
         {!fullscreen && mapBody}
       </div>
 
-      {/* Full-screen overlay reuses the same body */}
-      {fullscreen && (
-        <div className="fixed inset-0 z-50 bg-background">
-          {mapBody}
-        </div>
-      )}
+      {/* Full-screen overlay reuses the same body. Portaled to document.body
+          rather than rendered in place: the content column it would otherwise
+          sit inside establishes its own stacking context (z-10, see
+          app-shell.tsx), and the mobile header sits in a sibling context at
+          z-40. No z-index inside that column - however high - can paint above
+          a sibling stacking context, so without the portal this whole overlay
+          (including its exit affordances) rendered UNDER the sticky mobile
+          header and was invisible/unclickable. Escaping to body puts it in
+          the root stacking context, where z-50 legitimately beats z-40. */}
+      {fullscreen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-50 bg-background">{mapBody}</div>,
+          document.body
+        )}
 
       {/* City drilldown: a bottom sheet, the same on every viewport. */}
       <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
