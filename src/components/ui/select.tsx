@@ -61,9 +61,16 @@ function SelectContent({
   children,
   side = "bottom",
   sideOffset = 4,
-  align = "center",
+  align = "start",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  // `alignItemWithTrigger` (Base UI's native-<select>-style "open with the
+  // selected item under the cursor") ignores side/align/offset entirely and
+  // free-floats the popup, which is exactly what produced the horizontal
+  // misalignment bug (popup edges land a few px off from the trigger's,
+  // worse once it has to flip upward). Default it off so every Select uses
+  // the same predictable anchor-positioned geometry as DropdownMenu/Combobox:
+  // align start, 0 skid.
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<
@@ -87,7 +94,14 @@ function SelectContent({
           {...props}
         >
           <SelectScrollUpButton />
-          <SelectPrimitive.List>{children}</SelectPrimitive.List>
+          {/* p-1 inset matches DropdownMenu/Combobox: it's what keeps the
+              item highlight (rounded-md, 12px) from sitting flush against
+              the popup's own rounded-lg (16px) corner -- without it the two
+              radii collide right at the corner with no gap to read as
+              "nested," which is the "hover bar inset wrong" bug. Lives on
+              List (not Popup) so the scroll arrows can still sit flush at
+              the popup's top/bottom edge. */}
+          <SelectPrimitive.List className="p-1">{children}</SelectPrimitive.List>
           <SelectScrollDownButton />
         </SelectPrimitive.Popup>
       </SelectPrimitive.Positioner>
