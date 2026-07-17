@@ -24,6 +24,14 @@ export const SPRINGS = {
 export const EASE_POP = [0.34, 1.56, 0.64, 1] as const; // anticipation + overshoot
 export const EASE_SPRING = [0.34, 1.5, 0.64, 1] as const; // softer settle
 
+/* A single decelerating swipe with zero overshoot: starts at full speed,
+   settles smoothly into place, never bounces past the target and back. Use
+   this (not EASE_SPRING/EASE_POP) for anything that SLIDES to a final resting
+   position -- a panel, a photo, a page -- where a spring-style overshoot
+   would read as the layout "wobbling", rather than a bounce that suits a
+   small playful UI detail. */
+export const EASE_OUT_SMOOTH = [0.16, 1, 0.3, 1] as const;
+
 /* The sidebar active-row marker glides with a touch more weight than `snappy`, so the pill and its
    cinnamon edge settle rather than snap dead. Shared so any future edge-marker reads the same. */
 export const NAV_MARKER_SPRING = { type: "spring", stiffness: 480, damping: 38, mass: 0.9 } as const;

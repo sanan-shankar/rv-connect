@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { MascotFlightLayer } from "@/components/mascot/mascot-flight-layer";
+import { LoadingHoopoeLayer } from "@/components/mascot/moments/loading-companion";
 import "./globals.css";
 
 const libreBaskerville = Libre_Baskerville({
@@ -49,6 +50,11 @@ export default function RootLayout({
               the route change and hands off to the destination's own hoopoe.
               Lives here (root layout) so it survives that navigation. */}
           <MascotFlightLayer />
+          {/* The loading companion's persistent renderer: mounted once, here,
+              so it survives every route's loading.tsx Suspense swap (see
+              loading-companion.tsx / loading-hoopoe-bus.ts for why that
+              swap can't itself be trusted to hold the bird visible). */}
+          <LoadingHoopoeLayer />
           <Toaster position="bottom-right" />
         </ThemeProvider>
         {/* Vercel Analytics: page views only, no cookies. Data only flows once this is deployed

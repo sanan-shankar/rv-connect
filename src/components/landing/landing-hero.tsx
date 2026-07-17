@@ -9,7 +9,8 @@ import { ChevronDown } from "lucide-react";
 import { Wordmark } from "@/components/layout/peaks-mark";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
-import { SPRINGS, EASE_SPRING } from "@/components/common/motion";
+import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
+import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, AUTH_FORM_VW, LOGIN_TRANSITION_FLAG } from "./hero-photo";
 import { launchFlight, FLIGHT_FLAG, type FlightTarget } from "@/components/mascot/mascot-flight";
 
@@ -68,7 +69,7 @@ const brandVariants: Variants = {
 const middleVariants: Variants = {
   loading: { opacity: 0, y: 16 },
   shown: { opacity: 1, y: 0, transition: SPRINGS.gentle },
-  exiting: { opacity: 0, x: -84, transition: { duration: 0.5, ease: EASE_SPRING } },
+  exiting: { opacity: 0, x: -84, transition: { duration: 0.5, ease: EASE_OUT_SMOOTH } },
 };
 
 const nudgeVariants: Variants = {
@@ -109,7 +110,7 @@ export function LandingHero() {
   const imageVariants: Variants = {
     loading: { opacity: 0, scale: 1.05, x: 0 },
     shown: { opacity: 1, scale: 1, x: 0, transition: SPRINGS.gentle },
-    exiting: { opacity: 1, scale: 1, x: slidePx, transition: { duration: 0.62, ease: EASE_SPRING } },
+    exiting: { opacity: 1, scale: 1, x: slidePx, transition: { duration: 0.62, ease: EASE_OUT_SMOOTH } },
   };
 
   // LOAD-IN: reveal only once the DISPLAYED hero photo (the next/image) has
@@ -337,6 +338,11 @@ export function LandingHero() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Pays the flight rig's first-mount cost off-screen at idle time, so the
+          FIRST real flight (launched by "Sign in" / "Join the community" below)
+          never has to. See hoopoe-warmup.tsx for the full why. */}
+      <HoopoeWarmup />
     </motion.section>
   );
 }
