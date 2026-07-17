@@ -263,7 +263,13 @@ export default async function CatchupsPage() {
             ))}
           </div>
           <aside className="hidden min-[1180px]:block">
-            <div className="sticky top-7">
+            {/* Invisible spacer mirrors the left column's "Your Catch-ups"
+                heading (and the space-y-3.5 gap below it) so the rail's first
+                card lines up with the first Catch-up card, not the heading. */}
+            <h2 aria-hidden className="invisible text-[12px] font-bold uppercase tracking-[0.13em]">
+              Your Catch-ups
+            </h2>
+            <div className="sticky top-7 mt-3.5">
               <FreshOffThePress items={data.freshItems} />
             </div>
           </aside>

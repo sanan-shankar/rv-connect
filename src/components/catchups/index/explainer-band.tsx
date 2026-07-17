@@ -66,9 +66,12 @@ export function ExplainerBand({ compact = false }: { compact?: boolean }) {
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        {/* items-start + an h-10 arrow wrapper keeps each connector vertically
+            centered on the icon discs (40px tall), not on the taller
+            disc+label column, so the arrows read as linking the circles. */}
+        <div className="flex shrink-0 items-start gap-2 sm:gap-3">
           {BEATS.map((beat, i) => (
-            <div key={beat.label} className="flex items-center gap-2 sm:gap-3">
+            <div key={beat.label} className="flex items-start gap-2 sm:gap-3">
               <div className="flex flex-col items-center gap-1.5 text-center">
                 <div className="grid h-10 w-10 place-items-center rounded-full border border-border/70 bg-background/60 text-cinnamon">
                   <beat.icon className="h-4 w-4" aria-hidden />
@@ -78,7 +81,9 @@ export function ExplainerBand({ compact = false }: { compact?: boolean }) {
                 </span>
               </div>
               {i < BEATS.length - 1 && (
-                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
+                <div className="flex h-10 items-center" aria-hidden>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+                </div>
               )}
             </div>
           ))}
