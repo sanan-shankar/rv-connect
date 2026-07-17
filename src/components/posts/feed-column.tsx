@@ -17,6 +17,7 @@ export function FeedColumn({
   showControls = true,
   placeholder,
   currentUser,
+  userPlaces,
   emptyTitle,
   emptyHint,
   initialSearch,
@@ -27,6 +28,8 @@ export function FeedColumn({
   showControls?: boolean;
   placeholder?: string;
   currentUser?: AvatarUser;
+  /** The signed-in poster's own cities, for the composer's "Show to" audience control. */
+  userPlaces?: string[];
   emptyTitle?: string;
   emptyHint?: string;
   /** Seeds the feed's search (e.g. `?q=` from the header search pill) even
@@ -42,6 +45,7 @@ export function FeedColumn({
         scope={composerScope}
         placeholder={placeholder}
         currentUser={currentUser}
+        userPlaces={userPlaces}
         onPosted={() => setReloadKey((k) => k + 1)}
       />
       <PostFeed

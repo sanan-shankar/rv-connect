@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Users,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { motion } from "motion/react";
 import {
@@ -65,6 +66,9 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   group_invite: { icon: Users, label: "Group" },
   // Admin/moderation notices.
   admin: { icon: ShieldCheck, label: "Rishi Valley" },
+  // A note attached to a removed post/letter/comment/photo (opens /notice/[id]).
+  // Distinct from the plain "admin" glyph above (ShieldCheck, e.g. verification).
+  admin_note: { icon: ShieldAlert, label: "A note from the admins" },
   // Catch-ups (spec section 5).
   catchup_questions_open: { icon: HelpCircle, label: "Questions open" },
   catchup_answers_open: { icon: PenLine, label: "Answers open" },

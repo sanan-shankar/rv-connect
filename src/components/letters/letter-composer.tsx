@@ -6,7 +6,7 @@ import { Feather } from "lucide-react";
 import { CreatePostForm } from "@/components/posts/create-post-form";
 
 /** A "Write a letter" affordance that reveals the shared composer in letter mode. */
-export function LetterComposer() {
+export function LetterComposer({ userPlaces }: { userPlaces?: string[] } = {}) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -34,6 +34,7 @@ export function LetterComposer() {
   return (
     <CreatePostForm
       defaultLetter
+      userPlaces={userPlaces}
       onPosted={() => {
         setOpen(false);
         router.refresh();
