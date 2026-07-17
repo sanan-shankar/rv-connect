@@ -103,16 +103,14 @@ mascot flight layer (`src/components/mascot/mascot-flight.ts`) is reusable from 
 launchFlight/reportPerch if the owner wants more landing-page flights.
 - Size: small.
 
-### 10. Houses column not migrated; house names are placeholder
-`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "houses" TEXT;` sits in section 1 of
-`prisma/pending-migration.sql`, appended after the owner already ran the file for the secondary-city
-column, so it has not been run. Until it is, the `/welcome` onboarding flow's Houses step
-(`src/components/onboarding/steps/houses-step.tsx`) probes for the column and parks each person's
-house-per-year answers in `localStorage` instead of the database. Separately, and regardless of the
-migration: the four house names in `src/lib/houses.ts` (Krishna, Cauvery, Ganga, Aditi) are an
-explicitly flagged placeholder list pending the owner confirming the real, exhaustive set; every
-call site reads from that one file, so swapping the list later is a one-file change.
-- Size: small once the owner runs the migration, plus owner confirmation on the house list.
+### 10. Houses step still falls back to localStorage
+The `houses` column migrated live 2026-07-18 (`prisma/migrations-manual/2026-07-18-round6.sql`,
+now mirrored in `prisma/schema.prisma`'s `User.houses`) and `src/lib/houses.ts` carries the
+owner-confirmed canonical 22-house list. What is left: the `/welcome` onboarding flow's Houses step
+(`src/components/onboarding/steps/houses-step.tsx`) still has its old column-probe/localStorage
+fallback path from before the migration landed; it should be simplified to write straight to
+`User.houses` (JSON string of `[{year, house}]`) now that the column is guaranteed to exist.
+- Size: small, wave-2 onboarding task.
 
 ### 11. Legacy Catch-ups tables still live; `prisma db push` still unusable
 The old, reverted Catch-ups build left six physical tables behind with columns that don't match the

@@ -42,6 +42,10 @@ public/uploads/
 prisma/dev.db
 prisma/dev.db-journal
 
+# GeoNames gazetteer import scratch dir (scripts/dev/import-places.mjs deletes
+# this itself when it finishes; ignored as a backstop)
+.geonames-tmp/
+
 # vercel
 .vercel
 
