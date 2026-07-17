@@ -250,7 +250,12 @@ export async function toggleLike(postId: string) {
     }
   }
 
-  revalidatePath("/feed");
+  // No revalidatePath here (deliberately): PostCard already applies the like/count change
+  // optimistically on the client, so nothing here needs freshly-rendered server markup. A
+  // revalidatePath forces Next to refresh the current route's server tree right after this
+  // action resolves, and that refresh was landing as an occasional scroll-to-top on the heart
+  // click (root cause of the "heart scroll-jump" bug). Comment likes had the same call and the
+  // same symptom; see toggleCommentLike below.
   return { success: true, liked: !existing };
 }
 
@@ -669,7 +674,9 @@ export async function toggleCommentLike(commentId: string) {
     }
   }
 
-  revalidatePath("/feed");
+  // No revalidatePath (see the matching note in toggleLike above): CommentItem already
+  // applies the like/count change optimistically, and this call was the other half of the
+  // heart scroll-jump bug (the post-action refresh occasionally reset scroll to the top).
   return { success: true, liked: !existing };
 }
 
