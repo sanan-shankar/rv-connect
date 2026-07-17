@@ -22,6 +22,7 @@ interface MemberView {
   name: string;
   avatarColor: string | null;
   photoUrl?: string | null;
+  birdOverride?: string | null;
   accountType?: string | null;
   batchYear: number | null;
   role: string;
@@ -192,7 +193,7 @@ export function GroupHeader({ group, members, myRole, isEmpty = false }: GroupHe
                 className="block rounded-lg p-1.5 transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
               >
                 <IdentityRow
-                  user={{ id: m.id, name: m.name, avatarColor: m.avatarColor, photoUrl: m.photoUrl }}
+                  user={{ id: m.id, name: m.name, avatarColor: m.avatarColor, photoUrl: m.photoUrl, birdOverride: m.birdOverride }}
                   className="gap-2.5"
                   textClassName="flex-1"
                   name={m.name}

@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
       name: true,
       avatarColor: true,
       photoUrl: true,
+      birdOverride: true,
       batchYear: true,
     },
     take: 8,

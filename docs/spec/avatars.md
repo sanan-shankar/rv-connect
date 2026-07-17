@@ -19,9 +19,23 @@
 >   `src/components/common/bird-adjust.json` (read via `archeTransform`). Birds are sized by visual
 >   MASS (area-equivalent radius), not their farthest tip, so a long bill/tail/crest never shrinks
 >   the body. Converged: every bird centroid = (50,50), consistent body size.
-> - **Owner pin**: `SPECIES_PINS` in `src/lib/avatar.ts` pins a user id to a species (the owner is the
->   Hoopoe). Precedence: photo > manual avatarSpecies > pin > hash. (For production a real
->   `avatarSpecies` column + a settings picker should replace the local-id pin.)
+> - **Owner pin**: `SPECIES_PINS` in `src/lib/avatar.ts` pins a user id to a species (the owner is
+>   pinned to the Indian Roller, not the Hoopoe - see the Hoopoe reservation below).
+> - **Manual per-user override (2026-07, shipped)**: `User.birdOverride` (DB column, a species slug
+>   like `"peregrine-falcon"`) lets an admin hand-assign one member's bird without touching the
+>   hash. **Precedence is now: photo > `birdOverride` > `SPECIES_PINS` > deterministic hash.**
+>   To assign one: resolve the slug by kebab-casing the full name in `SPECIES_FULL_NAMES`
+>   (`bird-avatar-v2.tsx`) - e.g. "Peregrine Falcon" -> `peregrine-falcon` - then run one additive
+>   SQL update via `node scripts/dev/run-sql.mjs --inline "UPDATE \"User\" SET \"birdOverride\" =
+>   'peregrine-falcon' WHERE id = '...'"`. Unknown slugs are silently ignored (falls through to the
+>   pin/hash tiers), so a typo never renders as a blank avatar.
+> - **Hoopoe reservation**: the Hoopoe (species index 0) is the app's flying mascot
+>   (`docs/spec/mascot.md`) and no real member may wear it. `birdOverride = "hoopoe"` only resolves
+>   for the Anonymous placeholder account (id `"anonymous"`); for every other id it is ignored
+>   (`resolveBirdOverride` in `bird-avatar-v2.tsx`). Separately, any member whose plain hash happens
+>   to land on the Hoopoe slot is deterministically remapped to a fixed alternate, the Rufous Treepie
+>   (`hashSpeciesFor` / `HOOPOE_HASH_REMAP_INDEX` in `src/lib/avatar.ts`) - this only changes the
+>   outcome for ids that would otherwise hash to the Hoopoe; every other id's bird is untouched.
 > - Previews: **`/preview/birds-rv`** (public gallery, one icon + name each) and **`/preview/centroid`**
 >   (dev harness for the centering script). Distribution verified by `src/lib/avatar.test.mjs`.
 >
@@ -39,7 +53,9 @@
 > - Visible variety is **50 species x 2 poses** (a left/right mirror), not "16 discs x 4 variations".
 > - The hash salts are `species::` / `color::` / `pose::` over counts `50` / `10` / `4`, not the
 >   `s:` / `c:` sketch in 2.2.
-> - Precedence gained an owner/staff pin: **photo > manual > pin > hash**.
+> - Precedence is now: **photo > `birdOverride` (per-user DB slug) > owner/staff pin > hash**
+>   (with the Hoopoe hash-exclusion described above). "Manual" in the draft below refers to the old,
+>   now-removed `avatarSpecies` render prop, not `birdOverride`.
 
 I have everything I need. The current production code uses `UserAvatar` (initials + `avatarColor` random color), `pickAvatarColor()` assigns random colors at signup, and `User.avatarColor` is the only avatar field in the schema. The v2 preview proves out the bird concept with a single `BirdGlyph` and 3 variants. Now I'll write the exhaustive spec.
 

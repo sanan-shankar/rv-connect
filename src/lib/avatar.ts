@@ -8,10 +8,10 @@
  * visible variety is 50 species x 2 poses (left/right) and the disc colour is held in reserve for
  * the disc-bearing modes.
  *
- * Photo upload overrides the bird; a manual species/colour or an owner/staff pin can also override
- * the hash (precedence: photo > manual > pin > hash). The same id yields the same bird on the
- * server and the client because this is pure arithmetic over charCodeAt, with no Math.random,
- * Date, or locale.
+ * Photo upload overrides the bird; a manual per-user `birdOverride` (DB column, species slug) or an
+ * owner/staff pin can also override the hash (precedence: photo > birdOverride > pin > hash). The
+ * same id yields the same bird on the server and the client because this is pure arithmetic over
+ * charCodeAt, with no Math.random, Date, or locale.
  */
 
 export const AVATAR_PALETTE = [
@@ -47,6 +47,53 @@ export const SPECIES_PINS: Record<string, number> = {
   cmmz0vvws0000ynsg3ueb9scp: 3, // seed-demo owner -> Indian Roller
   cmr1uahuj000004jx4dc4p8co: 3, // production owner (ADMIN_EMAIL) -> Indian Roller
 };
+
+/**
+ * The Hoopoe is species index 0 in the Rishi Valley set (see ARCHES in bird-avatar-v2.tsx) and is
+ * the app's flying mascot (docs/spec/mascot.md). No real member may wear it. The only exception is
+ * the Anonymous placeholder account, which is allowed a `birdOverride` of `"hoopoe"` (see
+ * HOOPOE_RESERVED_USER_ID); every other id is guarded against it in bird-avatar-v2.tsx's
+ * `resolveBirdOverride`.
+ */
+export const HOOPOE_SPECIES_INDEX = 0;
+
+/** The one user id allowed to keep the Hoopoe as its bird (see HOOPOE_SPECIES_INDEX). */
+export const HOOPOE_RESERVED_USER_ID = "anonymous";
+
+/**
+ * Fixed fallback species for a member whose id happens to hash onto the reserved Hoopoe slot.
+ * Deterministic (not re-hashed) so it never collides with the hash of any other real id, and
+ * chosen to read nothing like the Hoopoe (no cinnamon body, no fanned crest): the Rufous Treepie,
+ * a long-tailed grey/rufous/black bird (species index 19 in ARCHES).
+ */
+export const HOOPOE_HASH_REMAP_INDEX = 19;
+
+/**
+ * The final species index for a member's hash-derived bird, with the Hoopoe exclusion applied.
+ * Only ever changes the outcome for the (rare) ids whose raw hash lands on the reserved Hoopoe
+ * slot; every other id's bird is untouched. Manual overrides and pins are resolved by the caller
+ * before falling back to this - it only covers the plain-hash tier of the precedence chain.
+ */
+export function hashSpeciesFor(seed: string): number {
+  const raw = birdFor(seed).species;
+  return raw === HOOPOE_SPECIES_INDEX ? HOOPOE_HASH_REMAP_INDEX : raw;
+}
+
+/**
+ * Resolves a member's final species index given the full precedence chain: an already-resolved
+ * manual `birdOverride` index wins, then the owner/staff pin, then the (Hoopoe-excluded) hash.
+ * `overrideIndex` should already have gone through bird-avatar-v2.tsx's `resolveBirdOverride`
+ * (which parses the slug and enforces the Hoopoe reservation), so this function does not need to
+ * know about slugs at all.
+ */
+export function speciesForMember(seed: string, overrideIndex?: number | null): number {
+  if (overrideIndex !== undefined && overrideIndex !== null) {
+    return ((overrideIndex % BIRD_SPECIES_COUNT) + BIRD_SPECIES_COUNT) % BIRD_SPECIES_COUNT;
+  }
+  const pinned = SPECIES_PINS[seed];
+  if (pinned !== undefined) return pinned;
+  return hashSpeciesFor(seed);
+}
 
 /** FNV-1a 32-bit hash. Stable across runtimes, good spread for short strings like ids. */
 export function fnv1a(input: string): number {

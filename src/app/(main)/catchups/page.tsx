@@ -69,7 +69,7 @@ async function loadIndexData(userId: string) {
           _count: { select: { members: true } },
           members: {
             take: 6,
-            select: { user: { select: { id: true, name: true, photoUrl: true } } },
+            select: { user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
           },
           catchup: {
             select: {
@@ -160,7 +160,7 @@ async function loadIndexData(userId: string) {
     const answeredRows = await prisma.catchupEntry.findMany({
       where: { editionId: { in: answeringCards.map((c) => c.editionId as string) } },
       distinct: ["editionId", "authorId"],
-      select: { editionId: true, author: { select: { id: true, name: true, photoUrl: true } } },
+      select: { editionId: true, author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
     });
     const byEdition = new Map<string, CatchupPersonRef[]>();
     for (const row of answeredRows) {

@@ -76,6 +76,7 @@ export type CatchupPersonRef = {
   name: string;
   photoUrl?: string | null;
   avatarSpecies?: number | null;
+  birdOverride?: string | null;
 };
 
 export type CatchupSongView = {

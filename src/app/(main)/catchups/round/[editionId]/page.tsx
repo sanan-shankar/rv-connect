@@ -214,7 +214,7 @@ export default async function RoundPage({
           showAsker: true,
           accepted: true,
           position: true,
-          author: { select: { id: true, name: true, photoUrl: true } },
+          author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
           entries: {
             orderBy: { createdAt: "asc" },
             select: {
@@ -231,6 +231,7 @@ export default async function RoundPage({
                   id: true,
                   name: true,
                   photoUrl: true,
+                  birdOverride: true,
                   accountType: true,
                   batchType: true,
                   batchYear: true,
@@ -246,8 +247,13 @@ export default async function RoundPage({
   });
   if (!round) notFound();
 
-  function toPersonRef(u: { id: string; name: string; photoUrl: string | null }): CatchupPersonRef {
-    return { id: u.id, name: u.name, photoUrl: u.photoUrl };
+  function toPersonRef(u: {
+    id: string;
+    name: string;
+    photoUrl: string | null;
+    birdOverride?: string | null;
+  }): CatchupPersonRef {
+    return { id: u.id, name: u.name, photoUrl: u.photoUrl, birdOverride: u.birdOverride };
   }
 
   const sections: Array<{ prompt: CatchupPromptView; entries: RoundEntry[] }> = round.prompts.map((p) => {

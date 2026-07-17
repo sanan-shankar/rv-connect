@@ -68,7 +68,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         select: {
           id: true,
           name: true,
-          members: { select: { user: { select: { id: true, name: true, photoUrl: true } } } },
+          members: { select: { user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } } },
         },
       },
       createdBy: { select: { id: true, name: true } },
@@ -129,7 +129,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         where: { id: latestRaw.id },
         include: {
           prompts: {
-            include: { author: { select: { id: true, name: true, photoUrl: true } } },
+            include: { author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
           },
         },
       })
@@ -139,6 +139,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     id: m.user.id,
     name: m.user.name,
     photoUrl: m.user.photoUrl,
+    birdOverride: m.user.birdOverride,
   }));
   const viewerName = members.find((m) => m.id === viewerId)?.name ?? "You";
 
@@ -192,7 +193,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         showAsker: p.showAsker,
         isOwn,
         author: revealAsker
-          ? { id: p.author.id, name: p.author.name, photoUrl: p.author.photoUrl }
+          ? { id: p.author.id, name: p.author.name, photoUrl: p.author.photoUrl, birdOverride: p.author.birdOverride }
           : null,
       };
     });

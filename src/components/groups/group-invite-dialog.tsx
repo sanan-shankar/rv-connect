@@ -21,6 +21,7 @@ interface PersonResult {
   name: string;
   avatarColor: string | null;
   photoUrl?: string | null;
+  birdOverride?: string | null;
   batchYear: number | null;
 }
 
@@ -124,6 +125,7 @@ export function GroupInviteDialog({
                       name: person.name,
                       avatarColor: person.avatarColor,
                       photoUrl: person.photoUrl,
+                      birdOverride: person.birdOverride,
                     }}
                     className="min-w-0 flex-1"
                     textClassName="flex-1"
