@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
 
 export const metadata: Metadata = {
   title: "About",
@@ -37,6 +38,12 @@ export default function AboutPage() {
           <h2 className="font-heading text-xl font-bold tracking-tight text-foreground">
             How to use it
           </h2>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius)] border border-border bg-card p-4">
+            <p className="text-[14.5px] leading-relaxed text-foreground">
+              Prefer to be shown around? The hoopoe can walk you through it again.
+            </p>
+            <TakeTourAgainButton />
+          </div>
           <div className="mt-4 space-y-4">
             <div>
               <h3 className="font-semibold text-foreground">Feed</h3>

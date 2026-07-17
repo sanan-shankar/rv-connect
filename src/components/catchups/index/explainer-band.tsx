@@ -1,3 +1,5 @@
+"use client";
+
 /* ------------------------------------------------------------------ *
  *  <ExplainerBand> — the newcomer explainer atop the index (spec
  *  section 1 + 3.1).
@@ -8,11 +10,16 @@
  *  beats). Once the viewer belongs to at least one Catch-up, they
  *  already know what this is — the full card would just push "The Old
  *  Quadrangle / Answering now" further below the fold, so it collapses
- *  to a single-line strip that keeps the same three beats as quiet
+ *  to a single-line strip that keeps the same three beats as small
  *  inline text.
+ *
+ *  Carries the `data-tour="catchups-explainer"` spotlight target for the
+ *  product tour (walkthrough spec sec 2) on whichever variant renders,
+ *  so the "use client" bump above is solely to host that anchor hook.
  * ------------------------------------------------------------------ */
 
 import { HelpCircle, PenLine, BookOpen, ArrowRight } from "lucide-react";
+import { useTourAnchor } from "@/components/tour/tour-anchors";
 
 const BEATS = [
   { icon: HelpCircle, label: "Ask" },
@@ -21,9 +28,15 @@ const BEATS = [
 ] as const;
 
 export function ExplainerBand({ compact = false }: { compact?: boolean }) {
+  const tourAnchorRef = useTourAnchor<HTMLDivElement>("catchups-explainer");
+
   if (compact) {
     return (
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-full border border-border/70 bg-card/70 px-4 py-2.5">
+      <div
+        ref={tourAnchorRef}
+        data-tour="catchups-explainer"
+        className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-full border border-border/70 bg-card/70 px-4 py-2.5"
+      >
         <span className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-leaf">
           Catch-ups
         </span>
@@ -44,7 +57,11 @@ export function ExplainerBand({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <section className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-6 sm:p-8">
+    <section
+      ref={tourAnchorRef}
+      data-tour="catchups-explainer"
+      className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-6 sm:p-8"
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
