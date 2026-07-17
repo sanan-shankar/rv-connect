@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { SupportContribute } from "@/components/support/support-contribute";
 import { CostBar } from "@/components/support/cost-bar";
@@ -8,35 +9,10 @@ export const metadata: Metadata = {
   description: "Help keep the Rishi Valley community running.",
 };
 
-// The owner's real recurring costs, in plain language. Honesty is the whole
-// point of this page; these are the figures from the infra plan, not inflated.
-const COSTS = [
-  {
-    label: "Hosting",
-    detail: "Vercel, so every page loads fast wherever you are",
-    amount: "about ₹600 / month",
-  },
-  {
-    label: "Database",
-    detail: "Supabase Postgres in Mumbai, where every profile, post, and photo lives",
-    amount: "about ₹550 / month",
-  },
-  {
-    label: "Image storage and delivery",
-    detail: "Cloudflare R2, hosting and serving the photos people share",
-    amount: "a few hundred, usage based",
-  },
-  {
-    label: "Email",
-    detail: "Sign-in links and invites",
-    amount: "small, most months free",
-  },
-  {
-    label: "Domain name",
-    detail: "Renewed once a year",
-    amount: "about ₹1,000 / year",
-  },
-];
+// Owner may later opt into publishing the one-time build cost on this page
+// (a figure around $3,000 went into designing and building the site itself).
+// Until that's confirmed, the page only acknowledges it in a sentence below,
+// with no number attached.
 
 export default function SupportPage() {
   return (
@@ -70,7 +46,7 @@ export default function SupportPage() {
         </p>
       </header>
 
-      {/* Honest cost breakdown, as a ruled sheet so it reads like the feed */}
+      {/* Honest cost breakdown, led by the colorful bar rather than a ledger */}
       <section aria-labelledby="costs-heading" className="mb-[var(--space-xl)]">
         <h2
           id="costs-heading"
@@ -78,34 +54,14 @@ export default function SupportPage() {
         >
           What it actually costs
         </h2>
-        <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
-          {COSTS.map((c) => (
-            <div
-              key={c.label}
-              className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xxs)] border-b border-border px-[var(--space-l)] py-[var(--space-m)] last:border-0"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-foreground">{c.label}</p>
-                <p className="mt-[var(--space-xxs)] text-sm leading-relaxed text-muted-foreground">
-                  {c.detail}
-                </p>
-              </div>
-              <p className="shrink-0 text-sm font-medium tabular-nums text-foreground">
-                {c.amount}
-              </p>
-            </div>
-          ))}
-          <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xxs)] bg-mist px-[var(--space-l)] py-[var(--space-m)]">
-            <p className="font-semibold text-foreground">All in</p>
-            <p className="text-sm font-semibold tabular-nums text-foreground">
-              roughly ₹1,200 to ₹1,500 a month to run
-            </p>
-          </div>
-        </div>
+        <p className="leading-relaxed text-foreground">
+          A real, one-time cost went into designing and building the site
+          itself. What is below is not that. This is just the small monthly
+          bill for keeping it running, in rupees, exactly as it is.
+        </p>
         <CostBar />
         <p className="mt-[var(--space-s)] text-sm leading-relaxed text-muted-foreground">
-          These are the real numbers, not rounded up. A few people chipping in is
-          enough to cover the whole thing.
+          A few people chipping in comfortably covers the whole month.
         </p>
       </section>
 
@@ -122,24 +78,28 @@ export default function SupportPage() {
         </div>
       </section>
 
-      {/* What support pays for */}
-      <section aria-labelledby="why-heading">
+      {/* The one perk for chipping in */}
+      <section aria-labelledby="perk-heading" className="mb-[var(--space-xl)]">
         <h2
-          id="why-heading"
+          id="perk-heading"
           className="mb-[var(--space-s)] font-heading text-xl font-bold tracking-tight text-foreground"
         >
-          What your support pays for
+          A little something back
         </h2>
         <p className="leading-relaxed text-foreground">
-          Your contribution keeps the directory, the feed, the groups, and the
-          Valley Collection running, with no ads and no one selling your details.
-          It stays small, built for this community and no one else.
-          Supporting is never a requirement to be here.
-        </p>
-        <p className="mt-[var(--space-m)] text-sm leading-relaxed text-muted-foreground">
-          Thank you to everyone quietly keeping this going.
+          Anyone who chips in gets to pick their own bird. Instead of the one
+          you were given at random, choose any species from our{" "}
+          <Link
+            href="/preview/birds-rv"
+            className="rounded-[2px] font-medium text-canopy underline decoration-canopy/40 underline-offset-2 transition-opacity duration-150 ease-out hover:decoration-canopy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+          >
+            collection
+          </Link>{" "}
+          of 50, to wear as your avatar across the site.
         </p>
       </section>
+
+      <p className="leading-relaxed text-foreground">Thank you for your support.</p>
     </div>
   );
 }
