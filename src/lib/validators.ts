@@ -1,33 +1,40 @@
 import { z } from "zod/v4";
 import { ERA_VALUES } from "./collection";
 
-// Alumni now describe their schooling with three plain facts (year joined, year
-// left, grade joined) and the batch is derived server-side via
-// computeBatchFromSchooling. batchType/batchYear are outputs of that derivation,
-// not user-entered fields, so they are not part of this input schema.
+// Alumni now give their batch directly ("the year your 12th-grade class
+// graduated, even if you left earlier") plus the two plain years they joined
+// and left. batchYear is written straight through; batchType (the board
+// credential) is derived server-side from yearLeft + batchYear. The old
+// gradeJoined field is retired from sign-up (its column is kept but untouched).
 //
 // First name and surname are collected as two separate fields and joined with
 // a single space into the stored `name` (see registerUser), so each half is
-// validated and trimmed on its own here.
+// validated and trimmed on its own here. Phone is optional and free-form here;
+// registerUser runs it through normalizePhone before storing.
 export const signupSchema = z
   .object({
     firstName: z.string().trim().min(1, "First name is required").max(50),
     lastName: z.string().trim().min(1, "Surname is required").max(50),
     email: z.email("Please enter a valid email"),
     password: z.string().min(8, "Password must be at least 8 characters").max(128),
+    phone: z.string().trim().max(24).optional(),
     accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).default("alumnus"),
     yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
     yearLeft: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
-    gradeJoined: z.number().int().min(1).max(12).optional(),
+    batchYear: z
+      .number()
+      .int()
+      .min(1926, "That batch year looks too early")
+      .max(new Date().getFullYear() + 7, "That batch year looks too far ahead")
+      .optional(),
   })
   .refine(
     (d) =>
       d.accountType !== "alumnus" ||
-      (d.yearJoined != null && d.yearLeft != null && d.gradeJoined != null),
+      (d.yearJoined != null && d.yearLeft != null && d.batchYear != null),
     {
-      message:
-        "Alumni need the year they joined, the year they left, and the grade they joined in.",
-      path: ["yearJoined"],
+      message: "Alumni need the year they joined, the year they left, and their batch.",
+      path: ["batchYear"],
     }
   );
 
@@ -38,6 +45,11 @@ export const signupSchema = z
 export const profileSchema = z.object({
   name: z.string().min(2).max(100),
   bio: z.string().max(1000).optional(),
+  about: z.string().max(4000).optional(),
+  // The email shown on the profile. Blank means "use my sign-in email"; editing
+  // it never changes the login email. Validated loosely (an empty string is
+  // allowed and treated as unset by the action).
+  displayEmail: z.union([z.literal(""), z.email("Please enter a valid email").max(200)]).optional(),
   currentCity: z.string().max(100).optional(),
   secondaryCity: z.string().trim().max(100).optional(),
   workplace: z.string().max(100).optional(),
@@ -46,6 +58,9 @@ export const profileSchema = z.object({
   instagram: z.string().max(100).optional(),
   linkedin: z.string().max(200).optional(),
   accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).optional(),
+  // Batch is a direct field now (headline identity). The collapsible "work it
+  // out" path still derives it from the three schooling facts server-side.
+  batchYear: z.number().int().min(1926).max(new Date().getFullYear() + 7).optional(),
   yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
   yearLeft: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
   gradeJoined: z.number().int().min(1).max(12).optional(),
@@ -66,6 +81,9 @@ export const postSchema = z.object({
   groupId: z.string().optional(),
   images: z.string().optional(),
   pollOptions: z.array(z.string().min(1).max(200)).min(2).max(4).optional(),
+  // City-scoped audience: the poster's own city string, or omitted for "Everyone".
+  // Validated server-side against the poster's actual UserPlace list (createPost).
+  cityScope: z.string().max(120).optional(),
 });
 
 // The Collection contribute form (contribute-dialog.tsx) simplified to three

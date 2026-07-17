@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
+import { TourProvider } from "@/components/tour/tour-provider";
 
 export default async function MainLayout({
   children,
@@ -33,18 +34,21 @@ export default async function MainLayout({
   ]);
 
   return (
-    <AppShell
-      user={{
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        role: session.user.role,
-        avatarColor: session.user.avatarColor,
-        photoUrl: session.user.photoUrl,
-      }}
-      unreadCount={unreadCount}
-    >
-      {children}
-    </AppShell>
+    <TourProvider userId={session.user.id}>
+      <AppShell
+        user={{
+          id: session.user.id,
+          name: session.user.name,
+          email: session.user.email,
+          role: session.user.role,
+          avatarColor: session.user.avatarColor,
+          photoUrl: session.user.photoUrl,
+          birdOverride: session.user.birdOverride,
+        }}
+        unreadCount={unreadCount}
+      >
+        {children}
+      </AppShell>
+    </TourProvider>
   );
 }

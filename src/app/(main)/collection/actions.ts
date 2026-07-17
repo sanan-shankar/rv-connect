@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { putImage, delImage } from "@/lib/storage";
 import { photoSchema } from "@/lib/validators";
 import { eraFromYear } from "@/lib/collection";
+import { notifyAdminNote } from "@/lib/admin-note";
 import { revalidatePath } from "next/cache";
 
 const MAX_INPUT = 20 * 1024 * 1024; // 20MB input; output is tightly compressed
@@ -192,47 +193,68 @@ export async function contributePhoto(formData: FormData) {
   return { success: true, autoApprove };
 }
 
+// Postgres accepts `mode: "insensitive"` on `contains`; SQLite's Prisma
+// adapter rejects it (same gate as directory/where.ts and feed/actions.ts).
+const IS_POSTGRES = (process.env.DATABASE_URL ?? "").startsWith("postgres");
+const insensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
+
+/**
+ * Build the Prisma `where` for the Collection gallery from a set of filters.
+ * Subject and the bird/species free-tag picker were removed from upload
+ * (2026-07-18 rework), so neither gets a dropdown here; caption search still
+ * ORs the legacy `freeTags` column so older bird-tagged photos stay findable
+ * by typing (filters-rework.md sec 3.2).
+ */
+function buildCollectionWhere(opts?: { area?: string; era?: string; search?: string }) {
+  return {
+    approved: true,
+    isHidden: false,
+    // `area` is free text (upload no longer offers a fixed picklist), so this
+    // is a `contains`, not equality -- matches both the option the person
+    // picked from the live distinct-value list and anyone who free-typed a
+    // near variant.
+    ...(opts?.area ? { area: { contains: opts.area, ...insensitive } } : {}),
+    ...(opts?.era ? { era: opts.era } : {}),
+    ...(opts?.search
+      ? {
+          OR: [
+            { caption: { contains: opts.search, ...insensitive } },
+            { freeTags: { contains: opts.search, ...insensitive } },
+          ],
+        }
+      : {}),
+  };
+}
+
 export async function loadPhotos(opts?: {
   page?: number;
-  subject?: string;
   area?: string;
   era?: string;
   search?: string;
   sortBy?: "newest" | "oldest" | "loved" | "wander";
 }) {
   const session = await auth();
-  if (!session?.user?.id) return { photos: [] as PhotoData[], hasMore: false };
+  if (!session?.user?.id) return { photos: [] as PhotoData[], hasMore: false, total: 0 };
 
   const page = opts?.page ?? 0;
-  const where = {
-    approved: true,
-    isHidden: false,
-    ...(opts?.subject ? { subject: { contains: opts.subject } } : {}),
-    ...(opts?.area ? { area: opts.area } : {}),
-    ...(opts?.era ? { era: opts.era } : {}),
-    ...(opts?.search
-      ? {
-          OR: [
-            { caption: { contains: opts.search } },
-            { freeTags: { contains: opts.search } },
-          ],
-        }
-      : {}),
-  };
+  const where = buildCollectionWhere(opts);
 
   // "A wander": a gentle shuffle of a bounded set, single page (no load-more).
   if (opts?.sortBy === "wander") {
-    const rows = await prisma.photo.findMany({
-      where,
-      include: includeFor(session.user.id),
-      orderBy: { createdAt: "desc" },
-      take: 60,
-    });
+    const [rows, total] = await Promise.all([
+      prisma.photo.findMany({
+        where,
+        include: includeFor(session.user.id),
+        orderBy: { createdAt: "desc" },
+        take: 60,
+      }),
+      prisma.photo.count({ where }),
+    ]);
     for (let i = rows.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [rows[i], rows[j]] = [rows[j], rows[i]];
     }
-    return { photos: rows.map((p) => shape(p, session.user.id)), hasMore: false };
+    return { photos: rows.map((p) => shape(p, session.user.id)), hasMore: false, total };
   }
 
   const orderBy =
@@ -242,17 +264,20 @@ export async function loadPhotos(opts?: {
         ? { loves: { _count: "desc" as const } }
         : { createdAt: "desc" as const };
 
-  const rows = await prisma.photo.findMany({
-    where,
-    include: includeFor(session.user.id),
-    orderBy,
-    take: PAGE_SIZE + 1,
-    skip: page * PAGE_SIZE,
-  });
+  const [rows, total] = await Promise.all([
+    prisma.photo.findMany({
+      where,
+      include: includeFor(session.user.id),
+      orderBy,
+      take: PAGE_SIZE + 1,
+      skip: page * PAGE_SIZE,
+    }),
+    prisma.photo.count({ where }),
+  ]);
 
   const hasMore = rows.length > PAGE_SIZE;
   const trimmed = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
-  return { photos: trimmed.map((p) => shape(p, session.user.id)), hasMore };
+  return { photos: trimmed.map((p) => shape(p, session.user.id)), hasMore, total };
 }
 
 export async function myPendingPhotos(): Promise<PhotoData[]> {
@@ -324,5 +349,33 @@ export async function declinePhoto(photoId: string) {
   });
 
   revalidatePath("/admin");
+  return { success: true };
+}
+
+/**
+ * Admin-only: soft-hide an already-approved Collection photo from its own
+ * card/row (the grid tile and the /collection/[id] detail view), with the
+ * same optional warm note flow as adminRemovePost/adminRemoveComment.
+ * Distinct from declinePhoto above (a hard delete + file cleanup for photos
+ * still in the pending-review queue): this keeps the row and the files, and
+ * only applies to photos already live in the Collection.
+ */
+export async function adminRemovePhoto(photoId: string, note?: string) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") return { error: "Not authorized" };
+
+  const photo = await prisma.photo.findUnique({
+    where: { id: photoId },
+    select: { uploaderId: true },
+  });
+  if (!photo) return { error: "Photo not found" };
+
+  await prisma.photo.update({ where: { id: photoId }, data: { isHidden: true } });
+
+  const trimmedNote = note?.trim();
+  if (trimmedNote) await notifyAdminNote(photo.uploaderId, trimmedNote);
+
+  revalidatePath("/collection");
+  revalidatePath(`/collection/${photoId}`);
   return { success: true };
 }

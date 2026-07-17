@@ -25,12 +25,17 @@ export type PinPerson = {
   name: string;
   avatarColor: string | null;
   photoUrl?: string | null;
+  birdOverride?: string | null;
   accountType?: string | null;
   verifyState?: string | null;
   batchType: string | null;
   batchYear: number | null;
   currentCity: string | null;
   jobTitle: string | null;
+  /** This person's OTHER mapped cities, if any -- they plot in every pin
+   *  they have a resolvable city for (owner override), so the drilldown for
+   *  any one of those pins can say "Also in ...". */
+  otherCities?: string[];
 };
 
 export type CityPin = {
@@ -416,13 +421,22 @@ export function AlumniMap({
                   className="group block rounded-[var(--radius-md)] px-2 py-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
                 >
                   <IdentityRow
-                    user={{ id: p.id, name: p.name, photoUrl: p.photoUrl }}
+                    user={{ id: p.id, name: p.name, photoUrl: p.photoUrl, birdOverride: p.birdOverride }}
                     textClassName="flex-1"
                     name={p.name}
                     nameClassName="truncate text-[15px] font-semibold leading-none text-foreground group-hover:underline"
                     meta={[batchLine(p), p.jobTitle].filter(Boolean).join(" · ")}
                     metaClassName="truncate leading-none"
                   />
+                  {/* A person plots in every city they list (owner override),
+                      so this pin's list can hold someone who also lives
+                      elsewhere -- say so rather than implying this is their
+                      only base. */}
+                  {p.otherCities && p.otherCities.length > 0 && (
+                    <p className="truncate pl-[calc(2.5rem+0.625rem)] text-[11px] text-muted-foreground">
+                      Also in {p.otherCities.join(", ")}
+                    </p>
+                  )}
                 </Link>
               ))
             )}

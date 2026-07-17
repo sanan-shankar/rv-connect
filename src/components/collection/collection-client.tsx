@@ -1,21 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, SlidersHorizontal } from "lucide-react";
 import { Heart, MagnifyingGlass } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { SUBJECTS, AREAS, ERAS } from "@/lib/collection";
+  FacetSelect,
+  FacetSearchSelect,
+  SortPill,
+  ActiveFilterChips,
+  ResultCount,
+  FilterSheet,
+  type ActiveChip,
+} from "@/components/common/filters";
+import { WHEN_OPTIONS, COLLECTION_SORT_OPTIONS } from "@/lib/collection-facets";
 import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
 import { ContributeDialog } from "./contribute-dialog";
+import { useTourAnchor } from "@/components/tour/tour-anchors";
 
 type SortBy = "newest" | "oldest" | "loved" | "wander";
 
@@ -56,18 +59,27 @@ function Tile({ photo }: { photo: PhotoData }) {
   );
 }
 
-export function CollectionClient({ pending }: { pending: PhotoData[] }) {
+export function CollectionClient({
+  pending,
+  areaOptions,
+}: {
+  pending: PhotoData[];
+  areaOptions: string[];
+}) {
   const [photos, setPhotos] = useState<PhotoData[]>([]);
+  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const tourAnchorRef = useTourAnchor<HTMLButtonElement>("collection-contribute");
 
-  const [subject, setSubject] = useState("all");
-  const [area, setArea] = useState("all");
-  const [era, setEra] = useState("all");
+  const [area, setArea] = useState("");
+  const [era, setEra] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("newest");
+  const areaFacetOptions = useMemo(() => areaOptions.map((a) => ({ value: a, label: a })), [areaOptions]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -84,13 +96,12 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
     (p: number) =>
       loadPhotos({
         page: p,
-        subject: subject !== "all" ? subject : undefined,
-        area: area !== "all" ? area : undefined,
-        era: era !== "all" ? era : undefined,
+        area: area || undefined,
+        era: era || undefined,
         search: search || undefined,
         sortBy,
       }),
-    [subject, area, era, search, sortBy]
+    [area, era, search, sortBy]
   );
 
   useEffect(() => {
@@ -101,6 +112,7 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
       if (cancelled) return;
       setPhotos(data.photos);
       setHasMore(data.hasMore);
+      setTotal(data.total);
       setLoading(false);
     });
     return () => {
@@ -114,16 +126,71 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
     const data = await fetchPage(next);
     setPhotos((prev) => [...prev, ...data.photos]);
     setHasMore(data.hasMore);
+    setTotal(data.total);
     setPage(next);
     setLoadingMore(false);
   }
 
-  const empty = !loading && photos.length === 0 && pending.length === 0;
+  function clearAll() {
+    setSearchInput("");
+    setSearch("");
+    setArea("");
+    setEra("");
+    setSortBy("newest");
+  }
+
+  const hasFilter = !!(area || era || search);
+  // Truly empty: nothing has ever been added, no filter is even active.
+  // Distinct from filtered-to-zero (photos exist, the active filters just
+  // don't match any of them) -- see docs/planning/round6-specs/filters-rework.md sec 7.
+  const trulyEmpty = !loading && !hasFilter && photos.length === 0 && pending.length === 0;
+  const noMatches = !loading && hasFilter && photos.length === 0;
+
+  const activeChips: ActiveChip[] = [];
+  if (era) {
+    const option = WHEN_OPTIONS.find((o) => o.value === era);
+    activeChips.push({ key: "era", label: `When: ${option?.label ?? era}`, onClear: () => setEra("") });
+  }
+  if (area) {
+    activeChips.push({
+      key: "area",
+      label: `Part of school: ${area}`,
+      onClear: () => setArea(""),
+    });
+  }
+
+  // Shared between the desktop bar and the mobile FilterSheet (which stacks
+  // both facets full-width) so neither rewrites the same two facet configs.
+  function renderFacets(fullWidth: boolean) {
+    const className = fullWidth ? "w-full" : undefined;
+    return (
+      <>
+        <FacetSelect
+          label="When"
+          value={era}
+          onChange={setEra}
+          options={WHEN_OPTIONS}
+          anyLabel="Any time"
+          className={className}
+        />
+        <FacetSearchSelect
+          label="Part of school"
+          value={area}
+          onChange={setArea}
+          options={areaFacetOptions}
+          anyLabel="Anywhere on campus"
+          searchPlaceholder="Search..."
+          className={className}
+        />
+      </>
+    );
+  }
 
   return (
     <div>
-      {/* Toolbar */}
-      <div className="mb-5 flex flex-wrap items-center gap-2">
+      {/* Toolbar: search + When + Part of school + Sort all fit inline on
+          desktop (few enough facets, no "More filters" toggle needed). */}
+      <div className="mb-2 flex flex-wrap items-center gap-2.5">
         <div className="relative min-w-[200px] flex-1">
           <MagnifyingGlass
             weight="regular"
@@ -131,69 +198,91 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
             className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
           <Input
-            placeholder="Search captions and birds..."
+            placeholder="Search captions..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="h-10 rounded-full border-border bg-card pl-10"
           />
         </div>
-        <Select value={subject} onValueChange={(v) => setSubject(v ?? "all")}>
-          <SelectTrigger className="h-10 w-[140px] rounded-full bg-card">
-            <SelectValue placeholder="Subject" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All subjects</SelectItem>
-            {SUBJECTS.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={area} onValueChange={(v) => setArea(v ?? "all")}>
-          <SelectTrigger className="h-10 w-[140px] rounded-full bg-card">
-            <SelectValue placeholder="Area" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Anywhere</SelectItem>
-            {AREAS.map((a) => (
-              <SelectItem key={a.value} value={a.value}>
-                {a.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={era} onValueChange={(v) => setEra(v ?? "all")}>
-          <SelectTrigger className="h-10 w-[120px] rounded-full bg-card">
-            <SelectValue placeholder="Era" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Any era</SelectItem>
-            {ERAS.map((e) => (
-              <SelectItem key={e.value} value={e.value}>
-                {e.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={(v) => setSortBy((v ?? "newest") as SortBy)}>
-          <SelectTrigger className="h-10 w-[136px] rounded-full bg-card">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
-            <SelectItem value="loved">Most loved</SelectItem>
-            <SelectItem value="wander">A wander</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="primary" className="rounded-full" onClick={() => setDialogOpen(true)}>
+
+        <div className="hidden items-center gap-2.5 lg:flex">
+          {renderFacets(false)}
+          <SortPill value={sortBy} onChange={(v) => setSortBy(v as SortBy)} options={COLLECTION_SORT_OPTIONS} />
+          {hasFilter && (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+
+        <Button
+          ref={trulyEmpty ? undefined : tourAnchorRef}
+          data-tour={trulyEmpty ? undefined : "collection-contribute"}
+          variant="primary"
+          className="hidden rounded-full lg:inline-flex"
+          onClick={() => setDialogOpen(true)}
+        >
           <Plus className="h-4 w-4" />
           Contribute
         </Button>
+
+        {/* Mobile (<1024px): Sort + Filters(N) + a Contribute icon button. */}
+        <div className="flex w-full items-center gap-2.5 lg:hidden">
+          <SortPill
+            value={sortBy}
+            onChange={(v) => setSortBy(v as SortBy)}
+            options={COLLECTION_SORT_OPTIONS}
+            className="flex-1"
+          />
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+          >
+            <SlidersHorizontal className="size-3.5" aria-hidden />
+            Filters
+            {activeChips.length > 0 && <span className="opacity-80">· {activeChips.length}</span>}
+          </button>
+          <Button
+            variant="primary"
+            size="icon"
+            className="shrink-0 rounded-full"
+            onClick={() => setDialogOpen(true)}
+            aria-label="Contribute a photo"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {empty ? (
+      {activeChips.length > 0 && (
+        <ActiveFilterChips chips={activeChips} onClearAll={clearAll} className="mb-3 lg:hidden" />
+      )}
+
+      {!trulyEmpty && !loading && (
+        <ResultCount
+          count={total}
+          singular="photo"
+          plural="photos"
+          className="mb-4 text-sm text-muted-foreground"
+        />
+      )}
+
+      <FilterSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onClearAll={clearAll}
+        hasActive={hasFilter}
+        showLabel={`Show ${total} ${total === 1 ? "photo" : "photos"}`}
+      >
+        {renderFacets(true)}
+      </FilterSheet>
+
+      {trulyEmpty ? (
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-14 text-center">
           <p className="font-heading text-xl tracking-tight text-foreground">
             The collection is just beginning.
@@ -202,10 +291,34 @@ export function CollectionClient({ pending }: { pending: PhotoData[] }) {
             The first photographs of the valley will live here: the banyan, Rishi Konda, the
             birds, the light. Add the first one.
           </p>
-          <Button variant="primary" className="mt-5 rounded-full" onClick={() => setDialogOpen(true)}>
+          <Button
+            ref={tourAnchorRef}
+            data-tour="collection-contribute"
+            variant="primary"
+            className="mt-5 rounded-full"
+            onClick={() => setDialogOpen(true)}
+          >
             <Plus className="h-4 w-4" />
             Contribute a photo
           </Button>
+        </div>
+      ) : noMatches ? (
+        <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-14 text-center">
+          <p className="font-heading text-xl tracking-tight text-foreground">
+            No photos match these filters.
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Try widening When, or clear a filter.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {activeChips.length > 0 && <ActiveFilterChips chips={activeChips} className="justify-center" />}
+            <Button variant="outline" className="rounded-full" onClick={clearAll}>
+              Clear all
+            </Button>
+            <Button variant="outline" className="rounded-full" onClick={() => setSortBy("wander")}>
+              A wander
+            </Button>
+          </div>
         </div>
       ) : (
         <>

@@ -1,23 +1,35 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { motion } from "motion/react";
-import { Search, Filter, ArrowLeft, ArrowUpDown } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { Search, SlidersHorizontal, ArrowLeft } from "lucide-react";
 import { SPRINGS } from "@/components/common/motion";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import {
+  FacetSelect,
+  FacetSearchSelect,
+  RangeFacetPill,
+  SortPill,
+  ActiveFilterChips,
+  ResultCount,
+  FilterSheet,
+  type ActiveChip,
+} from "@/components/common/filters";
+import {
+  PROFESSION_OPTIONS,
+  HOUSE_OPTIONS,
+  OPEN_TO_FACET_OPTIONS,
+  TYPE_OPTIONS,
+  directorySortOptions,
+  directoryDefaultSort,
+} from "@/lib/directory-facets";
 import { ProfileCard } from "./profile-card";
 import { AlumniMap, type CityPin, type PinPerson } from "./alumni-map";
 import { loadDirectoryPage } from "@/app/(main)/directory/actions";
+import { useTourAnchor } from "@/components/tour/tour-anchors";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 
 interface User {
@@ -25,12 +37,26 @@ interface User {
   name: string;
   avatarColor: string | null;
   photoUrl?: string | null;
+  birdOverride?: string | null;
   accountType?: string | null;
   verifyState?: string | null;
   batchType: string | null;
   batchYear: number | null;
   currentCity: string | null;
   jobTitle: string | null;
+}
+
+interface DirectoryFiltersState {
+  q: string;
+  year: string;
+  city: string;
+  profession: string;
+  house: string;
+  openTo: string;
+  type: string;
+  yearFrom: string;
+  yearTo: string;
+  sort: string;
 }
 
 interface DirectoryClientProps {
@@ -42,18 +68,18 @@ interface DirectoryClientProps {
   batchYearCounts: { year: number; count: number }[];
   facultyCount: number;
   cities: string[];
-  industries: string[];
-  initialFilters: {
-    q: string;
-    year: string;
-    city: string;
-    industry: string;
-    yearFrom: string;
-    yearTo: string;
-    sort: string;
-  };
+  minBatchYear: number;
+  maxBatchYear: number;
+  initialFilters: DirectoryFiltersState;
   hasFilter: boolean;
   nextCursor: string | null;
+}
+
+function batchRangeText(from: string, to: string): string {
+  if (from && to) return `Batch: ${from} to ${to}`;
+  if (from) return `Batch: ${from} onward`;
+  if (to) return `Batch: up to ${to}`;
+  return "Batch";
 }
 
 export function DirectoryClient({
@@ -65,22 +91,20 @@ export function DirectoryClient({
   batchYearCounts,
   facultyCount,
   cities,
-  industries,
+  minBatchYear,
+  maxBatchYear,
   initialFilters,
   hasFilter,
   nextCursor,
 }: DirectoryClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tourAnchorRef = useTourAnchor<HTMLDivElement>("directory-search");
   const [query, setQuery] = useState(initialFilters.q);
-  const [showFilters, setShowFilters] = useState(
-    !!(
-      initialFilters.city ||
-      initialFilters.industry ||
-      initialFilters.yearFrom ||
-      initialFilters.yearTo
-    )
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(
+    !!(initialFilters.house || initialFilters.openTo || initialFilters.type || initialFilters.yearFrom || initialFilters.yearTo)
   );
+  const [sheetOpen, setSheetOpen] = useState(false);
   // When filtering, default to the People (grid) view so results are visible;
   // otherwise the zero-typing browse opens on the Map.
   const [browseView, setBrowseView] = useState<"map" | "batches" | "people">(
@@ -109,7 +133,10 @@ export function DirectoryClient({
         q: initialFilters.q || undefined,
         year: initialFilters.year || undefined,
         city: initialFilters.city || undefined,
-        industry: initialFilters.industry || undefined,
+        profession: initialFilters.profession || undefined,
+        house: initialFilters.house || undefined,
+        openTo: initialFilters.openTo || undefined,
+        type: initialFilters.type || undefined,
         sort: initialFilters.sort || undefined,
         yearFrom: initialFilters.yearFrom || undefined,
         yearTo: initialFilters.yearTo || undefined,
@@ -127,11 +154,21 @@ export function DirectoryClient({
   const updateFilters = useCallback(
     (key: string, value: string) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (value && value !== "all") {
+      if (value) {
         params.set(key, value);
       } else {
         params.delete(key);
       }
+      router.push(`/directory?${params.toString()}`);
+    },
+    [router, searchParams]
+  );
+
+  const updateBatchRange = useCallback(
+    (next: { from: string; to: string }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next.from) params.set("yearFrom", next.from); else params.delete("yearFrom");
+      if (next.to) params.set("yearTo", next.to); else params.delete("yearTo");
       router.push(`/directory?${params.toString()}`);
     },
     [router, searchParams]
@@ -146,6 +183,11 @@ export function DirectoryClient({
     [updateFilters]
   );
 
+  function clearAll() {
+    setQuery("");
+    router.push("/directory");
+  }
+
   const showingYear = !!initialFilters.year;
   const yearLabel =
     initialFilters.year === "faculty"
@@ -157,17 +199,141 @@ export function DirectoryClient({
   // Top five cities, derived from the same pins the map plots.
   const topCities = [...cityPins].sort((a, b) => b.count - a.count).slice(0, 5);
 
+  const cityOptions = useMemo(() => cities.map((c) => ({ value: c, label: c })), [cities]);
+  const hasQuery = !!initialFilters.q;
+  const sortOptions = directorySortOptions(hasQuery);
+  const sortValue = initialFilters.sort || directoryDefaultSort(hasQuery);
+
+  const secondaryCount =
+    (initialFilters.house ? 1 : 0) +
+    (initialFilters.openTo ? 1 : 0) +
+    (initialFilters.type ? 1 : 0) +
+    (initialFilters.yearFrom || initialFilters.yearTo ? 1 : 0);
+
+  const activeChips: ActiveChip[] = [];
+  if (initialFilters.profession) {
+    activeChips.push({
+      key: "profession",
+      label: `Profession: ${initialFilters.profession}`,
+      onClear: () => updateFilters("profession", ""),
+    });
+  }
+  if (initialFilters.city) {
+    activeChips.push({
+      key: "city",
+      label: `City: ${initialFilters.city}`,
+      onClear: () => updateFilters("city", ""),
+    });
+  }
+  if (initialFilters.yearFrom || initialFilters.yearTo) {
+    activeChips.push({
+      key: "batch",
+      label: batchRangeText(initialFilters.yearFrom, initialFilters.yearTo),
+      onClear: () => updateBatchRange({ from: "", to: "" }),
+    });
+  }
+  if (initialFilters.house) {
+    activeChips.push({
+      key: "house",
+      label: `House: ${initialFilters.house}`,
+      onClear: () => updateFilters("house", ""),
+    });
+  }
+  if (initialFilters.openTo) {
+    const openToOption = OPEN_TO_FACET_OPTIONS.find((o) => o.value === initialFilters.openTo);
+    activeChips.push({
+      key: "openTo",
+      label: `Open to: ${openToOption?.label ?? initialFilters.openTo}`,
+      onClear: () => updateFilters("openTo", ""),
+    });
+  }
+  if (initialFilters.type) {
+    const typeOption = TYPE_OPTIONS.find((o) => o.value === initialFilters.type);
+    activeChips.push({
+      key: "type",
+      label: `Type: ${typeOption?.label ?? initialFilters.type}`,
+      onClear: () => updateFilters("type", ""),
+    });
+  }
+
   // People (results) only appears while a filter is active; the map and batches
   // are always reachable so filtering narrows the map rather than replacing it.
   const views: ("map" | "batches" | "people")[] = hasFilter
     ? ["people", "map", "batches"]
     : ["map", "batches"];
 
+  // Shared between the desktop rail and the mobile FilterSheet (which stacks
+  // every facet full-width) so neither rewrites the same six facet configs.
+  function renderPrimaryFacets(fullWidth: boolean) {
+    const className = fullWidth ? "w-full" : undefined;
+    return (
+      <>
+        <FacetSelect
+          label="Profession"
+          value={initialFilters.profession}
+          onChange={(v) => updateFilters("profession", v)}
+          options={PROFESSION_OPTIONS}
+          anyLabel="Any profession"
+          className={className}
+        />
+        <FacetSearchSelect
+          label="City"
+          value={initialFilters.city}
+          onChange={(v) => updateFilters("city", v)}
+          options={cityOptions}
+          anyLabel="Any city"
+          searchPlaceholder="Search cities..."
+          className={className}
+        />
+      </>
+    );
+  }
+
+  function renderSecondaryFacets(fullWidth: boolean) {
+    const className = fullWidth ? "w-full" : undefined;
+    return (
+      <>
+        <RangeFacetPill
+          from={initialFilters.yearFrom}
+          to={initialFilters.yearTo}
+          onChange={updateBatchRange}
+          minYear={minBatchYear}
+          maxYear={maxBatchYear}
+          className={className}
+        />
+        <FacetSearchSelect
+          label="House"
+          value={initialFilters.house}
+          onChange={(v) => updateFilters("house", v)}
+          options={HOUSE_OPTIONS}
+          anyLabel="Any house"
+          className={className}
+        />
+        <FacetSelect
+          label="Open to"
+          value={initialFilters.openTo}
+          onChange={(v) => updateFilters("openTo", v)}
+          options={OPEN_TO_FACET_OPTIONS}
+          anyLabel="Any"
+          className={className}
+        />
+        <FacetSelect
+          label="Type"
+          value={initialFilters.type}
+          onChange={(v) => updateFilters("type", v)}
+          options={TYPE_OPTIONS}
+          anyLabel="Everyone"
+          className={className}
+        />
+      </>
+    );
+  }
+
   return (
     <div>
-      {/* Tier 1: one search box + a Filters toggle. Always visible. */}
+      {/* Tier 1: search + always-visible facets. */}
       <div className="mb-6 space-y-3">
-        <div className="flex gap-2">
+        <div ref={tourAnchorRef} data-tour="directory-search" className="flex gap-2">
           {(showingYear || hasFilter) && (
             <Button
               variant="outline"
@@ -181,95 +347,94 @@ export function DirectoryClient({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by name, city, or profession..."
+              placeholder="Search people by name, city, or work."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
               className="h-10 rounded-full border-border bg-card pl-10"
             />
           </div>
-          <Button
-            variant={showFilters ? "default" : "outline"}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4" />
-            Filters
-          </Button>
         </div>
 
-        {/* Tier 2: facets, on demand. */}
-        {showFilters && (
-          <div className="flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-border bg-card p-3">
-            <Select
-              value={initialFilters.city || "all"}
-              onValueChange={(v) => updateFilters("city", v === "all" ? "" : (v ?? ""))}
+        {/* Desktop (>=1024px): Profession + City always visible, Sort, More
+            filters toggle, Clear all. The pills themselves double as the
+            active-filter chips (Label: Value + x), so there's no separate
+            chip row here. */}
+        <div className="hidden flex-wrap items-center gap-2.5 lg:flex">
+          {renderPrimaryFacets(false)}
+          <div className="ml-auto flex items-center gap-2.5">
+            <SortPill value={sortValue} onChange={(v) => updateFilters("sort", v)} options={sortOptions} />
+            <button
+              type="button"
+              onClick={() => setMoreFiltersOpen((v) => !v)}
+              aria-expanded={moreFiltersOpen}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy"
             >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Any city" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Any city</SelectItem>
-                {cities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={initialFilters.industry || "all"}
-              onValueChange={(v) => updateFilters("industry", v === "all" ? "" : (v ?? ""))}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Any profession" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Any profession</SelectItem>
-                {industries.map((ind) => (
-                  <SelectItem key={ind} value={ind}>
-                    {ind}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Input
-              type="number"
-              inputMode="numeric"
-              placeholder="Batch from"
-              defaultValue={initialFilters.yearFrom}
-              onBlur={(e) => updateFilters("yearFrom", e.target.value)}
-              className="h-9 w-[120px] rounded-[var(--radius-md)]"
-            />
-            <Input
-              type="number"
-              inputMode="numeric"
-              placeholder="Batch to"
-              defaultValue={initialFilters.yearTo}
-              onBlur={(e) => updateFilters("yearTo", e.target.value)}
-              className="h-9 w-[120px] rounded-[var(--radius-md)]"
-            />
-
-            <div className="ml-auto flex items-center gap-2">
-              <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-              <Select
-                value={initialFilters.sort || "relevance"}
-                onValueChange={(v) =>
-                  updateFilters("sort", v === "relevance" ? "" : (v ?? ""))
-                }
+              <SlidersHorizontal className="size-3.5" aria-hidden />
+              More filters
+              {secondaryCount > 0 && <span className="opacity-80">· {secondaryCount}</span>}
+            </button>
+            {hasFilter && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40"
               >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Sort" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Most recent</SelectItem>
-                  <SelectItem value="name">Name A to Z</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                Clear all
+              </button>
+            )}
           </div>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {moreFiltersOpen && (
+            <motion.div
+              key="more-filters"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={SPRINGS.gentle}
+              className="hidden flex-wrap items-center gap-2.5 lg:flex"
+            >
+              {renderSecondaryFacets(false)}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Mobile (<1024px): search above, then Sort + Filters(N) button; a
+            horizontally scrollable chip strip mirrors whatever is set since
+            the pills themselves live in the sheet on this breakpoint. */}
+        <div className="flex items-center gap-2.5 lg:hidden">
+          <SortPill
+            value={sortValue}
+            onChange={(v) => updateFilters("sort", v)}
+            options={sortOptions}
+            className="flex-1"
+          />
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+          >
+            <SlidersHorizontal className="size-3.5" aria-hidden />
+            Filters
+            {activeChips.length > 0 && <span className="opacity-80">· {activeChips.length}</span>}
+          </button>
+        </div>
+        {activeChips.length > 0 && (
+          <ActiveFilterChips chips={activeChips} onClearAll={clearAll} className="lg:hidden" />
         )}
       </div>
+
+      <FilterSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onClearAll={clearAll}
+        hasActive={hasFilter}
+        showLabel={`Show ${resultCount} ${resultCount === 1 ? "person" : "people"}`}
+      >
+        {renderPrimaryFacets(true)}
+        {renderSecondaryFacets(true)}
+      </FilterSheet>
 
       {/* View toggle. People (results) appears only while filtering; the map and
           batches stay available so an active filter narrows the map in place
@@ -302,15 +467,18 @@ export function DirectoryClient({
       {browseView === "people" ? (
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {yearLabel && (
-                <span className="mr-1 font-medium text-foreground">{yearLabel}</span>
-              )}
-              {resultCount} {resultCount === 1 ? "person" : "people"} found
+            <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
+              {yearLabel && <span className="font-medium text-foreground">{yearLabel}</span>}
+              <ResultCount
+                count={resultCount}
+                singular={hasFilter ? "result" : "person"}
+                plural={hasFilter ? "results" : "people"}
+                className=""
+              />
               {resultCount > results.length && (
-                <span className="text-muted-foreground/80"> · showing {results.length}</span>
+                <span className="text-muted-foreground/80">· showing {results.length}</span>
               )}
-            </p>
+            </div>
           </div>
 
           {results.length === 0 ? (
@@ -319,11 +487,16 @@ export function DirectoryClient({
                 <NoResultsHoopoe size={76} />
               </div>
               <p className="font-heading text-lg text-foreground">
-                No one matches your search.
+                No one matches these filters.
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Try a shorter search or clear a filter.
+                Try removing a filter or clearing your search.
               </p>
+              {activeChips.length > 0 && (
+                <div className="mt-4 flex flex-wrap justify-center">
+                  <ActiveFilterChips chips={activeChips} onClearAll={clearAll} className="justify-center" />
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -355,7 +528,7 @@ export function DirectoryClient({
           <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
             <p className="font-heading text-lg tracking-tight text-foreground">
               {hasFilter
-                ? "No one on the map matches your filters."
+                ? "No one on the map matches these filters."
                 : "The map fills in as people add their city."}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -363,6 +536,11 @@ export function DirectoryClient({
                 ? "Try the People view, widen a filter, or clear your search."
                 : "Add yours from your profile and watch the valley spread across the world."}
             </p>
+            {hasFilter && (
+              <Button variant="outline" className="mt-4 rounded-full" onClick={clearAll}>
+                Clear all
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

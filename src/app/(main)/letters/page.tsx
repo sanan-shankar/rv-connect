@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Feather } from "lucide-react";
+import { ArrowRight, Feather, MapPin } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { LetterComposer } from "@/components/letters/letter-composer";
 import { IdentityRow } from "@/components/common/identity-row";
+import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { formatBatch, letterTitle } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -29,6 +30,10 @@ export default async function LettersPage() {
   if (!session?.user) return null;
 
   const userBatch = `${session.user.batchType}-${session.user.batchYear}`;
+  const isAdmin = session.user.role === "admin";
+  const viewerCities = isAdmin ? [] : await getViewerCities(session.user.id);
+  // Reused below for the composer's "Show to" audience control (same list, no
+  // second query -- getViewerCities already returns it in position order).
   const letters = await prisma.post.findMany({
     where: {
       kind: "letter",
@@ -39,10 +44,11 @@ export default async function LettersPage() {
         { targetBatches: "" },
         { targetBatches: { contains: userBatch } },
       ],
+      ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
     },
     include: {
       author: {
-        select: { id: true, name: true, avatarColor: true, photoUrl: true, batchType: true, batchYear: true },
+        select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, batchType: true, batchYear: true },
       },
       _count: { select: { comments: true, likes: true } },
     },
@@ -58,7 +64,7 @@ export default async function LettersPage() {
       />
 
       <div className="space-y-5">
-        <LetterComposer />
+        <LetterComposer userPlaces={viewerCities} />
 
         {letters.length === 0 ? (
           <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
@@ -82,6 +88,12 @@ export default async function LettersPage() {
                   <Feather className="h-3.5 w-3.5" />
                   Letter
                   <span className="text-muted-foreground/70">· {readTime(l.content)} min read</span>
+                  {l.cityScope && (
+                    <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-sky/10 px-2 py-0.5 text-[10px] normal-case tracking-normal text-sky">
+                      <MapPin className="h-2.5 w-2.5" />
+                      {l.cityScope} only
+                    </span>
+                  )}
                 </div>
                 <h2 className="mt-2 font-heading text-2xl font-bold leading-snug tracking-[-0.01em] text-foreground group-hover:text-leaf">
                   {letterTitle(l.title, l.content, 80)}

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { postSchema, commentSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
 import { delImage } from "@/lib/storage";
+import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
+import { notifyAdminNote } from "@/lib/admin-note";
 
 // Postgres accepts `mode: "insensitive"` on `contains`; SQLite's Prisma
 // adapter rejects it (and SQLite `LIKE` is already case-insensitive for
@@ -44,6 +46,7 @@ export async function createPost(formData: FormData) {
     groupId: (formData.get("groupId") as string) || undefined,
     images: (formData.get("images") as string) || undefined,
     pollOptions,
+    cityScope: (formData.get("cityScope") as string) || undefined,
   };
 
   const parsed = postSchema.safeParse(raw);
@@ -59,6 +62,23 @@ export async function createPost(formData: FormData) {
     if (!membership) return { error: "You're not a member of this group" };
   }
 
+  // City-scope audience control: only allowed to a city the poster themself has
+  // listed (an own UserPlace), matched case-insensitively; anything else is
+  // silently ignored rather than trusted, so a tampered form field can't scope
+  // a post to an arbitrary city. Group posts never get a cityScope, same as
+  // tag/targetBatches above.
+  let cityScope: string | null = null;
+  if (!groupId && parsed.data.cityScope) {
+    const ownPlace = await prisma.userPlace.findFirst({
+      where: {
+        userId: session.user.id,
+        city: { equals: parsed.data.cityScope, ...searchInsensitive },
+      },
+      select: { city: true },
+    });
+    cityScope = ownPlace?.city ?? null;
+  }
+
   const post = await prisma.post.create({
     data: {
       authorId: session.user.id,
@@ -69,6 +89,7 @@ export async function createPost(formData: FormData) {
       targetBatches: groupId ? null : parsed.data.targetBatches || null,
       groupId,
       images: parsed.data.images || null,
+      cityScope,
     },
   });
 
@@ -171,6 +192,37 @@ export async function deletePost(postId: string) {
 
   await prisma.post.delete({ where: { id: postId } });
   revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
+  return { success: true };
+}
+
+/**
+ * Admin-only: soft-hide any post (or letter, same model) from every card/row
+ * it appears in, with an optional warm note relayed to the author as a
+ * Notification (type "admin_note") that opens the dedicated /notice/[id]
+ * page. Distinct from `deletePost` above (an author's own hard delete): this
+ * never deletes the row, so the record and its note survive for the author
+ * and for any later audit.
+ */
+export async function adminRemovePost(postId: string, note?: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "admin") {
+    return { error: "Not authorized" };
+  }
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true, groupId: true, kind: true },
+  });
+  if (!post) return { error: "Post not found" };
+
+  await prisma.post.update({ where: { id: postId }, data: { isHidden: true } });
+
+  const trimmedNote = note?.trim();
+  if (trimmedNote) await notifyAdminNote(post.authorId, trimmedNote);
+
+  revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
+  if (post.kind === "letter") revalidatePath("/letters");
+  revalidatePath("/admin");
   return { success: true };
 }
 
@@ -385,6 +437,34 @@ export async function deleteComment(commentId: string) {
   return { success: true };
 }
 
+/**
+ * Admin-only: soft-hide a comment from view, with the same optional warm
+ * note flow as adminRemovePost. Distinct from deleteComment above (an
+ * author's or admin's hard delete, already wired to nothing in the UI): this
+ * keeps the row (and the thread's structure, since replies key off it) but
+ * excludes it from loadComments for everyone.
+ */
+export async function adminRemoveComment(commentId: string, note?: string) {
+  const session = await auth();
+  if (!session?.user?.id || session.user.role !== "admin") {
+    return { error: "Not authorized" };
+  }
+
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { authorId: true, postId: true },
+  });
+  if (!comment) return { error: "Comment not found" };
+
+  await prisma.comment.update({ where: { id: commentId }, data: { isHidden: true } });
+
+  const trimmedNote = note?.trim();
+  if (trimmedNote) await notifyAdminNote(comment.authorId, trimmedNote);
+
+  revalidatePath("/feed");
+  return { success: true };
+}
+
 // ─── Data Fetching ───────────────────────────────────
 
 function getTimeFilterDate(
@@ -438,26 +518,35 @@ export async function loadPosts(opts?: {
     if (!membership) return empty;
   }
 
+  // City-scoped posts: cityScope IS NULL, OR the viewer has a matching
+  // UserPlace, OR the viewer is an admin (sees everything). Admins skip the
+  // fragment entirely rather than being passed an empty-cities case of it.
+  const isAdmin = session.user.role === "admin";
+  const viewerCities = isAdmin ? [] : await getViewerCities(session.user.id);
+
+  // Every extra `OR` fragment (search, city-scope) is collected into one
+  // `AND` array instead of being spread as bare `OR` keys, so they compose
+  // safely with each other AND with the batch-targeting top-level `OR` added
+  // below for the main feed (a second bare `OR` key would silently overwrite
+  // the first instead of combining with it).
+  const andConditions: Record<string, unknown>[] = [];
+  if (opts?.search) {
+    // Matches title (letters) or content, case-insensitive on Postgres.
+    andConditions.push({
+      OR: [
+        { title: { contains: opts.search, ...searchInsensitive } },
+        { content: { contains: opts.search, ...searchInsensitive } },
+      ],
+    });
+  }
+  if (!isAdmin) andConditions.push(cityScopeWhere(viewerCities));
+
   const baseWhere = {
     isHidden: false,
     ...(opts?.authorId ? { authorId: opts.authorId } : {}),
     ...(opts?.tag ? { tag: opts.tag } : {}),
     ...(opts?.kind ? { kind: opts.kind } : {}),
-    // Matches title (letters) or content, case-insensitive on Postgres.
-    // Nested under `AND` (not a bare top-level `OR`) so it composes safely
-    // with the batch-targeting `OR` added below for the main feed.
-    ...(opts?.search
-      ? {
-          AND: [
-            {
-              OR: [
-                { title: { contains: opts.search, ...searchInsensitive } },
-                { content: { contains: opts.search, ...searchInsensitive } },
-              ],
-            },
-          ],
-        }
-      : {}),
+    ...(andConditions.length ? { AND: andConditions } : {}),
     ...(timeDate ? { createdAt: { gte: timeDate } } : {}),
   };
 
@@ -479,13 +568,14 @@ export async function loadPosts(opts?: {
         id: true,
         name: true,
         photoUrl: true,
+        birdOverride: true,
         accountType: true,
         verifyState: true,
         batchType: true,
         batchYear: true,
       },
     },
-    _count: { select: { comments: true, likes: true } },
+    _count: { select: { comments: { where: { isHidden: false } }, likes: true } },
     likes: { where: { userId: session.user.id }, select: { id: true } },
     bookmarks: { where: { userId: session.user.id }, select: { id: true } },
     pollOptions: {
@@ -542,6 +632,7 @@ export async function loadPosts(opts?: {
       tag: p.tag,
       images: p.images,
       groupId: p.groupId,
+      cityScope: p.cityScope,
       createdAt: p.createdAt.toISOString(),
       author: p.author,
       commentCount: p._count.comments,
@@ -549,6 +640,7 @@ export async function loadPosts(opts?: {
       liked: p.likes.length > 0,
       bookmarked: p.bookmarks.length > 0,
       isOwn: p.authorId === session.user.id,
+      viewerIsAdmin: isAdmin,
       poll:
         p.pollOptions.length > 0
           ? {
@@ -585,6 +677,8 @@ export async function loadSavedPosts() {
     select: { groupId: true },
   });
   const groupIds = memberships.map((m) => m.groupId);
+  const isAdmin = session.user.role === "admin";
+  const viewerCities = isAdmin ? [] : await getViewerCities(userId);
 
   const rows = await prisma.bookmark.findMany({
     where: {
@@ -592,6 +686,10 @@ export async function loadSavedPosts() {
       post: {
         isHidden: false,
         OR: [{ groupId: null }, { groupId: { in: groupIds } }],
+        // Same cityScope visibility rule as the main feed query: a bookmarked
+        // post scoped to a city the viewer no longer lists should drop out of
+        // Saved too, not just the feed.
+        ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
       },
     },
     orderBy: { createdAt: "desc" },
@@ -604,13 +702,14 @@ export async function loadSavedPosts() {
               id: true,
               name: true,
               photoUrl: true,
+              birdOverride: true,
               accountType: true,
               verifyState: true,
               batchType: true,
               batchYear: true,
             },
           },
-          _count: { select: { comments: true, likes: true } },
+          _count: { select: { comments: { where: { isHidden: false } }, likes: true } },
           likes: { where: { userId }, select: { id: true } },
           bookmarks: { where: { userId }, select: { id: true } },
           pollOptions: {
@@ -632,6 +731,7 @@ export async function loadSavedPosts() {
       tag: p.tag,
       images: p.images,
       groupId: p.groupId,
+      cityScope: p.cityScope,
       createdAt: p.createdAt.toISOString(),
       author: p.author,
       commentCount: p._count.comments,
@@ -639,6 +739,7 @@ export async function loadSavedPosts() {
       liked: p.likes.length > 0,
       bookmarked: true,
       isOwn: p.authorId === userId,
+      viewerIsAdmin: isAdmin,
       poll:
         p.pollOptions.length > 0
           ? {
@@ -704,9 +805,10 @@ export async function toggleCommentLike(commentId: string) {
 export async function loadComments(postId: string) {
   const session = await auth();
   const userId = session?.user?.id;
+  const viewerIsAdmin = session?.user?.role === "admin";
 
   const comments = await prisma.comment.findMany({
-    where: { postId },
+    where: { postId, isHidden: false },
     include: {
       author: {
         select: {
@@ -714,6 +816,7 @@ export async function loadComments(postId: string) {
           name: true,
           avatarColor: true,
           photoUrl: true,
+          birdOverride: true,
           accountType: true,
           verifyState: true,
           batchType: true,
@@ -743,5 +846,6 @@ export async function loadComments(postId: string) {
     author: c.author,
     likeCount: c._count.commentLikes,
     liked: "commentLikes" in c ? (c.commentLikes as unknown[]).length > 0 : false,
+    viewerIsAdmin,
   }));
 }

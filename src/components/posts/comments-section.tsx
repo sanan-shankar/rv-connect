@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Reply, ArrowUp, X } from "lucide-react";
+import { Reply, ArrowUp, X, ShieldAlert } from "lucide-react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
 import { LoveButton } from "@/components/common/love-button";
+import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import Link from "next/link";
 import { formatTimeAgo } from "@/lib/utils";
 import {
   createComment,
   loadComments,
   toggleCommentLike,
+  adminRemoveComment,
 } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion } from "motion/react";
@@ -28,6 +30,7 @@ interface CommentData {
     name: string;
     avatarColor: string | null;
     photoUrl: string | null;
+    birdOverride?: string | null;
     accountType?: string | null;
     verifyState?: string | null;
     batchType: string | null;
@@ -40,12 +43,18 @@ interface CommentData {
 export function CommentsSection({
   postId,
   onCommentAdded,
+  onCommentRemoved,
   alwaysOpen = false,
+  viewerIsAdmin = false,
 }: {
   postId: string;
   onCommentAdded: () => void;
+  /** Fired after an admin's removal is confirmed, so the post's visible comment count drops too. */
+  onCommentRemoved?: () => void;
   /** Letters render the thread permanently expanded, so they skip the open/close accordion. */
   alwaysOpen?: boolean;
+  /** Site admin viewing this thread: shows the "Remove" moderation control on every comment. */
+  viewerIsAdmin?: boolean;
 }) {
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +64,8 @@ export function CommentsSection({
   );
   const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(false);
+  // The comment currently targeted by the admin moderation dialog, if any.
+  const [moderatingId, setModeratingId] = useState<string | null>(null);
 
   // The panel animates to (and then tracks) the real height of its content. A single
   // ResizeObserver is the ONE clock: the initial open, the comments arriving from the
@@ -110,6 +121,16 @@ export function CommentsSection({
     );
   }
 
+  async function handleModerationConfirm(note: string) {
+    if (!moderatingId) return { error: "Nothing selected" };
+    const result = await adminRemoveComment(moderatingId, note || undefined);
+    if (!result.error) {
+      setComments((prev) => prev.filter((c) => c.id !== moderatingId));
+      onCommentRemoved?.();
+    }
+    return result;
+  }
+
   // Organise: top-level comments first, replies grouped under their parent.
   const topLevel = comments.filter((c) => !c.parentId);
   const repliesMap = new Map<string, CommentData[]>();
@@ -163,6 +184,8 @@ export function CommentsSection({
                     setReplyTo({ id: comment.id, name: comment.author.name })
                   }
                   onLikeToggle={handleLikeToggle}
+                  viewerIsAdmin={viewerIsAdmin}
+                  onModerate={() => setModeratingId(comment.id)}
                 />
                 {replies && replies.length > 0 && (
                   <ul className="mt-4 flex flex-col gap-4 border-l border-border/70 pl-4 [margin-left:13px]">
@@ -177,6 +200,8 @@ export function CommentsSection({
                             })
                           }
                           onLikeToggle={handleLikeToggle}
+                          viewerIsAdmin={viewerIsAdmin}
+                          onModerate={() => setModeratingId(reply.id)}
                         />
                       </li>
                     ))}
@@ -249,6 +274,15 @@ export function CommentsSection({
           </SpringPress>
         </div>
       </form>
+
+      {viewerIsAdmin && (
+        <ModerationDialog
+          open={moderatingId !== null}
+          onClose={() => setModeratingId(null)}
+          itemLabel="comment"
+          onConfirm={handleModerationConfirm}
+        />
+      )}
     </div>
   );
 
@@ -294,10 +328,15 @@ function CommentItem({
   comment,
   onReply,
   onLikeToggle,
+  viewerIsAdmin = false,
+  onModerate,
 }: {
   comment: CommentData;
   onReply: () => void;
   onLikeToggle: (id: string, liked: boolean, count: number) => void;
+  /** Site admin viewing this thread: shows the "Remove" moderation control. */
+  viewerIsAdmin?: boolean;
+  onModerate?: () => void;
 }) {
   async function handleLike() {
     const newLiked = !comment.liked;
@@ -325,7 +364,12 @@ function CommentItem({
         className="mt-1.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         <BirdAvatar
-          user={{ id: comment.author.id, name: comment.author.name, photoUrl: comment.author.photoUrl }}
+          user={{
+            id: comment.author.id,
+            name: comment.author.name,
+            photoUrl: comment.author.photoUrl,
+            birdOverride: comment.author.birdOverride,
+          }}
           size={34}
         />
       </Link>
@@ -366,6 +410,16 @@ function CommentItem({
                padding) in EITHER state, so nothing needs to be clamped or can overflow. */
             className="-ml-1 font-medium [&>span]:leading-[12px]"
           />
+          {viewerIsAdmin && (
+            <button
+              onClick={onModerate}
+              aria-label="Remove comment (admin)"
+              title="Remove comment (admin)"
+              className="ml-auto rounded-sm font-medium text-muted-foreground/70 transition-opacity duration-150 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            >
+              <ShieldAlert className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
