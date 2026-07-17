@@ -103,9 +103,12 @@ export function AmbientLeaves() {
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
   // Last-known mouse position (viewport px), for the cursor-dodge below.
+  // `sx`/`sy` are a lerped-smoothed copy of `x`/`y` (see the tick loop), so a
+  // fast or jumpy pointer move never yanks the dodge target around — the
+  // leaves drift away from a gently trailing point, not the raw cursor.
   // Touch never sets `active` (no persistent pointer to dodge there — the
   // tap puff + flick is that platform's interactive affordance instead).
-  const mouseRef = useRef({ x: -9999, y: -9999, active: false });
+  const mouseRef = useRef({ x: -9999, y: -9999, sx: -9999, sy: -9999, active: false });
 
   // SSR-safe responsive density: desktop default until mount, then phone-lighter.
   const [isMobile, setIsMobile] = useState(false);
@@ -385,6 +388,11 @@ export function AmbientLeaves() {
       // Pause work when the tab is hidden or the layer is out of range.
       if (pausedRef.current || !active) return;
 
+      // Smooth the raw pointer position toward a lagging point, so the dodge
+      // below reacts to a gentle trail rather than snapping frame-to-frame.
+      mouse.sx += (mouse.x - mouse.sx) * 0.1;
+      mouse.sy += (mouse.y - mouse.sy) * 0.1;
+
       // Footer pile: gently build a shallow drift while the footer is in view
       // (slow leaves rarely complete a full fall, so we drip a few in), capped.
       if (SETTLE_PILE && nearBottom) {
@@ -398,12 +406,15 @@ export function AmbientLeaves() {
 
       const height = vh();
       // Cursor dodge tuning: desktop only (no persistent pointer on touch,
-      // where the tap-flick below is the interactive affordance instead). A
-      // firm-but-gentle radius, eased at the SAME rate both approaching and
-      // settling back, so a leaf never snaps toward or away from the cursor.
-      const AVOID_RADIUS = isMobile ? 0 : 130;
-      const AVOID_PUSH = 46; // px, strongest push right at the cursor's center
-      const AVOID_RATE = 9;
+      // where the tap-flick below is the interactive affordance instead).
+      // Gentle by design — low stiffness (a slow ease rate), high damping
+      // (the pointer itself is pre-smoothed above), and a small displacement
+      // radius, so leaves drift barely-noticeably away from the cursor
+      // rather than flinching from it. A leaf never snaps toward or away
+      // in either direction.
+      const AVOID_RADIUS = isMobile ? 0 : 92;
+      const AVOID_PUSH = 16; // px, strongest push right at the cursor's center
+      const AVOID_RATE = 3.2;
       for (const l of leaves) {
         if (!l.el || l.landed) continue;
         if (l.wait > 0) {
@@ -443,8 +454,8 @@ export function AmbientLeaves() {
         let targetAvoidX = 0;
         let targetAvoidY = 0;
         if (AVOID_RADIUS > 0 && mouseRef.current.active) {
-          const dx = x - mouseRef.current.x;
-          const dy = l.y - mouseRef.current.y;
+          const dx = x - mouse.sx;
+          const dy = l.y - mouse.sy;
           const dist = Math.hypot(dx, dy);
           if (dist < AVOID_RADIUS) {
             const strength = 1 - dist / AVOID_RADIUS;
