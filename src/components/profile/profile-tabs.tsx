@@ -2,37 +2,36 @@
 
 import { useState, type ReactNode } from "react";
 import { motion } from "motion/react";
-import { SPRINGS } from "@/components/common/motion";
+import { SPRINGS, FadeRise } from "@/components/common/motion";
 
-type TabKey = "posts" | "about" | "photos" | "saved";
+type TabKey = "about" | "postsAndLetters" | "photos" | "saved";
 
 /**
- * Profile main-column tabs (Posts / About / Photos / Saved) with an active underline.
- * Content for each tab is passed in so the server can render About/Photos and
- * the Posts tab can be the shared client feed. "Saved" is owner-only: it is only
- * rendered when `showSaved` is set (the viewer is looking at their own profile),
- * because saved posts are private.
+ * Profile main-column tabs. About is the default. Posts & Letters is one tab
+ * (two labelled groups live inside its panel). Photos appears only when there
+ * are photos; Saved is owner-only. An underline thumb slides between tabs
+ * (layoutId + snappy spring); the panel content fades/rises on switch.
  */
 export function ProfileTabs({
-  posts,
   about,
+  postsAndLetters,
   photos,
   saved,
   showPhotos,
   showSaved,
 }: {
-  posts: ReactNode;
   about: ReactNode;
+  postsAndLetters: ReactNode;
   photos: ReactNode;
   saved?: ReactNode;
   showPhotos: boolean;
   showSaved?: boolean;
 }) {
-  const [tab, setTab] = useState<TabKey>("posts");
+  const [tab, setTab] = useState<TabKey>("about");
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: "posts", label: "Posts" },
     { key: "about", label: "About" },
+    { key: "postsAndLetters", label: "Posts & Letters" },
     ...(showPhotos ? [{ key: "photos" as const, label: "Photos" }] : []),
     ...(showSaved ? [{ key: "saved" as const, label: "Saved" }] : []),
   ];
@@ -42,7 +41,7 @@ export function ProfileTabs({
       <div
         role="tablist"
         aria-label="Profile sections"
-        className="mb-4 flex gap-0.5 border-b border-border"
+        className="mb-5 flex gap-0.5 border-b border-border"
       >
         {tabs.map((t) => {
           const active = tab === t.key;
@@ -52,7 +51,7 @@ export function ProfileTabs({
               role="tab"
               aria-selected={active}
               onClick={() => setTab(t.key)}
-              className={`relative px-3.5 py-2.5 text-[13.5px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
+              className={`relative rounded-t-lg px-3.5 py-2.5 text-[13.5px] font-semibold transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
                 active ? "text-canopy" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -70,10 +69,12 @@ export function ProfileTabs({
       </div>
 
       <div role="tabpanel">
-        {tab === "posts" && posts}
-        {tab === "about" && about}
-        {tab === "photos" && showPhotos && photos}
-        {tab === "saved" && showSaved && saved}
+        <FadeRise key={tab} y={8}>
+          {tab === "about" && about}
+          {tab === "postsAndLetters" && postsAndLetters}
+          {tab === "photos" && showPhotos && photos}
+          {tab === "saved" && showSaved && saved}
+        </FadeRise>
       </div>
     </div>
   );
