@@ -7,6 +7,28 @@ going until the entire wave is done, no mid-way check-ins; feedback comes at the
 
 Legend: [ ] open · [~] in progress · [x] done · [!] blocked/owner input
 
+## Live status (2026-07-18, orchestrator notes)
+
+- DONE: round-6 DB migration applied (displayEmail, birdOverride, Post.cityScope, Place,
+  UserPlace + city seeding, Anonymous user with hoopoe). houses.ts = canonical 22 + alias map.
+- RUNNING: foundation agent (schema sync, normalize.ts, GeoNames import);
+  wave-1 workflow (13 lanes: sidebar, composer, feed-cards, notifications, catchups, landing,
+  mascot, dropdowns, map, search, support, uploads, birds+analytics — each with review+fix+commit);
+  whatsapp-curation workflow; falcon redesign agent; 4 design-spec agents (profile, walkthrough,
+  filters, groups-rethink previews).
+- H20 finding: rishivalley.space itself is healthy (200 apex; www/http 308 to apex). Stray
+  rv-alumni.vercel.app landings = links minted with the old URL; NEXTAUTH_URL/AUTH_URL on Vercel
+  likely still vercel.app (OWNER: fix in Vercel dashboard). Code fix queued: host-based 308 in
+  src/proxy.ts middleware (wave 2).
+- MCP note: claude.ai Supabase + Vercel connectors are authenticated to a different account than
+  this project; DB work goes through scripts/dev/run-sql.mjs (DIRECT_URL), Vercel checks from
+  outside.
+- WAVE 2 queue (launch when wave 1 + foundation land, to avoid file collisions): location picker
+  component first (standalone), then onboarding rework + profile rebuild + walkthrough build +
+  filters build (need their specs) + admin moderation & city-scoped posts & host redirect lane.
+- AFTER content workflow + falcon: my editorial review of picks, seed as Anonymous, Vihan bird
+  reassignment, falcon assignment to Veda + Srihari.
+
 ## A. Foundation (schema + data, do first)
 
 - [ ] A1. Real houses list: owner says 22 houses exist. Placeholder in `src/lib/houses.ts` (4 names).
@@ -194,6 +216,13 @@ Legend: [ ] open · [~] in progress · [x] done · [!] blocked/owner input
       right among the small controls (compare against other CTAs that "look right").
 - [ ] H25. Profile photo loads ~1s after the rest of the profile page — no pop-in allowed;
       preload/priority the avatar image so everything paints together.
+
+## Z. Final pass (after everything is built and verified)
+
+- [ ] Z1. Product-critique round, SUGGESTIONS ONLY (owner acts as filter, nothing implemented):
+      what's not good, what should improve, what's overcomplicated, what could be rearranged,
+      what's missing that alumni would find genuinely useful (owner seed idea: geo-marking posts).
+      Full effort, honest opinions, delivered as a list for the owner to react to.
 
 ## Process
 
