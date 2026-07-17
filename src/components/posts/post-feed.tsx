@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { MagnifyingGlass, SlidersHorizontal } from "@phosphor-icons/react";
+import { MagnifyingGlass, SlidersHorizontal, X } from "@phosphor-icons/react";
 import { PostCard, type PostData } from "./post-card";
 import { loadPosts } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export function PostFeed({
   reloadKey = 0,
   emptyTitle,
   emptyHint,
+  initialSearch,
 }: {
   groupId?: string;
   scope?: FeedScope;
@@ -39,18 +41,39 @@ export function PostFeed({
   reloadKey?: number;
   emptyTitle?: string;
   emptyHint?: string;
+  /** Seeds the search query (e.g. from the header search pill's `?q=`) even
+   *  when `showControls` hides the inline search box. */
+  initialSearch?: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [posts, setPosts] = useState<PostData[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(initialSearch ?? "");
+  const [search, setSearch] = useState(initialSearch ?? "");
   const [sortBy, setSortBy] = useState<SortBy>("recent");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // The inline search input (above) covers same-mount edits; this covers a
+  // fresh `?q=` arriving from the header search pill while already here (the
+  // page doesn't remount, so state wouldn't otherwise pick up the new query).
+  // Adjusted during render (React's documented pattern for "reset state when
+  // a prop changes") rather than in an effect, so it applies in the same
+  // commit instead of triggering an extra render.
+  const [prevInitialSearch, setPrevInitialSearch] = useState(initialSearch);
+  if (initialSearch !== prevInitialSearch) {
+    setPrevInitialSearch(initialSearch);
+    if (initialSearch !== undefined) {
+      setSearchInput(initialSearch);
+      setSearch(initialSearch);
+    }
+  }
 
   // "New since you were last here": the timestamp of the most recent post we showed last visit.
   const [lastSeen, setLastSeen] = useState<number | null>(null);
@@ -131,6 +154,29 @@ export function PostFeed({
 
   return (
     <div className="space-y-4">
+      {/* When the inline search row is hidden (the Feed page's own search now
+          lives in the header pill), there's otherwise no visible way to see
+          what's being searched or clear it. This small banner covers that. */}
+      {!showControls && search && (
+        <div className="flex items-center justify-between gap-3 rounded-full border border-border bg-card py-2 pl-4 pr-2 text-[13px]">
+          <span className="min-w-0 truncate text-muted-foreground">
+            Showing posts for <span className="font-semibold text-foreground">&quot;{search}&quot;</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchInput("");
+              setSearch("");
+              router.replace(pathname);
+            }}
+            className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-semibold text-canopy hover:text-canopy/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-95"
+          >
+            <X weight="bold" size={12} />
+            Clear
+          </button>
+        </div>
+      )}
+
       {showControls && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">

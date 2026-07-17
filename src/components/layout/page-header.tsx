@@ -11,11 +11,14 @@ import { NotificationBell } from "./notification-bell";
  *
  * Pass `showSearch` to mount the search pill, `unreadCount` to mount the bell,
  * and `actions` for the page's primary call to action (e.g. "New post").
+ * `searchScope` sets what the pill searches by default (Feed passes "posts");
+ * see `SearchPill` for the Posts/People toggle.
  */
 export function PageHeader({
   title,
   subtitle,
   showSearch = false,
+  searchScope,
   unreadCount,
   actions,
   children,
@@ -23,6 +26,7 @@ export function PageHeader({
   title: string;
   subtitle?: string;
   showSearch?: boolean;
+  searchScope?: "posts" | "people";
   unreadCount?: number;
   actions?: React.ReactNode;
   children?: React.ReactNode;
@@ -45,7 +49,7 @@ export function PageHeader({
         <div className="flex flex-nowrap items-center justify-end gap-2.5 shrink-0">
           {showSearch && (
             <div className="hidden sm:block">
-              <SearchPill />
+              <SearchPill defaultScope={searchScope} />
             </div>
           )}
           {unreadCount !== undefined && (
