@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { putImage, delImage } from "@/lib/storage";
 import { profileSchema } from "@/lib/validators";
 import { computeBatchFromSchooling } from "@/lib/utils";
+import { titleCase } from "@/lib/normalize";
 import { revalidatePath } from "next/cache";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
@@ -18,14 +19,16 @@ export async function updateUserProfile(formData: FormData) {
 
   const raw = {
     name: formData.get("name") as string,
-    bio: (formData.get("bio") as string) || undefined,
-    currentCity: (formData.get("currentCity") as string) || undefined,
-    secondaryCity: (formData.get("secondaryCity") as string) || undefined,
+    about: (formData.get("about") as string) || undefined,
+    displayEmail: (formData.get("displayEmail") as string | null) ?? undefined,
     workplace: (formData.get("workplace") as string) || undefined,
     jobTitle: (formData.get("jobTitle") as string) || undefined,
     phone: (formData.get("phone") as string) || undefined,
     instagram: (formData.get("instagram") as string) || undefined,
     linkedin: (formData.get("linkedin") as string) || undefined,
+    batchYear: formData.get("batchYear")
+      ? Number(formData.get("batchYear"))
+      : undefined,
     yearJoined: formData.get("yearJoined")
       ? Number(formData.get("yearJoined"))
       : undefined,
@@ -45,10 +48,11 @@ export async function updateUserProfile(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  // The batch is derived, never taken directly off the form. Only recompute
-  // it when all three schooling facts are present and valid; otherwise leave
-  // whatever batch is already on file untouched (e.g. someone just fixing
-  // their job title shouldn't have a correct batch wiped by a blank field).
+  // Batch: the direct "Batch of ___" field is the headline identity. When the
+  // collapsible schooling facts are all present, they win (and also derive the
+  // board credential); otherwise the directly-entered batch year is written and
+  // batchType is left untouched. A blank batch on a partial edit never wipes a
+  // batch already on file.
   let batchUpdate: { batchYear?: number | null; batchType?: string | null } = {};
   if (
     parsed.data.yearJoined != null &&
@@ -64,17 +68,24 @@ export async function updateUserProfile(formData: FormData) {
       return { error: batch.error };
     }
     batchUpdate = { batchYear: batch.batchYear, batchType: batch.batchType };
+  } else if (parsed.data.batchYear != null) {
+    batchUpdate = { batchYear: parsed.data.batchYear };
   }
+
+  // Title-case the free-text identity fields on save (leave emails/handles alone).
+  const cleanName = titleCase(parsed.data.name);
+  const cleanWorkplace = parsed.data.workplace ? titleCase(parsed.data.workplace) : null;
+  const cleanJobTitle = parsed.data.jobTitle ? titleCase(parsed.data.jobTitle) : null;
+  const displayEmail = parsed.data.displayEmail?.trim() || null;
 
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      name: parsed.data.name,
-      bio: parsed.data.bio || null,
-      currentCity: parsed.data.currentCity || null,
-      secondaryCity: parsed.data.secondaryCity || null,
-      workplace: parsed.data.workplace || null,
-      jobTitle: parsed.data.jobTitle || null,
+      name: cleanName,
+      about: parsed.data.about?.trim() || null,
+      displayEmail,
+      workplace: cleanWorkplace,
+      jobTitle: cleanJobTitle,
       phone: parsed.data.phone || null,
       instagram: parsed.data.instagram || null,
       linkedin: parsed.data.linkedin || null,
@@ -88,6 +99,56 @@ export async function updateUserProfile(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath(`/profile/${session.user.id}`);
+  return { success: true };
+}
+
+/**
+ * Persist a member's ordered city list (the "Where you are" section). Writes
+ * the `UserPlace` rows wholesale (delete + recreate in order) and syncs the
+ * legacy `User.currentCity` to the first city label so old read paths that
+ * still reference it keep working during the migration.
+ */
+export async function updateUserPlaces(
+  places: { placeId: number | null; label: string; city: string; lat: number | null; lng: number | null }[]
+) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const cleaned = places
+    .map((p) => ({
+      placeId: p.placeId,
+      label: titleCase(p.label.trim()),
+      city: titleCase(p.city.trim()),
+      lat: p.lat,
+      lng: p.lng,
+    }))
+    .filter((p) => p.label.length > 0)
+    .slice(0, 30);
+
+  const userId = session.user.id;
+  await prisma.$transaction([
+    prisma.userPlace.deleteMany({ where: { userId } }),
+    ...cleaned.map((p, i) =>
+      prisma.userPlace.create({
+        data: {
+          userId,
+          placeId: p.placeId ?? null,
+          label: p.label,
+          city: p.city,
+          lat: p.lat,
+          lng: p.lng,
+          position: i,
+        },
+      })
+    ),
+    prisma.user.update({
+      where: { id: userId },
+      data: { currentCity: cleaned[0]?.label ?? null },
+    }),
+  ]);
+
+  revalidatePath("/settings");
+  revalidatePath(`/profile/${userId}`);
   return { success: true };
 }
 

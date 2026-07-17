@@ -16,10 +16,17 @@ export function ProfileAuthorFeed({
   authorId,
   firstName,
   isOwnProfile,
+  kind,
+  emptyTitle,
+  emptyBody,
 }: {
   authorId: string;
   firstName: string;
   isOwnProfile: boolean;
+  /** Filter to one register; unset loads both posts and letters. */
+  kind?: "post" | "letter";
+  emptyTitle?: string;
+  emptyBody?: string;
 }) {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -31,7 +38,7 @@ export function ProfileAuthorFeed({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    loadPosts({ authorId }).then((data) => {
+    loadPosts({ authorId, kind }).then((data) => {
       if (cancelled) return;
       setPosts(data.posts);
       setCursor(data.nextCursor);
@@ -41,11 +48,11 @@ export function ProfileAuthorFeed({
     return () => {
       cancelled = true;
     };
-  }, [authorId]);
+  }, [authorId, kind]);
 
   async function handleLoadMore() {
     setLoadingMore(true);
-    const data = await loadPosts({ authorId, cursor });
+    const data = await loadPosts({ authorId, kind, cursor });
     setPosts((prev) => [...prev, ...data.posts]);
     setCursor(data.nextCursor);
     setHasMore(data.hasMore);
@@ -75,12 +82,14 @@ export function ProfileAuthorFeed({
     return (
       <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-10 text-center">
         <p className="font-heading text-lg tracking-tight text-foreground">
-          {isOwnProfile ? "You haven't posted yet." : `No posts yet from ${firstName}.`}
+          {emptyTitle ??
+            (isOwnProfile ? "You haven't posted yet." : `No posts yet from ${firstName}.`)}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {isOwnProfile
-            ? "Share your first memory, a sighting, or a note for the valley."
-            : "When they share something, it will show up here."}
+          {emptyBody ??
+            (isOwnProfile
+              ? "Share your first memory, a sighting, or a note for the valley."
+              : "When they share something, it will show up here.")}
         </p>
       </div>
     );
