@@ -1,61 +1,13 @@
 import { BirdAvatar } from "@/components/common/bird-avatar";
+import { SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";
 
 /**
  * Public-facing display of the Rishi Valley bird set - one icon per species with its name.
  * These are the deterministic alumni avatars; every member without a photo is one of these birds.
+ * Names come from SPECIES_FULL_NAMES (bird-avatar-v2.tsx) so this gallery can never drift from the
+ * names shown elsewhere in the app.
  */
-const NAMES = [
-  "Hoopoe",
-  "Indian Peafowl",
-  "Spotted Owlet",
-  "Indian Roller",
-  "White-throated Kingfisher",
-  "Indian Pitta",
-  "Rose-ringed Parakeet",
-  "Plum-headed Parakeet",
-  "Green Bee-eater",
-  "Coppersmith Barbet",
-  "Indian Grey Hornbill",
-  "Sirkeer Malkoha",
-  "Yellow-throated Bulbul",
-  "Red-whiskered Bulbul",
-  "Oriental Magpie-Robin",
-  "Indian Robin",
-  "Asian Koel",
-  "Black Drongo",
-  "Greater Coucal",
-  "Rufous Treepie",
-  "Black-hooded Oriole",
-  "Baya Weaver",
-  "Purple Sunbird",
-  "Brahminy Starling",
-  "Yellow-wattled Lapwing",
-  "Painted Spurfowl",
-  "Asian Paradise Flycatcher",
-  "Indian Pond Heron",
-  "Little Cormorant",
-  "Indian Golden Oriole",
-  "Cattle Egret",
-  "Verditer Flycatcher",
-  "Peregrine Falcon",
-  "Orange-headed Thrush",
-  "Blue-faced Malkoha",
-  "Jacobin Cuckoo",
-  "Black Eagle",
-  "Red Avadavat",
-  "Common Kingfisher",
-  "Jerdon's Leafbird",
-  "Brahminy Kite",
-  "Black-rumped Flameback",
-  "Bay-backed Shrike",
-  "Purple-rumped Sunbird",
-  "Tickell's Blue Flycatcher",
-  "Chestnut-headed Bee-eater",
-  "Tricolored Munia",
-  "Small Minivet",
-  "Orange-breasted Green-Pigeon",
-  "Indian White-eye",
-];
+const NAMES = SPECIES_FULL_NAMES;
 
 export default function BirdGallery() {
   return (

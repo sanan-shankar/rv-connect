@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Libre_Baskerville, Source_Sans_3 } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { MascotFlightLayer } from "@/components/mascot/mascot-flight-layer";
@@ -50,6 +51,9 @@ export default function RootLayout({
           <MascotFlightLayer />
           <Toaster position="bottom-right" />
         </ThemeProvider>
+        {/* Vercel Analytics: page views only, no cookies. Data only flows once this is deployed
+            to Vercel (a Vercel project must have Analytics enabled); it is inert in local dev. */}
+        <Analytics />
       </body>
     </html>
   );
