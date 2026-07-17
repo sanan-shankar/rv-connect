@@ -32,6 +32,12 @@ const VALLEY_FACTS = [
   "Rain is read, not forecast. Old students still tell which hill the clouds will break over by the way the wind turns through the three peaks.",
 ];
 
+// Feature flag: the hover/focus "Did you know" reveal on the sidebar logo
+// lockup. Disabled per owner request; the reveal logic below is left intact
+// (just gated to never open) so this can go back to `true` later without
+// reconstructing it.
+const LOCKUP_FUN_FACT_ENABLED = false;
+
 export function LogoFact({
   href = "/feed",
   onNavigate,
@@ -62,6 +68,7 @@ export function LogoFact({
   }, []);
 
   function show() {
+    if (!LOCKUP_FUN_FACT_ENABLED) return;
     if (closeTimer.current !== null) {
       window.clearTimeout(closeTimer.current);
       closeTimer.current = null;

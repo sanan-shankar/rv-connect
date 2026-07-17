@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Script from "next/script";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
@@ -10,11 +11,13 @@ import {
   Images,
   Feather,
   MessagesSquare,
+  PiggyBank,
   Info,
   Settings,
   Shield,
   LogOut,
   User as UserIcon,
+  MessageSquareText,
   Menu,
   X,
 } from "lucide-react";
@@ -58,6 +61,9 @@ const NAV = [
   { href: "/collection", label: "Collection", icon: Images },
   { href: "/letters", label: "Letters", icon: Feather },
   { href: "/catchups", label: "Catch-ups", icon: MessagesSquare },
+  // /donate still exists as a redirect to this route (kept for old links);
+  // this is the canonical live page with the real content.
+  { href: "/support", label: "Support", icon: PiggyBank },
   { href: "/about", label: "About", icon: Info },
 ];
 
@@ -182,6 +188,28 @@ function UserMenu({ user }: { user: SidebarUser }) {
               Admin Panel
             </DropdownMenuItem>
           )}
+          {/* Combined bug reports + feature requests, formerly a footer link.
+              Opens the Tally form as a centered modal via the document-level
+              click listener the embed script (loaded below) attaches to every
+              [data-tally-open] trigger; the href is a graceful fallback to the
+              hosted form if the embed has not loaded yet. */}
+          <DropdownMenuItem
+            render={
+              <a
+                href="https://tally.so/r/yPGjBd"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-tally-open="yPGjBd"
+                data-tally-layout="modal"
+                data-tally-width="540"
+                data-tally-overlay="1"
+                data-tally-auto-close="3000"
+              />
+            }
+          >
+            <MessageSquareText className="mr-2 h-4 w-4" />
+            Feedback
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => signOut({ callbackUrl: "/" })}
@@ -215,11 +243,23 @@ export function Sidebar({
 
   return (
     <>
+      {/* Loads once on idle, then a document-level click listener binds every
+          [data-tally-open] trigger (see UserMenu's Feedback item) and
+          survives client-side navigation, since it delegates from the
+          document. Lives here (rather than per-trigger) so it only loads
+          once regardless of which menu instance renders. */}
+      <Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
+
       {/* Desktop: flush, full-height sidebar */}
       <aside className="sticky top-0 z-10 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
-        <LogoEasterEgg>
-          <LogoFact />
-        </LogoEasterEgg>
+        {/* The lockup's own width is content-hugging (see peaks-mark.tsx), so
+            centering it takes an outer flex row rather than touching the
+            mark/wordmark pairing itself, which stays exactly as tuned. */}
+        <div className="flex justify-center">
+          <LogoEasterEgg>
+            <LogoFact />
+          </LogoEasterEgg>
+        </div>
         <NavLinks pathname={pathname} markerId="nav-desktop" />
         {/* relative anchor for the idle-rest hoopoe, which perches just above
             this row (see sidebar-hoopoe.tsx) */}
@@ -286,6 +326,21 @@ export function Sidebar({
                   Admin
                 </Link>
               )}
+              <a
+                href="https://tally.so/r/yPGjBd"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-tally-open="yPGjBd"
+                data-tally-layout="modal"
+                data-tally-width="540"
+                data-tally-overlay="1"
+                data-tally-auto-close="3000"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+              >
+                <MessageSquareText className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                Feedback
+              </a>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"

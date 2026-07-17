@@ -1,5 +1,4 @@
 import { Sidebar, type SidebarUser } from "./sidebar";
-import { Footer } from "./footer";
 import { KonamiEggs } from "./konami-eggs";
 
 /**
@@ -9,7 +8,6 @@ import { KonamiEggs } from "./konami-eggs";
  *
  * Pass `rightRail` to switch the content into the contract's 3-column layout
  * (main + a 318px rail) at >=1180px, collapsing to a single column below.
- * The footer always stays inside the content column.
  */
 export function AppShell({
   user,
@@ -48,7 +46,6 @@ export function AppShell({
             {children}
           </main>
         )}
-        <Footer />
       </div>
     </div>
   );
