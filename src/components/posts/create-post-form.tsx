@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import Link from "next/link";
 import {
   ImagePlus,
   X,
@@ -14,7 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { createPost } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
@@ -96,10 +95,6 @@ export type ComposerScope = "post" | "group" | "letter";
 // up first or starts stretched.
 const COLLAPSED_H = 44;
 
-// Past this length a post is quietly nudged toward Letters instead of being
-// capped or counted down. No red numbers, no limits messaging: just a hint.
-const LETTER_NUDGE_LEN = 600;
-
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB
 const UPLOAD_TIMEOUT_MS = 60_000;
 
@@ -156,6 +151,7 @@ export function CreatePostForm({
   const mentionRangeRef = useRef<Range | null>(null);
 
   const isLetter = kind === "letter";
+  const maxLen = isLetter ? 20000 : 5000;
   const effectivePlaceholder = isLetter
     ? "Write your letter to the valley. Take your time."
     : collapsedPlaceholder;
@@ -226,35 +222,12 @@ export function CreatePostForm({
 
   // Re-derive the markdown mirror + mention query from the live DOM. Called after
   // every keystroke, paste, and formatting toggle so `content` (used for the Post
-  // button's enabled state and the submit payload) never drifts from what the
-  // editor visually shows.
+  // button's enabled state, the char counter, and the submit payload) never drifts
+  // from what the editor visually shows.
   const handleRichInput = useCallback(() => {
     const el = richRef.current;
     if (!el) return;
-    const markdown = serializeEditableToMarkdown(el);
-    setContent(markdown);
-
-    // Defensive normalization (caret bug fix): deleting every character out of
-    // a contentEditable does not reliably leave it truly empty. Browsers are
-    // free to leave a residual empty node behind (a bare <br>, or a stray
-    // zero-length text node) instead of zero children. The placeholder itself
-    // is a CSS `::before` on this element, not a DOM node, but that leftover
-    // node still occupies a real caret position AFTER the pseudo-element in
-    // render order, so the caret visually lands past the placeholder text
-    // instead of at its start. Once the field reads as empty, wipe any
-    // leftover DOM and re-home the caret at the (now unambiguous) start.
-    if (markdown.trim().length === 0 && el.childNodes.length > 0) {
-      el.innerHTML = "";
-      const sel = window.getSelection();
-      if (sel && document.activeElement === el) {
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-      }
-    }
-
+    setContent(serializeEditableToMarkdown(el));
     const found = computeMentionRange();
     if (found) {
       setMentionQuery(found.query);
@@ -508,25 +481,15 @@ export function CreatePostForm({
           onPaste={handlePaste}
           style={{ minHeight: isLetter ? 260 : 96 }}
           className={cn(
-            "peer block w-full resize-none whitespace-pre-wrap break-words rounded-[var(--radius)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] text-foreground outline-none focus-visible:outline-none",
-            // Kill WebKit's own tap-highlight flash on touch/trackpad taps: it
-            // paints a square-cornered highlight over this rounded field, which
-            // reads as an uneven ring (thicker at the corners) for an instant
-            // before our own focus ring below has faded in. Outline is already
-            // fully suppressed above; this is the other native "ring" source.
-            "[-webkit-tap-highlight-color:transparent]",
+            "peer block w-full resize-none whitespace-pre-wrap break-words rounded-[var(--radius)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] text-foreground outline-none",
             "data-[empty=true]:before:pointer-events-none data-[empty=true]:before:text-muted-foreground data-[empty=true]:before:content-[attr(data-placeholder)]"
           )}
         />
-        {/* Focus ring lives as an overlay so it never fights the field's own
-            box. Opacity is the ONLY thing that animates: no transform/scale,
-            so the ring is the field's exact, even shape on every single frame
-            of the fade-in (including the first) instead of growing in from a
-            slightly smaller box, which is what read as an uneven / thicker-at
-            -corners ring while it was still resolving. */}
+        {/* focus ring lives as an overlay so only opacity/transform animate, and
+            there is never a stray second box behind the field */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[var(--radius)] opacity-0 transition-opacity duration-150 ease-out peer-focus:opacity-100"
+          className="pointer-events-none absolute inset-0 origin-center scale-[0.992] rounded-[var(--radius)] opacity-0 transition-[opacity,transform] duration-200 ease-out peer-focus:scale-100 peer-focus:opacity-100"
           style={{
             boxShadow: "0 0 0 3px color-mix(in srgb, var(--color-leaf) 26%, transparent)",
             border: "1px solid color-mix(in srgb, var(--color-leaf) 55%, var(--border))",
@@ -580,26 +543,20 @@ export function CreatePostForm({
               onChange={handleImageUpload}
             />
 
-            {/* Same plain-icon language and 32px shelf as the format buttons and
-                "More": h-4 w-4 icon (not the smaller h-3.5 the shared Button's
-                xs size gave it), so "Photo" carries equal visual weight
-                instead of reading as the smallest thing in the row. */}
-            <SpringPress
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            <Button
+              variant="ghost"
+              size="xs"
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              {...({
-                type: "button",
-                disabled: images.length >= 3 || uploading,
-                "aria-label": uploading ? "Uploading photo" : "Add a photo",
-              } as object)}
+              disabled={images.length >= 3 || uploading}
             >
-              <ImagePlus className="h-4 w-4" />
+              <ImagePlus className="h-3.5 w-3.5" />
               {uploading
                 ? uploadProgress && uploadProgress.total > 1
                   ? `Uploading ${uploadProgress.done + 1} of ${uploadProgress.total}...`
                   : "Uploading..."
                 : "Photo"}
-            </SpringPress>
+            </Button>
 
             {/* "More" is now a plain, unboxed plus that opens a labelled menu
                 (icon + label rows), so it reads the same as the format icons
@@ -673,19 +630,29 @@ export function CreatePostForm({
             </div>
           </div>
 
-          <div className="ml-auto flex items-center self-end sm:self-auto">
-            {/* Same pill CTA language as "New post" and every other primary
-                button (shared buttonVariants, canopy fill, font-medium -- never
-                bold), sized "xs" so its 32px shelf matches the toolbar row
-                instead of standing taller than everything beside it. Still
-                bespoke/animated (quiet until there's text, springs to life)
-                so it can't use <Button> directly, but it now wears the exact
-                same classes Button would give it at this size. */}
+          <div className="ml-auto flex items-center gap-2 self-end sm:self-auto">
+            {content.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {content.length}/{maxLen}
+              </span>
+            )}
+            {/* A clean pill Post button: quiet/disabled until there is text, then
+                it springs to life. Keeps the existing disabled/submitting logic.
+                Canopy fill, matching the shared Button's primary variant
+                (this button is bespoke/animated so it can't use <Button> directly). */}
             <motion.button
               type="button"
               onClick={handleSubmit}
               disabled={!content.trim() || submitting}
-              className={cn(buttonVariants({ variant: "primary", size: "xs" }))}
+              className="inline-flex h-10 items-center rounded-full border-0 px-[22px] text-[14px] font-bold text-white"
+              style={{
+                background: "var(--color-canopy)",
+                cursor: hasContent && !submitting ? "pointer" : "default",
+                boxShadow:
+                  hasContent && !submitting
+                    ? "0 6px 16px -11px var(--color-canopy), inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent)"
+                    : "none",
+              }}
               animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
               whileHover={hasContent && !submitting ? { scale: 1.03 } : undefined}
               whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
@@ -701,32 +668,6 @@ export function CreatePostForm({
             </motion.button>
           </div>
         </div>
-
-        {/* Quiet, non-blocking nudge once a post runs long: no red numbers, no
-            limits messaging, just a hint that Letters might suit it better.
-            Only opacity animates (mounts fresh each time, so the surrounding
-            layout reflows once instead of the row height itself animating). */}
-        <AnimatePresence>
-          {!isLetter && content.length > LETTER_NUDGE_LEN && (
-            <motion.p
-              key="letter-nudge"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={SPRINGS.gentle}
-              className="text-[13px] leading-snug text-muted-foreground"
-            >
-              This might make a lovely{" "}
-              <Link
-                href="/letters"
-                className="font-medium text-cinnamon hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:rounded-sm"
-              >
-                Letter
-              </Link>
-              .
-            </motion.p>
-          )}
-        </AnimatePresence>
 
         {!isLetter && pollOptions && (
           <PollCreator
