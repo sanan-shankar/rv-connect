@@ -102,17 +102,14 @@ export function PhotoStep({
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
-        <div className="flex items-center gap-2">
-          {!photoUrl && (
-            <Button type="button" variant="ghost" size="sm" onClick={onSkip}>
-              Proudly keep my bird
-            </Button>
-          )}
-          <Button type="button" variant="primary" onClick={onNext} disabled={busy}>
-            Continue
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
+        {/* One primary action. With a photo it simply continues; without one it
+            keeps the charming "keep my bird" label (the upload button in the
+            card above is the alternative), so there is never a confusing pair
+            of buttons that do the same thing. */}
+        <Button type="button" variant="primary" onClick={photoUrl ? onNext : onSkip} disabled={busy}>
+          {photoUrl ? "Continue" : `Proudly keep my ${speciesName}`}
+          <ArrowRight className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );

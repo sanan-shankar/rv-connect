@@ -22,11 +22,10 @@ export function DoneStep({ name }: { name: string }) {
       </div>
       <div className="space-y-[var(--space-xxs)]">
         <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
-          All set, {firstName}.
+          You&apos;re in, {firstName}.
         </h2>
-        <p className="mx-auto max-w-[36ch] text-[15px] leading-relaxed text-muted-foreground">
-          Thank you for filling that in. Whatever you skipped is waiting for
-          you, whenever you feel like it, from a small card on your feed.
+        <p className="mx-auto max-w-[34ch] text-[16px] leading-relaxed text-muted-foreground">
+          Your page is ready. Come say hello, the valley&apos;s been waiting.
         </p>
       </div>
       <Button

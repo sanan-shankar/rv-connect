@@ -18,16 +18,11 @@ export function WelcomeStep({ name, onNext }: { name: string; onNext: () => void
         <h1 className="font-heading text-[28px] leading-tight tracking-[-0.02em] text-foreground">
           Welcome, {firstName}.
         </h1>
-        <p className="mx-auto max-w-[36ch] text-[15px] leading-relaxed text-muted-foreground">
-          Rishi Valley is a space for the whole community, alumni and
-          teachers, to stay in touch. Let&apos;s get your page ready so
-          people can find you.
+        <p className="mx-auto max-w-[34ch] text-[16px] leading-relaxed text-muted-foreground">
+          Let&apos;s get your page ready so old friends can find you. A few
+          quick steps, and you can skip any of them.
         </p>
       </div>
-      <p className="mx-auto max-w-[34ch] text-[13px] leading-relaxed text-muted-foreground/80">
-        Four quick steps. Skip anything you&apos;d rather do later, nothing
-        here is required to start using the feed.
-      </p>
       <Button type="button" variant="primary" size="lg" className="w-full" onClick={onNext}>
         Let&apos;s go
         <ArrowRight className="h-4 w-4" />

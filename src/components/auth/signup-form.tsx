@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
-import { computeBatchFromSchooling } from "@/lib/utils";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { registerUser } from "./actions";
 
@@ -132,23 +131,20 @@ export function SignupForm({
   const isAlum = accountType === "alumnus";
   const [showPw, setShowPw] = useState(false);
 
-  // The three plain schooling facts that place an alumnus in a batch. We keep
-  // them controlled so the batch can be previewed live as they are typed.
+  // Phone, collected right here at the first step so it never feels like a
+  // later afterthought. Country code defaults to +91 but is a free, editable
+  // field; the number is digits-only. Optional. Combined into one value for the
+  // hidden `phone` field the server reads (normalizePhone tidies it there).
+  const [countryCode, setCountryCode] = useState("+91");
+  const [phoneDigits, setPhoneDigits] = useState("");
+  const phoneValue = phoneDigits.trim() ? `${countryCode} ${phoneDigits}`.trim() : "";
+
+  // The batch is asked directly now ("the year your class finished 12th"),
+  // alongside the two plain years someone joined and left. All controlled so we
+  // can validate before submit.
   const [yearJoined, setYearJoined] = useState("");
   const [yearLeft, setYearLeft] = useState("");
-  const [gradeJoined, setGradeJoined] = useState("");
-
-  // Live batch derivation, shown under the fields so the person sees exactly
-  // where they will land before they submit. Same function the server uses, so
-  // the preview can never disagree with what gets stored.
-  const batch = useMemo(() => {
-    if (!isAlum || !yearJoined || !yearLeft || !gradeJoined) return null;
-    return computeBatchFromSchooling(
-      Number(yearJoined),
-      Number(yearLeft),
-      Number(gradeJoined)
-    );
-  }, [isAlum, yearJoined, yearLeft, gradeJoined]);
+  const [batchYear, setBatchYear] = useState("");
 
   // The one shared hoopoe (hoisted to the page) covers its eyes while the
   // password is hidden and peeks (following what you type) once revealed.
@@ -201,13 +197,14 @@ export function SignupForm({
     }
 
     if (isAlum) {
-      const b = computeBatchFromSchooling(
-        Number(yearJoined),
-        Number(yearLeft),
-        Number(gradeJoined)
-      );
-      if (!b.ok) {
-        setError(b.error);
+      if (!yearJoined || !yearLeft || !batchYear) {
+        setError("Please fill in the years you joined and left, and your batch.");
+        hoopoe.react("error");
+        setLoading(false);
+        return;
+      }
+      if (Number(yearLeft) < Number(yearJoined)) {
+        setError("The year you left cannot be before the year you joined.");
         hoopoe.react("error");
         setLoading(false);
         return;
@@ -329,6 +326,37 @@ export function SignupForm({
         />
       </div>
 
+      {/* Phone, right here at the first step. Optional, never verified. */}
+      <input type="hidden" name="phone" value={phoneValue} />
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="phoneDigits">Phone</Label>
+          <span className="text-[12px] font-normal text-muted-foreground">(optional)</span>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            aria-label="Country code"
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            inputMode="tel"
+            className="w-16 shrink-0 text-center"
+          />
+          <Input
+            id="phoneDigits"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder="e.g. 98765 43210"
+            value={phoneDigits}
+            onChange={(e) => setPhoneDigits(e.target.value)}
+            className="flex-1"
+          />
+        </div>
+        <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+          Shown only to fellow Rishi Valley members once they sign in. Never public.
+        </p>
+      </div>
+
       {/* Account type */}
       <input type="hidden" name="accountType" value={accountType} />
       <div className="space-y-2">
@@ -370,22 +398,44 @@ export function SignupForm({
 
       {!isAlum && (
         <p className="rounded-lg bg-paper px-3 py-2 text-[13px] leading-relaxed text-muted-foreground">
-          Teachers do not need a batch. If you also studied at Rishi Valley, you can add your batch
-          later from your profile.
+          No batch needed for teachers. You can add one later if you studied here too.
         </p>
       )}
 
       {isAlum && (
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="batchYear">Which batch are you in?</Label>
+              <InfoTip label="What does batch mean?">
+                Your batch is the year your class finished 12th grade at Rishi
+                Valley, even if you left earlier. Left after 10th in 2021? Your
+                batch is still 2023.
+              </InfoTip>
+            </div>
+            <Input
+              id="batchYear"
+              name="batchYear"
+              type="number"
+              inputMode="numeric"
+              placeholder="e.g. 2023"
+              min={1926}
+              max={currentYear + 7}
+              value={batchYear}
+              onChange={(e) => setBatchYear(e.target.value)}
+              required={isAlum}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="yearJoined">Year joined</Label>
+              <Label htmlFor="yearJoined">Year you joined</Label>
               <Input
                 id="yearJoined"
                 name="yearJoined"
                 type="number"
                 inputMode="numeric"
-                placeholder="2014"
+                placeholder="e.g. 2014"
                 min={1926}
                 max={currentYear}
                 value={yearJoined}
@@ -394,13 +444,13 @@ export function SignupForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="yearLeft">Year left</Label>
+              <Label htmlFor="yearLeft">Year you left</Label>
               <Input
                 id="yearLeft"
                 name="yearLeft"
                 type="number"
                 inputMode="numeric"
-                placeholder="2023"
+                placeholder="e.g. 2021"
                 min={1926}
                 max={currentYear + 1}
                 value={yearLeft}
@@ -408,57 +458,7 @@ export function SignupForm({
                 required={isAlum}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="gradeJoined">Grade joined</Label>
-              <Input
-                id="gradeJoined"
-                name="gradeJoined"
-                type="number"
-                inputMode="numeric"
-                placeholder="4"
-                min={1}
-                max={12}
-                value={gradeJoined}
-                onChange={(e) => setGradeJoined(e.target.value)}
-                required={isAlum}
-              />
-            </div>
           </div>
-
-          <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
-            <span>Joined before 4th grade?</span>
-            <InfoTip label="Guidance for those who joined before 4th grade">
-              If you joined before 4th grade, enter the year you started 4th
-              grade and put the grade joined as 4.
-            </InfoTip>
-          </div>
-
-          <AnimatePresence mode="wait" initial={false}>
-            {batch && (
-              <motion.div
-                key={batch.ok ? `ok-${batch.batchYear}` : `err-${batch.error}`}
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                transition={SPRINGS.snappy}
-              >
-                {batch.ok ? (
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-canopy/25 bg-canopy/10 px-3.5 py-2.5">
-                    <span className="text-[13px] text-muted-foreground">
-                      You&apos;ll join
-                    </span>
-                    <span className="font-heading text-[15px] font-semibold text-canopy">
-                      Batch of {batch.batchYear}
-                    </span>
-                  </div>
-                ) : (
-                  <p className="rounded-xl border border-cinnamon/30 bg-cinnamon/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-cinnamon">
-                    {batch.error}
-                  </p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       )}
 
