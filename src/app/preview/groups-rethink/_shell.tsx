@@ -216,6 +216,7 @@ const EYEBROW_TONE: Record<string, string> = {
   leaf: "text-leaf",
   sky: "text-sky",
   cinnamon: "text-cinnamon",
+  canopy: "text-[#235C49]",
   ink: "text-muted-foreground",
 };
 
@@ -225,7 +226,7 @@ export function Eyebrow({
   className = "",
 }: {
   children: ReactNode;
-  tone?: "leaf" | "sky" | "cinnamon" | "ink";
+  tone?: "leaf" | "sky" | "cinnamon" | "canopy" | "ink";
   className?: string;
 }) {
   return (
