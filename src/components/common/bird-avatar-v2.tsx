@@ -966,73 +966,63 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 32 - PEREGRINE FALCON. Slate back, pale barred belly, dark hood + black moustache, hooked beak.
-  // Redrawn for a sleek/fast read: a long swept scythe wing that clears the body outline (the
-  // classic pointed-wing silhouette that reads "stoop", not a soaring eagle or forked kite), a
-  // tilted torpedo body instead of a ball, and a yellow eye-ring to match the raptor's colour pop.
+  // 32 - PEREGRINE FALCON. Fresh take (2026-07-18): bold round perched raptor in the Kingfisher's
+  // build. Slate body + flank wing, two darker swept wingtip points crossing toward the short
+  // tail (the falcon cue that kills any penguin read), pale chest barred from the neckline down,
+  // and a clearly separated face: dark head dome (helmet), white cheek, NARROW malar teardrop
+  // dropping from the yellow-ringed eye (white visible on both sides), a small yellow cere dot
+  // and a SHORT stubby hooked beak nestled against the head. All shapes stay compact around the
+  // body; adjust matches the other round-bodied birds (~1.2 scale).
   {
     name: "Peregrine Falcon",
     skip: [],
     draw: () => {
-      const SLATE = "#5C6E7E", SLATEL = mix(SLATE, "#fff", 0.18), SLATED = mix(SLATE, "#000", 0.24);
-            const HOOD = "#3C4753", HOODL = mix(HOOD, "#5C6E7E", 0.4);
-            const PALE = "#ECE7DA", BAR = mix(PALE, "#7E8488", 0.5);
-            const CERE = "#E2B43E", BEAK = "#3A3D42", MALAR = "#2E343D";
-            return (
-              <g>
-                {/* long scythe wing, swept back and clearly past the body's edge - the single
-                    biggest "fast flier" cue in the set. Two soft scalloped bumps for feathers, tip
-                    rounded (never a needle, per the beak-sharpness ceiling). Kept inside the 0..100
-                    viewBox with margin after optical-centre scaling (an earlier, wider sweep put its
-                    tip at x<0 once scaled - the centroid script's screenshot-based bbox can't see
-                    clipped pixels, so it reported a false "converged"; verify with real math, not
-                    just the script, after touching this path or the torpedo-body ellipse below).
-                    Current containment (current archeTransform x:-0.14 y:-11.34 s:1.383), verified
-                    three ways after the 2026-07-05 wing/adjust pass: hand math on the raw path's
-                    control-point hull, an isolated centroid.mjs-style pixel/alpha-mass measurement
-                    of just this glyph, and a grow-the-viewBox-and-pixel-diff check (render once
-                    clipped, once with the viewBox padded out, diff for newly-visible pixels) - all
-                    three agree the full glyph (wing + torpedo body) sits inside x:[4.2,91.2]
-                    y:[6.2,96.8], reach 46.8 of the 50 cap. If re-checking, do NOT trust
-                    getBoundingClientRect()/getBBox() on the transformed <g> alone: for a rotated
-                    child (the ellipse below has `transform="rotate(...)"`), both APIs report the
-                    bounding box of the UNROTATED box's corners rotated as a rigid rectangle, not the
-                    true rotated-ellipse extent - that overshoot is exactly what produced the
-                    "clipped" false-positive here (it reported a bottom overflow that wasn't real).
-                    Cross-check with real pixels (a screenshot, or the padded-viewBox diff above)
-                    before believing a DOM-measured clip on any archetype that rotates an ellipse. */}
-                <path d="M57 48 Q43 42 29 46 Q18 49 17 60 Q23 63 28 59 Q26 65 31 67 Q38 63 40 57 Q42 62 46 62 Q51 57 52 51 Q54 49 57 48 Z" fill={SLATE} />
-                <path d="M30 50 Q38 49 45 53" stroke={SLATED} strokeWidth="1.7" fill="none" strokeLinecap="round" opacity="0.4" />
-                <path d="M25 56 Q32 55 38 59" stroke={SLATED} strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.3" />
-                {/* streamlined torpedo body: elongated + steeply tilted, tapering to the tail - a
-                    stooping lean instead of a plain round ball */}
-                <ellipse cx="49" cy="61" rx="22" ry="32" fill={SLATE} transform="rotate(-19 49 61)" />
-                {/* lit shoulder so the dark mass is not a flat void */}
-                <ellipse cx="59" cy="49" rx="10" ry="7.5" fill={SLATEL} opacity="0.5" transform="rotate(-24 59 49)" />
-                {/* clean pale breast: one smooth panel following the body's forward lean */}
-                <path d="M57 45 Q77 51 74 71 Q69 86 54 87 Q43 79 45 63 Q46 51 57 45 Z" fill={PALE} />
-                {/* barred belly: two short bars angled with the lean */}
-                <path d="M51 63 Q60 66 68 63" stroke={BAR} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5" />
-                <path d="M52 72 Q60 75 67 72" stroke={BAR} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.45" />
-                {/* slate HELMET hood: crown + nape as one wrapping shape (the peregrine signature) */}
-                <path d="M49 29 Q66 25 72 38 Q74 49 67 54 Q62 57 57 54 Q53 50 51 44 Q48 36 49 29 Z" fill={HOOD} />
-                <circle cx="58" cy="40" r="13.5" fill={HOOD} />
-                {/* lit crown sheen so the dark hood is not a flat void */}
-                <ellipse cx="55" cy="34" rx="8" ry="4.5" fill={HOODL} opacity="0.7" transform="rotate(-14 55 34)" />
-                {/* thin yellow eye-ring, the raptor colour pop (mirrors the Black Eagle's cere+eye) */}
-                <circle cx="61" cy="44" r="5.6" fill={CERE} opacity="0.85" />
-                {/* big pale cheek showing under the helmet - the eye sits HERE, on pale */}
-                <path d="M58 44 Q70 44 71 56 Q69 63 61 62 Q55 58 55 50 Q55 45 58 44 Z" fill={PALE} />
-                {/* bold black malar "sideburn" dropping from the eye - widened for a clearer
-                    signature mark against the pale cheek */}
-                <path d="M63 47 Q67 56 65 62 Q62 65 60 62 Q58 55 60 48 Q61 46 63 47 Z" fill={MALAR} />
-                {/* hooked beak: short stout yellow cere then a dark rounded hook (blunter than the chisel ceiling) */}
-                <path d="M66 42 Q71 41.6 71.5 45 Q71.5 47.4 66 47 Q65 44.5 66 42 Z" fill={CERE} />
-                <path d="M70 42.6 Q79 42.6 80 46.4 Q80 49.6 76.4 50 Q77.6 47.9 75.6 46.7 Q72.6 45.9 70 46.3 Q69 44.2 70 42.6 Z" fill={BEAK} />
-                {/* fierce dark eye on the pale cheek */}
-                <Eye cx={61} cy={44} r={3.9} />
-              </g>
-            );
+      const SLATE = "#617586", SLATED = "#4C5A67", SLATEL = "#8290A0";
+      const HOOD = "#2F3843", HOODL = "#454F5B";
+      const PALE = "#ECE7DA", BAR = "#6E7C8A";
+      const CERE = "#E2B43E", CERED = "#C1922B", BEAK = "#33363B";
+      const PRIM1 = "#39434D", PRIM2 = "#46525E";
+      return (
+        <g>
+          {/* yellow feet gripping a perch, peeking at the base */}
+          <path d="M45 80 Q43 90 47 91 Q50 87 50 80 Z" fill={CERED} />
+          <path d="M55 80 Q57 90 53 91 Q50 87 50 80 Z" fill={CERE} />
+          {/* short tail peeking below the body */}
+          <path d="M44 76 Q43 92 50 93 Q56 91 54 76 Z" fill={SLATED} />
+          {/* slate body (upperparts) */}
+          <circle cx="48" cy="54" r="32" fill={SLATE} />
+          {/* pale front: breast + belly */}
+          <path d="M55 40 Q66 39 72 45 Q82 54 79 68 Q75 86 50 86 Q39 85 42 66 Q44 48 55 40 Z" fill={PALE} />
+          {/* barring rises to the neckline: barred raptor chest, not a penguin belly */}
+          <path d="M51 60 Q61 63 71 60" stroke={BAR} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity="0.5" />
+          <path d="M50 67 Q60 70 71 67" stroke={BAR} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity="0.45" />
+          <path d="M50 74 Q59 76.5 69 74" stroke={BAR} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity="0.42" />
+          <path d="M52 80.5 Q59 82.5 67 80.5" stroke={BAR} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity="0.38" />
+          {/* folded wing over the flank */}
+          <path d="M52 34 Q30 36 25 58 Q23 77 41 84 Q46 74 49 60 Q52 48 53 40 Z" fill={SLATED} />
+          {/* lit shoulder so the dark mass isn't a flat void */}
+          <ellipse cx="40" cy="46" rx="11" ry="7" fill={SLATEL} opacity="0.32" transform="rotate(-24 40 46)" />
+          {/* long pointed wingtips sweeping down the flank to cross over the tail */}
+          <path d="M40 55 Q43 70 50 81 Q52.5 83 53 80.5 Q47.5 71 46 62 Q44.5 54 40 55 Z" fill={PRIM2} />
+          <path d="M33 57 Q35 75 52 87 Q55.5 88.5 56 86 Q48.5 77.5 44.5 67 Q41 58 33 57 Z" fill={PRIM1} />
+          {/* distinct dark head dome (the peregrine helmet), clearly bounded above the body */}
+          <circle cx="59" cy="38" r="18" fill={HOOD} />
+          {/* crown sheen */}
+          <ellipse cx="55" cy="28" rx="9" ry="4.5" fill={HOODL} opacity="0.65" transform="rotate(-14 55 28)" />
+          {/* white cheek patch on the lower face: the field mark the malar divides */}
+          <path d="M52 43 Q62 39.5 74 43 Q76 50.5 69.5 55 Q60.5 58.5 54 54 Q50.5 48.5 52 43 Z" fill={WHITE} />
+          {/* narrow malar teardrop dropping from the eye, white cheek on BOTH sides */}
+          <path d="M63.5 41.5 Q66.5 44.5 66 50.5 Q65.5 55.5 62.5 56 Q60 54.5 60.5 48 Q61 43 63.5 41.5 Z" fill={HOOD} />
+          {/* small yellow cere dot at the beak base, nestled against the head edge */}
+          <circle cx="74.5" cy="39.3" r="3.3" fill={CERE} />
+          {/* short stubby hooked beak (falcon beaks are tiny); base overlaps the cere */}
+          <path d="M76 36.8 Q84 37.5 85.5 41.5 Q86 45.3 81.8 45.8 Q83 42.5 80 41.8 Q77.8 41.4 76.3 42 Q75.4 39.2 76 36.8 Z" fill={BEAK} />
+          {/* yellow eye-ring at the hood/cheek border */}
+          <circle cx="64" cy="38" r="5.4" fill={CERE} />
+          {/* fierce dark eye */}
+          <Eye cx={64} cy={38} r={3.9} />
+        </g>
+      );
     },
   },
   // 33 - ORANGE-HEADED THRUSH. Glowing orange head + underparts, blue-grey back and wing.
