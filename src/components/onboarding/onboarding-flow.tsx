@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding-local";
+import type { PlaceSelection } from "@/components/common/location-picker";
 import { WelcomeStep } from "./steps/welcome-step";
 import { RegisterStep } from "./steps/register-step";
 import { HousesStep } from "./steps/houses-step";
@@ -37,7 +38,7 @@ export interface OnboardingUser {
   photoUrl: string | null;
   avatarColor: string | null;
   admissionNumber: number | null;
-  currentCity: string | null;
+  places: PlaceSelection[];
   workplace: string | null;
   jobTitle: string | null;
   yearJoined: number | null;

@@ -33,11 +33,14 @@ export default async function WelcomePage({
       photoUrl: true,
       avatarColor: true,
       admissionNumber: true,
-      currentCity: true,
       workplace: true,
       jobTitle: true,
       yearJoined: true,
       yearLeft: true,
+      places: {
+        orderBy: { position: "asc" },
+        select: { placeId: true, label: true, city: true, lat: true, lng: true },
+      },
     },
   });
   if (!user) redirect("/login");
@@ -76,7 +79,7 @@ export default async function WelcomePage({
           photoUrl: user.photoUrl,
           avatarColor: user.avatarColor,
           admissionNumber: user.admissionNumber,
-          currentCity: user.currentCity,
+          places: user.places,
           workplace: user.workplace,
           jobTitle: user.jobTitle,
           yearJoined: user.yearJoined,

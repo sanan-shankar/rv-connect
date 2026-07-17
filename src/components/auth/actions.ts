@@ -3,8 +3,26 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validators";
-import { computeBatchFromSchooling } from "@/lib/utils";
+import { titleCase, normalizePhone } from "@/lib/normalize";
 import { hasPassedTrivia } from "./trivia-actions";
+
+/**
+ * The board credential (ISC/ICSE), derived from the two facts we now collect:
+ * the year they left and their batch (12th-grade graduating year). Their grade
+ * in the final year is 12 minus the gap between the batch year and the year
+ * they left, so a 12th-grade leaver reads ISC, a 10th/11th leaver ICSE, and an
+ * earlier leaver has no board credential. Mirrors computeBatchFromSchooling's
+ * old grade-based rule without needing the retired gradeJoined field.
+ */
+function batchTypeFromLeaving(
+  yearLeft: number,
+  batchYear: number
+): "ISC" | "ICSE" | null {
+  const gradeAtLeaving = 12 - (batchYear - yearLeft);
+  if (gradeAtLeaving >= 12) return "ISC";
+  if (gradeAtLeaving >= 10) return "ICSE";
+  return null;
+}
 
 export async function registerUser(formData: FormData) {
   // The trivia gate is enforced server-side: a valid signed pass cookie must be
@@ -23,17 +41,19 @@ export async function registerUser(formData: FormData) {
   const isAlum = accountType === "alumnus";
   const num = (key: string) =>
     formData.get(key) ? Number(formData.get(key)) : undefined;
+  const rawPhone = (formData.get("phone") as string) || "";
   const raw = {
     firstName: formData.get("firstName") as string,
     lastName: formData.get("lastName") as string,
     email: formData.get("email") as string,
     password,
+    phone: rawPhone.trim() || undefined,
     accountType,
-    // Alumni describe their schooling with three plain facts; the batch is
-    // derived below. Teachers send none of these.
+    // Alumni give their batch directly plus the two plain years they joined and
+    // left; the board credential is derived below. Teachers send none of these.
     yearJoined: isAlum ? num("yearJoined") : undefined,
     yearLeft: isAlum ? num("yearLeft") : undefined,
-    gradeJoined: isAlum ? num("gradeJoined") : undefined,
+    batchYear: isAlum ? num("batchYear") : undefined,
   };
 
   const parsed = signupSchema.safeParse(raw);
@@ -41,22 +61,18 @@ export async function registerUser(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  // Derive the batch from the three schooling facts (server-side source of
-  // truth; the form shows the same computation live). batchType/batchYear are
-  // outputs here, never taken verbatim from the form.
+  if (isAlum && parsed.data.yearLeft! < parsed.data.yearJoined!) {
+    return { error: "The year you left cannot be before the year you joined." };
+  }
+
+  // batchYear is written straight through (the person told us their batch).
+  // batchType (the board credential) is the only derived value now, worked out
+  // from the year they left and their batch.
   let batchYear: number | null = null;
   let batchType: "ICSE" | "ISC" | null = null;
   if (isAlum) {
-    const batch = computeBatchFromSchooling(
-      parsed.data.yearJoined!,
-      parsed.data.yearLeft!,
-      parsed.data.gradeJoined!
-    );
-    if (!batch.ok) {
-      return { error: batch.error };
-    }
-    batchYear = batch.batchYear;
-    batchType = batch.batchType;
+    batchYear = parsed.data.batchYear!;
+    batchType = batchTypeFromLeaving(parsed.data.yearLeft!, batchYear);
   }
 
   // Check if user already exists
@@ -73,21 +89,27 @@ export async function registerUser(formData: FormData) {
 
   // First name and surname are collected separately but stored as one plain
   // name, joined by a single space. Both halves are already trimmed by the
-  // schema, so this cannot produce leading/trailing/double spaces.
-  const name = `${parsed.data.firstName} ${parsed.data.lastName}`;
+  // schema; titleCase silently fixes casing (all-caps or all-lowercase typing)
+  // so "AMY IYER" and "amy iyer" both store as "Amy Iyer".
+  const name = `${titleCase(parsed.data.firstName)} ${titleCase(parsed.data.lastName)}`;
 
-  // Create the user
+  // Phone is optional and never verified; we only normalize it to digits with
+  // an optional leading "+" so every stored number reads the same way.
+  const phone = parsed.data.phone ? normalizePhone(parsed.data.phone) : null;
+
+  // Create the user. gradeJoined is deliberately not written here: sign-up now
+  // takes the batch directly, so that column stays untouched.
   const user = await prisma.user.create({
     data: {
       name,
       email: parsed.data.email,
       password: hashedPassword,
+      phone,
       accountType: parsed.data.accountType,
       batchType,
       batchYear,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
-      gradeJoined: parsed.data.gradeJoined ?? null,
     },
   });
 

@@ -4,85 +4,115 @@ import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { HOUSES } from "@/lib/houses";
+import { titleCase } from "@/lib/normalize";
+import { normalizeHouse } from "@/lib/houses";
 import type { HouseYearEntry } from "@/lib/houses";
 
 /**
- * "The register" step: admission number, current city, profession + org.
- * A small subset of the shared profileSchema fields, kept as its own schema
- * here because onboarding never touches `name` (unlike /settings) and every
- * field is optional (this step is skippable, per the onboarding brief).
+ * "The register" step: current city (or cities), admission number, occupation
+ * and organisation. Every field is optional (the step is skippable). Text
+ * fields are silently title-cased on save so a name typed in a hurry
+ * ("apple", "TATA") still reads right on the profile.
+ *
+ * Cities are the gazetteer-backed <LocationPicker> selections, written as
+ * UserPlace rows (the ordered, unlimited city list). The legacy
+ * User.currentCity is kept in sync with the first city's label so older read
+ * paths that still read that single column keep working.
  */
-const registerStepSchema = z.object({
-  admissionNumber: z.number().int().min(0).max(10000).optional(),
-  currentCity: z.string().trim().max(100).optional(),
-  workplace: z.string().trim().max(100).optional(),
-  jobTitle: z.string().trim().max(100).optional(),
+const placeSchema = z.object({
+  placeId: z.number().int().nullable(),
+  label: z.string().trim().min(1).max(160),
+  city: z.string().trim().min(1).max(160),
+  lat: z.number().nullable(),
+  lng: z.number().nullable(),
 });
 
-export async function saveOnboardingRegister(formData: FormData) {
+const registerStepSchema = z.object({
+  admissionNumber: z.number().int().min(0).max(10000).optional(),
+  workplace: z.string().trim().max(100).optional(),
+  jobTitle: z.string().trim().max(100).optional(),
+  places: z.array(placeSchema).max(20).default([]),
+});
+
+export type RegisterStepInput = z.input<typeof registerStepSchema>;
+
+export async function saveOnboardingRegister(input: RegisterStepInput) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
 
-  const raw = {
-    admissionNumber: formData.get("admissionNumber")
-      ? Number(formData.get("admissionNumber"))
-      : undefined,
-    currentCity: (formData.get("currentCity") as string) || undefined,
-    workplace: (formData.get("workplace") as string) || undefined,
-    jobTitle: (formData.get("jobTitle") as string) || undefined,
-  };
-
-  const parsed = registerStepSchema.safeParse(raw);
+  const parsed = registerStepSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: {
-      admissionNumber: parsed.data.admissionNumber ?? null,
-      currentCity: parsed.data.currentCity || null,
-      workplace: parsed.data.workplace || null,
-      jobTitle: parsed.data.jobTitle || null,
-    },
+  const { admissionNumber, places } = parsed.data;
+  const workplace = parsed.data.workplace ? titleCase(parsed.data.workplace) : null;
+  const jobTitle = parsed.data.jobTitle ? titleCase(parsed.data.jobTitle) : null;
+
+  // A free-typed place (no gazetteer id) gets title-cased; a gazetteer hit is
+  // already formatted, so it is left exactly as the picker returned it.
+  const cleanedPlaces = places.map((p) =>
+    p.placeId == null
+      ? { ...p, label: titleCase(p.label), city: titleCase(p.city) }
+      : p
+  );
+  const primaryLabel = cleanedPlaces[0]?.label ?? null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        admissionNumber: admissionNumber ?? null,
+        workplace,
+        jobTitle,
+        // Legacy single-column city, kept in sync with the first place.
+        currentCity: primaryLabel,
+      },
+    });
+
+    // Replace the person's city list wholesale with the picker's current set.
+    await tx.userPlace.deleteMany({ where: { userId } });
+    if (cleanedPlaces.length > 0) {
+      await tx.userPlace.createMany({
+        data: cleanedPlaces.map((p, i) => ({
+          userId,
+          placeId: p.placeId,
+          label: p.label,
+          city: p.city,
+          lat: p.lat,
+          lng: p.lng,
+          position: i,
+        })),
+      });
+    }
   });
 
-  // Deliberately NOT revalidatePath("/welcome"): this action is called FROM
-  // the /welcome wizard while the person is still mid-flow, and admission
-  // number is exactly the field the page's own "already onboarded" guard
-  // (src/app/(main)/welcome/page.tsx) checks. Revalidating that path here
-  // would refetch the page's server data on the spot with the number now
-  // set, tripping the guard and bouncing straight to /feed before the
-  // Houses/Photo/Done steps ever show. The wizard holds its own step state
-  // client-side and does not need this route's cache invalidated; /feed and
-  // the profile (read by other pages) still get it.
+  // Deliberately NOT revalidatePath("/welcome"): this action is called FROM the
+  // /welcome wizard while the person is still mid-flow, and admission number is
+  // exactly the field the page's own "already onboarded" guard checks.
+  // Revalidating that path here would refetch the page's server data on the
+  // spot with the number now set, tripping the guard and bouncing straight to
+  // /feed before the Houses/Photo/Done steps ever show.
   revalidatePath("/feed");
-  revalidatePath(`/profile/${session.user.id}`);
+  revalidatePath(`/profile/${userId}`);
   return { success: true };
 }
 
 const houseYearSchema = z.object({
   year: z.number().int().min(1900).max(2100),
-  house: z.enum(HOUSES as unknown as [string, ...string[]]),
+  house: z.string().trim().min(1).max(60),
 });
-const housesPayloadSchema = z.array(houseYearSchema).max(30);
+// Stints are stored expanded to one row per year; a full school career is at
+// most ~14 years, so 60 is a generous ceiling that never rejects a real answer.
+const housesPayloadSchema = z.array(houseYearSchema).max(60);
 
-export type SaveHousesResult =
-  | { success: true; stored: "db" }
-  | { success: true; stored: "pending-migration" }
-  | { error: string };
+export type SaveHousesResult = { success: true } | { error: string };
 
 /**
- * Houses step. There is no `houses` column in prisma/schema.prisma or the
- * live database yet (see prisma/pending-migration.sql section 1 for the
- * one-liner ALTER TABLE the owner will run). Rather than add the column to
- * schema.prisma ahead of that migration — which the working agreement for
- * this shared database asks us to avoid — we probe with a raw, parameterised
- * query. If the column exists (post-migration) the write lands for real; if
- * it does not yet exist, Postgres throws (undefined column, 42703) and we
- * tell the caller to park the payload in localStorage instead. Either way
- * the user sees a normal "saved" confirmation; only the copy differs.
+ * Houses step. The `houses` column is live (JSON string of [{year, house}]),
+ * so this writes straight to it via Prisma. Each incoming entry's house name
+ * is normalized (canonical spelling, or the free-typed "Other" kept as-is).
  */
 export async function saveOnboardingHouses(
   rows: HouseYearEntry[]
@@ -95,42 +125,38 @@ export async function saveOnboardingHouses(
     return { error: "That doesn't look like a valid set of years and houses." };
   }
 
-  const json = JSON.stringify(parsed.data);
+  const normalized = parsed.data
+    .map((r) => ({ year: r.year, house: normalizeHouse(r.house) }))
+    .filter((r) => r.house.length > 0);
+  const json = JSON.stringify(normalized);
 
-  try {
-    await prisma.$executeRaw`UPDATE "User" SET "houses" = ${json} WHERE id = ${session.user.id}`;
-    // Same reasoning as saveOnboardingRegister above: no revalidatePath("/welcome").
-    revalidatePath(`/profile/${session.user.id}`);
-    return { success: true, stored: "db" };
-  } catch {
-    // Column not there yet — not an error the user needs to see as one.
-    return { success: true, stored: "pending-migration" };
-  }
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { houses: json },
+  });
+
+  // Same reasoning as saveOnboardingRegister above: no revalidatePath("/welcome").
+  revalidatePath(`/profile/${session.user.id}`);
+  return { success: true };
 }
 
-export type GetHousesResult =
-  | { houses: HouseYearEntry[] | null; stored: "db" }
-  | { houses: null; stored: "pending-migration" }
-  | { houses: null; stored: "unauthenticated" };
+export type GetHousesResult = { houses: HouseYearEntry[] | null };
 
-/** Mirror probe for prefilling the step with whatever is already saved. */
+/** Prefill the step with whatever house history is already saved. */
 export async function getOnboardingHouses(): Promise<GetHousesResult> {
   const session = await auth();
-  if (!session?.user?.id) return { houses: null, stored: "unauthenticated" };
+  if (!session?.user?.id) return { houses: null };
 
+  const row = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { houses: true },
+  });
+  const raw = row?.houses ?? null;
+  if (!raw) return { houses: null };
   try {
-    const rows = await prisma.$queryRaw<
-      { houses: string | null }[]
-    >`SELECT "houses" FROM "User" WHERE id = ${session.user.id} LIMIT 1`;
-    const raw = rows[0]?.houses ?? null;
-    if (!raw) return { houses: null, stored: "db" };
-    try {
-      const parsedJson = JSON.parse(raw);
-      return { houses: Array.isArray(parsedJson) ? parsedJson : null, stored: "db" };
-    } catch {
-      return { houses: null, stored: "db" };
-    }
+    const parsedJson = JSON.parse(raw);
+    return { houses: Array.isArray(parsedJson) ? parsedJson : null };
   } catch {
-    return { houses: null, stored: "pending-migration" };
+    return { houses: null };
   }
 }
