@@ -7,27 +7,41 @@ going until the entire wave is done, no mid-way check-ins; feedback comes at the
 
 Legend: [ ] open · [~] in progress · [x] done · [!] blocked/owner input
 
-## Live status (2026-07-18, orchestrator notes)
+## Live status (2026-07-18, orchestrator notes — wave 3 in flight)
 
-- DONE: round-6 DB migration applied (displayEmail, birdOverride, Post.cityScope, Place,
-  UserPlace + city seeding, Anonymous user with hoopoe). houses.ts = canonical 22 + alias map.
-- RUNNING: foundation agent (schema sync, normalize.ts, GeoNames import);
-  wave-1 workflow (13 lanes: sidebar, composer, feed-cards, notifications, catchups, landing,
-  mascot, dropdowns, map, search, support, uploads, birds+analytics — each with review+fix+commit);
-  whatsapp-curation workflow; falcon redesign agent; 4 design-spec agents (profile, walkthrough,
-  filters, groups-rethink previews).
-- H20 finding: rishivalley.space itself is healthy (200 apex; www/http 308 to apex). Stray
-  rv-alumni.vercel.app landings = links minted with the old URL; NEXTAUTH_URL/AUTH_URL on Vercel
-  likely still vercel.app (OWNER: fix in Vercel dashboard). Code fix queued: host-based 308 in
-  src/proxy.ts middleware (wave 2).
-- MCP note: claude.ai Supabase + Vercel connectors are authenticated to a different account than
-  this project; DB work goes through scripts/dev/run-sql.mjs (DIRECT_URL), Vercel checks from
-  outside.
-- WAVE 2 queue (launch when wave 1 + foundation land, to avoid file collisions): location picker
-  component first (standalone), then onboarding rework + profile rebuild + walkthrough build +
-  filters build (need their specs) + admin moderation & city-scoped posts & host redirect lane.
-- AFTER content workflow + falcon: my editorial review of picks, seed as Anonymous, Vihan bird
-  reassignment, falcon assignment to Veda + Srihari.
+- DONE Foundation: migration (displayEmail, birdOverride, Post.cityScope, Place, UserPlace,
+  Anonymous user), 234,934 GeoNames places imported + verified, normalize.ts, canonical 22 houses
+  + alias map, location picker (87ecb84).
+- DONE Wave 1 (12 commits): sidebar Support entry + lockup centering + fun-fact off + footer
+  removed; composer focus ring/toolbar/no-counter/letters-nudge/caret fix; comment rhythm + save
+  icon + report rail + heart scroll-jump; notification per-type icons; catchups arrows/questions;
+  landing scroll cue + gentle leaves + footer hoopoe legs; mascot loading-gate + mail moment
+  removed + 404 size + auth slide bounce removed + flight preload; dropdown primitive alignment;
+  map fullscreen exit; feed search scoped to posts; support page rupees rework; 20MB uploads +
+  collection form rework; full bird names + Vercel Analytics.
+- DONE Wave 2 (6 lanes + reconcile + 2 fix commits): onboarding batch+phone+skippable+houses UI;
+  profile rebuild + edit-profile (displayEmail, cities, houses chain, no pop-in); walkthrough tour
+  (offer, 4 stops, About relaunch); filters rework both pages + map multi-city pins; admin
+  moderation + notes + city-scoped posts + vercel.app host redirect; birdOverride wiring +
+  hoopoe exclusion (Vedant Srihari = falcon via DB, Vihaan auto-fixed, Anonymous = hoopoe).
+- DONE Content: 11 curated stories seeded as Anonymous (original dates, 3 mural photos on R2);
+  57-page overflow PDF (876ddf3); falcon glyph v7 approved + committed (56dce89).
+- DONE Groups: 4 concepts at /preview/groups-rethink + spec; recommendation = "Gatherings".
+  OWNER DECISION pending (also: profile preview pick is now superseded by the shipped rebuild).
+- DONE Wave 3: six leftover fixes landed; 13-way audit caught + repaired: composer regression
+  (15d3c19 had reverted the wave-1 composer work; restored in 32101e2), profile-photos city-scope/
+  private-group leak (security, 6028fa3), dropdown alignItemWithTrigger offset, bird-gallery dead
+  prop, month-select sentinel, catch-up "quiet" copy, em dashes in a seeded letter, love-button
+  aria labels, 5 simplify cleanups. Docs close-out committed (3f7b5a5).
+- DONE Profile DO-OVER (owner rejected the first rebuild as old-layout hodgepodge): rebuilt from
+  the Dossier preview source on a scratch route, orchestrator-gated visually across 4 cases x 2
+  viewports, then swapped live (bf54b8c). Saved tab, edit affordances, empty states preserved.
+- DONE save icon 4th-attempt fix by orchestrator with ratio math (df88c9b).
+- OWNER ACTIONS pending: NEXTAUTH_URL/AUTH_URL on Vercel (vercel.app strays); UPI handle
+  confirmation; deploy for Analytics to collect; pick a groups concept.
+- MCP note: claude.ai Supabase + Vercel connectors are on a different account; DB work goes
+  through scripts/dev/run-sql.mjs.
+- LAST: orchestrator product-critique pass (Z1) after wave 3 verification.
 
 ## A. Foundation (schema + data, do first)
 
