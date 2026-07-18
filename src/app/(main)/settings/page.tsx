@@ -30,6 +30,8 @@ export default async function SettingsPage() {
       phone: true,
       instagram: true,
       linkedin: true,
+      facebook: true,
+      links: true,
       batchYear: true,
       yearJoined: true,
       yearLeft: true,

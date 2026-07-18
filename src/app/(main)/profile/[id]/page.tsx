@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, parseJsonArray } from "@/lib/utils";
-import { socialHref, socialDisplay } from "@/lib/social";
+import { socialHref, socialDisplay, parseUserLinks } from "@/lib/social";
 import { headerImageFor } from "@/lib/header-image";
-import { parseHouseSpans } from "@/lib/house-spans";
+import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
 import { ProfileShell } from "@/components/profile/profile-shell";
@@ -115,6 +115,8 @@ export default async function ProfilePage({
   const socials: AboutSocial[] = [
     user.instagram ? { kind: "instagram" as const, value: user.instagram } : null,
     user.linkedin ? { kind: "linkedin" as const, value: user.linkedin } : null,
+    user.facebook ? { kind: "facebook" as const, value: user.facebook } : null,
+    ...parseUserLinks(user.links).map((l) => ({ kind: "link" as const, value: l.url, label: l.label })),
   ].filter(Boolean) as AboutSocial[];
 
   const methods: ContactMethod[] = [
@@ -142,14 +144,14 @@ export default async function ProfilePage({
       : null,
   ].filter(Boolean) as ContactMethod[];
 
-  // vCard: the shown email, all cities, houses summarised in the note.
+  // vCard: the shown email, all cities, houses summarised in the note. Years
+  // are academic years (stored `year: 2014` reads as "2014-15"), same span
+  // label as the profile's houses chain.
   const houseSpans = parseHouseSpans(user.houses);
   const houseNote =
     houseSpans.length > 0
       ? "; Houses: " +
-        houseSpans
-          .map((h) => `${h.house} ${h.fromYear === h.toYear ? h.fromYear : `${h.fromYear}-${h.toYear}`}`)
-          .join(", ")
+        houseSpans.map((h) => `${h.house} ${academicSpanLabel(h.fromYear, h.toYear)}`).join(", ")
       : "";
   const vcard = [
     "BEGIN:VCARD",

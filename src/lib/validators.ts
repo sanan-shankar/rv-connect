@@ -59,6 +59,31 @@ export const profileSchema = z.object({
   phone: z.string().max(20).optional(),
   instagram: z.string().max(100).optional(),
   linkedin: z.string().max(200).optional(),
+  facebook: z.string().max(200).optional(),
+  // "Other links" repeater in Contact: user-defined label + URL rows. https
+  // only, both to keep the "Find them" pills honest and to rule out
+  // javascript:/data: hrefs sneaking through as a "URL".
+  links: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1).max(60),
+        url: z
+          .string()
+          .trim()
+          .max(300)
+          .refine((v) => /^https:\/\//i.test(v), "Links must start with https://")
+          .refine((v) => {
+            try {
+              new URL(v);
+              return true;
+            } catch {
+              return false;
+            }
+          }, "That doesn't look like a valid URL"),
+      })
+    )
+    .max(10)
+    .optional(),
   accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).optional(),
   // Batch is a direct field now (headline identity). The collapsible "work it
   // out" path still derives it from the three schooling facts server-side.

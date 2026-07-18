@@ -17,6 +17,17 @@ export async function updateUserProfile(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  // "Other links" travels as a JSON string (the form serialises its repeater
+  // rows before calling this action); malformed JSON is treated as "none"
+  // rather than failing the whole save.
+  let rawLinks: unknown;
+  try {
+    const linksField = formData.get("links") as string | null;
+    rawLinks = linksField ? JSON.parse(linksField) : undefined;
+  } catch {
+    rawLinks = undefined;
+  }
+
   const raw = {
     name: formData.get("name") as string,
     about: (formData.get("about") as string) || undefined,
@@ -26,6 +37,8 @@ export async function updateUserProfile(formData: FormData) {
     phone: (formData.get("phone") as string) || undefined,
     instagram: (formData.get("instagram") as string) || undefined,
     linkedin: (formData.get("linkedin") as string) || undefined,
+    facebook: (formData.get("facebook") as string) || undefined,
+    links: rawLinks,
     batchYear: formData.get("batchYear")
       ? Number(formData.get("batchYear"))
       : undefined,
@@ -76,6 +89,8 @@ export async function updateUserProfile(formData: FormData) {
       phone: parsed.data.phone || null,
       instagram: parsed.data.instagram || null,
       linkedin: parsed.data.linkedin || null,
+      facebook: parsed.data.facebook || null,
+      links: parsed.data.links && parsed.data.links.length > 0 ? JSON.stringify(parsed.data.links) : null,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
       admissionNumber: parsed.data.admissionNumber ?? null,
