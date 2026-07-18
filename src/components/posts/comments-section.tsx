@@ -352,16 +352,14 @@ function CommentItem({
 
   return (
     <div className="flex items-start gap-2.5">
-      {/* mt-1.5: the avatar is now taller than a single text line (34px vs. the name/content
-          line's ~23px box), so top-aligning it flush with the name (mt-0.5, the old value)
-          left it looking glued to the name row with the meta line dangling below, uncovered.
-          This nudges it down to split the difference between the name line and the meta line
-          beneath it, without pinning it to the block's true vertical center (which would drift
-          it away from the name on long, multi-line comments). */}
+      {/* No top margin: with the name/meta cluster now sitting close together (see the meta
+          div's -mt-2.5 below), the avatar (34px) and the two-line cluster (~33px, measured
+          top-of-name to bottom-of-meta) are within a px of the same height, so flush
+          alignment already centers the avatar against the cluster. */}
       <Link
         href={`/profile/${comment.author.id}`}
         aria-label={comment.author.name}
-        className="mt-1.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         <BirdAvatar
           user={{
@@ -380,12 +378,14 @@ function CommentItem({
           <PersonName user={comment.author} className="mr-1.5 align-baseline" />
           {comment.content}
         </p>
-        {/* mt-1 gives the meta line room to breathe under the name/content line. (The old
-            -mt-1.5 cancelled leading-relaxed's own bottom half-leading AND then some, pulling
-            the meta line snug against the name with no gap at all; owner feedback was that it
-            read as cramped.) h-5 still matches LoveButton's own resting height (see the
-            [&>span] override below) so the row never needs to fight or clip its child. */}
-        <div className="mt-1 flex h-5 items-center gap-3 text-xs text-muted-foreground">
+        {/* The name/content line and this meta line are one related cluster (proximity
+            principle): keep them close, just a couple px apart. leading-relaxed's own bottom
+            half-leading already supplies most of that space, so only a small negative nudge
+            is needed (the old -mt-1.5 over-cancelled it down to 0px; a bare mt-1 left ~18px,
+            which read as belonging to two different rows). h-5 still matches LoveButton's own
+            resting height (see the [&>span] override below) so the row never needs to fight or
+            clip its child. */}
+        <div className="-mt-2.5 flex h-5 items-center gap-3 text-xs text-muted-foreground">
           <span>{formatTimeAgo(new Date(comment.createdAt))}</span>
           <button
             onClick={onReply}
