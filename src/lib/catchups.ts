@@ -111,7 +111,7 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
       "Which teacher's voice do you still hear in your head, and what does it say?",
       "What would surprise your school self most about the life you have now?",
       "Where on campus did you go when you needed to be on your own for a while?",
-      "What is something you learned in the Valley that has quietly stayed with you?",
+      "What is something you learned in the Valley that has stayed with you ever since?",
       "Who did you sit up talking to long after lights out, and what about?",
       "What do you miss about those years that you never expected to?",
     ],
@@ -144,7 +144,7 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
     id: "on-the-horizon",
     label: "On the horizon",
     prompts: [
-      "What are you quietly working toward this year?",
+      "What are you working toward this year, even if you have not told many people?",
       "What is a trip you keep meaning to take but have not yet?",
       "What do you want more of in your life a year from now?",
       "What is something you want to learn while you still have the time?",
@@ -158,7 +158,7 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
     prompts: [
       "What have you been reading, cooking, or growing lately?",
       "What is the best thing you have eaten in the last month?",
-      "What is a small ritual that quietly makes your days better?",
+      "What is a small ritual that makes your days better?",
       "Send a photo of the view from wherever you are sitting right now.",
       "What is something small that made you laugh this week?",
       "What has been on repeat for you lately? A song, a show, anything.",

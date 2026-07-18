@@ -33,10 +33,10 @@ const PERCH_JITTER_PX = [-3, 1, -1, 3, -2, 2, 0, -3, 2, -1, 1, -2, 3, 0];
 export function contributorsCopy(contributors: CatchupPersonRef[]): string {
   const n = contributors.length;
   if (n === 0) return "No one has written in yet.";
-  if (n === 1) return `A quiet Round. ${contributors[0].name} wrote in.`;
-  if (n === 2) return `A quiet Round. ${contributors[0].name} and ${contributors[1].name} wrote in.`;
+  if (n === 1) return `A small Round. ${contributors[0].name} wrote in.`;
+  if (n === 2) return `A small Round. ${contributors[0].name} and ${contributors[1].name} wrote in.`;
   if (n === 3) {
-    return `A quiet Round. ${contributors[0].name}, ${contributors[1].name}, and ${contributors[2].name} wrote in.`;
+    return `A small Round. ${contributors[0].name}, ${contributors[1].name}, and ${contributors[2].name} wrote in.`;
   }
   return `${n} of the group wrote in.`;
 }
