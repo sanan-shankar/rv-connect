@@ -25,6 +25,10 @@ export interface TourPanelApi {
   hoopoe: UseHoopoe;
   /** The live client-space point the hoopoe rests on, read fresh each call. */
   perchPoint(): { x: number; y: number };
+  /** The card's current top edge in client space (read fresh each call), so the
+   *  tour can keep a spotlighted target from scrolling underneath it. Falls back
+   *  to the viewport height (i.e. "no reservation") if the card isn't mounted yet. */
+  panelTop(): number;
 }
 
 export function TourPanel({
@@ -49,6 +53,7 @@ export function TourPanel({
 }) {
   const h = useHoopoe();
   const perchRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [desktop, setDesktop] = useState(false);
 
   useEffect(() => {
@@ -67,6 +72,7 @@ export function TourPanel({
         if (!r) return { x: window.innerWidth / 2, y: window.innerHeight - 160 };
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       },
+      panelTop: () => cardRef.current?.getBoundingClientRect().top ?? window.innerHeight,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -82,6 +88,7 @@ export function TourPanel({
       aria-label="Product tour"
     >
       <motion.div
+        ref={cardRef}
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRINGS.gentle}
