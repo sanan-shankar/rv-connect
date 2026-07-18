@@ -11,7 +11,7 @@ import {
   Images,
   Feather,
   MessagesSquare,
-  PiggyBank,
+  HeartHandshake,
   Info,
   Settings,
   Shield,
@@ -64,7 +64,7 @@ const NAV = [
   { href: "/catchups", label: "Catch-ups", icon: MessagesSquare },
   // /donate still exists as a redirect to this route (kept for old links);
   // this is the canonical live page with the real content.
-  { href: "/support", label: "Support", icon: PiggyBank },
+  { href: "/support", label: "Support", icon: HeartHandshake },
   { href: "/about", label: "About", icon: Info },
 ];
 
