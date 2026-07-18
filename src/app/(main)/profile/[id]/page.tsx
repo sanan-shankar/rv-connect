@@ -10,12 +10,10 @@ import { headerImageFor } from "@/lib/header-image";
 import { parseHouseSpans } from "@/lib/house-spans";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
+import { ProfileShell } from "@/components/profile/profile-shell";
 import { ProfileHeaderCard } from "@/components/profile/profile-header-card";
-import { HousesChain } from "@/components/profile/houses-chain";
-import { ProfileTabs } from "@/components/profile/profile-tabs";
-import { ProfileAbout } from "@/components/profile/profile-about";
+import { ProfileAbout, type AboutSocial } from "@/components/profile/profile-about";
 import { ProfilePostsAndLetters } from "@/components/profile/profile-posts-and-letters";
-import { ProfileRailCards, type ProfileRailData, type RailSocial } from "@/components/profile/profile-rail";
 import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
 
@@ -33,11 +31,15 @@ export async function generateMetadata({
   return { title: user.name };
 }
 
-/** "In the valley YYYY to YYYY" / partial fragments; never "undefined". */
-function valleyYears(yearJoined: number | null, yearLeft: number | null): string | null {
-  if (yearJoined && yearLeft) return `In the valley ${yearJoined} to ${yearLeft}`;
-  if (yearJoined) return `In the valley from ${yearJoined}`;
-  if (yearLeft) return `In the valley until ${yearLeft}`;
+/** "2014-2021 . 7 years" / partial fragments; never "undefined". */
+function rvYearsLabel(yearJoined: number | null, yearLeft: number | null): string | null {
+  if (yearJoined && yearLeft) {
+    const n = yearLeft - yearJoined;
+    const dur = n > 0 ? ` · ${n} ${n === 1 ? "year" : "years"}` : "";
+    return `${yearJoined}–${yearLeft}${dur}`;
+  }
+  if (yearJoined) return `From ${yearJoined}`;
+  if (yearLeft) return `Until ${yearLeft}`;
   return null;
 }
 
@@ -52,13 +54,7 @@ export default async function ProfilePage({
 
   const user = await prisma.user.findUnique({
     where: { id },
-    include: {
-      places: { orderBy: { position: "asc" } },
-      groupMemberships: {
-        include: { group: { select: { id: true, name: true, _count: { select: { members: true } } } } },
-        orderBy: { joinedAt: "desc" },
-      },
-    },
+    include: { places: { orderBy: { position: "asc" } } },
   });
   if (!user || user.isBlocked) notFound();
 
@@ -101,11 +97,11 @@ export default async function ProfilePage({
   const cities =
     user.places.length > 0
       ? user.places.map((p) => p.city)
-      : [user.currentCity, user.secondaryCity].filter(Boolean) as string[];
+      : ([user.currentCity, user.secondaryCity].filter(Boolean) as string[]);
   const cityLabels =
     user.places.length > 0
       ? user.places.map((p) => p.label)
-      : [user.currentCity, user.secondaryCity].filter(Boolean) as string[];
+      : ([user.currentCity, user.secondaryCity].filter(Boolean) as string[]);
 
   const occupation =
     user.jobTitle && user.workplace
@@ -116,10 +112,10 @@ export default async function ProfilePage({
   const headerImage = headerImageFor(user);
 
   // Socials (Find them) + the Get in touch method list.
-  const socials: RailSocial[] = [
+  const socials: AboutSocial[] = [
     user.instagram ? { kind: "instagram" as const, value: user.instagram } : null,
     user.linkedin ? { kind: "linkedin" as const, value: user.linkedin } : null,
-  ].filter(Boolean) as RailSocial[];
+  ].filter(Boolean) as AboutSocial[];
 
   const methods: ContactMethod[] = [
     { kind: "email" as const, label: "Email", value: contactEmail, href: `mailto:${contactEmail}` },
@@ -171,23 +167,6 @@ export default async function ProfilePage({
     .filter(Boolean)
     .join("\n");
 
-  const openToTags = user.openTo
-    ? user.openTo.split(",").map((t) => t.trim()).filter(Boolean)
-    : [];
-
-  const railData: ProfileRailData = {
-    rvYears: valleyYears(user.yearJoined, user.yearLeft),
-    enteredGrade: user.gradeJoined ?? null,
-    cities,
-    socials,
-    groups: user.groupMemberships
-      .filter((m) => m.group)
-      .map((m) => ({ id: m.group!.id, name: m.group!.name, memberCount: m.group!._count.members })),
-    isOwnProfile,
-  };
-
-  const railNode = <ProfileRailCards data={railData} />;
-
   // ---- Photos tab content ----
   const photosNode =
     photos.length > 0 ? (
@@ -210,97 +189,62 @@ export default async function ProfilePage({
     ) : null;
 
   return (
-    <div className="mx-auto max-w-[1160px] space-y-6">
-      <ProfileHeaderCard
-        user={{
-          id: user.id,
-          name: user.name,
-          photoUrl: user.photoUrl,
-          avatarColor: user.avatarColor,
-          birdOverride: user.birdOverride,
-          verifyState: user.verifyState,
-          accountType: user.accountType,
-        }}
-        headerImage={headerImage}
-        batchLabel={batchLine(user)}
-        occupation={occupation}
-        cities={cities}
-        email={contactEmail}
-        phone={user.phone}
-        admissionNumber={user.admissionNumber ?? null}
-        isOwnProfile={isOwnProfile}
-        contactMethods={methods}
-        vcard={vcard}
-      />
-
-      {/* Houses chain: the owner's favourite element, or a gentle nudge on
-          your own empty profile. */}
-      {houseSpans.length > 0 ? (
-        <div className="px-1">
-          <HousesChain houses={user.houses} />
-        </div>
-      ) : isOwnProfile ? (
-        <p className="px-1 text-[13px] text-muted-foreground">
-          Add the houses you were in over the years in{" "}
-          <Link href="/settings" className="font-semibold text-leaf hover:underline">
-            your settings
-          </Link>{" "}
-          to see your chain here.
-        </p>
-      ) : null}
-
-      {isAdmin && !isOwnProfile && (
-        <AdminProfileTools
-          userId={user.id}
-          isBlocked={user.isBlocked}
-          adminNote={user.adminNote}
-          verifyState={user.verifyState}
+    <ProfileShell
+      headerNode={
+        <ProfileHeaderCard
+          user={{
+            id: user.id,
+            name: user.name,
+            photoUrl: user.photoUrl,
+            birdOverride: user.birdOverride,
+            verifyState: user.verifyState,
+            accountType: user.accountType,
+          }}
+          headerImage={headerImage}
+          batchLabel={batchLine(user)}
+          occupation={occupation}
+          email={contactEmail}
+          phone={user.phone}
+          admissionNumber={user.admissionNumber ?? null}
+          isOwnProfile={isOwnProfile}
+          contactMethods={methods}
+          vcard={vcard}
+          housesRaw={user.houses}
         />
-      )}
-
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <ProfileTabs
-          showPhotos={photos.length > 0}
-          showSaved={isOwnProfile}
-          about={
-            <ProfileAbout
-              about={user.about}
-              openToTags={openToTags}
-              firstName={firstName}
-              isOwnProfile={isOwnProfile}
-              mobileRail={railNode}
-            />
-          }
-          postsAndLetters={
-            <ProfilePostsAndLetters
-              authorId={user.id}
-              firstName={firstName}
-              isOwnProfile={isOwnProfile}
-              letterCount={letterCount}
-              postCount={postCount}
-            />
-          }
-          photos={photosNode}
-          saved={isOwnProfile ? <SavedPostsFeed /> : null}
+      }
+      aboutNode={
+        <ProfileAbout
+          about={user.about}
+          firstName={firstName}
+          isOwnProfile={isOwnProfile}
+          socials={socials}
+          rvYears={rvYearsLabel(user.yearJoined, user.yearLeft)}
+          enteredGrade={user.gradeJoined ?? null}
+          cities={cities}
         />
-
-        {/* Persistent desktop rail (always visible across tabs). */}
-        <aside className="hidden lg:sticky lg:top-6 lg:block">
-          {railNode}
-          {!isOwnProfile && (
-            <div className="mt-4 px-1">
-              <FlagPersonDialog userId={user.id} name={user.name} />
-            </div>
-          )}
-        </aside>
-      </div>
-
-      {/* Flag control on mobile (desktop lives in the rail). */}
-      {!isOwnProfile && (
-        <div className="px-1 lg:hidden">
-          <FlagPersonDialog userId={user.id} name={user.name} />
-        </div>
-      )}
-    </div>
+      }
+      postsNode={
+        <ProfilePostsAndLetters
+          authorId={user.id}
+          firstName={firstName}
+          isOwnProfile={isOwnProfile}
+          letterCount={letterCount}
+          postCount={postCount}
+        />
+      }
+      photosNode={photosNode}
+      savedNode={isOwnProfile ? <SavedPostsFeed /> : null}
+      adminNode={
+        isAdmin && !isOwnProfile ? (
+          <AdminProfileTools
+            userId={user.id}
+            isBlocked={user.isBlocked}
+            adminNote={user.adminNote}
+            verifyState={user.verifyState}
+          />
+        ) : null
+      }
+      flagNode={!isOwnProfile ? <FlagPersonDialog userId={user.id} name={user.name} /> : null}
+    />
   );
 }

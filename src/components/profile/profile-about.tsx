@@ -1,81 +1,134 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { AboutProse } from "@/components/profile/about-prose";
+import {
+  socialHref,
+  socialIcon,
+  socialDisplay,
+  socialHost,
+  type SocialKind,
+} from "@/lib/social";
 
-/**
- * The About tab (default). A demoted "Open to" pill row (if any) sits at the
- * top, then the About prose, then a light valley-years note. On mobile the
- * rail cards (record / find them / groups) are inlined below via `mobileRail`
- * (rendered by the server page and passed through) since a directory profile
- * should never hide them behind a desktop-only column.
- */
+/* ------------------------------------------------------------------ *
+ *  ProfileAbout - the About tab (the default), rebuilt 2026-07 from the
+ *  approved profile-v2 concept. Order:
+ *   1. the About prose (eyebrow says "About" - the app standardised on
+ *      that name this round; no more bio/in-their-words variants),
+ *   2. the "Find them" socials block (Dossier's block),
+ *   3. the at-RV facts as a QUIET footnote strip at the very bottom -
+ *      years at RV, entered grade, cities. This is the only home for
+ *      those facts now: never in the header, never in a mid-page rail.
+ *
+ *  Desktop uses the width: prose and "Find them" sit side by side on a
+ *  shared grid (both flush to the same left/top), the facts strip spans
+ *  the full width beneath. Mobile is the linear stack.
+ * ------------------------------------------------------------------ */
+
+export interface AboutSocial {
+  kind: SocialKind;
+  value: string;
+}
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-cinnamon/85">{children}</p>
+  );
+}
+
+function SocialPill({ social }: { social: AboutSocial }) {
+  const Icon = socialIcon(social.kind);
+  const host = socialHost(social.kind, social.value);
+  return (
+    <a
+      href={socialHref(social.kind, social.value)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:border-cinnamon/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.985]"
+    >
+      <Icon className="h-[15px] w-[15px] shrink-0 text-cinnamon" aria-hidden />
+      <span>{socialDisplay(social.kind, social.value)}</span>
+      {host && <span className="font-normal text-muted-foreground">{host}</span>}
+    </a>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-cinnamon/70">{label}</dt>
+      <dd className="mt-1 text-[13.5px] font-semibold leading-snug text-foreground">{value}</dd>
+    </div>
+  );
+}
+
 export function ProfileAbout({
   about,
-  openToTags,
   firstName,
   isOwnProfile,
-  mobileRail,
+  socials,
+  rvYears,
+  enteredGrade,
+  cities,
 }: {
   about: string | null;
-  openToTags: string[];
   firstName: string;
   isOwnProfile: boolean;
-  mobileRail: ReactNode;
+  socials: AboutSocial[];
+  rvYears: string | null;
+  enteredGrade: number | null;
+  cities: string[];
 }) {
+  const hasSocials = socials.length > 0;
+  const hasFacts = Boolean(rvYears) || enteredGrade != null || cities.length > 0;
+
   return (
-    <div className="space-y-6">
-      <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-6">
-        {openToTags.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {openToTags.map((t) => (
-              <span
-                key={t}
-                className="rounded-full bg-leaf/10 px-3 py-1.5 text-[12px] font-semibold text-leaf"
-              >
-                {t}
-              </span>
-            ))}
+    <div>
+      <div
+        className={cn(
+          "grid gap-x-[var(--space-xl)] gap-y-[var(--space-xl)]",
+          hasSocials && "lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]"
+        )}
+      >
+        <section>
+          <Eyebrow>About</Eyebrow>
+          <div className="mt-[var(--space-m)]">
+            {about ? (
+              <AboutProse text={about} />
+            ) : isOwnProfile ? (
+              <p className="text-[15px] leading-[1.7] text-muted-foreground">
+                You haven&rsquo;t written an About yet.{" "}
+                <Link href="/settings" className="font-semibold text-leaf hover:underline">
+                  Add a few lines
+                </Link>{" "}
+                so people know who you are now.
+              </p>
+            ) : (
+              <p className="text-[15px] leading-[1.7] text-muted-foreground">
+                {`${firstName} hasn’t written an About yet.`}
+              </p>
+            )}
           </div>
-        )}
-
-        <h3 className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-          About
-        </h3>
-        {about ? (
-          <AboutProse text={about} />
-        ) : isOwnProfile ? (
-          <p className="text-[14px] leading-[1.7] text-muted-foreground">
-            You haven&rsquo;t written an About yet.{" "}
-            <Link href="/settings" className="font-semibold text-leaf hover:underline">
-              Add a few lines
-            </Link>{" "}
-            so people know who you are now.
-          </p>
-        ) : (
-          <p className="text-[14px] leading-[1.7] text-muted-foreground">
-            {firstName}
-            {" "}hasn&rsquo;t written an About yet.
-          </p>
-        )}
-      </section>
-
-      {isOwnProfile && (
-        <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-6">
-          <h3 className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            The valley years
-          </h3>
-          <p className="text-[13.5px] leading-[1.7] text-muted-foreground">
-            Memory prompts are on their way to{" "}
-            <Link href="/settings" className="font-semibold text-leaf hover:underline">
-              your settings
-            </Link>
-            . Answer the ones you remember, and they will show up here. The rest stay hidden.
-          </p>
         </section>
-      )}
 
-      {/* Rail inlined on mobile only; the desktop rail is the persistent aside. */}
-      <div className="lg:hidden">{mobileRail}</div>
+        {hasSocials && (
+          <section className="lg:border-l lg:border-dashed lg:border-border lg:pl-[var(--space-xl)]">
+            <Eyebrow>Find them</Eyebrow>
+            <div className="mt-[var(--space-m)] flex flex-wrap gap-2.5">
+              {socials.map((s) => (
+                <SocialPill key={s.kind + s.value} social={s} />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {hasFacts && (
+        <dl className="mt-[var(--space-xl)] flex flex-wrap gap-x-[var(--space-xl)] gap-y-[var(--space-m)] border-t border-dashed border-border pt-[var(--space-l)]">
+          {rvYears && <Fact label="In the valley" value={rvYears} />}
+          {enteredGrade != null && <Fact label="Entered" value={`Grade ${enteredGrade}`} />}
+          {cities.length > 0 && <Fact label="Based in" value={cities.join(" · ")} />}
+        </dl>
+      )}
     </div>
   );
 }
