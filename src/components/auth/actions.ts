@@ -4,25 +4,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validators";
 import { titleCase, normalizePhone } from "@/lib/normalize";
+import { batchTypeFromLeaving } from "@/lib/utils";
 import { hasPassedTrivia } from "./trivia-actions";
-
-/**
- * The board credential (ISC/ICSE), derived from the two facts we now collect:
- * the year they left and their batch (12th-grade graduating year). Their grade
- * in the final year is 12 minus the gap between the batch year and the year
- * they left, so a 12th-grade leaver reads ISC, a 10th/11th leaver ICSE, and an
- * earlier leaver has no board credential. Mirrors computeBatchFromSchooling's
- * old grade-based rule without needing the retired gradeJoined field.
- */
-function batchTypeFromLeaving(
-  yearLeft: number,
-  batchYear: number
-): "ISC" | "ICSE" | null {
-  const gradeAtLeaving = 12 - (batchYear - yearLeft);
-  if (gradeAtLeaving >= 12) return "ISC";
-  if (gradeAtLeaving >= 10) return "ICSE";
-  return null;
-}
 
 export async function registerUser(formData: FormData) {
   // The trivia gate is enforced server-side: a valid signed pass cookie must be

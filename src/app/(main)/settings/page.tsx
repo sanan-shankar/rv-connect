@@ -33,7 +33,6 @@ export default async function SettingsPage() {
       batchYear: true,
       yearJoined: true,
       yearLeft: true,
-      gradeJoined: true,
       admissionNumber: true,
       updatedAt: true,
       places: { orderBy: { position: "asc" }, select: { placeId: true, label: true, city: true, lat: true, lng: true } },

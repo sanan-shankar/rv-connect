@@ -1,12 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, ImagePlus, Loader2, Plus, X } from "lucide-react";
-import { SPRINGS } from "@/components/common/motion";
-import { computeBatchFromSchooling } from "@/lib/utils";
+import { ImagePlus, Loader2, Plus, X } from "lucide-react";
 import { normalizeHouse } from "@/lib/houses";
 import { HOUSES, type HouseYearEntry } from "@/lib/houses";
 import { BirdAvatar } from "@/components/common/bird-avatar";
@@ -61,7 +58,6 @@ interface SettingsUser {
   batchYear: number | null;
   yearJoined: number | null;
   yearLeft: number | null;
-  gradeJoined: number | null;
   admissionNumber: number | null;
   places: { placeId: number | null; label: string; city: string; lat: number | null; lng: number | null }[];
 }
@@ -114,19 +110,13 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
 
   const [about, setAbout] = useState(user.about ?? "");
 
-  // Batch-first: the direct batch year is the headline. The three schooling
-  // facts live behind a collapsible "work it out" panel and, when all present,
-  // preview (and on save, derive) the batch.
+  // Batch-first, same direct model as sign-up: the batch year is entered
+  // directly, alongside the two plain years joined/left. No grade-joined
+  // input and no derive-from-three-facts panel; batchType is worked out
+  // server-side from yearLeft + batchYear via batchTypeFromLeaving.
   const [batchYear, setBatchYear] = useState(user.batchYear?.toString() ?? "");
-  const [showSchooling, setShowSchooling] = useState(false);
   const [yearJoined, setYearJoined] = useState(user.yearJoined?.toString() ?? "");
   const [yearLeft, setYearLeft] = useState(user.yearLeft?.toString() ?? "");
-  const [gradeJoined, setGradeJoined] = useState(user.gradeJoined?.toString() ?? "");
-
-  const derivedBatch = useMemo(() => {
-    if (!yearJoined || !yearLeft || !gradeJoined) return null;
-    return computeBatchFromSchooling(Number(yearJoined), Number(yearLeft), Number(gradeJoined));
-  }, [yearJoined, yearLeft, gradeJoined]);
 
   // Cities (multi picker) and houses (repeater) are array data with their own
   // save buttons, since they don't fit a plain form field.
@@ -375,9 +365,10 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="batchYear">Batch of</Label>
+              <Label htmlFor="batchYear">Which batch are you in?</Label>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
-                The year your class finished 12th, even if you left earlier.
+                Your batch is the year your class finished 12th grade at Rishi Valley, even if you
+                left earlier. Left after 10th in 2021? Your batch is still 2023.
               </p>
               <Input
                 id="batchYear"
@@ -393,62 +384,16 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowSchooling((v) => !v)}
-              className="flex items-center gap-1.5 rounded-full text-[13px] font-semibold text-canopy transition-transform duration-150 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]"
-            >
-              <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showSchooling ? "rotate-180" : ""}`} />
-              I left before 12th, or I&rsquo;m not sure, work it out from my years
-            </button>
-
-            <AnimatePresence initial={false}>
-              {showSchooling && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="grid grid-cols-3 gap-4 pt-1">
-                    <div className="space-y-2">
-                      <Label htmlFor="yearJoined">Year joined</Label>
-                      <Input id="yearJoined" name="yearJoined" type="number" inputMode="numeric" placeholder="2014" value={yearJoined} onChange={(e) => setYearJoined(e.target.value)} min={1926} max={currentYear} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="yearLeft">Year left</Label>
-                      <Input id="yearLeft" name="yearLeft" type="number" inputMode="numeric" placeholder="2021" value={yearLeft} onChange={(e) => setYearLeft(e.target.value)} min={1926} max={currentYear + 1} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="gradeJoined">Grade joined</Label>
-                      <Input id="gradeJoined" name="gradeJoined" type="number" inputMode="numeric" placeholder="4" value={gradeJoined} onChange={(e) => setGradeJoined(e.target.value)} min={1} max={12} />
-                    </div>
-                  </div>
-                  <AnimatePresence mode="wait" initial={false}>
-                    {derivedBatch && (
-                      <motion.div
-                        key={derivedBatch.ok ? `ok-${derivedBatch.batchYear}` : `err-${derivedBatch.error}`}
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 4 }}
-                        transition={SPRINGS.snappy}
-                        className="mt-3"
-                      >
-                        {derivedBatch.ok ? (
-                          <div className="flex items-center justify-between gap-3 rounded-xl border border-canopy/25 bg-canopy/10 px-3.5 py-2.5">
-                            <span className="text-[13px] text-muted-foreground">Your batch</span>
-                            <span className="font-heading text-[15px] font-semibold text-canopy">Batch of {derivedBatch.batchYear}</span>
-                          </div>
-                        ) : (
-                          <p className="rounded-xl border border-cinnamon/30 bg-cinnamon/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-cinnamon">{derivedBatch.error}</p>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="yearJoined">Year you joined</Label>
+                <Input id="yearJoined" name="yearJoined" type="number" inputMode="numeric" placeholder="e.g. 2014" value={yearJoined} onChange={(e) => setYearJoined(e.target.value)} min={1926} max={currentYear} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="yearLeft">Year you left</Label>
+                <Input id="yearLeft" name="yearLeft" type="number" inputMode="numeric" placeholder="e.g. 2021" value={yearLeft} onChange={(e) => setYearLeft(e.target.value)} min={1926} max={currentYear + 1} />
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="admissionNumber">Admission number</Label>
