@@ -5,19 +5,15 @@ import { useRouter } from "next/navigation";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { SPRINGS } from "@/components/common/motion";
 
 /**
  * SearchPill: the header search affordance that replaces the old always-on
  * search + filter row. It rests as a compact 40px icon and expands into a live
  * input on click (as an absolute overlay, so it never reflows the header).
  *
- * Scope: this box can search either Posts or People. `defaultScope` sets the
- * scope that matches the surface it's mounted on (Feed passes "posts");
- * a small Posts/People toggle appears under the bar while it's open so the
- * other scope stays one click away without adding permanent chrome. Posts
- * submit to `/feed?q=`, People submit to `/directory?q=` (the directory's own
- * search box already reads that param).
+ * Posts only: this box searches posts on the feed and submits to `/feed?q=`.
+ * Searching for people is the directory's job -- its own search box handles
+ * that separately, so there is no scope toggle here.
  *
  * The expansion animates real `width`/`padding` values directly (never
  * Motion's `layout` FLIP animation). `layout` interpolates by scaling the box
@@ -49,12 +45,6 @@ const CLOSE_SPRING = { type: "spring", bounce: 0, duration: 0.22 } as const;
 const CLOSED_WIDTH = 40; // px, matches the resting h-10 w-10 circle
 const OPEN_WIDTH = 320; // px cap (20rem); `maxWidth: 68vw` below clamps on narrow screens
 
-// Scope-toggle offset: the pill's own height (CLOSED_WIDTH, since it's a
-// 40px-tall bar in both states) plus a --space-xxs-scale gap (~6px at the
-// base 16px root), so the floating Posts/People toggle sits just under the
-// bar without touching it.
-const SCOPE_TOGGLE_TOP = CLOSED_WIDTH + 6;
-
 // Expanded-state optical correction (owner feedback): the icon should tuck
 // slightly into the pill's curved left cap rather than sitting flush after
 // the straight wall starts, and the typed text needs more breathing room off
@@ -69,17 +59,10 @@ const SCOPE_TOGGLE_TOP = CLOSED_WIDTH + 6;
 const OPEN_PADDING_LEFT = 13; // px, was 16 (16 / 1.272 = half-step down)
 const ICON_TEXT_GAP = 13; // px, was a non-functional `gap: 10` (10 x 1.272 = half-step up)
 
-export function SearchPill({
-  defaultScope = "people",
-}: {
-  /** Which scope the box searches by default. Feed passes "posts"; anywhere
-   *  else (e.g. a future Directory header use) defaults to "people". */
-  defaultScope?: "posts" | "people";
-}) {
+export function SearchPill() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
-  const [scope, setScope] = useState<"posts" | "people">(defaultScope);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -102,11 +85,7 @@ export function SearchPill({
   function submit() {
     const q = value.trim();
     if (!q) return;
-    router.push(
-      scope === "posts"
-        ? `/feed?q=${encodeURIComponent(q)}`
-        : `/directory?q=${encodeURIComponent(q)}`
-    );
+    router.push(`/feed?q=${encodeURIComponent(q)}`);
   }
 
   return (
@@ -197,8 +176,8 @@ export function SearchPill({
                   setOpen(false);
                 }
               }}
-              placeholder={scope === "posts" ? "Search posts..." : "Search people..."}
-              aria-label={scope === "posts" ? "Search posts" : "Search people"}
+              placeholder="Search posts..."
+              aria-label="Search posts"
               className="min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground/75"
             />
           )}
@@ -218,55 +197,13 @@ export function SearchPill({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.16, ease: "easeOut" }}
               onClick={() => setOpen(true)}
-              aria-label="Search the valley"
+              aria-label="Search posts"
               aria-expanded={open}
               className="absolute inset-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
           )}
         </AnimatePresence>
       </motion.form>
-
-      {/* Posts/People scope toggle. Lives below the pill as its own floating
-          element (opacity + y only, per the animate-transform/opacity rule)
-          so it never competes with the pill's own width/padding spring above
-          -- adding it inside the bar would mean re-tuning those hand-picked
-          constants for a second row of content. Only shown while open, so a
-          collapsed header stays exactly as calm as before. */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="scope"
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.16, ease: "easeOut", delay: open ? 0.05 : 0 }}
-            style={{ top: SCOPE_TOGGLE_TOP }}
-            className="absolute right-0 z-20 inline-flex gap-0.5 rounded-full border border-border bg-card p-0.5 shadow-[0_4px_14px_rgba(30,28,22,0.10)]"
-          >
-            {(["posts", "people"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setScope(s)}
-                aria-pressed={scope === s}
-                className={cn(
-                  "relative rounded-full px-3 py-1 text-[11px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-95",
-                  scope === s ? "text-canopy" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {scope === s && (
-                  <motion.span
-                    layoutId="searchScopeThumb"
-                    className="absolute inset-0 -z-10 rounded-full border border-canopy/40 bg-canopy/10"
-                    transition={SPRINGS.snappy}
-                  />
-                )}
-                <span className="relative z-10">{s === "posts" ? "Posts" : "People"}</span>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
