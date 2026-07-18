@@ -1,5 +1,3 @@
-"use client";
-
 import { Feather, PenLine } from "lucide-react";
 import { ProfileAuthorFeed } from "@/components/profile/profile-author-feed";
 

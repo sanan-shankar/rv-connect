@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PILL_SET } from "./pill-shell";
 
 export interface ActiveChip {
   key: string;
@@ -32,7 +33,10 @@ export function ActiveFilterChips({
           key={chip.key}
           type="button"
           onClick={chip.onClear}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-canopy/35 bg-canopy/[0.08] py-1.5 pl-3 pr-1.5 text-[12.5px] font-medium text-canopy transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
+          className={cn(
+            PILL_SET,
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-1.5 text-[12.5px] font-medium transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
+          )}
         >
           <span className="truncate">{chip.label}</span>
           <X className="size-3.5 shrink-0" strokeWidth={2.25} />

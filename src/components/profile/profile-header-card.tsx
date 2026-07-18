@@ -7,6 +7,7 @@ import { AdmissionStamp } from "@/components/profile/admission-stamp";
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
 import { Button } from "@/components/ui/button";
 import { HEADER_PAPER_TEXTURE } from "@/lib/header-image";
+import { contactPillClass } from "@/components/profile/contact-pill";
 
 /**
  * The profile header - a business card, not a banner-plus-white-card. Identity
@@ -133,18 +134,12 @@ export function ProfileHeaderCard({
 
             {/* Key contacts */}
             <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href={`mailto:${email}`}
-                className="inline-flex min-w-0 items-center gap-2 rounded-full border border-border bg-mist/60 px-3.5 py-2 text-[13px] font-semibold text-foreground transition-[transform,background-color] duration-150 hover:-translate-y-0.5 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.98]"
-              >
+              <a href={`mailto:${email}`} className={contactPillClass("min-w-0")}>
                 <Mail className="h-[15px] w-[15px] shrink-0 text-canopy" aria-hidden />
                 <span className="truncate">{email}</span>
               </a>
               {phone && (
-                <a
-                  href={`tel:${phone}`}
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-mist/60 px-3.5 py-2 text-[13px] font-semibold text-foreground transition-[transform,background-color] duration-150 hover:-translate-y-0.5 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.98]"
-                >
+                <a href={`tel:${phone}`} className={contactPillClass()}>
                   <Phone className="h-[15px] w-[15px] shrink-0 text-canopy" aria-hidden />
                   <span>{phone}</span>
                 </a>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, GraduationCap, MapPin, Users } from "lucide-react";
 import { socialHref, socialIcon, socialDisplay, socialHost, type SocialKind } from "@/lib/social";
+import { contactPillClass } from "@/components/profile/contact-pill";
 
 /**
  * The persistent profile rail: The record, Find them (socials), and Groups.
@@ -91,7 +92,7 @@ export function ProfileRailCards({ data }: { data: ProfileRailData }) {
                     href={socialHref(s.kind, s.value)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-border bg-mist/60 px-3.5 py-2 text-[13px] font-semibold text-foreground transition-[transform,background-color,border-color] duration-150 hover:-translate-y-0.5 hover:border-cinnamon/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.98]"
+                    className={contactPillClass("hover:border-cinnamon/40")}
                   >
                     <Icon className="h-[15px] w-[15px] shrink-0 text-cinnamon" aria-hidden />
                     <span>{socialDisplay(s.kind, s.value)}</span>
