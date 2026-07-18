@@ -82,9 +82,9 @@ function buildPins(rows: PinRow[]): { cityPins: CityPin[]; unmappedPeople: PinPe
     };
     // Resolve every one of this person's cities to gazetteer coords once,
     // deduped by coordinate (so "Bangalore" listed twice never double-plots).
-    // Kept alongside each pin entry as `otherCities` so the pin popover can
-    // say "Also in ..." for a person who legitimately appears in several
-    // pins at once (owner override: a person appears in EVERY city they list).
+    // Kept alongside each pin entry as `otherCities` -- a person appears in
+    // EVERY city they list (owner override) -- even though the drilldown no
+    // longer renders an "Also in ..." line for it (owner call, 2026-07).
     const resolvedByKey = new Map<string, string>();
     for (const place of u.places) {
       const coords = cityCoords(place.city);

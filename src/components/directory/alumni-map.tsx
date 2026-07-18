@@ -33,8 +33,9 @@ export type PinPerson = {
   currentCity: string | null;
   jobTitle: string | null;
   /** This person's OTHER mapped cities, if any -- they plot in every pin
-   *  they have a resolvable city for (owner override), so the drilldown for
-   *  any one of those pins can say "Also in ...". */
+   *  they have a resolvable city for (owner override). Kept for matching
+   *  only; the drilldown no longer displays an "Also in ..." line (owner
+   *  call, 2026-07). */
   otherCities?: string[];
 };
 
@@ -428,15 +429,6 @@ export function AlumniMap({
                     meta={[batchLine(p), p.jobTitle].filter(Boolean).join(" · ")}
                     metaClassName="truncate leading-none"
                   />
-                  {/* A person plots in every city they list (owner override),
-                      so this pin's list can hold someone who also lives
-                      elsewhere -- say so rather than implying this is their
-                      only base. */}
-                  {p.otherCities && p.otherCities.length > 0 && (
-                    <p className="truncate pl-[calc(2.5rem+0.625rem)] text-[11px] text-muted-foreground">
-                      Also in {p.otherCities.join(", ")}
-                    </p>
-                  )}
                 </Link>
               ))
             )}

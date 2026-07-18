@@ -102,7 +102,7 @@ export function DirectoryClient({
   const tourAnchorRef = useTourAnchor<HTMLDivElement>("directory-search");
   const [query, setQuery] = useState(initialFilters.q);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(
-    !!(initialFilters.house || initialFilters.openTo || initialFilters.type || initialFilters.yearFrom || initialFilters.yearTo)
+    !!(initialFilters.house || initialFilters.openTo || initialFilters.type)
   );
   const [sheetOpen, setSheetOpen] = useState(false);
   // When filtering, default to the People (grid) view so results are visible;
@@ -207,8 +207,7 @@ export function DirectoryClient({
   const secondaryCount =
     (initialFilters.house ? 1 : 0) +
     (initialFilters.openTo ? 1 : 0) +
-    (initialFilters.type ? 1 : 0) +
-    (initialFilters.yearFrom || initialFilters.yearTo ? 1 : 0);
+    (initialFilters.type ? 1 : 0);
 
   const activeChips: ActiveChip[] = [];
   if (initialFilters.profession) {
@@ -264,6 +263,8 @@ export function DirectoryClient({
 
   // Shared between the desktop rail and the mobile FilterSheet (which stacks
   // every facet full-width) so neither rewrites the same six facet configs.
+  // Primary = the facets that stay visible on the desktop toolbar row
+  // (Profession, City, Batch); secondary stays behind "More filters".
   function renderPrimaryFacets(fullWidth: boolean) {
     const className = fullWidth ? "w-full" : undefined;
     return (
@@ -285,14 +286,6 @@ export function DirectoryClient({
           searchPlaceholder="Search cities..."
           className={className}
         />
-      </>
-    );
-  }
-
-  function renderSecondaryFacets(fullWidth: boolean) {
-    const className = fullWidth ? "w-full" : undefined;
-    return (
-      <>
         <RangeFacetPill
           from={initialFilters.yearFrom}
           to={initialFilters.yearTo}
@@ -301,6 +294,14 @@ export function DirectoryClient({
           maxYear={maxBatchYear}
           className={className}
         />
+      </>
+    );
+  }
+
+  function renderSecondaryFacets(fullWidth: boolean) {
+    const className = fullWidth ? "w-full" : undefined;
+    return (
+      <>
         <FacetSearchSelect
           label="House"
           value={initialFilters.house}
@@ -329,37 +330,48 @@ export function DirectoryClient({
     );
   }
 
+  // Shared by the mobile and desktop search boxes so neither drifts from the
+  // other (the desktop one is a fixed, shorter width; mobile fills the row).
+  function renderSearchBox(className: string) {
+    return (
+      <div className={className}>
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search people by name, city, or work."
+          value={query}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="h-10 rounded-full border-border bg-card pl-10"
+        />
+      </div>
+    );
+  }
+
+  function renderBackButton() {
+    if (!(showingYear || hasFilter)) return null;
+    return (
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => router.push("/directory")}
+        title="Back to browse"
+      >
+        <ArrowLeft className="h-4 w-4" />
+      </Button>
+    );
+  }
+
   return (
     <div>
       {/* Tier 1: search + always-visible facets. */}
-      <div className="mb-6 space-y-3">
-        <div ref={tourAnchorRef} data-tour="directory-search" className="flex gap-2">
-          {(showingYear || hasFilter) && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push("/directory")}
-              title="Back to browse"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          )}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search people by name, city, or work."
-              value={query}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="h-10 rounded-full border-border bg-card pl-10"
-            />
-          </div>
-        </div>
-
-        {/* Desktop (>=1024px): Profession + City always visible, Sort, More
-            filters toggle, Clear all. The pills themselves double as the
-            active-filter chips (Label: Value + x), so there's no separate
-            chip row here. */}
+      <div ref={tourAnchorRef} data-tour="directory-search" className="mb-6 space-y-3">
+        {/* Desktop (>=1024px): one row -- back (if applicable), a shorter
+            fixed-width search box, then Profession/City/Batch, then Sort +
+            More filters + Clear all pinned right. The pills themselves
+            double as the active-filter chips (Label: Value + x), so there's
+            no separate chip row here. */}
         <div className="hidden flex-wrap items-center gap-2.5 lg:flex">
+          {renderBackButton()}
+          {renderSearchBox("relative w-[320px] shrink-0 xl:w-[380px]")}
           {renderPrimaryFacets(false)}
           <div className="ml-auto flex items-center gap-2.5">
             <SortPill value={sortValue} onChange={(v) => updateFilters("sort", v)} options={sortOptions} />
@@ -400,9 +412,14 @@ export function DirectoryClient({
           )}
         </AnimatePresence>
 
-        {/* Mobile (<1024px): search above, then Sort + Filters(N) button; a
-            horizontally scrollable chip strip mirrors whatever is set since
-            the pills themselves live in the sheet on this breakpoint. */}
+        {/* Mobile (<1024px): back (if applicable) + full-width search, then
+            Sort + Filters(N) button; a horizontally scrollable chip strip
+            mirrors whatever is set since the pills themselves live in the
+            sheet on this breakpoint. */}
+        <div className="flex gap-2 lg:hidden">
+          {renderBackButton()}
+          {renderSearchBox("relative flex-1")}
+        </div>
         <div className="flex items-center gap-2.5 lg:hidden">
           <SortPill
             value={sortValue}
