@@ -714,3 +714,67 @@ Owner loved it. Round-3 fixes, all applied + verified:
   next time. `.next` was not touched (out of scope for this session's constraints).
 - Verified: `tsc --noEmit` clean, both the four surfaces in isolation and the full scrolled landing page
   screenshotted twice (rounds: initial capture, then again after the timezone/crop/cache fixes).
+
+## Session 2026-07-18 (round 6) — owner voice-note wave, full build
+
+Scope: a single large owner voice-note prompt (round 6; see `task_plan.md`), covering foundation
+schema/data work, onboarding, a first-run walkthrough, the profile page rebuild, feature work
+(city-scoped posts, admin moderation, display-email), the support page, curated WhatsApp content,
+the peregrine falcon avatar, and a ~25-item bug blitz. Commit range `4df6c2b..774388e` (44 commits),
+landing immediately after the round-6 task-plan commit (`2390eda`).
+
+Headline changes:
+- **Onboarding**: batch year collected directly (no more "grade joined" inference), phone number
+  moved to the very first step (email + password + phone, default +91), everything skippable, houses
+  step rebuilt with a satisfying boxes-and-arrows journey UI writing straight to the new `User.houses`
+  column (no more localStorage fallback), full bird species names everywhere, welcome/done steps fixed
+  to stop washing out against the app shell background.
+- **Location gazetteer**: 234,934 GeoNames places (worldwide cities + Indian towns/villages) imported
+  into a new `Place` table, powering one shared location-picker component (with disambiguation by
+  name/state/country) reused across onboarding, settings, and the composer's city-scope picker.
+- **Profile page rebuild**: shipped directly into the main app (not a pick from the five
+  `/preview/delight/profiles` concepts), Dossier-based — About tab first, then Posts+Letters, houses
+  chain of colored boxes/arrows/years, admission-number stamp, contact-card header density
+  (batch/city/occupation/email/phone in one place), display-email override, plain city list (no
+  primary/secondary labels), distinct wide vs mobile layouts. Edit-profile rebuilt alongside it.
+- **Walkthrough tour**: first-run guided product tour (Feed, Directory, Collection, Catch-ups), the
+  hoopoe as the main character flying between stops, re-launchable from About afterward.
+- **Filters rework**: the old all/all/all unlabeled-select bars on Directory and Collection replaced
+  with a shared facet-filter pill system (labeled selects, real sort names, profession as a
+  first-class filter), plus a fix to the shared dropdown primitive's alignment (offset, radius,
+  hover-inset) used everywhere.
+- **Admin moderation + city-scoped posts**: admins can delete any post/letter/comment/photo with an
+  optional note to the author (lands in their notifications), composer gained a post-to-one-city
+  option, and the stray `rv-alumni.vercel.app` host now redirects to the custom domain.
+- **Support page**: reworked in rupees, dropped the stale magic-link Email cost row, one-time UPI
+  presets (₹200-₹5,000, no more monthly ₹20), brand palette applied to the cost bar.
+- **Content**: 11 curated WhatsApp stories (banyan-tree mural update among them) seeded as the
+  Anonymous user with the hoopoe avatar, original dates preserved, photos on R2; everything that
+  didn't clear the quality bar compiled into a 57-page overflow PDF for later
+  (`docs/content/whatsapp-curation/overflow-stories.pdf`).
+- **Peregrine falcon glyph**: a fresh redesign (the previous three refinement passes had each made it
+  worse) now reads as a cohesive hooded raptor at every size; assigned to Veda and Srihari via the new
+  per-user `birdOverride` column, with Vihan Shah's wrongly-assigned hoopoe reassigned (no real person
+  keeps the hoopoe; it's reserved for the Anonymous user) and the whole avatar system migrated to
+  species-per-member resolution.
+- **Bug blitz** (~25 fixes across three waves): sidebar Support entry + lockup centering + fun-fact
+  toggle off + footer removed; composer focus ring/toolbar weight/no live counter/Letters nudge/caret
+  fix; comment row rhythm + save-icon stroke + report-flow left bar + heart no longer scroll-jumps the
+  page; notification list gets per-type icons; Catch-ups arrow centering + rewritten suggested
+  questions; landing scroll-cue chevron restored + gentler ambient leaves + footer hoopoe no longer
+  clipped; mascot loading sprite delay-gated + mail-delivery moment removed + bigger 404 hoopoe + auth
+  slide bounce removed + flight preload; directory map mobile fullscreen exit added; 20MB upload cap +
+  collection upload form stripped to caption/part-of-school/graceful year; feed search scoped to the
+  feed instead of jumping to directory search.
+- **Groups**: not built this round by design — four concept previews shipped at
+  `/preview/groups-rethink` (Batches + interest, Circles, Dissolve, Gatherings) with a recommendation
+  of "Gatherings"; awaiting the owner's pick (see `docs/planning/bugs.md` #12b).
+- Docs updated to close out the round: `docs/planning/bugs.md` items 4 and 10 settled (narrowed to
+  just the outstanding UPI-handle confirmation and closed outright, respectively), item 12 split
+  between the still-open landing pick and the now-moot profile pick, new items opened for the
+  NEXTAUTH_URL/vercel.app suspicion, the Vercel Analytics deploy dependency, and the groups-rethink
+  decision.
+- Owner actions still pending: confirm `NEXTAUTH_URL`/`AUTH_URL` on the Vercel dashboard (likely still
+  the `.vercel.app` host, causing stray redirects); confirm the real UPI handle; deploy to production
+  so Vercel Analytics starts collecting; pick a groups-rethink concept (and, independently, the landing
+  preview concept from an earlier round).
