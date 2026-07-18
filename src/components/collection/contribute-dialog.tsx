@@ -244,7 +244,12 @@ export function ContributeDialog({
               {yearChoice !== NOT_SURE ? (
                 <Select value={monthChoice} onValueChange={(v) => setMonthChoice(v ?? NO_MONTH)}>
                   <SelectTrigger className="bg-card">
-                    <SelectValue placeholder="Month" />
+                    {/* Explicit label render: same fix as the Year select above --
+                        the NO_MONTH sentinel would otherwise show its raw value
+                        on first paint instead of "Month (optional)". */}
+                    <SelectValue placeholder="Month">
+                      {(v: string) => (v === NO_MONTH ? "Month (optional)" : v)}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NO_MONTH}>Month (optional)</SelectItem>
