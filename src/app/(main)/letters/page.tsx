@@ -50,7 +50,7 @@ export default async function LettersPage() {
       author: {
         select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, batchType: true, batchYear: true },
       },
-      _count: { select: { comments: true, likes: true } },
+      _count: { select: { comments: { where: { isHidden: false } }, likes: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 40,
