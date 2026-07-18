@@ -28,6 +28,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Mail, Phone, Leaf, Pencil } from "lucide-react";
+import { Leaf as LeafMark } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
@@ -47,6 +48,14 @@ interface HeaderUser {
   verifyState: string;
   accountType: string;
 }
+
+/* A soft warm wash for the card body, so the ground between the identity block
+   and the avatar carries the same aged-paper life as the band rather than
+   reading as an empty gap. Two low-opacity brand radials, layered. */
+const CARD_WASH = [
+  "radial-gradient(720px 460px at 60% 2%, rgba(35,92,73,0.055), transparent 62%)",
+  "radial-gradient(620px 420px at 98% 118%, rgba(194,98,47,0.05), transparent 60%)",
+].join(", ");
 
 /* A prominent contact pill: canopy icon, warm fill, transform-only motion. */
 function ContactPill({
@@ -144,7 +153,7 @@ export function ProfileHeaderCard({
           reading as a glossy cover photo. Desaturated toward sepia, washed with
           cinnamon, and faded into the card so the content below reads on clean
           paper. The avatar only kisses its lower edge, never straddles it. */}
-      <div className="relative h-20 w-full overflow-hidden sm:h-24" aria-hidden>
+      <div className="relative h-36 w-full overflow-hidden sm:h-44" aria-hidden>
         {headerImage ? (
           <Image
             src={headerImage}
@@ -178,7 +187,23 @@ export function ProfileHeaderCard({
         />
       </div>
 
-      <div className="relative px-[var(--space-l)] pb-[var(--space-l)] pt-[var(--space-m)] sm:px-[var(--space-xl)] sm:pb-[var(--space-xl)]">
+      {/* Dossier ground: a faint paper wash plus a large leaf watermark filling
+          the card's middle, so the space between the identity block and the
+          avatar reads as an aged case file rather than an empty gap. It sits
+          below the band and behind the content (z-10). Decorative only. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-36 overflow-hidden sm:top-44"
+      >
+        <div className="absolute inset-0" style={{ backgroundImage: CARD_WASH }} />
+        <LeafMark
+          weight="duotone"
+          className="absolute left-[64%] top-1/2 hidden h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] text-leaf sm:block"
+          style={{ opacity: 0.06 }}
+        />
+      </div>
+
+      <div className="relative z-10 px-[var(--space-l)] pb-[var(--space-l)] pt-[var(--space-m)] sm:px-[var(--space-xl)] sm:pb-[var(--space-xl)]">
         <div className="flex flex-col gap-[var(--space-l)] sm:flex-row sm:gap-[var(--space-xl)]">
           {/* PROPS column: avatar mount + stamp. DOM-first (so mobile stacks it
               on top), visually pushed right on sm+. */}
@@ -191,7 +216,7 @@ export function ProfileHeaderCard({
 
           {/* IDENTITY + contacts. Flush to the card's left padding edge. */}
           <div className="min-w-0 flex-1 sm:order-1 sm:pt-[var(--space-m)]">
-            <h1 className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-heading text-[28px] font-bold leading-[1.03] tracking-[-0.02em] text-foreground sm:text-[34px]">
+            <h1 className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-heading text-[30px] font-bold leading-[1.02] tracking-[-0.025em] text-foreground sm:text-[40px]">
               <span className="min-w-0">{user.name}</span>
               {user.verifyState === "verified" ? (
                 <VerifiedMark
