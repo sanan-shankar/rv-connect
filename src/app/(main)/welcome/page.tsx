@@ -64,31 +64,35 @@ export default async function WelcomePage({
   // component captures admissionNumber once at its true first mount and never
   // re-checks it, so a later data refresh from its own actions cannot retrigger
   // this decision. See onboarding-flow.tsx for the actual guard.
+
+  // The post-signup welcome hoopoe (mascot-moments board) plays on this
+  // route instead of /feed, the moment a fresh account gets here, but only
+  // once the wizard reaches its "done" step (OnboardingFlow decides when
+  // this actually mounts, see its own file comment). One-shot latched
+  // (one-shot.ts) so it can only ever fire once per account no matter
+  // which page mounts it; /feed keeps its own mount for the other
+  // celebrations (first Letter, proud moments), which are unrelated to
+  // onboarding, and doubles as the fallback for anyone who "Finish later"s
+  // out of the wizard before reaching Done.
+  const celebration = <CelebrationSignals userId={session.user.id} />;
+
   return (
-    <>
-      {/* The post-signup welcome hoopoe (mascot-moments board) now plays HERE,
-          the moment a fresh account lands on its first page, instead of on
-          /feed. One-shot latched (one-shot.ts) so it can only ever fire once
-          per account no matter which page mounts this; /feed keeps its own
-          mount for the other celebrations (first Letter, proud moments),
-          which are unrelated to onboarding. */}
-      <CelebrationSignals userId={session.user.id} />
-      <OnboardingFlow
-        user={{
-          id: user.id,
-          name: user.name,
-          photoUrl: user.photoUrl,
-          avatarColor: user.avatarColor,
-          birdOverride: user.birdOverride,
-          admissionNumber: user.admissionNumber,
-          places: user.places,
-          workplace: user.workplace,
-          jobTitle: user.jobTitle,
-          yearJoined: user.yearJoined,
-          yearLeft: user.yearLeft,
-        }}
-        initialStep={requestedStep ?? "welcome"}
-      />
-    </>
+    <OnboardingFlow
+      user={{
+        id: user.id,
+        name: user.name,
+        photoUrl: user.photoUrl,
+        avatarColor: user.avatarColor,
+        birdOverride: user.birdOverride,
+        admissionNumber: user.admissionNumber,
+        places: user.places,
+        workplace: user.workplace,
+        jobTitle: user.jobTitle,
+        yearJoined: user.yearJoined,
+        yearLeft: user.yearLeft,
+      }}
+      initialStep={requestedStep ?? "welcome"}
+      celebration={celebration}
+    />
   );
 }
