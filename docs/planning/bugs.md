@@ -32,7 +32,9 @@ letter-card title fallback shipped (shared `letterTitle()` in `src/lib/utils.ts`
 as an owner-only tab on your own profile (`src/components/profile/saved-posts-feed.tsx`; a
 standalone `/saved` route was deliberately not built), and the support page now describes
 Vercel/Supabase/R2. Item 1 and item 8 from the 2026-07-03/04 batch closed overnight on 2026-07-05/06
-(see Settled). What remains below is current.
+(see Settled). Round 6 (2026-07-18) closed item 10 (houses localStorage fallback) outright and
+narrowed item 4 down to just the outstanding UPI handle confirmation (see Settled for both). What
+remains below is current.
 
 ### 2. Collection landing screenshot is stale
 `public/images/landing/collection.webp` still shows the pre-redesign UI because the Photo table has
@@ -51,12 +53,12 @@ The `create-post-form.tsx` More-options item is moot: that composer was rebuilt 
 (staged-reveal, `96f7ae3`) and More is now a plain unboxed plus, not a pill.
 - Size: tiny.
 
-### 4. Support page email line + UPI handle
-The "Email" cost row still says "Sign-in links and invites" though magic links were removed
-(credentials-only auth now). And `UPI_ID = "rvalumni@upi"` in `support-contribute.tsx` looks like
-placeholder data; the owner must confirm the real handle before launch (`PAYEE_NAME` "RV Alumni" is
-the payment-facing account name and stays as data).
-- Size: tiny, plus owner confirmation.
+### 4. UPI handle confirmation still pending (owner action)
+The support page rework shipped in round 6 (`42614eb`, see Settled), but `UPI_ID = "rvalumni@upi"`
+in `support-contribute.tsx` is still placeholder data (flagged with a `TODO(owner)` comment in the
+file). The owner must confirm the real handle before launch; `PAYEE_NAME` "Rishi Valley" is the
+payment-facing account name and stays as data.
+- Size: tiny, owner confirmation only.
 
 ### 5. No desktop notifications affordance outside the feed
 Pre-existing: Directory/Groups/Letters/Collection/Catch-ups never pass `unreadCount` to their
@@ -103,15 +105,6 @@ mascot flight layer (`src/components/mascot/mascot-flight.ts`) is reusable from 
 launchFlight/reportPerch if the owner wants more landing-page flights.
 - Size: small.
 
-### 10. Houses step still falls back to localStorage
-The `houses` column migrated live 2026-07-18 (`prisma/migrations-manual/2026-07-18-round6.sql`,
-now mirrored in `prisma/schema.prisma`'s `User.houses`) and `src/lib/houses.ts` carries the
-owner-confirmed canonical 22-house list. What is left: the `/welcome` onboarding flow's Houses step
-(`src/components/onboarding/steps/houses-step.tsx`) still has its old column-probe/localStorage
-fallback path from before the migration landed; it should be simplified to write straight to
-`User.houses` (JSON string of `[{year, house}]`) now that the column is guaranteed to exist.
-- Size: small, wave-2 onboarding task.
-
 ### 11. Legacy Catch-ups tables still live; `prisma db push` still unusable
 The old, reverted Catch-ups build left six physical tables behind with columns that don't match the
 current schema: `Catchup`, `CatchupPref`, `CatchupAnswer`, `CatchupAnswerLove`, `CatchupIssue`,
@@ -122,15 +115,24 @@ statements for all six, commented out and optional. Until the owner runs it, `pr
 remains unusable on this database; schema changes keep going through raw additive SQL.
 - Size: owner decision, then small cleanup (unblocks `prisma db push` for good).
 
-### 12. Owner decisions pending on two preview-only redesigns
-Both shipping-blocker areas got full concept spreads on preview pages, judged by a purpose-fit
-review, but neither pick is final until the owner confirms it and it gets built for real (moved out
-of `/preview`):
-- Profiles: `/preview/delight/profiles` (five concepts: letterhead, field guide, editorial, valley
-  terrain, dossier). The purpose-fit judge favored "Field guide."
-- Landing: `/preview/delight/landings` (five concepts: postcard, notice board, prospectus, living
-  valley, clarity). The judge favored "Postcard."
-- Size: owner decision, then a build phase per pick.
+### 12. Owner decision pending on the landing preview-only redesign
+Landing is still preview-only, judged by a purpose-fit review, but the pick isn't final until the
+owner confirms it and it gets built for real (moved out of `/preview`): `/preview/delight/landings`
+(five concepts: postcard, notice board, prospectus, living valley, clarity). The judge favored
+"Postcard."
+
+The equivalent profile decision is moot: the round-6 profile rebuild (`ed5f9b2`, see Settled) shipped
+directly into the main app, not through a pick of one of the five `/preview/delight/profiles`
+concepts, so that preview page is now historical only.
+- Size: owner decision, then a build phase.
+
+### 12b. Owner decision pending on the groups rethink (round 6)
+The owner has been unsure of groups' purpose since before round 6 (batch WhatsApp groups already
+cover most of the need; groups also must not be a top-3 nav category). Round 6 delivered four
+concept previews at `/preview/groups-rethink` — Batches + interest, Circles, Dissolve, Gatherings —
+plus a written spec. The build recommendation is "Gatherings," but nothing is built for real until
+the owner picks.
+- Size: owner decision, then a build phase.
 
 ### 13. Copy rewrite pass not started (inventory is current)
 `docs/content/COPY-INVENTORY.md` and `.copy-review/inventory.json` now hold 1308 strings: the
@@ -146,6 +148,22 @@ replacements get applied codebase-wide and the tool plus `.copy-review/` get del
 Duplicate-named env vars in the Vercel dashboard; the owner said he will clean these up himself.
 Left here only so it isn't forgotten before launch.
 - Size: owner action, five minutes.
+
+### 15. NEXTAUTH_URL/AUTH_URL on Vercel likely still points at the vercel.app host (owner action)
+Found during round 6 while wiring the `LEGACY_HOST` redirect in `src/proxy.ts` (H20): the stray
+`rv-alumni.vercel.app` landings the owner has seen are consistent with the Vercel dashboard's
+`NEXTAUTH_URL`/`AUTH_URL` env var still pointing at the `.vercel.app` deployment URL rather than
+`rishivalley.space`, which would make NextAuth's own redirects (post-login, callback URLs) bounce
+back to the legacy host even with the proxy-level redirect in place. `proxy.ts` now 307s
+`rv-alumni.vercel.app` requests to the custom domain as a client-side mitigation, but the root cause
+is a dashboard env var only the owner can check/update.
+- Size: owner action, check the Vercel project settings.
+
+### 16. Vercel Analytics needs a production deploy to start collecting
+`@vercel/analytics/next` is installed and wired into `src/app/layout.tsx` (round 6, `7d3a9ab`), but
+the `<Analytics />` component only reports in a deployed Vercel environment; nothing will show in the
+Vercel dashboard until the round-6 branch is deployed to production.
+- Size: none, informational (owner deploys).
 
 ---
 
@@ -173,3 +191,26 @@ so a future session does not "fix" one of these back to a state the owner delibe
   and directory search.
 - Mobile scroll-hoopoe is moot: the landing scroll companion was removed entirely by owner decision
   (`0cface8`), desktop and mobile both. The one remaining landing hoopoe flutters near the footer.
+- Houses step no longer falls back to localStorage: the `houses` column migrated live 2026-07-18
+  (round 6) and `/welcome`'s Houses step (`src/components/onboarding/steps/houses-step.tsx`) writes
+  straight to `User.houses`; the old column-probe/localStorage path is gone. `src/lib/houses.ts`
+  carries the owner-confirmed canonical 22-house list. Settings' batch field also dropped the retired
+  grade-joined path in the same round (`6576aaf`).
+- Support page rewritten in rupees, round 6 (`42614eb`): the stale "Sign-in links and invites" Email
+  cost row is gone (no real email-sending infra to attach a cost to), the cost bar uses the brand
+  palette, and contribution is one-time-only presets (₹200/₹500/₹1,000/₹2,000/₹5,000, no monthly
+  ₹20). Do not reintroduce a monthly UPI amount or the old Render-era cost line. UPI handle
+  confirmation is still open, see Open #4.
+- Filters rework shipped for Directory and Collection, round 6 (`180968d` + follow-ups): the old
+  all/all/all unlabeled-select bars are gone, replaced by a shared facet-filter pill system
+  (`src/lib/directory-facets.ts`, `src/lib/collection-facets.ts`,
+  `src/components/common/filters/*`) with labeled selects, real sort names (newest is no longer
+  mislabeled "relevance"), and profession as a first-class filter separate from organization. Do not
+  revert to the old unlabeled bars.
+- Feed search now actually searches the feed (`c710782`): the sidebar search box used to silently
+  jump to directory people-search from every surface; it is now scoped to the surface you're
+  searching from.
+- Dropdown/select popover alignment fixed at the shared primitive, round 6 (`ac4a90b`, `f5e65ca`):
+  offset, width, corner radius, and the hover-highlight inset now match the trigger everywhere
+  (report-post reason select, collection/directory facet selects), including when a popover opens
+  upward. Fix future dropdown issues at the shared primitive, not per-instance.
