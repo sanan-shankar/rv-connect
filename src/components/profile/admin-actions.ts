@@ -4,11 +4,25 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function adminBlockUser(userId: string, block: boolean) {
+/** Shared shape for every admin action below. Explicit (rather than inferred)
+ *  so the `error`/`success` branches stay mutually accessible without
+ *  narrowing at call sites, matching how these actions were consumed before
+ *  the shared `requireAdmin()` guard was extracted. */
+type AdminActionResult = { error: string; success?: undefined } | { success: boolean; error?: undefined };
+
+/** Every admin action opens with this guard; centralised so the check (and
+ *  its error copy) can't drift between actions. */
+async function requireAdmin(): Promise<{ error: string; success?: undefined } | null> {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
+    return { error: "Not authorized" as const };
   }
+  return null;
+}
+
+export async function adminBlockUser(userId: string, block: boolean): Promise<AdminActionResult> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   await prisma.user.update({
     where: { id: userId },
@@ -19,11 +33,9 @@ export async function adminBlockUser(userId: string, block: boolean) {
   return { success: true };
 }
 
-export async function adminDeleteUser(userId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+export async function adminDeleteUser(userId: string): Promise<AdminActionResult> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   try {
     // Report.reporterId is intentionally not a cascading relation (a filed
@@ -43,11 +55,9 @@ export async function adminDeleteUser(userId: string) {
   return { success: true };
 }
 
-export async function adminUpdateNote(userId: string, note: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+export async function adminUpdateNote(userId: string, note: string): Promise<AdminActionResult> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   await prisma.user.update({
     where: { id: userId },
@@ -60,11 +70,9 @@ export async function adminUpdateNote(userId: string, note: string) {
 export async function adminVerifyUser(
   userId: string,
   method: "office_list" | "admin_manual" = "admin_manual"
-) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+): Promise<AdminActionResult> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   await prisma.user.update({
     where: { id: userId },
@@ -89,11 +97,9 @@ export async function adminVerifyUser(
   return { success: true };
 }
 
-export async function adminUnverifyUser(userId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+export async function adminUnverifyUser(userId: string): Promise<AdminActionResult> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   await prisma.user.update({
     where: { id: userId },
@@ -105,11 +111,9 @@ export async function adminUnverifyUser(userId: string) {
   return { success: true };
 }
 
-export async function adminHidePost(postId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+export async function adminHidePost(postId: string): Promise<AdminActionResult> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   await prisma.post.update({
     where: { id: postId },
@@ -121,11 +125,9 @@ export async function adminHidePost(postId: string) {
   return { success: true };
 }
 
-export async function adminDismissReport(reportId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+export async function adminDismissReport(reportId: string): Promise<AdminActionResult> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   await prisma.report.update({
     where: { id: reportId },
@@ -136,11 +138,9 @@ export async function adminDismissReport(reportId: string) {
   return { success: true };
 }
 
-export async function adminResolveReport(reportId: string) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+export async function adminResolveReport(reportId: string): Promise<AdminActionResult> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
 
   await prisma.report.update({
     where: { id: reportId },
