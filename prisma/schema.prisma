@@ -28,6 +28,8 @@ model User {
   phone         String?
   instagram     String?
   linkedin      String?
+  facebook      String?
+  links         String?   // JSON array of {label, url}: user-defined "Other links" rows (Contact section)
   accountType   String    @default("alumnus") // "alumnus" | "teacher" | "ex_teacher"
   batchType     String?   // derived board credential: "ISC" (left in 12), "ICSE" (left in 10/11), null for mid-school leavers and teachers
   batchYear     Int?      // year the person's class would finish 12th (their "Batch of"); derived, not the year they left

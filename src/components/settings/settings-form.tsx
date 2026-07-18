@@ -3,23 +3,21 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { AnimatePresence, motion } from "motion/react";
 import { ImagePlus, Loader2, Plus, X } from "lucide-react";
-import { normalizeHouse } from "@/lib/houses";
-import { HOUSES, type HouseYearEntry } from "@/lib/houses";
+import { cn } from "@/lib/utils";
+import type { HouseYearEntry } from "@/lib/houses";
+import { academicSpanLabel, seedHouseYearRows, type HouseYearRow } from "@/lib/house-spans";
 import { BirdAvatar } from "@/components/common/bird-avatar";
+import { InfoTooltip } from "@/components/common/info-tooltip";
 import { LocationPicker, type PlaceSelection } from "@/components/common/location-picker";
+import { HousePicker } from "@/components/common/house-picker";
+import { YearInput } from "@/components/common/year-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { SPRINGS } from "@/components/common/motion";
 import {
   updateUserProfile,
   deleteAccount,
@@ -55,6 +54,8 @@ interface SettingsUser {
   phone: string | null;
   instagram: string | null;
   linkedin: string | null;
+  facebook: string | null;
+  links: string | null;
   batchYear: number | null;
   yearJoined: number | null;
   yearLeft: number | null;
@@ -64,41 +65,46 @@ interface SettingsUser {
 
 const ABOUT_MAX = 4000;
 const ABOUT_PROMPTS = ["What do you do now?", "A memory from the valley", "What brought you back?"];
-const OTHER_HOUSE = "__other__";
+const BATCH_EXPLANATION =
+  "Your batch is the year your class finished 12th grade at Rishi Valley, even if you left earlier. Left after 10th in 2021? Your batch is still 2023.";
+const MIN_HOUSE_YEAR = 1926;
 
-interface HouseRow {
+interface LinkRow {
   key: number;
-  year: string;
-  house: string; // one of HOUSES, or OTHER_HOUSE
-  other: string; // free-text when house === OTHER_HOUSE
+  label: string;
+  url: string;
 }
 
-let houseKey = 0;
+let linkKey = 0;
 
-function parseHouseRows(raw: string | null): HouseRow[] {
+function parseLinkRows(raw: string | null): LinkRow[] {
   if (!raw) return [];
   try {
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return [];
     return arr
-      .filter((e) => e && e.house && Number.isFinite(Number(e.year)))
-      .map((e) => {
-        const known = (HOUSES as readonly string[]).includes(e.house);
-        return {
-          key: houseKey++,
-          year: String(e.year),
-          house: known ? e.house : OTHER_HOUSE,
-          other: known ? "" : String(e.house),
-        };
-      });
+      .filter((e) => e && typeof e.label === "string" && typeof e.url === "string")
+      .map((e) => ({ key: linkKey++, label: e.label, url: e.url }));
   } catch {
     return [];
   }
 }
 
+/** Forgiving https normaliser for the "Other links" repeater: upgrades a bare
+ *  http:// or protocol-less entry rather than rejecting it outright. */
+function toHttpsUrl(raw: string): string {
+  const v = raw.trim();
+  if (!v) return "";
+  if (v.startsWith("https://")) return v;
+  if (v.startsWith("http://")) return `https://${v.slice(7)}`;
+  return `https://${v}`;
+}
+
 export function SettingsForm({ user }: { user: SettingsUser }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
@@ -118,14 +124,59 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
   const [yearJoined, setYearJoined] = useState(user.yearJoined?.toString() ?? "");
   const [yearLeft, setYearLeft] = useState(user.yearLeft?.toString() ?? "");
 
-  // Cities (multi picker) and houses (repeater) are array data with their own
-  // save buttons, since they don't fit a plain form field.
+  // Cities (multi picker), houses (repeater) and links (repeater) are array
+  // data with no native form-field equivalent, so they live in their own
+  // state and are folded into the single consolidated save below.
   const [places, setPlaces] = useState<PlaceSelection[]>(user.places);
-  const [placesBusy, setPlacesBusy] = useState(false);
-  const [houseRows, setHouseRows] = useState<HouseRow[]>(() => parseHouseRows(user.houses));
-  const [housesBusy, setHousesBusy] = useState(false);
+  const [houseRows, setHouseRows] = useState<HouseYearRow[]>(() =>
+    seedHouseYearRows(user.houses, user.yearJoined, user.yearLeft)
+  );
+  const [linkRows, setLinkRows] = useState<LinkRow[]>(() => parseLinkRows(user.links));
 
   const currentYear = new Date().getFullYear();
+
+  // One sticky save bar for the whole form: any change (native form field,
+  // or one of the array reducers above) marks the form dirty, the bar
+  // appears, and "Save changes" persists everything -- profile fields,
+  // cities, and houses -- in one action. "Discard" restores every field
+  // (controlled state directly, uncontrolled defaultValue fields via the
+  // resetKey remount) to what was last saved.
+  function markDirty() {
+    setDirty(true);
+  }
+
+  function updateHouseRowHouses(year: number, houses: string[]) {
+    setHouseRows((rs) => rs.map((r) => (r.year === year ? { ...r, houses } : r)));
+    markDirty();
+  }
+  function removeHouseRow(year: number) {
+    setHouseRows((rs) => rs.filter((r) => r.year !== year));
+    markDirty();
+  }
+  // Anchor for "add a year without typing": whatever we know about when this
+  // person was here, or last year as a fallback.
+  const houseAnchorYear = user.yearJoined ?? user.yearLeft ?? currentYear - 1;
+  function addEarlierHouseYear() {
+    setHouseRows((rs) => {
+      const year = (rs.length ? Math.min(...rs.map((r) => r.year)) : houseAnchorYear + 1) - 1;
+      if (year < MIN_HOUSE_YEAR) return rs;
+      return [{ year, houses: [] }, ...rs];
+    });
+    markDirty();
+  }
+  function addLaterHouseYear() {
+    setHouseRows((rs) => {
+      const year = (rs.length ? Math.max(...rs.map((r) => r.year)) : houseAnchorYear - 1) + 1;
+      if (year > currentYear + 1) return rs;
+      return [...rs, { year, houses: [] }];
+    });
+    markDirty();
+  }
+
+  function updateLinkRow(key: number, patch: Partial<LinkRow>) {
+    setLinkRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+    markDirty();
+  }
 
   async function handlePhotoPick(f: File | null) {
     if (!f) return;
@@ -182,40 +233,53 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
+
     const formData = new FormData(e.currentTarget);
-    const result = await updateUserProfile(formData);
-    if (result.error) toast.error(result.error);
-    else {
-      toast.success("Saved. Looking good.");
-      router.refresh();
-    }
+
+    const cleanedLinks = linkRows
+      .map((r) => ({ label: r.label.trim(), url: toHttpsUrl(r.url) }))
+      .filter((r) => r.label && r.url);
+    formData.set("links", JSON.stringify(cleanedLinks));
+
+    const housePayload: HouseYearEntry[] = houseRows
+      .filter((r) => r.year >= MIN_HOUSE_YEAR)
+      .flatMap((r) => r.houses.map((house) => ({ year: r.year, house })));
+
+    const placesPayload = places.map((p) => ({
+      placeId: p.placeId,
+      label: p.label,
+      city: p.city,
+      lat: p.lat,
+      lng: p.lng,
+    }));
+
+    const [profileResult, placesResult, housesResult] = await Promise.all([
+      updateUserProfile(formData),
+      updateUserPlaces(placesPayload),
+      saveOnboardingHouses(housePayload),
+    ]);
+
     setSaving(false);
-  }
 
-  async function handleSavePlaces() {
-    setPlacesBusy(true);
-    const result = await updateUserPlaces(
-      places.map((p) => ({ placeId: p.placeId, label: p.label, city: p.city, lat: p.lat, lng: p.lng }))
-    );
-    setPlacesBusy(false);
-    if (result.error) return toast.error(result.error);
-    toast.success("Cities saved");
+    const error =
+      profileResult.error || placesResult.error || ("error" in housesResult ? housesResult.error : undefined);
+    if (error) return toast.error(error);
+
+    toast.success("Saved. Looking good.");
+    setDirty(false);
     router.refresh();
   }
 
-  async function handleSaveHouses() {
-    const payload: HouseYearEntry[] = houseRows
-      .map((r) => {
-        const house = r.house === OTHER_HOUSE ? normalizeHouse(r.other) : r.house;
-        return { year: Number(r.year), house };
-      })
-      .filter((r) => Number.isFinite(r.year) && r.year > 0 && r.house);
-    setHousesBusy(true);
-    const result = await saveOnboardingHouses(payload);
-    setHousesBusy(false);
-    if ("error" in result) return toast.error(result.error);
-    toast.success(payload.length ? "Houses saved" : "Houses cleared");
-    router.refresh();
+  function handleDiscard() {
+    setAbout(user.about ?? "");
+    setBatchYear(user.batchYear?.toString() ?? "");
+    setYearJoined(user.yearJoined?.toString() ?? "");
+    setYearLeft(user.yearLeft?.toString() ?? "");
+    setPlaces(user.places);
+    setHouseRows(seedHouseYearRows(user.houses, user.yearJoined, user.yearLeft));
+    setLinkRows(parseLinkRows(user.links));
+    setDirty(false);
+    setResetKey((k) => k + 1); // remounts the form, resetting uncontrolled defaultValue fields
   }
 
   async function handleDelete() {
@@ -229,14 +293,16 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
     }
   }
 
-  function updateHouseRow(key: number, patch: Partial<HouseRow>) {
-    setHouseRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-  }
-
   return (
-    <div className="space-y-6">
-      {/* ---- You + About + Batch + Work + Contact (one save) ---- */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+    // Extra bottom clearance while the sticky save bar is showing, so it
+    // never covers the Danger zone's delete button when scrolled to the end.
+    <div className={cn("space-y-6", dirty && "pb-20")}>
+      <form
+        key={resetKey}
+        onSubmit={handleSubmit}
+        onChange={markDirty}
+        className="space-y-6 pb-4"
+      >
         <Card>
           <CardHeader>
             <CardTitle className="font-heading">You</CardTitle>
@@ -338,7 +404,10 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
                 <button
                   key={p}
                   type="button"
-                  onClick={() => setAbout((a) => (a ? `${a}\n\n${p} ` : `${p} `))}
+                  onClick={() => {
+                    setAbout((a) => (a ? `${a}\n\n${p} ` : `${p} `));
+                    markDirty();
+                  }}
                   className="rounded-full border border-border bg-mist/60 px-3 py-1.5 text-[12px] font-semibold text-foreground transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
                 >
                   {p}
@@ -365,21 +434,16 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="batchYear">Which batch are you in?</Label>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
-                Your batch is the year your class finished 12th grade at Rishi Valley, even if you
-                left earlier. Left after 10th in 2021? Your batch is still 2023.
-              </p>
-              <Input
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="batchYear">Which batch are you in?</Label>
+                <InfoTooltip label="What does batch mean?">{BATCH_EXPLANATION}</InfoTooltip>
+              </div>
+              <YearInput
                 id="batchYear"
                 name="batchYear"
-                type="number"
-                inputMode="numeric"
                 placeholder="e.g. 2023"
                 value={batchYear}
-                onChange={(e) => setBatchYear(e.target.value)}
-                min={1926}
-                max={currentYear + 7}
+                onValueChange={setBatchYear}
                 className="max-w-[160px]"
               />
             </div>
@@ -387,17 +451,12 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="yearJoined">Year you joined</Label>
-                <Input id="yearJoined" name="yearJoined" type="number" inputMode="numeric" placeholder="e.g. 2014" value={yearJoined} onChange={(e) => setYearJoined(e.target.value)} min={1926} max={currentYear} />
+                <YearInput id="yearJoined" name="yearJoined" placeholder="e.g. 2014" value={yearJoined} onValueChange={setYearJoined} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="yearLeft">Year you left</Label>
-                <Input id="yearLeft" name="yearLeft" type="number" inputMode="numeric" placeholder="e.g. 2021" value={yearLeft} onChange={(e) => setYearLeft(e.target.value)} min={1926} max={currentYear + 1} />
+                <YearInput id="yearLeft" name="yearLeft" placeholder="e.g. 2021" value={yearLeft} onValueChange={setYearLeft} />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="admissionNumber">Admission number</Label>
-              <Input id="admissionNumber" name="admissionNumber" type="number" defaultValue={user.admissionNumber || ""} placeholder="e.g. 1234" min={0} max={10000} className="max-w-[200px]" />
             </div>
           </CardContent>
         </Card>
@@ -442,98 +501,176 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
                 <Input id="instagram" name="instagram" defaultValue={user.instagram || ""} placeholder="@handle" />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="linkedin">LinkedIn</Label>
-              <Input id="linkedin" name="linkedin" defaultValue={user.linkedin || ""} placeholder="Profile URL" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="linkedin">LinkedIn</Label>
+                <Input id="linkedin" name="linkedin" defaultValue={user.linkedin || ""} placeholder="Profile URL" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="facebook">Facebook</Label>
+                <Input id="facebook" name="facebook" defaultValue={user.facebook || ""} placeholder="Profile URL" />
+              </div>
+            </div>
+
+            <div className="space-y-2 border-t border-dashed border-border pt-4">
+              <Label>Other links</Label>
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                Your blog, a project, anything else worth a link. Give each one a short label.
+              </p>
+              <div className="space-y-2">
+                {linkRows.map((row) => (
+                  <div key={row.key} className="flex items-center gap-2">
+                    <Input
+                      aria-label="Link label"
+                      placeholder="e.g. My blog"
+                      value={row.label}
+                      onChange={(e) => updateLinkRow(row.key, { label: e.target.value })}
+                      className="w-2/5 min-w-0 shrink-0"
+                    />
+                    <Input
+                      aria-label="Link URL"
+                      // Deliberately type="text", not type="url": the browser's
+                      // native url validity check requires a scheme up front
+                      // and silently blocks submission (no visible error) the
+                      // moment someone types "example.com" without "https://"
+                      // -- exactly the case toHttpsUrl() exists to forgive.
+                      type="text"
+                      inputMode="url"
+                      placeholder="https://..."
+                      value={row.url}
+                      onChange={(e) => updateLinkRow(row.key, { url: e.target.value })}
+                      className="min-w-0 flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Remove this link"
+                      onClick={() => {
+                        setLinkRows((rs) => rs.filter((r) => r.key !== row.key));
+                        markDirty();
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLinkRows((rs) => [...rs, { key: linkKey++, label: "", url: "" }])}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add a link
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <div>
-          <Button type="submit" disabled={saving} variant="primary">
-            {saving ? "Saving..." : "Save changes"}
-          </Button>
-        </div>
-      </form>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-heading">Where you are</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              Every place you call home. Add as many as you like; they all show equally on your profile.
+            </p>
+            <LocationPicker
+              mode="multi"
+              value={places}
+              onChange={(v) => {
+                setPlaces(v);
+                markDirty();
+              }}
+              aria-label="Your cities"
+            />
+          </CardContent>
+        </Card>
 
-      {/* ---- Where you are (own save) ---- */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading">Where you are</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-[13px] leading-relaxed text-muted-foreground">
-            Every place you call home. Add as many as you like; they all show equally on your profile.
-          </p>
-          <LocationPicker mode="multi" value={places} onChange={setPlaces} aria-label="Your cities" />
-          <Button type="button" variant="primary" size="sm" onClick={handleSavePlaces} disabled={placesBusy}>
-            {placesBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Save cities
-          </Button>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-heading">Houses</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="admissionNumber">Admission number</Label>
+              <Input id="admissionNumber" name="admissionNumber" type="number" defaultValue={user.admissionNumber || ""} placeholder="e.g. 1234" min={0} max={10000} className="max-w-[200px]" />
+            </div>
 
-      {/* ---- Houses (own save) ---- */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading">Houses</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-[13px] leading-relaxed text-muted-foreground">
-            Which house, which year. Houses change year to year for a lot of us, so add a row per year you remember.
-          </p>
-          <div className="space-y-2">
-            {houseRows.map((row) => (
-              <div key={row.key} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Input
-                    aria-label="Year"
-                    type="number"
-                    inputMode="numeric"
-                    placeholder="Year"
-                    value={row.year}
-                    onChange={(e) => updateHouseRow(row.key, { year: e.target.value })}
-                    min={1926}
-                    max={currentYear + 1}
-                    className="w-24 shrink-0"
-                  />
-                  <Select value={row.house || undefined} onValueChange={(v) => updateHouseRow(row.key, { house: v ?? "" })}>
-                    <SelectTrigger className="w-full flex-1" aria-label="House">
-                      <SelectValue placeholder="Pick a house" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HOUSES.map((h) => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
-                      ))}
-                      <SelectItem value={OTHER_HOUSE}>Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove this year" onClick={() => setHouseRows((rs) => rs.filter((r) => r.key !== row.key))}>
-                    <X className="h-4 w-4" />
+            <div className="space-y-2 border-t border-dashed border-border pt-4">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                {user.yearJoined != null && user.yearLeft != null && houseRows.length > 0
+                  ? "We've laid out your years below. Pick a house for each; add or remove years if we got the range wrong."
+                  : "Which house, which year. Add an academic year, then pick the house (or two, if you switched)."}
+              </p>
+              <div className="space-y-2">
+                {houseRows.map((row) => (
+                  <div key={row.year} className="flex items-center gap-2 rounded-xl bg-mist/40 p-2.5">
+                    <div className="flex h-10 w-[68px] shrink-0 items-center justify-center rounded-lg bg-canopy/10 px-1 text-center">
+                      <span className="text-[13px] font-bold tabular-nums leading-tight text-canopy">
+                        {academicSpanLabel(row.year, row.year)}
+                      </span>
+                    </div>
+                    <HousePicker
+                      value={row.houses}
+                      onChange={(next) => updateHouseRowHouses(row.year, next)}
+                      ariaLabel={`House(s) for ${academicSpanLabel(row.year, row.year)}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Remove ${academicSpanLabel(row.year, row.year)}`}
+                      onClick={() => removeHouseRow(row.year)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={addEarlierHouseYear}>
+                    <Plus className="h-4 w-4" />
+                    Earlier year
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={addLaterHouseYear}>
+                    <Plus className="h-4 w-4" />
+                    Later year
                   </Button>
                 </div>
-                {row.house === OTHER_HOUSE && (
-                  <Input
-                    aria-label="House name"
-                    placeholder="House name"
-                    value={row.other}
-                    onChange={(e) => updateHouseRow(row.key, { other: e.target.value })}
-                    className="w-full"
-                  />
-                )}
               </div>
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => setHouseRows((rs) => [...rs, { key: houseKey++, year: "", house: "", other: "" }])}>
-              <Plus className="h-4 w-4" />
-              Add a year
-            </Button>
-          </div>
-          <Button type="button" variant="primary" size="sm" onClick={handleSaveHouses} disabled={housesBusy}>
-            {housesBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Save houses
-          </Button>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* One sticky save bar for the whole form: appears the moment
+            anything above changes, saves it all in a single action. */}
+        <AnimatePresence>
+          {dirty && (
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 24 }}
+              transition={SPRINGS.gentle}
+              className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(16px,env(safe-area-inset-bottom))]"
+            >
+              <div className="glass flex w-full max-w-3xl items-center justify-between gap-4 rounded-2xl border border-border px-5 py-3.5 shadow-[0_18px_38px_-16px_rgba(35,36,30,0.35)]">
+                <p className="text-[13.5px] font-semibold text-foreground">You have unsaved changes</p>
+                <div className="flex shrink-0 gap-2">
+                  <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={handleDiscard}>
+                    Discard
+                  </Button>
+                  <Button type="submit" variant="primary" size="sm" disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Save changes
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </form>
 
       {/* Danger zone */}
       <Card className="border-destructive/30">
