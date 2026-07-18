@@ -62,9 +62,11 @@ function Tile({ photo }: { photo: PhotoData }) {
 export function CollectionClient({
   pending,
   areaOptions,
+  hasApprovedPhotos,
 }: {
   pending: PhotoData[];
   areaOptions: string[];
+  hasApprovedPhotos: boolean;
 }) {
   const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [total, setTotal] = useState(0);
@@ -75,13 +77,13 @@ export function CollectionClient({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   // Two different Buttons share this one ref/key: the compact toolbar
-  // "Contribute" (shown while photos exist) and the empty-state card's
-  // "Contribute a photo" (shown once the fetch resolves to zero photos).
-  // Registering while `loading` is still true would bind the anchor to
-  // whichever one happens to be mounted mid-fetch and never re-bind once
-  // the real branch is known (useTourAnchor's registration effect only
-  // fires on mount / enabled-change, not on every render) -- gating on
-  // `!loading` defers registration until the final branch has committed.
+  // "Contribute" (shown while photos/pending exist) and the empty-state
+  // card's "Contribute a photo" (shown when `trulyEmpty`, resolved from the
+  // server-side `hasApprovedPhotos` prop, so it's already settled on first
+  // render -- see `trulyEmpty` below). Gating on `!loading` just keeps
+  // registration off the very first tick so useTourAnchor's mount-time
+  // effect binds to whichever of the two is actually rendered rather than
+  // an about-to-be-replaced one.
   const tourAnchorRef = useTourAnchor<HTMLButtonElement>("collection-contribute", !loading);
 
   const [area, setArea] = useState("");
@@ -151,7 +153,12 @@ export function CollectionClient({
   // Truly empty: nothing has ever been added, no filter is even active.
   // Distinct from filtered-to-zero (photos exist, the active filters just
   // don't match any of them) -- see docs/planning/round6-specs/filters-rework.md sec 7.
-  const trulyEmpty = !loading && !hasFilter && photos.length === 0 && pending.length === 0;
+  // Resolved from the server-computed `hasApprovedPhotos` prop, not the
+  // client-side `photos`/`loading` fetch state: that fetch only starts after
+  // mount, so gating this on it flashed the toolbar in on first paint, then
+  // hid it once the fetch resolved to zero. This is knowable before first
+  // paint instead, so there's nothing to flash.
+  const trulyEmpty = !hasFilter && pending.length === 0 && !hasApprovedPhotos;
   const noMatches = !loading && hasFilter && photos.length === 0;
 
   const activeChips: ActiveChip[] = [];
@@ -235,16 +242,21 @@ export function CollectionClient({
           </div>
         )}
 
-        <Button
-          ref={trulyEmpty ? undefined : tourAnchorRef}
-          data-tour={trulyEmpty ? undefined : "collection-contribute"}
-          variant="primary"
-          className={trulyEmpty ? "rounded-full" : "hidden rounded-full lg:inline-flex"}
-          onClick={() => setDialogOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Contribute
-        </Button>
+        {/* Only rendered once photos/pending exist -- when trulyEmpty, the
+            empty-state card below carries the one Contribute CTA instead of
+            duplicating it here. */}
+        {!trulyEmpty && (
+          <Button
+            ref={tourAnchorRef}
+            data-tour="collection-contribute"
+            variant="primary"
+            className="hidden rounded-full lg:inline-flex"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Contribute
+          </Button>
+        )}
 
         {/* Mobile (<1024px): Sort + Filters(N) + a Contribute icon button. */}
         {!trulyEmpty && (
