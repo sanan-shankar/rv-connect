@@ -9,10 +9,26 @@
  *  point. Nothing here is a hard gate: a member can use the whole site
  *  having completed none of it.
  *
- *  The one hoopoe for this route is mounted by the server page
- *  (`<CelebrationSignals>` in welcome/page.tsx), not by any step here
- *  — see that file's comment for why the post-signup welcome moment now
- *  plays on this route instead of /feed.
+ *  The one hoopoe for this route is rendered by the server page
+ *  (`<CelebrationSignals>` in welcome/page.tsx), passed down here as the
+ *  `celebration` prop rather than mounted as a page-level sibling. This
+ *  component decides WHEN it actually enters the tree: only once the
+ *  wizard reaches the "done" step, never earlier.
+ *
+ *  Earlier, celebration-signals.tsx mounted unconditionally alongside the
+ *  wizard, so the celebration's one-shot "postSignupWelcome" fired the
+ *  instant a fresh account landed on Welcome (step 1 of 5) and played out
+ *  in the corner while the very first, bare, card-less step was still on
+ *  screen. Two reviewers flagged the wizard as looking washed out for
+ *  the whole flow; the actual root cause turned out to be Welcome/Done
+ *  being the only two steps without the same opaque bg-card surface
+ *  Register/Houses/Photo already use against the shared AppShell
+ *  background wash (fixed in welcome-step.tsx/done-step.tsx), but a
+ *  delightful arrival moment competing for attention on the very first,
+ *  most bare screen of a five-step wizard was never the right place for
+ *  it either. Saving it for Done, the payoff screen where there is
+ *  nothing left to read or fill in, is both a better tell for the eye
+ *  and a better story: you finish, then the bird throws confetti.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
@@ -49,9 +65,14 @@ export interface OnboardingUser {
 export function OnboardingFlow({
   user,
   initialStep,
+  celebration,
 }: {
   user: OnboardingUser;
   initialStep: OnboardingStepId;
+  /** The already-rendered `<CelebrationSignals>` server component, handed
+   *  down so this client component controls exactly when it enters the
+   *  tree (see the file comment above). */
+  celebration: React.ReactNode;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<OnboardingStepId>(initialStep);
@@ -179,6 +200,11 @@ export function OnboardingFlow({
           {step === "done" && <DoneStep name={user.name} />}
         </motion.div>
       </AnimatePresence>
+
+      {/* Only mounted once the wizard actually reaches Done, so the
+          one-shot post-signup celebration plays as the finishing beat, not
+          a distraction on the first, bare "Welcome" screen. */}
+      {step === "done" && celebration}
     </div>
   );
 }

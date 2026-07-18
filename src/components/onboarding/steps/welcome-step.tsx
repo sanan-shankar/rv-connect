@@ -14,7 +14,13 @@ export function WelcomeStep({ name, onNext }: { name: string; onNext: () => void
 
   return (
     <div className="space-y-[var(--space-l)] text-center">
-      <div className="space-y-[var(--space-xs)]">
+      {/* Same opaque bg-card surface every other step uses (register, houses,
+          photo). This step and Done are the only two bare enough that the
+          shared AppShell valley-tree background behind the sidebar (always
+          on, see app-shell.tsx) would otherwise show straight through empty
+          space and wash out the copy. A real legibility problem, not
+          something the mascot's own celebration was ever actually causing. */}
+      <div className="space-y-[var(--space-xs)] rounded-2xl border border-border bg-card p-[var(--space-l)]">
         <h1 className="font-heading text-[28px] leading-tight tracking-[-0.02em] text-foreground">
           Welcome, {firstName}.
         </h1>
