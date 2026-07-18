@@ -9,7 +9,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Auth
 - **NextAuth v5 beta** (`next-auth@5.0.0-beta.30`) with Credentials (email + password) provider
 - Session strategy: database-backed (Prisma adapter)
-- Admin bypass: `POST /api/auth/admin-login` with `ADMIN_EMAIL` creates a DB session + cookie. Works locally, known bug on Vercel deployment.
+- Admin bypass: `POST /api/auth/admin-login` with `ADMIN_EMAIL` creates a DB session + cookie. Works locally and on Vercel (the old Vercel bug was fixed; owner confirmed 2026-07-18).
 - Protected routes: everything under `(main)/` layout requires auth. Public: `/`, `/login`, `/verify`.
 
 ## Database
