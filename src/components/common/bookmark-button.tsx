@@ -101,14 +101,16 @@ export function BookmarkButton({
                 : { duration: saved ? 0 : 0.16, ease: "easeIn" }
             }
           />
-          {/* strokeWidth 2.5 (was 4): at this viewBox scale, 4 rendered visibly heavier than
-              the Lucide/Phosphor regular-weight strokes on the sibling comment/share icons in
-              this same row -- 2.5 matches their optical weight. */}
+          {/* strokeWidth 3.35: the siblings are 16px Lucide icons at strokeWidth 2 (24-unit
+              viewBox), i.e. 1.33px rendered and ~8.3% of icon width. This mark renders at
+              13px wide from a 40-unit viewBox (scale 0.325), so matching that stroke-to-width
+              RATIO (not the raw px) needs 40 * 0.083 / 1 = ~3.3 here. 4 read heavier (denser
+              closed shape), 2.5 read thinner (0.81px); 3.35 = ~1.09px = optical parity. */}
           <path
             d="M5 4 H35 V52 L20 42 L5 52 Z"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="3.35"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
