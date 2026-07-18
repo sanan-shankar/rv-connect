@@ -189,41 +189,49 @@ export function CollectionClient({
   return (
     <div>
       {/* Toolbar: search + When + Part of school + Sort all fit inline on
-          desktop (few enough facets, no "More filters" toggle needed). */}
+          desktop (few enough facets, no "More filters" toggle needed).
+          When the collection is truly empty (no approved photos at all),
+          none of that filter chrome has anything to act on, so only the
+          Contribute CTA renders -- see
+          docs/planning/round6-specs/filters-rework.md sec 7. */}
       <div className="mb-2 flex flex-wrap items-center gap-2.5">
-        <div className="relative min-w-[200px] flex-1">
-          <MagnifyingGlass
-            weight="regular"
-            size={16}
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            placeholder="Search captions..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="h-10 rounded-full border-border bg-card pl-10"
-          />
-        </div>
+        {!trulyEmpty && (
+          <div className="relative min-w-[200px] flex-1">
+            <MagnifyingGlass
+              weight="regular"
+              size={16}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              placeholder="Search captions..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="h-10 rounded-full border-border bg-card pl-10"
+            />
+          </div>
+        )}
 
-        <div className="hidden items-center gap-2.5 lg:flex">
-          {renderFacets(false)}
-          <SortPill value={sortBy} onChange={(v) => setSortBy(v as SortBy)} options={COLLECTION_SORT_OPTIONS} />
-          {hasFilter && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
+        {!trulyEmpty && (
+          <div className="hidden items-center gap-2.5 lg:flex">
+            {renderFacets(false)}
+            <SortPill value={sortBy} onChange={(v) => setSortBy(v as SortBy)} options={COLLECTION_SORT_OPTIONS} />
+            {hasFilter && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        )}
 
         <Button
           ref={trulyEmpty ? undefined : tourAnchorRef}
           data-tour={trulyEmpty ? undefined : "collection-contribute"}
           variant="primary"
-          className="hidden rounded-full lg:inline-flex"
+          className={trulyEmpty ? "rounded-full" : "hidden rounded-full lg:inline-flex"}
           onClick={() => setDialogOpen(true)}
         >
           <Plus className="h-4 w-4" />
@@ -231,35 +239,37 @@ export function CollectionClient({
         </Button>
 
         {/* Mobile (<1024px): Sort + Filters(N) + a Contribute icon button. */}
-        <div className="flex w-full items-center gap-2.5 lg:hidden">
-          <SortPill
-            value={sortBy}
-            onChange={(v) => setSortBy(v as SortBy)}
-            options={COLLECTION_SORT_OPTIONS}
-            className="flex-1"
-          />
-          <button
-            type="button"
-            onClick={() => setSheetOpen(true)}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
-          >
-            <SlidersHorizontal className="size-3.5" aria-hidden />
-            Filters
-            {activeChips.length > 0 && <span className="opacity-80">· {activeChips.length}</span>}
-          </button>
-          <Button
-            variant="primary"
-            size="icon"
-            className="shrink-0 rounded-full"
-            onClick={() => setDialogOpen(true)}
-            aria-label="Contribute a photo"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        {!trulyEmpty && (
+          <div className="flex w-full items-center gap-2.5 lg:hidden">
+            <SortPill
+              value={sortBy}
+              onChange={(v) => setSortBy(v as SortBy)}
+              options={COLLECTION_SORT_OPTIONS}
+              className="flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+            >
+              <SlidersHorizontal className="size-3.5" aria-hidden />
+              Filters
+              {activeChips.length > 0 && <span className="opacity-80">· {activeChips.length}</span>}
+            </button>
+            <Button
+              variant="primary"
+              size="icon"
+              className="shrink-0 rounded-full"
+              onClick={() => setDialogOpen(true)}
+              aria-label="Contribute a photo"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
-      {activeChips.length > 0 && (
+      {!trulyEmpty && activeChips.length > 0 && (
         <ActiveFilterChips chips={activeChips} onClearAll={clearAll} className="mb-3 lg:hidden" />
       )}
 

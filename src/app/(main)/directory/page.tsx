@@ -225,7 +225,12 @@ export default async function DirectoryPage({
           ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         })
       : Promise.resolve([]),
-    hasFilter ? prisma.user.count({ where }) : Promise.resolve(0),
+    // Always the real count, even with no filter active (where degenerates to
+    // just `{ isBlocked: false }` then): the mobile FilterSheet's sticky
+    // "Show N people" button reads this regardless of which browse view is
+    // open, so it must never read a hardcoded 0 (see
+    // docs/planning/round6-specs/filters-rework.md sec 5.2).
+    prisma.user.count({ where }),
     prisma.user.findMany({
       where: pinWhere,
       select: PIN_SELECT,
