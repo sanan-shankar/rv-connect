@@ -46,6 +46,27 @@ export function useTour(): TourContextValue {
 // never appears mid-entrance-animation of the page itself.
 const OFFER_ARM_DELAY_MS = 700;
 
+// Matches the panel's own bottom-sheet breakpoint (tour-panel.tsx).
+const MOBILE_BREAKPOINT_PX = 640;
+
+/**
+ * Scrolls the spotlight target into view. On desktop this is a plain
+ * centre-of-viewport scroll. On mobile the panel becomes a bottom sheet
+ * docked to the bottom of the screen, so centring would sit the target
+ * right under it; instead we scroll the target's centre to ~40% down the
+ * viewport (spec sec 8), keeping it clear of the sheet.
+ */
+function scrollTargetIntoView(el: HTMLElement) {
+  if (window.innerWidth >= MOBILE_BREAKPOINT_PX) {
+    el.scrollIntoView({ block: "center", behavior: "auto" });
+    return;
+  }
+  const rect = el.getBoundingClientRect();
+  const targetCenter = rect.top + rect.height / 2;
+  const desiredCenter = window.innerHeight * 0.4;
+  window.scrollBy({ top: targetCenter - desiredCenter, left: 0, behavior: "auto" });
+}
+
 export function TourProvider({ userId, children }: { userId: string; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -93,8 +114,17 @@ export function TourProvider({ userId, children }: { userId: string; children: R
 
       const stop = stops[i];
       setSpotlightKey(null);
-      clearSpotlight(stop.spotlight);
-      if (pathnameRef.current !== stop.route) router.push(stop.route);
+      // Only clear + wait for a fresh registration when we're actually
+      // navigating to a different route. If the stop's route is the one
+      // we're already on (Offer -> Stop 1, both /feed), no remount happens,
+      // so the anchor already registered by that page's mount-time effect
+      // is the correct one; clearing it here would wipe it with nothing
+      // left to re-report it, and the tour would time out with no spotlight.
+      const needsNav = pathnameRef.current !== stop.route;
+      if (needsNav) {
+        clearSpotlight(stop.spotlight);
+        router.push(stop.route);
+      }
 
       const el = await awaitSpotlight(stop.spotlight, 2500);
       if (token !== runTokenRef.current) return;
@@ -106,7 +136,7 @@ export function TourProvider({ userId, children }: { userId: string; children: R
         return;
       }
 
-      el.scrollIntoView({ block: "center", behavior: "auto" });
+      scrollTargetIntoView(el);
       const rect = el.getBoundingClientRect();
       setSpotlightKey(stop.spotlight);
 

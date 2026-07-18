@@ -50,9 +50,17 @@ export function TourSpotlight({ active, spotlightKey }: { active: boolean; spotl
 
     function measure() {
       const r = el!.getBoundingClientRect();
-      // Pills (composer, Contribute button) read as fully round; the wider
-      // Catch-ups explainer card keeps the app's own 16px card radius.
-      const radius = r.height <= 0 ? 16 : Math.min(r.height / 2, 9999);
+      // Read the target's own computed corner radius rather than assuming a
+      // shape: pills (composer, Contribute button, the Catch-ups compact
+      // strip) report a huge `rounded-full` value that we clamp down to a
+      // true stadium (half the height); the Catch-ups explainer card (and
+      // anything else using the app's `--radius` token) reports its real
+      // 16px and is left alone. This keeps the hole's shape matched to
+      // whichever variant of a target actually rendered, instead of
+      // guessing from height alone (spec sec 9).
+      const parsed = parseFloat(getComputedStyle(el!).borderRadius);
+      const cap = r.height > 0 ? r.height / 2 : 16;
+      const radius = Number.isFinite(parsed) ? Math.min(parsed, cap) : cap;
       setHole({ left: r.left, top: r.top, width: r.width, height: r.height, radius });
     }
     measure();
