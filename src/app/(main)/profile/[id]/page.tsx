@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { socialHref, socialDisplay } from "@/lib/social";
 import { headerImageFor } from "@/lib/header-image";
@@ -65,15 +66,28 @@ export default async function ProfilePage({
   const isAdmin = session.user.role === "admin";
   const firstName = user.name.split(" ")[0];
 
+  // Same visibility contract as loadPosts()'s authorId path (feed/actions.ts):
+  // never surface another member's private-group posts on their public
+  // profile, and respect city-scope audience targeting unless the viewer is
+  // an admin. Applies to the tab counts and the Photos grid alike, since all
+  // three read from the same underlying set of "visible posts by this author".
+  const viewerCities = isAdmin ? [] : await getViewerCities(session.user.id);
+  const visiblePostsWhere = {
+    authorId: user.id,
+    isHidden: false,
+    groupId: null,
+    ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
+  };
+
   // Post / letter counts drive which groups render in the Posts & Letters tab.
   const [postCount, letterCount] = await Promise.all([
-    prisma.post.count({ where: { authorId: user.id, isHidden: false, kind: "post" } }),
-    prisma.post.count({ where: { authorId: user.id, isHidden: false, kind: "letter" } }),
+    prisma.post.count({ where: { ...visiblePostsWhere, kind: "post" } }),
+    prisma.post.count({ where: { ...visiblePostsWhere, kind: "letter" } }),
   ]);
 
   // Photos: flatten image arrays from this author's visible posts.
   const photoPosts = await prisma.post.findMany({
-    where: { authorId: user.id, isHidden: false, NOT: { images: null } },
+    where: { ...visiblePostsWhere, NOT: { images: null } },
     select: { id: true, images: true },
     orderBy: { createdAt: "desc" },
     take: 60,
