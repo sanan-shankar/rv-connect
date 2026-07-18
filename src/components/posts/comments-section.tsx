@@ -399,6 +399,7 @@ function CommentItem({
             onToggle={handleLike}
             size="sm"
             showCount={comment.likeCount > 0}
+            label="Like this comment"
             /* LoveButton's count `<span>` is plain text, so it inherits text-sm's 20px
                line-height while the icon-only span next to it sizes to the 12px heart glyph.
                That mismatch made the WHOLE BUTTON (an `items-center` flex row) grow ~8px the

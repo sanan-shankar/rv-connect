@@ -111,12 +111,12 @@ function findPick(opts: { title?: string; bodyStartsWith?: string }): Pick {
 function trimGerryBalcombe(body: string): string {
   let out = body;
   out = out.replace(
-    "— Sidharth Tiwari\n\nYa... In 2016.\n— Abyisheik\n\nHaha,",
-    "— Sidharth Tiwari\n\nHaha,"
+    "- Sidharth Tiwari\n\nYa... In 2016.\n- Abyisheik\n\nHaha,",
+    "- Sidharth Tiwari\n\nHaha,"
   );
   out = out.replace(
-    "Still have many stamps and coins he gave me, and also the pic he made of me!\n— Ansuman Nayak\n\nDoes anyone have a pic of him?\n— Abyisheik\n\nGerry Balcombe 💖\n\nGerry died Nov 2014.\n— wanderer",
-    "Still have many stamps and coins he gave me, and also the pic he made of me!\n— Ansuman Nayak\n\nGerry died Nov 2014.\n— wanderer"
+    "Still have many stamps and coins he gave me, and also the pic he made of me!\n- Ansuman Nayak\n\nDoes anyone have a pic of him?\n- Abyisheik\n\nGerry Balcombe 💖\n\nGerry died Nov 2014.\n- wanderer",
+    "Still have many stamps and coins he gave me, and also the pic he made of me!\n- Ansuman Nayak\n\nGerry died Nov 2014.\n- wanderer"
   );
   if (out === body) {
     throw new Error("trimGerryBalcombe: expected substrings not found — source text may have changed.");
