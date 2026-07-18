@@ -512,18 +512,26 @@ export function CreatePostForm({
             "data-[empty=true]:before:pointer-events-none data-[empty=true]:before:text-muted-foreground data-[empty=true]:before:content-[attr(data-placeholder)]"
           )}
         />
-        {/* Focus ring lives as an overlay so it never fights the field's own
-            box. Opacity is the ONLY thing that animates: no transform/scale,
-            so the ring is the field's exact, even shape on every single frame
-            of the fade-in (including the first) instead of growing in from a
-            slightly smaller box, which is what read as an uneven / thicker-at
-            -corners ring while it was still resolving. */}
+        {/* Focus ring, drawn ENTIRELY INSIDE the field's border box (an INSET
+            shadow, never an outward spread) and with NO transition, so its very
+            first painted frame is already the final, even shape.
+
+            Why inset matters here: the feed composer's expand keeps this field
+            inside a wrapper that stays overflow:hidden for the whole ~1s height
+            spring (until `settled` flips it to visible). The field is flush to
+            that wrapper's top/left/right edges, so any ring that spread OUTWARD
+            past the border box got clipped to nothing along those straight edges
+            while the rounded corners -- which recede inward from the wrapper's
+            square corner -- kept their spread in the corner pocket. That is what
+            read as a ring "thicker at the corners" for about a second before the
+            wrapper stopped clipping. An inset ring has nothing outside the border
+            box to clip, so it is even on every frame, expanding or settled. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[var(--radius)] opacity-0 transition-opacity duration-150 ease-out peer-focus:opacity-100"
+          className="pointer-events-none absolute inset-0 rounded-[var(--radius)] opacity-0 peer-focus:opacity-100"
           style={{
-            boxShadow: "0 0 0 3px color-mix(in srgb, var(--color-leaf) 26%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--color-leaf) 55%, var(--border))",
+            boxShadow: "inset 0 0 0 2px color-mix(in srgb, var(--color-leaf) 42%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--color-leaf) 60%, var(--border))",
           }}
         />
         {mentionQuery !== null && (
