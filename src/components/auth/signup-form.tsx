@@ -6,6 +6,7 @@ import { Eye, EyeOff, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { YearInput } from "@/components/common/year-input";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
@@ -244,8 +245,6 @@ export function SignupForm({
     }
   }
 
-  const currentYear = new Date().getFullYear();
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
       <div className="grid grid-cols-2 gap-3">
@@ -413,16 +412,12 @@ export function SignupForm({
                 batch is still 2023.
               </InfoTip>
             </div>
-            <Input
+            <YearInput
               id="batchYear"
               name="batchYear"
-              type="number"
-              inputMode="numeric"
               placeholder="e.g. 2023"
-              min={1926}
-              max={currentYear + 7}
               value={batchYear}
-              onChange={(e) => setBatchYear(e.target.value)}
+              onValueChange={setBatchYear}
               required={isAlum}
             />
           </div>
@@ -430,31 +425,23 @@ export function SignupForm({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="yearJoined">Year you joined</Label>
-              <Input
+              <YearInput
                 id="yearJoined"
                 name="yearJoined"
-                type="number"
-                inputMode="numeric"
                 placeholder="e.g. 2014"
-                min={1926}
-                max={currentYear}
                 value={yearJoined}
-                onChange={(e) => setYearJoined(e.target.value)}
+                onValueChange={setYearJoined}
                 required={isAlum}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="yearLeft">Year you left</Label>
-              <Input
+              <YearInput
                 id="yearLeft"
                 name="yearLeft"
-                type="number"
-                inputMode="numeric"
                 placeholder="e.g. 2021"
-                min={1926}
-                max={currentYear + 1}
                 value={yearLeft}
-                onChange={(e) => setYearLeft(e.target.value)}
+                onValueChange={setYearLeft}
                 required={isAlum}
               />
             </div>

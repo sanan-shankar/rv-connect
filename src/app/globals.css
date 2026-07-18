@@ -192,6 +192,20 @@
        against future regressions. */
     overflow-x: clip;
   }
+  /* Belt-and-suspenders: kill the native up/down spinner on any stray
+     type="number" input app-wide. Year fields (batch, joined/left, houses)
+     use the text-based YearInput component instead, but this is a backstop
+     in case a plain number input ever creeps back in. Owner: "no one needs
+     to add or subtract years; the arrows send you to 1926." */
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
   h1, h2, h3, h4 {
     @apply font-heading tracking-tight;
   }
