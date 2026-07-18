@@ -35,6 +35,7 @@ export function PhotoLoveButton({
       count={count}
       onToggle={handle}
       className="border border-border font-medium"
+      label="Like this photo"
     />
   );
 }

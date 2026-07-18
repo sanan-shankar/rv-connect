@@ -71,7 +71,7 @@ export function LetterEngagement({
       {/* Same shared action row as the feed/group PostCard: one heart, one bookmark, one share.
           The negative margin keeps the heart glyph flush with the letter's text column. */}
       <div className="-mx-2.5 flex items-center gap-1 text-muted-foreground">
-        <LoveButton liked={liked} count={likeCount} onToggle={handleLike} />
+        <LoveButton liked={liked} count={likeCount} onToggle={handleLike} label="Like this letter" />
         <span className="px-2.5 py-1.5 text-sm">{commentCount} comments</span>
         <BookmarkButton
           saved={bookmarked}

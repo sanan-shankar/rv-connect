@@ -304,7 +304,7 @@ export function PostCard({
             GLYPH's right edge sits flush with the content's right line (photo edge / the dots
             menu). Touch targets stay full-size; only the padding overhangs into the card gutter. */}
         <div className="mt-2 -mx-2.5 flex items-center gap-1 text-muted-foreground">
-          <LoveButton liked={liked} count={likeCount} onToggle={handleLike} />
+          <LoveButton liked={liked} count={likeCount} onToggle={handleLike} label="Like this post" />
 
           <motion.button
             onClick={() => setShowComments(!showComments)}
