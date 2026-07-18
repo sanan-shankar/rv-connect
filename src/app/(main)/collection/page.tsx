@@ -17,7 +17,10 @@ export default async function CollectionPage() {
   // text -- see src/lib/collection-facets.ts), so its filter options are the
   // live distinct values already on approved photos, same pattern as
   // Directory's City facet.
-  const [pending, areaGroups] = await Promise.all([
+  // Whether the toolbar (search + filters) has anything to act on at all is
+  // resolved here, server-side, so the client never has to guess before its
+  // first photo fetch resolves -- see CollectionClient's `trulyEmpty`.
+  const [pending, areaGroups, approvedCount] = await Promise.all([
     myPendingPhotos(),
     prisma.photo.groupBy({
       by: ["area"],
@@ -25,6 +28,7 @@ export default async function CollectionPage() {
       _count: { area: true },
       orderBy: [{ _count: { area: "desc" } }, { area: "asc" }],
     }),
+    prisma.photo.count({ where: { approved: true, isHidden: false } }),
   ]);
 
   return (
@@ -36,6 +40,7 @@ export default async function CollectionPage() {
       <CollectionClient
         pending={pending}
         areaOptions={areaGroups.map((g) => g.area!).filter(Boolean)}
+        hasApprovedPhotos={approvedCount > 0}
       />
     </div>
   );
