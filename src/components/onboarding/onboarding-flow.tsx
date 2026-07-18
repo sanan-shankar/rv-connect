@@ -37,6 +37,7 @@ export interface OnboardingUser {
   name: string;
   photoUrl: string | null;
   avatarColor: string | null;
+  birdOverride: string | null;
   admissionNumber: number | null;
   places: PlaceSelection[];
   workplace: string | null;

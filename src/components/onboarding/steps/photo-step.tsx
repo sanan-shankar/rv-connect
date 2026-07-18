@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, ImagePlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
-import { speciesNameFor } from "@/components/common/bird-avatar-v2";
+import { speciesNameFor, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
 import { updateAvatar } from "@/components/settings/actions";
 import type { OnboardingUser } from "../onboarding-flow";
 
@@ -30,7 +30,7 @@ export function PhotoStep({
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const speciesName = speciesNameFor(user.id);
+  const speciesName = speciesNameFor(user.id, resolveBirdOverride(user.id, user.birdOverride));
 
   async function handlePick(file: File | null) {
     if (!file) return;
@@ -77,7 +77,13 @@ export function PhotoStep({
           onChange={(e) => handlePick(e.target.files?.[0] ?? null)}
         />
         <BirdAvatar
-          user={{ id: user.id, name: user.name, photoUrl, avatarColor: user.avatarColor }}
+          user={{
+            id: user.id,
+            name: user.name,
+            photoUrl,
+            avatarColor: user.avatarColor,
+            birdOverride: user.birdOverride,
+          }}
           size="lg"
         />
         {!photoUrl && (
