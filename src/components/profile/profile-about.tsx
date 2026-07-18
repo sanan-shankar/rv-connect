@@ -27,6 +27,10 @@ import {
 export interface AboutSocial {
   kind: SocialKind;
   value: string;
+  // FLAG (settings-consolidation, coordinate with profile-polish): user-defined
+  // pill text for a custom "Other links" row (kind "link"); overrides the
+  // usual handle/host display so the member's own label shows verbatim.
+  label?: string;
 }
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -38,6 +42,9 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 function SocialPill({ social }: { social: AboutSocial }) {
   const Icon = socialIcon(social.kind);
   const host = socialHost(social.kind, social.value);
+  // A custom "Other links" row shows the member's own label verbatim instead
+  // of the derived handle/host text (see the FLAG note on AboutSocial).
+  const text = social.label || socialDisplay(social.kind, social.value);
   return (
     <a
       href={socialHref(social.kind, social.value)}
@@ -46,17 +53,26 @@ function SocialPill({ social }: { social: AboutSocial }) {
       className="inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:border-cinnamon/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.985]"
     >
       <Icon className="h-[15px] w-[15px] shrink-0 text-cinnamon" aria-hidden />
-      <span>{socialDisplay(social.kind, social.value)}</span>
+      <span>{text}</span>
       {host && <span className="font-normal text-muted-foreground">{host}</span>}
     </a>
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+/* One at-RV fact, a labelled column. On sm+ a dashed rule separates it from the
+   previous fact so the three read as distinct fields, never one run of text
+   ("2014-2023 . 9 years" | "Grade 5" | "London . Chennai"); on mobile they
+   stack, so the rule would be a stray line and is dropped. */
+function Fact({ label, value, divided }: { label: string; value: string; divided: boolean }) {
   return (
-    <div className="min-w-0">
-      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-cinnamon/70">{label}</dt>
-      <dd className="mt-1 text-[13.5px] font-semibold leading-snug text-foreground">{value}</dd>
+    <div
+      className={cn(
+        "min-w-0",
+        divided && "sm:ml-[var(--space-l)] sm:border-l sm:border-dashed sm:border-border sm:pl-[var(--space-l)]"
+      )}
+    >
+      <dt className="text-[10.5px] font-bold uppercase tracking-[0.15em] text-cinnamon/80">{label}</dt>
+      <dd className="mt-1.5 text-[14px] font-semibold leading-snug text-foreground">{value}</dd>
     </div>
   );
 }
@@ -79,7 +95,11 @@ export function ProfileAbout({
   cities: string[];
 }) {
   const hasSocials = socials.length > 0;
-  const hasFacts = Boolean(rvYears) || enteredGrade != null || cities.length > 0;
+  const facts = [
+    rvYears ? { label: "In the valley", value: rvYears } : null,
+    enteredGrade != null ? { label: "Entered", value: `Grade ${enteredGrade}` } : null,
+    cities.length > 0 ? { label: "Based in", value: cities.join(" · ") } : null,
+  ].filter((f): f is { label: string; value: string } => f !== null);
 
   return (
     <div>
@@ -122,11 +142,11 @@ export function ProfileAbout({
         )}
       </div>
 
-      {hasFacts && (
-        <dl className="mt-[var(--space-xl)] flex flex-wrap gap-x-[var(--space-xl)] gap-y-[var(--space-m)] border-t border-dashed border-border pt-[var(--space-l)]">
-          {rvYears && <Fact label="In the valley" value={rvYears} />}
-          {enteredGrade != null && <Fact label="Entered" value={`Grade ${enteredGrade}`} />}
-          {cities.length > 0 && <Fact label="Based in" value={cities.join(" · ")} />}
+      {facts.length > 0 && (
+        <dl className="mt-[var(--space-xl)] flex flex-col gap-[var(--space-m)] border-t border-dashed border-border pt-[var(--space-l)] sm:flex-row sm:flex-wrap sm:items-start sm:gap-y-[var(--space-m)]">
+          {facts.map((fact, i) => (
+            <Fact key={fact.label} label={fact.label} value={fact.value} divided={i > 0} />
+          ))}
         </dl>
       )}
     </div>

@@ -3,28 +3,36 @@
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
-import { parseHouseSpans, type HouseSpan } from "@/lib/house-spans";
+import { academicSpanLabel, parseHouseSpans, type HouseSpan } from "@/lib/house-spans";
 
 /**
  * The houses chain (the owner's favourite element): each house is a full pill
  * with its name + year range, joined by arrows, reading like distinct chapters
  * of a school career. Consecutive years in the same house collapse into one
- * `fromYear-toYear` box. Alternating canopy/cinnamon tints keep a long run
+ * `fromYear-toYear` box; the pills are tinted (see below) so a long run stays
  * legible without inventing 22 real house colours.
  *
  * Scales to ~10 stints: desktop wraps, mobile is a horizontal scroll-snap
  * strip. One house renders a single chip (no arrow); zero houses hides the
  * whole band (the caller may show its own "add your houses" prompt instead).
+ *
+ * The pills cycle through three brand tints - canopy, cinnamon, sky - so a long
+ * run reads as distinct chapters rather than a two-tone stripe. Each keeps its
+ * own family for text (AA on the light tinted fill) instead of inventing 22
+ * real house colours.
  */
 
 const HOUSE_TINTS = [
   "border-canopy/25 bg-canopy/[0.06] text-canopy",
   "border-cinnamon/30 bg-cinnamon/[0.07] text-cinnamon",
+  "border-sky/35 bg-sky/[0.10] text-sky",
 ];
 
+// Each stored year is an ACADEMIC year (2014 reads as "2014-15"), so every
+// span -- one year or a multi-year run -- renders as a hyphenated span label,
+// never a bare calendar year and never an en dash.
 function yearRange(span: HouseSpan): string {
-  if (span.fromYear === span.toYear) return String(span.fromYear);
-  return `${span.fromYear}–${span.toYear}`;
+  return academicSpanLabel(span.fromYear, span.toYear);
 }
 
 export function HousesChain({ houses }: { houses: string | null | undefined }) {
