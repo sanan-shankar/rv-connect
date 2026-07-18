@@ -99,7 +99,7 @@ export default async function LetterPage({
       <LetterTitle title={letterTitle(letter.title, letter.content)} />
 
       <IdentityRow
-        user={{ id: letter.author.id, name: letter.author.name, photoUrl: letter.author.photoUrl }}
+        user={{ id: letter.author.id, name: letter.author.name, photoUrl: letter.author.photoUrl, birdOverride: letter.author.birdOverride }}
         avatarSize="md"
         avatarHref={`/profile/${letter.author.id}`}
         avatarLabel={letter.author.name}

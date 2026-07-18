@@ -103,7 +103,7 @@ export default async function LettersPage() {
                 </p>
                 <div className="mt-4 flex items-center gap-2.5 border-t border-border pt-3.5">
                   <IdentityRow
-                    user={{ id: l.author.id, name: l.author.name, photoUrl: l.author.photoUrl }}
+                    user={{ id: l.author.id, name: l.author.name, photoUrl: l.author.photoUrl, birdOverride: l.author.birdOverride }}
                     className="min-w-0 flex-1 gap-2.5"
                     textClassName="flex-1"
                     name={l.author.name}
