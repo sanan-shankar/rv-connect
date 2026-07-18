@@ -9,6 +9,45 @@ import type { FacetOption } from "./types";
 const ANY = "__any__";
 
 /**
+ * The dropdown body shared by FacetSelect and SortPill: same portal/positioner/
+ * popup/list/item tree, differing only in whether an "Any ..." clear row is
+ * prepended.
+ */
+function FacetOptionsPopup({
+  options,
+  anyItem,
+}: {
+  options: FacetOption[];
+  anyItem?: { value: string; label: string };
+}) {
+  return (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Positioner
+        sideOffset={6}
+        align="start"
+        alignItemWithTrigger={false}
+        className="isolate z-50"
+      >
+        <SelectPrimitive.Popup className={FACET_POPUP_CLASS}>
+          <SelectPrimitive.List className="flex flex-col gap-0.5">
+            {anyItem && (
+              <SelectPrimitive.Item value={anyItem.value} className={cn(FACET_ITEM_CLASS, "cursor-default")}>
+                <SelectPrimitive.ItemText>{anyItem.label}</SelectPrimitive.ItemText>
+              </SelectPrimitive.Item>
+            )}
+            {options.map((o) => (
+              <SelectPrimitive.Item key={o.value} value={o.value} className={cn(FACET_ITEM_CLASS, "cursor-default")}>
+                <SelectPrimitive.ItemText>{o.label}</SelectPrimitive.ItemText>
+              </SelectPrimitive.Item>
+            ))}
+          </SelectPrimitive.List>
+        </SelectPrimitive.Popup>
+      </SelectPrimitive.Positioner>
+    </SelectPrimitive.Portal>
+  );
+}
+
+/**
  * FacetSelect — the labelled-value pill for a single-choice facet (Profession,
  * House, Open to, Type, When, Part of school...). Renders its own
  * `Label: Value` text from props (never `<SelectValue>`), so it can never
@@ -47,26 +86,7 @@ export function FacetSelect({
         </SelectPrimitive.Trigger>
         {set && <FacetClearButton label={label} onClear={() => onChange("")} />}
       </div>
-      <SelectPrimitive.Portal>
-        <SelectPrimitive.Positioner sideOffset={6} align="start" className="isolate z-50">
-          <SelectPrimitive.Popup className={FACET_POPUP_CLASS}>
-            <SelectPrimitive.List className="flex flex-col gap-0.5">
-              <SelectPrimitive.Item value={ANY} className={cn(FACET_ITEM_CLASS, "cursor-default")}>
-                <SelectPrimitive.ItemText>{anyLabel ?? `Any ${label.toLowerCase()}`}</SelectPrimitive.ItemText>
-              </SelectPrimitive.Item>
-              {options.map((o) => (
-                <SelectPrimitive.Item
-                  key={o.value}
-                  value={o.value}
-                  className={cn(FACET_ITEM_CLASS, "cursor-default")}
-                >
-                  <SelectPrimitive.ItemText>{o.label}</SelectPrimitive.ItemText>
-                </SelectPrimitive.Item>
-              ))}
-            </SelectPrimitive.List>
-          </SelectPrimitive.Popup>
-        </SelectPrimitive.Positioner>
-      </SelectPrimitive.Portal>
+      <FacetOptionsPopup options={options} anyItem={{ value: ANY, label: anyLabel ?? `Any ${label.toLowerCase()}` }} />
     </SelectPrimitive.Root>
   );
 }
@@ -101,23 +121,7 @@ export function SortPill({
           <ChevronDown className="size-3.5 shrink-0 opacity-70" aria-hidden />
         </SelectPrimitive.Trigger>
       </div>
-      <SelectPrimitive.Portal>
-        <SelectPrimitive.Positioner sideOffset={6} align="start" className="isolate z-50">
-          <SelectPrimitive.Popup className={FACET_POPUP_CLASS}>
-            <SelectPrimitive.List className="flex flex-col gap-0.5">
-              {options.map((o) => (
-                <SelectPrimitive.Item
-                  key={o.value}
-                  value={o.value}
-                  className={cn(FACET_ITEM_CLASS, "cursor-default")}
-                >
-                  <SelectPrimitive.ItemText>{o.label}</SelectPrimitive.ItemText>
-                </SelectPrimitive.Item>
-              ))}
-            </SelectPrimitive.List>
-          </SelectPrimitive.Popup>
-        </SelectPrimitive.Positioner>
-      </SelectPrimitive.Portal>
+      <FacetOptionsPopup options={options} />
     </SelectPrimitive.Root>
   );
 }
