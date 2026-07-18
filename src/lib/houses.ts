@@ -2,9 +2,11 @@
  * Rishi Valley house names.
  *
  * CANONICAL LIST — supplied by the owner on 2026-07-18, exactly 22 houses,
- * these exact spellings, in this order. Every call site reads from here.
- * The house pickers must also offer an "Other" option with a free-text box
- * (owner instruction), stored as the typed string.
+ * these exact spellings, in this order (re-ordered again the same day; this
+ * order replaces the earlier one and is what the grouped house picker
+ * renders). Every call site reads from here. The house pickers must also
+ * offer an "Other" option with a free-text box (owner instruction), stored
+ * as the typed string.
  */
 export const HOUSES = [
   "Golden",
@@ -12,23 +14,23 @@ export const HOUSES = [
   "Neem",
   "Raavi",
   "Palm",
-  "Trishul",
-  "Kailash",
-  "Meru",
-  "Nilgiri",
-  "Red",
   "Green",
+  "Red",
   "White",
   "Blue",
+  "Meru",
+  "Nilgiri",
+  "Trishul",
+  "Kailash",
   "Malli",
-  "Takshila",
-  "Amaltash",
-  "Gulmohar",
-  "Alamanda",
-  "Duranta",
-  "Jacaranda",
   "Krishna",
   "Cauvery",
+  "Amaltash",
+  "Gulmohar",
+  "Takshila",
+  "Jacaranda",
+  "Alamanda",
+  "Duranta",
 ] as const;
 
 export type HouseName = (typeof HOUSES)[number];
