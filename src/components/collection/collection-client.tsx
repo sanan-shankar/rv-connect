@@ -74,7 +74,15 @@ export function CollectionClient({
   const [loadingMore, setLoadingMore] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const tourAnchorRef = useTourAnchor<HTMLButtonElement>("collection-contribute");
+  // Two different Buttons share this one ref/key: the compact toolbar
+  // "Contribute" (shown while photos exist) and the empty-state card's
+  // "Contribute a photo" (shown once the fetch resolves to zero photos).
+  // Registering while `loading` is still true would bind the anchor to
+  // whichever one happens to be mounted mid-fetch and never re-bind once
+  // the real branch is known (useTourAnchor's registration effect only
+  // fires on mount / enabled-change, not on every render) -- gating on
+  // `!loading` defers registration until the final branch has committed.
+  const tourAnchorRef = useTourAnchor<HTMLButtonElement>("collection-contribute", !loading);
 
   const [area, setArea] = useState("");
   const [era, setEra] = useState("");
