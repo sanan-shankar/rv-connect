@@ -238,6 +238,16 @@ Legend: [ ] open · [~] in progress · [x] done · [!] blocked/owner input
       what's missing that alumni would find genuinely useful (owner seed idea: geo-marking posts).
       Full effort, honest opinions, delivered as a list for the owner to react to.
 
+## Current micro-change: auth flight pace + Support icon (2026-07-18)
+
+- [x] Trace the shared landing-to-auth flight launcher and existing speed abstraction.
+- [x] Confirm desired pace: 25% longer flight duration (`speed: 0.8`) for Join and Sign in only.
+- [x] Locate the shared Support navigation item (`PiggyBank`) and confirm a direct Lucide icon swap.
+- [x] Record the approved design.
+- [ ] Write the implementation plan and focused failing regression test.
+- [ ] Implement the flight speed and `HeartHandshake` icon changes.
+- [ ] Run focused checks, type checking, lint, and browser verification.
+
 ## Process
 
 - Version control: atomic conventional commits per workstream, no AI attribution, commit as work
