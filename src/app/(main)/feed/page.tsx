@@ -50,7 +50,6 @@ export default async function FeedPage({
             title="Feed"
             subtitle="What the valley is sharing today."
             showSearch
-            searchScope="posts"
             unreadCount={unreadCount}
             actions={<NewPostCTA />}
           />
