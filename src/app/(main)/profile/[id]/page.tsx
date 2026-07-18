@@ -164,7 +164,7 @@ export default async function ProfilePage({
   const railData: ProfileRailData = {
     rvYears: valleyYears(user.yearJoined, user.yearLeft),
     enteredGrade: user.gradeJoined ?? null,
-    cities: cityLabels,
+    cities,
     socials,
     groups: user.groupMemberships
       .filter((m) => m.group)
@@ -210,7 +210,7 @@ export default async function ProfilePage({
         headerImage={headerImage}
         batchLabel={batchLine(user)}
         occupation={occupation}
-        cities={cityLabels}
+        cities={cities}
         email={contactEmail}
         phone={user.phone}
         admissionNumber={user.admissionNumber ?? null}
