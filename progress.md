@@ -778,3 +778,10 @@ Headline changes:
   the `.vercel.app` host, causing stray redirects); confirm the real UPI handle; deploy to production
   so Vercel Analytics starts collecting; pick a groups-rethink concept (and, independently, the landing
   preview concept from an earlier round).
+
+## Session 2026-07-18 — auth flight pace + Support icon
+
+- Traced both landing auth CTAs to the shared `launchFlight` call and confirmed the existing playback-speed abstraction.
+- Owner selected a 25% longer flight and approved the scoped `speed: 0.8` design.
+- Added the requested Support icon change to the same scope: `PiggyBank` to Lucide `HeartHandshake`, preserving the shared nav layout and states.
+- Wrote the approved design to `docs/superpowers/specs/2026-07-18-auth-flight-speed-and-support-icon-design.md`; implementation has not started.
