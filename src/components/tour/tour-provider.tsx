@@ -49,21 +49,46 @@ const OFFER_ARM_DELAY_MS = 700;
 // Matches the panel's own bottom-sheet breakpoint (tour-panel.tsx).
 const MOBILE_BREAKPOINT_PX = 640;
 
+// Breathing room kept between the spotlight hole and the viewport top /
+// the sheet's own top edge, so the ring never touches either.
+const MOBILE_TOP_MARGIN_PX = 16;
+const MOBILE_SHEET_MARGIN_PX = 16;
+
 /**
  * Scrolls the spotlight target into view. On desktop this is a plain
  * centre-of-viewport scroll. On mobile the panel becomes a bottom sheet
- * docked to the bottom of the screen, so centring would sit the target
- * right under it; instead we scroll the target's centre to ~40% down the
- * viewport (spec sec 8), keeping it clear of the sheet.
+ * docked to the bottom of the screen, and its height varies stop to stop
+ * (short body vs. a body plus a note callout), so we read its *live*
+ * measured top (`panelTop`, from tour-panel.tsx) rather than assuming a
+ * fixed reservation. The target's centre is placed around 30-40% down the
+ * viewport (spec sec 8) but always clamped so its top and bottom both
+ * stay clear of the sheet: a fixed 40% works for small controls but would
+ * still let a tall target (e.g. the Catch-ups explainer card in its
+ * empty-state, uncompacted form) run its bottom edge under the sheet.
  */
-function scrollTargetIntoView(el: HTMLElement) {
+function scrollTargetIntoView(el: HTMLElement, panelTop: number) {
   if (window.innerWidth >= MOBILE_BREAKPOINT_PX) {
     el.scrollIntoView({ block: "center", behavior: "auto" });
     return;
   }
   const rect = el.getBoundingClientRect();
+  const availableTop = MOBILE_TOP_MARGIN_PX;
+  const availableBottom = Math.max(panelTop - MOBILE_SHEET_MARGIN_PX, availableTop + 1);
+
+  const preferredCenter = window.innerHeight * 0.35;
+  const minCenter = availableTop + rect.height / 2;
+  const maxCenter = availableBottom - rect.height / 2;
+  // Clamp the preferred centre into the space that's actually free of the
+  // sheet. If the target is taller than that space altogether (rare, but
+  // possible for an uncompacted card), fall back to pinning its top to the
+  // top margin: that keeps as much of it visible above the sheet as
+  // physically fits, rather than centring it and hiding both ends.
+  const desiredCenter =
+    maxCenter >= minCenter
+      ? Math.min(Math.max(preferredCenter, minCenter), maxCenter)
+      : availableTop + rect.height / 2;
+
   const targetCenter = rect.top + rect.height / 2;
-  const desiredCenter = window.innerHeight * 0.4;
   window.scrollBy({ top: targetCenter - desiredCenter, left: 0, behavior: "auto" });
 }
 
@@ -136,7 +161,7 @@ export function TourProvider({ userId, children }: { userId: string; children: R
         return;
       }
 
-      scrollTargetIntoView(el);
+      scrollTargetIntoView(el, api.panelTop());
       const rect = el.getBoundingClientRect();
       setSpotlightKey(stop.spotlight);
 
