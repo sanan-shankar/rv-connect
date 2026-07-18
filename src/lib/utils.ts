@@ -80,6 +80,27 @@ export function batchLine(user: {
   return `Batch of '${String(user.batchYear).slice(-2)}`
 }
 
+/**
+ * The board credential (ISC/ICSE), derived from the two facts collected
+ * directly (the year they left and their batch, i.e. the year their class
+ * finished 12th). The grade in their final year is 12 minus the gap between
+ * the batch year and the year they left, so a 12th-grade leaver reads ISC, a
+ * 10th/11th leaver ICSE, and an earlier leaver has no board credential.
+ *
+ * Single source of truth for both sign-up (registerUser) and settings
+ * (updateUserProfile) so the two can never disagree; neither reads the
+ * retired gradeJoined field.
+ */
+export function batchTypeFromLeaving(
+  yearLeft: number,
+  batchYear: number
+): "ISC" | "ICSE" | null {
+  const gradeAtLeaving = 12 - (batchYear - yearLeft)
+  if (gradeAtLeaving >= 12) return "ISC"
+  if (gradeAtLeaving >= 10) return "ICSE"
+  return null
+}
+
 export type BatchComputation =
   | {
       ok: true

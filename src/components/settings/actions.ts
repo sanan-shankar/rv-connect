@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { putImage, delImage } from "@/lib/storage";
 import { profileSchema } from "@/lib/validators";
-import { computeBatchFromSchooling } from "@/lib/utils";
+import { batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase } from "@/lib/normalize";
 import { revalidatePath } from "next/cache";
 
@@ -35,9 +35,6 @@ export async function updateUserProfile(formData: FormData) {
     yearLeft: formData.get("yearLeft")
       ? Number(formData.get("yearLeft"))
       : undefined,
-    gradeJoined: formData.get("gradeJoined")
-      ? Number(formData.get("gradeJoined"))
-      : undefined,
     admissionNumber: formData.get("admissionNumber")
       ? Number(formData.get("admissionNumber"))
       : undefined,
@@ -48,28 +45,18 @@ export async function updateUserProfile(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  // Batch: the direct "Batch of ___" field is the headline identity. When the
-  // collapsible schooling facts are all present, they win (and also derive the
-  // board credential); otherwise the directly-entered batch year is written and
-  // batchType is left untouched. A blank batch on a partial edit never wipes a
-  // batch already on file.
-  let batchUpdate: { batchYear?: number | null; batchType?: string | null } = {};
-  if (
-    parsed.data.yearJoined != null &&
-    parsed.data.yearLeft != null &&
-    parsed.data.gradeJoined != null
-  ) {
-    const batch = computeBatchFromSchooling(
-      parsed.data.yearJoined,
-      parsed.data.yearLeft,
-      parsed.data.gradeJoined
-    );
-    if (!batch.ok) {
-      return { error: batch.error };
+  // Batch: same direct model as sign-up. The "Batch of ___" field is written
+  // straight through; batchType (the board credential) is derived from it plus
+  // the year left, via the same batchTypeFromLeaving helper registerUser uses,
+  // so the two can never disagree. A blank batch on a partial edit never wipes
+  // a batch already on file, and without a year left the existing batchType is
+  // left untouched rather than cleared.
+  const batchUpdate: { batchYear?: number | null; batchType?: string | null } = {};
+  if (parsed.data.batchYear != null) {
+    batchUpdate.batchYear = parsed.data.batchYear;
+    if (parsed.data.yearLeft != null) {
+      batchUpdate.batchType = batchTypeFromLeaving(parsed.data.yearLeft, parsed.data.batchYear);
     }
-    batchUpdate = { batchYear: batch.batchYear, batchType: batch.batchType };
-  } else if (parsed.data.batchYear != null) {
-    batchUpdate = { batchYear: parsed.data.batchYear };
   }
 
   // Title-case the free-text identity fields on save (leave emails/handles alone).
@@ -91,7 +78,6 @@ export async function updateUserProfile(formData: FormData) {
       linkedin: parsed.data.linkedin || null,
       yearJoined: parsed.data.yearJoined ?? null,
       yearLeft: parsed.data.yearLeft ?? null,
-      gradeJoined: parsed.data.gradeJoined ?? null,
       admissionNumber: parsed.data.admissionNumber ?? null,
       ...batchUpdate,
     },
