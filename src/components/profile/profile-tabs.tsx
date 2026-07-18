@@ -41,7 +41,7 @@ export function ProfileTabs({
       <div
         role="tablist"
         aria-label="Profile sections"
-        className="mb-5 flex gap-0.5 border-b border-border"
+        className="mb-5 flex gap-0.5 border-b border-border max-lg:sticky max-lg:top-0 max-lg:z-20 max-lg:glass max-lg:rounded-b-lg max-lg:px-1"
       >
         {tabs.map((t) => {
           const active = tab === t.key;
