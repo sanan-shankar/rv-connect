@@ -181,7 +181,7 @@ export async function GroupCatchupCard({
     const rows = await prisma.catchupEntry.findMany({
       where: { editionId: edition.id },
       distinct: ["authorId"],
-      select: { author: { select: { id: true, name: true, photoUrl: true } } },
+      select: { author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
     });
     answered = rows.map((r) => r.author);
   }
