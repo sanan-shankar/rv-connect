@@ -109,6 +109,17 @@ export function titleCase(input: string): string {
 }
 
 /**
+ * Return the primary place name from a disambiguated picker label.
+ *
+ * The gazetteer stores labels such as "London, England, United Kingdom" so
+ * people can choose the right result, but compact directory surfaces only
+ * need the first, recognisable part: "London".
+ */
+export function shortPlaceLabel(input: string): string {
+  return input.split(",", 1)[0].trim();
+}
+
+/**
  * Normalize a phone number to digits with an optional leading "+". No
  * validation of length or country code beyond that; callers that need real
  * validation should layer it on top.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
 import { formatBatch } from "@/lib/utils";
+import { shortPlaceLabel } from "@/lib/normalize";
 import { RailCard } from "./rail-card";
 
 /**
@@ -50,7 +51,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
             meta={
               <>
                 {formatBatch(m.batchType, m.batchYear)}
-                {m.currentCity ? ` · ${m.currentCity}` : ""}
+                {m.currentCity ? ` · ${shortPlaceLabel(m.currentCity)}` : ""}
               </>
             }
             metaClassName="truncate leading-none"
