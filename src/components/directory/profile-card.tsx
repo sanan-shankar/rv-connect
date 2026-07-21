@@ -3,6 +3,7 @@ import { MapPin, Briefcase } from "lucide-react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { batchLine } from "@/lib/utils";
+import { shortPlaceLabel } from "@/lib/normalize";
 
 interface ProfileCardProps {
   user: {
@@ -40,7 +41,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
             {user.currentCity && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
-                {user.currentCity}
+                {shortPlaceLabel(user.currentCity)}
               </span>
             )}
             {user.jobTitle && (

@@ -70,13 +70,16 @@ export function parseHouseYearEntries(raw: string | null | undefined): HouseYear
 
 /**
  * Build the houses-editor row list (onboarding step + settings editor share
- * this): prefer the full known academic-year range (yearJoined..yearLeft)
- * every time it's known, so a partially-filled attempt still shows the whole
- * skeleton on the next visit -- not just the one row that happened to get a
- * house picked before the last save. Any already-saved house lands in its
- * matching row; saved years outside the known range (the range guess being
- * wrong, or a stray edit) still show up too, appended in year order. Falls
- * back to exactly what's saved when the range isn't known at all.
+ * this): prefer the full known academic-year range [yearJoined, yearLeft)
+ * every time it's known. The leaving year is the end of the last academic
+ * year, so someone at school from 2014 to 2023 gets rows starting 2014 through
+ * 2022. A partially-filled attempt still shows the whole skeleton on the next
+ * visit -- not just the one row that happened to get a house picked before the
+ * last save. Any already-saved house lands in its matching row. Saved years
+ * outside the known range (the range guess being wrong, or a stray edit) still
+ * show up too, appended in year order, except for an entry exactly at the
+ * leaving-year boundary: that can only represent the old inclusive-range bug.
+ * Falls back to exactly what's saved when the range isn't known at all.
  */
 export function seedHouseYearRows(
   raw: string | null | undefined,
@@ -88,10 +91,14 @@ export function seedHouseYearRows(
 
   const byYear = new Map(saved.map((r) => [r.year, r.houses]));
   const rows: HouseYearRow[] = [];
-  for (let y = yearJoined; y <= yearLeft; y++) {
+  for (let y = yearJoined; y < yearLeft; y++) {
     rows.push({ year: y, houses: byYear.get(y) ?? [] });
     byYear.delete(y);
   }
+  // Before the range became end-exclusive, the editor offered (and could save)
+  // one impossible extra row starting in the leaving year. Do not re-append
+  // that legacy row as an out-of-range manual edit.
+  byYear.delete(yearLeft);
   const extra = [...byYear.entries()].map(([year, houses]) => ({ year, houses }));
   return [...rows, ...extra].sort((a, b) => a.year - b.year);
 }
