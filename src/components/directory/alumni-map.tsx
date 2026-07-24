@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Maximize2, X, MapPin } from "lucide-react";
@@ -77,6 +77,38 @@ const MIN_Z = 1;
 // instead of crowding at the old ceiling.
 const MAX_Z = 12;
 
+/**
+ * How small one viewBox unit is allowed to get, in CSS pixels.
+ *
+ * The marker layer is authored in viewBox units, but the <svg> lays out with
+ * the default preserveAspectRatio ("xMidYMid meet"), so one unit actually
+ * renders at `min(boxWidth / W, boxHeight / H)` CSS px. In a phone-portrait
+ * column that ratio is pinned by WIDTH and collapses to ~0.39 (a 348px box over
+ * 900 units), against ~1.14 on a 1440px desktop. That single number, not any
+ * constant in this file, is why the pins and their counts were about a third of
+ * their desktop size on a phone, and why turning the phone landscape (a wider
+ * box, ~0.60) made the numbers "kinda visible" but still small.
+ *
+ * So we measure the live ratio and counter-scale the markers by
+ * `MIN_PX_PER_UNIT / ratio` whenever the ratio drops below the floor. Desktop
+ * sits above the floor at every width down to ~1320px, where the factor is
+ * exactly 1 and the rendered markers are byte-identical to before.
+ */
+const MIN_PX_PER_UNIT = 1;
+
+/** Minimum tap target on coarse pointers (directory spec 4.1, WCAG 2.5.8). */
+const TAP_MIN_PX = 44;
+
+/** Every marker is a button: hover, focus-visible and active all read. Opacity
+ *  only, per the motion rule (the group's transform is doing map work). */
+const MARKER_CLASS =
+  "group cursor-pointer outline-none transition-opacity duration-150 active:opacity-70";
+const RING_CLASS =
+  "pointer-events-none opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100";
+/** `all` rather than the default `visiblePainted` so the transparent tap disc
+ *  reliably takes the touch even where nothing is painted. */
+const HIT_STYLE = { pointerEvents: "all" } as const;
+
 function sqrtRadius(count: number, max: number) {
   // Area proportional to count, so a 200-count city is not 200x the diameter.
   return 9 + Math.sqrt(count / Math.max(1, max)) * 22;
@@ -101,14 +133,36 @@ export function AlumniMap({
   unmappedPeople?: PinPerson[];
 }) {
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
-  const [hover, setHover] = useState<{ x: number; y: number; label: string } | null>(null);
+  /** Cluster tooltip. Anchored in MAP units (mx/my), never in stale screen
+   *  coords, so it can never be left behind by a pan, a zoom or a re-render. */
+  const [tip, setTip] = useState<{
+    id: number;
+    mx: number;
+    my: number;
+    label: string;
+  } | null>(null);
   const [drill, setDrill] = useState<{ title: string; people: PinPerson[] } | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  /** Live geometry of the rendered <svg>: its CSS box plus `s`, the CSS px that
+   *  one viewBox unit currently occupies. See MIN_PX_PER_UNIT. */
+  const [box, setBox] = useState({ w: 0, h: 0, s: MIN_PX_PER_UNIT });
+  const [coarsePointer, setCoarsePointer] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const zoomBehavior = useRef<any>(null);
 
+  const dismissTip = useCallback(() => setTip(null), []);
+
   const max = Math.max(1, ...pins.map((p) => p.count));
+
+  // Counter-scale for the marker layer, on top of the existing 1/k that keeps
+  // pins a constant size through map zoom. 1 on desktop, ~2.6 on a phone.
+  const pinBoost = Math.max(1, MIN_PX_PER_UNIT / (box.s || MIN_PX_PER_UNIT));
+  // One CSS pixel, expressed in the marker layer's own units.
+  const unitsPerPx = 1 / (pinBoost * (box.s || MIN_PX_PER_UNIT));
+  // Touch gets a transparent 44x44 hit disc behind the dot. Fine pointers keep
+  // exactly today's hit area (the halo circle), so desktop clicking is untouched.
+  const tapR = coarsePointer ? (TAP_MIN_PX / 2) * unitsPerPx : 0;
 
   // One supercluster index over the real geographic points. Supercluster does
   // its tiling in lng/lat space; we project each returned cluster centroid to
@@ -158,6 +212,34 @@ export function AlumniMap({
       .filter(Boolean) as Leaf[];
   }, [index, transform.k, pins]);
 
+  // Measure the rendered svg so the marker layer can hold a real CSS-pixel size
+  // no matter how the viewBox is letterboxed into the column. Layout effect so
+  // the first painted frame on a phone is already the corrected size.
+  useLayoutEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const measure = () => {
+      const b = el.getBoundingClientRect();
+      if (!b.width || !b.height) return;
+      // preserveAspectRatio "xMidYMid meet": the smaller ratio wins.
+      setBox({ w: b.width, h: b.height, s: Math.min(b.width / W, b.height / H) });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    // Orientation changes resize the box, which ResizeObserver already catches.
+    return () => ro.disconnect();
+  }, [fullscreen]);
+
+  // Coarse pointer => no hover, and tap targets need real size.
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const sync = () => setCoarsePointer(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   // Wire d3-zoom to the svg so wheel + drag pan/zoom the group.
   useEffect(() => {
     if (!svgRef.current) return;
@@ -168,7 +250,13 @@ export function AlumniMap({
         [0, 0],
         [W, H],
       ])
-      .on("zoom", (e) => setTransform(e.transform));
+      .on("zoom", (e) => {
+        setTransform(e.transform);
+        // Any pan, wheel or pinch the USER drives dismisses the tooltip. d3
+        // leaves sourceEvent null for programmatic transforms (our own zoom
+        // buttons and cluster zoom), so those do not fight the pointer.
+        if (e.sourceEvent) setTip(null);
+      });
     zoomBehavior.current = zb;
     sel.call(zb);
     // No double-click zoom (it competes with pin clicks).
@@ -177,6 +265,24 @@ export function AlumniMap({
       sel.on(".zoom", null);
     };
   }, [fullscreen]);
+
+  // Escape dismisses the tooltip.
+  useEffect(() => {
+    if (!tip) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTip(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tip]);
+
+  // Hard orphan guard: the tooltip only exists while the exact super-pin it
+  // describes is still on the map. Supercluster mints a fresh cluster_id per
+  // zoom level, so this alone drops the label the moment its cluster splits,
+  // is filtered away, or is rebuilt by a re-render. Derived rather than stored,
+  // so there is no window where a stale label can paint.
+  const liveTip =
+    tip && leaves.some((l) => l.kind === "cluster" && l.clusterId === tip.id) ? tip : null;
 
   function zoomTo(x: number, y: number, k: number) {
     if (!svgRef.current || !zoomBehavior.current) return;
@@ -200,8 +306,15 @@ export function AlumniMap({
         viewBox={`0 0 ${W} ${H}`}
         className="block h-full w-full touch-none select-none"
         style={{ cursor: "grab" }}
-        role="img"
+        // Not role="img": that would hide the markers below from assistive tech,
+        // and they are real buttons.
+        role="group"
         aria-label="World map of where members live"
+        // Pressing anywhere on the map dismisses the tooltip. Markers set theirs
+        // on click, which runs after pointerdown, so tapping one still works.
+        onPointerDown={dismissTip}
+        onPointerLeave={dismissTip}
+        onPointerCancel={dismissTip}
       >
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           {landPaths.map((d, i) => (
@@ -217,22 +330,38 @@ export function AlumniMap({
           {leaves.map((leaf, i) => {
             if (leaf.kind === "cluster") {
               const r = sqrtRadius(leaf.count, max) + 4;
+              const halo = r + 4;
+              const label = `${leaf.count} members across ${leaf.cities} cities`;
               return (
                 <g
                   key={`c${leaf.clusterId}-${i}`}
-                  transform={`translate(${leaf.x},${leaf.y}) scale(${1 / transform.k})`}
-                  className="cursor-pointer"
-                  onMouseEnter={() =>
-                    setHover({
-                      x: leaf.x * transform.k + transform.x,
-                      y: leaf.y * transform.k + transform.y,
-                      label: `${leaf.count} members across ${leaf.cities} cities`,
-                    })
+                  transform={`translate(${leaf.x},${leaf.y}) scale(${pinBoost / transform.k})`}
+                  className={MARKER_CLASS}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Zoom in to ${label}`}
+                  // Hover only, and only for a real hovering pointer. A tap
+                  // cannot "un-hover", so on touch this super-pin just zooms;
+                  // its count is already printed inside the disc.
+                  onPointerEnter={(e) =>
+                    e.pointerType === "mouse" &&
+                    setTip({ id: leaf.clusterId, mx: leaf.x, my: leaf.y, label })
                   }
-                  onMouseLeave={() => setHover(null)}
-                  onClick={() => onClusterClick(leaf)}
+                  onPointerLeave={dismissTip}
+                  onClick={() => {
+                    dismissTip();
+                    onClusterClick(leaf);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      dismissTip();
+                      onClusterClick(leaf);
+                    }
+                  }}
                 >
-                  <circle r={r + 4} fill="#3F7CA6" opacity={0.18} />
+                  <circle r={Math.max(halo, tapR)} fill="transparent" style={HIT_STYLE} />
+                  <circle r={halo} fill="#3F7CA6" opacity={0.18} />
                   <circle r={r} fill="#3F7CA6" opacity={0.92} stroke="#fff" strokeWidth={1.5} />
                   <text
                     textAnchor="middle"
@@ -243,35 +372,40 @@ export function AlumniMap({
                   >
                     {leaf.count}
                   </text>
+                  <circle r={halo} className={RING_CLASS} fill="none" stroke="#235C49" strokeWidth={2} />
                 </g>
               );
             }
             const r = sqrtRadius(leaf.pin.count, max);
+            const halo = r + 3;
+            const title = `${leaf.pin.city} - ${leaf.pin.count} ${
+              leaf.pin.count === 1 ? "member" : "members"
+            }`;
             return (
               <g
                 key={`p${leaf.pin.city}-${i}`}
-                transform={`translate(${leaf.x},${leaf.y}) scale(${1 / transform.k})`}
-                className="cursor-pointer"
-                onMouseEnter={() =>
-                  setHover({
-                    x: leaf.x * transform.k + transform.x,
-                    y: leaf.y * transform.k + transform.y,
-                    label: `${leaf.pin.city} - ${leaf.pin.count} ${
-                      leaf.pin.count === 1 ? "member" : "members"
-                    }`,
-                  })
-                }
-                onMouseLeave={() => setHover(null)}
-                onClick={() =>
-                  setDrill({
-                    title: `${leaf.pin.city} - ${leaf.pin.count} ${
-                      leaf.pin.count === 1 ? "member" : "members"
-                    }`,
-                    people: leaf.pin.people,
-                  })
-                }
+                transform={`translate(${leaf.x},${leaf.y}) scale(${pinBoost / transform.k})`}
+                className={MARKER_CLASS}
+                role="button"
+                tabIndex={0}
+                aria-label={`${title}. Open the list.`}
+                // Deliberately no tooltip: a city pin opens the side panel,
+                // which already leads with this exact line, so the hover label
+                // was pure duplication (owner call, 2026-07).
+                onClick={() => {
+                  dismissTip();
+                  setDrill({ title, people: leaf.pin.people });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    dismissTip();
+                    setDrill({ title, people: leaf.pin.people });
+                  }
+                }}
               >
-                <circle r={r + 3} fill="#1F8A4C" opacity={0.18} />
+                <circle r={Math.max(halo, tapR)} fill="transparent" style={HIT_STYLE} />
+                <circle r={halo} fill="#1F8A4C" opacity={0.18} />
                 <circle r={r} fill="#1F8A4C" opacity={0.9} stroke="#fff" strokeWidth={1.25} />
                 {leaf.pin.count >= 2 && r > 11 && (
                   <text
@@ -284,18 +418,27 @@ export function AlumniMap({
                     {leaf.pin.count}
                   </text>
                 )}
+                <circle r={halo} className={RING_CLASS} fill="none" stroke="#235C49" strokeWidth={2} />
               </g>
             );
           })}
         </g>
       </svg>
 
-      {hover && (
+      {/* Cluster tooltip. Positioned from the CURRENT transform every render, so
+          it tracks its super-pin instead of being stranded at the coordinates it
+          happened to be opened at, and the box letterboxing is accounted for
+          (the fitted map is far shorter than its container in a phone column,
+          which used to put this label nowhere near its pin). */}
+      {liveTip && box.w > 0 && (
         <div
           className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-[140%] whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1.5 text-[12px] font-medium text-background shadow-lg"
-          style={{ left: `${(hover.x / W) * 100}%`, top: `${(hover.y / H) * 100}%` }}
+          style={{
+            left: (box.w - W * box.s) / 2 + (liveTip.mx * transform.k + transform.x) * box.s,
+            top: (box.h - H * box.s) / 2 + (liveTip.my * transform.k + transform.y) * box.s,
+          }}
         >
-          {hover.label}
+          {liveTip.label}
         </div>
       )}
 
@@ -328,7 +471,10 @@ export function AlumniMap({
 
       <button
         type="button"
-        onClick={() => setFullscreen((v) => !v)}
+        onClick={() => {
+          dismissTip();
+          setFullscreen((v) => !v);
+        }}
         aria-label={fullscreen ? "Exit full screen" : "View full screen"}
         className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/95 py-1.5 pl-2.5 pr-3 text-[12px] font-semibold text-foreground shadow-sm backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
       >
@@ -345,7 +491,10 @@ export function AlumniMap({
       {fullscreen && (
         <button
           type="button"
-          onClick={() => setFullscreen(false)}
+          onClick={() => {
+            dismissTip();
+            setFullscreen(false);
+          }}
           aria-label="Exit full screen"
           className="absolute z-30 grid h-11 w-11 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-md backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 sm:hidden"
           style={{
