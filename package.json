@@ -67,7 +67,9 @@
     "@types/topojson-client": "^3.1.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.0",
+    "jsqr": "^1.4.0",
     "puppeteer": "^24.40.0",
+    "qrcode": "^1.5.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
