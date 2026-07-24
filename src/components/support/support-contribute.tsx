@@ -1,131 +1,100 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { Copy, Check, QrCode } from "lucide-react";
-import { toast } from "sonner";
+import { AnimatePresence, motion } from "motion/react";
+import { QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EASE_OUT_SMOOTH } from "@/components/common/motion";
 
 /**
  * The single client island on the Support page: the UPI contribution panel.
  * Everything else on /support is static server-rendered copy. This handles the
- * copy-to-clipboard interaction, the suggested-amount chips, and the UPI deep
- * link. Office blue (the `sky` token) is reserved for the one primary action.
+ * suggested-amount chips, the matching QR, and the UPI deep link. Office blue
+ * (the `sky` token) is reserved for the one primary action.
  *
- * One-time amounts only, never monthly. No payment processor, no amount is
- * ever required. The chips only prefill a suggestion in the user's own UPI app.
+ * One-time amounts only, never monthly. No payment processor, no amount is ever
+ * required. The chips prefill a suggestion; the payer can always change it.
+ *
+ * The QR codes are pre-generated per amount by scripts/gen-support-qr.mjs and
+ * decode-verified there. Selecting a chip swaps to the code that pre-fills that
+ * amount when scanned; "Other" shows the amount-less code. The displayed UPI ID
+ * is intentionally omitted: the real handle carries the owner's name, so we keep
+ * it off the page and route people through the QR or the deep-link button.
+ * Keep buildUpiLink() in sync with the UPI string the generator encodes.
  */
 
-// TODO(owner): confirm this is the real UPI handle before launch (bugs.md #4).
-// PAYEE_NAME is the payment-facing account name shown inside the UPI app.
-const UPI_ID = "rvalumni@upi";
+const UPI_ID = "sanan.v.shankar@okhdfcbank";
 const PAYEE_NAME = "Rishi Valley";
 
 const SUGGESTIONS = [
-  { label: "₹200", amount: 200 },
   { label: "₹500", amount: 500 },
   { label: "₹1,000", amount: 1000 },
   { label: "₹2,000", amount: 2000 },
   { label: "₹5,000", amount: 5000 },
+  { label: "Other", amount: null },
 ] as const;
 
+// Default to the ₹1,000 chip.
+const DEFAULT_INDEX = 1;
+
 function buildUpiLink(amount: number | null) {
-  const params = new URLSearchParams({
-    pa: UPI_ID,
-    pn: PAYEE_NAME,
-    cu: "INR",
-  });
-  if (amount) {
-    params.set("am", String(amount));
-    params.set("tn", "Keeping Rishi Valley online");
-  }
+  const params = new URLSearchParams({ pa: UPI_ID, pn: PAYEE_NAME });
+  if (amount) params.set("am", String(amount));
   return `upi://pay?${params.toString()}`;
 }
 
+function qrSrc(amount: number | null) {
+  return amount ? `/images/support-qr-${amount}.svg` : "/images/support-qr.svg";
+}
+
 export function SupportContribute() {
-  const [copied, setCopied] = useState(false);
-  const [selected, setSelected] = useState(1);
-  // The upi:// deep link opens a UPI app reliably on Android but mostly does
-  // not on iOS Safari/Chrome, so iPhone visitors get a small honest hint
-  // steering them to the QR code and copy-the-ID path above instead.
-  // SSR-safe: false until mount (no hydration mismatch), then detected once.
-  const [isIOS, setIsIOS] = useState(false);
-
-  useEffect(() => {
-    const detect = () => setIsIOS(/iPhone|iPad|iPod/.test(navigator.userAgent));
-    detect();
-  }, []);
-
-  const amount = SUGGESTIONS[selected].amount;
-
-  async function copyUpi() {
-    try {
-      await navigator.clipboard.writeText(UPI_ID);
-      setCopied(true);
-      toast.success("UPI ID copied. Thank you for keeping us online.");
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard can be blocked (insecure context, permissions). The ID stays
-      // selectable text below, so the user can copy it by hand.
-      toast.error("Could not copy automatically. Please select and copy the ID below.");
-    }
-  }
+  const [selected, setSelected] = useState(DEFAULT_INDEX);
+  const { amount, label } = SUGGESTIONS[selected];
 
   return (
     <div className="grid gap-[var(--space-l)] sm:grid-cols-[auto_minmax(0,1fr)]">
-      {/* QR for phone-camera scanning */}
+      {/* QR for phone-camera scanning, swapped to match the selected amount */}
       <div className="flex flex-col items-center gap-[var(--space-s)]">
         <div className="rounded-[var(--radius-lg)] border border-border bg-float p-[var(--space-s)] shadow-[0_1px_2px_rgba(30,28,22,0.05),0_14px_30px_-26px_rgba(30,28,22,0.45)]">
-          <Image
-            src="/images/support-qr-placeholder.svg"
-            alt={`UPI QR code for ${UPI_ID}. Scan it with any UPI app to contribute.`}
-            width={176}
-            height={176}
-            className="h-44 w-44"
-            priority={false}
-          />
+          {/* Crossfade between amount QRs: the new code dissolves up from a hair
+              smaller as the old settles back, no bounce (a QR should never
+              wobble). Both frames overlap absolutely inside this fixed box. */}
+          <div className="relative h-44 w-44">
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={amount ?? "other"}
+                className="absolute inset-0"
+                initial={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.04 }}
+                transition={{ duration: 0.32, ease: EASE_OUT_SMOOTH }}
+              >
+                <Image
+                  src={qrSrc(amount)}
+                  alt={
+                    amount
+                      ? `UPI QR code for Rishi Valley, pre-filled with ${label}. Scan it with any UPI app to contribute.`
+                      : "UPI QR code for Rishi Valley. Scan it with any UPI app and enter any amount to contribute."
+                  }
+                  width={176}
+                  height={176}
+                  className="h-44 w-44"
+                  priority={false}
+                  unoptimized
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
         <p className="flex items-center gap-[var(--space-xxs)] text-xs text-muted-foreground">
           <QrCode className="h-3.5 w-3.5" aria-hidden />
-          Scan with any UPI app
+          {amount ? `Scan to give ${label}` : "Scan and enter any amount"}
         </p>
       </div>
 
-      {/* UPI id + suggestions + primary action */}
+      {/* Suggestions + primary action */}
       <div className="flex min-w-0 flex-col gap-[var(--space-m)]">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
-            UPI ID
-          </p>
-          <div className="mt-[var(--space-xs)] flex flex-wrap items-center gap-[var(--space-s)]">
-            <code className="select-all rounded-[var(--radius-md)] border border-border bg-mist px-[var(--space-m)] py-[var(--space-s)] font-mono text-base text-foreground">
-              {UPI_ID}
-            </code>
-            <button
-              type="button"
-              onClick={copyUpi}
-              aria-label="Copy UPI ID"
-              className={cn(
-                "inline-flex h-10 items-center gap-[var(--space-xs)] rounded-[var(--radius-md)] border border-border bg-card px-[var(--space-m)] text-sm font-medium text-foreground",
-                "transition-[transform,background-color] duration-150 ease-out",
-                "hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
-              )}
-            >
-              {copied ? (
-                <>
-                  <Check className="h-4 w-4 text-leaf" aria-hidden />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4" aria-hidden />
-                  Copy
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
             Pick an amount
@@ -169,12 +138,12 @@ export function SupportContribute() {
           )}
         >
           Open my UPI app
-          <span className="tabular-nums opacity-90">· {SUGGESTIONS[selected].label}</span>
+          {amount && <span className="tabular-nums opacity-90">· {label}</span>}
         </a>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          {isIOS
-            ? "On iPhone, this usually will not open a UPI app. Scan the QR code above, or copy the ID and paste it into your UPI app instead."
-            : "The button opens your UPI app with the ID and amount filled in. On a laptop, scan the code above or copy the ID into your phone. Card and international options are coming for those abroad."}
+          On Android the button opens your UPI app with the amount filled in. On
+          iPhone or a laptop it may not, so scan the code above with your phone
+          instead. Card and international options are coming for those abroad.
         </p>
       </div>
     </div>
