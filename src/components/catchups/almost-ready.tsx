@@ -44,13 +44,19 @@ export function AlmostReady({
   return (
     <FadeRise className={cn("mx-auto w-full max-w-3xl", className)}>
       <div className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card">
-        {/* layered warm radial wash, so the surface has depth rather than a flat fill */}
+        {/* Layered warm radial wash, so the surface has depth rather than a flat
+            fill. Kept (unlike the group-catchup-card empty state) because this
+            is a genuine rare/hero moment -- the one full "almost here" scene a
+            Catch-up shows, not a routine card repeated across a busy page --
+            so a soft accent here reads as intentional rather than an
+            unexplained filter. Dialled back a couple of points from the
+            original 10%/9% for restraint (owner feedback 2026-07-24). */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(120% 90% at 12% 0%, color-mix(in srgb, var(--color-leaf) 10%, transparent), transparent 60%), radial-gradient(120% 90% at 100% 100%, color-mix(in srgb, var(--color-cinnamon) 9%, transparent), transparent 55%)",
+              "radial-gradient(120% 90% at 12% 0%, color-mix(in srgb, var(--color-leaf) 7%, transparent), transparent 60%), radial-gradient(120% 90% at 100% 100%, color-mix(in srgb, var(--color-cinnamon) 6%, transparent), transparent 55%)",
           }}
         />
 
