@@ -83,7 +83,17 @@ function VerifiedMarkInner({
       <span
         ref={tipRef}
         className={cn(
-          "pointer-events-none absolute top-1/2 z-30 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[11px] font-medium text-background transition-opacity duration-150",
+          /* Owner: "the letters are squashed together" at desktop size. The label was nested
+             inside headings (profile h1, directory h3) that carry font-heading + a large
+             negative tracking-tight for THEIR big display size; letter-spacing is inherited as
+             an absolute px value, not recomputed for this tiny child, so the label was silently
+             inheriting up to -1px of tracking on top of an 11px serif face, on the desktop
+             profile header where the h1 is 40px (-0.025em x 40px = -1px). That is what read as
+             squashed. font-heading is now set explicitly (the owner likes the serif, so keep it
+             deliberate rather than an accident of inheritance) and tracking is reset and opened
+             up rather than left to inherit; text also grew 11px -> 12.5px, since a serif this
+             small needs a touch more size to stay quiet AND legible at once. */
+          "pointer-events-none absolute top-1/2 z-30 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1 font-heading text-[12.5px] font-normal tracking-[0.02em] text-background transition-opacity duration-150",
           side === "right" ? "left-full ml-2" : "right-full mr-2",
           open ? "opacity-100" : "opacity-0"
         )}
