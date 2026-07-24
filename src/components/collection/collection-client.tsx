@@ -26,7 +26,7 @@ function Tile({ photo }: { photo: PhotoData }) {
   return (
     <Link
       href={`/collection/${photo.id}`}
-      className="group relative mb-3 block break-inside-avoid overflow-hidden rounded-xl border border-border bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="group relative mb-3 block break-inside-avoid overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -36,7 +36,7 @@ function Tile({ photo }: { photo: PhotoData }) {
         height={photo.height}
         loading="lazy"
         decoding="async"
-        className="w-full"
+        className="w-full rounded-[var(--radius-md)]"
       />
       {!photo.approved && (
         <span className="absolute left-2 top-2 rounded-full bg-foreground/80 px-2 py-0.5 text-[10.5px] font-semibold text-background">
