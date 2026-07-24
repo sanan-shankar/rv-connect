@@ -24,7 +24,10 @@ export function AppShell({
     <div className="relative min-h-screen bg-background md:flex">
       {/* Fixed valley back-layer: covers the window at any desktop size (cover =
           as zoomed-out as it can be while still filling) and NEVER scrolls. The
-          content layer scrolls over it. Sidebar + content sit above it (z-10). */}
+          content layer scrolls over it. Sidebar + content sit above it (z-10).
+          Its height comes from `.valley-tree` (100lvh, the LARGE viewport), not
+          from this inset-0, so the image keeps one constant crop when the mobile
+          keyboard opens and shrinks the dynamic viewport. */}
       <div
         aria-hidden
         className="valley-tree pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-[0.11]"

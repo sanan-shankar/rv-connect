@@ -290,6 +290,17 @@
 /* Valley atmosphere behind content. Base = a uniform faint wash (version A).
    Add `valley-tree--fade` (version B) to keep the tree near the top and let it
    dissolve into the solid background toward the bottom. */
+.valley-tree {
+  /* Sized to the LARGE viewport, never the dynamic one, so the layer keeps the
+     exact same box (and therefore the exact same bg-cover crop) when the mobile
+     keyboard opens. Left as `inset-0` it re-fits every time the visual viewport
+     shrinks, and the photograph visibly zooms behind the composer as you start
+     typing. `top/left/right` still come from the element's own inset-0; an
+     explicit height simply over-constrains `bottom`, which the browser then
+     ignores. The vh line is the fallback for browsers without lvh. */
+  height: 100vh;
+  height: 100lvh;
+}
 .valley-tree--fade {
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 82%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 82%);
