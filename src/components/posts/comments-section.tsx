@@ -352,10 +352,12 @@ function CommentItem({
 
   return (
     <div className="flex items-start gap-2.5">
-      {/* No top margin: with the name/meta cluster now sitting close together (see the meta
-          div's -mt-2.5 below), the avatar (34px) and the two-line cluster (~33px, measured
-          top-of-name to bottom-of-meta) are within a px of the same height, so flush
-          alignment already centers the avatar against the cluster. */}
+      {/* No top margin: the avatar (34px) pairs visually with the name line right beside it,
+          the same way it always has. Widening the meta line's gap below (see -mt-0.5 below)
+          grew the two-line cluster to ~41px measured top-of-name to bottom-of-meta, a few px
+          taller than the avatar, but a pixel probe on the rendered row showed the avatar
+          sitting only ~3px above the cluster's dead centre, not visibly off; re-check with a
+          screenshot if the meta line's gap changes again. */}
       <Link
         href={`/profile/${comment.author.id}`}
         aria-label={comment.author.name}
@@ -378,14 +380,21 @@ function CommentItem({
           <PersonName user={comment.author} className="mr-1.5 align-baseline" />
           {comment.content}
         </p>
-        {/* The name/content line and this meta line are one related cluster (proximity
-            principle): keep them close, just a couple px apart. leading-relaxed's own bottom
-            half-leading already supplies most of that space, so only a small negative nudge
-            is needed (the old -mt-1.5 over-cancelled it down to 0px; a bare mt-1 left ~18px,
-            which read as belonging to two different rows). h-5 still matches LoveButton's own
-            resting height (see the [&>span] override below) so the row never needs to fight or
-            clip its child. */}
-        <div className="-mt-2.5 flex h-5 items-center gap-3 text-xs text-muted-foreground">
+        {/* Measured (not guessed) with a pixel probe on the rendered page: this cluster's own
+            leading-relaxed bottom half-leading plus a raw Tailwind margin only ever gets you
+            close in theory, so each of the last three tries was checked against the actual
+            ink-to-ink whitespace, not the CSS box math. -mt-1.5 (rejected, "cramped") measured
+            ~3.5px of true gap; the previous -mt-2.5 (rejected, "too close") measured ~0px, the
+            two lines' ink never fully separating back to the background colour; the older mt-1
+            (rejected, "too far") measured ~13.5px, reading as two unrelated rows. "New in the
+            directory" (feed-rail.tsx's IDENTITY_STACK_GAP_PX) sits at ~5.5px of true gap between
+            a plain name and a plain batch line. This meta line carries a click target (Reply,
+            plus the like button), so it earns a little more room than that static rail line to
+            keep the interactive row from feeling cramped against the name above it, without
+            reopening the "two rows" complaint: -mt-0.5 measures ~7.5px, roughly the rail's gap
+            plus a third again. h-5 still matches LoveButton's own resting height (see the
+            [&>span] override below) so the row never needs to fight or clip its child. */}
+        <div className="-mt-0.5 flex h-5 items-center gap-3 text-xs text-muted-foreground">
           <span>{formatTimeAgo(new Date(comment.createdAt))}</span>
           <button
             onClick={onReply}
