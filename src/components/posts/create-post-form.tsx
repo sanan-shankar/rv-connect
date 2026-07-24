@@ -1,19 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ImagePlus,
-  X,
-  BarChart3,
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  Feather,
-  Plus,
-  MapPin,
-} from "lucide-react";
+import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -27,13 +16,25 @@ import { useTourAnchor } from "@/components/tour/tour-anchors";
 
 /* ------------------------------------------------------------------ *
  *  Rich text <-> markdown bridge. The editor is a contentEditable
- *  surface so Bold/Italic/Underline/Strikethrough render live (execCommand
- *  applies a real <b>/<i>/<u>/<s> to the selection, so the field never
- *  shows raw "**"). On every input we walk the DOM and serialize it back
- *  to the SAME markdown wire format renderRichText() already expects
- *  (src/lib/utils.ts), so post storage/rendering/search never change.
- *  Mentions stay a literal "@[Name](id) " text insertion, matching the
- *  plain-text behaviour the old textarea already had.
+ *  surface so bold/italic/underline/strikethrough render LIVE, with no
+ *  raw "**" ever on screen. There is no formatting toolbar: the three
+ *  ways in are the ones people already know, and all three land in the
+ *  same <b>/<i>/<u>/<s> the serializer below understands.
+ *
+ *    1. the phone's own selection bar (Bold / Italic / Underline), which
+ *       a contentEditable gets natively;
+ *    2. Cmd/Ctrl+B / I / U (handled explicitly in handleEditorKeyDown so
+ *       it is deterministic across browsers);
+ *    3. markdown typed by hand, WhatsApp style: **bold**, *italic*,
+ *       __underline__, ~~struck~~. Those characters survive verbatim
+ *       through this serializer and are rendered by renderRichText()
+ *       (src/lib/utils.ts), whose matching rules are deliberately strict
+ *       so ordinary writing ("2*3*4", a bullet list) never bolds itself.
+ *
+ *  On every input we walk the DOM and serialize it back to the SAME
+ *  markdown wire format renderRichText() already expects, so post
+ *  storage/rendering/search never change. Mentions stay a literal
+ *  "@[Name](id) " text insertion.
  * ------------------------------------------------------------------ */
 function isBoldNode(el: HTMLElement) {
   return el.tagName === "B" || el.tagName === "STRONG" || el.style.fontWeight === "bold" || el.style.fontWeight === "700";
@@ -105,6 +106,15 @@ const LETTER_NUDGE_LEN = 600;
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB
 const UPLOAD_TIMEOUT_MS = 60_000;
 
+// The keyboard path to formatting, now that the toolbar is gone. Same keys
+// every editor uses; strikethrough has no agreed shortcut, so it stays a
+// markdown ("~~struck~~") and phone-selection-bar affordance.
+const FORMAT_SHORTCUTS: Record<string, string> = {
+  b: "bold",
+  i: "italic",
+  u: "underline",
+};
+
 const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   post: "Share a memory, a sighting, or a note for the valley",
   group: "Share something with this group",
@@ -163,7 +173,6 @@ export function CreatePostForm({
   // True only once the grow animation has fully settled; gates overflow so the
   // "More" popover can escape the box, while the unfurl/contraction stays clipped.
   const [settled, setSettled] = useState(false);
-  const [fmt, setFmt] = useState({ bold: false, italic: false, underline: false, strike: false });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -194,7 +203,6 @@ export function CreatePostForm({
     if (!defaultLetter) setExpanded(false);
     if (richRef.current) richRef.current.innerHTML = "";
     setContent("");
-    setFmt({ bold: false, italic: false, underline: false, strike: false });
   }, [defaultLetter]);
 
   // Measure the editor's natural height and animate the box to it. A
@@ -257,39 +265,29 @@ export function CreatePostForm({
     }
   }, []);
 
-  // Live selection-format state, so the toolbar buttons show which formats are
-  // active at the caret/selection (bold stays highlighted while typing inside it).
-  const syncFmt = useCallback(() => {
-    if (typeof document.queryCommandState !== "function") return;
-    try {
-      setFmt({
-        bold: document.queryCommandState("bold"),
-        italic: document.queryCommandState("italic"),
-        underline: document.queryCommandState("underline"),
-        strike: document.queryCommandState("strikeThrough"),
-      });
-    } catch {
-      /* queryCommandState throws when focus is elsewhere; ignore */
-    }
-  }, []);
-
-  // Apply a live format to the current selection. execCommand is deprecated but
-  // remains the simplest reliable way to make the SELECTED TEXT visually bold
-  // (or italic/underlined/struck) in place, with no raw markdown ever on screen.
-  function applyFormat(command: string) {
-    richRef.current?.focus();
+  // Cmd/Ctrl + B / I / U. A contentEditable handles these natively in every
+  // current browser, but we take them explicitly so the behaviour is the same
+  // everywhere and so the markdown mirror is re-derived immediately rather than
+  // waiting on the browser's own input event. execCommand is deprecated and
+  // still the only reliable way to format the SELECTION in place, which is what
+  // keeps raw "**" off the screen. The phone's native selection bar (Bold /
+  // Italic / Underline) reaches the same code path through the browser itself.
+  function handleEditorKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    const command = FORMAT_SHORTCUTS[e.key.toLowerCase()];
+    if (!command) return;
+    e.preventDefault();
     try {
       document.execCommand(command, false);
     } catch {
       /* no-op: unsupported in this browser */
     }
-    syncFmt();
     handleRichInput();
   }
 
   // Force plain-text paste: clipboard formatting never bleeds into the editor,
-  // so bold/italic only ever comes from the toolbar (or existing markdown the
-  // user types by hand, which still round-trips through renderRichText).
+  // so bold/italic only ever comes from a shortcut, the phone's selection bar,
+  // or markdown the user types by hand (which round-trips via renderRichText).
   function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
     e.preventDefault();
     const text = e.clipboardData.getData("text/plain");
@@ -445,7 +443,6 @@ export function CreatePostForm({
       setImages([]);
       setPreviews([]);
       setPollOptions(null);
-      setFmt({ bold: false, italic: false, underline: false, strike: false });
       setMore(false);
       setAudienceCity(null);
       setSettled(false);
@@ -458,14 +455,18 @@ export function CreatePostForm({
     setSubmitting(false);
   }
 
-  // The four inline formatting controls. Each maps to a live execCommand plus
-  // the fmt-state key that reports whether it's active at the current selection.
-  const fmtButtons: { key: keyof typeof fmt; command: string; icon: ReactNode; label: string }[] = [
-    { key: "bold", command: "bold", icon: <Bold className="h-4 w-4" />, label: "Bold" },
-    { key: "italic", command: "italic", icon: <Italic className="h-4 w-4" />, label: "Italic" },
-    { key: "underline", command: "underline", icon: <Underline className="h-4 w-4" />, label: "Underline" },
-    { key: "strike", command: "strikeThrough", icon: <Strikethrough className="h-4 w-4" />, label: "Strikethrough" },
-  ];
+  // The "+" menu only earns its place when it has something to offer: a poll
+  // (posts only), the letter toggle (not on the letters page, which is already
+  // a letter), and the audience picker (only if this person has cities).
+  const canAddPoll = !isLetter;
+  const canToggleLetter = !defaultLetter;
+  const showMore = canAddPoll || canToggleLetter || audienceOptions.length > 0;
+
+  // One shared shelf for the two icon controls, so the row reads as one hand
+  // made it: 36px target (comfortable on a phone), 18px glyph, pill, and the
+  // full hover / focus-visible / active set (active comes from SpringPress).
+  const iconControl =
+    "inline-grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50";
 
   // The full editor surface. Shared by the collapsible feed composer and the
   // always-open letter composer, so both read as one hand made them.
@@ -497,8 +498,7 @@ export function CreatePostForm({
           data-empty={content.trim().length === 0 ? "true" : "false"}
           data-placeholder={effectivePlaceholder}
           onInput={handleRichInput}
-          onKeyUp={syncFmt}
-          onMouseUp={syncFmt}
+          onKeyDown={handleEditorKeyDown}
           onPaste={handlePaste}
           style={{ minHeight: isLetter ? 260 : 96 }}
           className={cn(
@@ -547,32 +547,13 @@ export function CreatePostForm({
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0, transition: { ...SPRINGS.settle, delay: 0.16 } }}
       >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          {/* Formatting: plain icons, no boxed group. Active format highlights
-              canopy with a small underline dot; hover/idle colors unchanged. */}
-          <div className="flex w-fit shrink-0 items-center gap-0.5">
-            {fmtButtons.map((b) => (
-              <SpringPress
-                key={b.key}
-                className={cn(
-                  "relative inline-grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                  fmt[b.key] &&
-                    "text-canopy after:absolute after:bottom-1 after:left-1/2 after:h-[3px] after:w-[3px] after:-translate-x-1/2 after:rounded-full after:bg-canopy"
-                )}
-                onClick={() => applyFormat(b.command)}
-                {...({
-                  type: "button",
-                  title: b.label,
-                  "aria-label": b.label,
-                  "aria-pressed": fmt[b.key],
-                } as object)}
-              >
-                {b.icon}
-              </SpringPress>
-            ))}
-          </div>
-
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:flex-1 sm:justify-end">
+        {/* ONE control row. With the formatting icons gone (formatting now comes
+            from the phone's own selection bar, Cmd/Ctrl+B/I/U, or markdown typed
+            by hand) there is room for Post to sit inline instead of dropping to
+            its own line. The two remaining controls are one group -- both are
+            "add something to this post" -- so no divider earns its place. */}
+        <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1">
             <input
               ref={fileInputRef}
               type="file"
@@ -582,176 +563,193 @@ export function CreatePostForm({
               onChange={handleImageUpload}
             />
 
-            {/* Same plain-icon language and 32px shelf as the format buttons and
-                "More": h-4 w-4 icon (not the smaller h-3.5 the shared Button's
-                xs size gave it), so "Photo" carries equal visual weight
-                instead of reading as the smallest thing in the row. */}
+            {/* Icon only: the word "Photo" is gone, so the label lives in
+                aria-label/title (and carries the live upload progress, which
+                used to be the button's text). */}
             <SpringPress
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+              className={iconControl}
               onClick={() => fileInputRef.current?.click()}
               {...({
                 type: "button",
                 disabled: images.length >= 3 || uploading,
-                "aria-label": uploading ? "Uploading photo" : "Add a photo",
+                title: uploading ? "Uploading..." : "Add a photo",
+                "aria-label": uploading
+                  ? uploadProgress && uploadProgress.total > 1
+                    ? `Uploading photo ${uploadProgress.done + 1} of ${uploadProgress.total}`
+                    : "Uploading photo"
+                  : "Add a photo",
               } as object)}
             >
-              <ImagePlus className="h-4 w-4" />
-              {uploading
-                ? uploadProgress && uploadProgress.total > 1
-                  ? `Uploading ${uploadProgress.done + 1} of ${uploadProgress.total}...`
-                  : "Uploading..."
-                : "Photo"}
+              {uploading ? (
+                <Loader2 className="h-[18px] w-[18px] animate-spin" />
+              ) : (
+                <ImagePlus className="h-[18px] w-[18px]" />
+              )}
             </SpringPress>
 
-            {/* "More" is now a plain, unboxed plus that opens a labelled menu
-                (icon + label rows), so it reads the same as the format icons
-                rather than a separate boxed control. */}
-            <div className="relative">
-              <SpringPress
-                className={cn(
-                  "inline-grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                  more && "bg-accent text-foreground"
-                )}
-                onClick={() => setMore((m) => !m)}
-                {...({
-                  type: "button",
-                  "aria-label": "Add to your post",
-                  "aria-expanded": more,
-                } as object)}
-              >
-                <motion.span
-                  className="inline-grid place-items-center"
-                  animate={{ rotate: more ? 45 : 0 }}
-                  transition={SPRINGS.snappy}
+            {/* The plus opens the same "add to your post" menu (poll, letter,
+                audience). Hidden entirely when it would open on nothing. */}
+            {showMore && (
+              <div className="relative">
+                <SpringPress
+                  className={cn(iconControl, more && "bg-accent text-foreground")}
+                  onClick={() => setMore((m) => !m)}
+                  {...({
+                    type: "button",
+                    title: "Add to your post",
+                    "aria-label": "Add to your post",
+                    "aria-haspopup": "menu",
+                    "aria-expanded": more,
+                  } as object)}
                 >
-                  <Plus className="h-4 w-4" />
-                </motion.span>
-              </SpringPress>
-
-              <AnimatePresence>
-                {more && (
-                  <motion.div
-                    className="absolute right-0 top-10 z-30 w-52 rounded-[var(--radius)] border border-border bg-card p-1.5 shadow-lg"
-                    initial={{ opacity: 0, y: -4, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -3, scale: 0.97 }}
+                  <motion.span
+                    className="inline-grid place-items-center"
+                    animate={{ rotate: more ? 45 : 0 }}
                     transition={SPRINGS.snappy}
-                    style={{ transformOrigin: "top right" }}
                   >
-                    {!isLetter && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPollOptions(pollOptions ? null : ["", ""]);
-                          setMore(false);
-                        }}
-                        className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent ${
-                          pollOptions ? "text-leaf" : "text-foreground"
-                        }`}
-                      >
-                        <BarChart3 className="h-4 w-4" />
-                        <span>{pollOptions ? "Remove poll" : "Add a poll"}</span>
-                      </button>
-                    )}
-                    {!defaultLetter && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setKind(isLetter ? "post" : "letter");
-                          if (!isLetter) setPollOptions(null);
-                          setMore(false);
-                        }}
-                        className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent ${
-                          isLetter ? "text-leaf" : "text-foreground"
-                        }`}
-                      >
-                        <Feather className="h-4 w-4" />
-                        <span>{isLetter ? "Back to a post" : "Write as a Letter"}</span>
-                      </button>
-                    )}
-                    {audienceOptions.length > 0 && (
-                      <div className="mt-1 border-t border-border pt-1.5">
-                        <p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                          Show to
-                        </p>
-                        <div className="flex flex-wrap gap-1 px-2 pb-1">
-                          <button
-                            type="button"
-                            onClick={() => setAudienceCity(null)}
-                            className={cn(
-                              "rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
-                              !audienceCity
-                                ? "bg-canopy text-white"
-                                : "bg-muted text-muted-foreground hover:bg-accent"
-                            )}
-                          >
-                            Everyone
-                          </button>
-                          {audienceOptions.map((city) => (
+                    <Plus className="h-[18px] w-[18px]" />
+                  </motion.span>
+                </SpringPress>
+
+                <AnimatePresence>
+                  {more && (
+                    <motion.div
+                      role="menu"
+                      /* Opens from the plus's LEFT edge, because the plus now sits
+                         at the START of the row. Anchored right (as it used to be)
+                         it ran off the left of a phone screen. It can never touch
+                         either viewport edge now: the card's own padding holds it
+                         in on the left, and the max-width holds it in on the right
+                         on the narrowest phones. */
+                      className="absolute left-0 top-11 z-30 w-52 max-w-[calc(100vw-3.5rem)] rounded-[var(--radius)] border border-border bg-card p-1.5 shadow-lg"
+                      initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -3, scale: 0.97 }}
+                      transition={SPRINGS.snappy}
+                      style={{ transformOrigin: "top left" }}
+                    >
+                      {canAddPoll && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setPollOptions(pollOptions ? null : ["", ""]);
+                            setMore(false);
+                          }}
+                          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
+                            pollOptions ? "text-leaf" : "text-foreground"
+                          }`}
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          <span>{pollOptions ? "Remove poll" : "Add a poll"}</span>
+                        </button>
+                      )}
+                      {canToggleLetter && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setKind(isLetter ? "post" : "letter");
+                            if (!isLetter) setPollOptions(null);
+                            setMore(false);
+                          }}
+                          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
+                            isLetter ? "text-leaf" : "text-foreground"
+                          }`}
+                        >
+                          <Feather className="h-4 w-4" />
+                          <span>{isLetter ? "Back to a post" : "Write as a Letter"}</span>
+                        </button>
+                      )}
+                      {audienceOptions.length > 0 && (
+                        <div className="mt-1 border-t border-border pt-1.5" role="group" aria-label="Show to">
+                          <p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                            Show to
+                          </p>
+                          <div className="flex flex-wrap gap-1 px-2 pb-1">
                             <button
-                              key={city}
                               type="button"
-                              onClick={() => setAudienceCity(city)}
+                              role="menuitemradio"
+                              aria-checked={!audienceCity}
+                              onClick={() => setAudienceCity(null)}
                               className={cn(
                                 "rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
-                                audienceCity === city
+                                !audienceCity
                                   ? "bg-canopy text-white"
                                   : "bg-muted text-muted-foreground hover:bg-accent"
                               )}
                             >
-                              {city}
+                              Everyone
                             </button>
-                          ))}
+                            {audienceOptions.map((city) => (
+                              <button
+                                key={city}
+                                type="button"
+                                role="menuitemradio"
+                                aria-checked={audienceCity === city}
+                                onClick={() => setAudienceCity(city)}
+                                className={cn(
+                                  "rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
+                                  audienceCity === city
+                                    ? "bg-canopy text-white"
+                                    : "bg-muted text-muted-foreground hover:bg-accent"
+                                )}
+                              >
+                                {city}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* A small persistent indicator once an audience is chosen, so it stays
-                legible without reopening the "+" menu -- clicking it reopens the
-                menu to change or clear it. */}
-            {audienceCity && (
-              <button
-                type="button"
-                onClick={() => setMore(true)}
-                className="inline-flex items-center gap-1 rounded-full bg-sky/10 px-2.5 py-1 text-[11.5px] font-semibold text-sky hover:bg-sky/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
-              >
-                <MapPin className="h-3 w-3" />
-                {audienceCity} only
-              </button>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             )}
           </div>
 
-          <div className="ml-auto flex items-center self-end sm:self-auto">
-            {/* Same pill CTA language as "New post" and every other primary
-                button (shared buttonVariants, canopy fill, font-medium -- never
-                bold), sized "xs" so its 32px shelf matches the toolbar row
-                instead of standing taller than everything beside it. Still
-                bespoke/animated (subdued until there's text, springs to life)
-                so it can't use <Button> directly, but it now wears the exact
-                same classes Button would give it at this size. */}
-            <motion.button
+          {/* A small persistent indicator once an audience is chosen, so it stays
+              legible without reopening the "+" menu -- clicking it reopens the
+              menu to change or clear it. Truncates rather than pushing Post. */}
+          {audienceCity && (
+            <button
               type="button"
-              onClick={handleSubmit}
-              disabled={!content.trim() || submitting}
-              className={cn(buttonVariants({ variant: "primary", size: "xs" }))}
-              animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
-              whileHover={hasContent && !submitting ? { scale: 1.03 } : undefined}
-              whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
-              transition={SPRINGS.snappy}
+              onClick={() => setMore(true)}
+              className="inline-flex min-w-0 items-center gap-1 rounded-full bg-sky/10 px-2.5 py-1 text-[11.5px] font-semibold text-sky hover:bg-sky/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
             >
-              {submitting
-                ? isLetter
-                  ? "Publishing..."
-                  : "Posting..."
-                : isLetter
-                  ? "Publish letter"
-                  : "Post"}
-            </motion.button>
-          </div>
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate">{audienceCity} only</span>
+            </button>
+          )}
+
+          {/* Post sits INLINE, at the end of the same row. Same pill CTA language
+              as "New post" (shared buttonVariants, canopy fill, font-medium --
+              never bold), but a step down from the page-level CTA's 40px: 36px
+              tall with golden-ratio-generous 20px sides, so it reads as the
+              confident primary action of the composer without competing with
+              the header's own button. Still bespoke/animated (subdued until
+              there's text, springs to life) so it can't use <Button> directly. */}
+          <motion.button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!content.trim() || submitting}
+            className={cn(
+              buttonVariants({ variant: "primary", size: "sm" }),
+              "ml-auto shrink-0 px-5 text-sm"
+            )}
+            animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
+            whileHover={hasContent && !submitting ? { scale: 1.03 } : undefined}
+            whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
+            transition={SPRINGS.snappy}
+          >
+            {submitting
+              ? isLetter
+                ? "Publishing..."
+                : "Posting..."
+              : isLetter
+                ? "Publish letter"
+                : "Post"}
+          </motion.button>
         </div>
 
         {/* Gentle, non-blocking nudge once a post runs long: no red numbers, no

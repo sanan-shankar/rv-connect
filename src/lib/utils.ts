@@ -215,8 +215,64 @@ export function plainExcerpt(content: string, maxLen = 160): string {
 }
 
 /**
+ * Build the matcher for one inline emphasis delimiter.
+ *
+ * The rules are deliberately conservative, the way WhatsApp's are, because
+ * people write asterisks and underscores by accident far more often than they
+ * mean them as formatting. A delimiter pair only counts when ALL of this holds:
+ *
+ *   1. the opener sits on a word boundary (start of text, or a non-word
+ *      character before it), so "2*3*4" and "a**b**c" stay literal;
+ *   2. the wrapped run starts AND ends with a non-space character, so
+ *      "a * b * c" and a "* milk / * eggs" bullet list stay literal;
+ *   3. the run is non-empty and never spans a blank line (checked by the
+ *      caller), so two stray asterisks paragraphs apart cannot pair up;
+ *   4. the closer is not glued to a word character, so "__init__x" stays literal.
+ *
+ * An unmatched delimiter simply never matches, so "hello *world" stays literal.
+ * No lookbehind is used (older Safari cannot parse it); the boundary character
+ * is captured and re-emitted instead.
+ */
+function emphasisPattern(delimiter: string): RegExp {
+  // Only "*" is a regex syntax character here; escaping "_" or "~" under the
+  // /u flag is a SyntaxError, so they are used raw.
+  const char = delimiter[0]
+  const c = char === "*" ? "\\*" : char
+  const d = delimiter.split("").map(() => c).join("")
+  // A run of the same delimiter character never counts as a boundary or as an
+  // edge of the wrapped text: that is what keeps "2**3**4" and "***" literal
+  // instead of leaking into the single-character rule and crossing its tags.
+  const boundary = `(^|[^\\p{L}\\p{N}_${c}])`
+  const edge = `[^\\s${c}]`
+  return new RegExp(
+    boundary +
+      d +
+      // the wrapped run: one edge character, or edge ... edge (lazy, capped so
+      // a stray pair can never span half a letter)
+      `(${edge}|${edge}[\\s\\S]{0,2000}?${edge})` +
+      d +
+      // the closer may not be glued to a word character or its own delimiter
+      `(?![\\p{L}\\p{N}_${c}])`,
+    "gu"
+  )
+}
+
+/** Longest delimiter runs first, so *** beats ** beats * and pairs never split. */
+const EMPHASIS_RULES: { pattern: RegExp; open: string; close: string }[] = [
+  { pattern: emphasisPattern("***"), open: "<strong><em>", close: "</em></strong>" },
+  { pattern: emphasisPattern("**"), open: "<strong>", close: "</strong>" },
+  { pattern: emphasisPattern("*"), open: "<em>", close: "</em>" },
+  { pattern: emphasisPattern("__"), open: "<u>", close: "</u>" },
+  { pattern: emphasisPattern("~~"), open: "<del>", close: "</del>" },
+]
+
+/**
  * Render rich text: sanitize HTML, then apply markdown-style bold/italic/
  * underline/strikethrough and @[Name](userId) mentions.
+ *
+ * This is the single renderer for the composer's wire format: the composer
+ * serializes live formatting (native Cmd/Ctrl+B, the phone's own selection
+ * bar) to exactly these markers, and hand-typed markdown lands here too.
  */
 export function renderRichText(text: string): string {
   // 1. Escape HTML entities
@@ -226,19 +282,17 @@ export function renderRichText(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
 
-  // 2. Bold: **text** -> <strong>text</strong> (run before single *)
-  result = result.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+  // 2. Emphasis: ***both***, **bold**, *italic*, __underline__, ~~struck~~.
+  for (const { pattern, open, close } of EMPHASIS_RULES) {
+    result = result.replace(pattern, (match, before: string, inner: string) => {
+      // A run that crosses a blank line is never emphasis: it is two stray
+      // delimiters in separate paragraphs finding each other.
+      if (/\n\s*\n/.test(inner)) return match
+      return `${before}${open}${inner}${close}`
+    })
+  }
 
-  // 3. Italic: *text* -> <em>text</em>
-  result = result.replace(/\*(.+?)\*/g, "<em>$1</em>")
-
-  // 4. Underline: __text__ -> <u>text</u> (double underscore, distinct from * runs)
-  result = result.replace(/__(.+?)__/g, "<u>$1</u>")
-
-  // 5. Strikethrough: ~~text~~ -> <del>text</del>
-  result = result.replace(/~~(.+?)~~/g, "<del>$1</del>")
-
-  // 6. Mentions: @[Name](userId) -> clickable link
+  // 3. Mentions: @[Name](userId) -> clickable link
   result = result.replace(
     /@\[([^\]]+)\]\(([^)]+)\)/g,
     '<a href="/profile/$2" class="font-semibold text-leaf hover:underline">@$1</a>'
