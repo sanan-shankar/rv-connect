@@ -73,14 +73,14 @@ export default async function PhotoPage({
       </Link>
 
       <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
-        <div className="bg-paper">
+        <div className="overflow-hidden rounded-t-[var(--radius)] bg-paper">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={photo.url}
             alt={photo.caption ?? ""}
             width={photo.width}
             height={photo.height}
-            className="mx-auto max-h-[78vh] w-auto"
+            className="mx-auto max-h-[78vh] w-auto rounded-t-[var(--radius)]"
           />
         </div>
 
