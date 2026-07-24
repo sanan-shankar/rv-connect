@@ -1,9 +1,6 @@
-import { LoadingCompanion } from "@/components/mascot/moments/loading-companion";
-
 export default function ProfileLoading() {
   return (
     <div className="space-y-6">
-      <LoadingCompanion />
       <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex flex-col items-center sm:flex-row sm:items-start">
           <div className="skeleton-warm h-24 w-24 rounded-full" />

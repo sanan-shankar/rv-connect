@@ -1,9 +1,6 @@
-import { LoadingCompanion } from "@/components/mascot/moments/loading-companion";
-
 export default function LettersLoading() {
   return (
     <div className="mx-auto max-w-3xl">
-      <LoadingCompanion />
       <header className="mb-6 space-y-2">
         <div className="skeleton-warm h-8 w-32 rounded-md" />
         <div className="skeleton-warm h-4 w-80 rounded-md" />

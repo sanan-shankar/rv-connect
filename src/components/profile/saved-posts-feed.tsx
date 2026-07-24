@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { PostCard, type PostData } from "@/components/posts/post-card";
 import { loadSavedPosts } from "@/app/(main)/feed/actions";
 import { parseJsonArray } from "@/lib/utils";
-import { LoadingCompanion } from "@/components/mascot/moments/loading-companion";
 import { NoSavedHoopoe } from "@/components/mascot/moments/no-saved-hoopoe";
 
 /**
@@ -146,7 +145,6 @@ export function SavedPostsFeed() {
   if (loading) {
     return (
       <div ref={ref}>
-        <LoadingCompanion />
         <SavedSkeleton cols={cols} />
       </div>
     );
