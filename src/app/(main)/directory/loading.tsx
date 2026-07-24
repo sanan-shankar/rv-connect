@@ -1,9 +1,6 @@
-import { LoadingCompanion } from "@/components/mascot/moments/loading-companion";
-
 export default function DirectoryLoading() {
   return (
     <div className="mx-auto max-w-5xl">
-      <LoadingCompanion />
       <div className="skeleton-warm mb-6 h-9 w-48 rounded-md" />
       <div className="skeleton-warm mb-3 h-10 w-full rounded-md" />
       <div className="mb-6 flex gap-3">

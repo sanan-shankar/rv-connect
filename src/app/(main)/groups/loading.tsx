@@ -1,9 +1,6 @@
-import { LoadingCompanion } from "@/components/mascot/moments/loading-companion";
-
 export default function GroupsLoading() {
   return (
     <div className="mx-auto max-w-4xl">
-      <LoadingCompanion />
       <header className="mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <div className="skeleton-warm h-8 w-32 rounded-md" />
