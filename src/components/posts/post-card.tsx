@@ -25,7 +25,11 @@ import { formatTimeAgo, parseJsonArray, renderRichText, batchLine, letterTitle }
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { SPRINGS } from "@/components/common/motion";
+import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
+
+/* "Read more" reveals text beyond this many raw characters. Kept as a module
+   constant (not a magic number inline) since it is read in two places below. */
+const READ_MORE_TRUNCATE_LEN = 300;
 
 export interface PostData {
   id: string;
@@ -85,9 +89,13 @@ export function PostCard({
 
   const images = parseJsonArray(post.images);
   const isLetter = post.kind === "letter";
-  const isLongText = post.content.length > 300;
-  const displayText =
-    isLongText && !expanded ? post.content.slice(0, 300) + "..." : post.content;
+  const isLongText = post.content.length > READ_MORE_TRUNCATE_LEN;
+  // Split (rather than swap) the text so "Read more" can ease the remainder open
+  // instead of snapping the whole paragraph to its full length.
+  const leadText = isLongText
+    ? post.content.slice(0, READ_MORE_TRUNCATE_LEN)
+    : post.content;
+  const restText = isLongText ? post.content.slice(READ_MORE_TRUNCATE_LEN) : "";
 
   // Letter preview: plain-text excerpt + estimated read time.
   const letterPlain = post.content
@@ -245,12 +253,37 @@ export function PostCard({
           </Link>
         ) : (
           <>
-            {/* Content */}
+            {/* Content. Long posts render as two pieces: the always-visible lead
+                (first 300 chars) and the remainder inside a height-animated
+                wrapper. Clicking "Read more" eases the wrapper open (height +
+                a soft fade on the new text) instead of snapping the full text
+                in and jolting the card. `initial={false}` keeps the very first
+                mount instant (no phantom animation on load); once mounted,
+                Framer measures the real "auto" height itself, so the wrapper
+                lands back on a responsive height with no jump at either end. */}
             <div className="mt-2.5">
               <p
                 className="whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground"
-                dangerouslySetInnerHTML={{ __html: renderRichText(displayText) }}
+                dangerouslySetInnerHTML={{
+                  __html: renderRichText(isLongText && !expanded ? leadText + "..." : leadText),
+                }}
               />
+              {isLongText && (
+                <motion.div
+                  initial={false}
+                  animate={{ height: expanded ? "auto" : 0, opacity: expanded ? 1 : 0 }}
+                  transition={{
+                    height: { duration: 0.26, ease: EASE_OUT_SMOOTH },
+                    opacity: { duration: 0.22, ease: "easeOut", delay: expanded ? 0.06 : 0 },
+                  }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <p
+                    className="whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground"
+                    dangerouslySetInnerHTML={{ __html: renderRichText(restText) }}
+                  />
+                </motion.div>
+              )}
               {isLongText && !expanded && (
                 <button
                   onClick={() => setExpanded(true)}
