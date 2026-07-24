@@ -2,21 +2,26 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { SPRINGS, EASE_POP } from "@/components/common/motion";
+import { SPRINGS, EASE_POP, EASE_OUT_SMOOTH } from "@/components/common/motion";
 
 /**
  * One shared save/bookmark button for the whole app (feed posts, group posts,
  * letters, anything else). Same tier as {@link LoveButton}: if a surface adds a
  * bookmark, it adds THIS one, animation included. Do not fork it.
  *
- * The saved-state animation (owner brief): the ribbon drops in from the TOP
- * edge and extends downward, stretches a touch PAST its resting length, then
- * bounces back up to rest. Two coordinated layers, transform-only:
+ * The saved-state animation (owner brief): the colour pours down from the TOP
+ * edge, and the moment it REACHES THE BOTTOM its weight tugs the mark down a
+ * little, which then bounces back up to rest. The two layers are SEQUENCED, not
+ * simultaneous. Firing them together was the bug: the tug peaked at 210ms while
+ * the fill was still mid-pour, so cause and effect read as unrelated events.
  *  - the cinnamon fill is clipped to the ribbon and revealed top-down
  *    (scaleY 0 -> 1 about the ribbon's top edge), so the colour pours in from
- *    the top instead of rising from the middle;
- *  - the whole mark springs its height (scaleY 1 -> 1.08 -> 1 about its top),
- *    which is the visible "extend past, then settle" bounce.
+ *    the top instead of rising from the middle. It uses a fixed-duration tween,
+ *    NOT a spring, because a spring has no exact settle time to chain against;
+ *  - 20ms before the fill lands, the whole mark stretches its height
+ *    (scaleY 1 -> 1.06 -> 1 about its top), pulling the bottom edge down and
+ *    springing it back. Starting a hair early makes the tug read as CAUSED by
+ *    the arriving colour rather than as a separate beat tacked on after it.
  * Unsaving just retracts the fill straight back up to the top, quickly, with no
  * reverse theatrics. The outline is `currentColor`, so it reads muted at rest
  * and cinnamon once saved (the button owns that colour swap).
@@ -40,7 +45,8 @@ export function BookmarkButton({
   function handleClick() {
     if (!saved) {
       setAnimate(true);
-      setTimeout(() => setAnimate(false), 520);
+      // fill lands at 280ms, tug starts at 260ms and runs 340ms -> last frame 600ms.
+      setTimeout(() => setAnimate(false), 660);
     }
     onToggle();
   }
@@ -60,10 +66,10 @@ export function BookmarkButton({
     >
       <motion.span
         className="relative inline-grid place-items-center will-change-transform"
-        animate={animate ? { scaleY: [1, 1.08, 1] } : { scaleY: 1 }}
+        animate={animate ? { scaleY: [1, 1.06, 1] } : { scaleY: 1 }}
         transition={
           animate
-            ? { duration: 0.5, ease: EASE_POP, times: [0, 0.42, 1] }
+            ? { duration: 0.34, ease: EASE_POP, times: [0, 0.4, 1], delay: 0.26 }
             : { duration: 0 }
         }
         style={{ transformOrigin: "50% 8%" }}
@@ -97,7 +103,7 @@ export function BookmarkButton({
             animate={{ scaleY: saved ? 1 : 0 }}
             transition={
               animate
-                ? SPRINGS.gentle
+                ? { duration: 0.28, ease: EASE_OUT_SMOOTH }
                 : { duration: saved ? 0 : 0.16, ease: "easeIn" }
             }
           />
