@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { createPost } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
+import { downscaleImage } from "@/lib/image-downscale";
 import { cn } from "@/lib/utils";
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
@@ -360,8 +361,10 @@ export function CreatePostForm({
       return;
     }
 
-    // Validate sizes up front (skip oversized files individually rather than
-    // aborting the whole batch on the first one).
+    // Validate the ORIGINAL size up front (skip oversized files individually
+    // rather than aborting the whole batch on the first one). This is only a
+    // sanity ceiling on the source file; downscaleImage below shrinks whatever
+    // survives it to well under Vercel's ~4.5MB request-body cap before upload.
     const candidates = Array.from(fileList).slice(0, remaining);
     const valid: File[] = [];
     for (const file of candidates) {
@@ -383,12 +386,17 @@ export function CreatePostForm({
     // One request per file (sequential): gives a real "uploading N of M"
     // state and means one bad file doesn't sink the others.
     for (let i = 0; i < valid.length; i++) {
-      const file = valid[i];
+      const original = valid[i];
       setUploadProgress({ done: i, total: valid.length });
       try {
+        // Shrink in the browser first so the bytes on the wire stay under the
+        // platform body cap; GIF/HEIC and undecodable files pass through as-is.
+        const file = await downscaleImage(original);
         const url = await uploadOneFile(file);
         uploadedUrls.push(url);
-        uploadedPreviews.push(URL.createObjectURL(file));
+        // Preview from the original file: higher quality than the re-encode,
+        // and it is only ever shown locally in the composer.
+        uploadedPreviews.push(URL.createObjectURL(original));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Upload failed");
       }
