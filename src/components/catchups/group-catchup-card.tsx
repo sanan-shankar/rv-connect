@@ -119,18 +119,16 @@ export async function GroupCatchupCard({
   }
 
   if (!catchup) {
-    // No Catch-up yet for this group: any member may start one.
+    // No Catch-up yet for this group: any member may start one. No wash here
+    // -- this is a routine, frequently-seen state sitting in a busy group
+    // page next to plain (unwashed) post cards, and it sits right beside the
+    // "tables missing" stub below, which is also plain. Giving only this one
+    // state a leaf tint made the card flicker green/not-green depending on
+    // Catch-up status, reading as an unexplained filter rather than an
+    // intentional accent (owner feedback 2026-07-24).
     return (
       <Link href={`/catchups/new?group=${groupId}`} className={CARD_SHELL}>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--color-leaf) 8%, transparent), transparent 60%)",
-          }}
-        />
-        <div className="relative flex items-center gap-4">
+        <div className="flex items-center gap-4">
           <div className={ICON_MEDALLION_LEAF}>
             <MessagesSquare className="h-5 w-5" />
           </div>
