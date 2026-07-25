@@ -574,29 +574,57 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
     // the About panel had left to say once the social pills came off the
     // surface, which is exactly the void the owner keeps calling out. At 310
     // the plate is 388 and the two columns end within a few pixels of each
-    // other, measured at 1440 and at 1920. It also buys the folder tabs the
-    // width they need at exactly 1024, where they used to overrun the card.
+    // other, measured at 1440 and at 1920.
+    //
+    // THE SPLIT HAPPENS AT 1350, not at lg. This originally worked around the
+    // houses chain, which used to pick its column count off the VIEWPORT and
+    // so was a fixed ~560px object from 1024 up; at 1280 its last pill ran
+    // straight off this card's right edge. That cause is gone: the chain now
+    // measures its own container (see houses-chain.tsx) and steps down to
+    // three or two columns when the box is narrow, so it can no longer
+    // overflow whatever it is given.
+    //
+    // The 1350 split is KEPT on its own merits. The app frame leaves <main>
+    // only `viewport - 248 sidebar - 80 gutters`, so below ~1350 a 310px
+    // identity column and the panel beside it are both too cramped to earn
+    // the split; the single-column page reads better there. If you revisit
+    // this, judge it on that, not on the chain.
     //
     // overflow-x-clip: VerifiedMark keeps its "Verified member" label in the
     // DOM at opacity 0 and parks it `left-full`, so at 390 the label hangs
     // 10px past the viewport and the page rubber-bands sideways. `clip`
     // rather than `hidden` on purpose: `hidden` would make this element a
     // scrollport and kill the identity column's sticky.
-    <div className="grid w-full grid-cols-1 gap-[var(--space-xl)] overflow-x-clip lg:grid-cols-[310px_minmax(0,1fr)]">
+    <div className="grid w-full grid-cols-1 gap-[var(--space-xl)] overflow-x-clip min-[1350px]:grid-cols-[310px_minmax(0,1fr)]">
       {/* ---------------------------------------------------------- *
-          IDENTITY COLUMN. Sticky on a laptop, first in the stack on a
-          phone. Sticky only: it never gets a scroller of its own.
+          IDENTITY BLOCK, in three shapes:
+            phone      one column, plate 3:2 across the full width
+            laptop     plate on the left, name and actions bottom-aligned
+                       beside it, folder card underneath
+            1350+      the sticky left column of the two-column page
+          The middle shape exists because the page cannot split into two
+          columns until 1350 (see above) and a 950px-wide page with a
+          560px picture and nothing beside it is exactly the empty half
+          the owner keeps rejecting. Sticky only, at any width: this
+          column never gets a scroller of its own.
        * ---------------------------------------------------------- */}
-      <div className="lg:sticky lg:top-[var(--space-l)] lg:self-start">
-        <div className="relative">
-          <div className="relative aspect-[3/2] w-full overflow-hidden rounded-[var(--radius-xl)] border border-border bg-mist lg:aspect-[4/5]">
+      {/* The middle shape is written as a RANGE (`lg:max-[1350px]:`), not as
+          an `lg:` rule that a `min-[1350px]:` rule undoes. Tailwind emits an
+          arbitrary `min-[...]` variant before the named `lg` breakpoint, so
+          `min-[1350px]:block` lost to `lg:flex` and the two-column page came
+          up with its identity column still laid out as a squeezed row. A
+          range binds to exactly the widths it describes and has nothing to
+          outrank. */}
+      <div className="sm:max-lg:max-w-[560px] lg:max-[1350px]:flex lg:max-[1350px]:items-end lg:max-[1350px]:gap-[var(--space-xl)] min-[1350px]:sticky min-[1350px]:top-[var(--space-l)] min-[1350px]:self-start">
+        <div className="relative lg:max-[1350px]:w-[46%] lg:max-[1350px]:shrink-0">
+          <div className="relative aspect-[3/2] w-full overflow-hidden rounded-[var(--radius-xl)] border border-border bg-mist min-[1350px]:aspect-[4/5]">
             {profile.coverPhoto ? (
               <Image
                 src={profile.coverPhoto}
                 alt={`${profile.name}'s picture`}
                 fill
                 priority
-                sizes="(min-width: 1024px) 310px, 100vw"
+                sizes="(min-width: 1350px) 310px, (min-width: 1024px) 46vw, (min-width: 640px) 560px, 100vw"
                 className="object-cover"
                 style={{ objectPosition: "50% 30%" }}
               />
@@ -628,7 +656,9 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
           </span>
         </div>
 
-        <div className="mt-[var(--space-xl)]">
+        {/* Who they are, and the one way to reach them. Beside the plate
+            on a laptop, under it everywhere else. */}
+        <div className="mt-[var(--space-xl)] min-w-0 lg:max-[1350px]:mt-0 lg:max-[1350px]:flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h1 className="font-heading text-[30px] font-bold leading-[1.06] tracking-[-0.03em] text-foreground">
               {profile.name}
@@ -647,24 +677,24 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
               {occupation}
             </p>
           )}
-        </div>
 
-        {/* THE ONLY CONTACT AFFORDANCE ON THE PAGE. Email, phone,
-            Instagram, LinkedIn and any custom link are all one click
-            behind this dialog and none of them is printed anywhere on
-            the surface. That is the owner's note in full: "only when
-            you say contact them does their email and number and stuff
-            come out. That's how it should be everywhere", plus "don't
-            think the LinkedIn and IG need to be there outside and
-            inside the Get in touch." Save contact carries the same
-            details into a .vcf for people who would rather have the
-            card than the dialog. */}
-        <div className="mt-[var(--space-l)]">
-          <GetInTouch
-            name={profile.name}
-            methods={contactMethods(profile)}
-            vcard={vcardFor(profile)}
-          />
+          {/* THE ONLY CONTACT AFFORDANCE ON THE PAGE. Email, phone,
+              Instagram, LinkedIn and any custom link are all one click
+              behind this dialog and none of them is printed anywhere on
+              the surface. That is the owner's note in full: "only when
+              you say contact them does their email and number and stuff
+              come out. That's how it should be everywhere", plus "don't
+              think the LinkedIn and IG need to be there outside and
+              inside the Get in touch." Save contact carries the same
+              details into a .vcf for people who would rather have the
+              card than the dialog. */}
+          <div className="mt-[var(--space-l)]">
+            <GetInTouch
+              name={profile.name}
+              methods={contactMethods(profile)}
+              vcard={vcardFor(profile)}
+            />
+          </div>
         </div>
       </div>
 

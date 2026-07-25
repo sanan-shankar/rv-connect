@@ -36,9 +36,13 @@
  *         its own bottom border there (`lg:border-b-0`) and the dateline
  *         rule runs out from under the type to finish the picture. One
  *         continuous hairline, shared between the two.
- *       - The left column is `justify-between`, so the name sits on the
- *         top edge and the deck plus stamp sit on the bottom one. Both
- *         columns are ruled by the same two lines.
+ *       - Its LEFT edge sits at exactly two thirds of the sheet, which is
+ *         where the dateline's third divider falls, so the hairline down
+ *         the side of the picture and the hairline between the last two
+ *         facts are one line. See the note on the masthead grid.
+ *       - The admission stamp takes `mt-auto` to the foot of the left
+ *         column, so the corner the type ends on and the corner the
+ *         picture ends on are the same corner, on the same rule.
  *     No border was added, no frame, no coloured bar (the cinnamon bar
  *     under the picture was struck last round for exactly that reason).
  *     The frame is 3:2, the most of a portrait source any landscape crop
@@ -270,8 +274,8 @@ function ChirpBird({ profile }: { profile: MockProfile }) {
  *  The lead photograph. A grid item in the masthead row, not a picture
  *  pasted into the corner: its top edge starts at the name's cap line
  *  and its bottom edge lands on the dateline rule, which runs out from
- *  under the type and finishes the frame (hence `lg:border-b-0` — the
- *  two share one hairline instead of stacking two).
+ *  under the type and finishes the frame (hence `lg:border-b-0`: the two
+ *  share one hairline instead of stacking two).
  *
  *  3:2 and hard square edges: a newspaper does not round its pictures,
  *  and the source is a 900x1300 portrait, so 3:2 is the most of the
@@ -620,7 +624,7 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
               the left of the photograph and the hairline between the last two
               facts are the same line, continued. That plus the shared bottom
               rule is what stops the picture reading as pasted into a corner. */}
-          <div className="grid gap-[var(--space-m)] lg:grid-cols-[minmax(0,1fr)_minmax(0,33.333%)] lg:items-stretch lg:gap-[var(--space-xl)]">
+          <div className="grid gap-[var(--space-l)] lg:grid-cols-[minmax(0,1fr)_minmax(0,33.333%)] lg:items-stretch lg:gap-[var(--space-xl)]">
             <div className="flex min-w-0 flex-col lg:col-start-1 lg:row-start-1 lg:pb-[var(--space-m)]">
               {/* The verified leaf rides with the NAME, the way the shipped
                   header does it. Parked at the end of the deck line it kept
