@@ -1,19 +1,35 @@
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { previewOf } from "@/lib/admin-threads";
+import { openAdminNoticeThread } from "@/lib/admin-threads-server";
 
 /**
  * Sends the optional "note to the author" that an admin can attach when
- * removing a post, letter, comment, or Collection photo. Creates a
- * Notification (type "admin_note") whose `link` opens the dedicated,
- * warmly-designed /notice/[id] page -- never the raw message inline in the
- * notification dropdown, so there's room to say it kindly instead of as a
- * one-line ding.
+ * removing a post, letter, comment, or Collection photo.
+ *
+ * The note opens a real conversation (AdminThread) rather than a dead-end
+ * page, so the author can write back and ask what they got wrong. The
+ * Notification (type "admin_note") links straight at that thread. Old
+ * notifications still point at /notice/[id], which resolves itself into a
+ * thread on first open; see src/app/(main)/notice/[id]/page.tsx.
+ *
+ * Only admins ever reach this (every caller is admin-gated), so the acting
+ * admin is read straight from the session and stored as the note's author.
+ * That is what makes the note render as an admin bubble with the shield mark
+ * rather than a centered system line (which is reserved for the app's own
+ * procedural receipts, e.g. "you reported a post by X").
  */
 export async function notifyAdminNote(userId: string, note: string) {
-  const created = await prisma.notification.create({
-    data: { userId, type: "admin_note", message: note },
+  const session = await auth();
+  const thread = await openAdminNoticeThread(userId, note, {
+    authorId: session?.user?.id ?? null,
   });
-  await prisma.notification.update({
-    where: { id: created.id },
-    data: { link: `/notice/${created.id}` },
+  await prisma.notification.create({
+    data: {
+      userId,
+      type: "admin_note",
+      message: previewOf(note),
+      link: `/messages/${thread.id}`,
+    },
   });
 }

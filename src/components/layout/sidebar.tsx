@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Script from "next/script";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
@@ -189,27 +188,14 @@ function UserMenu({ user }: { user: SidebarUser }) {
               Admin Panel
             </DropdownMenuItem>
           )}
-          {/* Combined bug reports + feature requests, formerly a footer link.
-              Opens the Tally form as a centered modal via the document-level
-              click listener the embed script (loaded below) attaches to every
-              [data-tally-open] trigger; the href is a graceful fallback to the
-              hosted form if the embed has not loaded yet. */}
-          <DropdownMenuItem
-            render={
-              <a
-                href="https://tally.so/r/yPGjBd"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-tally-open="yPGjBd"
-                data-tally-layout="modal"
-                data-tally-width="540"
-                data-tally-overlay="1"
-                data-tally-auto-close="3000"
-              />
-            }
-          >
+          {/* Bug reports, ideas, and anything else, in our own hands now: this
+              replaced the third-party Tally form (2026-07-24). It opens the
+              conversation surface, where a member's moderation notes and the
+              follow-up on anything they reported live alongside whatever they
+              write. See src/app/(main)/messages. */}
+          <DropdownMenuItem onClick={() => router.push("/messages")}>
             <MessageSquareText className="mr-2 h-4 w-4" />
-            Feedback
+            Message the admins
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -244,13 +230,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Loads once on idle, then a document-level click listener binds every
-          [data-tally-open] trigger (see UserMenu's Feedback item) and
-          survives client-side navigation, since it delegates from the
-          document. Lives here (rather than per-trigger) so it only loads
-          once regardless of which menu instance renders. */}
-      <Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
-
       {/* Desktop: flush, full-height sidebar */}
       <aside className="sticky top-0 z-10 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
         {/* The lockup's own width is content-hugging (see peaks-mark.tsx), so
@@ -327,21 +306,14 @@ export function Sidebar({
                   Admin
                 </Link>
               )}
-              <a
-                href="https://tally.so/r/yPGjBd"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-tally-open="yPGjBd"
-                data-tally-layout="modal"
-                data-tally-width="540"
-                data-tally-overlay="1"
-                data-tally-auto-close="3000"
+              <Link
+                href="/messages"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
               >
                 <MessageSquareText className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-                Feedback
-              </a>
+                Message the admins
+              </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"

@@ -147,3 +147,18 @@ export const reportSchema = z.object({
   postId: z.string().min(1),
   reason: z.string().min(1, "Please provide a reason").max(500),
 });
+
+// Messages between a member and the admins (src/lib/admin-threads.ts). The
+// only required field anywhere in this feature is the text itself: the kind
+// chip and the screenshot are both optional, so the fast path stays "type one
+// thing, send". `imageUrl` is checked again server-side against our own upload
+// prefixes (isUploadedImageUrl) so an arbitrary remote URL can't be injected.
+export const adminMessageSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, "Write a line first and we'll take it from there")
+    .max(4000, "That's longer than we can take in one go. Trim it a little?"),
+  kind: z.enum(["bug", "idea", "message"]).optional(),
+  imageUrl: z.string().max(500).optional(),
+});

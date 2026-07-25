@@ -3,21 +3,30 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, FileText, AlertTriangle, UserPlus, Images } from "lucide-react";
+import { Users, FileText, AlertTriangle, UserPlus, Images, Mail } from "lucide-react";
 import { UserManagement } from "@/components/admin/user-management";
 import { ReportManagement } from "@/components/admin/report-management";
 import { PhotoQueue } from "@/components/admin/photo-queue";
 import { VerificationQueue } from "@/components/admin/verification-queue";
+import { MessageQueue } from "@/components/admin/message-queue";
 
 export const metadata: Metadata = {
   title: "Admin",
 };
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  // ?thread=<id> comes from the notification an admin gets when a member
+  // writes in, so the row they were told about opens straight away.
+  searchParams: Promise<{ thread?: string }>;
+}) {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") {
     redirect("/feed");
   }
+
+  const { thread: openThreadId } = await searchParams;
 
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -69,6 +78,35 @@ export default async function AdminPage() {
     orderBy: { createdAt: "asc" },
   });
 
+  // Member <-> admin conversations. Unanswered first, then by recency, so the
+  // queue reads top-down. Capped at 40 threads (with their messages) to keep
+  // this one page query honest as the archive grows.
+  const messageThreads = await prisma.adminThread.findMany({
+    orderBy: [{ adminUnread: "desc" }, { lastMessageAt: "desc" }],
+    take: 40,
+    select: {
+      id: true,
+      subject: true,
+      kind: true,
+      status: true,
+      adminUnread: true,
+      lastMessageAt: true,
+      member: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+      messages: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          body: true,
+          imageUrl: true,
+          fromAdmin: true,
+          createdAt: true,
+          author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+        },
+      },
+    },
+  });
+  const unansweredMessages = messageThreads.filter((t) => t.adminUnread).length;
+
   const reports = await prisma.report.findMany({
     where: { status: "pending" },
     include: {
@@ -89,6 +127,7 @@ export default async function AdminPage() {
     { label: "Total Members", value: totalUsers, icon: Users },
     { label: "Total Posts", value: totalPosts, icon: FileText },
     { label: "New This Week", value: newSignups, icon: UserPlus },
+    { label: "Waiting on a Reply", value: unansweredMessages, icon: Mail },
     { label: "Pending Reports", value: pendingReports, icon: AlertTriangle },
     { label: "Photos to Review", value: pendingPhotos.length, icon: Images },
   ];
@@ -117,6 +156,29 @@ export default async function AdminPage() {
           </Card>
         ))}
       </div>
+
+      {/* Messages from members (the in-app replacement for the old Tally form) */}
+      <section id="messages" className="scroll-mt-6">
+        <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
+          Messages{unansweredMessages > 0 ? ` (${unansweredMessages} waiting)` : ""}
+        </h2>
+        <MessageQueue
+          initialOpenId={openThreadId}
+          threads={messageThreads.map((t) => ({
+            id: t.id,
+            subject: t.subject,
+            kind: t.kind,
+            status: t.status,
+            adminUnread: t.adminUnread,
+            lastMessageAt: t.lastMessageAt.toISOString(),
+            member: t.member,
+            messages: t.messages.map((m) => ({
+              ...m,
+              createdAt: m.createdAt.toISOString(),
+            })),
+          }))}
+        />
+      </section>
 
       {/* Reported Posts */}
       <section>
