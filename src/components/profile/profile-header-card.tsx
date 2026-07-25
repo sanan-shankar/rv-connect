@@ -201,7 +201,7 @@ export function ProfileHeaderCard({
             </h1>
 
             {metaLine && (
-              <p className="mt-[var(--space-xs)] text-[14.5px] leading-snug text-muted-foreground">
+              <p className="mt-[var(--space-xs)] text-[14px] leading-snug text-muted-foreground">
                 {metaLine}
               </p>
             )}

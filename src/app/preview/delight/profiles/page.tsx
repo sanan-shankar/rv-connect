@@ -23,6 +23,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PeaksMark } from "@/components/layout/peaks-mark";
+import { Sidebar } from "@/components/layout/sidebar";
 import { SpringPress } from "@/components/common/motion";
 import { PROFILE } from "./_data";
 import LetterheadVariant from "./_variant-letterhead";
@@ -47,6 +48,17 @@ const CONCEPTS = [
 
 type ConceptKey = (typeof CONCEPTS)[number]["key"];
 
+/** Stand-in signed-in viewer, purely so the sidebar's footer chip renders. */
+const PREVIEW_VIEWER = {
+  id: "preview-viewer",
+  name: "Sanan Shankar",
+  email: "sanan@example.com",
+  role: "member",
+  avatarColor: null,
+  photoUrl: null,
+  birdOverride: null,
+};
+
 function isConceptKey(value: string | null): value is ConceptKey {
   return !!value && CONCEPTS.some((c) => c.key === value);
 }
@@ -69,7 +81,7 @@ function ProfileConceptsHarness() {
       <header className="glass sticky top-0 z-[var(--z-elevated)] flex flex-wrap items-center gap-4 border-b border-border px-6 py-3">
         <Link
           href="/preview/delight"
-          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground transition-transform duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-px hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.97]"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
         >
           <PeaksMark size={16} />
           Delight
@@ -97,9 +109,27 @@ function ProfileConceptsHarness() {
         </nav>
       </header>
 
-      <main>
-        <Active profile={PROFILE} />
-      </main>
+      {/* The concepts are judged INSIDE the app, not on a bare white page:
+          same flush green sidebar, same faint valley back-layer, same <main>
+          gutter and max width as `AppShell`. Without this the previews looked
+          nothing like the thing they are proposals for, and every judgement
+          about weight and empty space was being made against the wrong
+          background (owner: "have the faint tree background that I have in the
+          app so I can see how it actually looks, and have the sidebar there to
+          make it more realistic"). */}
+      <div className="relative min-h-screen bg-background md:flex">
+        <div
+          aria-hidden
+          className="valley-tree pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-[0.11]"
+          style={{ backgroundImage: "url(/images/landing.jpeg)" }}
+        />
+        <Sidebar user={PREVIEW_VIEWER} unreadCount={0} />
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+          <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 py-6 sm:px-7 lg:px-10 lg:py-8">
+            <Active profile={PROFILE} />
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
