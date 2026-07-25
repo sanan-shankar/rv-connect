@@ -358,7 +358,7 @@ export default function NotFound() {
       onPointerDown={onStageDown}
       className="relative flex min-h-svh flex-col items-center justify-center bg-background px-6 text-center"
     >
-      <h1 className="font-heading text-[clamp(4.5rem,14vw,7rem)] font-bold leading-[0.85] tracking-[-0.03em] text-leaf">
+      <h1 className="font-heading text-[clamp(4.25rem,13vw,6.5rem)] font-bold leading-[0.85] tracking-[-0.03em] text-leaf">
         404
       </h1>
       <h2 className="mt-[var(--space-s)] font-heading text-2xl font-bold tracking-[-0.01em] text-foreground">

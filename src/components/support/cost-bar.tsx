@@ -1,10 +1,17 @@
 "use client";
 
-/* The fun centerpiece of the costs section: a colorful, animated bar showing
-   where the monthly bill goes, with the yearly domain renewal called out
-   alongside it as its own small pill. This replaces what used to be a stark,
-   ledger-style table -- the owner liked the color, hated the seriousness, so
-   the color visual now leads and the numbers ride along with it.
+/* The two cost visuals on /support.
+
+   CostBar is the colorful, animated breakdown of the recurring monthly bill.
+   This replaces what used to be a stark, ledger-style table -- the owner liked
+   the color, hated the seriousness, so the color visual leads and the numbers
+   ride along with it. The domain is billed monthly (₹250) like everything else,
+   so all three costs sit inside the one bar, which also keeps all three brand
+   colours represented.
+
+   BuildFundBar is the fundraiser-style bar underneath it, tracking how much of
+   the one-time cost of designing and building the site has been recovered.
+
    transform/opacity only. Rupees throughout, no vendor names. */
 
 import { useEffect, useRef, useState } from "react";
@@ -13,30 +20,37 @@ import { IndianRupee } from "lucide-react";
 import { SPRINGS, useMotionGovernor } from "@/components/common/motion";
 
 const SEGMENTS = [
-  { label: "Hosting", value: 1700, color: "var(--color-canopy)" },
+  { label: "Hosting", value: 1950, color: "var(--color-canopy)" },
   { label: "Photos", value: 90, color: "var(--color-sky)" },
+  { label: "Domain", value: 250, color: "var(--color-cinnamon)" },
 ];
 const MONTHLY_TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
 
-export function CostBar() {
+/* The one-time cost of designing and building the site, and how much of it has
+   come back so far. Nothing tracks contributions automatically (there is no
+   payment processor, just UPI), so RECOVERED is a figure the owner edits by
+   hand as money actually arrives. */
+const BUILD_COST = 400000;
+const BUILD_RECOVERED = 0;
+
+/* Counts a figure up from 0 the first time the card scrolls into view, paired
+   with the bar fill so the number and the bar land together. A rAF ease-out
+   cubic over ~950ms, seeded from the first frame timestamp (not a render-scope
+   clock). Plays regardless of the OS reduced-motion setting; only a hidden tab
+   pauses the in-flight count (battery courtesy), resuming from where it left
+   off rather than jumping. */
+function useCountUpOnView(target: number) {
   const ref = useRef<HTMLDivElement>(null);
   const raf = useRef<number | null>(null);
-  // Plays regardless of the OS reduced-motion setting; only a hidden tab
-  // pauses the in-flight count (battery courtesy), resuming from where it
-  // left off rather than jumping.
   const { paused } = useMotionGovernor();
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
   const [shown, setShown] = useState(false);
-  // The figure counts up from 0 to MONTHLY_TOTAL paired with the bar fill, on
-  // the same scroll-into-view trigger, so the count and the bar land together.
-  const [amount, setAmount] = useState(0);
+  const [value, setValue] = useState(0);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // Count the figure up on the same trigger as the bar: a rAF ease-out cubic
-    // over ~950ms, seeded from the first frame timestamp (not a render-scope clock).
     function runCount() {
       if (raf.current) cancelAnimationFrame(raf.current);
       const dur = 950;
@@ -54,7 +68,7 @@ export function CostBar() {
         lastNow = now;
         const t = Math.min(1, elapsed / dur);
         const e = 1 - Math.pow(1 - t, 3);
-        setAmount(Math.round(MONTHLY_TOTAL * e));
+        setValue(Math.round(target * e));
         if (t < 1) raf.current = requestAnimationFrame(tick);
       };
       raf.current = requestAnimationFrame(tick);
@@ -77,7 +91,13 @@ export function CostBar() {
       io.disconnect();
       if (raf.current) cancelAnimationFrame(raf.current);
     };
-  }, []);
+  }, [target]);
+
+  return { ref, shown, value };
+}
+
+export function CostBar() {
+  const { ref, shown, value } = useCountUpOnView(MONTHLY_TOTAL);
 
   return (
     <div
@@ -90,7 +110,7 @@ export function CostBar() {
         </p>
         <p className="inline-flex items-center gap-0.5 text-lg font-semibold tabular-nums text-canopy">
           <IndianRupee className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-          {amount.toLocaleString("en-IN")}
+          {value.toLocaleString("en-IN")}
           <span className="ml-1 text-sm font-medium text-muted-foreground">/month</span>
         </p>
       </div>
@@ -125,15 +145,55 @@ export function CostBar() {
             </span>
           </span>
         ))}
-        {/* Domain renews yearly, not monthly, so it rides alongside the bar
-            rather than inside it, in cinnamon to keep all three brand colors
-            represented in the one visual. */}
-        <span className="inline-flex items-center gap-[var(--space-xxs)] rounded-full border border-cinnamon/30 bg-cinnamon/10 px-[var(--space-s)] py-[var(--space-xxs)] text-xs font-medium text-cinnamon">
-          <span className="inline-block h-2 w-2 rounded-full bg-cinnamon" />
-          Domain
-          <span className="opacity-80">~₹2,500 / year</span>
-        </span>
       </div>
+    </div>
+  );
+}
+
+export function BuildFundBar() {
+  const { ref, shown, value } = useCountUpOnView(BUILD_RECOVERED);
+  const pct = Math.min(100, (BUILD_RECOVERED / BUILD_COST) * 100);
+
+  return (
+    <div
+      ref={ref}
+      className="card-elevated mt-[var(--space-m)] rounded-[var(--radius-lg)] border border-border bg-card p-[var(--space-l)]"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xxs)]">
+        <p className="font-heading text-base font-bold text-foreground">
+          Recovering what it cost to build
+        </p>
+        <p className="inline-flex items-center gap-0.5 text-lg font-semibold tabular-nums text-canopy">
+          <IndianRupee className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+          {value.toLocaleString("en-IN")}
+          <span className="ml-1 text-sm font-medium text-muted-foreground">
+            of ₹{BUILD_COST.toLocaleString("en-IN")}
+          </span>
+        </p>
+      </div>
+
+      <div
+        className="mt-[var(--space-m)] h-5 w-full overflow-hidden rounded-full bg-mist p-1"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={BUILD_COST}
+        aria-valuenow={BUILD_RECOVERED}
+        aria-label="Progress towards recovering the one-time cost of building the site"
+      >
+        <motion.div
+          className="h-full origin-left rounded-full bg-leaf"
+          initial={{ scaleX: 0 }}
+          animate={shown ? { scaleX: pct / 100 } : { scaleX: 0 }}
+          transition={SPRINGS.gentle}
+          style={{ width: "100%" }}
+        />
+      </div>
+
+      <p className="mt-[var(--space-m)] text-sm leading-relaxed text-muted-foreground">
+        This one is a goal, not an expectation. It is the one-time cost of
+        designing and building the site, shown here simply because it is the
+        honest number. Nothing about the site changes if it never fills up.
+      </p>
     </div>
   );
 }

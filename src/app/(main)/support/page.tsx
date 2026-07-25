@@ -2,17 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { SupportContribute } from "@/components/support/support-contribute";
-import { CostBar } from "@/components/support/cost-bar";
+import { BuildFundBar, CostBar } from "@/components/support/cost-bar";
 
 export const metadata: Metadata = {
   title: "Support",
   description: "Help keep the Rishi Valley community running.",
 };
 
-// Owner may later opt into publishing the one-time build cost on this page
-// (a figure around $3,000 went into designing and building the site itself).
-// Until that's confirmed, the page only acknowledges it in a sentence below,
-// with no number attached.
+// The owner opted into publishing the one-time build cost: it now runs as a
+// fundraiser-style bar (BuildFundBar, ₹4,00,000 goal) under the monthly bill.
+// The amount recovered is a hand-maintained constant in cost-bar.tsx, since
+// nothing tracks UPI contributions automatically.
 
 export default function SupportPage() {
   return (
@@ -55,14 +55,15 @@ export default function SupportPage() {
           What it actually costs
         </h2>
         <p className="leading-relaxed text-foreground">
-          A real, one-time cost went into designing and building the site
-          itself. What is below is not that. This is just the small monthly
-          bill for keeping it running, in rupees, exactly as it is.
+          Two numbers, in rupees, exactly as they are. The small monthly bill
+          for keeping the site running, and the one-time cost that went into
+          designing and building it.
         </p>
         <CostBar />
         <p className="mt-[var(--space-s)] text-sm leading-relaxed text-muted-foreground">
           A few people chipping in comfortably covers the whole month.
         </p>
+        <BuildFundBar />
       </section>
 
       {/* Contribution panel, sitting over the fixed background via .glass */}
