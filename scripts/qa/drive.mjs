@@ -54,7 +54,73 @@ async function clickByText(page, selector, text) {
   return el;
 }
 
+/**
+ * Scenarios that must run signed OUT. The landing page is the obvious one:
+ * signed-in visitors are redirected off it to /feed by the proxy, so
+ * authenticating first would make the landing scenarios unreachable.
+ */
+const NO_AUTH = new Set(["slide"]);
+
 const SCENARIOS = {
+  /**
+   * Measure the landing -> /login photo slide. Prints displacement over time so
+   * the CURVE is visible, not just the duration: an ease-in-out should crawl
+   * out of 0%, cover most of the distance in the middle third, and settle
+   * gently, whereas the old ease-out curve jumped to ~40% within two frames.
+   */
+  async slide({ page }) {
+    await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+    await sleep(6000);
+    const result = await page.evaluate(async () => {
+      const img = document.querySelector('img[src*="landing"]');
+      if (!img) return { error: "hero image not found" };
+      const layer = img.parentElement;
+      // Scope to the hero SECTION: the sticky nav also has a "Sign in" link and
+      // comes first in DOM order, but only the hero's CTA carries the exit
+      // choreography (the nav one just navigates).
+      const hero = img.closest("section");
+      if (!hero) return { error: "hero section not found" };
+      const signIn = [...hero.querySelectorAll("a")].find((a) =>
+        /sign in/i.test(a.textContent || "")
+      );
+      if (!signIn) return { error: "hero sign-in link not found" };
+      const diag = {
+        layerClass: layer.className,
+        transformBefore: getComputedStyle(layer).transform,
+      };
+
+      const out = [];
+      const t0 = performance.now();
+      signIn.click();
+      await new Promise((resolve) => {
+        const tick = () => {
+          const m = new DOMMatrixReadOnly(getComputedStyle(layer).transform);
+          out.push({ t: Math.round(performance.now() - t0), x: Math.round(m.m41) });
+          if (performance.now() - t0 < 1400) requestAnimationFrame(tick);
+          else resolve();
+        };
+        requestAnimationFrame(tick);
+      });
+      return { out, diag, transformAfter: getComputedStyle(layer).transform };
+    });
+
+    if (result.diag) console.log("layer:", JSON.stringify(result.diag));
+    if (result.error) {
+      console.log("MEASURE FAILED:", result.error);
+      return;
+    }
+    const s = result.out;
+    const target = s.reduce((a, b) => (Math.abs(b.x) > Math.abs(a.x) ? b : a)).x;
+    console.log(`slide target x = ${target}px`);
+    for (const ms of [0, 90, 180, 270, 360, 450, 540, 630, 720, 810, 900, 1000, 1100]) {
+      const p = s.reduce((a, b) => (Math.abs(b.t - ms) < Math.abs(a.t - ms) ? b : a));
+      const pct = target ? Math.round((p.x / target) * 100) : 0;
+      console.log(
+        `  t=${String(p.t).padStart(4)}ms  x=${String(p.x).padStart(6)}  ${String(pct).padStart(3)}%  ${"#".repeat(Math.max(0, Math.round(pct / 3)))}`
+      );
+    }
+  },
+
   /** Houses picker: open a year's panel and confirm it does not cover the year rows. */
   async houses({ page, shot }) {
     await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
@@ -154,19 +220,21 @@ page.on("console", (m) => {
   if (m.type() === "error") console.log("CONSOLE ERROR:", m.text());
 });
 
-await page.goto(BASE, { waitUntil: "domcontentloaded" });
-const auth = await page.evaluate(async (email) => {
-  const res = await fetch("/api/auth/admin-login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-  return res.ok;
-}, adminEmail);
-if (!auth) {
-  console.error("auth failed");
-  await browser.close();
-  process.exit(1);
+if (!NO_AUTH.has(scenarioName)) {
+  await page.goto(BASE, { waitUntil: "domcontentloaded" });
+  const auth = await page.evaluate(async (email) => {
+    const res = await fetch("/api/auth/admin-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    return res.ok;
+  }, adminEmail);
+  if (!auth) {
+    console.error("auth failed");
+    await browser.close();
+    process.exit(1);
+  }
 }
 
 let n = 0;
