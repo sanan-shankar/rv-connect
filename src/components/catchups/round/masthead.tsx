@@ -80,16 +80,6 @@ export function RoundMasthead({
       className="relative -mx-5 overflow-hidden border-b border-border/70 px-5 pb-9 pt-8 sm:-mx-7 sm:px-7 lg:-mx-10 lg:px-10 lg:pb-12 lg:pt-10"
       aria-label="Round masthead"
     >
-      {/* Layered warm wash, matching the AlmostReady / card-elevated language
-          rather than a flat fill, so the band has depth. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(90% 140% at 0% 0%, color-mix(in srgb, var(--color-leaf) 7%, transparent), transparent 60%), radial-gradient(70% 120% at 100% 0%, color-mix(in srgb, var(--color-cinnamon) 6%, transparent), transparent 55%)",
-        }}
-      />
 
       <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">

@@ -93,7 +93,7 @@ function VerifiedMarkInner({
              deliberate rather than an accident of inheritance) and tracking is reset and opened
              up rather than left to inherit; text also grew 11px -> 12.5px, since a serif this
              small needs a touch more size to stay quiet AND legible at once. */
-          "pointer-events-none absolute top-1/2 z-30 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1 font-heading text-[12.5px] font-normal tracking-[0.02em] text-background transition-opacity duration-150",
+          "pointer-events-none absolute top-1/2 z-30 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1 font-heading text-[11.5px] font-normal tracking-[0.02em] text-background transition-opacity duration-150",
           side === "right" ? "left-full ml-2" : "right-full mr-2",
           open ? "opacity-100" : "opacity-0"
         )}

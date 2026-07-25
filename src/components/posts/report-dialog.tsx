@@ -65,26 +65,15 @@ export function ReportDialog({
           <SelectTrigger>
             <SelectValue placeholder="Select a reason" />
           </SelectTrigger>
-          {/* The shared Select's popup defaults to `w-(--anchor-width)` (matches the
-              trigger's own width) with a 144px floor. The trigger here is only ever
-              as wide as its placeholder/current value, which is narrower than the
-              longest reason ("Inappropriate content") -- so that text was overflowing
-              its item's right-side padding (reserved for the check icon), landing
-              almost flush against the popup's edge while the left padding stayed
-              intact. `w-max` sizes the popup to its widest item instead, and
-              `min-w-(--anchor-width)` keeps it from ever rendering narrower than the
-              trigger once a long reason is selected. Paired with `pl-8` (matching the
-              existing `pr-8` reserved for the check icon) on every item below, so the
-              left/right padding around the text reads even instead of the check-icon
-              gutter only existing on one side. Scoped to this dialog via className,
-              not a change to the shared primitive. */}
-          <SelectContent className="w-max min-w-(--anchor-width)">
-            <SelectItem value="Inappropriate content" className="pl-8">
-              Inappropriate content
-            </SelectItem>
-            <SelectItem value="Spam" className="pl-8">Spam</SelectItem>
-            <SelectItem value="Harassment" className="pl-8">Harassment</SelectItem>
-            <SelectItem value="Other" className="pl-8">Other</SelectItem>
+          {/* Fit the popup to its widest item so "Inappropriate content" never
+              truncates against the trigger's narrow width, but no wider: `w-fit`
+              plus the shared 144px floor. Standard item padding (same as every
+              other Select in the app), so it stays compact, not sprawling. */}
+          <SelectContent className="w-fit">
+            <SelectItem value="Inappropriate content">Inappropriate content</SelectItem>
+            <SelectItem value="Spam">Spam</SelectItem>
+            <SelectItem value="Harassment">Harassment</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
 
