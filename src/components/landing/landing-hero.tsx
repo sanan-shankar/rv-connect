@@ -10,7 +10,7 @@ import { Wordmark } from "@/components/layout/peaks-mark";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
-import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
+import { SPRINGS, EASE_IN_OUT_SCENE, AUTH_SLIDE_SECONDS } from "@/components/common/motion";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, AUTH_FORM_VW, LOGIN_TRANSITION_FLAG } from "./hero-photo";
 import { launchFlight, FLIGHT_FLAG, type FlightTarget } from "@/components/mascot/mascot-flight";
 
@@ -49,15 +49,17 @@ const LOADER_EXIT_MS = 300;
 const washLandingVariants: Variants = {
   loading: { opacity: 0 },
   shown: { opacity: 1, transition: { duration: 0.6 } },
-  exiting: { opacity: 0, transition: { duration: 0.4 } },
+  exiting: { opacity: 0, transition: { duration: AUTH_SLIDE_SECONDS * 0.6 } },
 };
 
 // The /login-matching corner gradient is invisible on the resting landing and
 // fades in only during the exit, so the handoff frame matches /login exactly.
+// Crossfades over most of the slide so the two washes trade places gradually
+// rather than snapping over midway.
 const washLoginVariants: Variants = {
   loading: { opacity: 0 },
   shown: { opacity: 0 },
-  exiting: { opacity: 1, transition: { duration: 0.5 } },
+  exiting: { opacity: 1, transition: { duration: AUTH_SLIDE_SECONDS * 0.8 } },
 };
 
 const brandVariants: Variants = {
@@ -69,13 +71,19 @@ const brandVariants: Variants = {
 const middleVariants: Variants = {
   loading: { opacity: 0, y: 16 },
   shown: { opacity: 1, y: 0, transition: SPRINGS.gentle },
-  exiting: { opacity: 0, x: -84, transition: { duration: 0.5, ease: EASE_OUT_SMOOTH } },
+  exiting: {
+    opacity: 0,
+    x: -84,
+    // Leaves on the same curve as the photo, just a touch quicker, so the
+    // headline clears the frame before the photo finishes travelling.
+    transition: { duration: AUTH_SLIDE_SECONDS * 0.72, ease: EASE_IN_OUT_SCENE },
+  },
 };
 
 const nudgeVariants: Variants = {
   loading: { opacity: 0 },
   shown: { opacity: 1, transition: { duration: 0.5 } },
-  exiting: { opacity: 0, transition: { duration: 0.3 } },
+  exiting: { opacity: 0, transition: { duration: AUTH_SLIDE_SECONDS * 0.4 } },
 };
 
 const sectionVariants: Variants = {
@@ -110,7 +118,12 @@ export function LandingHero() {
   const imageVariants: Variants = {
     loading: { opacity: 0, scale: 1.05, x: 0 },
     shown: { opacity: 1, scale: 1, x: 0, transition: SPRINGS.gentle },
-    exiting: { opacity: 1, scale: 1, x: slidePx, transition: { duration: 0.62, ease: EASE_OUT_SMOOTH } },
+    exiting: {
+      opacity: 1,
+      scale: 1,
+      x: slidePx,
+      transition: { duration: AUTH_SLIDE_SECONDS, ease: EASE_IN_OUT_SCENE },
+    },
   };
 
   // LOAD-IN: reveal only once the DISPLAYED hero photo (the next/image) has
@@ -297,7 +310,7 @@ export function LandingHero() {
                 <Link
                   href="/signup"
                   onClick={(e) => startExit(e, "signup")}
-                  className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
+                  className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-[colors,transform] duration-200 hover:bg-white/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30"
                 >
                   Join the community
                 </Link>
