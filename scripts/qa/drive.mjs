@@ -121,6 +121,28 @@ const SCENARIOS = {
     }
   },
 
+  /** Shipped profile: resolve a real member from the directory, then capture it. */
+  async profile({ page, shot }) {
+    await page.goto(`${BASE}/directory`, { waitUntil: "domcontentloaded" });
+    await sleep(5000);
+    // The directory opens on the map, so the people grid is below the fold.
+    // Scroll it in, then fall back to the sidebar's own-profile chip.
+    await page.evaluate(() => window.scrollBy(0, 1600));
+    await sleep(2500);
+    const href = await page.evaluate(() => {
+      const a = [...document.querySelectorAll('a[href^="/profile/"]')][0];
+      return a ? a.getAttribute("href") : null;
+    });
+    if (!href) throw new Error("no profile link found");
+    console.log("profile:", href);
+    await page.goto(`${BASE}${href}`, { waitUntil: "domcontentloaded" });
+    await sleep(5000);
+    await shot("top");
+    await page.evaluate(() => window.scrollBy(0, 620));
+    await sleep(900);
+    await shot("scrolled");
+  },
+
   /** Houses picker: open a year's panel and confirm it does not cover the year rows. */
   async houses({ page, shot }) {
     await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
