@@ -29,7 +29,7 @@ export const M = {
   letterCard: 224.9,
   letterPitch: 240.9,
   letterCount: 6,
-  letterColumn: 1444.8, // 6 * 240.9
+  letterColumn: 1429.4, // 5 * 240.9 pitch + 224.9 for the last card
   settingsDoc: 3092,
   settingsCards: 8,
   dirCard: 183.8,
