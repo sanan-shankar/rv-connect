@@ -96,7 +96,7 @@ export function EditPostDialog({
                   key={t.value}
                   type="button"
                   onClick={() => setTag(tag === t.value ? null : t.value)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                     tag === t.value
                       ? "bg-canopy/10 text-canopy ring-2 ring-canopy/50"
                       : "bg-muted text-muted-foreground hover:bg-accent"

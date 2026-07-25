@@ -43,7 +43,6 @@ export function ShareButton({
       type="button"
       onClick={handleShare}
       aria-label={label}
-      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.93 }}
       transition={SPRINGS.snappy}
       className={`flex items-center rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${className}`}

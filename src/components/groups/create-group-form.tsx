@@ -124,7 +124,7 @@ export function CreateGroupForm({ batchYears, currentUserId }: Props) {
             <button
               type="button"
               onClick={() => setCoverImage(null)}
-              className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-transform duration-150 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+              className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-[colors,transform] duration-150 hover:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
               aria-label="Remove cover"
             >
               <X className="h-3.5 w-3.5" />

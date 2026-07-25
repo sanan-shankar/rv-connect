@@ -35,7 +35,7 @@ export function ActiveFilterChips({
           onClick={chip.onClear}
           className={cn(
             PILL_SET,
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-1.5 text-[12.5px] font-medium transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-1.5 text-[12.5px] font-medium transition-[colors,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
           )}
         >
           <span className="truncate">{chip.label}</span>

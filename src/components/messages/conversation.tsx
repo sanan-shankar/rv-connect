@@ -101,7 +101,7 @@ function MessageRow({
               href={message.imageUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 block w-fit overflow-hidden rounded-lg border border-border transition-transform duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+              className="mt-3 block w-fit overflow-hidden rounded-lg border border-border transition-[colors,transform] duration-150 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
             >
               <Image
                 src={message.imageUrl}

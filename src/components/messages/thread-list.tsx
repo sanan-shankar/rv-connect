@@ -37,7 +37,7 @@ export function ThreadList({ threads }: { threads: ThreadListRow[] }) {
           <li key={t.id}>
             <Link
               href={`/messages/${t.id}`}
-              className="card-elevated group flex items-start gap-3.5 rounded-[var(--radius)] border border-border bg-card p-4 transition-transform duration-150 ease-out hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.995]"
+              className="card-elevated group flex items-start gap-3.5 rounded-[var(--radius)] border border-border bg-card p-4 transition-[colors,transform] duration-150 ease-out hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.995]"
             >
               <span
                 aria-hidden

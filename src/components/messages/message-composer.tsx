@@ -158,7 +158,7 @@ export function MessageComposer({
                 type="button"
                 onClick={() => setImageUrl(null)}
                 aria-label="Remove this screenshot"
-                className="absolute -right-2 -top-2 grid size-6 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_3px_rgba(30,28,22,0.12)] transition-transform duration-150 hover:-translate-y-px hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+                className="absolute -right-2 -top-2 grid size-6 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_3px_rgba(30,28,22,0.12)] transition-[colors,transform] duration-150 hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
               >
                 <X className="size-3.5" strokeWidth={2.2} />
               </button>

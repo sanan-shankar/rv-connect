@@ -24,7 +24,7 @@ interface ProfileCardProps {
 export function ProfileCard({ user }: ProfileCardProps) {
   return (
     <Link href={`/profile/${user.id}`} className="group block">
-      <div className="card-elevated flex h-full flex-col items-center rounded-[var(--radius)] border border-border bg-card p-5 text-center transition-transform duration-200 group-hover:-translate-y-0.5">
+      <div className="card-elevated flex h-full flex-col items-center rounded-[var(--radius)] border border-border bg-card p-5 text-center transition-colors duration-200 group-hover:border-canopy/40">
         <BirdAvatar
           user={{ id: user.id, name: user.name, photoUrl: user.photoUrl, birdOverride: user.birdOverride }}
           size="md"
