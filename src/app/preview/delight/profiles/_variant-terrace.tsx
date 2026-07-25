@@ -4,37 +4,51 @@
  *  Concept C: Terrace
  *
  *  The warm, alive one. The colour comes from the SURFACE, not from a
- *  blown-up photograph: the top band is a layered field of low-opacity
- *  canopy / sky / cinnamon radials with a fine SVG grain over them, and
- *  the same field carries on down the page at a fraction of the strength
- *  so no width ever bottoms out into bare paper.
+ *  blown-up photograph: the identity band is a layered field of
+ *  low-opacity canopy / sky / cinnamon radials with a fine SVG grain
+ *  over them. That field, the tilted square photo plate sitting on it,
+ *  and the asymmetric body underneath are the whole concept.
  *
- *  The one uploaded picture sits ON that field as a square plate, tipped
- *  a couple of degrees and overlapping down past the band's edge like a
- *  photo left on a terrace table. It ends at a hard border. There is no
- *  fade from the picture into the card, no letterboxed sliver, and no
- *  decorative glyph parked anywhere.
+ *  The page sits INSIDE the real app frame (flush green sidebar, faint
+ *  valley back-layer, a <main> capped at 1280 with its own gutters), so
+ *  nothing here paints its own page background, sets its own max width,
+ *  or bleeds past the shell's gutters. The band is a card in that
+ *  column, not a full-bleed header.
  *
  *  Composition:
  *    - Desktop: plate on the left, name and facts to its right, the
- *      admission stamp and the valley years anchored at the far right of
- *      the band. Under it, the houses trail gets the full width to
- *      itself as the hero element. Then an asymmetric
- *      [minmax(0,1fr)_320px] body: folder tabs on the left, a sticky
- *      rail on the right.
+ *      admission stamp anchored at the far right of the band. The plate
+ *      hangs a little past the band's bottom edge like a photo left on a
+ *      terrace table. Under it, an asymmetric [minmax(0,1fr)_320px]
+ *      body: folder tabs on the left, a sticky rail on the right.
  *    - Mobile: one column, plate first, then name, facts, actions,
- *      houses, tabs, rail. Nothing floats, nothing straddles.
+ *      tabs, rail. Nothing floats, nothing straddles.
  *
- *  Owner rules honoured verbatim: About is the first and default tab;
- *  hover never moves anything (colour only, presses may sink); email and
- *  phone live behind "Get in touch" and are never printed by the name;
- *  the valley years read "2014-2021" with no year count; solid hairlines
- *  only; nothing on the page captures the page scroll.
+ *  Houses are a QUIET STRIP, not a headline. Owner, round 3: "house is
+ *  just a fun thing, it's not that important, you're making it 50% of
+ *  the profile." So the trail is one more entry in the About tab's facts
+ *  grid, under the same small label every other fact gets: no heading,
+ *  no subtitle, no band of its own. The pills themselves are the shipped
+ *  <HouseTrail>, drawn in exactly one place.
  *
- *  Naming is deliberately plain. The owner liked Field Guide's life and
- *  colour but called its "observations" / "field notes" register cringe,
- *  so every label here is the word a person would actually say: Houses,
- *  About, Posts, Letters, Find them, Get in touch.
+ *  Type ladder, one rung per job, nothing in between:
+ *    name        font-heading 30 / 40 / 46
+ *    letter title font-heading 20
+ *    body + prose 15 / 1.7, sans (never the serif: a different typeface
+ *                 a size up read as a mistake, not as emphasis)
+ *    small        13.5
+ *    secondary    12.5
+ *    labels       10.5 uppercase
+ *  font-heading is the person's name and letter titles. Nothing else.
+ *
+ *  The bird's species is never painted. It is one click away on the
+ *  avatar (and in its aria-label), which is where the owner wants it.
+ *
+ *  Other owner rules honoured verbatim: About is the first and default
+ *  tab; hover never moves anything (colour only, presses may sink);
+ *  email and phone live behind "Get in touch" and are never printed by
+ *  the name; the valley years read "2014-2021" with no year count; solid
+ *  hairlines only; nothing on the page captures the page scroll.
  * ------------------------------------------------------------------ */
 
 import { useState, type ReactNode } from "react";
@@ -64,6 +78,10 @@ import {
  *  reads as warm afternoon light on a wall rather than a flat token
  *  colour. This is where the concept's colour lives, which is exactly
  *  why the photograph does not have to be huge.
+ *
+ *  It is scoped to the band. The page behind it belongs to the app
+ *  shell (background + faint valley photo), and a concept that repaints
+ *  that is fighting the frame it will actually ship inside.
  * ------------------------------------------------------------------ */
 const GRAIN_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">' +
@@ -73,29 +91,11 @@ const GRAIN_SVG =
 
 const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(GRAIN_SVG)}")`;
 
-/** The top band: the strongest reading of the field. */
 const TERRACE_FIELD = [
   "radial-gradient(920px 540px at 4% -16%, rgba(35,92,73,0.22), transparent 62%)",
   "radial-gradient(780px 500px at 84% -12%, rgba(63,124,166,0.18), transparent 60%)",
   "radial-gradient(960px 600px at 64% 122%, rgba(194,98,47,0.17), transparent 64%)",
   "radial-gradient(640px 440px at 22% 124%, rgba(31,138,76,0.13), transparent 60%)",
-  GRAIN,
-].join(", ");
-
-/** The rest of the page: the same light, much further away. Keeps 1920 from
-    stranding the content in an ocean of bare paper. */
-const PAGE_FIELD = [
-  "radial-gradient(1200px 900px at 100% 2%, rgba(63,124,166,0.055), transparent 58%)",
-  "radial-gradient(1100px 900px at -6% 34%, rgba(35,92,73,0.055), transparent 56%)",
-  "radial-gradient(1000px 800px at 74% 104%, rgba(194,98,47,0.05), transparent 60%)",
-  GRAIN,
-].join(", ");
-
-/** The houses plinth's own inner light, so the hero element sits in a pool
-    of warmth instead of on plain card colour. */
-const PLINTH_FIELD = [
-  "radial-gradient(620px 220px at 50% -10%, rgba(35,92,73,0.09), transparent 66%)",
-  "radial-gradient(720px 260px at 50% 118%, rgba(194,98,47,0.08), transparent 66%)",
   GRAIN,
 ].join(", ");
 
@@ -182,6 +182,10 @@ function buildContact(profile: MockProfile): { methods: ContactMethod[]; vcard: 
 /* ------------------------------------------------------------------ *
  *  Small shared pieces
  * ------------------------------------------------------------------ */
+
+/** The ONE label style on this page: 10.5px, uppercase, cinnamon by
+    default, recoloured by the caller (facts use canopy). Every small
+    label goes through here so no two of them drift apart. */
 function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <p
@@ -195,7 +199,9 @@ function Eyebrow({ children, className }: { children: ReactNode; className?: str
   );
 }
 
-/** One label + value pair. Label small and canopy, value in the serif. */
+/** One label + value pair. Value is body size in the body face: a fact is
+    not a heading, and the serif at a bigger size was the exact mismatch
+    the owner flagged on About. */
 function Fact({
   label,
   value,
@@ -207,8 +213,8 @@ function Fact({
 }) {
   return (
     <div className={cn("min-w-0", className)}>
-      <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-canopy/80">{label}</p>
-      <p className="mt-[var(--space-xxs)] font-heading text-[15.5px] font-semibold leading-snug tracking-[-0.01em] text-foreground">
+      <Eyebrow className="text-canopy/80">{label}</Eyebrow>
+      <p className="mt-[var(--space-xxs)] text-[15px] font-semibold leading-snug text-foreground">
         {value}
       </p>
     </div>
@@ -251,12 +257,14 @@ function RailCard({
  * ------------------------------------------------------------------ */
 function PhotoPlate({ profile }: { profile: MockProfile }) {
   return (
-    // The negative bottom margin is what makes the plate hang past the band's
-    // edge on desktop: it stops the plate's full height from counting toward
-    // the band, so the picture pokes into the content below. Mobile keeps the
+    // The negative bottom margin is what lets the plate hang past the band's
+    // edge on desktop: it holds back part of the plate's height from the row,
+    // so the picture pokes into the gap below. It is also self-limiting -- a
+    // short identity column can never make the overhang grow, because the
+    // plate's own reduced height then sets the row height. Mobile keeps the
     // plate in normal flow, because there it is simply the first thing in the
     // column and nothing should sit under it.
-    <div className="relative z-[var(--z-elevated)] w-[200px] shrink-0 sm:w-[224px] lg:-mb-[92px] lg:w-[240px]">
+    <div className="relative z-[var(--z-elevated)] w-[200px] shrink-0 sm:w-[224px] lg:-mb-[58px] lg:w-[240px]">
       <motion.div
         initial={{ opacity: 0, y: 14, rotate: 0 }}
         animate={{ opacity: 1, y: 0, rotate: -2.5 }}
@@ -291,7 +299,8 @@ function PhotoPlate({ profile }: { profile: MockProfile }) {
         </div>
       </motion.div>
 
-      {/* The bird, mounted on the plate's corner and clickable (it chirps). */}
+      {/* The bird, mounted on the plate's corner and clickable: the tap names
+          its species. That naming lives here and nowhere else on the page. */}
       <div className="absolute -bottom-3 -right-3 rounded-full border border-border bg-card p-1.5 shadow-[0_2px_4px_rgba(30,28,22,0.08),0_14px_24px_-18px_rgba(30,28,22,0.6)]">
         <ProfileAvatar
           user={{
@@ -308,9 +317,9 @@ function PhotoPlate({ profile }: { profile: MockProfile }) {
 }
 
 /* ------------------------------------------------------------------ *
- *  Folder tab. The shipped shell's shape and colours, with the hover
- *  lift removed: inactive tabs rest a few pixels lower like a fanned
- *  stack, hover only warms the colour, and the press sinks.
+ *  Folder tab. The shipped shell's shape, sizes and colours, with the
+ *  hover lift removed: inactive tabs rest a few pixels lower like a
+ *  fanned stack, hover only warms the colour, and the press sinks.
  * ------------------------------------------------------------------ */
 function FolderTab({
   label,
@@ -338,7 +347,7 @@ function FolderTab({
         // The ring is inset because the tab is clipped to the folder silhouette:
         // an outset ring would be cut off by the clip path and the focus state
         // would half disappear.
-        "relative shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11.5px] font-bold uppercase tracking-[0.09em] outline-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-inset sm:px-6 sm:text-[13px]",
+        "relative shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11px] font-bold uppercase tracking-[0.09em] outline-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-inset sm:px-6 sm:text-[13px]",
         active
           ? "z-10 -mb-px bg-card text-foreground"
           : "z-0 bg-mist text-muted-foreground hover:bg-paper hover:text-foreground"
@@ -346,7 +355,7 @@ function FolderTab({
     >
       {label}
       {count !== undefined && (
-        <span className="ml-1.5 text-[10px] font-bold tabular-nums opacity-55">{count}</span>
+        <span className="ml-1.5 text-[10.5px] font-bold tabular-nums opacity-55">{count}</span>
       )}
     </motion.button>
   );
@@ -354,8 +363,10 @@ function FolderTab({
 
 /* ------------------------------------------------------------------ *
  *  One entry in Posts or Letters. Solid hairline between entries, never
- *  a dashed one. Letters keep the register the owner liked on the real
- *  Letters page: cinnamon eyebrow, feather, read time, serif body.
+ *  a dashed one. A letter is marked by its cinnamon eyebrow, feather,
+ *  read time and serif title -- not by a second body typeface: the body
+ *  of a post and the body of a letter are the same 15px/1.7 as every
+ *  other block of text in the app.
  * ------------------------------------------------------------------ */
 function Entry({
   post,
@@ -406,19 +417,12 @@ function Entry({
       </div>
 
       {isLetter && post.title && (
-        <h3 className="mt-[var(--space-xs)] font-heading text-[22px] font-bold leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[26px]">
+        <h3 className="mt-[var(--space-xs)] font-heading text-[20px] font-bold leading-snug tracking-[-0.01em] text-foreground">
           {post.title}
         </h3>
       )}
 
-      <div
-        className={cn(
-          "mt-[var(--space-s)] whitespace-pre-wrap text-foreground",
-          isLetter
-            ? "max-w-[68ch] font-heading text-[16.5px] leading-[1.8]"
-            : "max-w-[66ch] text-[15.5px] leading-[1.7]"
-        )}
-      >
+      <div className="mt-[var(--space-s)] max-w-[66ch] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
         {post.content}
       </div>
 
@@ -501,261 +505,227 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
   ];
 
   return (
-    // `overflow-x-clip` (clip, never hidden) is the page's guard against a
-    // stray absolutely-positioned child widening the document: the verified
-    // mark parks its hover label to the right of the leaf, and at 390 the
-    // leaf sits near the right edge, so the resting label pushed the document
-    // 58px wider than the viewport and left a bare gutter beside the
-    // full-bleed band. `clip` does not create a scroll container, so the rail
-    // below still sticks.
-    <div
-      className="w-full overflow-x-clip"
-      style={{ backgroundColor: "var(--color-background)", backgroundImage: PAGE_FIELD }}
-    >
+    // `overflow-x-clip` (clip, never hidden) is the guard against a stray
+    // absolutely-positioned child widening the document: the verified mark
+    // parks its hover label to the right of the leaf, and at 390 that resting
+    // label pushed the document wider than the viewport. `clip` does not
+    // create a scroll container, so the rail below still sticks.
+    //
+    // No background of its own: the page behind this belongs to the app shell
+    // (warm background plus the faint valley photo), and the concept must be
+    // judged on that, not on a surface it painted for itself.
+    <div className="w-full overflow-x-clip">
       {/* ---------------------------------------------------------- *
-       *  THE TERRACE BAND. Full bleed so the colour reaches both
-       *  edges at any width, ending on a solid hairline. The plate
-       *  crosses that line on desktop.
+       *  THE TERRACE BAND. A card in the shell's column, ending on a
+       *  solid hairline. The plate crosses that line on desktop.
        * ---------------------------------------------------------- */}
       <header
-        className="w-full border-b border-border"
-        style={{ backgroundColor: "var(--color-mist)", backgroundImage: TERRACE_FIELD }}
+        className="rounded-[var(--radius-xl)] border border-border p-[var(--space-l)] sm:p-[var(--space-xl)] lg:pb-[var(--space-l)]"
+        style={{
+          backgroundColor: "var(--color-mist)",
+          backgroundImage: TERRACE_FIELD,
+          boxShadow: CARD_SHADOW,
+        }}
       >
-        <div className="mx-auto w-full max-w-[1400px] px-[var(--space-l)] py-[var(--space-l)] sm:px-[var(--space-xl)] sm:py-[var(--space-xl)] lg:pb-[var(--space-l)]">
-          <div className="flex flex-col items-start gap-[var(--space-l)] lg:flex-row lg:items-start lg:gap-[var(--space-xl)]">
-            <PhotoPlate profile={profile} />
+        <div className="flex flex-col items-start gap-[var(--space-l)] lg:flex-row lg:gap-[var(--space-xl)]">
+          <PhotoPlate profile={profile} />
 
-            {/* Identity: to the RIGHT of the plate on desktop, under it on
-                mobile. */}
-            <FadeRise delay={0.06} className="min-w-0 flex-1 lg:pt-[var(--space-s)]">
-              <h1 className="flex flex-wrap items-center gap-x-3 gap-y-1 font-heading text-[34px] font-bold leading-[1.02] tracking-[-0.03em] text-foreground sm:text-[44px] lg:text-[52px]">
-                <span className="min-w-0">{profile.name}</span>
-                <VerifiedMark
-                  user={{ verifyState: profile.verifyState, accountType: profile.accountType }}
-                  size={20}
-                />
-              </h1>
+          {/* Identity: to the RIGHT of the plate on desktop, under it on
+              mobile. */}
+          <FadeRise delay={0.06} className="min-w-0 flex-1 lg:pt-[var(--space-s)]">
+            <h1 className="flex flex-wrap items-center gap-x-3 gap-y-1 font-heading text-[30px] font-bold leading-[1.02] tracking-[-0.03em] text-foreground sm:text-[40px] lg:text-[46px]">
+              <span className="min-w-0">{profile.name}</span>
+              <VerifiedMark
+                user={{ verifyState: profile.verifyState, accountType: profile.accountType }}
+                size={20}
+              />
+            </h1>
 
-              {meta.length > 0 && (
-                <p className="mt-[var(--space-s)] max-w-[62ch] text-[15px] leading-[1.6] text-muted-foreground sm:text-[16.5px]">
-                  {meta.join(" · ")}
-                </p>
-              )}
+            {meta.length > 0 && (
+              <p className="mt-[var(--space-s)] max-w-[62ch] text-[15px] leading-snug text-muted-foreground">
+                {meta.join(" · ")}
+              </p>
+            )}
 
-              {/* Narrow view carries the years and the stamp inline, so the
-                  band never leaves them orphaned off to one side. */}
-              <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-[var(--space-m)] lg:hidden">
-                {years && (
-                  <span className="inline-flex items-baseline gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5">
-                    <span className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-canopy/80">
-                      In the valley
-                    </span>
-                    <span className="font-heading text-[14px] font-bold tabular-nums text-foreground">
-                      {years}
-                    </span>
-                  </span>
-                )}
-                {profile.admissionNumber && <AdmissionStamp number={profile.admissionNumber} />}
-              </div>
-
-              {/* Email and phone are NOT on this surface. They live one click
-                  inside "Get in touch", beside Save contact. */}
-              <div className="mt-[var(--space-l)]">
-                <GetInTouch name={profile.name} methods={methods} vcard={vcard} />
-              </div>
-            </FadeRise>
-
-            {/* The far-right anchor on wide screens: the stamp and the years,
-                which is also what stops 1920 from leaving the band's right
-                third empty. */}
-            <FadeRise
-              delay={0.12}
-              className="hidden shrink-0 flex-col items-end gap-[var(--space-l)] lg:flex"
-            >
-              {profile.admissionNumber && <AdmissionStamp number={profile.admissionNumber} />}
+            {/* Years read as a span, never as a count. The stamp rides along
+                here at narrow widths; on desktop it anchors the band's far
+                right instead. */}
+            <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-[var(--space-m)]">
               {years && (
-                <div className="text-right">
-                  <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-canopy/80">
-                    In the valley
-                  </p>
-                  <p className="mt-[var(--space-xxs)] font-heading text-[26px] font-bold leading-none tabular-nums tracking-[-0.02em] text-foreground">
-                    {years}
-                  </p>
+                <div className="inline-flex items-baseline gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5">
+                  <Eyebrow className="text-canopy/80">In the valley</Eyebrow>
+                  <span className="text-[15px] font-bold tabular-nums text-foreground">{years}</span>
                 </div>
               )}
+              {profile.admissionNumber && (
+                <AdmissionStamp number={profile.admissionNumber} className="lg:hidden" />
+              )}
+            </div>
+
+            {/* Email and phone are NOT on this surface. They live one click
+                inside "Get in touch", beside Save contact. */}
+            <div className="mt-[var(--space-l)]">
+              <GetInTouch name={profile.name} methods={methods} vcard={vcard} />
+            </div>
+          </FadeRise>
+
+          {/* The far-right anchor on wide screens, so the band's right side
+              closes on something rather than trailing off. */}
+          {profile.admissionNumber && (
+            <FadeRise delay={0.12} className="hidden shrink-0 lg:block lg:pt-[var(--space-s)]">
+              <AdmissionStamp number={profile.admissionNumber} />
             </FadeRise>
-          </div>
+          )}
         </div>
       </header>
 
-      {/* The desktop top padding clears the plate's overhang (see PhotoPlate)
-          and doubles as the room the houses trail needs to breathe. */}
-      <div className="mx-auto w-full max-w-[1400px] px-[var(--space-l)] pb-[var(--space-xl)] pt-[var(--space-l)] sm:px-[var(--space-xl)] sm:pb-[var(--space-xxl)] sm:pt-[var(--space-xl)] lg:pt-[calc(var(--space-xxl)+var(--space-l))]">
-        {/* ---------------------------------------------------------- *
-         *  HOUSES. The hero of this concept: full width, its own pool
-         *  of warm light, and nothing else competing for the row. The
-         *  serpentine trail is the shared HousesTrail, so the arrows
-         *  always point at the pill they lead to, up to ten houses.
-         * ---------------------------------------------------------- */}
-        {profile.houses.length > 0 && (
-        <FadeRise
-          delay={0.1}
-          className="rounded-[var(--radius-xl)] border border-border"
-          style={{ backgroundColor: "var(--color-card)", boxShadow: CARD_SHADOW }}
-        >
-          {/* Label and trail read as ONE centred object rather than a heading
-              stranded above a floating chain: the label sits to the trail's
-              left on desktop, right-aligned into it, and stacks above it on a
-              phone. */}
+      {/* ---------------------------------------------------------- *
+       *  BODY. Asymmetric two columns on desktop, tabs on the left.
+       *  On mobile the rail simply falls under the panel, in order,
+       *  because it is next in the DOM. The desktop top margin clears
+       *  the plate's overhang (see PhotoPlate).
+       * ---------------------------------------------------------- */}
+      <div className="mt-[var(--space-l)] grid grid-cols-1 items-start gap-[var(--space-l)] sm:mt-[var(--space-xl)] lg:mt-[var(--space-xxl)] lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-[var(--space-xl)]">
+        <div className="min-w-0">
           <div
-            className="flex flex-col items-center gap-[var(--space-l)] rounded-[var(--radius-xl)] px-[var(--space-l)] py-[var(--space-l)] sm:px-[var(--space-xl)] sm:py-[var(--space-xl)] lg:flex-row lg:justify-center lg:gap-[var(--space-xl)]"
-            style={{ backgroundImage: PLINTH_FIELD }}
+            role="tablist"
+            aria-label="Profile sections"
+            className="flex gap-1 pl-[var(--space-m)] sm:pl-[var(--space-l)]"
           >
-            <div className="flex flex-col items-center gap-[var(--space-xxs)] lg:w-[228px] lg:shrink-0 lg:items-end lg:text-right">
-              <Eyebrow>Houses</Eyebrow>
-              <p className="font-heading text-[19px] font-bold leading-tight tracking-[-0.02em] text-foreground">
-                Every house, in order
-              </p>
-              <p className="text-[13px] leading-[1.5] text-muted-foreground">
-                {profile.houses.length} in all, start to finish
-              </p>
-            </div>
-            <HousesTrail houses={profile.houses} />
+            {TABS.map((t) => (
+              <FolderTab
+                key={t.key}
+                label={t.label}
+                count={t.count}
+                active={tab === t.key}
+                onSelect={() => setTab(t.key)}
+              />
+            ))}
           </div>
-        </FadeRise>
-        )}
 
-        {/* ---------------------------------------------------------- *
-         *  BODY. Asymmetric two columns on desktop, tabs on the left.
-         *  On mobile the rail simply falls under the panel, in order,
-         *  because it is next in the DOM.
-         * ---------------------------------------------------------- */}
-        <div className="mt-[var(--space-xl)] grid grid-cols-1 items-start gap-[var(--space-xl)] lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="min-w-0">
-            <div role="tablist" aria-label="Profile sections" className="flex gap-1 pl-[var(--space-m)] sm:pl-[var(--space-l)]">
-              {TABS.map((t) => (
-                <FolderTab
-                  key={t.key}
-                  label={t.label}
-                  count={t.count}
-                  active={tab === t.key}
-                  onSelect={() => setTab(t.key)}
-                />
-              ))}
-            </div>
+          <div
+            className="relative rounded-b-[var(--radius-xl)] rounded-tr-[var(--radius-xl)] border border-border bg-card"
+            style={{ boxShadow: CARD_SHADOW }}
+          >
+            <div className="px-[var(--space-l)] py-[var(--space-l)] sm:px-[var(--space-xl)] sm:py-[var(--space-xl)]">
+              <FadeRise key={tab} y={10}>
+                {tab === "about" && (
+                  <div>
+                    {/* Body face, body size. The serif at 16.5px read as a
+                        different, louder page than the rest of the app. */}
+                    <p className="max-w-[64ch] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
+                      {profile.about}
+                    </p>
 
-            <div
-              className="relative rounded-b-[var(--radius-xl)] rounded-tr-[var(--radius-xl)] border border-border bg-card"
-              style={{ boxShadow: CARD_SHADOW }}
-            >
-              <div className="px-[var(--space-l)] py-[var(--space-l)] sm:px-[var(--space-xl)] sm:py-[var(--space-xl)]">
-                <FadeRise key={tab} y={10}>
-                  {tab === "about" && (
-                    <div>
-                      <p className="max-w-[64ch] font-heading text-[16.5px] leading-[1.8] text-foreground sm:text-[17.5px]">
-                        {profile.about}
-                      </p>
+                    <div className="my-[var(--space-l)] border-t border-border sm:my-[var(--space-xl)]" />
 
-                      <div className="my-[var(--space-l)] border-t border-border sm:my-[var(--space-xl)]" />
+                    {/* The facts live here, in the default tab, and nowhere
+                        else: the band already carries the years and the
+                        admission number, so nothing on this page is printed
+                        twice. */}
+                    <div className="grid grid-cols-2 gap-[var(--space-l)] sm:grid-cols-3">
+                      <Fact label="Lives in" value={profile.currentCity} />
+                      {profile.secondaryCity && (
+                        <Fact label="Also in" value={profile.secondaryCity} />
+                      )}
+                      {/* The longest value gets the full row on a phone, so
+                          the two-column grid never leaves one cell four
+                          lines tall beside a one-line neighbour. */}
+                      {profile.jobTitle && (
+                        <Fact
+                          className="col-span-2 sm:col-span-1"
+                          label="Work"
+                          value={
+                            profile.workplace
+                              ? `${profile.jobTitle} at ${profile.workplace}`
+                              : profile.jobTitle
+                          }
+                        />
+                      )}
+                      {profile.gradeJoined && (
+                        <Fact label="Started in" value={`Grade ${profile.gradeJoined}`} />
+                      )}
+                      {batch && <Fact label="Batch" value={batch} />}
 
-                      {/* The facts live here, in the default tab, and nowhere
-                          else: the band already carries the years and the
-                          admission number, so nothing on this page is printed
-                          twice. */}
-                      <div className="grid grid-cols-2 gap-[var(--space-l)] sm:grid-cols-3">
-                        <Fact label="Lives in" value={profile.currentCity} />
-                        {profile.secondaryCity && (
-                          <Fact label="Also in" value={profile.secondaryCity} />
-                        )}
-                        {/* The longest value gets the full row on a phone, so
-                            the two-column grid never leaves one cell four
-                            lines tall beside a one-line neighbour. */}
-                        {profile.jobTitle && (
-                          <Fact
-                            className="col-span-2 sm:col-span-1"
-                            label="Work"
-                            value={
-                              profile.workplace
-                                ? `${profile.jobTitle} at ${profile.workplace}`
-                                : profile.jobTitle
-                            }
-                          />
-                        )}
-                        {profile.gradeJoined && (
-                          <Fact label="Started in" value={`Grade ${profile.gradeJoined}`} />
-                        )}
-                        {batch && <Fact label="Batch" value={batch} />}
-                      </div>
+                      {/* Houses: one more fact, under the same small label as
+                          the rest, using the shipped pills. Deliberately not a
+                          heading, not a subtitle, not a section. */}
+                      {profile.houses.length > 0 && (
+                        <div className="col-span-2 min-w-0 sm:col-span-3">
+                          <Eyebrow className="text-canopy/80">Houses</Eyebrow>
+                          <div className="mt-[var(--space-s)]">
+                            <HousesTrail houses={profile.houses} />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {tab === "posts" && <div>{renderEntries(posts)}</div>}
+                {tab === "posts" && <div>{renderEntries(posts)}</div>}
 
-                  {tab === "letters" && <div>{renderEntries(letters)}</div>}
-                </FadeRise>
-              </div>
+                {tab === "letters" && <div>{renderEntries(letters)}</div>}
+              </FadeRise>
             </div>
           </div>
-
-          {/* Rail. Sticky, never an internal scroller: it stays put while the
-              page scrolls past it and it never eats the wheel. */}
-          <aside className="flex flex-col gap-[var(--space-l)] lg:sticky lg:top-[var(--space-l)] lg:self-start">
-            <RailCard title="Find them">
-              <div className="flex flex-col gap-2">
-                {profile.links.map((link) => {
-                  const Icon = link.kind === "instagram" ? Instagram : Linkedin;
-                  return (
-                    <a
-                      key={link.kind}
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex min-w-0 items-center gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
-                    >
-                      <Icon className="h-[17px] w-[17px] shrink-0 text-cinnamon" aria-hidden />
-                      <span className="min-w-0">
-                        <span className="block text-[13.5px] font-semibold text-foreground">
-                          {link.label}
-                        </span>
-                        <span className="block truncate text-[12px] text-muted-foreground">
-                          {link.handle}
-                        </span>
-                      </span>
-                    </a>
-                  );
-                })}
-              </div>
-            </RailCard>
-
-            <RailCard title="Posts and letters">
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTab("posts")}
-                  className="flex items-baseline justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-canopy/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
-                >
-                  <span className="text-[13.5px] font-semibold text-foreground">Posts</span>
-                  <span className="font-heading text-[17px] font-bold tabular-nums text-canopy">
-                    {posts.length}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTab("letters")}
-                  className="flex items-baseline justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
-                >
-                  <span className="text-[13.5px] font-semibold text-foreground">Letters</span>
-                  <span className="font-heading text-[17px] font-bold tabular-nums text-cinnamon">
-                    {letters.length}
-                  </span>
-                </button>
-                <p className="mt-[var(--space-xxs)] text-[12.5px] leading-[1.6] text-muted-foreground">
-                  Everything {firstName} has written here, newest first.
-                </p>
-              </div>
-            </RailCard>
-          </aside>
         </div>
+
+        {/* Rail. Sticky, never an internal scroller: it stays put while the
+            page scrolls past it and it never eats the wheel. */}
+        <aside className="flex flex-col gap-[var(--space-l)] lg:sticky lg:top-[var(--space-l)] lg:self-start">
+          <RailCard title="Find them">
+            <div className="flex flex-col gap-2">
+              {profile.links.map((link) => {
+                const Icon = link.kind === "instagram" ? Instagram : Linkedin;
+                return (
+                  <a
+                    key={link.kind}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-w-0 items-center gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  >
+                    <Icon className="h-[17px] w-[17px] shrink-0 text-cinnamon" aria-hidden />
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-semibold text-foreground">
+                        {link.label}
+                      </span>
+                      <span className="block truncate text-[12.5px] text-muted-foreground">
+                        {link.handle}
+                      </span>
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          </RailCard>
+
+          <RailCard title="Posts and letters">
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setTab("posts")}
+                className="flex items-baseline justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-canopy/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+              >
+                <span className="text-[13.5px] font-semibold text-foreground">Posts</span>
+                <span className="text-[15px] font-bold tabular-nums text-canopy">{posts.length}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("letters")}
+                className="flex items-baseline justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+              >
+                <span className="text-[13.5px] font-semibold text-foreground">Letters</span>
+                <span className="text-[15px] font-bold tabular-nums text-cinnamon">
+                  {letters.length}
+                </span>
+              </button>
+              <p className="mt-[var(--space-xxs)] text-[12.5px] leading-[1.6] text-muted-foreground">
+                Everything {firstName} has written here, newest first.
+              </p>
+            </div>
+          </RailCard>
+        </aside>
       </div>
     </div>
   );

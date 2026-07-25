@@ -5,37 +5,54 @@
  *
  *  A newspaper front page. The person's name IS the nameplate: Libre
  *  Baskerville at up to 72px with -0.035em tracking, sitting across the
- *  top of the sheet with a rule above it and the lead photograph beside
- *  it. Under the nameplate runs a dateline strip (Batch / In the valley
- *  / Based in / Admission) divided by solid vertical hairlines, exactly
- *  where a paper prints "Vol. CXXIV, No. 42 | Monday | Fifty paise".
- *  Then the body: a wide article column carrying the folder tabs (About
- *  first and default), and a rail holding the houses trail, the contact
- *  actions, and "Find them".
+ *  top of the sheet with the lead photograph beside it. Under the
+ *  nameplate runs a dateline strip (Batch / In the valley / Based in /
+ *  Admission) divided by solid vertical hairlines, exactly where a paper
+ *  prints "Vol. CXXIV, No. 42 | Monday | Fifty paise". Then the body: a
+ *  wide article column carrying the folder tabs (About first and
+ *  default), and a rail holding the contact actions and the record.
  *
- *  THREE LAYOUT DECISIONS WORTH THE NOTE:
+ *  The sheet opens on the NAME. There is no "Rishi Valley" / "Profile"
+ *  kicker above it any more (owner: "remove Rishi Valley and Profile
+ *  from broadsheet, they know that"), and nothing took its place.
  *
- *  1. The photo is 21:9 EXACTLY, at every width, and is never full
- *     content width on desktop. A 1400px-wide frame capped at 300px tall
- *     is a 4.7:1 band, which is the "magnified sliver" the owner
+ *  FOUR DECISIONS WORTH THE NOTE:
+ *
+ *  1. This concept owns no page chrome. The harness now renders it
+ *     inside the real app frame: flush green sidebar, the faint valley
+ *     back-layer, a <main> capped at 1280 with its own gutters. So there
+ *     is no background of its own, no max-width wrapper, and no
+ *     full-bleed margin fighting the shell. The outermost element is a
+ *     plain block that fills whatever the shell gives it.
+ *
+ *  2. The photo is 21:9 EXACTLY, at every width, and is never full
+ *     content width on desktop. A 1100px-wide frame capped at 300px tall
+ *     is a 3.7:1 band, which is the "magnified sliver" the owner
  *     rejected. So the masthead splits at md into [name | photo], the
- *     photo taking 40% of the sheet up to a 560px cap: 286px wide on a
- *     tablet, 542px at 1440, 560px at 1920, and therefore 122px to 240px
- *     tall. Always 21:9, always under the ~300px the brief asks for,
- *     always art-directed at 50% 35%. Full width on a phone, where 21:9
- *     is only 153px tall and reads as a proper picture.
+ *     photo taking 40% of the sheet: 286px wide on a tablet, 445px at
+ *     1440, and therefore 122px to 190px tall. Always 21:9, always well
+ *     under the ~300px the brief asks for, always art-directed at
+ *     50% 35%, and it ends on a clean square edge with no rule, no
+ *     gradient and no fade. Full width on a phone, where 21:9 is only
+ *     153px tall and reads as a proper picture.
  *
- *  2. The rail is 400px, not 300px, and the houses trail inside it is
- *     shrink-wrapped. The shared HousesTrail picks its column count from
- *     the VIEWPORT, so at any desktop width it lays four pills per row,
- *     measured at 349px of run. A 300px rail would have overflowed it,
- *     and a full-width band would have stranded its 180 U-turn a
- *     thousand pixels from the last pill, which is the exact defect the
- *     trail exists to fix. 400px holds a four-pill row with headroom.
+ *  3. ONE TYPE LADDER, the app's: body 15px/1.7, small 13.5px,
+ *     secondary 12.5-13px, labels 10.5-11px uppercase. Libre Baskerville
+ *     is the NAME, the section headings and a letter's title, and
+ *     nothing else: every paragraph here is sans at 15px, the same as a
+ *     post body. About used to be serif at 17px, which read as a mistake
+ *     rather than as emphasis (owner: "the font size of About seems
+ *     obnoxiously big and not in fitting with everything else").
  *
- *  3. Email and phone are not on this page. They live inside the shared
- *     GetInTouch dialog (the same control the real profile ships), one
- *     click from the rail, alongside Save contact (.vcf).
+ *  4. Houses are a footnote, not a section. The chain is the owner's
+ *     favourite element but, in their words, "house is just a fun thing,
+ *     it's not that important... don't give it so much space." So it is
+ *     one quiet strip at the foot of About under a 10.5px label, drawn
+ *     by the SHIPPED component, never a rail block or a band of its own.
+ *
+ *  Email and phone are not on this page. They live inside the shared
+ *  GetInTouch dialog (the same control the real profile ships), one
+ *  click from the rail, alongside Save contact (.vcf).
  *
  *  Hover never moves anything here: no translate, no scale, no
  *  whileHover. Hover is a colour change. The press sink on :active
@@ -62,25 +79,6 @@ import {
   type MockProfile,
   type ProfileVariantProps,
 } from "./_data";
-
-/* ------------------------------------------------------------------ *
- *  Newsprint ground: two low-opacity brand washes plus a fine grain, so
- *  the sheet reads as paper under light instead of a flat token fill.
- *  Built once at module scope; it is a static texture, not render work.
- *  Texture only. No watermark, no parked glyph, nothing decorative
- *  dropped into empty space.
- * ------------------------------------------------------------------ */
-const NOISE_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180">' +
-  '<filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>' +
-  '<feColorMatrix type="matrix" values="0 0 0 0 0.14  0 0 0 0 0.12  0 0 0 0 0.09  0 0 0 0.045 0"/></filter>' +
-  '<rect width="100%" height="100%" filter="url(#n)"/></svg>';
-
-const NEWSPRINT = [
-  "radial-gradient(1200px 620px at 6% -12%, rgba(194,98,47,0.09), transparent 56%)",
-  "radial-gradient(1000px 700px at 104% 112%, rgba(35,92,73,0.07), transparent 58%)",
-  `url("data:image/svg+xml,${encodeURIComponent(NOISE_SVG)}")`,
-].join(", ");
 
 /* Folder-tab silhouette, lifted from the shipped ProfileShell: the
    diagonal bevel every physical file tab shares. The owner named these
@@ -177,7 +175,7 @@ function Eyebrow({ children, tone = "cinnamon" }: { children: string; tone?: "ci
   return (
     <p
       className={cn(
-        "text-[10.5px] font-bold uppercase tracking-[0.18em]",
+        "text-[10.5px] font-bold uppercase tracking-[0.16em]",
         tone === "cinnamon" ? "text-cinnamon" : "text-muted-foreground"
       )}
     >
@@ -237,16 +235,17 @@ function ChirpBird({ profile }: { profile: MockProfile }) {
 
 /* ------------------------------------------------------------------ *
  *  The lead photograph. Exactly 21:9 at every width, hard square edges
- *  (a newspaper does not round its pictures), a hairline frame, and a
- *  solid cinnamon rule under it. No gradient, no fade into the sheet.
+ *  (a newspaper does not round its pictures) and a hairline frame. The
+ *  picture ENDS THERE: the cinnamon rule that used to run under it is
+ *  gone (owner: "remove the cinnamon bar under the pic in broadsheet"),
+ *  and there was never a gradient or a fade into the sheet.
  *  The upload slot is visibly designed: a Change photo control sits on
  *  the picture, since this is the owner's own profile view.
  * ------------------------------------------------------------------ */
 function LeadPhoto({ profile }: { profile: MockProfile }) {
   return (
-    // max-w caps the picture's HEIGHT without ever touching its 21:9 ratio:
-    // the column is a percentage, so on a 1920 sheet an uncapped frame would
-    // grow past the ~300px the brief asks for.
+    // max-w is a guard, not the usual case: the shell caps the sheet at 1280,
+    // so the 40% column lands ~445px at 1440 and the frame stays ~190px tall.
     <figure className="min-w-0 md:col-start-2 md:row-start-1 md:ml-auto md:w-full md:max-w-[560px] md:self-end">
       <div className="relative aspect-[21/9] w-full overflow-hidden border border-border bg-mist">
         {profile.coverPhoto ? (
@@ -267,13 +266,12 @@ function LeadPhoto({ profile }: { profile: MockProfile }) {
 
         <button
           type="button"
-          className="glass absolute right-[var(--space-s)] top-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-semibold text-foreground outline-none transition-[background-color,color,transform] duration-150 hover:bg-card hover:text-cinnamon focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-[0.97]"
+          className="glass absolute right-[var(--space-s)] top-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12.5px] font-semibold text-foreground outline-none transition-[background-color,color,transform] duration-150 hover:bg-card hover:text-cinnamon focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-[0.97]"
         >
           <Camera className="h-3.5 w-3.5 text-cinnamon" aria-hidden />
           Change photo
         </button>
       </div>
-      <div aria-hidden className="h-[3px] w-full bg-cinnamon" />
     </figure>
   );
 }
@@ -297,10 +295,13 @@ function Dateline({ facts }: { facts: { label: string; value: string }[] }) {
             i === 0 ? "sm:border-l-0 sm:pl-0" : "sm:border-l sm:pl-[var(--space-m)]"
           )}
         >
-          <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+          <dt className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
             {fact.label}
           </dt>
-          <dd className="mt-[var(--space-xxs)] truncate font-heading text-[17px] font-bold leading-[1.25] tracking-[-0.015em] text-foreground sm:text-[18px]">
+          {/* A fact is data, not a heading: sans at the body size, the same
+              15px every other value on the sheet is set in. It used to be
+              serif at 17/18px, a size that exists nowhere else in the app. */}
+          <dd className="mt-[var(--space-xxs)] truncate text-[15px] font-semibold leading-snug text-foreground">
             {fact.value}
           </dd>
         </div>
@@ -339,7 +340,8 @@ function FolderTab({
         // The focus ring is an INSET shadow, not `ring-*`: an outset ring would
         // be cut away entirely by the tab's clip-path, leaving a keyboard user
         // with no focus indicator at all.
-        "relative shrink-0 px-5 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11.5px] font-bold uppercase tracking-[0.09em] outline-none transition-colors duration-150 focus-visible:shadow-[inset_0_0_0_2px_var(--color-leaf)] sm:px-7 sm:text-[13px]",
+        // Sizes match the shipped ProfileShell tab exactly (11px, 13px from sm).
+        "relative shrink-0 px-5 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11px] font-bold uppercase tracking-[0.09em] outline-none transition-colors duration-150 focus-visible:shadow-[inset_0_0_0_2px_var(--color-leaf)] sm:px-7 sm:text-[13px]",
         active
           ? "z-10 -mb-px bg-card text-foreground"
           : "z-0 bg-mist text-muted-foreground hover:bg-mist hover:text-cinnamon"
@@ -376,7 +378,7 @@ function LinkRow({ link }: { link: MockLink }) {
         <span className="block text-[13px] font-semibold leading-tight text-foreground">
           {link.label}
         </span>
-        <span className="block truncate text-[12px] leading-tight text-muted-foreground">
+        <span className="block truncate text-[12.5px] leading-tight text-muted-foreground">
           {link.handle}
         </span>
       </span>
@@ -413,23 +415,19 @@ function ArticleEntry({
   return (
     <article
       className={cn(
-        "grid gap-[var(--space-s)] sm:grid-cols-[92px_minmax(0,1fr)] sm:gap-[var(--space-l)]",
+        "grid gap-[var(--space-s)] sm:grid-cols-[76px_minmax(0,1fr)] sm:gap-[var(--space-l)]",
         first ? "pt-0" : "mt-[var(--space-l)] border-t border-border pt-[var(--space-l)]"
       )}
     >
-      <div className="flex items-baseline gap-2 sm:flex-col sm:items-start sm:gap-0.5">
-        <span className="font-heading text-[15px] font-bold leading-none tracking-[-0.01em] text-foreground">
-          {day}
-        </span>
-        <span className="font-heading text-[13px] leading-none tabular-nums text-muted-foreground">
-          {year}
-        </span>
+      <div className="flex items-baseline gap-2 sm:flex-col sm:items-start sm:gap-1">
+        <span className="text-[13.5px] font-bold leading-none text-foreground">{day}</span>
+        <span className="text-[12.5px] leading-none tabular-nums text-muted-foreground">{year}</span>
       </div>
 
       <div className="min-w-0">
         <div
           className={cn(
-            "flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+            "flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] font-bold uppercase tracking-[0.16em]",
             isLetter ? "text-cinnamon" : "text-muted-foreground"
           )}
         >
@@ -447,18 +445,17 @@ function ArticleEntry({
 
         {/* The measure lives on this wrapper, so the actions row ends at
             exactly the same right edge the text does. Setting it on the copy
-            alone left the bookmark stranded 200px past the last word. */}
-        <div
-          className={cn(
-            "mt-[var(--space-s)]",
-            isLetter
-              ? "max-w-[68ch] font-heading text-[16.5px] leading-[1.8]"
-              : "max-w-[66ch] text-[15.5px] leading-[1.7]"
-          )}
-        >
+            alone left the bookmark stranded 200px past the last word.
+
+            One body setting for both kinds: sans, 15px/1.7, 64ch, exactly
+            what a post body and the About prose use. A letter used to be
+            serif at 16.5px and a post sans at 15.5px, three near-duplicate
+            settings for the same job. The letter still reads as a letter,
+            from its cinnamon eyebrow, its feather and its serif title. */}
+        <div className="mt-[var(--space-s)] max-w-[64ch] text-[15px] leading-[1.7]">
           <div className="whitespace-pre-wrap text-foreground">{post.content}</div>
 
-          <div className="-ml-2.5 mt-[var(--space-m)] flex items-center gap-1 font-sans text-muted-foreground">
+          <div className="-ml-2.5 mt-[var(--space-m)] flex items-center gap-1 text-muted-foreground">
             <LoveButton liked={liked} count={likeCount} onToggle={onToggleLike} size="sm" label="Like" />
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px]">
               <MessageCircle className="h-4 w-4" aria-hidden />
@@ -481,10 +478,10 @@ function ArticleEntry({
 function RecordRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-[var(--space-m)] py-[var(--space-s)]">
-      <dt className="shrink-0 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+      <dt className="shrink-0 text-[10.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </dt>
-      <dd className="min-w-0 text-right font-heading text-[14.5px] font-bold leading-tight tracking-[-0.01em] text-foreground">
+      <dd className="min-w-0 text-right text-[13.5px] font-semibold leading-snug text-foreground">
         {value}
       </dd>
     </div>
@@ -580,175 +577,184 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
   }
 
   return (
+    // No background, no max-width, no gutters of its own: the harness already
+    // renders this inside the app frame (sidebar, valley back-layer, a <main>
+    // capped at 1280 with px-5/7/10). A wrapper here would fight the shell.
+    //
     // overflow-x-clip, not hidden: VerifiedMark keeps its hover label in the DOM
     // at opacity 0 and only measures which side to flip to when it opens, so the
     // hidden label sat 60px past the right edge of a 390 phone and gave the whole
     // page a sideways scroll. `clip` is not a scroll container, so the rail's
-    // lg:sticky still resolves against the viewport; `hidden` would have killed it.
-    <div
-      className="w-full overflow-x-clip"
-      style={{ backgroundColor: "var(--color-background)", backgroundImage: NEWSPRINT }}
-    >
-      <div className="mx-auto w-full max-w-[1600px] px-[var(--space-m)] py-[var(--space-l)] sm:px-[var(--space-l)] xl:px-[var(--space-xl)] xl:py-[var(--space-xl)]">
-        {/* ---------------- MASTHEAD ---------------- */}
-        <header>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-m)] gap-y-1 border-b border-border pb-[var(--space-xs)]">
-            <span className="text-[10.5px] font-bold uppercase tracking-[0.26em] text-canopy">
-              Rishi Valley
-            </span>
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Profile
-            </span>
-          </div>
+    // sticky still resolves against the viewport; `hidden` would have killed it.
+    // @container: the nameplate is sized off THIS sheet, not the window.
+    <div className="@container w-full overflow-x-clip">
+      {/* ---------------- MASTHEAD ---------------- */}
+      <header>
+        <FadeRise y={12}>
+          <div className="grid gap-[var(--space-m)] md:grid-cols-[minmax(0,1fr)_minmax(0,40%)] md:items-end md:gap-[var(--space-l)]">
+            <div className="min-w-0 md:col-start-1 md:row-start-1">
+              {/* The verified leaf rides with the NAME, the way the shipped
+                  header does it. Parked at the end of the deck line it kept
+                  wrapping onto a line of its own on a phone, a lone leaf
+                  floating under the sentence. */}
+              {/* The sheet is ~328px narrower than the window now (sidebar plus
+                  the shell's gutters), so the nameplate is sized off the SHEET,
+                  not the viewport: 6.5cqw is 56px once the sheet passes 860px
+                  (a 1190 window) and hits the 72px cap at 1110px of sheet (a
+                  1440 window). vw would have set 72px while the sheet was still
+                  700px wide. */}
+              <h1 className="flex flex-wrap items-center gap-x-3 font-heading text-[clamp(2.25rem,6.5cqw,4.5rem)] font-bold leading-[0.95] tracking-[-0.035em] text-foreground">
+                <span className="min-w-0">{profile.name}</span>
+                <VerifiedMark
+                  user={{ verifyState: profile.verifyState, accountType: profile.accountType }}
+                  size={20}
+                />
+              </h1>
 
-          <FadeRise y={12}>
-            <div className="mt-[var(--space-m)] grid gap-[var(--space-m)] sm:mt-[var(--space-l)] md:grid-cols-[minmax(0,1fr)_minmax(0,40%)] md:items-end md:gap-[var(--space-l)]">
-              <div className="min-w-0 md:col-start-1 md:row-start-1">
-                {/* The verified leaf rides with the NAME, the way the shipped
-                    header does it. Parked at the end of the deck line it kept
-                    wrapping onto a line of its own on a phone, a lone leaf
-                    floating under the sentence. */}
-                {/* 5.6vw, not 5.2: the brief sets the nameplate at 56-72px, and
-                    5.2vw only reached 53px at the 1024 desktop breakpoint. 5.6vw
-                    lands 57px at 1024 and hits the 72px cap by 1286. */}
-                <h1 className="flex flex-wrap items-center gap-x-3 font-heading text-[clamp(2.25rem,5.6vw,4.5rem)] font-bold leading-[0.95] tracking-[-0.035em] text-foreground">
-                  <span className="min-w-0">{profile.name}</span>
-                  <VerifiedMark
-                    user={{ verifyState: profile.verifyState, accountType: profile.accountType }}
-                    size={20}
-                  />
-                </h1>
-
-                <div className="mt-[var(--space-m)] flex items-center gap-[var(--space-s)] md:mt-[var(--space-l)]">
-                  <ChirpBird profile={profile} />
-                  <div className="min-w-0">
-                    <p className="text-[16px] leading-[1.5] text-foreground sm:text-[17px]">
-                      {deck}
-                    </p>
-                    <p className="mt-[var(--space-xxs)] text-[10.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                      {profile.speciesName}
-                    </p>
-                  </div>
-                </div>
+              {/* The species name is NOT printed. Owner: "don't write the bird
+                  species anywhere, it's not that important, they can see it by
+                  clicking the bird." It survives only in the button's
+                  aria-label, for someone who cannot see the glyph at all. */}
+              <div className="mt-[var(--space-m)] flex items-center gap-[var(--space-s)] md:mt-[var(--space-l)]">
+                <ChirpBird profile={profile} />
+                <p className="min-w-0 text-[15px] leading-[1.7] text-foreground">{deck}</p>
               </div>
-
-              <LeadPhoto profile={profile} />
             </div>
-          </FadeRise>
 
-          {/* ---------------- DATELINE ---------------- */}
-          <div className="mt-[var(--space-m)] sm:mt-[var(--space-l)]">
-            <Dateline facts={facts} />
+            <LeadPhoto profile={profile} />
           </div>
-        </header>
+        </FadeRise>
 
-        {/* ---------------- BODY ----------------
-            One grid. On a phone the rail is DOM-first, so its contents read
-            above the tabs; from lg it is placed into column two and the
-            article column takes column one. The rail sticks, and never
-            scrolls inside itself. */}
-        <div className="mt-[var(--space-l)] grid gap-[var(--space-l)] sm:mt-[var(--space-xl)] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-[var(--space-xl)] xl:grid-cols-[minmax(0,1fr)_440px]">
-          <aside className="min-w-0 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-[var(--space-xl)] lg:self-start">
-            <div
-              className="divide-y divide-border rounded-[var(--radius-xl)] border border-border bg-card"
-              style={{ boxShadow: CARD_SHADOW }}
-            >
-              {houses.length > 0 && (
-                <RailSection title="Houses through the years">
-                  {/* w-fit is load bearing. The shared trail parks its 180
-                      U-turn at its container's right edge, so in a container
-                      wider than a row of pills the turn strands itself in
-                      empty space, which is the exact complaint the trail was
-                      built to fix. Shrink-wrapping the block puts the turn
-                      hard against the last pill of the row. The 400px rail is
-                      then sized to hold a full four-pill row (measured at
-                      349px for this mock) without a squeeze. */}
-                  <div className="w-fit">
-                    <HousesTrail houses={houses} />
-                  </div>
-                </RailSection>
-              )}
+        {/* ---------------- DATELINE ---------------- */}
+        <div className="mt-[var(--space-m)] sm:mt-[var(--space-l)]">
+          <Dateline facts={facts} />
+        </div>
+      </header>
 
-              <RailSection title={`Reach ${firstName}`}>
-                <GetInTouch
-                  name={profile.name}
-                  methods={contactMethods}
-                  vcard={buildVcard(profile, email, phone)}
-                />
-                <p className="mt-[var(--space-s)] text-[12.5px] leading-[1.6] text-muted-foreground">
-                  Email, phone, and socials, all in one place.
-                </p>
-              </RailSection>
+      {/* ---------------- BODY ----------------
+          One grid. Below xl the rail is DOM-first, so its contents read above
+          the tabs; from xl it is placed into column two and the article column
+          takes column one. The rail sticks, and never scrolls inside itself.
 
-              {links.length > 0 && (
-                <RailSection title="Find them">
-                  <div className="flex flex-col gap-[var(--space-xs)]">
-                    {links.map((link) => (
-                      <LinkRow key={link.kind} link={link} />
-                    ))}
-                  </div>
-                </RailSection>
-              )}
-            </div>
-          </aside>
+          xl, not lg: inside the shell a 1024 window is only 696px of sheet, and
+          splitting that would leave an article column too narrow to set a
+          paragraph in. The masthead still splits at md, so a tablet is never
+          just the phone layout stretched. */}
+      <div className="mt-[var(--space-l)] grid gap-[var(--space-l)] sm:mt-[var(--space-xl)] xl:grid-cols-[minmax(0,1fr)_300px]">
+        <aside className="min-w-0 xl:col-start-2 xl:row-start-1 xl:sticky xl:top-[var(--space-l)] xl:self-start">
+          <div
+            className="divide-y divide-border rounded-[var(--radius-xl)] border border-border bg-card"
+            style={{ boxShadow: CARD_SHADOW }}
+          >
+            <RailSection title={`Reach ${firstName}`}>
+              <GetInTouch
+                name={profile.name}
+                methods={contactMethods}
+                vcard={buildVcard(profile, email, phone)}
+              />
+              <p className="mt-[var(--space-s)] text-[12.5px] leading-[1.6] text-muted-foreground">
+                Email, phone, and socials, all in one place.
+              </p>
+            </RailSection>
 
-          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-            <div role="tablist" aria-label="Profile sections" className="relative z-10 flex gap-1 pl-[var(--space-m)] sm:pl-[var(--space-l)]">
-              {TABS.map((t) => (
-                <FolderTab
-                  key={t.key}
-                  label={t.label}
-                  active={tab === t.key}
-                  onSelect={() => setTab(t.key)}
-                />
-              ))}
-            </div>
+            <RailSection title="The record">
+              <dl className="divide-y divide-border/70">
+                {profile.gradeJoined && profile.yearJoined && (
+                  <RecordRow
+                    label="Entered"
+                    value={`Grade ${profile.gradeJoined}, ${profile.yearJoined}`}
+                  />
+                )}
+                {profile.secondaryCity && <RecordRow label="Also in" value={profile.secondaryCity} />}
+                {written && <RecordRow label="Written" value={written} />}
+              </dl>
+            </RailSection>
+          </div>
+        </aside>
 
-            <div
-              className="rounded-b-[var(--radius-xl)] rounded-tr-[var(--radius-xl)] border border-border bg-card"
-              style={{ boxShadow: CARD_SHADOW }}
-            >
-              <div className="px-[var(--space-l)] py-[var(--space-l)] xl:px-[var(--space-xl)] xl:py-[var(--space-xl)]">
-                <FadeRise key={tab} y={10}>
-                  {tab === "about" && (
-                    <div className="grid gap-[var(--space-l)] xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] xl:gap-[var(--space-xl)]">
+        <div className="min-w-0 xl:col-start-1 xl:row-start-1">
+          <div role="tablist" aria-label="Profile sections" className="relative z-10 flex gap-1 pl-[var(--space-m)] sm:pl-[var(--space-l)]">
+            {TABS.map((t) => (
+              <FolderTab
+                key={t.key}
+                label={t.label}
+                active={tab === t.key}
+                onSelect={() => setTab(t.key)}
+              />
+            ))}
+          </div>
+
+          <div
+            className="rounded-b-[var(--radius-xl)] rounded-tr-[var(--radius-xl)] border border-border bg-card"
+            style={{ boxShadow: CARD_SHADOW }}
+          >
+            <div className="p-[var(--space-l)] min-[1400px]:p-[var(--space-xl)]">
+              <FadeRise key={tab} y={10}>
+                {tab === "about" && (
+                  <div>
+                    <div className="grid gap-[var(--space-l)] min-[1400px]:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
                       <section className="min-w-0">
-                        <Eyebrow>In their words</Eyebrow>
-                        <p className="mt-[var(--space-s)] max-w-[62ch] font-heading text-[17px] leading-[1.7] text-foreground xl:text-[18.5px]">
+                        {/* "About", the name the app standardised on this round.
+                            Sans at 15px/1.7, the same setting as a post body:
+                            this was serif at 17px, a typeface and a size and a
+                            half above every other paragraph, which read as a
+                            mistake rather than as emphasis. */}
+                        <Eyebrow>About</Eyebrow>
+                        <p className="mt-[var(--space-s)] max-w-[64ch] text-[15px] leading-[1.7] text-foreground">
                           {profile.about}
                         </p>
                       </section>
 
-                      <section className="min-w-0">
-                        <Eyebrow tone="muted">The record</Eyebrow>
-                        <dl className="mt-[var(--space-s)] divide-y divide-border/70 border-t border-border">
-                          {profile.gradeJoined && profile.yearJoined && (
-                            <RecordRow
-                              label="Entered"
-                              value={`Grade ${profile.gradeJoined}, ${profile.yearJoined}`}
-                            />
-                          )}
-                          {profile.secondaryCity && (
-                            <RecordRow label="Also in" value={profile.secondaryCity} />
-                          )}
-                          <RecordRow label="Their bird" value={profile.speciesName} />
-                          {written && <RecordRow label="Written" value={written} />}
-                        </dl>
-                      </section>
+                      {links.length > 0 && (
+                        <section className="min-w-0">
+                          <Eyebrow>Find them</Eyebrow>
+                          {/* Capped: below 1400 this section is full panel width,
+                              and a two-line row stretched to 570px is mostly
+                              empty rule. */}
+                          <div className="mt-[var(--space-s)] flex max-w-[340px] flex-col gap-[var(--space-xs)]">
+                            {links.map((link) => (
+                              <LinkRow key={link.kind} link={link} />
+                            ))}
+                          </div>
+                        </section>
+                      )}
                     </div>
-                  )}
 
-                  {tab === "posts" && (
-                    <div>{renderEntries(posts, `${firstName} has not posted anything yet.`)}</div>
-                  )}
+                    {/* HOUSES: a footnote, not a feature. One quiet label at the
+                        same 10.5px as every other minor label, no heading, no
+                        subtitle, no band of its own, and the shipped pills drawn
+                        by the shipped component. Owner: "house is just a fun
+                        thing, it's not that important, you're making it 50% of
+                        the profile. Don't give it so much space."
 
-                  {tab === "letters" && (
-                    <div>
-                      {renderEntries(letters, `${firstName} has not written a letter yet.`)}
-                    </div>
-                  )}
-                </FadeRise>
-              </div>
+                        It lives at the foot of the panel because the shared
+                        trail picks four pills per row on any desktop viewport,
+                        which needs ~530px of run: in the 300px rail those rows
+                        would have burst straight out of the card. */}
+                    {houses.length > 0 && (
+                      <div className="mt-[var(--space-l)] border-t border-border pt-[var(--space-m)]">
+                        <Eyebrow tone="muted">Houses</Eyebrow>
+                        {/* w-fit only ever makes the chain NARROWER: the shared
+                            trail stretches a full row edge to edge so its U-turn
+                            lands on the container's edge, so in a container
+                            wider than the pills need the arrows stretch out. On
+                            a phone this pulls the two-pill rows back together. */}
+                        <div className="mt-[var(--space-s)] w-fit">
+                          <HousesTrail houses={houses} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {tab === "posts" && (
+                  <div>{renderEntries(posts, `${firstName} has not posted anything yet.`)}</div>
+                )}
+
+                {tab === "letters" && (
+                  <div>{renderEntries(letters, `${firstName} has not written a letter yet.`)}</div>
+                )}
+              </FadeRise>
             </div>
           </div>
         </div>
