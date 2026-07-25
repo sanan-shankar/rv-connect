@@ -432,6 +432,13 @@ model Place {
 
   userPlaces UserPlace[]
 
+  // NOTE: in the live DB these two are case-insensitive EXPRESSION indexes
+  // (lower("asciiName") / lower(name), text_pattern_ops) that power the
+  // directory's case-insensitive city search. Prisma cannot express lower() in
+  // a schema, so `migrate diff` / `db push` will ALWAYS want to recreate them as
+  // plain column indexes. That is a permanent false positive, not real drift.
+  // Do NOT let `db push` "fix" it: replacing the lower() indexes with plain ones
+  // silently slows directory search. Apply real index changes by hand instead.
   @@index([asciiName])
   @@index([name])
 }
@@ -454,6 +461,8 @@ model UserPlace {
   place Place? @relation(fields: [placeId], references: [id])
 
   @@index([userId])
+  // Case-insensitive expression index in the DB (lower(city)); see the fuller
+  // note on Place above. `migrate diff` will always flag it; do not "fix" it.
   @@index([city])
 }
 
