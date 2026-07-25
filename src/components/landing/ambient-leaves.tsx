@@ -410,7 +410,7 @@ export function AmbientLeaves() {
      */
     const AVOID_RADIUS = isMobile ? 0 : 150;
     const AVOID_R2 = AVOID_RADIUS * AVOID_RADIUS;
-    const AVOID_PUSH = 40; // px of travel at the centre of the field
+    const AVOID_PUSH = 15; // px of travel at the centre of the field (kept faint on purpose)
     const AVOID_ATTACK = 16; // 1/s, ~62ms to part
     const AVOID_RELEASE = 4; // 1/s, ~250ms to drift back home
     const POINTER_RATE = 40; // 1/s, ~25ms of de-stutter and not a frame more
