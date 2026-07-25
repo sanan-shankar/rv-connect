@@ -1,14 +1,13 @@
 /* ------------------------------------------------------------------ *
  *  Catch-ups answering experience: shared client-side shapes.
  *
- *  `SongState` reuses the app-wide `CatchupSongView` (WP1, catchups-types.ts)
- *  rather than inventing a parallel shape, so this screen and the reader
- *  (round/*) agree on exactly what a resolved song looks like.
+ *  A prompt carries its `kind` (from `promptKind(category)`), because the
+ *  kind is what the answering control switches on: text writes prose, photo
+ *  adds one picture, songs names a song. Everything downstream (the draft,
+ *  the "has this been shared" test) is the same for all three.
  * ------------------------------------------------------------------ */
 
-import type { CatchupSongView } from "@/lib/catchups-types";
-
-export type SongState = CatchupSongView | null;
+import type { PromptKind } from "@/lib/catchups-types";
 
 export type AnswerAsker = {
   id: string;
@@ -16,22 +15,30 @@ export type AnswerAsker = {
   photoUrl: string | null;
 };
 
-/** One prompt's editable draft: what the viewer has typed/attached so far. */
+/**
+ * One prompt's editable draft: what the viewer has typed/attached so far.
+ *
+ * `body` carries the written answer for a text prompt and the song name for a
+ * songs prompt (see the TODO in song-attachment.tsx for why a named song lives
+ * here rather than in the entry's Spotify columns). `images` carries photos:
+ * up to three on a text prompt, exactly one on a photo prompt.
+ */
 export type AnswerEntryDraft = {
   body: string;
   images: string[];
-  song: SongState;
 };
 
 export type AnswerPromptData = {
   id: string;
   text: string;
+  /** Which control answers this question. Derived server-side from the category. */
+  kind: PromptKind;
   /** The asker, or null when submitted anonymously (showAsker=false). */
   asker: AnswerAsker | null;
   entry: AnswerEntryDraft;
 };
 
-/** A prompt counts as "shared" once it carries text, a photo, or a song. */
+/** A prompt counts as "shared" once it carries text or a photo. */
 export function isMeaningfulEntry(entry: AnswerEntryDraft): boolean {
-  return Boolean(entry.body.trim().length > 0 || entry.images.length > 0 || entry.song);
+  return Boolean(entry.body.trim().length > 0 || entry.images.length > 0);
 }

@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 export function AlmostReady({
   eyebrow = "Catch-ups",
   title = "Catch-ups are almost ready.",
-  body = "A gentle group newsletter is being wired up. Everyone answers a few questions, and their replies become one warm issue the whole group reads together. Check back in a moment.",
+  body = "Everyone answers a few questions, and their replies become one issue the whole group reads. Check back in a moment.",
   className,
 }: {
   eyebrow?: string;

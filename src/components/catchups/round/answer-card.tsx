@@ -1,53 +1,36 @@
 /* ------------------------------------------------------------------ *
- *  <AnswerCard> - one member's answer, in the staggered card kit (spec 3.6).
+ *  <AnswerCard> - one member's answer.
  *
  *  Composition varies by what the member actually shared (text / photos /
- *  a song), so the "text cards, photo cards, Spotify cards" rhythm the spec
- *  asks for comes from real data rather than fabricated variants. What THIS
- *  component adds on top is the stagger: a three-position alternating
- *  alignment + width rotation (`STAGGER` below) so the stack itself has
- *  visual rhythm even when every entry is a plain text answer.
+ *  a song), so the "text cards, photo cards, song cards" rhythm the spec
+ *  asks for comes from real data rather than fabricated variants.
  *
- *  "Ruled sheet": a faint repeating horizontal-line texture behind the
- *  answer text, evoking notebook paper (DESIGN-SYSTEM Appendix A: naturalist
- *  field-journal, not a flat card). It is decorative texture, not literal
- *  writing guides, so it is not pinned to the text's exact line box.
+ *  Owner review 2026-07-25:
+ *   - padding was ~26px while the heart was a 12px icon, so the card read
+ *     as a huge box around a speck. Padding is now one symmetric LiftKit
+ *     token and the heart is the app-standard `md`;
+ *   - the decorative ruled-line texture behind the answer text is gone (the
+ *     rules never lined up with the text baseline, which is the exact
+ *     complaint that killed them on the answering page), and so is the
+ *     hairline above the heart, which separated nothing;
+ *   - the three-position stagger (alternating self-start/self-end at
+ *     90/96/86% width) is gone. It gave every card a different left and
+ *     right edge for no reason a reader could name, which read as a
+ *     rendering fault rather than rhythm. One clean column now.
  *
- *  Footer carries only the shared LoveButton (via EntryLoveButton). The
- *  "replies aren't open yet" note used to repeat on every card (spec 3.6
- *  polish fix); it is now stated once, under the masthead, instead of ~15
- *  times down the page.
+ *  `kind` comes from `promptKind(prompt.category)` and only changes how a
+ *  `songs` answer prints (see below). A `photo-wall` question never reaches
+ *  this component: QuestionSection prints those as a wall.
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
 import { IdentityRow } from "@/components/common/identity-row";
 import { SpotifyCard } from "@/components/catchups/round/spotify-card";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
-import type { CatchupEntryView } from "@/lib/catchups-types";
+import type { CatchupEntryView, CatchupSongView, PromptKind } from "@/lib/catchups-types";
 import { cn } from "@/lib/utils";
 
 export type RoundEntry = CatchupEntryView & { authorMeta: string };
-
-// alignment + max-width, cycling every three cards so the stack breathes
-// without ever feeling random. Mobile always goes full-width (spec: the one
-// legitimate single column). Kept close together (90/96/86%) — narrower
-// swings read as an empty right-hand void beside the sticky TOC rather than
-// intentional rhythm (polish pass: the reading column should stay populated).
-const STAGGER = [
-  { align: "self-start", width: "lg:max-w-[90%]" },
-  { align: "self-end", width: "lg:max-w-[96%]" },
-  { align: "self-start", width: "lg:max-w-[86%]" },
-];
-
-// A photo entry is the one variant that goes near-full-bleed regardless of
-// its position in the cycle (spec polish: photos are the visual anchor of
-// the stack, not another staggered text card).
-const PHOTO_STAGGER = { align: "self-center", width: "lg:max-w-full" } as const;
-
-const RULED_LINES_STYLE = {
-  backgroundImage:
-    "repeating-linear-gradient(to bottom, transparent, transparent 26px, color-mix(in srgb, var(--color-ink) 5%, transparent) 27px)",
-} as const;
 
 function AnswerPhotos({ images }: { images: string[] }) {
   const cols = images.length === 1 ? "grid-cols-1" : images.length === 2 ? "grid-cols-2" : "grid-cols-3";
@@ -56,7 +39,7 @@ function AnswerPhotos({ images }: { images: string[] }) {
   // photos stay square so the grid tiles evenly.
   const heroAspect = images.length === 1 ? "aspect-[16/10] sm:aspect-[21/9]" : "aspect-square";
   return (
-    <div className={cn("mt-[var(--space-m)] grid gap-2", cols)}>
+    <div className={cn("mt-[var(--space-s)] grid gap-2", cols)}>
       {images.map((src, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -71,23 +54,25 @@ function AnswerPhotos({ images }: { images: string[] }) {
   );
 }
 
-export function AnswerCard({ entry, index }: { entry: RoundEntry; index: number }) {
-  const hasBody = Boolean(entry.body && entry.body.trim());
+export function AnswerCard({ entry, kind = "text" }: { entry: RoundEntry; kind?: PromptKind }) {
+  const bodyText = entry.body?.trim() ?? "";
+  // A `songs` question is answered with the song's NAME, and the answering
+  // control saves that name in `body` (CatchupEntry has no name-only song
+  // column yet - see the TODO in answer/song-attachment.tsx, and note that
+  // `songTitle` is only ever written by the Spotify resolver, so it is never
+  // populated for a typed name). Print it as a song row rather than as a bare
+  // paragraph, otherwise a songs Round reads identically to a text Round.
+  const namedSong: CatchupSongView | null =
+    kind === "songs" && !entry.song && bodyText ? { url: "", title: bodyText, art: null } : null;
+  const song = entry.song ?? namedSong;
+  const hasBody = Boolean(bodyText) && !namedSong;
   const hasPhotos = entry.images.length > 0;
-  const hasSong = Boolean(entry.song);
-  const sharedNothing = !hasBody && !hasPhotos && !hasSong;
-  // Photos are the stack's visual anchor (spec polish), so they break the
-  // text-card stagger rather than following it.
-  const stagger = hasPhotos ? PHOTO_STAGGER : STAGGER[index % STAGGER.length];
+  const sharedNothing = !hasBody && !hasPhotos && !song;
 
   return (
     <article
       id={`entry-${entry.id}`}
-      className={cn(
-        "card-elevated w-full rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)] pt-[var(--space-m)]",
-        stagger.align,
-        stagger.width
-      )}
+      className="card-elevated w-full rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]"
     >
       <IdentityRow
         user={entry.author}
@@ -106,22 +91,24 @@ export function AnswerCard({ entry, index }: { entry: RoundEntry; index: number 
       />
 
       {sharedNothing ? (
-        <p className="mt-[var(--space-m)] text-[14.5px] italic leading-[1.7] text-muted-foreground">
+        <p className="mt-[var(--space-s)] text-[14.5px] italic leading-[1.7] text-muted-foreground">
           Showed up for this Round without adding anything here.
         </p>
       ) : (
         <>
           {hasBody && (
-            <div className="mt-[var(--space-m)] -mx-1 rounded-[var(--radius-md)] px-1 py-1" style={RULED_LINES_STYLE}>
-              <p className="whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">{entry.body}</p>
-            </div>
+            <p className="mt-[var(--space-s)] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
+              {entry.body}
+            </p>
           )}
           {hasPhotos && <AnswerPhotos images={entry.images} />}
-          {entry.song && <SpotifyCard song={entry.song} />}
+          {song && <SpotifyCard song={song} />}
         </>
       )}
 
-      <div className="mt-[var(--space-m)] border-t border-border/70 pt-[var(--space-s)]">
+      {/* Negative margins cancel the LoveButton's own px-2.5/py-1.5 so the
+          heart optically sits on the card's padding box, not inset from it. */}
+      <div className="-mb-1.5 -ml-2.5 mt-[var(--space-s)]">
         <EntryLoveButton entryId={entry.id} initialLoved={entry.lovedByViewer} initialCount={entry.loveCount} />
       </div>
     </article>

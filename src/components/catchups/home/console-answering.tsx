@@ -1,55 +1,67 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <ConsoleAnswering> - the left console while a Round is answering
- *  (spec 3.3): "N of M have shared" + a countdown ring on
- *  answersCloseAt, a big "Answer now" pill, the frozen question list
- *  (read-only - no content is shown for anyone until published), and
- *  a live who-has-answered avatar strip.
+ *  <ConsoleAnswering> - the console while a Round is answering
+ *  (spec 3.3): how many people have shared, the "Answer now" pill, and
+ *  the frozen question list. No answer content is readable by anyone,
+ *  Keeper included, until the Round publishes.
+ *
+ *  Same shape as the collecting console (owner review 2026-07-25): which
+ *  window is open and how long is left is one plain line, not a tile,
+ *  and there is no countdown ring. The ring's own label WAS that status
+ *  line, so it carried nothing the line does not.
+ *
+ *  DEFERRED, flagged per the fix brief section 6: answering still hands
+ *  off to /catchups/[catchupId]/answer instead of running inline here.
+ *  The published Round already reads inline (console-published.tsx);
+ *  moving the whole answer experience in is the larger lift and the
+ *  brief says to do the published case first rather than half-do both.
  * ------------------------------------------------------------------ */
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Megaphone } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { FadeRise } from "@/components/common/motion";
+import { closeAndPrepare, nudgeGroup } from "@/app/(main)/catchups/actions";
 import { MemberStrip } from "./member-strip";
-import { ProgressRing } from "./progress-ring";
 import type { CatchupHomeData, HomeEditionView } from "./types";
+
+/** Same tile shape as the rest of the Catch-up home: one token, all four sides. */
+const TILE = "card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]";
 
 export function ConsoleAnswering({
   data,
   edition,
+  onChanged,
 }: {
   data: CatchupHomeData;
   edition: HomeEditionView;
+  onChanged: () => void;
 }) {
   const answeredIds = new Set(edition.answeredAuthorIds);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-[var(--space-m)]">
+      <p className="text-sm font-medium text-muted-foreground">{edition.statusLabel}</p>
+
       <FadeRise>
-        <div className="card-elevated max-w-[640px] rounded-[var(--radius)] border border-border bg-card p-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-cinnamon">
-            Round {edition.number} &middot; Answering
-          </p>
-
-          <div className="mt-4 flex flex-wrap items-center gap-x-7 gap-y-4">
-            <ProgressRing
-              ratio={edition.ringRatio}
-              label={`${edition.answeredCount} of ${data.memberCount} have shared`}
-              sublabel={edition.statusLabel}
-              tone="cinnamon"
-            />
+        <div className={TILE}>
+          <div className="flex flex-wrap items-center justify-between gap-[var(--space-m)]">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Who has answered
+              <p className="text-sm font-semibold text-foreground">
+                {edition.answeredCount} of {data.memberCount} have shared
               </p>
-              <MemberStrip members={data.members} highlightIds={answeredIds} className="mt-1.5" max={10} size={26} />
+              <MemberStrip
+                members={data.members}
+                highlightIds={answeredIds}
+                className="mt-[var(--space-s)]"
+                max={10}
+                size={26}
+              />
             </div>
-          </div>
-
-          <div className="mt-5 border-t border-border pt-4">
             <Link href={`/catchups/${data.catchupId}/answer`}>
               <Button variant="primary" size="lg">
                 Answer now
@@ -57,19 +69,24 @@ export function ConsoleAnswering({
               </Button>
             </Link>
           </div>
+
+          {data.viewer.isKeeper && (
+            <KeeperAnsweringActions editionId={edition.id} onChanged={onChanged} />
+          )}
         </div>
       </FadeRise>
 
-      <FadeRise delay={0.05}>
-        <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-            This Round&apos;s questions
+      <FadeRise delay={0.04}>
+        <div className={TILE}>
+          <p className="text-sm font-semibold text-foreground">
+            {edition.prompts.length}{" "}
+            {edition.prompts.length === 1 ? "question" : "questions"} in this round
           </p>
-          <div className="mt-3 space-y-2">
+          <div className="mt-[var(--space-s)] space-y-[var(--space-xs)]">
             {edition.prompts.map((p) => (
               <div
                 key={p.id}
-                className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-border/70 bg-background/40 p-3"
+                className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-border/70 bg-background/40 p-[var(--space-s)]"
               >
                 {p.author ? (
                   <BirdAvatar user={p.author} size={28} />
@@ -81,7 +98,11 @@ export function ConsoleAnswering({
                 <div className="min-w-0">
                   <p className="text-sm leading-snug text-foreground">{p.text}</p>
                   <p className="mt-1 text-[11px] font-medium text-muted-foreground">
-                    {p.isOwn ? "asked by you" : p.author ? `asked by ${p.author.name}` : "suggested for the group"}
+                    {p.isOwn
+                      ? "asked by you"
+                      : p.author
+                        ? `asked by ${p.author.name}`
+                        : "asked anonymously"}
                   </p>
                 </div>
               </div>
@@ -89,6 +110,61 @@ export function ConsoleAnswering({
           </div>
         </div>
       </FadeRise>
+    </div>
+  );
+}
+
+/** The Keeper's two answering-window actions, kept in the console rather than
+ *  in a box of their own (owner review 2026-07-25). */
+function KeeperAnsweringActions({
+  editionId,
+  onChanged,
+}: {
+  editionId: string;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  async function handleNudge() {
+    setBusy(true);
+    const result = await nudgeGroup(editionId);
+    setBusy(false);
+    if (result && "error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Nudged everyone who has not answered.");
+    onChanged();
+  }
+
+  async function handleClose() {
+    setBusy(true);
+    const result = await closeAndPrepare(editionId);
+    setBusy(false);
+    if (result && "error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    // The too-few-answers rule (spec 2.6) can extend the window instead of
+    // closing it. Say which one happened rather than a blanket success.
+    toast.success(
+      "extended" in result && result.extended && "message" in result && result.message
+        ? String(result.message)
+        : "Closing the round. Answers are sealed until it publishes."
+    );
+    onChanged();
+  }
+
+  return (
+    <div className="mt-[var(--space-m)] flex flex-wrap gap-[var(--space-s)] border-t border-border pt-[var(--space-m)]">
+      <Button variant="outline" size="sm" disabled={busy} onClick={handleNudge}>
+        <Megaphone className="h-3.5 w-3.5" />
+        Nudge the group
+      </Button>
+      <Button variant="outline" size="sm" disabled={busy} onClick={handleClose}>
+        Close answering now
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }

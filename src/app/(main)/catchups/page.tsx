@@ -230,10 +230,7 @@ export default async function CatchupsPage() {
   if (!data) {
     return (
       <div>
-        <PageHeader
-          title="Catch-ups"
-          subtitle="A gentle group newsletter: everyone answers a few prompts, and their replies are gathered into one issue."
-        />
+        <PageHeader title="Catch-ups" />
         <AlmostReady />
       </div>
     );
@@ -241,35 +238,27 @@ export default async function CatchupsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Catch-ups"
-        subtitle="A gentle group newsletter: everyone answers a few prompts, and their replies are gathered into one issue."
-      />
+      <PageHeader title="Catch-ups" />
 
-      <div className="mb-7">
+      <div className="mb-[var(--space-l)]">
         <ExplainerBand compact={data.cards.some((c) => c.catchupId !== null)} />
       </div>
 
       {!data.hasGroups ? (
         <GroupFirstGuidance />
       ) : (
-        <div className="grid grid-cols-1 gap-x-[30px] gap-y-6 min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
+        // Both columns start at the same y, so the rail's first card lines up
+        // with the first Catch-up card on its own. (There used to be an
+        // eyebrow heading here and an invisible copy of it in the rail to
+        // cancel the offset; both are gone.)
+        <div className="grid grid-cols-1 gap-x-[30px] gap-y-[var(--space-m)] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
           <div className="min-w-0 space-y-3.5">
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
-              Your Catch-ups
-            </h2>
             {data.cards.map((card) => (
               <YourCatchupsCard key={card.groupId} card={card} />
             ))}
           </div>
           <aside className="hidden min-[1180px]:block">
-            {/* Invisible spacer mirrors the left column's "Your Catch-ups"
-                heading (and the space-y-3.5 gap below it) so the rail's first
-                card lines up with the first Catch-up card, not the heading. */}
-            <h2 aria-hidden className="invisible text-[12px] font-bold uppercase tracking-[0.13em]">
-              Your Catch-ups
-            </h2>
-            <div className="sticky top-7 mt-3.5">
+            <div className="sticky top-7">
               <FreshOffThePress items={data.freshItems} />
             </div>
           </aside>

@@ -1,9 +1,10 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <MemberStrip> - the overlapping bird-avatar cluster used for the
- *  group roster (collecting status card) and the "who has answered"
- *  fill-in strip (answering status card). No answer CONTENT is ever
+ *  <MemberStrip> - the overlapping bird-avatar cluster showing who has
+ *  answered during the answering window. Its other use, the plain group
+ *  roster on the collecting console, went in the owner review of
+ *  2026-07-25 (a roster nobody had asked for). No answer CONTENT is ever
  *  shown here, only presence - members who have not yet answered are
  *  dimmed, never named or singled out (spec 3.6 "do not shame
  *  non-answerers" applies here just as much as in the reader).
