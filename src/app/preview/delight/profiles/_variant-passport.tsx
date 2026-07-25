@@ -342,7 +342,7 @@ function PostEntry({
         {post.content}
       </p>
       <div className="-ml-2.5 mt-[var(--space-m)] flex items-center gap-1 text-muted-foreground">
-        <LoveButton liked={liked} count={likeCount} onToggle={onToggleLike} size="sm" label="Like" />
+        <LoveButton liked={liked} count={likeCount} onToggle={onToggleLike} label="Like" />
         <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm tabular-nums">
           <MessageCircle className="h-4 w-4" aria-hidden />
           {post.commentCount}
@@ -392,7 +392,7 @@ function LetterEntry({
         {letterOpening(post.content)}
       </p>
       <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-[var(--space-s)]">
-        <Button variant="outline" size="sm">
+        <Button variant="outline">
           Read the letter
         </Button>
         <div className="-ml-1 flex items-center gap-1 text-muted-foreground">
@@ -400,7 +400,6 @@ function LetterEntry({
             liked={liked}
             count={likeCount}
             onToggle={onToggleLike}
-            size="sm"
             label="Like"
           />
           <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm tabular-nums">

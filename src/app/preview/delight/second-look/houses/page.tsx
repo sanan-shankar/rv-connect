@@ -32,22 +32,22 @@ export default function HousesRoom() {
         </p>
         <p>
           Credit where it is due first, because this must survive any rethink:{" "}
-          <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">advanceHouseYear</code> opens
+          <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">advanceHouseYear</code> opens
           the next unfilled year the moment you pick one, so there is no dismiss click between years.
           Somebody thought hard about that and wrote down why. Every option below keeps its spirit.
         </p>
       </Tell>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>The list has structure the grid throws away</Rule>
+      <Rule nav="The families">The list has structure the grid throws away</Rule>
 
-      <p className="mb-6 max-w-[74ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[74ch] text-[17px] leading-[1.65]">
         The 22 houses are not an arbitrary set. Six are literally colour names, nine are trees and
         flowers of the valley, six are mountains and rivers, and one is an ancient city. All 22 render
         as the same beige pill in owner order, so every pick is an unaided linear scan of a 22-target
         grid. Grouping them into the four families they already belong to turns that into a four-group
         scan, and the app <b>already owns</b> a per-house colour map (
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">houseTint()</code>, used in the
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">houseTint()</code>, used in the
         onboarding journey chain) that this picker does not use.
       </p>
 
@@ -55,14 +55,14 @@ export default function HousesRoom() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FAMILIES.map((f) => (
             <div key={f.label}>
-              <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <div className="mb-2 text-[12px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                 {f.label}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {f.houses.map((h) => (
                   <span
                     key={h}
-                    className="flex items-center gap-1.5 rounded-full border border-border bg-card py-1 pl-1.5 pr-2.5 text-[12.5px] font-semibold"
+                    className="flex items-center gap-1.5 rounded-full border border-border bg-card py-1 pl-1.5 pr-2.5 text-[14px] font-semibold"
                   >
                     <span
                       className="h-3.5 w-3.5 shrink-0 rounded-full"
@@ -78,7 +78,7 @@ export default function HousesRoom() {
         </div>
       </Mount>
 
-      <p className="mt-5 max-w-[74ch] text-[15px] leading-[1.7]">
+      <p className="mt-5 max-w-[74ch] text-[17px] leading-[1.65]">
         One caveat, because the swatches above do not quite hold up under counting. Six houses are
         literal colour names and get the right hex. The other sixteen hash into a pool of ten, so the
         22 houses resolve to only <b>12 distinct colours</b>, and <b>six of them share one magenta</b>{" "}
@@ -86,18 +86,18 @@ export default function HousesRoom() {
         person has two or three spans, that almost never shows. In a 22-swatch palette it shows
         immediately.
       </p>
-      <p className="mt-3 max-w-[74ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-3 max-w-[74ch] text-[17px] leading-[1.65] text-muted-foreground">
         So the <b>grouping</b> is what does the work of finding a house, not the colour. The colour is
         for recognising your own house later, in the ribbon, where only one or two are on screen. If
         colour is ever meant to carry more than that, the pool needs to grow from ten to at least
         sixteen, which is a two-line change in{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">houses-step.tsx</code>.
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">houses-step.tsx</code>.
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>What ships, reproduced</Rule>
+      <Rule nav="Shipped">What ships, reproduced</Rule>
 
-      <p className="mb-6 max-w-[74ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[74ch] text-[17px] leading-[1.65]">
         Five academic years for someone who joined in 2014 and left in 2019. All four editors below
         are live and count your interactions. Try the honest common case first: <b>one house the
         whole time</b>. Then try it again as someone who moved once.
@@ -111,9 +111,9 @@ export default function HousesRoom() {
       </Mount>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>A · the run</Rule>
+      <Rule nav="A · the run">A · the run</Rule>
 
-      <p className="mb-6 max-w-[74ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[74ch] text-[17px] leading-[1.65]">
         Ask the question the data is actually shaped like. Your first pick paints the entire career,
         because that is what usually happened. If you moved, click the year you moved and pick again,
         and the run splits there. The ribbon is the answer and the input at the same time, so there is
@@ -125,9 +125,9 @@ export default function HousesRoom() {
       </Mount>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>B · roll call</Rule>
+      <Rule nav="B · roll call">B · roll call</Rule>
 
-      <p className="mb-6 max-w-[74ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[74ch] text-[17px] leading-[1.65]">
         Keep the year-by-year rhythm, because being asked about each year in turn is oddly pleasant
         and it is how the school itself would have done it. What changes is that after the first
         answer, the likely one is a single large target with the house colour on it, not a 22-pill
@@ -139,9 +139,9 @@ export default function HousesRoom() {
       </Mount>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>C · the quiet one</Rule>
+      <Rule nav="C · quiet">C · the quiet one</Rule>
 
-      <p className="mb-6 max-w-[74ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[74ch] text-[17px] leading-[1.65]">
         The counterweight, because some people will not want a game in a settings form at 11pm. Type
         two letters, press Enter. Every later year arrives pre-filled with the previous house, so
         Enter alone accepts it. It also happens that <b>two letters uniquely identifies all 22
@@ -153,7 +153,7 @@ export default function HousesRoom() {
       </Mount>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Counted, not asserted</Rule>
+      <Rule nav="Counted">Counted, not asserted</Rule>
 
       <Ledger
         firstCol="34%"
@@ -195,7 +195,7 @@ export default function HousesRoom() {
         ]}
       />
 
-      <p className="mt-5 max-w-[74ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-5 max-w-[74ch] text-[17px] leading-[1.65] text-muted-foreground">
         The shipped count is not bad, which is exactly why this never got looked at. Six clicks for
         five years is a reasonable-sounding number. The cost is not in the clicks, it is in the five
         identical 22-target scans hiding inside them, and in the fact that a person who was in one
@@ -203,9 +203,9 @@ export default function HousesRoom() {
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>On mobile</Rule>
+      <Rule nav="Mobile">On mobile</Rule>
 
-      <div className="grid max-w-[74ch] gap-4 text-[15px] leading-[1.7]">
+      <div className="grid max-w-[74ch] gap-4 text-[17px] leading-[1.65]">
         <p>
           <b>A</b> degrades best. Measured at a 390px viewport, the five year cells come out{" "}
           <b>57 by 65px</b> each, comfortably over the 44px touch minimum, and the palette reflows to

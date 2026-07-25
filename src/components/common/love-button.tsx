@@ -13,12 +13,19 @@ const LEAF_FLECKS = [
   { x: 2, y: -44, c: "#235C49" },
 ];
 
-const SIZE_MAP = {
-  sm: { icon: 12, gap: "gap-1", padding: "px-1.5 py-1" },
-  md: { icon: 18, gap: "gap-1.5", padding: "px-2.5 py-1.5" },
-} as const;
-
-export type LoveButtonSize = keyof typeof SIZE_MAP;
+/**
+ * ONE heart, ONE size. There used to be an `sm` variant at 12px against the
+ * `md` 18px, and it spread: comments took it, and every profile concept took
+ * it, so the same heart showed up at two thirds the ink depending on where you
+ * met it. The owner's read, seeing them side by side: "what's this sudden habit
+ * of all the heart icons being half the size it should be?"
+ *
+ * The love button is already pinned to one colour on purpose (#E03A33, see
+ * below). Pinning the size too is the same argument: it is a single recognisable
+ * mark, not a scalable decoration. If a future surface genuinely needs a smaller
+ * heart, change it here, once, rather than reintroducing a per-call-site knob.
+ */
+const HEART = { icon: 18, gap: "gap-1.5", padding: "px-2.5 py-1.5" } as const;
 
 /**
  * One shared love/like button for the whole app (feed posts, comments, the Collection,
@@ -34,7 +41,6 @@ export function LoveButton({
   liked,
   count,
   onToggle,
-  size = "md",
   showCount = true,
   className = "",
   label,
@@ -42,14 +48,13 @@ export function LoveButton({
   liked: boolean;
   count: number;
   onToggle: () => void;
-  size?: LoveButtonSize;
   /** Hide the count entirely (e.g. comment hearts already hide count at 0 via the caller). */
   showCount?: boolean;
   className?: string;
   label?: string;
 }) {
   const [animate, setAnimate] = useState(false);
-  const { icon, gap, padding } = SIZE_MAP[size];
+  const { icon, gap, padding } = HEART;
 
   function handleClick() {
     if (!liked) {

@@ -94,7 +94,7 @@ export default function EverythingRoom() {
           one alternative. They are not all worth doing. Several contradict each other. The point is
           that none of them was <b>visible</b> before: every one of these surfaces looked fine.
         </p>
-        <p className="text-[13.5px] text-muted-foreground">
+        <p className="text-[15px] text-muted-foreground">
           Honesty note on sourcing: the nine findings in <b>Global chrome</b> were re-verified by
           hand, every contrast ratio recomputed and every count re-grepped, as were the four in
           Support. The rest are as reported by the reader that found them, with the evidence quote
@@ -148,7 +148,7 @@ export default function EverythingRoom() {
         </div>
       </div>
 
-      <p className="mt-6 text-[13px] text-muted-foreground">
+      <p className="mt-6 text-[15px] text-muted-foreground">
         Showing {shown.length} of {FINDINGS.length}.
       </p>
 
@@ -170,7 +170,7 @@ export default function EverythingRoom() {
                       title={SEV[f.severity].label}
                     />
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-heading text-[16.5px] font-bold leading-snug tracking-tight">
+                      <h3 className="font-heading text-[18px] font-bold leading-snug tracking-tight">
                         {f.title}
                       </h3>
 
@@ -180,7 +180,7 @@ export default function EverythingRoom() {
                         </p>
                         {f.idea && (
                           <p className="text-[14px] leading-[1.62]">
-                            <span className="mr-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-leaf">
+                            <span className="mr-1.5 text-[12px] font-bold uppercase tracking-[0.14em] text-leaf">
                               Instead
                             </span>
                             <Prose text={f.idea} />
@@ -193,7 +193,7 @@ export default function EverythingRoom() {
                           type="button"
                           onClick={() => setOpen((o) => ({ ...o, [f.id]: !o[f.id] }))}
                           aria-expanded={isOpen}
-                          className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[11.5px] font-semibold text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-mist hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+                          className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[13px] font-semibold text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-mist hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
                         >
                           {isOpen ? "Hide evidence" : "Evidence"}
                         </button>
@@ -209,7 +209,7 @@ export default function EverythingRoom() {
                       </div>
 
                       {isOpen && (
-                        <p className="mt-2.5 rounded-xl bg-background px-4 py-3 text-[12.5px] leading-[1.6] text-muted-foreground">
+                        <p className="mt-2.5 rounded-xl bg-background px-4 py-3 text-[14px] leading-[1.6] text-muted-foreground">
                           <Prose text={f.evidence} />
                         </p>
                       )}
@@ -224,10 +224,10 @@ export default function EverythingRoom() {
             <div className="mt-5 flex gap-4 rounded-[16px] border border-leaf/30 bg-leaf/[0.06] p-5">
               <span className="mt-[7px] h-2.5 w-2.5 shrink-0 rounded-full bg-leaf" />
               <div className="min-w-0">
-                <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-leaf">
+                <div className="text-[12px] font-bold uppercase tracking-[0.14em] text-leaf">
                   Best thing on this surface, do not regress it
                 </div>
-                <p className="mt-1.5 text-[13.5px] leading-[1.6] text-muted-foreground">
+                <p className="mt-1.5 text-[15px] leading-[1.55] text-muted-foreground">
                   <Prose text={g.best} />
                 </p>
               </div>
@@ -256,7 +256,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3 py-1 text-[12.5px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+        "rounded-full border px-3 py-1 text-[14px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
         active
           ? "border-[#235C49] bg-[#235C49] text-white"
           : (tone ?? "border-border bg-card text-muted-foreground hover:bg-mist hover:text-foreground"),

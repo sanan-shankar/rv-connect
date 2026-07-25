@@ -155,7 +155,7 @@ function ObservationCard({
       </div>
       <p className="mt-2.5 text-[14.5px] leading-[1.7] text-foreground">{post.content}</p>
       <div className="mt-4 flex items-center gap-4 border-t border-border/70 pt-3">
-        <LoveButton liked={liked} count={count} onToggle={onToggle} size="sm" label="Like this post" />
+        <LoveButton liked={liked} count={count} onToggle={onToggle} label="Like this post" />
         <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <MessageCircle className="h-3.5 w-3.5" />
           {post.commentCount}
@@ -223,7 +223,7 @@ function LetterCard({
           <ArrowRight className={cn("h-3.5 w-3.5 transition-transform duration-200 ease-out", expanded && "rotate-90")} />
         </SpringPress>
         <div className="flex items-center gap-4">
-          <LoveButton liked={liked} count={count} onToggle={onToggle} size="sm" label="Like this letter" />
+          <LoveButton liked={liked} count={count} onToggle={onToggle} label="Like this letter" />
           <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
             <MessageCircle className="h-3.5 w-3.5" />
             {post.commentCount}
@@ -363,12 +363,12 @@ export default function FieldGuideVariant({ profile }: ProfileVariantProps) {
 
               <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
                 {viewingAsOwner ? (
-                  <Button size="sm" variant="outline">
+                  <Button variant="outline">
                     <Pencil className="h-3.5 w-3.5" />
                     Edit profile
                   </Button>
                 ) : (
-                  <Button size="sm" variant="outline">
+                  <Button variant="outline">
                     <Feather className="h-3.5 w-3.5" />
                     Write {firstName} a letter
                   </Button>

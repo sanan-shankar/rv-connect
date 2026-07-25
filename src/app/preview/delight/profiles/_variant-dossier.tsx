@@ -424,7 +424,7 @@ function LedgerEntry({
       </div>
 
       <div className="-ml-2.5 mt-[var(--space-m)] flex items-center gap-1 text-muted-foreground">
-        <LoveButton liked={liked} count={likeCount} onToggle={onToggleLike} size="sm" label="Like" />
+        <LoveButton liked={liked} count={likeCount} onToggle={onToggleLike} label="Like" />
         <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm">
           <MessageCircle className="h-4 w-4" aria-hidden />
           {post.commentCount}
@@ -587,14 +587,13 @@ export default function DossierVariant({ profile }: ProfileVariantProps) {
                 <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-2.5">
                   <Button
                     variant="default"
-                    size="sm"
                     aria-pressed={following}
                     onClick={() => setFollowing((v) => !v)}
                   >
                     {following ? <UserCheck /> : <UserPlus />}
                     {following ? "Following" : "Follow"}
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline">
                     <Feather /> Write them a letter
                   </Button>
                 </div>

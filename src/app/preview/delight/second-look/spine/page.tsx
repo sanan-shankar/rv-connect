@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LabShell, Rule, Tell, Ledger, Mount, Bench, Verdict, Pick } from "../_kit";
+import { LabShell, Rule, Tell, Ledger, Mount, Bench, Verdict, Pick, Controls } from "../_kit";
 import { ColumnDiagram, ROUTES, EDGES, geom, UNI_CAP } from "./_columns";
 
 export default function SpineRoom() {
@@ -29,15 +29,15 @@ export default function SpineRoom() {
         </p>
         <p>
           The cause is that each route picked its own{" "}
-          <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">mx-auto max-w-*</code>{" "}
+          <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">mx-auto max-w-*</code>{" "}
           independently, and a centred column inside a shell that already has a 248px sidebar on one
           side moves its left edge every time the width changes.
         </p>
       </Tell>
 
-      <Rule>All eleven routes on one screen</Rule>
+      <Rule nav="The diagram">All eleven routes on one screen</Rule>
 
-      <div className="mb-6 flex flex-wrap items-center gap-4">
+      <Controls>
         <Pick
           items={[
             { k: "today" as const, label: "What ships" },
@@ -46,12 +46,12 @@ export default function SpineRoom() {
           value={mode}
           onChange={setMode}
         />
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-[15px] text-muted-foreground">
           {unified
             ? `One column at ${UNI_CAP}px, one left edge. The feed splits it rather than being wider than everything else.`
             : `${EDGES.length} distinct left edges, spanning ${EDGES[EDGES.length - 1] - EDGES[0]}px.`}
         </span>
-      </div>
+      </Controls>
 
       <Mount
         tone={unified ? "pick" : "shipped"}
@@ -63,7 +63,7 @@ export default function SpineRoom() {
         </div>
       </Mount>
 
-      <Rule>The measurements</Rule>
+      <Rule nav="Measurements">The measurements</Rule>
 
       <Ledger
         cols={["Route", "Column cap", "Left edge", "Column width"]}
@@ -76,22 +76,22 @@ export default function SpineRoom() {
         })}
       />
 
-      <p className="mt-5 max-w-[70ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.65] text-muted-foreground">
         The shell padding differs too: the feed branch uses{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">lg:px-9</code> and every other
-        route uses <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">lg:px-10</code>. Nobody
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">lg:px-9</code> and every other
+        route uses <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">lg:px-10</code>. Nobody
         chose a 4px difference between the feed and the rest of the product.
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>And the titles are two different weights</Rule>
+      <Rule nav="Two weights">And the titles are two different weights</Rule>
 
-      <p className="mb-7 max-w-[70ch] text-[15px] leading-[1.7]">
+      <p className="mb-7 max-w-[70ch] text-[17px] leading-[1.65]">
         Six routes render their title through the shared{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">PageHeader</code>. Four hand-roll
-        their own <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">&lt;h1&gt;</code>. The
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">PageHeader</code>. Four hand-roll
+        their own <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">&lt;h1&gt;</code>. The
         shared one never sets a weight, so it inherits <b>400</b>. The hand-rolled ones all set{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">font-bold</code>, so they render
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">font-bold</code>, so they render
         at <b>700</b>. Half the page titles in the product are a different weight from the other half,
         in a serif where 400 and 700 look nothing alike.
       </p>
@@ -168,15 +168,15 @@ export default function SpineRoom() {
         />
       </div>
 
-      <p className="mt-5 max-w-[70ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.65] text-muted-foreground">
         Note the last row. The spec says h1 is 32px at -0.025em. Not one of the four implementations
         matches it, including the shared component that exists to enforce it.
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Why not just pick a width per page</Rule>
+      <Rule nav="The objection">Why not just pick a width per page</Rule>
 
-      <div className="grid max-w-[74ch] gap-5 text-[15px] leading-[1.7]">
+      <div className="grid max-w-[74ch] gap-5 text-[17px] leading-[1.65]">
         <p>
           The obvious defence of the current state is that different content wants different widths:
           a directory grid wants to be wide, an essay wants to be narrow. That is true about the{" "}
@@ -184,7 +184,7 @@ export default function SpineRoom() {
         </p>
         <p>
           A comfortable reading measure is roughly 65 to 75 characters. At 16px in Source Sans 3 that
-          is about 620px. So <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">max-w-3xl</code>{" "}
+          is about 620px. So <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">max-w-3xl</code>{" "}
           (768px) does not actually achieve a good measure on Letters or About either. It is a
           compromise that is too wide to read comfortably and too narrow to hold anything else, chosen
           because it felt about right.

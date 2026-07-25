@@ -14,8 +14,37 @@
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+/* ------------------------------------------------------------------ *
+ *  Type scale.
+ *
+ *  Whole pixels, eight steps, no half-steps. The craft room in this very
+ *  lab counts 252 fractional sizes across the product and calls them a
+ *  habit nobody chose; the first draft of this kit then used 10.5, 11.5,
+ *  12.5 and 13.5 itself. Everything below is a whole number, and every
+ *  step is used for one job.
+ *
+ *   T.label  12  uppercase section rules, chips, eyebrow labels
+ *   T.small  14  captions, mount notes, secondary asides
+ *   T.data   15  ledger cells, dense tabular reading
+ *   T.body   17  running prose. This is the page's reading size.
+ *   T.lede   19  the masthead lede and the tell
+ *   T.stat   30  the scoreboard numerals
+ * ------------------------------------------------------------------ */
+export const T = {
+  label: "text-[12px]",
+  small: "text-[14px]",
+  data: "text-[15px]",
+  body: "text-[17px]",
+  lede: "text-[19px]",
+} as const;
+
+/** running prose: the single class string every paragraph in a room should use */
+export const PROSE = "text-[17px] leading-[1.65]";
+/** an inline code span sized to sit inside PROSE without shrinking the line */
+export const CODE = "rounded bg-mist px-1.5 py-0.5 text-[15px] text-foreground";
 
 /* ---- the room registry ---- */
 
@@ -76,7 +105,7 @@ export const ROOMS: Room[] = [
     slug: "type",
     title: "The font question",
     looked: "Libre Baskerville and Source Sans 3. Perfectly respectable.",
-    tell: "No, you cannot legally use the Apple font, and it would be wrong anyway. But Libre Baskerville is a body face doing display work, with three styles and no bold italic. Five pairings, loaded properly, live.",
+    tell: "No, you cannot legally use the Apple font, and it would be wrong anyway. But the type ships as six static files where four variable ones would carry more, and Libre Baskerville is a body face doing display work. Five pairings, measured off the binaries, live.",
     status: "built",
   },
 ];
@@ -84,6 +113,9 @@ export const ROOMS: Room[] = [
 /* ------------------------------------------------------------------ *
  *  Shell
  * ------------------------------------------------------------------ */
+
+/** height of the two sticky strips, used for scroll-margin on section anchors */
+const STICKY_H = 108;
 
 export function LabShell({
   title,
@@ -96,37 +128,114 @@ export function LabShell({
   children: ReactNode;
   index?: boolean;
 }) {
+  const [sections, setSections] = useState<{ id: string; label: string }[]>([]);
+  const [active, setActive] = useState<string | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+
+  /* The section index is built from the DOM rather than from a prop, so a room
+     never has to keep a hand-written list in sync with its own <Rule>s. Rooms
+     here run to 11,000px with a dozen sections; without this you can only
+     navigate by scrolling and hoping. */
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const nodes = [...el.querySelectorAll<HTMLElement>("[data-rule]")];
+    setSections(nodes.map((n) => ({ id: n.id, label: n.dataset.rule ?? "" })));
+    if (!nodes.length) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const onscreen = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (onscreen[0]) setActive(onscreen[0].target.id);
+      },
+      { rootMargin: `-${STICKY_H + 8}px 0px -62% 0px` },
+    );
+    nodes.forEach((n) => io.observe(n));
+    return () => io.disconnect();
+  }, [children]);
+
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <header className="glass sticky top-0 z-30 border-b border-border/70">
+      <header className="sticky top-0 z-40 border-b border-border bg-background">
         <div className="mx-auto flex max-w-[1240px] items-baseline gap-4 px-6 py-3.5 sm:px-9">
           <Link
             href={index ? "/preview/delight" : "/preview/delight/second-look"}
-            className="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[12px] font-semibold text-muted-foreground transition-colors hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+            className="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
           >
             {index ? "Delight" : "Second look"}
           </Link>
-          <span className="min-w-0 truncate font-heading text-[15px] font-bold tracking-tight">
+          <span className="min-w-0 truncate font-heading text-[16px] font-bold tracking-tight">
             {title}
           </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1240px] px-6 pb-32 pt-12 sm:px-9">
+      {sections.length > 1 && (
+        <nav
+          aria-label="Sections"
+          className="sticky top-[53px] z-30 border-b border-border bg-background"
+        >
+          <div className="relative mx-auto max-w-[1240px] overflow-x-auto px-6 sm:px-9 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max gap-1 py-2">
+              {sections.map((s, i) => (
+                <a
+                  key={s.id}
+                  href={`#${s.id}`}
+                  className={cn(
+                    "shrink-0 rounded-full px-3 py-1 text-[13px] font-semibold transition-[background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+                    active === s.id
+                      ? "bg-[#235C49] text-white"
+                      : "text-muted-foreground hover:bg-mist hover:text-foreground",
+                  )}
+                >
+                  <span className="mr-1.5 tabular-nums opacity-55">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {s.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </nav>
+      )}
+
+      <main ref={mainRef} className="mx-auto max-w-[1240px] px-6 pb-32 pt-12 sm:px-9">
         {/* Masthead runs across the full measure rather than stacking in the
             left third, so the page does not open with a void on the right. */}
         <div className="grid items-end gap-x-12 gap-y-4 border-b border-border pb-9 lg:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
-          <h1 className="font-heading text-[clamp(1.9rem,4vw,2.6rem)] font-bold leading-[1.05] tracking-[-0.03em]">
+          <h1 className="font-heading text-[clamp(2rem,4.2vw,2.8rem)] font-bold leading-[1.05] tracking-[-0.03em]">
             {title}
           </h1>
           {lede && (
-            <p className="max-w-[58ch] text-[16px] leading-[1.62] text-muted-foreground lg:pb-1.5">
+            <p className="max-w-[56ch] text-[19px] leading-[1.55] text-muted-foreground lg:pb-1">
               {lede}
             </p>
           )}
         </div>
-        <div className="mt-11">{children}</div>
+        <div className="mt-12">{children}</div>
       </main>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  Sticky control bar. The reason for this: on the craft page you flip
+ *  a switch and the specimen it changes is 400px below, so you flip,
+ *  scroll, look, scroll back. Wrapping the controls in this keeps them
+ *  pinned under the section index while you look at what they change.
+ * ------------------------------------------------------------------ */
+
+export function Controls({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "card-elevated sticky top-[100px] z-20 -mx-3 mb-6 rounded-2xl border border-border bg-card px-4 py-3",
+        className,
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
     </div>
   );
 }
@@ -135,12 +244,40 @@ export function LabShell({
  *  Section rule — a hairline with a label sitting on it. No box.
  * ------------------------------------------------------------------ */
 
-export function Rule({ children, className }: { children: ReactNode; className?: string }) {
+/** turn a heading into a stable anchor id */
+function slug(node: ReactNode): string {
+  const text = typeof node === "string" ? node : String(node ?? "");
+  return (
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48) || "section"
+  );
+}
+
+export function Rule({
+  children,
+  className,
+  /** shorter label for the sticky index; defaults to the full heading */
+  nav,
+}: {
+  children: ReactNode;
+  className?: string;
+  nav?: string;
+}) {
+  const text = typeof children === "string" ? children : String(children ?? "");
+  const id = slug(text);
   return (
     // The label must be allowed to wrap. `shrink-0` here pushed long section
     // titles past a 390px viewport on five of six rooms.
-    <div className={cn("flex items-center gap-4 pb-5 pt-14", className)}>
-      <h2 className="min-w-0 text-[11.5px] font-bold uppercase leading-[1.5] tracking-[0.16em] text-muted-foreground">
+    // scroll-mt clears the two sticky strips when you jump to this anchor.
+    <div
+      id={id}
+      data-rule={nav ?? text}
+      className={cn("flex items-center gap-4 scroll-mt-[112px] pb-5 pt-16", className)}
+    >
+      <h2 className="min-w-0 text-[13px] font-bold uppercase leading-[1.45] tracking-[0.14em] text-foreground/70">
         {children}
       </h2>
       <span className="h-px min-w-6 flex-1 bg-border" />
@@ -175,10 +312,10 @@ export function Tell({
         stats && "lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]",
       )}
     >
-      <div className="relative pl-5">
+      <div className="relative self-start pl-5">
         <span className={cn("absolute left-0 top-1 bottom-1 w-[3px] rounded-full", spine)} />
-        <div className={cn("text-[11.5px] font-bold uppercase tracking-[0.16em]", ink)}>{label}</div>
-        <div className="mt-2 max-w-[68ch] space-y-3 text-[15px] leading-[1.7] text-foreground [&_b]:font-semibold">
+        <div className={cn("text-[13px] font-bold uppercase tracking-[0.14em]", ink)}>{label}</div>
+        <div className="mt-3 max-w-[64ch] space-y-3.5 text-[17px] leading-[1.65] text-foreground [&_b]:font-semibold">
           {children}
         </div>
       </div>
@@ -186,10 +323,10 @@ export function Tell({
       {stats && (
         <dl className="divide-y divide-border border-y border-border">
           {stats.map((s) => (
-            <div key={s.of} className="flex items-baseline gap-4 py-3">
+            <div key={s.of} className="flex items-baseline gap-4 py-3.5">
               <dt
                 className={cn(
-                  "w-[104px] shrink-0 text-right font-heading text-[26px] font-bold leading-none tabular-nums tracking-[-0.03em]",
+                  "w-[112px] shrink-0 text-right font-heading text-[30px] font-bold leading-none tabular-nums tracking-[-0.03em]",
                   s.tone === "good"
                     ? "text-leaf"
                     : s.tone === "plain"
@@ -199,7 +336,7 @@ export function Tell({
               >
                 {s.n}
               </dt>
-              <dd className="text-[13.5px] leading-[1.45] text-muted-foreground">{s.of}</dd>
+              <dd className="text-[15px] leading-[1.4] text-muted-foreground">{s.of}</dd>
             </div>
           ))}
         </dl>
@@ -242,7 +379,7 @@ export function Ledger({
               <th
                 key={i}
                 style={i === 0 ? { width: firstCol } : undefined}
-                className="border-b border-border pb-2 pr-4 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground"
+                className="border-b border-border pb-2.5 pr-5 text-[12px] font-bold uppercase tracking-[0.12em] text-muted-foreground"
               >
                 {c}
               </th>
@@ -252,7 +389,7 @@ export function Ledger({
         <tbody>
           {rows.map((r, ri) => (
             <tr key={`${r.k}-${ri}`} className="border-b border-border/60 last:border-0">
-              <td className="py-2.5 pr-4 align-top text-[13.5px] font-medium text-foreground">
+              <td className="py-3 pr-5 align-top text-[15px] font-semibold text-foreground">
                 {r.k}
               </td>
               {r.v.map((cell, i) => {
@@ -262,7 +399,7 @@ export function Ledger({
                   <td
                     key={i}
                     className={cn(
-                      "py-2.5 pr-4 align-top text-[13.5px] tabular-nums",
+                      "py-3 pr-5 align-top text-[15px] leading-[1.45] tabular-nums",
                       bad && "font-semibold text-heart",
                       good && "font-semibold text-leaf",
                       !bad && !good && "text-muted-foreground",
@@ -328,17 +465,17 @@ export function Mount({
   const t = TONE[tone];
   return (
     <figure className={cn("min-w-0", className)}>
-      <figcaption className="mb-2.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+      <figcaption className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.12em]",
+            "rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.1em]",
             t.chip,
           )}
         >
           {label ?? t.word}
         </span>
         {note && (
-          <span className="text-[12.5px] leading-snug text-muted-foreground">{note}</span>
+          <span className="text-[14px] leading-snug text-muted-foreground">{note}</span>
         )}
       </figcaption>
       <div
@@ -385,9 +522,9 @@ export function Bench({
 
 export function Verdict({ children, title = "The call" }: { children: ReactNode; title?: string }) {
   return (
-    <div className="card-elevated mt-14 rounded-2xl border border-border bg-card p-7">
-      <div className="text-[11.5px] font-bold uppercase tracking-[0.16em] text-leaf">{title}</div>
-      <div className="mt-3 max-w-[74ch] space-y-3 text-[15px] leading-[1.7] [&_b]:font-semibold [&_code]:rounded [&_code]:bg-mist [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px]">
+    <div className="card-elevated mt-16 rounded-2xl border border-border bg-card p-8">
+      <div className="text-[13px] font-bold uppercase tracking-[0.14em] text-leaf">{title}</div>
+      <div className="mt-3.5 max-w-[70ch] space-y-4 text-[17px] leading-[1.65] [&_b]:font-semibold [&_code]:rounded [&_code]:bg-mist [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[15px]">
         {children}
       </div>
     </div>
@@ -419,7 +556,7 @@ export function Switches<K extends string>({
             aria-pressed={on}
             title={it.hint}
             className={cn(
-              "rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+              "rounded-full border px-4 py-2 text-[14px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
               on
                 ? "border-leaf/40 bg-leaf/14 text-leaf"
                 : "border-border bg-card text-muted-foreground hover:bg-mist hover:text-foreground",
@@ -451,7 +588,7 @@ export function Pick<K extends string>({
           type="button"
           onClick={() => onChange(it.k)}
           className={cn(
-            "rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+            "rounded-full px-4 py-2 text-[14px] font-semibold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
             value === it.k
               ? "bg-[#235C49] text-white"
               : "text-muted-foreground hover:text-foreground",

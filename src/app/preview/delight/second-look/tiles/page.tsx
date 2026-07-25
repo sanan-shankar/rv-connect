@@ -38,7 +38,7 @@ export default function TilesRoom() {
       <Tell
         stats={[
           { n: "4 of 4", of: "gates a feed post passes. The tile is correct there, on every count.", tone: "good" },
-          { n: "0 of 4", of: "gates a settings field group passes. It is drawn in eight stacked cards." },
+          { n: "0 of 4", of: "gates a settings field group passes. Seven of them are drawn as stacked cards." },
           { n: "91.3px", of: "the height of all five Catch-up tiles. Identical to the decimal. Three of them say nothing has happened." },
           { n: "224.9px", of: "the height of all six letter cards. 36% of that is the letter; the rest is chrome." },
           { n: "2", of: "places where the ruled-list pattern is already built and working. Both are in a 318px rail. Neither is in the column that needed it.", tone: "plain" },
@@ -59,15 +59,15 @@ export default function TilesRoom() {
       </Tell>
 
       {/* ============================================================ */}
-      <Rule>The four gates</Rule>
+      <Rule nav="The four gates">The four gates</Rule>
 
       <div className="grid gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         <div className="space-y-6">
           <div>
-            <h3 className="font-heading text-[16.5px] font-bold tracking-tight">
+            <h3 className="font-heading text-[18px] font-bold tracking-tight">
               01. Atomicity
             </h3>
-            <p className="mt-1.5 max-w-[66ch] text-[15px] leading-[1.7]">
+            <p className="mt-1.5 max-w-[66ch] text-[17px] leading-[1.65]">
               Is the whole thing one target, or one object you act on as a unit: open it, drag it,
               dismiss it, reorder it? Atlassian&apos;s design system reserves its raised elevation
               for cards that <b>can be moved</b>, like a Jira or Trello card. The VA.gov design
@@ -78,8 +78,8 @@ export default function TilesRoom() {
           </div>
 
           <div>
-            <h3 className="font-heading text-[16.5px] font-bold tracking-tight">02. Raggedness</h3>
-            <p className="mt-1.5 max-w-[66ch] text-[15px] leading-[1.7]">
+            <h3 className="font-heading text-[18px] font-bold tracking-tight">02. Raggedness</h3>
+            <p className="mt-1.5 max-w-[66ch] text-[17px] leading-[1.65]">
               Is the content unpredictable enough that alignment fails? Nielsen Norman Group gives
               the trigger for common region in one sentence: a boundary is the tool for{" "}
               <b>&quot;when needing to contain several different types of UI elements, or when
@@ -92,23 +92,22 @@ export default function TilesRoom() {
           </div>
 
           <div>
-            <h3 className="font-heading text-[16.5px] font-bold tracking-tight">
+            <h3 className="font-heading text-[18px] font-bold tracking-tight">
               03. Heterogeneity of neighbours
             </h3>
-            <p className="mt-1.5 max-w-[66ch] text-[15px] leading-[1.7]">
+            <p className="mt-1.5 max-w-[66ch] text-[17px] leading-[1.65]">
               Does this item sit next to an item of a <b>different kind</b>? Boxes separate unlike
               things. Twelve boxes around twelve like things is what Dave Rupert named the{" "}
               <b>hierarchy arms race</b>{" "}
-              in &quot;Pitfalls of Card UIs&quot;: &quot;Once something is
-              a card, it has a border, now everything else craves a border. Over a few iterations,
-              everything becomes a card. A line gives prominence. Now everything wants
+              in &quot;Pitfalls of Card UIs&quot;: &quot;Once something is a card, it has a border,
+              now everything else craves a border... A line gives prominence. Now everything wants
               prominence.&quot; The currency inflates until a border means nothing.
             </p>
           </div>
 
           <div>
-            <h3 className="font-heading text-[16.5px] font-bold tracking-tight">04. Portability</h3>
-            <p className="mt-1.5 max-w-[66ch] text-[15px] leading-[1.7]">
+            <h3 className="font-heading text-[18px] font-bold tracking-tight">04. Portability</h3>
+            <p className="mt-1.5 max-w-[66ch] text-[17px] leading-[1.65]">
               Will this exact unit re-render somewhere else: the feed, a profile, a group, search? A
               portable unit has to carry its own edges, because it cannot rely on the page it lands
               on to provide them. A thing that only ever appears in one list can borrow that
@@ -126,7 +125,7 @@ export default function TilesRoom() {
               <dt className="font-heading text-[15px] font-bold tracking-tight">
                 Two or more: tile
               </dt>
-              <dd className="mt-1 text-[13.5px] leading-[1.6] text-muted-foreground">
+              <dd className="mt-1 text-[15px] leading-[1.55] text-muted-foreground">
                 Border, 16px radius, elevation. It is paying for itself.
               </dd>
             </div>
@@ -134,14 +133,14 @@ export default function TilesRoom() {
               <dt className="font-heading text-[15px] font-bold tracking-tight">
                 Exactly one: ruled list
               </dt>
-              <dd className="mt-1 text-[13.5px] leading-[1.6] text-muted-foreground">
+              <dd className="mt-1 text-[15px] leading-[1.55] text-muted-foreground">
                 One container around the whole group, hairline rows inside. The single gate that
                 passed is usually atomicity, and a row is a perfectly good target.
               </dd>
             </div>
             <div className="pt-3">
               <dt className="font-heading text-[15px] font-bold tracking-tight">Zero: whitespace</dt>
-              <dd className="mt-1 text-[13.5px] leading-[1.6] text-muted-foreground">
+              <dd className="mt-1 text-[15px] leading-[1.55] text-muted-foreground">
                 A label, a gap, and nothing else. NN/g again: &quot;using whitespace alone to create
                 clear groupings reduces the visual complexity of a design&quot;.
               </dd>
@@ -151,26 +150,26 @@ export default function TilesRoom() {
       </div>
 
       {/* ============================================================ */}
-      <Rule>Score it yourself</Rule>
+      <Rule nav="Score it">Score it yourself</Rule>
 
-      <p className="mb-7 max-w-[72ch] text-[15px] leading-[1.7]">
-        Eight real surfaces from this app, scored honestly. Every &quot;why&quot; below carries a
-        number taken off the running product at a 1440px viewport, not an impression. Start with the
-        feed, because if the rule cannot vindicate the place you already know tiles are right, it is
-        not a rule, it is a preference.
+      <p className="mb-7 max-w-[72ch] text-[17px] leading-[1.65]">
+        Eight real surfaces from this app. Every gate below is answered from the source file or from
+        a measurement taken off the running product at a 1440px viewport, not from an impression.
+        Start with the feed, because if the rule cannot vindicate the place you already know tiles
+        are right, it is not a rule, it is a preference.
       </p>
 
       <Scorer />
 
       {/* ============================================================ */}
-      <Rule>Corollary one: value per border falls as N rises</Rule>
+      <Rule nav="N-scaling">Corollary one: value per border falls as N rises</Rule>
 
-      <p className="mb-7 max-w-[72ch] text-[15px] leading-[1.7]">
+      <p className="mb-7 max-w-[72ch] text-[17px] leading-[1.65]">
         The cost of a border is linear in the count. The value is not: it collapses, because a
         boundary is a <b>difference</b>{" "}
         signal and identical neighbours have no difference to signal.
         One card on a page is almost always right. Card 37 of 40 identical items is almost always
-        wrong. NN/g measured the consequence: a vertical list &quot;is more scannable than cards
+        wrong. NN/g states the consequence: a vertical list &quot;is more scannable than cards
         because the positioning of the individual elements is fixed in size and more predictable for
         the eye&quot;, and &quot;cards take more space&quot;, so use a list for &quot;very homogenous
         items&quot;. Tufte got there first with data-ink: N identical borders down a column are
@@ -179,47 +178,57 @@ export default function TilesRoom() {
 
       <NScaling />
 
-      <p className="mt-6 max-w-[72ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-6 max-w-[72ch] text-[17px] leading-[1.65] text-muted-foreground">
         At one item the two are almost the same drawing and the box is free. At forty the boxed
         column has spent 160 corners and 312px of gap to tell you forty times that a group is a
         group.
       </p>
 
       {/* ============================================================ */}
-      <Rule>Corollary two: move the box up one level</Rule>
+      <Rule nav="Move the box">Corollary two: move the box up one level</Rule>
 
-      <p className="max-w-[72ch] text-[15px] leading-[1.7]">
+      <p className="max-w-[72ch] text-[17px] leading-[1.65]">
         This is the part worth keeping. When a page feels noisy, the fix is almost never &quot;remove
         all the containers&quot;, which produces a wall of unanchored text. It is{" "}
         <b>one container per group with hairline rows inside, instead of one container per row</b>.
         The grouping survives, the count of borders drops from N to one, and the rows get a shared
-        left edge that the boxed version never had. That is the iOS inset-grouped list, and it is
-        thirty years old because it works.
+        left edge that the boxed version never had. That is the iOS grouped list, which has been the
+        shape of a settings screen since 2007.
       </p>
-      <p className="mt-3 max-w-[72ch] text-[15px] leading-[1.7]">
-        You do not have to take my word for it, because this app already contains two correct
-        implementations. Both are one line of Tailwind:{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">
-          [&amp;&gt;a+a]:border-t [&amp;&gt;*:last-child]:pb-0
+      <p className="mt-3 max-w-[72ch] text-[17px] leading-[1.65]">
+        This app already contains two correct implementations, and each is one line of Tailwind.{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">
+          [&amp;&gt;*:last-child]:pb-0 [&amp;&gt;a+a]:border-t [&amp;&gt;a+a]:border-border
         </code>{" "}
-        in Fresh off the press, and the same shape in the feed rail&apos;s New in the directory. One
-        of them sits 30px to the right of the column this room is about.
+        in <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">fresh-off-the-press.tsx:40</code>,
+        and the same line with{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">div+div</code> in{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">rail/directory-module.tsx:34</code>.
+        Those are the only two hits in the repo. One of them sits 30px to the right of the column
+        this room is about.
       </p>
 
       {/* ============================================================ */}
-      <Rule>Surface one · the Catch-ups index</Rule>
+      <Rule nav="Catch-ups">Surface one · the Catch-ups index</Rule>
 
-      <p className="mb-6 max-w-[72ch] text-[15px] leading-[1.7]">
-        Five tiles, each <b>764 x 91.3px</b> on a 105.2px pitch, {M.catchupColumn}px of column. Each
+      <p className="mb-6 max-w-[72ch] text-[17px] leading-[1.65]">
+        Five tiles, each <b>764 x 91.3px</b> on a 105.3px pitch, {M.catchupColumn}px of column. Each
         one carries a group name, one row of bird avatars, <b>one status line</b>, and one pill.
         Three of the five say &quot;No Catch-up here yet&quot; and get exactly the same 91.3px, the
-        same border, the same elevation and the same button prominence as the two with a live Round.
-        That is <b>273.9px of the 512.3px column</b> spent saying that nothing has happened.
+        same border, the same elevation and the same button prominence as the two with a published
+        Round. That is <b>273.8px of the 512.3px column</b> spent saying that nothing has happened.
       </p>
-      <p className="mb-7 max-w-[72ch] text-[15px] leading-[1.7]">
+      <p className="mb-7 max-w-[72ch] text-[17px] leading-[1.65]">
         Meanwhile the 318px rail on the right renders the <b>same two published Rounds</b> with
         strictly more in them: the Round number, the group, the date, a quoted line from the Round,
         and a contributor count. Both are below, at true scale, from the live page.
+      </p>
+      <p className="mb-7 max-w-[72ch] text-[14px] leading-[1.65] text-muted-foreground">
+        The card has exactly one branch that changes its height:{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[14px]">editionStatus</code> of{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[14px]">answering</code> adds a second
+        avatar row and an N-of-M line, worth 38px (your-catchups-card.tsx:74). No group was answering
+        when this was measured, which is why all five came back identical.
       </p>
 
       <Mount
@@ -227,7 +236,7 @@ export default function TilesRoom() {
         flush
         note="Drawn at true CSS pixel size. Column 764px, gap 30px, rail 318px, exactly as /catchups renders at a 1440px viewport. The column measures 512.3px in both places."
       >
-        <div className="overflow-x-auto px-5 py-5">
+        <div className="overflow-x-auto px-4 py-5">
           <div className="flex gap-2" style={{ minWidth: 1112 + 20 }}>
             <Measure slim />
             <CatchupsShipped />
@@ -241,8 +250,8 @@ export default function TilesRoom() {
           cols={["", "The 764px column", "The 318px rail"]}
           rows={[
             { k: "Width", v: ["764px", "318px"] },
-            { k: "Height used by the two published Rounds", v: ["182.6px", "185.9px"] },
-            { k: "Area used", v: ["139,506px²", "59,116px²"], bad: [0], good: [1] },
+            { k: "Height used by the two published Rounds", v: ["182.5px", "185.9px"] },
+            { k: "Area used", v: ["139,430px²", "59,116px²"], bad: [0], good: [1] },
             {
               k: "Facts carried per Round",
               v: [
@@ -252,8 +261,8 @@ export default function TilesRoom() {
               bad: [0],
               good: [1],
             },
-            { k: "Area per fact", v: ["23,251px²", "5,912px²"], bad: [0], good: [1] },
-            { k: "Space spent on groups with no Catch-up", v: ["273.9px, 3 rows of 5", "0px"], bad: [0], good: [1] },
+            { k: "Area per fact", v: ["23,238px²", "5,912px²"], bad: [0], good: [1] },
+            { k: "Space spent on groups with no Catch-up", v: ["273.8px, 3 rows of 5", "0px"], bad: [0], good: [1] },
           ]}
         />
         <p className="mt-3 text-[13px] leading-[1.6] text-muted-foreground">
@@ -284,27 +293,26 @@ export default function TilesRoom() {
       </div>
 
       {/* ============================================================ */}
-      <Rule>Surface two · the Letters index</Rule>
+      <Rule nav="Letters">Surface two · the Letters index</Rule>
 
-      <p className="mb-6 max-w-[72ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[72ch] text-[17px] leading-[1.65]">
         Six letters, six cards, every one of them <b>224.9px</b> tall on a 240.9px pitch. Not
         approximately: all six measured identical, because the title is cut at 80 characters and the
-        preview is <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">line-clamp-2</code>.
+        preview is <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">line-clamp-2</code>.
         The layout deletes the variation that would have justified the box, then keeps the box.
       </p>
 
-      <div className="mb-7 grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,330px)]">
-        <div className="space-y-3 text-[15px] leading-[1.7]">
+      <div className="mb-7 grid gap-x-10 gap-y-6 lg:grid-cols-2">
+        <div className="space-y-3 text-[17px] leading-[1.65]">
           <p>Inside those 224.9px:</p>
-          <ul className="ml-5 max-w-[64ch] list-disc space-y-1.5 text-[14.5px] leading-[1.6] marker:text-muted-foreground">
+          <ul className="ml-5 max-w-[64ch] list-disc space-y-1.5 text-[16px] leading-[1.6] marker:text-muted-foreground">
             <li>
               <b>15.8px</b> of cinnamon eyebrow that says LETTER. You are on the Letters page. It
               says LETTER six times.
             </li>
             <li>
-              <b>55px</b> of byline, sitting at the <b>bottom</b> under a rule, which is where a
-              newspaper puts a byline it wants you to ignore. On an index, the author is one of the
-              two reasons you click.
+              <b>55px</b> of byline, sitting at the <b>bottom</b> under a rule. On an index, the
+              author is one of the two reasons you click.
             </li>
             <li>
               <b>40px</b> of padding and <b>31.9px</b> of internal gaps, for <b>80.1px</b> of actual
@@ -368,7 +376,7 @@ export default function TilesRoom() {
         </Mount>
       </div>
 
-      <p className="mt-6 max-w-[72ch] text-[15px] leading-[1.7]">
+      <p className="mt-6 max-w-[72ch] text-[17px] leading-[1.65]">
         <b>451.8px for six, against 465.8px for two.</b> Same information, and the lead can now be
         visibly the lead: 27px for the piece of the month, 19px for the runner-up, 17px for the rest.
         Three things changed and none of them is decoration. The kicker went from a label that never
@@ -378,23 +386,25 @@ export default function TilesRoom() {
       </p>
 
       {/* ============================================================ */}
-      <Rule>Surface three · Settings</Rule>
+      <Rule nav="Settings">Surface three · Settings</Rule>
 
-      <p className="mb-6 max-w-[72ch] text-[15px] leading-[1.7]">
-        Eight cards stacked down a 3,092px page, each holding label-and-input pairs. This is the 0 of
-        4 case, and it is also where the nesting goes wrong. The two boxes inside the &quot;You&quot;
+      <p className="mb-6 max-w-[72ch] text-[17px] leading-[1.65]">
+        Eight cards stacked down a 3,092px page. Seven hold label-and-input pairs and score 0 of 4.
+        The eighth is Danger zone: it sits outside the form, it is the only destructive thing on the
+        screen, and it is the one card here that has earned its border. This is also where the
+        nesting goes wrong. The two boxes inside the &quot;You&quot;
         card are filled with{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">bg-paper/50</code>, which is{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">#F6F2E8</code> at 50% over a card
-        that is already <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">#F6F2E8</code>.
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">bg-paper/50</code>, which is{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">#F6F2E8</code> at 50% over a card
+        that is already <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">#F6F2E8</code>.
         It composites to the card colour <b>exactly</b>. The only thing separating an inner box from
         its container is one 1px hairline, so the box is a border with no region.
       </p>
-      <p className="mb-7 max-w-[72ch] text-[15px] leading-[1.7]">
+      <p className="mb-7 max-w-[72ch] text-[17px] leading-[1.65]">
         And the radii run the wrong way. The card is{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">rounded-xl</code>, which in this
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">rounded-xl</code>, which in this
         repo is <b>20.8px</b>. The header-picture box inside it is 16px. The cover preview inside
-        that is <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">rounded-xl</code> again,
+        that is <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">rounded-xl</code> again,
         so <b>20.8px inside a 16px container</b>. Your own rule says an inner box is never the same
         radius as its container, let alone 4.8px rounder. The nine house-year rows further down are
         20.8px inside a 20.8px card, which breaks it the other way.
@@ -424,7 +434,7 @@ export default function TilesRoom() {
       <div className="mt-9 space-y-8">
         <Mount
           tone="shipped"
-          note="Two of the eight groups, true scale, 768px wide. Both boxes inside You are the same colour as You."
+          note="Two of the seven field groups, true scale, 768px wide. Both boxes inside You are the same colour as You."
         >
           <div className="overflow-x-auto">
             <div className="flex gap-4" style={{ minWidth: 768 + 62 }}>
@@ -455,28 +465,28 @@ export default function TilesRoom() {
 
       <div className="mt-7 grid gap-x-10 gap-y-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
-          <h3 className="font-heading text-[16.5px] font-bold tracking-tight">
+          <h3 className="font-heading text-[18px] font-bold tracking-tight">
             Why inset-grouped and not the GOV.UK summary list
           </h3>
-          <p className="mt-2 max-w-[62ch] text-[15px] leading-[1.7]">
+          <p className="mt-2 max-w-[62ch] text-[17px] leading-[1.65]">
             The GOV.UK summary list is the obvious other candidate, and it is the better pattern for
             what it was built for: check-your-answers, where each line is key, value, and a
             &quot;Change&quot; link that takes you to a separate page for that one field. Settings
-            here is not that. It is a live form with <b>one sticky save bar for all eight groups</b>,
+            here is not that. It is a live form with <b>one sticky save bar for all seven groups</b>,
             and the whole point is that you can fix your city, your job title and two house years in
-            one pass and press Save once. A summary list turns that into eight round trips.
+            one pass and press Save once. A summary list turns that into seven round trips.
           </p>
-          <p className="mt-3 max-w-[62ch] text-[15px] leading-[1.7] text-muted-foreground">
+          <p className="mt-3 max-w-[62ch] text-[17px] leading-[1.65] text-muted-foreground">
             Where the summary list does belong here: the profile you are looking at, and the
             admin&apos;s view of a member. Read-first, change-occasionally. That is a different
             screen.
           </p>
         </div>
         <div>
-          <h3 className="font-heading text-[16.5px] font-bold tracking-tight">
+          <h3 className="font-heading text-[18px] font-bold tracking-tight">
             What the inset-grouped version actually fixes
           </h3>
-          <ul className="ml-5 mt-2 max-w-[62ch] list-disc space-y-1.5 text-[14.5px] leading-[1.6] marker:text-muted-foreground">
+          <ul className="ml-5 mt-2 max-w-[62ch] list-disc space-y-1.5 text-[16px] leading-[1.6] marker:text-muted-foreground">
             <li>
               <b>721.5px becomes 431.5px</b> for the two groups shown, a 40% saving, with nothing
               removed.
@@ -491,7 +501,7 @@ export default function TilesRoom() {
               field instead of a stack of label-above-input blocks.
             </li>
             <li>
-              The group title leaves the container, which deletes the header band from all eight
+              The group title leaves the container, which deletes the header band from all seven
               groups and lets the container start at its first real row.
             </li>
           </ul>
@@ -499,9 +509,9 @@ export default function TilesRoom() {
       </div>
 
       {/* ============================================================ */}
-      <Rule>The case for keeping tiles, put properly</Rule>
+      <Rule nav="The other side">The case for keeping tiles, put properly</Rule>
 
-      <div className="grid max-w-[76ch] gap-4 text-[15px] leading-[1.7]">
+      <div className="grid max-w-[76ch] gap-4 text-[17px] leading-[1.65]">
         <p>
           The strongest argument against everything above is not that boxes look nicer. It is
           measured, and it is this: Tuch, Presslaber, Stoecklin, Opwis and Bargas-Avila (International
@@ -514,11 +524,11 @@ export default function TilesRoom() {
           first fiftieth of a second before anyone has read a word.
         </p>
         <p>
-          Note that the same study cuts both ways here, because <b>visual complexity</b> had the
-          larger effect of the two, and forty borders is complexity. But it is a genuine tension, not
-          a rhetorical one, and it is why the answer is a test rather than a ban.
+          The same study cuts both ways, because <b>visual complexity</b> had the larger effect of
+          the two, and forty borders is complexity. It is a genuine tension, not a rhetorical one,
+          and it is why the answer is a test rather than a ban.
         </p>
-        <p>Three more arguments for tiles that are simply true:</p>
+        <p>Three more arguments for tiles:</p>
         <ul className="ml-5 list-disc space-y-2 marker:text-muted-foreground">
           <li>
             <b>Tiles are forgiving.</b> A box absorbs content of any length without the layout
@@ -544,7 +554,7 @@ export default function TilesRoom() {
       </div>
 
       {/* ============================================================ */}
-      <Rule>Every surface, decided</Rule>
+      <Rule nav="Decided">Every surface, decided</Rule>
 
       <Ledger
         firstCol="20%"
@@ -598,14 +608,14 @@ export default function TilesRoom() {
             v: [
               "0 of 4",
               "Ruled list",
-              "Group label outside a single container, one hairline row per field, zero nested surfaces.",
+              "Group label outside a single container, one hairline row per field, zero nested surfaces. Danger zone keeps its card.",
             ],
             bad: [0],
           },
         ]}
       />
 
-      <p className="mt-4 max-w-[72ch] text-[13.5px] leading-[1.6] text-muted-foreground">
+      <p className="mt-4 max-w-[72ch] text-[15px] leading-[1.55] text-muted-foreground">
         Settings scores zero, which by the letter of the rule means whitespace alone. In practice a
         long form still wants one container per group so the rows have a shared edge to hang off, so
         it lands in the same place as the ones. The zero is worth knowing anyway: it is why eight

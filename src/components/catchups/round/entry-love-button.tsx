@@ -44,7 +44,6 @@ export function EntryLoveButton({
       liked={liked}
       count={count}
       onToggle={handleToggle}
-      size="md"
       label={liked ? "Remove your heart from this answer" : "Heart this answer"}
     />
   );

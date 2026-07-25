@@ -153,7 +153,6 @@ function ArticleRow({ post }: { post: MockPost }) {
               liked={liked}
               count={likeCount}
               onToggle={toggleLike}
-              size="sm"
               label={liked ? "Unlike" : "Like"}
               className="-ml-2.5"
             />
@@ -201,7 +200,6 @@ export default function EditorialVariant({ profile }: ProfileVariantProps) {
               photoUrl: profile.photoUrl,
               avatarSpecies: profile.avatarSpecies,
             }}
-            size="md"
             ring
           />
         </div>

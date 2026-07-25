@@ -208,7 +208,6 @@ function ChirpBird({ profile }: { profile: MockProfile }) {
       >
         <BirdAvatar
           user={{ id: profile.id, name: profile.name, avatarSpecies: profile.avatarSpecies }}
-          size="md"
         />
       </motion.span>
 
@@ -457,7 +456,7 @@ function ArticleEntry({
           <div className="whitespace-pre-wrap text-foreground">{post.content}</div>
 
           <div className="-ml-2.5 mt-[var(--space-m)] flex items-center gap-1 text-muted-foreground">
-            <LoveButton liked={liked} count={likeCount} onToggle={onToggleLike} size="sm" label="Like" />
+            <LoveButton liked={liked} count={likeCount} onToggle={onToggleLike} label="Like" />
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px]">
               <MessageCircle className="h-4 w-4" aria-hidden />
               {post.commentCount}

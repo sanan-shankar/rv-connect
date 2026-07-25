@@ -11,8 +11,8 @@
  *  Deep links for screenshot agents: append ?v=<key> to load a concept
  *  directly, e.g.
  *    http://localhost:3000/preview/delight/profiles?v=field-guide
- *  Valid keys: letterhead | field-guide | editorial | valley-terrain | dossier
- *  | broadsheet | passport | terrace.
+ *  Valid keys: letterhead | field-guide | editorial | dossier | broadsheet
+ *  | passport | terrace.
  *  Omitting ?v=, or passing an unknown key, falls back to the first tab
  *  (letterhead). Clicking a tab in the browser rewrites ?v= to match, so
  *  the address bar always reflects what's on screen and can be copied
@@ -29,7 +29,6 @@ import { PROFILE } from "./_data";
 import LetterheadVariant from "./_variant-letterhead";
 import FieldGuideVariant from "./_variant-field-guide";
 import EditorialVariant from "./_variant-editorial";
-import ValleyTerrainVariant from "./_variant-valley-terrain";
 import DossierVariant from "./_variant-dossier";
 import BroadsheetVariant from "./_variant-broadsheet";
 import PassportVariant from "./_variant-passport";
@@ -39,7 +38,6 @@ const CONCEPTS = [
   { key: "letterhead", label: "Letterhead", Component: LetterheadVariant },
   { key: "field-guide", label: "Field guide", Component: FieldGuideVariant },
   { key: "editorial", label: "Editorial", Component: EditorialVariant },
-  { key: "valley-terrain", label: "Valley terrain", Component: ValleyTerrainVariant },
   { key: "dossier", label: "Dossier", Component: DossierVariant },
   { key: "broadsheet", label: "Broadsheet", Component: BroadsheetVariant },
   { key: "passport", label: "Passport", Component: PassportVariant },

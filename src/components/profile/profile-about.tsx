@@ -1,20 +1,11 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { AboutProse } from "@/components/profile/about-prose";
-import {
-  socialHref,
-  socialIcon,
-  socialDisplay,
-  socialHost,
-  type SocialKind,
-} from "@/lib/social";
-
 /* ------------------------------------------------------------------ *
  *  ProfileAbout - the About tab (the default), rebuilt 2026-07 from the
  *  approved profile-v2 concept. Order:
  *   1. the About prose (eyebrow says "About" - the app standardised on
  *      that name this round; no more bio/in-their-words variants),
- *   2. the "Find them" socials block (Dossier's block),
  *   3. the at-RV facts as a QUIET footnote strip at the very bottom -
  *      years at RV, entered grade, cities. This is the only home for
  *      those facts now: never in the header, never in a mid-page rail.
@@ -24,38 +15,9 @@ import {
  *  the full width beneath. Mobile is the linear stack.
  * ------------------------------------------------------------------ */
 
-export interface AboutSocial {
-  kind: SocialKind;
-  value: string;
-  // FLAG (settings-consolidation, coordinate with profile-polish): user-defined
-  // pill text for a custom "Other links" row (kind "link"); overrides the
-  // usual handle/host display so the member's own label shows verbatim.
-  label?: string;
-}
-
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-cinnamon/85">{children}</p>
-  );
-}
-
-function SocialPill({ social }: { social: AboutSocial }) {
-  const Icon = socialIcon(social.kind);
-  const host = socialHost(social.kind, social.value);
-  // A custom "Other links" row shows the member's own label verbatim instead
-  // of the derived handle/host text (see the FLAG note on AboutSocial).
-  const text = social.label || socialDisplay(social.kind, social.value);
-  return (
-    <a
-      href={socialHref(social.kind, social.value)}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-cinnamon/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.985]"
-    >
-      <Icon className="h-[15px] w-[15px] shrink-0 text-cinnamon" aria-hidden />
-      <span>{text}</span>
-      {host && <span className="font-normal text-muted-foreground">{host}</span>}
-    </a>
   );
 }
 
@@ -77,38 +39,38 @@ function Fact({ label, value, divided }: { label: string; value: string; divided
   );
 }
 
+
 export function ProfileAbout({
   about,
   firstName,
   isOwnProfile,
-  socials,
+  batchLabel,
   rvYears,
-  enteredGrade,
   cities,
 }: {
   about: string | null;
   firstName: string;
   isOwnProfile: boolean;
-  socials: AboutSocial[];
+  batchLabel: string | null;
   rvYears: string | null;
-  enteredGrade: number | null;
   cities: string[];
 }) {
-  const hasSocials = socials.length > 0;
+  // Batch and the years here, and that is the whole record. The owner cut the
+  // rest: "we don't have to specify what batch entered and all, just batch of
+  // whatever and what years they were there." So no "Entered Grade 4".
+  //
+  // Cities are plural on purpose. The label used to read "Based in", which
+  // promises one place and then printed three; people live in several and the
+  // model already stores several, so the label says so.
   const facts = [
+    batchLabel ? { label: "Batch", value: batchLabel } : null,
     rvYears ? { label: "In the valley", value: rvYears } : null,
-    enteredGrade != null ? { label: "Entered", value: `Grade ${enteredGrade}` } : null,
-    cities.length > 0 ? { label: "Based in", value: cities.join(" · ") } : null,
+    cities.length > 0 ? { label: cities.length > 1 ? "Cities" : "City", value: cities.join(" · ") } : null,
   ].filter((f): f is { label: string; value: string } => f !== null);
 
   return (
     <div>
-      <div
-        className={cn(
-          "grid gap-x-[var(--space-xl)] gap-y-[var(--space-xl)]",
-          hasSocials && "lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]"
-        )}
-      >
+      <div>
         <section>
           <Eyebrow>About</Eyebrow>
           <div className="mt-[var(--space-m)]">
@@ -130,16 +92,6 @@ export function ProfileAbout({
           </div>
         </section>
 
-        {hasSocials && (
-          <section className="lg:border-l lg:border-border lg:pl-[var(--space-xl)]">
-            <Eyebrow>Find them</Eyebrow>
-            <div className="mt-[var(--space-m)] flex flex-wrap gap-2.5">
-              {socials.map((s) => (
-                <SocialPill key={s.kind + s.value} social={s} />
-              ))}
-            </div>
-          </section>
-        )}
       </div>
 
       {facts.length > 0 && (
