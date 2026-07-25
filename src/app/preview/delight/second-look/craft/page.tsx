@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Feather } from "lucide-react";
-import { LabShell, Rule, Tell, Ledger, Mount, Bench, Verdict, Switches } from "../_kit";
+import { LabShell, Rule, Tell, Ledger, Mount, Bench, Verdict, Switches, Controls } from "../_kit";
 import { trueBody, trueHead } from "./_italic-fonts";
 import {
   SidebarSpecimen,
@@ -54,6 +55,7 @@ export default function CraftRoom() {
           { n: "252", of: "type sizes landing on half a pixel, across 11 distinct values" },
           { n: "23", of: "different icon stroke widths, from 0.9 to 6" },
           { n: "0", of: "italic font files loaded, for 9 italics in the shipped app" },
+          { n: "6", of: "static font files shipped, for two families that are both variable" },
         ]}
       >
         <p>
@@ -64,17 +66,17 @@ export default function CraftRoom() {
         </p>
         <p>
           Every number below is a WCAG relative-luminance ratio against the sidebar green{" "}
-          <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">#235C49</code>, computed rather
+          <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">#235C49</code>, computed rather
           than eyeballed.
         </p>
       </Tell>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Cause one · the ink is 70% transparent</Rule>
+      <Rule nav="Alpha ink">Cause one · the ink is 70% transparent</Rule>
 
-      <p className="mb-6 max-w-[70ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[70ch] text-[17px] leading-[1.65]">
         Idle nav rows are painted with{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">text-sidebar-foreground/70</code>.
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">text-sidebar-foreground/70</code>.
         On a neutral page an alpha is a harmless way to say &quot;quieter&quot;. On a saturated green
         it is not: the glyph gets 30% of the background mixed into it, so it does not just dim, it
         <b> desaturates toward the surface it sits on</b>. That is the exact perceptual signature of
@@ -102,31 +104,31 @@ export default function CraftRoom() {
         ]}
       />
 
-      <p className="mt-5 max-w-[70ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.65] text-muted-foreground">
         Both alpha values fail AA for normal text. The proposed inks are opaque, pass, and are still
         two full steps below the active row, so nothing about the hierarchy changes. It is the same
         design, correctly mixed.
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Cause two and three · half-pixel values</Rule>
+      <Rule nav="Half pixels">Cause two and three · half-pixel values</Rule>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
-          <p className="max-w-[62ch] text-[15px] leading-[1.7]">
+          <p className="max-w-[62ch] text-[17px] leading-[1.65]">
             The nav sets{" "}
-            <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">text-[14.5px]</code> and{" "}
-            <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">strokeWidth=&#123;1.9&#125;</code>.
+            <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">text-[16px]</code> and{" "}
+            <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">strokeWidth=&#123;1.9&#125;</code>.
             Both are landing on half a device pixel at 1x.
           </p>
-          <p className="mt-3 max-w-[62ch] text-[15px] leading-[1.7]">
+          <p className="mt-3 max-w-[62ch] text-[17px] leading-[1.65]">
             A 1.9px stroke cannot be drawn: the renderer spreads it across two pixel columns at
             partial coverage, so every icon edge is a soft grey ramp instead of an edge. At 14.5px the
             font&apos;s hinted stem positions fall between pixels for the same reason. On a Retina
             display it halves rather than removes the problem, and on the external 1x monitor most
             people use, it is the whole problem.
           </p>
-          <p className="mt-3 max-w-[62ch] text-[15px] leading-[1.7] text-muted-foreground">
+          <p className="mt-3 max-w-[62ch] text-[17px] leading-[1.65] text-muted-foreground">
             Neither value was chosen for a reason. 14.5 is 14 that someone nudged; 1.9 is 2 that
             someone nudged.
           </p>
@@ -145,11 +147,11 @@ export default function CraftRoom() {
       </div>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Cause four · hover and active are the same colour</Rule>
+      <Rule nav="State ladder">Cause four · hover and active are the same colour</Rule>
 
-      <p className="mb-6 max-w-[70ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[70ch] text-[17px] leading-[1.65]">
         Hover paints{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">bg-sidebar-accent/55</code>, which
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">bg-sidebar-accent/55</code>, which
         composites to <b>1.124:1</b> against the rail. Active paints the same colour at full strength:{" "}
         <b>1.226:1</b>. Those two states are one tenth of a ratio apart. In practice the nav has one
         state, not three, and the cinnamon edge is carrying the entire job of saying where you are.
@@ -157,9 +159,9 @@ export default function CraftRoom() {
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Attribute it yourself</Rule>
+      <Rule nav="Try it">Attribute it yourself</Rule>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <Controls>
         <Switches
           items={FIXES.map((f) => ({ k: f.k as string, label: f.label, hint: f.hint }))}
           value={fix as unknown as Record<string, boolean>}
@@ -168,11 +170,11 @@ export default function CraftRoom() {
         <button
           type="button"
           onClick={() => setFix(on === 4 ? ALL_OFF : ALL_ON)}
-          className="rounded-full bg-[#235C49] px-4 py-1.5 text-[12.5px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1E5040] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+          className="rounded-full bg-[#235C49] px-4 py-1.5 text-[14px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1E5040] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
         >
           {on === 4 ? "Reset to shipped" : "Turn all four on"}
         </button>
-      </div>
+      </Controls>
 
       <Bench>
         <Mount tone="shipped" note="Exactly what is in main today." flush>
@@ -201,7 +203,7 @@ export default function CraftRoom() {
       </Bench>
 
       <div className="mt-10">
-        <Rule>The same two rows at 3x</Rule>
+        <Rule nav="At 3x">The same two rows at 3x</Rule>
         <Bench>
           <Mount tone="shipped" note="Alpha ink, 14.5px, stroke 1.9. Look at the icon edges.">
             <ZoomCrop fix={ALL_OFF} />
@@ -213,9 +215,9 @@ export default function CraftRoom() {
       </div>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>The sidebar was the symptom</Rule>
+      <Rule nav="The disease">The sidebar was the symptom</Rule>
 
-      <p className="max-w-[70ch] text-[15px] leading-[1.7]">
+      <p className="max-w-[70ch] text-[17px] leading-[1.65]">
         You noticed it on the sidebar because that is the only large saturated surface in the
         product, and alpha ink misbehaves most over saturated colour. But all three habits are
         everywhere, and once you go looking, the craft layer underneath this app has never been
@@ -223,10 +225,10 @@ export default function CraftRoom() {
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>The colour used 568 times fails AA</Rule>
+      <Rule nav="568 uses">The colour used 568 times fails AA</Rule>
 
-      <p className="mb-6 max-w-[70ch] text-[15px] leading-[1.7]">
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">--muted-foreground: #6E7268</code>{" "}
+      <p className="mb-6 max-w-[70ch] text-[17px] leading-[1.65]">
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">--muted-foreground: #6E7268</code>{" "}
         is the second most-used colour in the product: <b>568 usages across 159 files</b>. Every
         subtitle, every timestamp, every meta line, every helper text. On the card surface it is{" "}
         <b>4.40:1</b>. On the page background it is <b>3.77:1</b>. AA for normal text is 4.5. It
@@ -240,7 +242,7 @@ export default function CraftRoom() {
               <p className="text-[15px] leading-[1.6]" style={{ color: "#6E7268" }}>
                 Longer pieces from the valley. Essays, tributes, travelogues.
               </p>
-              <p className="mt-1.5 text-[11.5px] font-bold uppercase tracking-[0.12em] text-heart">
+              <p className="mt-1.5 text-[13px] font-bold uppercase tracking-[0.12em] text-heart">
                 4.40:1 · fails AA
               </p>
             </div>
@@ -248,7 +250,7 @@ export default function CraftRoom() {
               <p className="text-[15px] leading-[1.6]" style={{ color: "#6E7268" }}>
                 Longer pieces from the valley. Essays, tributes, travelogues.
               </p>
-              <p className="mt-1.5 text-[11.5px] font-bold uppercase tracking-[0.12em] text-heart">
+              <p className="mt-1.5 text-[13px] font-bold uppercase tracking-[0.12em] text-heart">
                 3.77:1 · fails AA
               </p>
             </div>
@@ -260,7 +262,7 @@ export default function CraftRoom() {
               <p className="text-[15px] leading-[1.6]" style={{ color: "#5E6259" }}>
                 Longer pieces from the valley. Essays, tributes, travelogues.
               </p>
-              <p className="mt-1.5 text-[11.5px] font-bold uppercase tracking-[0.12em] text-leaf">
+              <p className="mt-1.5 text-[13px] font-bold uppercase tracking-[0.12em] text-leaf">
                 5.58:1 · passes
               </p>
             </div>
@@ -268,7 +270,7 @@ export default function CraftRoom() {
               <p className="text-[15px] leading-[1.6]" style={{ color: "#5E6259" }}>
                 Longer pieces from the valley. Essays, tributes, travelogues.
               </p>
-              <p className="mt-1.5 text-[11.5px] font-bold uppercase tracking-[0.12em] text-leaf">
+              <p className="mt-1.5 text-[13px] font-bold uppercase tracking-[0.12em] text-leaf">
                 4.78:1 · passes
               </p>
             </div>
@@ -276,15 +278,15 @@ export default function CraftRoom() {
         </Mount>
       </Bench>
 
-      <p className="mt-5 max-w-[70ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.65] text-muted-foreground">
         It is still obviously secondary. Muted was never supposed to mean hard to read, and darkening
         it by four steps costs the design nothing.
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Then an alpha gets applied on top of it</Rule>
+      <Rule nav="Compounded">Then an alpha gets applied on top of it</Rule>
 
-      <p className="mb-6 max-w-[70ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[70ch] text-[17px] leading-[1.65]">
         About a hundred places take a token that is already below AA and make it more transparent.
         This is the compounding version of the sidebar mistake, and some of the results are not
         text so much as a suggestion of text.
@@ -300,7 +302,7 @@ export default function CraftRoom() {
               >
                 Batch of &apos;04 · Bengaluru · joined 2 weeks ago
               </span>
-              <code className="shrink-0 text-[11.5px] text-foreground/70">{row.cls}</code>
+              <code className="shrink-0 text-[13px] text-foreground/70">{row.cls}</code>
               <span className="w-14 shrink-0 text-right text-[12px] tabular-nums text-muted-foreground">
                 {row.n}x
               </span>
@@ -315,22 +317,22 @@ export default function CraftRoom() {
         </div>
       </Mount>
 
-      <p className="mt-5 max-w-[70ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.65] text-muted-foreground">
         The bottom row is 1.78:1. That is roughly the contrast of a watermark. It is used nine times
         for content, not decoration.
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Forty-four type sizes, eleven of them on half a pixel</Rule>
+      <Rule nav="44 sizes">Forty-four type sizes, eleven of them on half a pixel</Rule>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
         <div>
-          <p className="max-w-[62ch] text-[15px] leading-[1.7]">
+          <p className="max-w-[62ch] text-[17px] leading-[1.65]">
             The app uses <b>44 distinct bracketed pixel sizes</b>, on top of Tailwind&apos;s own
             scale. Eleven of them are fractional, and those eleven account for <b>252 usages</b>. The
             design system documents a six-step ladder. Nothing enforces it, so the ladder is decorative.
           </p>
-          <p className="mt-3 max-w-[62ch] text-[15px] leading-[1.7]">
+          <p className="mt-3 max-w-[62ch] text-[17px] leading-[1.65]">
             The tell is that the fractional sizes come in pairs with their whole neighbours: 10 and
             10.5, 11 and 11.5, 12 and 12.5, 13 and 13.5, all the way up. Nobody designed a scale with
             half-steps. Each half-step is one moment where a size felt marginally wrong and got
@@ -341,13 +343,13 @@ export default function CraftRoom() {
         <Ledger
           cols={["Fractional size", "Uses"]}
           rows={[
-            { k: "text-[10.5px]", v: ["52"] },
-            { k: "text-[13.5px]", v: ["48"] },
-            { k: "text-[12.5px]", v: ["43"] },
-            { k: "text-[15.5px]", v: ["34"] },
-            { k: "text-[11.5px]", v: ["32"] },
-            { k: "text-[14.5px]", v: ["25"] },
-            { k: "text-[16.5px]", v: ["11"] },
+            { k: "text-[12px]", v: ["52"] },
+            { k: "text-[15px]", v: ["48"] },
+            { k: "text-[14px]", v: ["43"] },
+            { k: "text-[17px]", v: ["34"] },
+            { k: "text-[13px]", v: ["32"] },
+            { k: "text-[16px]", v: ["25"] },
+            { k: "text-[18px]", v: ["11"] },
             { k: "9.5, 17.5, 18.5, 19.5", v: ["7"] },
             { k: "Total", v: ["252"], flag: "bad" },
           ]}
@@ -355,10 +357,10 @@ export default function CraftRoom() {
       </div>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Twenty-three icon stroke widths</Rule>
+      <Rule nav="23 strokes">Twenty-three icon stroke widths</Rule>
 
-      <p className="mb-6 max-w-[70ch] text-[15px] leading-[1.7]">
-        89 explicit <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">strokeWidth</code>{" "}
+      <p className="mb-6 max-w-[70ch] text-[17px] leading-[1.65]">
+        89 explicit <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">strokeWidth</code>{" "}
         props, <b>23 distinct values</b>, ranging from 0.9 to 6. Only 15 of the 89 are the whole
         number 2. The most common single value is <b>1.9</b>, used 16 times. There is no rule here at
         all, and the visual result is that icons sitting next to each other are drawn at different
@@ -383,11 +385,11 @@ export default function CraftRoom() {
       </Mount>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Every italic in the app is fake</Rule>
+      <Rule nav="Fake italics">Every italic in the app is fake</Rule>
 
-      <p className="mb-6 max-w-[70ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[70ch] text-[17px] leading-[1.65]">
         Neither font loader in{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">src/app/layout.tsx</code> requests
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">src/app/layout.tsx</code> requests
         an italic style, so no italic file is ever downloaded. The nine italics in the shipped app
         (35 across the repo) are all <b>synthesised obliques</b>: the browser shears the roman by
         about 11 degrees. A real italic is a different set of letterforms, not a slanted one.
@@ -428,35 +430,53 @@ export default function CraftRoom() {
         </Bench>
       </div>
 
-      <p className="mt-5 max-w-[70ch] text-[15px] leading-[1.7]">
+      <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.65]">
         Look at the <b>a</b> and the <b>f</b>. On the left they are the upright letters leaning over:
         a two-storey <b>a</b>, an <b>f</b> that stops at the baseline. On the right they are different
         letters: a single-storey <b>a</b>, an <b>f</b> with a descending tail, rounder joins. That is
         the difference between a slant and an italic.
       </p>
-      <p className="mt-3 max-w-[70ch] text-[13.5px] leading-[1.65] text-muted-foreground">
+      <p className="mt-3 max-w-[70ch] text-[15px] leading-[1.6] text-muted-foreground">
         A note on how this demo is built, because it matters. Loading the real italic on this page
         registers it globally under the family name{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[12.5px]">Libre Baskerville</code>, which
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[14px]">Libre Baskerville</code>, which
         would silently upgrade the &quot;shipped&quot; side too and make the comparison a lie. So the
         left specimen reproduces the browser&apos;s synthesis directly: the roman face at{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[12.5px]">skewX(-11.3deg)</code>, which is
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[14px]">skewX(-11.3deg)</code>, which is
         the 20% shear a rasteriser applies when no italic face exists. The right specimen is the real
         file.
       </p>
 
-      <p className="mt-5 max-w-[70ch] text-[15px] leading-[1.7] text-muted-foreground">
-        One related trap: Libre Baskerville has no Bold Italic master at all, so any{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">font-heading font-bold italic</code>{" "}
-        is synthesised twice over and can never be made real in that family. That is a reason to look
-        at the heading face, which is its own room.
+      <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.65]">
+        There is a second, larger version of the same mistake sitting next to it.{" "}
+        <b>Both families are variable fonts</b>, and the app loads neither as one. Libre Baskerville
+        has a wght axis from 400 to 700 across both roman and italic; Source Sans 3 runs 200 to 900.
+        Passing a{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">weight</code> array to next/font
+        is the single thing that opts out of the variable file, and{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">layout.tsx</code> passes one to
+        both. So the product downloads <b>six static files</b> where four variable ones would carry
+        strictly more, including every weight in between and the italics.
+      </p>
+      <p className="mt-3 max-w-[70ch] text-[17px] leading-[1.65] text-muted-foreground">
+        Worth correcting an old belief here, because it is written down in a few places: Libre
+        Baskerville used to ship as three static styles with no Bold Italic. That has not been true
+        for a while. It is variable now, with a real Bold Italic, which makes loading it as two
+        static files a straight loss. The byte counts are in the{" "}
+        <Link
+          href="/preview/delight/second-look/type"
+          className="font-semibold text-leaf underline decoration-leaf/40 underline-offset-2 transition-colors hover:decoration-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+        >
+          font room
+        </Link>
+        .
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>And the radius names do not mean what they say</Rule>
+      <Rule nav="Radii">And the radius names do not mean what they say</Rule>
 
-      <p className="mb-6 max-w-[70ch] text-[15px] leading-[1.7]">
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">--radius: 1rem</code> and every
+      <p className="mb-6 max-w-[70ch] text-[17px] leading-[1.65]">
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">--radius: 1rem</code> and every
         step is a multiplier off it. That redefines the whole Tailwind radius scale, so the familiar
         class names silently mean different numbers here than they do in every other project and in
         every reference anyone looks up.
@@ -481,11 +501,11 @@ export default function CraftRoom() {
         ]}
       />
 
-      <p className="mt-5 max-w-[70ch] text-[15px] leading-[1.7]">
+      <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.65]">
         The practical damage: the design system says cards are 16px, 87 hand-rolled cards write{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">rounded-[var(--radius)]</code> and
-        get it, and the shared <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">Card</code>{" "}
-        component writes <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">rounded-xl</code>{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">rounded-[var(--radius)]</code> and
+        get it, and the shared <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">Card</code>{" "}
+        component writes <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">rounded-xl</code>{" "}
         and gets 20.8px. Two card radii ship side by side, and the one in the shared component is the
         wrong one.
       </p>
@@ -501,7 +521,7 @@ export default function CraftRoom() {
           <b>The real fix is a craft layer nobody has ever set.</b> Six rules, each of which is a
           one-line lint check:
         </p>
-        <ol className="ml-5 list-decimal space-y-1.5 text-[14.5px] leading-[1.65] marker:text-muted-foreground">
+        <ol className="ml-5 list-decimal space-y-1.5 text-[16px] leading-[1.6] marker:text-muted-foreground">
           <li>
             Text colour is an opaque token. No <code>/NN</code> alpha on a text colour, ever.
           </li>

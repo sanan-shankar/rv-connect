@@ -12,7 +12,7 @@ import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
 import { ProfileShell } from "@/components/profile/profile-shell";
 import { ProfileHeaderCard } from "@/components/profile/profile-header-card";
-import { ProfileAbout, type AboutSocial } from "@/components/profile/profile-about";
+import { ProfileAbout } from "@/components/profile/profile-about";
 import { ProfilePostsAndLetters } from "@/components/profile/profile-posts-and-letters";
 import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
@@ -113,14 +113,14 @@ export default async function ProfilePage({
   const contactEmail = user.displayEmail?.trim() || user.email;
   const headerImage = headerImageFor(user);
 
-  // Socials (Find them) + the Get in touch method list.
-  const socials: AboutSocial[] = [
-    user.instagram ? { kind: "instagram" as const, value: user.instagram } : null,
-    user.linkedin ? { kind: "linkedin" as const, value: user.linkedin } : null,
-    user.facebook ? { kind: "facebook" as const, value: user.facebook } : null,
-    ...parseUserLinks(user.links).map((l) => ({ kind: "link" as const, value: l.url, label: l.label })),
-  ].filter(Boolean) as AboutSocial[];
-
+  // Every way of reaching someone, in ONE place: the Get in touch sheet.
+  //
+  // Instagram and LinkedIn used to ALSO sit on the surface in a "Find them"
+  // block, so the same two links appeared twice on one page. The owner cut the
+  // duplicate ("don't think the LinkedIn and IG need to be there outside and
+  // inside the Get in touch") and liked the reveal-on-ask pattern enough to
+  // want it everywhere, so the surface now shows no contact details at all and
+  // this list carries the lot, custom links included.
   const methods: ContactMethod[] = [
     { kind: "email" as const, label: "Email", value: contactEmail, href: `mailto:${contactEmail}` },
     user.phone
@@ -144,6 +144,22 @@ export default async function ProfilePage({
           external: true,
         }
       : null,
+    user.facebook
+      ? {
+          kind: "website" as const,
+          label: "Facebook",
+          value: socialDisplay("facebook", user.facebook),
+          href: socialHref("facebook", user.facebook),
+          external: true,
+        }
+      : null,
+    ...parseUserLinks(user.links).map((l) => ({
+      kind: "website" as const,
+      label: l.label,
+      value: socialDisplay("website", l.url),
+      href: socialHref("website", l.url),
+      external: true,
+    })),
   ].filter(Boolean) as ContactMethod[];
 
   // vCard: the shown email, all cities, houses summarised in the note. Years
@@ -205,7 +221,6 @@ export default async function ProfilePage({
             accountType: user.accountType,
           }}
           headerImage={headerImage}
-          batchLabel={batchLine(user)}
           occupation={occupation}
           admissionNumber={user.admissionNumber ?? null}
           isOwnProfile={isOwnProfile}
@@ -219,9 +234,8 @@ export default async function ProfilePage({
           about={user.about}
           firstName={firstName}
           isOwnProfile={isOwnProfile}
-          socials={socials}
+          batchLabel={batchLine(user)}
           rvYears={rvYearsLabel(user.yearJoined, user.yearLeft)}
-          enteredGrade={user.gradeJoined ?? null}
           cities={cities}
         />
       }

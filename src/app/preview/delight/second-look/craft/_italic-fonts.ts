@@ -12,8 +12,12 @@
  *  transform instead of `font-style: italic`, which would silently pick
  *  up these files and make the comparison a lie.
  *
- *  Libre Baskerville is requested at 400 only. It has no Bold Italic
- *  master, so asking for 700 italic is not a thing that exists.
+ *  Both families are requested WITHOUT a `weight` array on purpose.
+ *  Libre Baskerville is a variable font (wght 400 to 700, both styles)
+ *  and Source Sans 3 is variable 200 to 900; passing a weight array is
+ *  the one thing that opts out of the variable file. The app passes one
+ *  to both, which is why it ships six static files where four variable
+ *  ones would do.
  * ------------------------------------------------------------------ */
 
 import { Source_Sans_3, Libre_Baskerville } from "next/font/google";
@@ -26,7 +30,6 @@ export const trueBody = Source_Sans_3({
 
 export const trueHead = Libre_Baskerville({
   subsets: ["latin"],
-  weight: ["400"],
   style: ["normal", "italic"],
   variable: "--sl-true-head",
 });

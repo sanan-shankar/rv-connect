@@ -7,33 +7,36 @@ import { SPRINGS } from "@/components/common/motion";
 import { academicSpanLabel, chunkRows, parseHouseSpans, type HouseSpan } from "@/lib/house-spans";
 
 /**
- * The houses chain (the owner's favourite element): each house is a full pill
- * with its name and year range, joined by arrows, reading like distinct
- * chapters of a school career. Consecutive years in the same house collapse
- * into one `fromYear-toYear` box; the pills cycle three brand tints (canopy,
- * cinnamon, sky) so a long run stays legible without inventing 22 real house
- * colours.
+ * The houses chain: each house a pill with its name and year range, joined by
+ * arrows, reading like the chapters of a school career. Consecutive years in
+ * the same house collapse into one span; the pills cycle three brand tints so a
+ * long run stays legible without inventing 22 real house colours.
  *
- * LAID OUT AS A BOUSTROPHEDON (serpentine). Row 1 runs left to right, a 180
- * turn at the right edge, row 2 runs right to left, and so on.
+ * LAID OUT AS A BOUSTROPHEDON (serpentine), the owner's own design: row 1 runs
+ * left to right, takes a 180 turn at the right edge, row 2 runs right to left,
+ * and so on, so no arrow ever points into empty space the way a plain
+ * `flex-wrap` chain's trailing arrow does.
  *
- * Why, rather than `flex-wrap`: with enough houses to wrap, and people do have
- * up to ten, the last arrow on a row pointed right into empty space while the
- * run it pointed at had restarted on the far left of the next line. Owner,
- * verbatim: "the arrow kind of points to nothing, and it continues on the next
- * line. That doesn't really look very nice. It should probably continue on the
- * right side of the next line, and then kind of loop back, and then the arrows
- * start pointing another direction. Maybe the last arrow on the top row does
- * this 180 turning thing." Every arrow now points at the pill it leads to.
+ * WHY A GRID, and not flex rows. The turn has to sit directly between the pill
+ * that ends one row and the pill that starts the next, which means those two
+ * pills must share an x position. Flex cannot promise that: the rows hold
+ * different numbers of pills of different widths, so their ends never line up.
+ * An earlier attempt forced it with `justify-between`, which "solved" the
+ * alignment by stretching each row edge to edge; measured, that left 132px
+ * pills separated by ~135px of nothing, with the arrows stranded mid-gap and
+ * the turn floating past the end of the row below it. Pills sitting further
+ * apart than they are wide is not a chain.
  *
- * A wrapped row's membership is only knowable after layout, but each row's
- * direction has to be chosen before render, so the column count is explicit per
- * breakpoint and the rows are chunked in JS (`chunkRows`). Deterministic, no
- * measurement pass, no resize flicker, and it collapses to one tidy row for
- * someone with two or three houses.
+ * A grid of `max-content` columns fixes both at once: every column is exactly
+ * as wide as its widest pill, so the row is snug, AND column n has the same x
+ * on every row, so the turn lands where it belongs. Pills take odd columns and
+ * arrows the even ones between them, which keeps the arrow gaps uniform instead
+ * of leaving them to whatever slack a justify rule happens to distribute.
  *
- * This also replaces the old mobile horizontal scroll-snap strip, which was a
- * nested scroller that could swallow the page scroll.
+ * Row membership cannot come from `flex-wrap` either, since each row's
+ * direction has to be known before layout, so the column count is explicit per
+ * breakpoint and rows are chunked in JS. Deterministic, no measurement pass, no
+ * resize flicker, and it collapses to one tidy row for two or three houses.
  */
 
 const HOUSE_TINTS = [
@@ -67,30 +70,47 @@ function useColumns(): number {
   return cols;
 }
 
+/* Arrows are SVG rather than the "→" glyph so they share one stroke weight and
+   one cap style with the turn below. A hairline text arrow beside a drawn arc
+   reads as two different hands. */
+const STROKE = { stroke: "currentColor", strokeWidth: 1.25, strokeLinecap: "round" as const };
+
+function Arrow({ back }: { back: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="10"
+      viewBox="0 0 18 10"
+      fill="none"
+      aria-hidden
+      className="shrink-0 text-muted-foreground/50"
+      style={back ? { transform: "scaleX(-1)" } : undefined}
+    >
+      <path d="M1 5 H15" {...STROKE} />
+      <path d="M11.5 1.5 L15 5 L11.5 8.5" {...STROKE} strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /**
- * The turn itself: an arc that leaves the row it is ending, curves down, and
- * arrives pointing back along the next row's direction. `flip` mirrors it for a
- * turn on the left edge.
+ * The 180 turn. Both pills it joins sit in the SAME grid column, so this drops
+ * straight down between them: it enters going the way the row above was
+ * travelling, hooks over, and leaves pointing the way the row below travels.
+ * `flip` mirrors it for a turn on the left edge.
  */
 function UTurn({ flip }: { flip: boolean }) {
   return (
     <svg
       width="26"
-      height="20"
-      viewBox="0 0 34 26"
+      height="18"
+      viewBox="0 0 26 18"
       fill="none"
       aria-hidden
-      className="text-muted-foreground/45"
+      className="shrink-0 text-muted-foreground/50"
       style={flip ? { transform: "scaleX(-1)" } : undefined}
     >
-      <path d="M4 6 H20 A8 8 0 0 1 20 22 H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path
-        d="M15.5 18.5 L11.5 22 L15.5 25.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4 4 H15 A5 5 0 0 1 15 14 H8" {...STROKE} />
+      <path d="M11 10.5 L7.5 14 L11 17.5" {...STROKE} strokeLinejoin="round" />
     </svg>
   );
 }
@@ -99,97 +119,98 @@ function UTurn({ flip }: { flip: boolean }) {
  * The trail itself, over already-parsed spans.
  *
  * Exported so the `/preview/delight/profiles` concepts render the SAME pills as
- * the shipped profile instead of a lookalike. They previously had their own
- * copy with solid-filled pills, which the owner rejected in favour of this
- * bordered-tint style. One definition, no drift.
+ * the shipped profile instead of a lookalike. They previously forked their own
+ * solid-filled style, which the owner rejected in favour of this bordered tint.
+ * One definition, no drift.
+ *
+ * Houses are a fun detail, not the subject of the page, so this stays a quiet
+ * strip: small pills, snug spacing, `w-fit` so it never stretches to fill
+ * whatever container it is dropped into.
  */
 export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
   const cols = useColumns();
   if (spans.length === 0) return null;
 
   const rows = chunkRows(spans, cols);
+  // Pills on odd columns, the arrow between each pair on the even column.
+  const templateColumns = `repeat(${Math.max(1, 2 * cols - 1)}, max-content)`;
 
   return (
-    // Deliberately narrow. Houses are a fun detail, not the subject of the
-    // page: given a full card's width the rows spread out and the block starts
-    // reading as a major section. Capped tight, the pills sit close enough to
-    // read as one chain AND the whole thing stays a quiet strip.
-    <div className="flex max-w-[520px] flex-col gap-0.5">
+    <div className="w-fit">
       {/* Screen readers get the plain sequence; the serpentine is purely visual. */}
       <p className="sr-only">
-        Houses over the years:{" "}
-        {spans.map((s) => `${s.house} ${yearRange(s)}`).join(", then ")}
+        Houses over the years: {spans.map((s) => `${s.house} ${yearRange(s)}`).join(", then ")}
       </p>
 
-      {rows.map((row, rowIndex) => {
-        const backwards = rowIndex % 2 === 1;
-        const isLastRow = rowIndex === rows.length - 1;
-        return (
-          <div key={rowIndex} className="flex flex-col gap-0.5">
-            <div
-              aria-hidden
-              className={cn(
-                "flex items-center gap-1",
-                backwards && "flex-row-reverse",
-                // Full rows stretch edge to edge so a row always ENDS on the
-                // container edge the U-turn sits on; otherwise the turn floats
-                // out at the card's margin while the row stopped short of it.
-                // The last row is usually partial, so it packs snugly against
-                // whichever edge it starts from instead of being spread thin
-                // (`justify-start` follows the reversed axis, so a backwards
-                // last row packs right, directly under the turn above it).
-                isLastRow ? "justify-start" : "w-full justify-between"
-              )}
-            >
-              {row.map((span, i) => {
-                const absolute = rowIndex * cols + i;
-                return (
-                  // The wrapper bundles a pill with the arrow that LEAVES it,
-                  // so it has to be reversed alongside the row. Without this the
-                  // row reversed but each pill+arrow pair did not, so on a
-                  // right-to-left row every arrow painted on its pill's right,
-                  // which is the side it just came FROM: the first visual pair
-                  // got no arrow between them and the final arrow dangled off
-                  // the row's right edge pointing at nothing. That dangling
-                  // arrow is the precise thing the serpentine exists to kill.
-                  <span
-                    key={`${span.house}-${span.fromYear}`}
-                    className={cn("flex shrink-0 items-center gap-1", backwards && "flex-row-reverse")}
-                  >
-                    <motion.span
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ ...SPRINGS.gentle, delay: 0.05 * absolute }}
-                      className={cn(
-                        "inline-flex items-baseline gap-1.5 rounded-full border px-2.5 py-1",
-                        HOUSE_TINTS[absolute % HOUSE_TINTS.length]
-                      )}
-                    >
-                      <span className="font-heading text-[12.5px] font-bold leading-none">{span.house}</span>
-                      <span className="text-[10.5px] font-semibold tabular-nums leading-none opacity-75">
-                        {yearRange(span)}
-                      </span>
-                    </motion.span>
-                    {i < row.length - 1 && (
-                      <span className="shrink-0 text-[13px] leading-none text-muted-foreground/45">
-                        {backwards ? "←" : "→"}
-                      </span>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
+      <div
+        aria-hidden
+        className="grid items-center gap-x-1.5 gap-y-0.5"
+        style={{ gridTemplateColumns: templateColumns }}
+      >
+        {rows.flatMap((row, rowIndex) => {
+          const backwards = rowIndex % 2 === 1;
+          const isLastRow = rowIndex === rows.length - 1;
+          // Content rows are odd grid rows; the turn sits on the even row under.
+          const gridRow = rowIndex * 2 + 1;
 
-            {/* The turn sits on the edge the row ended at, so the whole thing
-                reads as one continuous line rather than stacked rows. */}
-            {!isLastRow && (
-              <div aria-hidden className={cn("flex", backwards ? "justify-start" : "justify-end")}>
+          const cells = row.flatMap((span, i) => {
+            const absolute = rowIndex * cols + i;
+            // A backwards row is filled from the right, so its first pill takes
+            // the last column and the arrow leaving it sits to its LEFT.
+            const pillCol = backwards ? 2 * (cols - 1 - i) + 1 : 2 * i + 1;
+            const arrowCol = backwards ? pillCol - 1 : pillCol + 1;
+
+            const out = [
+              <motion.span
+                key={`${span.house}-${span.fromYear}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...SPRINGS.gentle, delay: 0.04 * absolute }}
+                style={{ gridRow, gridColumn: pillCol }}
+                className={cn(
+                  "inline-flex items-baseline gap-1.5 justify-self-start rounded-full border px-2.5 py-1",
+                  HOUSE_TINTS[absolute % HOUSE_TINTS.length]
+                )}
+              >
+                <span className="font-heading text-[12.5px] font-bold leading-none">{span.house}</span>
+                <span className="text-[10.5px] font-semibold tabular-nums leading-none opacity-75">
+                  {yearRange(span)}
+                </span>
+              </motion.span>,
+            ];
+
+            if (i < row.length - 1) {
+              out.push(
+                <span
+                  key={`${span.house}-${span.fromYear}-arrow`}
+                  style={{ gridRow, gridColumn: arrowCol }}
+                  className="flex justify-center"
+                >
+                  <Arrow back={backwards} />
+                </span>
+              );
+            }
+            return out;
+          });
+
+          if (!isLastRow) {
+            // Every row that has a turn under it is a full row (only the last
+            // row can be partial), so the turn column is always the row's outer
+            // edge: the last pill column going right, the first going left.
+            const turnCol = backwards ? 1 : 2 * cols - 1;
+            cells.push(
+              <span
+                key={`turn-${rowIndex}`}
+                style={{ gridRow: gridRow + 1, gridColumn: turnCol }}
+                className="flex justify-center"
+              >
                 <UTurn flip={backwards} />
-              </div>
-            )}
-          </div>
-        );
-      })}
+              </span>
+            );
+          }
+          return cells;
+        })}
+      </div>
     </div>
   );
 }

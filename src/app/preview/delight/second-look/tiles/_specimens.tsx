@@ -19,23 +19,12 @@ import { cn } from "@/lib/utils";
  * ------------------------------------------------------------------ */
 
 export const M = {
-  catchupTile: 91.3,
-  catchupPitch: 105.2,
+  /** 5 tiles at 91.25px on a 105.25px pitch, measured on /catchups */
   catchupColumn: 512.3,
+  /** the left column at a 1440px viewport: 1112 - 318 rail - 30 gap */
   catchupColWidth: 764,
+  /** catchups/page.tsx:254 and feed/page.tsx:44 both hard-code this */
   railWidth: 318,
-  railCard: 239.7,
-  railRows: [88.3, 97.6],
-  letterCard: 224.9,
-  letterPitch: 240.9,
-  letterCount: 6,
-  letterColumn: 1429.4, // 5 * 240.9 pitch + 224.9 for the last card
-  settingsDoc: 3092,
-  settingsCards: 8,
-  dirCard: 183.8,
-  dirPitch: 199.8,
-  feedMin: 225.5,
-  feedMax: 846.5,
 } as const;
 
 /* ------------------------------------------------------------------ *
@@ -126,23 +115,28 @@ const PEOPLE = [
  *  (a) CATCH-UPS INDEX
  * ================================================================== */
 
-type Row = { group: string; status: string; tone: string; cta: string; live: boolean };
+/** `members` is the group's real size; the card takes 6 and shows 5 plus a
+    "+N" chip, so anything over 5 draws the same six shapes. */
+type Row = { group: string; status: string; tone: string; cta: string; members: number };
 
+/* Both live rows are `published`, which is the state the live page was in when
+   it measured 5 x 91.25px. The one branch that changes the height is
+   `editionStatus === "answering"`, which adds a second avatar row and an
+   "N of M shared" line (your-catchups-card.tsx:74). No group was answering. */
 const CATCHUP_ROWS: Row[] = [
-  { group: "Kalpavriksha 1998", status: "Round 3 answering", tone: "text-cinnamon", cta: "Answer now", live: true },
-  { group: "Batch of 2023", status: "Round 2 published", tone: "text-canopy", cta: "Read the Round", live: true },
-  { group: "Rishi Valley Bengaluru", status: "No Catch-up here yet", tone: "text-muted-foreground", cta: "Start one", live: false },
-  { group: "Old Students Cricket", status: "No Catch-up here yet", tone: "text-muted-foreground", cta: "Start one", live: false },
-  { group: "Kitchen Garden Crew", status: "No Catch-up here yet", tone: "text-muted-foreground", cta: "Start one", live: false },
+  { group: "Kalpavriksha 1998", status: "Round 3 published", tone: "text-canopy", cta: "Read the Round", members: 12 },
+  { group: "Batch of 2023", status: "Round 2 published", tone: "text-canopy", cta: "Read the Round", members: 6 },
+  { group: "Rishi Valley Bengaluru", status: "No Catch-up here yet", tone: "text-muted-foreground", cta: "Start one", members: 4 },
+  { group: "Old Students Cricket", status: "No Catch-up here yet", tone: "text-muted-foreground", cta: "Start one", members: 3 },
+  { group: "Kitchen Garden Crew", status: "No Catch-up here yet", tone: "text-muted-foreground", cta: "Start one", members: 2 },
 ];
 
-function CatchupTile({ row, faded }: { row: Row; faded: boolean }) {
+function CatchupTile({ row }: { row: Row }) {
+  const shown = Math.min(row.members, 5);
+  const overflow = Math.min(row.members, 6) - shown;
   return (
     <div
-      className={cn(
-        "card-elevated flex items-center justify-between gap-4 rounded-[16px] border border-border bg-card p-4",
-        faded && !row.live && "opacity-100",
-      )}
+      className="card-elevated flex items-center justify-between gap-4 rounded-[16px] border border-border bg-card p-4"
       style={{ width: M.catchupColWidth }}
     >
       <div className="min-w-0">
@@ -151,15 +145,15 @@ function CatchupTile({ row, faded }: { row: Row; faded: boolean }) {
         </h3>
         <div className="mt-2 flex items-center gap-2.5">
           <div className="flex -space-x-2">
-            {PEOPLE.slice(0, row.group === "Batch of 2023" ? 5 : 1).map((p) => (
+            {PEOPLE.slice(0, shown).map((p) => (
               <BirdAvatar key={p.id} user={p} size="xs" ring />
             ))}
-            {row.group === "Batch of 2023" && (
+            {overflow > 0 && (
               <span
                 className="grid h-7 w-7 place-items-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground"
                 style={{ boxShadow: "0 0 0 4px var(--card)" }}
               >
-                +1
+                +{overflow}
               </span>
             )}
           </div>
@@ -209,7 +203,7 @@ export function CatchupsShipped() {
     <div className="flex" style={{ gap: 30 }}>
       <div className="space-y-3.5">
         {CATCHUP_ROWS.map((r) => (
-          <CatchupTile key={r.group} row={r} faded={false} />
+          <CatchupTile key={r.group} row={r} />
         ))}
       </div>
       <div style={{ width: M.railWidth }}>
@@ -222,7 +216,7 @@ export function CatchupsShipped() {
               round="Round 3"
               group="Kalpavriksha 1998"
               date="Jul 25"
-              quote="The mango tree by the old dining hall is finally fruiting again, thirty years on."
+              quote="The old mango tree is fruiting again."
               n={7}
             />
             <RailRow
@@ -303,11 +297,11 @@ export function CatchupsInset() {
         <InsetLiveRow
           round="Round 3"
           group="Kalpavriksha 1998"
-          state="4 days left"
-          stateTone="text-cinnamon"
-          quote="The mango tree by the old dining hall is finally fruiting again, thirty years on."
-          meta="7 of 12 have written in"
-          cta="Answer yours"
+          state="Published Jul 25"
+          stateTone="text-canopy"
+          quote="The old mango tree is fruiting again."
+          meta="7 people wrote in"
+          cta="Read it"
           person={0}
         />
         <InsetLiveRow
@@ -316,7 +310,7 @@ export function CatchupsInset() {
           state="Published Jul 22"
           stateTone="text-canopy"
           quote="We drove up to Madanapalle for the first time in nine years and nothing had moved."
-          meta="6 wrote in"
+          meta="6 people wrote in"
           cta="Read it"
           person={1}
           last
@@ -926,7 +920,7 @@ export const SURFACES: SurfaceScore[] = [
     label: "A Collection photo",
     where: "/collection",
     gates: {
-      atomic: { pass: true, why: "One photo, one link, one lightbox. The most atomic thing in the app." },
+      atomic: { pass: true, why: "One photo, one link to /collection/[id], one caption." },
       ragged: {
         pass: true,
         why: "Masonry: every tile is the photo's own aspect ratio, so no two are the same height and a uniform gap cannot express the grouping.",
@@ -959,7 +953,7 @@ export const SURFACES: SurfaceScore[] = [
       atomic: { pass: true, why: "The whole card is a single link with one focus target. The source says so." },
       ragged: {
         pass: false,
-        why: "All five rows measured 91.3px exactly. The group name is truncated to one line, the status is one line, the button is one size.",
+        why: "All five rows measured 91.3px exactly. The group name is truncated to one line, the status is one line, the button is one size. One branch varies: an answering Round adds an avatar row and an N-of-M line, worth 38px. None of the five was answering.",
       },
       hetero: { pass: false, why: "Five rows, all the same kind of thing: one group's Catch-up state." },
       portable: { pass: false, why: "YourCatchupsCard has one consumer, the Catch-ups index." },
@@ -1000,10 +994,13 @@ export const SURFACES: SurfaceScore[] = [
     gates: {
       atomic: {
         pass: false,
-        why: "You cannot open, move, dismiss or save one group. There is one sticky save bar for all eight. VA.gov: a Card is not a Fieldset.",
+        why: "You cannot open, move, dismiss or save one group. There is one sticky save bar for the whole form. VA.gov: a Card is not a Fieldset.",
       },
-      ragged: { pass: false, why: "Label, then input. Eight times. Nothing about it is unpredictable." },
-      hetero: { pass: false, why: "Eight boxes holding the same kind of thing: facts about you." },
+      ragged: { pass: false, why: "Label, then input. Seven times. Nothing about it is unpredictable." },
+      hetero: {
+        pass: false,
+        why: "Seven of the eight cards hold the same kind of thing: facts about you. The eighth is Danger zone, which is genuinely different, sits outside the form, and is the one box on this page that is earned.",
+      },
       portable: { pass: false, why: "One page, one form." },
     },
     note: "0 of 4. The lowest score in the product, drawn with the heaviest treatment available.",
@@ -1019,8 +1016,17 @@ export function verdictFor(passed: number) {
 
 export function Scorer() {
   const [k, setK] = useState(SURFACES[0].k);
+  // Any gate can be overturned. The answers below are mine; the verdict is
+  // whatever the four gates add up to, so disagreeing with one costs a click
+  // and the rule still does the arithmetic.
+  const [flips, setFlips] = useState<Record<string, boolean>>({});
   const s = SURFACES.find((x) => x.k === k)!;
-  const passed = GATES.filter((g) => s.gates[g.k].pass).length;
+  const flipped = (g: GateKey) => flips[`${k}:${g}`] === true;
+  const passes = (g: GateKey) => s.gates[g].pass !== flipped(g);
+  const passed = GATES.filter((g) => passes(g.k)).length;
+  const changed = GATES.some((g) => flipped(g.k));
+  const toggle = (g: GateKey) =>
+    setFlips((f) => ({ ...f, [`${k}:${g}`]: !f[`${k}:${g}`] }));
   const v = verdictFor(passed);
   const vTone =
     v.tone === "leaf"
@@ -1051,44 +1057,63 @@ export function Scorer() {
       </div>
 
       <div className="grid gap-x-9 gap-y-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
-        <div className="divide-y divide-border border-y border-border">
-          {GATES.map((g) => {
-            const r = s.gates[g.k];
-            return (
-              <div key={g.k} className="flex gap-4 py-4">
-                <div
-                  className={cn(
-                    "mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold transition-colors duration-200",
-                    r.pass ? "bg-leaf text-white" : "bg-mist text-muted-foreground",
-                  )}
-                  aria-hidden
+        <div>
+          <div className="divide-y divide-border border-y border-border">
+            {GATES.map((g) => {
+              const pass = passes(g.k);
+              const mine = flipped(g.k);
+              return (
+                <button
+                  key={g.k}
+                  type="button"
+                  onClick={() => toggle(g.k)}
+                  aria-pressed={pass}
+                  className="flex w-full gap-4 rounded-lg px-2 py-4 text-left transition-[background-color,transform] duration-150 hover:bg-mist/70 active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
                 >
-                  {r.pass ? "✓" : "×"}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-x-2.5">
+                  <span
+                    className={cn(
+                      "mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold transition-colors duration-200",
+                      pass ? "bg-leaf text-white" : "bg-mist text-muted-foreground",
+                    )}
+                    aria-hidden
+                  >
+                    {pass ? "✓" : "×"}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-baseline gap-x-2.5">
+                      <span className="sr-only">{pass ? "Passes:" : "Fails:"}</span>
+                      <span
+                        className={cn(
+                          "font-heading text-[15px] font-bold tracking-tight transition-colors duration-200",
+                          pass ? "text-foreground" : "text-muted-foreground",
+                        )}
+                      >
+                        {g.n}. {g.name}
+                      </span>
+                      <span className="text-[12.5px] text-muted-foreground">{g.ask}</span>
+                      {mine && (
+                        <span className="rounded-full bg-sky/12 px-2 py-px text-[10px] font-bold uppercase tracking-[0.1em] text-sky">
+                          Your call
+                        </span>
+                      )}
+                    </span>
                     <span
                       className={cn(
-                        "font-heading text-[15px] font-bold tracking-tight transition-colors duration-200",
-                        r.pass ? "text-foreground" : "text-muted-foreground",
+                        "mt-1.5 block max-w-[64ch] text-[14px] leading-[1.6]",
+                        !mine && pass ? "text-foreground" : "text-muted-foreground",
                       )}
                     >
-                      {g.n}. {g.name}
+                      {s.gates[g.k].why}
                     </span>
-                    <span className="text-[12.5px] text-muted-foreground">{g.ask}</span>
-                  </div>
-                  <p
-                    className={cn(
-                      "mt-1.5 max-w-[64ch] text-[14px] leading-[1.6]",
-                      r.pass ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    {r.why}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-[12.5px] leading-[1.55] text-muted-foreground">
+            Disagree with a gate? Click the row. The verdict on the right is arithmetic, so it
+            follows your answer rather than mine.
+          </p>
         </div>
 
         <div>
@@ -1102,7 +1127,7 @@ export function Scorer() {
                   key={g.k}
                   className={cn(
                     "h-1.5 flex-1 rounded-full transition-colors duration-200",
-                    s.gates[g.k].pass ? "bg-current" : "bg-current/20",
+                    passes(g.k) ? "bg-current" : "bg-current/20",
                   )}
                 />
               ))}
@@ -1113,8 +1138,20 @@ export function Scorer() {
             <p className="mt-2 text-[13px] font-semibold leading-snug">
               {passed} of 4 gates. {v.sub}
             </p>
+            {changed && (
+              <button
+                type="button"
+                onClick={() => setFlips({})}
+                className="mt-3.5 rounded-full border border-current/30 px-3 py-1 text-[11.5px] font-bold uppercase tracking-[0.1em] transition-[background-color,transform] duration-150 hover:bg-current/10 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+              >
+                Back to my score
+              </button>
+            )}
           </div>
-          <p className="mt-3.5 text-[13.5px] leading-[1.6] text-muted-foreground">{s.note}</p>
+          <p className="mt-3.5 text-[13.5px] leading-[1.6] text-muted-foreground">
+            {changed && <span className="font-semibold text-foreground">My reading: </span>}
+            {s.note}
+          </p>
         </div>
       </div>
     </div>

@@ -51,12 +51,12 @@ export default function SecondLookIndex() {
     >
       <div className="relative max-w-[74ch] pl-5">
         <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full bg-cinnamon" />
-        <p className="text-[16.5px] leading-[1.7]">
+        <p className="text-[18px] leading-[1.7]">
           You can find a misalignment, a dead button, or bad copy on your own. What you cannot find is
           a screen that works, offends nobody, and is still just the first idea anyone had. It gives
           off no signal. It never asks for attention, so it never gets any, and it ships.
         </p>
-        <p className="mt-3 text-[15px] leading-[1.7] text-muted-foreground">
+        <p className="mt-3 text-[17px] leading-[1.65] text-muted-foreground">
           So the method here is not &quot;what looks bad&quot;. It is: for each surface, what is the
           content actually shaped like, and is the layout shaped like that? Then, is there a version
           that is more useful, or more fun, or simply more decided? Every claim comes with a measured

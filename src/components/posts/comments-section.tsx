@@ -406,7 +406,6 @@ function CommentItem({
             liked={comment.liked}
             count={comment.likeCount}
             onToggle={handleLike}
-            size="sm"
             showCount={comment.likeCount > 0}
             label="Like this comment"
             /* LoveButton's count `<span>` is plain text, so it inherits text-sm's 20px

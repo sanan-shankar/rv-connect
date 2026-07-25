@@ -1,6 +1,6 @@
 "use client";
 
-import { LabShell, Rule, Tell, Ledger, Mount, Bench, Verdict, Pick } from "../_kit";
+import { LabShell, Rule, Tell, Ledger, Mount, Bench, Verdict, Pick, Controls } from "../_kit";
 import {
   ShippedBar,
   TickLadder,
@@ -50,18 +50,18 @@ export default function SupportRoom() {
       </Tell>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>One · a bar that cannot move</Rule>
+      <Rule nav="The bar">One · a bar that cannot move</Rule>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <p className="max-w-[62ch] text-[15px] leading-[1.7]">
-          <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">BUILD_RECOVERED = 0</code> is a
+        <p className="max-w-[62ch] text-[17px] leading-[1.65]">
+          <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">BUILD_RECOVERED = 0</code> is a
           hardcoded constant. The bar renders 0% of ₹4,00,000, and the empty trough is{" "}
-          <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">bg-mist</code> (#EEE8DA) on a{" "}
-          <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">bg-card</code> (#F6F2E8) card.
+          <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">bg-mist</code> (#EEE8DA) on a{" "}
+          <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">bg-card</code> (#F6F2E8) card.
           That is <b>1.09:1</b>. The widget is not a bar at zero, it is a faint dent.
         </p>
-        <p className="max-w-[62ch] text-[15px] leading-[1.7]">
-          It also animates. <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">useCountUpOnView</code>{" "}
+        <p className="max-w-[62ch] text-[17px] leading-[1.65]">
+          It also animates. <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">useCountUpOnView</code>{" "}
           spends about 950ms counting from zero to zero, so the one moment of motion on the page is
           motion that visibly achieves nothing. And the caption directly under it ends: &quot;Nothing
           about the site changes if it never fills up.&quot; The last two things a reader takes in
@@ -70,7 +70,7 @@ export default function SupportRoom() {
         </p>
       </div>
 
-      <div className="mt-8 mb-6 flex flex-wrap items-center gap-4">
+      <Controls className="mt-8">
         <Pick
           items={AMOUNTS.map((a, n) => ({
             k: String(n),
@@ -79,10 +79,10 @@ export default function SupportRoom() {
           value={String(i)}
           onChange={(k) => setI(Number(k))}
         />
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-[15px] text-muted-foreground">
           Move the amount. Watch which of these four is still legible at zero.
         </span>
-      </div>
+      </Controls>
 
       <Bench cols={2}>
         <Mount
@@ -114,7 +114,7 @@ export default function SupportRoom() {
         </Mount>
       </Bench>
 
-      <p className="mt-6 max-w-[74ch] text-[15px] leading-[1.7]">
+      <p className="mt-6 max-w-[74ch] text-[17px] leading-[1.65]">
         The general rule worth taking from this: <b>a progress bar is a promise that something
         moves.</b> At 0% it makes the opposite promise. Any quantity that starts empty and fills
         slowly should be drawn as a <b>scale with units</b>, where one contribution is a whole unit,
@@ -123,11 +123,11 @@ export default function SupportRoom() {
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Two · identical twins in opposite states</Rule>
+      <Rule nav="The twins">Two · identical twins in opposite states</Rule>
 
-      <p className="mb-6 max-w-[74ch] text-[15px] leading-[1.7]">
+      <p className="mb-6 max-w-[74ch] text-[17px] leading-[1.65]">
         The monthly card and the build-fund card are the same component shape: same{" "}
-        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">card-elevated</code>, same 16px
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">card-elevated</code>, same 16px
         radius, same padding, same 20px pill, stacked 16px apart. One is a solved fact at 100% in
         three brand colours. The other is an unfunded aspiration at 0%. Putting the same frame around
         both forces a comparison the second one cannot survive: full bar, empty bar, in that order,
@@ -146,7 +146,7 @@ export default function SupportRoom() {
         ]}
       />
 
-      <p className="mt-5 max-w-[74ch] text-[15px] leading-[1.7] text-muted-foreground">
+      <p className="mt-5 max-w-[74ch] text-[17px] leading-[1.65] text-muted-foreground">
         Two facts in opposite states should not share a body plan. Option B above fixes this by
         refusing to give the one-off a card at all: it becomes a recessed note nested inside the
         monthly card, at 12px inside 16px, which is also the project&apos;s own box-in-a-box radius
@@ -154,24 +154,24 @@ export default function SupportRoom() {
       </p>
 
       {/* ---------------------------------------------------------- */}
-      <Rule>Three · the reward is a paragraph, and it does not exist</Rule>
+      <Rule nav="The reward">Three · the reward is a paragraph, and it does not exist</Rule>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
-          <p className="max-w-[62ch] text-[15px] leading-[1.7]">
+          <p className="max-w-[62ch] text-[17px] leading-[1.65]">
             The page offers one thing in return: pick your own bird instead of the one you were
             given. On a product whose signature is fifty hand-drawn valley birds, that is a genuinely
             lovely perk. Three things are wrong with how it is delivered.
           </p>
           <ol className="mt-4 ml-5 max-w-[62ch] list-decimal space-y-2 text-[15px] leading-[1.65] marker:text-muted-foreground">
             <li>
-              <b>It cannot be delivered.</b> <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">User.birdOverride</code>{" "}
+              <b>It cannot be delivered.</b> <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">User.birdOverride</code>{" "}
               has no writer anywhere in the app. Every reference is a read. There is no picker in
               settings and none in admin.
             </li>
             <li>
               <b>It links to a dev scratch page.</b>{" "}
-              <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">/preview/birds-rv</code>, on
+              <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">/preview/birds-rv</code>, on
               a route prefix whose own comment says &quot;temporary, remove before shipping&quot;.
             </li>
             <li>

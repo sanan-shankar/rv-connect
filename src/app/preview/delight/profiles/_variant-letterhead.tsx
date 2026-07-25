@@ -232,14 +232,13 @@ export default function LetterheadVariant({ profile }: ProfileVariantProps) {
                 <div className="mt-6 flex flex-wrap items-center gap-2.5">
                   <Button
                     variant={isFollowing ? "outline" : "primary"}
-                    size="sm"
                     onClick={() => setIsFollowing((f) => !f)}
                     aria-pressed={isFollowing}
                   >
                     {isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
                     {isFollowing ? "Following" : "Follow"}
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline">
                     <Feather className="h-4 w-4" />
                     Write a letter
                   </Button>
@@ -486,7 +485,6 @@ function EntryRow({
             liked={liked}
             count={likeCount}
             onToggle={onToggleLike}
-            size="sm"
             label={liked ? "Unlike" : "Like"}
           />
           <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px]">

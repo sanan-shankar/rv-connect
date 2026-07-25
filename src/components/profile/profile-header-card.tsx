@@ -5,8 +5,8 @@
  *  one place" business card grown into Dossier's aesthetic (rebuilt
  *  2026-07 from the approved profile-v2 concept). Composition:
  *
- *    - name + leaf, then "Batch of '23 . occupation" (no at-RV clutter,
- *      no cities up top - those live quiet, below the About).
+ *    - name + leaf, then the occupation and where they work. Batch and
+ *      cities live below, in the About record, not up here.
  *    - email + phone are NOT printed here; they live behind Get in touch.
  *    - the cinnamon admission stamp COMPOSED into the card's right
  *      props column beside the avatar (not floating in a corner).
@@ -89,7 +89,6 @@ function PhotoMount({ user }: { user: HeaderUser }) {
 export function ProfileHeaderCard({
   user,
   headerImage,
-  batchLabel,
   occupation,
   admissionNumber,
   isOwnProfile,
@@ -99,7 +98,6 @@ export function ProfileHeaderCard({
 }: {
   user: HeaderUser;
   headerImage: string | null;
-  batchLabel: string;
   occupation: string | null;
   admissionNumber: number | null;
   isOwnProfile: boolean;
@@ -107,7 +105,12 @@ export function ProfileHeaderCard({
   vcard: string;
   housesRaw: string | null;
 }) {
-  const metaLine = [batchLabel, occupation].filter(Boolean).join(" · ");
+  // The line under the name is the OCCUPATION, nothing else. Batch moved down
+  // into the About record (owner: "let the subtitle to the name be the
+  // occupation and organisation... batch doesn't have to be that close to the
+  // name, it can be elsewhere"), and the city was never important enough to
+  // sit here at all.
+  const metaLine = occupation;
   const houseSpans = parseHouseSpans(housesRaw);
 
   return (
