@@ -65,7 +65,6 @@ export function LoveButton({
       onClick={handleClick}
       aria-pressed={liked}
       aria-label={label}
-      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.93 }}
       transition={SPRINGS.snappy}
       className={`inline-flex items-center ${gap} rounded-full ${padding} text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${

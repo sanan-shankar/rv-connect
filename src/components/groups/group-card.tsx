@@ -24,7 +24,7 @@ export function GroupCard({ group }: { group: GroupCardData }) {
   return (
     <Link
       href={`/groups/${group.id}`}
-      className="group card-elevated block overflow-hidden rounded-[var(--radius)] border border-border bg-card transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0"
+      className="group card-elevated block overflow-hidden rounded-[var(--radius)] border border-border bg-card transition-colors duration-200 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       <div className="relative h-20 w-full bg-gradient-to-br from-leaf/25 via-sky/15 to-cinnamon/15">
         {group.coverImage && (

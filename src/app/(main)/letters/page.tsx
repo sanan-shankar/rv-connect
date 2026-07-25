@@ -82,7 +82,7 @@ export default async function LettersPage() {
               <Link
                 key={l.id}
                 href={`/letters/${l.id}`}
-                className="card-elevated group block rounded-[var(--radius)] border border-border bg-card p-5 transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="card-elevated group block rounded-[var(--radius)] border border-border bg-card p-5 transition-colors duration-200 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
                   <Feather className="h-3.5 w-3.5" />

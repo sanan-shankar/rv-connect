@@ -116,7 +116,7 @@ export function RangeFacetPill({
                         to: String(Math.min(d.to, maxYear)),
                       })
                     }
-                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-[colors,transform] hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
                   >
                     {d.label}
                   </button>

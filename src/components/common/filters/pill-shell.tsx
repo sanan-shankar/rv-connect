@@ -7,10 +7,11 @@ import { cn } from "@/lib/utils";
  * Shared visual language for every facet pill (FacetSelect, FacetSearchSelect,
  * RangeFacetPill, SortPill). Idle sits on the warm `--secondary` surface with
  * a `--border` hairline; Set tints canopy. Full pill, single Leaf focus ring,
- * transform-only hover/press (docs/spec/DESIGN-SYSTEM.md, filters-rework.md sec. 4).
+ * Hover is a colour change only (owner, 2026-07-25: hover never moves a
+ * control); the press sink stays (docs/spec/DESIGN-SYSTEM.md, filters-rework.md sec. 4).
  */
 export const PILL_BASE =
-  "inline-flex h-10 shrink-0 items-center rounded-full border text-[13px] font-medium transition-transform duration-150 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-ring/50 active:scale-[0.97]";
+  "inline-flex h-10 shrink-0 items-center rounded-full border text-[13px] font-medium transition-[colors,transform] duration-150 focus-within:ring-2 focus-within:ring-ring/50 active:scale-[0.97]";
 
 export const PILL_IDLE = "border-border bg-secondary text-foreground hover:bg-secondary/70";
 
