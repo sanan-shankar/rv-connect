@@ -344,7 +344,6 @@ export function PostCard({
             aria-expanded={showComments}
             aria-controls={`comments-${post.id}`}
             aria-label={showComments ? "Hide comments" : "Show comments"}
-            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.93 }}
             transition={SPRINGS.snappy}
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
