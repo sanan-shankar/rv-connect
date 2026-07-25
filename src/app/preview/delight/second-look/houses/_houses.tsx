@@ -169,7 +169,7 @@ function Ribbon({
               className="relative truncate text-[13px] font-semibold"
               style={{ color: tint ?? "var(--muted-foreground)" }}
             >
-              {h === UNSURE ? "not sure" : (h ?? "—")}
+              {h === UNSURE ? "not sure" : (h ?? "·")}
             </span>
             {isAim && (
               <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-t-full bg-cinnamon" />
@@ -229,7 +229,7 @@ function Summary({ value }: { value: (string | null)[] }) {
     <p className="text-[15px] leading-[1.6]">
       <span className="mr-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-leaf">
         Your run
-      </span>
+      </span>{" "}
       {summary(value)}
     </p>
   );

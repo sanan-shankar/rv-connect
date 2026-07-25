@@ -62,8 +62,8 @@ export const ROOMS: Room[] = [
     slug: "tiles",
     title: "When a box earns its border",
     looked: "Tiles everywhere. Consistent, tidy, inoffensive.",
-    tell: "A border is the heaviest grouping tool there is. Most of these lists only needed proximity.",
-    status: "planned",
+    tell: "A border is the heaviest grouping tool there is. Four gates decide whether one is earned; score eight real surfaces yourself and watch the feed post pass 4 of 4 while a Catch-up row passes 1.",
+    status: "built",
   },
   {
     slug: "houses",
