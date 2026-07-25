@@ -5,9 +5,9 @@
  *
  *  Identity first. The page is a real two-column composition on a
  *  laptop: a sticky identity column on the left (portrait plate, name,
- *  the two contact actions, "Find them") and the folder tabs plus their
- *  panel on the right. On a phone it becomes one ordered stack:
- *  picture, who they are, how to reach them, then the record.
+ *  "Get in touch") and the folder tabs plus their panel on the right.
+ *  On a phone it becomes one ordered stack: picture, who they are, how
+ *  to reach them, then the record.
  *
  *  WHY THE PORTRAIT PLATE. The shipped page crops the uploaded picture
  *  into a ~6.4:1 band, which shows about a quarter of a 3:2 source at
@@ -25,6 +25,24 @@
  *   - email and phone live behind "Get in touch", never beside the name
  *   - valley years read "2014-2021", never "7 years"
  *   - nothing on the page owns a vertical scroller of its own
+ *
+ *  From the second owner review (2026-07-25), also load-bearing:
+ *   - HOUSES ARE A DETAIL, NOT A SECTION. "House is just a fun thing, it's
+ *     not that important, you're making it 50% of the profile." The chain
+ *     is the shipped one, unrestyled, and it rides as a quiet strip at the
+ *     foot of the record. No heading of its own, no band, no subtitle.
+ *   - THE BIRD SPECIES IS NEVER PAINTED. "They can see it by clicking the
+ *     bird." It survives only in ProfileAvatar's aria-label and its own
+ *     tap chip, which is exactly where the owner put it.
+ *   - ONE TYPE LADDER. Prose was serif at 16.5px while every other body in
+ *     the app is sans at 15px, which read as a mistake. Everything here now
+ *     sits on the app's rungs: 30px name / 20px title / 15px body /
+ *     13.5px small / 12.5-13px secondary / 10.5-11px uppercase labels.
+ *     Libre Baskerville is for the name and titles, never for paragraphs.
+ *   - The preview harness supplies the app frame (sidebar, valley back-
+ *     layer, a max-w-[1280px] <main> with its own gutters), so this file
+ *     paints no page background, adds no max-width wrapper, and adds no
+ *     gutters of its own.
  * ------------------------------------------------------------------ */
 
 import { useState, type ReactNode } from "react";
@@ -47,25 +65,6 @@ import {
   type MockProfile,
   type ProfileVariantProps,
 } from "./_data";
-
-/* ------------------------------------------------------------------ *
- *  The page field. Not decoration parked in a corner: it is the light
- *  the whole composition sits in, so the margins outside the 1240px
- *  content at 1920 read as a warm surface rather than empty paper.
- *  Static, so it is built once at module scope.
- * ------------------------------------------------------------------ */
-const NOISE_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180">' +
-  '<filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.86" numOctaves="2" stitchTiles="stitch"/>' +
-  '<feColorMatrix type="matrix" values="0 0 0 0 0.14  0 0 0 0 0.12  0 0 0 0 0.09  0 0 0 0.045 0"/></filter>' +
-  '<rect width="100%" height="100%" filter="url(#n)"/></svg>';
-
-const PAGE_FIELD = [
-  "radial-gradient(940px 620px at 6% -10%, rgba(35,92,73,0.11), transparent 62%)",
-  "radial-gradient(820px 560px at 98% 4%, rgba(194,98,47,0.10), transparent 58%)",
-  "radial-gradient(1000px 720px at 62% 116%, rgba(63,124,166,0.08), transparent 60%)",
-  `url("data:image/svg+xml,${encodeURIComponent(NOISE_SVG)}")`,
-].join(", ");
 
 /* The folder-tab silhouette, lifted from the shipped ProfileShell: the
    owner said the tabs are the one thing that already works. Same cut,
@@ -99,11 +98,6 @@ function valleyYears(profile: MockProfile): string | null {
   if (yearJoined) return `From ${yearJoined}`;
   if (yearLeft) return `Until ${yearLeft}`;
   return null;
-}
-
-function batchLine(profile: MockProfile): string | null {
-  if (!profile.batchYear) return null;
-  return profile.batchType ? `${profile.batchType} ${profile.batchYear}` : `${profile.batchYear}`;
 }
 
 /** The opening of a letter, two paragraphs at most. The full text lives on the letter's own page. */
@@ -155,9 +149,24 @@ function vcardFor(profile: MockProfile): string {
 /* ------------------------------------------------------------------ *
  *  Small shared pieces
  * ------------------------------------------------------------------ */
+/** Section eyebrow, 11px cinnamon: the same one the shipped About tab uses. */
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-cinnamon/85">{children}</p>
+  );
+}
+
+/**
+ * The rung BELOW SectionLabel: 10.5px muted, for a field inside a section
+ * (a record cell, the houses strip). Anything wearing this reads as a
+ * detail of the section it sits in, never as a section of its own, which
+ * is the whole point of the houses demotion.
+ */
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+      {children}
+    </p>
   );
 }
 
@@ -186,7 +195,7 @@ function AdmissionStamp({ number }: { number: number }) {
       <p className="relative text-[8px] font-bold uppercase tracking-[0.22em] text-cinnamon">
         Admission
       </p>
-      <p className="relative mt-0.5 font-heading text-[17px] font-bold leading-none tracking-[0.02em] tabular-nums text-cinnamon">
+      <p className="relative mt-0.5 font-heading text-[20px] font-bold leading-none tracking-[0.02em] tabular-nums text-cinnamon">
         {number}
       </p>
     </motion.div>
@@ -202,7 +211,7 @@ function ChangePhotoButton() {
   return (
     <button
       type="button"
-      className="absolute bottom-[var(--space-s)] right-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full border border-border bg-paper px-3 py-1.5 text-[11.5px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy hover:bg-canopy hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+      className="absolute bottom-[var(--space-s)] right-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full border border-border bg-paper px-3 py-1.5 text-[12.5px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy hover:bg-canopy hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
     >
       <Camera className="h-3.5 w-3.5" aria-hidden />
       Change photo
@@ -220,7 +229,7 @@ function FindThemPill({ link }: { link: MockLink }) {
       href={link.href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex w-full items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2 text-[13px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]"
+      className="inline-flex max-w-full items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]"
     >
       <Icon className={cn("h-[15px] w-[15px] shrink-0", LINK_TINT[link.kind])} aria-hidden />
       <span className="shrink-0">{link.label}</span>
@@ -274,23 +283,29 @@ function FolderTab({
 /**
  * One cell of the record strip that runs along the bottom of the About
  * panel, the way a passport carries its facts on one printed line.
- * Cells are divided by solid vertical hairlines: four across on a
- * laptop, two across on a phone, and the rules are placed by index so a
- * cell that starts a row never wears one.
+ *
+ * The strip is a WRAPPING ROW, not a fixed grid. It used to be
+ * `grid-cols-2 sm:grid-cols-4` with the hairlines placed by index modulo
+ * the column count, which only balanced at exactly four facts: drop one
+ * (the bird species went, and "Batch" was already printed under the name)
+ * and the grid left a hole where a cell used to be. A flex row with the
+ * rule on every cell but the first reads correctly at one, two, or five
+ * facts, and it is the same shape the shipped About tab uses.
  */
-function RecordCell({ label, value, index }: { label: string; value: ReactNode; index: number }) {
+function RecordCell({ label, value, divided }: { label: string; value: ReactNode; divided: boolean }) {
   return (
     <div
       className={cn(
         "min-w-0",
-        index % 2 === 1 && "border-l border-border pl-[var(--space-m)]",
-        index % 2 === 0 && index > 0 && "sm:border-l sm:border-border sm:pl-[var(--space-m)]"
+        // The rule only exists once the facts are side by side. Stacked on
+        // a phone it would be a stray vertical line beside a single fact.
+        divided && "sm:ml-[var(--space-l)] sm:border-l sm:border-border sm:pl-[var(--space-l)]"
       )}
     >
-      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+      <dt className="text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
         {label}
       </dt>
-      <dd className="mt-[var(--space-xxs)] font-heading text-[16px] font-semibold leading-tight tabular-nums text-foreground">
+      <dd className="mt-1.5 text-[14px] font-semibold leading-snug tabular-nums text-foreground">
         {value}
       </dd>
     </div>
@@ -320,7 +335,7 @@ function PostEntry({
         isFirst ? "pt-0" : "border-t border-border pt-[var(--space-l)]"
       )}
     >
-      <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
         {formatDate(post.createdAt)}
       </p>
       <p className="mt-[var(--space-s)] max-w-[64ch] text-[15px] leading-[1.7] text-foreground">
@@ -357,18 +372,23 @@ function LetterEntry({
         isFirst ? "pt-0" : "border-t border-border pt-[var(--space-l)]"
       )}
     >
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-cinnamon">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
         <Feather className="h-3.5 w-3.5" aria-hidden />
         Letter
         <span className="opacity-65">· {formatDate(post.createdAt)}</span>
         <span className="opacity-65">· {readMinutes(post.content)} min read</span>
       </div>
       {post.title && (
-        <h3 className="mt-[var(--space-xs)] font-heading text-[22px] font-bold leading-[1.15] tracking-[-0.02em] text-foreground">
+        // 20px, the app's title rung (the shipped letter card in the feed,
+        // the admission numeral). It was a one-off 22px.
+        <h3 className="mt-[var(--space-xs)] font-heading text-[20px] font-bold leading-snug tracking-[-0.01em] text-foreground">
           {post.title}
         </h3>
       )}
-      <p className="mt-[var(--space-s)] max-w-[68ch] whitespace-pre-wrap font-heading text-[16.5px] leading-[1.8] text-foreground">
+      {/* Body copy, so: sans at 15px/1.7, the same as a post and the same as
+          the About prose. Libre Baskerville belongs on the title above it,
+          not on the paragraph. */}
+      <p className="mt-[var(--space-s)] max-w-[64ch] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
         {letterOpening(post.content)}
       </p>
       <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-[var(--space-s)]">
@@ -467,11 +487,12 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
 
   const meta = metaParts(profile);
   const years = valleyYears(profile);
-  const batch = batchLine(profile);
+  // Facts the meta line under the name does NOT already carry. Batch used to
+  // be a fourth cell here and was printed twice on the same screen, which is
+  // half of why the strip felt like filler.
   const record: { label: string; value: string }[] = [
     years ? { label: "In the valley", value: years } : null,
     profile.gradeJoined ? { label: "Entered", value: `Grade ${profile.gradeJoined}` } : null,
-    batch ? { label: "Batch", value: batch } : null,
     profile.secondaryCity ? { label: "Also in", value: profile.secondaryCity } : null,
   ].filter((c): c is { label: string; value: string } => c !== null);
   const posts = profile.posts.filter((p) => p.kind === "post");
@@ -480,254 +501,264 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
   const panelId = "passport-panel";
 
   return (
-    <div
-      // min-h-screen so the warm field always reaches the bottom of the
-      // window. Without it a short tab leaves a visible seam where the
-      // gradients stop and the flat page colour takes over.
-      //
-      // overflow-x-clip: VerifiedMark keeps its "Verified member" label in
-      // the DOM at opacity 0 and parks it `left-full`, so at 390 the label
-      // hangs 10px past the viewport and the page rubber-bands sideways.
-      // `clip` rather than `hidden` on purpose: `hidden` would make this
-      // element the scrollport and kill the identity column's sticky.
-      className="min-h-screen w-full overflow-x-clip"
-      style={{ backgroundColor: "var(--color-background)", backgroundImage: PAGE_FIELD }}
-    >
-      <div className="mx-auto w-full max-w-[1240px] px-[var(--space-m)] py-[var(--space-l)] sm:px-[var(--space-l)] sm:py-[var(--space-xl)]">
-        {/* The grid stretches by default so the folder card always runs
-            to the same bottom edge as the identity column, even on the
-            short About tab. Only the identity column opts out with
-            `self-start`, which is also what gives its sticky position
-            room to move. */}
-        <div className="grid grid-cols-1 gap-[var(--space-xl)] lg:grid-cols-[340px_minmax(0,1fr)]">
-          {/* ---------------------------------------------------------- *
-              IDENTITY COLUMN. Sticky on a laptop, first in the stack on a
-              phone. Sticky only: it never gets a scroller of its own.
-           * ---------------------------------------------------------- */}
-          <div className="lg:sticky lg:top-[var(--space-l)] lg:self-start">
-            <div className="relative">
-              <div className="relative aspect-[3/2] w-full overflow-hidden rounded-[var(--radius-xl)] border border-border bg-mist lg:aspect-[4/5]">
-                {profile.coverPhoto ? (
-                  <Image
-                    src={profile.coverPhoto}
-                    alt={`${profile.name}'s picture`}
-                    fill
-                    priority
-                    sizes="(min-width: 1024px) 340px, 100vw"
-                    className="object-cover"
-                    style={{ objectPosition: "50% 30%" }}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <Camera className="h-7 w-7 text-muted-foreground/45" aria-hidden />
-                  </div>
-                )}
-                {profile.admissionNumber && <AdmissionStamp number={profile.admissionNumber} />}
-                <ChangePhotoButton />
-              </div>
-
-              {/* The bird sits over the plate's bottom-left corner and
-                  chirps when you tap it. It rides a solid paper disc so
-                  it reads against any picture instead of sinking into
-                  it, and lives in its own positioned span so
-                  ProfileAvatar's own `relative` root is left alone. */}
-              <span
-                className="absolute -bottom-6 left-[var(--space-m)] z-[var(--z-elevated)] inline-flex rounded-full border border-border bg-paper p-[5px]"
-                style={{
-                  boxShadow:
-                    "0 1px 2px rgba(35,36,30,0.10), 0 14px 28px -20px rgba(35,36,30,0.65)",
-                }}
-              >
-                <ProfileAvatar
-                  user={{ id: profile.id, name: profile.name, photoUrl: profile.photoUrl }}
-                  size={92}
-                />
-              </span>
-            </div>
-
-            <div className="mt-[var(--space-xl)]">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h1 className="font-heading text-[30px] font-bold leading-[1.06] tracking-[-0.03em] text-foreground">
-                  {profile.name}
-                </h1>
-                <VerifiedMark
-                  user={{ verifyState: profile.verifyState, accountType: profile.accountType }}
-                  size={17}
-                />
-              </div>
-              {meta.length > 0 && (
-                <p className="mt-[var(--space-xs)] text-[13.5px] leading-[1.55] text-muted-foreground">
-                  {meta.join(" · ")}
-                </p>
-              )}
-            </div>
-
-            {/* Contact actions. Email and phone are behind this dialog,
-                one click away and never printed beside the name. */}
-            <div className="mt-[var(--space-l)]">
-              <GetInTouch
-                name={profile.name}
-                methods={contactMethods(profile)}
-                vcard={vcardFor(profile)}
+    // The concept owns NO page chrome. The harness renders it inside the
+    // real app frame (flush green sidebar, the faint valley back-layer, a
+    // max-w-[1280px] <main> with px-5/sm:px-7/lg:px-10 gutters), so a page
+    // background, a second max-width or a second set of gutters here would
+    // all fight the shell. This is the grid and nothing else.
+    //
+    // The grid stretches by default so the folder card always runs to the
+    // same bottom edge as the identity column, even on the short About tab.
+    // Only the identity column opts out with `self-start`, which is also
+    // what gives its sticky position room to move.
+    //
+    // overflow-x-clip: VerifiedMark keeps its "Verified member" label in the
+    // DOM at opacity 0 and parks it `left-full`, so at 390 the label hangs
+    // 10px past the viewport and the page rubber-bands sideways. `clip`
+    // rather than `hidden` on purpose: `hidden` would make this element a
+    // scrollport and kill the identity column's sticky.
+    <div className="grid w-full grid-cols-1 gap-[var(--space-xl)] overflow-x-clip lg:grid-cols-[340px_minmax(0,1fr)]">
+      {/* ---------------------------------------------------------- *
+          IDENTITY COLUMN. Sticky on a laptop, first in the stack on a
+          phone. Sticky only: it never gets a scroller of its own.
+       * ---------------------------------------------------------- */}
+      <div className="lg:sticky lg:top-[var(--space-l)] lg:self-start">
+        <div className="relative">
+          <div className="relative aspect-[3/2] w-full overflow-hidden rounded-[var(--radius-xl)] border border-border bg-mist lg:aspect-[4/5]">
+            {profile.coverPhoto ? (
+              <Image
+                src={profile.coverPhoto}
+                alt={`${profile.name}'s picture`}
+                fill
+                priority
+                sizes="(min-width: 1024px) 340px, 100vw"
+                className="object-cover"
+                style={{ objectPosition: "50% 30%" }}
               />
-            </div>
-
-            {profile.links.length > 0 && (
-              <div className="mt-[var(--space-l)]">
-                <SectionLabel>Find them</SectionLabel>
-                <div className="mt-[var(--space-s)] flex flex-col gap-[var(--space-xs)]">
-                  {profile.links.map((link) => (
-                    <FindThemPill key={link.kind} link={link} />
-                  ))}
-                </div>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Camera className="h-7 w-7 text-muted-foreground/45" aria-hidden />
               </div>
             )}
+            {profile.admissionNumber && <AdmissionStamp number={profile.admissionNumber} />}
+            <ChangePhotoButton />
           </div>
 
-          {/* ---------------------------------------------------------- *
-              RECORD COLUMN: folder tabs plus one padded panel. Every
-              panel shares the panel's padding edge, so switching tabs
-              never shifts the left edge of the content.
-           * ---------------------------------------------------------- */}
-          <div className="flex min-w-0 flex-col">
-            <div
-              role="tablist"
-              aria-label="Profile sections"
-              className="relative z-10 flex gap-1 pl-[var(--space-m)] sm:pl-[var(--space-l)]"
-            >
-              {TABS.map((tab) => (
-                <FolderTab
-                  key={tab.key}
-                  id={`passport-tab-${tab.key}`}
-                  panelId={panelId}
-                  label={tab.label}
-                  active={activeTab === tab.key}
-                  onSelect={() => selectTab(tab.key)}
-                />
-              ))}
-            </div>
+          {/* The bird sits over the plate's bottom-left corner and
+              chirps when you tap it. It rides a solid paper disc so
+              it reads against any picture instead of sinking into
+              it, and lives in its own positioned span so
+              ProfileAvatar's own `relative` root is left alone. */}
+          <span
+            className="absolute -bottom-6 left-[var(--space-m)] z-[var(--z-elevated)] inline-flex rounded-full border border-border bg-paper p-[5px]"
+            style={{
+              boxShadow:
+                "0 1px 2px rgba(35,36,30,0.10), 0 14px 28px -20px rgba(35,36,30,0.65)",
+            }}
+          >
+            <ProfileAvatar
+              user={{ id: profile.id, name: profile.name, photoUrl: profile.photoUrl }}
+              size={92}
+            />
+          </span>
+        </div>
 
-            <div
-              className="relative flex flex-1 flex-col rounded-b-[var(--radius-xl)] rounded-tr-[var(--radius-xl)] border border-border bg-card"
-              style={{
-                boxShadow: "0 1px 2px rgba(30,28,22,0.05), 0 22px 44px -30px rgba(30,28,22,0.42)",
-              }}
-            >
-              <div
-                role="tabpanel"
-                id={panelId}
-                aria-labelledby={`passport-tab-${activeTab}`}
-                className="flex flex-1 flex-col px-[var(--space-l)] py-[var(--space-l)] sm:px-[var(--space-xl)] sm:py-[var(--space-xl)]"
-              >
-                <PanelTransition switched={switched} tabKey={activeTab}>
-                  {activeTab === "about" && (
-                    <div className="flex flex-1 flex-col">
-                      <section>
-                        <SectionLabel>In their words</SectionLabel>
-                        <p className="mt-[var(--space-s)] max-w-[62ch] font-heading text-[16.5px] leading-[1.78] text-foreground">
-                          {profile.about}
-                        </p>
-                      </section>
+        <div className="mt-[var(--space-xl)]">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h1 className="font-heading text-[30px] font-bold leading-[1.06] tracking-[-0.03em] text-foreground">
+              {profile.name}
+            </h1>
+            <VerifiedMark
+              user={{ verifyState: profile.verifyState, accountType: profile.accountType }}
+              size={17}
+            />
+          </div>
+          {meta.length > 0 && (
+            <p className="mt-[var(--space-xs)] text-[13.5px] leading-[1.55] text-muted-foreground">
+              {meta.join(" · ")}
+            </p>
+          )}
+        </div>
 
-                      {/* No `mt-auto` here. Two auto top-margins in the same
-                          flex column do not stack: CSS splits the free space
-                          EQUALLY between them, which on a laptop opened two
-                          ~245px voids (bio | void | houses | void | record).
-                          Exactly the dead space the owner complained about.
-                          Only the record, the strip that is meant to sit on
-                          the bottom edge, gets the auto margin. */}
+        {/* Contact actions. Email and phone are behind this dialog,
+            one click away and never printed beside the name.
+
+            "Find them" used to sit under this, and it was the reason
+            the About tab had a hole in it: the identity column ran
+            ~130px taller than everything the About panel had to say,
+            and the panel's bottom-anchored record strip turned the
+            difference into one big void. The socials are the same
+            block, moved into the About panel under the prose, which
+            shortens this column and lengthens that one at the same
+            time. Both columns now end within a pixel of each other
+            (measured at 1440 and 1920). It also matches the shipped
+            About tab, where the prose and "Find them" are neighbours. */}
+        <div className="mt-[var(--space-l)]">
+          <GetInTouch
+            name={profile.name}
+            methods={contactMethods(profile)}
+            vcard={vcardFor(profile)}
+          />
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------------- *
+          RECORD COLUMN: folder tabs plus one padded panel. Every
+          panel shares the panel's padding edge, so switching tabs
+          never shifts the left edge of the content.
+       * ---------------------------------------------------------- */}
+      <div className="flex min-w-0 flex-col">
+        <div
+          role="tablist"
+          aria-label="Profile sections"
+          className="relative z-10 flex gap-1 pl-[var(--space-m)] sm:pl-[var(--space-l)]"
+        >
+          {TABS.map((tab) => (
+            <FolderTab
+              key={tab.key}
+              id={`passport-tab-${tab.key}`}
+              panelId={panelId}
+              label={tab.label}
+              active={activeTab === tab.key}
+              onSelect={() => selectTab(tab.key)}
+            />
+          ))}
+        </div>
+
+        <div
+          className="relative flex flex-1 flex-col rounded-b-[var(--radius-xl)] rounded-tr-[var(--radius-xl)] border border-border bg-card"
+          style={{
+            boxShadow: "0 1px 2px rgba(30,28,22,0.05), 0 22px 44px -30px rgba(30,28,22,0.42)",
+          }}
+        >
+          <div
+            role="tabpanel"
+            id={panelId}
+            aria-labelledby={`passport-tab-${activeTab}`}
+            className="flex flex-1 flex-col px-[var(--space-l)] py-[var(--space-l)] sm:px-[var(--space-xl)] sm:py-[var(--space-xl)]"
+          >
+            <PanelTransition switched={switched} tabKey={activeTab}>
+              {activeTab === "about" && (
+                <div className="flex flex-1 flex-col">
+                  <section>
+                    <SectionLabel>About</SectionLabel>
+                    {/* Body copy: sans, 15px, 1.7. It was Libre
+                        Baskerville at 16.5px, a different typeface a
+                        size and a half above every other paragraph in
+                        the app, which read as a bug rather than a
+                        choice. 64ch is the shipped measure. */}
+                    <p className="mt-[var(--space-m)] max-w-[64ch] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
+                      {profile.about}
+                    </p>
+                  </section>
+
+                  {profile.links.length > 0 && (
+                    <section className="mt-[var(--space-xl)]">
+                      <SectionLabel>Find them</SectionLabel>
+                      <div className="mt-[var(--space-m)] flex flex-wrap gap-[var(--space-s)]">
+                        {profile.links.map((link) => (
+                          <FindThemPill key={link.kind} link={link} />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* The record closes the panel: the facts on one
+                      printed line, and the houses as the last quiet
+                      field on that same block.
+                      `mt-auto` only bites when there is slack, and it
+                      is the ONLY auto margin in this column: two of
+                      them do not stack, CSS splits the free space
+                      equally between them, which is what used to open
+                      a pair of voids (bio | void | houses | void |
+                      record). */}
+                  {(record.length > 0 || profile.houses.length > 0) && (
+                    <section className="mt-auto border-t border-border pt-[var(--space-l)]">
+                      {record.length > 0 && (
+                        <dl className="flex flex-col gap-[var(--space-m)] sm:flex-row sm:flex-wrap sm:items-start">
+                          {record.map((cell, i) => (
+                            <RecordCell
+                              key={cell.label}
+                              label={cell.label}
+                              value={cell.value}
+                              divided={i > 0}
+                            />
+                          ))}
+                        </dl>
+                      )}
+
+                      {/* HOUSES. Deliberately the smallest thing here.
+                          Owner: "house is just a fun thing, it's not
+                          that important, you're making it 50% of the
+                          profile." So it gets no heading, no band, no
+                          section of its own: one 10.5px field label,
+                          the same rung the facts above it wear, and
+                          the shipped chain underneath at its own
+                          narrow cap. */}
                       {profile.houses.length > 0 && (
-                        <section className="pt-[var(--space-xl)]">
-                          <SectionLabel>Houses</SectionLabel>
-                          {/* `w-fit` matters: the trail draws its U-turn
-                              against the RIGHT edge of its container, so
-                              in a full-width box the turn floats away
-                              from the chain it belongs to. Shrinking the
-                              box to the widest row keeps the turn on the
-                              chain. */}
-                          <div className="mt-[var(--space-m)] w-fit max-w-full">
+                        <div className={cn(record.length > 0 && "mt-[var(--space-l)]")}>
+                          <FieldLabel>Houses</FieldLabel>
+                          <div className="mt-[var(--space-s)]">
                             <HousesTrail houses={profile.houses} />
                           </div>
-                        </section>
+                        </div>
                       )}
-
-                      {/* The record runs along the bottom edge of the
-                          panel, so on a laptop the card and the identity
-                          column finish on the same line instead of the
-                          card trailing off into empty surface. `mt-auto`
-                          only bites when there is slack: on a phone the
-                          strip simply follows the trail. */}
-                      {record.length > 0 && (
-                        <section className="mt-auto border-t border-border pt-[var(--space-xl)]">
-                          <SectionLabel>The record</SectionLabel>
-                          <dl className="mt-[var(--space-m)] grid grid-cols-2 gap-y-[var(--space-m)] sm:grid-cols-4">
-                            {record.map((cell, i) => (
-                              <RecordCell
-                                key={cell.label}
-                                label={cell.label}
-                                value={cell.value}
-                                index={i}
-                              />
-                            ))}
-                          </dl>
-                        </section>
-                      )}
-                    </div>
+                    </section>
                   )}
+                </div>
+              )}
 
-                  {activeTab === "posts" &&
-                    (posts.length === 0 ? (
-                      <EmptyPanel
-                        icon={
-                          <MessageCircle className="h-6 w-6 text-muted-foreground/45" aria-hidden />
-                        }
-                        text={`Nothing from ${firstName} yet.`}
+              {activeTab === "posts" &&
+                (posts.length === 0 ? (
+                  <EmptyPanel
+                    icon={
+                      <MessageCircle className="h-6 w-6 text-muted-foreground/45" aria-hidden />
+                    }
+                    text={`Nothing from ${firstName} yet.`}
+                  />
+                ) : (
+                  <div>
+                    {posts.map((post, i) => (
+                      <PostEntry
+                        key={post.id}
+                        post={post}
+                        isFirst={i === 0}
+                        liked={likes[post.id]?.liked ?? false}
+                        likeCount={likes[post.id]?.count ?? post.likeCount}
+                        onToggleLike={() => toggleLike(post.id)}
                       />
-                    ) : (
-                      <div>
-                        {posts.map((post, i) => (
-                          <PostEntry
-                            key={post.id}
-                            post={post}
-                            isFirst={i === 0}
-                            liked={likes[post.id]?.liked ?? false}
-                            likeCount={likes[post.id]?.count ?? post.likeCount}
-                            onToggleLike={() => toggleLike(post.id)}
-                          />
-                        ))}
-                      </div>
                     ))}
+                  </div>
+                ))}
 
-                  {activeTab === "letters" &&
-                    (letters.length === 0 ? (
-                      <EmptyPanel
-                        icon={<Feather className="h-6 w-6 text-muted-foreground/45" aria-hidden />}
-                        text={`${firstName} has not written a letter yet.`}
+              {activeTab === "letters" &&
+                (letters.length === 0 ? (
+                  <EmptyPanel
+                    icon={<Feather className="h-6 w-6 text-muted-foreground/45" aria-hidden />}
+                    text={`${firstName} has not written a letter yet.`}
+                  />
+                ) : (
+                  <div>
+                    {letters.map((post, i) => (
+                      <LetterEntry
+                        key={post.id}
+                        post={post}
+                        isFirst={i === 0}
+                        liked={likes[post.id]?.liked ?? false}
+                        likeCount={likes[post.id]?.count ?? post.likeCount}
+                        onToggleLike={() => toggleLike(post.id)}
                       />
-                    ) : (
-                      <div>
-                        {letters.map((post, i) => (
-                          <LetterEntry
-                            key={post.id}
-                            post={post}
-                            isFirst={i === 0}
-                            liked={likes[post.id]?.liked ?? false}
-                            likeCount={likes[post.id]?.count ?? post.likeCount}
-                            onToggleLike={() => toggleLike(post.id)}
-                          />
-                        ))}
-                      </div>
                     ))}
+                  </div>
+                ))}
 
-                  {activeTab === "photos" && (
-                    <EmptyPanel
-                      icon={<Images className="h-6 w-6 text-muted-foreground/45" aria-hidden />}
-                      text={`Nothing from ${firstName} in the Valley Collection yet. Pictures added there show up here.`}
-                    />
-                  )}
-                </PanelTransition>
-              </div>
-            </div>
+              {activeTab === "photos" && (
+                <EmptyPanel
+                  icon={<Images className="h-6 w-6 text-muted-foreground/45" aria-hidden />}
+                  text={`Nothing from ${firstName} in the Valley Collection yet. Pictures added there show up here.`}
+                />
+              )}
+            </PanelTransition>
           </div>
         </div>
       </div>

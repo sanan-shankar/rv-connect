@@ -76,8 +76,8 @@ export const ROOMS: Room[] = [
     slug: "type",
     title: "The font question",
     looked: "Libre Baskerville and Source Sans 3. Perfectly respectable.",
-    tell: "Neither was chosen against an alternative. One of them is a body face being used for display, and it has no bold italic at all.",
-    status: "planned",
+    tell: "No, you cannot legally use the Apple font, and it would be wrong anyway. But Libre Baskerville is a body face doing display work, with three styles and no bold italic. Five pairings, loaded properly, live.",
+    status: "built",
   },
 ];
 
