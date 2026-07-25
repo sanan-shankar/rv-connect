@@ -662,10 +662,12 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
                   the type ends on and the corner the picture ends on are the
                   same corner, on the same rule. */}
               {profile.admissionNumber !== null && (
-                <AdmissionStamp
-                  number={profile.admissionNumber}
-                  className="ml-1 mt-[var(--space-l)] w-fit lg:mt-auto lg:pt-[var(--space-l)]"
-                />
+                // The spacing lives on this wrapper, never on the stamp: the
+                // stamp's ink wash is an `absolute inset-0` layer, so padding
+                // passed to it would print a pale rectangle above the rule.
+                <div className="mt-[var(--space-l)] lg:mt-auto lg:pt-[var(--space-l)]">
+                  <AdmissionStamp number={profile.admissionNumber} className="ml-1 w-fit" />
+                </div>
               )}
             </div>
 
