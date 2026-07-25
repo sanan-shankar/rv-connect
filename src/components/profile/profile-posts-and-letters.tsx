@@ -49,10 +49,10 @@ export function ProfilePostsAndLetters({
   postCount: number;
 }) {
   if (letterCount === 0 && postCount === 0) {
-    // Warm empty state, styled to nest inside the profile's folder card (dashed
+    // Warm empty state, styled to nest inside the profile's folder card (hairline
     // mist box at a smaller radius than its container, per the nesting rule).
     return (
-      <div className="rounded-[var(--radius-md)] border border-dashed border-border/80 bg-mist/40 px-6 py-[var(--space-xxl)] text-center">
+      <div className="rounded-[var(--radius-md)] border border-border/80 bg-mist/40 px-6 py-[var(--space-xxl)] text-center">
         <p className="font-heading text-lg tracking-tight text-foreground">
           {isOwnProfile ? "You haven't shared anything yet." : `Nothing from ${firstName} yet.`}
         </p>

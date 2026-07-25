@@ -47,7 +47,6 @@ function FolderTab({
       onClick={onSelect}
       initial={false}
       animate={{ y: active ? 0 : 6 }}
-      whileHover={{ y: active ? 0 : 2 }}
       whileTap={{ scale: 0.96 }}
       transition={SPRINGS.snappy}
       style={{ clipPath: TAB_CLIP }}
@@ -71,7 +70,7 @@ function AdminDisclosure({ children }: { children: ReactNode }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-[12.5px] font-bold uppercase tracking-[0.12em] text-cinnamon transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.98]"
+        className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-[12.5px] font-bold uppercase tracking-[0.12em] text-cinnamon transition-[colors,transform] duration-150 hover:border-cinnamon/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]"
       >
         <Shield className="h-4 w-4" aria-hidden />
         Admin
@@ -127,7 +126,13 @@ export function ProfileShell({
         <div
           role="tablist"
           aria-label="Profile sections"
-          className="relative z-10 flex gap-1 overflow-x-auto pl-[var(--space-m)] [scrollbar-width:none] max-lg:sticky max-lg:top-0 max-lg:z-[var(--z-elevated)] sm:pl-[var(--space-l)] [&::-webkit-scrollbar]:hidden"
+          // `max-lg:top-14` parks the sticky tabs directly BELOW the mobile app
+          // bar, not underneath it. The bar is `sticky top-0 z-40 h-14`
+          // (layout/sidebar.tsx) while these tabs were also `top-0` at the much
+          // lower `--z-elevated`, so on scroll the tab row slid under the bar
+          // and visibly got clipped away. Reported as the tabs moving up and
+          // down and getting cut out instead of the page just scrolling.
+          className="relative z-10 flex gap-1 overflow-x-auto pl-[var(--space-m)] [scrollbar-width:none] max-lg:sticky max-lg:top-14 max-lg:z-[var(--z-elevated)] sm:pl-[var(--space-l)] [&::-webkit-scrollbar]:hidden"
         >
           {tabs.map((t) => (
             <FolderTab

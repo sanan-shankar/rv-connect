@@ -31,13 +31,15 @@ export async function generateMetadata({
   return { title: user.name };
 }
 
-/** "2014-2021 . 7 years" / partial fragments; never "undefined". */
+/**
+ * "2014-2023" / partial fragments; never "undefined".
+ *
+ * No year count. It used to read "2014-2023 · 9 years"; the owner cut the
+ * count: "if we don't need nine years, everyone can freaking calculate a
+ * number of years." The range already carries it.
+ */
 function rvYearsLabel(yearJoined: number | null, yearLeft: number | null): string | null {
-  if (yearJoined && yearLeft) {
-    const n = yearLeft - yearJoined;
-    const dur = n > 0 ? ` · ${n} ${n === 1 ? "year" : "years"}` : "";
-    return `${yearJoined}–${yearLeft}${dur}`;
-  }
+  if (yearJoined && yearLeft) return `${yearJoined}–${yearLeft}`;
   if (yearJoined) return `From ${yearJoined}`;
   if (yearLeft) return `Until ${yearLeft}`;
   return null;
@@ -205,8 +207,6 @@ export default async function ProfilePage({
           headerImage={headerImage}
           batchLabel={batchLine(user)}
           occupation={occupation}
-          email={contactEmail}
-          phone={user.phone}
           admissionNumber={user.admissionNumber ?? null}
           isOwnProfile={isOwnProfile}
           contactMethods={methods}
