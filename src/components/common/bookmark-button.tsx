@@ -20,10 +20,10 @@ import { SPRINGS, EASE_POP } from "@/components/common/motion";
  *    the top instead of rising from the middle. It pours at a LINEAR rate over
  *    300ms, so there is one clear, predictable moment it hits the bottom (an
  *    ease-out would fake an early landing; a spring has no fixed settle time);
- *  - the tug starts at 240ms, so its downward phase is still running as the
- *    colour reaches the bottom at 300ms (scaleY 1 -> 1.06 -> 1 about its top,
- *    pulling the bottom edge down then springing back). The overlap makes the
- *    tug read as CAUSED by the arriving colour, not a separate beat after it.
+ *  - the bounce is delayed to exactly 300ms, so it begins the INSTANT the fill
+ *    reaches the bottom, never before (scaleY 1 -> 1.08 -> 0.99 -> 1 about the
+ *    top: the arriving colour's weight overshoots the mark down, it bounces back
+ *    up past rest, then settles). Starting it a hair early was the last jank.
  * Unsaving just retracts the fill straight back up to the top, quickly, with no
  * reverse theatrics. The outline is `currentColor`, so it reads muted at rest
  * and cinnamon once saved (the button owns that colour swap).
@@ -47,9 +47,9 @@ export function BookmarkButton({
   function handleClick() {
     if (!saved) {
       setAnimate(true);
-      // fill pours LINEARLY (steady, lands decisively at 300ms), tug overlaps that
-      // landing (starts 240ms) so the icon is pulled down AS the colour hits bottom.
-      setTimeout(() => setAnimate(false), 560);
+      // fill pours LINEARLY and reaches the bottom at exactly 300ms; the bounce is
+      // delayed to 300ms so it begins the instant the colour lands, then runs 420ms.
+      setTimeout(() => setAnimate(false), 740);
     }
     onToggle();
   }
@@ -69,10 +69,10 @@ export function BookmarkButton({
     >
       <motion.span
         className="relative inline-grid place-items-center will-change-transform"
-        animate={animate ? { scaleY: [1, 1.06, 1] } : { scaleY: 1 }}
+        animate={animate ? { scaleY: [1, 1.08, 0.99, 1] } : { scaleY: 1 }}
         transition={
           animate
-            ? { duration: 0.3, ease: EASE_POP, times: [0, 0.4, 1], delay: 0.24 }
+            ? { duration: 0.42, ease: "easeOut", times: [0, 0.3, 0.62, 1], delay: 0.3 }
             : { duration: 0 }
         }
         style={{ transformOrigin: "50% 8%" }}

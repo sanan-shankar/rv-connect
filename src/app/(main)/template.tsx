@@ -17,6 +17,7 @@
  * ------------------------------------------------------------------ */
 
 import { motion } from "motion/react";
+import { SPRINGS } from "@/components/common/motion";
 
 export default function MainTemplate({
   children,
@@ -25,13 +26,9 @@ export default function MainTemplate({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      // A longer, tuned cubic rather than a spring: the content eases up slowly
-      // and ramps in, then settles, which reads smoother than a spring's snap
-      // (this is the entrance you see right after sign-in landing on the feed).
-      // transform + opacity only, so it stays a clean 60fps.
-      transition={{ duration: 0.5, ease: [0.42, 0, 0.58, 1] }}
+      transition={SPRINGS.gentle}
     >
       {children}
     </motion.div>
