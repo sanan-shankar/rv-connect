@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { SPRINGS, EASE_POP, EASE_OUT_SMOOTH } from "@/components/common/motion";
+import { SPRINGS, EASE_POP } from "@/components/common/motion";
 
 /**
  * One shared save/bookmark button for the whole app (feed posts, group posts,
@@ -11,17 +11,19 @@ import { SPRINGS, EASE_POP, EASE_OUT_SMOOTH } from "@/components/common/motion";
  *
  * The saved-state animation (owner brief): the colour pours down from the TOP
  * edge, and the moment it REACHES THE BOTTOM its weight tugs the mark down a
- * little, which then bounces back up to rest. The two layers are SEQUENCED, not
- * simultaneous. Firing them together was the bug: the tug peaked at 210ms while
- * the fill was still mid-pour, so cause and effect read as unrelated events.
+ * little, which then bounces back up to rest. The two layers OVERLAP at the
+ * landing moment. The earlier bug was an ease-out fill that visually finished
+ * pouring almost immediately (front-loaded), so the colour LOOKED landed long
+ * before the tug fired, reading as a janky gap.
  *  - the cinnamon fill is clipped to the ribbon and revealed top-down
  *    (scaleY 0 -> 1 about the ribbon's top edge), so the colour pours in from
- *    the top instead of rising from the middle. It uses a fixed-duration tween,
- *    NOT a spring, because a spring has no exact settle time to chain against;
- *  - 20ms before the fill lands, the whole mark stretches its height
- *    (scaleY 1 -> 1.06 -> 1 about its top), pulling the bottom edge down and
- *    springing it back. Starting a hair early makes the tug read as CAUSED by
- *    the arriving colour rather than as a separate beat tacked on after it.
+ *    the top instead of rising from the middle. It pours at a LINEAR rate over
+ *    300ms, so there is one clear, predictable moment it hits the bottom (an
+ *    ease-out would fake an early landing; a spring has no fixed settle time);
+ *  - the tug starts at 240ms, so its downward phase is still running as the
+ *    colour reaches the bottom at 300ms (scaleY 1 -> 1.06 -> 1 about its top,
+ *    pulling the bottom edge down then springing back). The overlap makes the
+ *    tug read as CAUSED by the arriving colour, not a separate beat after it.
  * Unsaving just retracts the fill straight back up to the top, quickly, with no
  * reverse theatrics. The outline is `currentColor`, so it reads muted at rest
  * and cinnamon once saved (the button owns that colour swap).
@@ -45,8 +47,9 @@ export function BookmarkButton({
   function handleClick() {
     if (!saved) {
       setAnimate(true);
-      // fill lands at 280ms, tug starts at 260ms and runs 340ms -> last frame 600ms.
-      setTimeout(() => setAnimate(false), 660);
+      // fill pours LINEARLY (steady, lands decisively at 300ms), tug overlaps that
+      // landing (starts 240ms) so the icon is pulled down AS the colour hits bottom.
+      setTimeout(() => setAnimate(false), 560);
     }
     onToggle();
   }
@@ -69,7 +72,7 @@ export function BookmarkButton({
         animate={animate ? { scaleY: [1, 1.06, 1] } : { scaleY: 1 }}
         transition={
           animate
-            ? { duration: 0.34, ease: EASE_POP, times: [0, 0.4, 1], delay: 0.26 }
+            ? { duration: 0.3, ease: EASE_POP, times: [0, 0.4, 1], delay: 0.24 }
             : { duration: 0 }
         }
         style={{ transformOrigin: "50% 8%" }}
@@ -103,7 +106,7 @@ export function BookmarkButton({
             animate={{ scaleY: saved ? 1 : 0 }}
             transition={
               animate
-                ? { duration: 0.28, ease: EASE_OUT_SMOOTH }
+                ? { duration: 0.3, ease: "linear" }
                 : { duration: saved ? 0 : 0.16, ease: "easeIn" }
             }
           />

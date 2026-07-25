@@ -31,7 +31,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
 
   return (
     <RailCard label="New in the directory">
-      <div className="[&>div+div]:border-t [&>div+div]:border-border">
+      <div className="[&>*:last-child]:pb-0 [&>div+div]:border-t [&>div+div]:border-border">
         {recentMembers.map((m) => (
           <IdentityRow
             key={m.id}
