@@ -72,6 +72,10 @@ model User {
   photoLoves     PhotoLove[]
   places         UserPlace[]
 
+  // Member <-> admins conversations (see AdminThread below).
+  adminThreads    AdminThread[]      @relation("AdminThreadMember")
+  adminMessages   AdminMessage[]     @relation("AdminMessageAuthor")
+
   // Catch-ups (the recurring group newsletter). Back-relations for the six Catchup* models.
   catchupsKept    Catchup[]          @relation("CatchupsKept")
   catchupPrompts  CatchupPrompt[]    @relation("CatchupPromptsAuthored")
@@ -302,12 +306,16 @@ model Report {
   reporter     User  @relation("ReportsFiled", fields: [reporterId], references: [id])
   post         Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
   reportedUser User? @relation("ReportsAgainst", fields: [reportedUserId], references: [id], onDelete: Cascade)
+
+  // The conversation the reporter can follow after filing this (see AdminThread).
+  // Back-relation only: the foreign key lives on AdminThread.reportId.
+  thread AdminThread?
 }
 
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // "like" | "comment" | "reply" | "admin" | "admin_note"
+  type      String   // "like" | "comment" | "reply" | "admin" | "admin_note" | "admin_message" | "report_update"
   message   String
   link      String?
   read      Boolean  @default(false)
@@ -316,6 +324,63 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+}
+
+// ─── Messages between a member and the admins ────────────────────────────────
+// One private conversation per subject, always between exactly one member and
+// whichever admin answers. Replaced the third-party Tally feedback form
+// (2026-07-24): bug reports, ideas, moderation notes, and the follow-up on
+// anything a member reported all land here, so nobody is left wondering what
+// happened. Reading or writing a thread is allowed for its own member and for
+// admins, and nobody else; every action re-checks that server-side.
+
+model AdminThread {
+  id       String  @id @default(cuid())
+  memberId String
+  // Short line shown in the list. Derived from the first message when the
+  // member does not write one, so nothing is ever required of them.
+  subject  String?
+  // "message" (plain) | "bug" | "idea" | "notice" (an admin started it, e.g. a
+  // moderation note) | "report" (follow-up on something the member reported).
+  kind     String  @default("message")
+  status   String  @default("open") // "open" | "closed"
+  // Set when the thread follows a Report the member filed. Unique so one
+  // report has at most one conversation. SetNull keeps the conversation alive
+  // if the reported post (and with it the report) is deleted.
+  reportId String? @unique
+
+  lastMessageAt DateTime @default(now())
+  memberUnread  Boolean  @default(false) // unread admin replies waiting for the member
+  adminUnread   Boolean  @default(false) // unread member messages waiting for an admin
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  member   User           @relation("AdminThreadMember", fields: [memberId], references: [id], onDelete: Cascade)
+  report   Report?        @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  messages AdminMessage[]
+
+  @@index([memberId, lastMessageAt])
+  @@index([status, lastMessageAt])
+  @@index([adminUnread, lastMessageAt])
+}
+
+model AdminMessage {
+  id       String @id @default(cuid())
+  threadId String
+  // Null for the lines the app writes itself (e.g. "You reported a post by X"),
+  // and for anyone whose account is later deleted.
+  authorId String?
+  // Which side wrote it. Stored rather than derived from the author's current
+  // role, so a member who later becomes an admin does not retro-change history.
+  fromAdmin Boolean @default(false)
+  body      String
+  imageUrl  String? // one optional screenshot (WebP via /api/upload)
+  createdAt DateTime @default(now())
+
+  thread AdminThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author User?       @relation("AdminMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
 }
 
 model PollOption {

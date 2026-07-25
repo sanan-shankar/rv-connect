@@ -13,6 +13,8 @@ import {
   Users,
   ShieldCheck,
   ShieldAlert,
+  Mail,
+  Flag,
 } from "lucide-react";
 import { motion } from "motion/react";
 import {
@@ -66,9 +68,14 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   group_invite: { icon: Users, label: "Group" },
   // Admin/moderation notices.
   admin: { icon: ShieldCheck, label: "Rishi Valley" },
-  // A note attached to a removed post/letter/comment/photo (opens /notice/[id]).
+  // A note attached to a removed post/letter/comment/photo. Opens the
+  // conversation it started at /messages/[id], where the author can write back.
   // Distinct from the plain "admin" glyph above (ShieldCheck, e.g. verification).
-  admin_note: { icon: ShieldAlert, label: "A note from the admins" },
+  admin_note: { icon: ShieldAlert, label: "Notes from the admins" },
+  // An admin answering something a member wrote, and the receipt/outcome of
+  // anything they reported. Both open the thread they belong to.
+  admin_message: { icon: Mail, label: "From the admins" },
+  report_update: { icon: Flag, label: "Something you reported" },
   // Catch-ups (spec section 5).
   catchup_questions_open: { icon: HelpCircle, label: "Questions open" },
   catchup_answers_open: { icon: PenLine, label: "Answers open" },
@@ -192,7 +199,18 @@ export function NotificationBell({
 
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      <DropdownMenuTrigger className="relative rounded-lg p-2 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 transition-transform duration-150" title="Notifications">
+      {/* This variant lives in exactly one place: the mobile sticky green band
+          (sidebar.tsx). It used to be a `display: block` button with p-2, so
+          the 18px glyph was placed on the button's 24px text baseline and sat
+          3.5px ABOVE the band's centre (measured: 15.5px of band above it,
+          22.5px below) while the hamburger beside it, a real 40px grid box,
+          was dead centre. A fixed 40x40 grid box removes the baseline entirely
+          and matches the hamburger; hover/focus are band colours, not the warm
+          light-surface ones, since the only surface behind this is canopy. */}
+      <DropdownMenuTrigger
+        className="relative grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-150 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
+        title="Notifications"
+      >
         <motion.span
           className="inline-grid place-items-center"
           style={{ transformOrigin: "50% 12%" }}
@@ -200,11 +218,14 @@ export function NotificationBell({
           transition={shakeTransition}
           whileTap={{ scale: 0.9, transition: SPRINGS.snappy }}
         >
-          <Bell size={18} strokeWidth={1.9} />
+          {/* Same optical nudge as the header variant: the bell's mass sits low
+              (wide skirt plus the clapper below it), so a geometrically centred
+              glyph reads a hair low. */}
+          <Bell size={19} strokeWidth={1.9} style={{ transform: "translateY(-0.5px)" }} />
         </motion.span>
         {unreadCount > 0 && (
           <motion.span
-            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cinnamon px-1 text-[10px] font-bold text-white"
+            className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-cinnamon px-1 text-[10px] font-bold text-white"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: [0, 1.3, 1], opacity: 1 }}
             transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}

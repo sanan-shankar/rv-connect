@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { noteOnReportThread } from "@/lib/admin-threads-server";
 import { revalidatePath } from "next/cache";
 
 /** Shared shape for every admin action below. Explicit (rather than inferred)
@@ -134,6 +135,12 @@ export async function adminDismissReport(reportId: string): Promise<AdminActionR
     data: { status: "dismissed" },
   });
 
+  // Close the loop with whoever filed it (see src/lib/admin-threads.ts).
+  await noteOnReportThread(
+    reportId,
+    "An admin read this and decided to leave it as it is. Thank you for flagging it anyway. If there's more to it, write back here."
+  );
+
   revalidatePath("/admin");
   return { success: true };
 }
@@ -146,6 +153,11 @@ export async function adminResolveReport(reportId: string): Promise<AdminActionR
     where: { id: reportId },
     data: { status: "reviewed" },
   });
+
+  await noteOnReportThread(
+    reportId,
+    "An admin looked at this and has dealt with it. Thank you for flagging it."
+  );
 
   revalidatePath("/admin");
   return { success: true };
