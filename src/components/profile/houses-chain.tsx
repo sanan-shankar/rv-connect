@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
@@ -34,9 +34,9 @@ import { academicSpanLabel, chunkRows, parseHouseSpans, type HouseSpan } from "@
  * of leaving them to whatever slack a justify rule happens to distribute.
  *
  * Row membership cannot come from `flex-wrap` either, since each row's
- * direction has to be known before layout, so the column count is explicit per
- * breakpoint and rows are chunked in JS. Deterministic, no measurement pass, no
- * resize flicker, and it collapses to one tidy row for two or three houses.
+ * direction has to be known before layout, so rows are chunked in JS from a
+ * column count measured off the container. It collapses to one tidy row for two
+ * or three houses.
  */
 
 const HOUSE_TINTS = [
@@ -52,21 +52,41 @@ function yearRange(span: HouseSpan): string {
   return academicSpanLabel(span.fromYear, span.toYear);
 }
 
-/** Houses per row at each breakpoint. Two on a phone keeps the pills legible. */
-function useColumns(): number {
+/* Roughly what a row of N pills needs, measured: four sit in ~560px, and the
+   count steps down from there. Generous by ~20px so a long house name never
+   tips a row over its container. */
+const WIDTH_FOR_COLUMNS: ReadonlyArray<{ min: number; cols: number }> = [
+  { min: 580, cols: 4 },
+  { min: 430, cols: 3 },
+  { min: 0, cols: 2 },
+];
+
+/**
+ * Houses per row, chosen from the width of the CONTAINER the trail is sitting
+ * in, not the viewport.
+ *
+ * This used to read `matchMedia("(min-width: 1024px)")`, which meant the trail
+ * was a fixed ~560px object on any desktop screen no matter how narrow the box
+ * around it was. Nothing overflows today only because every container that
+ * currently holds one happens to be wide enough; drop this into a 320px rail at
+ * a 1440 viewport and four columns would run straight out the side. A shared
+ * component should not depend on the caller's layout happening to be roomy, so
+ * it measures what it has been given.
+ */
+function useColumns(ref: React.RefObject<HTMLDivElement | null>): number {
   const [cols, setCols] = useState(2);
   useEffect(() => {
-    const wide = window.matchMedia("(min-width: 1024px)");
-    const mid = window.matchMedia("(min-width: 640px)");
-    const sync = () => setCols(wide.matches ? 4 : mid.matches ? 3 : 2);
-    sync();
-    wide.addEventListener("change", sync);
-    mid.addEventListener("change", sync);
-    return () => {
-      wide.removeEventListener("change", sync);
-      mid.removeEventListener("change", sync);
-    };
-  }, []);
+    const el = ref.current;
+    if (!el) return;
+    const pick = (w: number) => WIDTH_FOR_COLUMNS.find((t) => w >= t.min)?.cols ?? 2;
+    // The wrapper is `w-fit`, so it shrink-wraps the trail and would report the
+    // trail's own width back to us. The parent is the real budget.
+    const measured = () => el.parentElement?.clientWidth ?? el.clientWidth;
+    setCols(pick(measured()));
+    const ro = new ResizeObserver(() => setCols(pick(measured())));
+    if (el.parentElement) ro.observe(el.parentElement);
+    return () => ro.disconnect();
+  }, [ref]);
   return cols;
 }
 
@@ -128,7 +148,8 @@ function UTurn({ flip }: { flip: boolean }) {
  * whatever container it is dropped into.
  */
 export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
-  const cols = useColumns();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const cols = useColumns(wrapRef);
   if (spans.length === 0) return null;
 
   const rows = chunkRows(spans, cols);
@@ -136,7 +157,7 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
   const templateColumns = `repeat(${Math.max(1, 2 * cols - 1)}, max-content)`;
 
   return (
-    <div className="w-fit">
+    <div ref={wrapRef} className="w-fit">
       {/* Screen readers get the plain sequence; the serpentine is purely visual. */}
       <p className="sr-only">
         Houses over the years: {spans.map((s) => `${s.house} ${yearRange(s)}`).join(", then ")}
