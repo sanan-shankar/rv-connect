@@ -103,12 +103,17 @@ export function AmbientLeaves() {
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
   // Last-known mouse position (viewport px), for the cursor-dodge below.
-  // `sx`/`sy` are a lerped-smoothed copy of `x`/`y` (see the tick loop), so a
-  // fast or jumpy pointer move never yanks the dodge target around — the
-  // leaves drift away from a gently trailing point, not the raw cursor.
+  // `sx`/`sy` are a lightly smoothed copy of `x`/`y` and `vx`/`vy` its
+  // velocity (both maintained in the tick loop). The smoothing is only there
+  // to take the stutter out of raw pointer samples, NOT to make the field
+  // trail the cursor: it runs on a ~25ms time constant, and the velocity
+  // feeds a small forward lead that pays that back, so the field sits under
+  // the cursor instead of behind it. Do not lower the rate to "soften" the
+  // effect — softness belongs in the falloff curve and the ease rates below,
+  // and buying it here is what made the leaves react late.
   // Touch never sets `active` (no persistent pointer to dodge there — the
   // tap puff + flick is that platform's interactive affordance instead).
-  const mouseRef = useRef({ x: -9999, y: -9999, sx: -9999, sy: -9999, active: false });
+  const mouseRef = useRef({ x: -9999, y: -9999, sx: -9999, sy: -9999, vx: 0, vy: 0, active: false });
 
   // SSR-safe responsive density: desktop default until mount, then phone-lighter.
   const [isMobile, setIsMobile] = useState(false);
@@ -220,6 +225,15 @@ export function AmbientLeaves() {
     const mouse = mouseRef.current;
     const onPointerMove = (e: PointerEvent) => {
       if (e.pointerType !== "mouse") return;
+      // First sighting, or the pointer re-entering the window: drop the
+      // smoothed point straight onto the cursor rather than easing across the
+      // viewport from a stale position.
+      if (!mouse.active) {
+        mouse.sx = e.clientX;
+        mouse.sy = e.clientY;
+        mouse.vx = 0;
+        mouse.vy = 0;
+      }
       mouse.x = e.clientX;
       mouse.y = e.clientY;
       mouse.active = true;
@@ -379,19 +393,77 @@ export function AmbientLeaves() {
     };
     window.addEventListener("resize", onResize, { passive: true });
 
+    /* ---- Cursor field tuning (desktop only: touch gets the tap-flick) -----
+     * The target feel is a soft magnet, not a flinch. Three separate knobs,
+     * each doing one job, so "gentler" can never again be bought by making
+     * the whole thing lag:
+     *   - RADIUS + the falloff curve set how EARLY and how BROADLY a leaf
+     *     feels the cursor. A wide field with a saturating curve reads as
+     *     magnetic; a narrow one reads as a collision.
+     *   - PUSH sets how FAR a leaf travels. This is the "violence" dial.
+     *   - ATTACK / RELEASE set the TIMING: leaves part promptly and drift
+     *     home lazily.
+     * None of it costs per-frame work. The two ease factors and the field
+     * centre are computed once per frame, not once per leaf, and the falloff
+     * is a squared-distance test with a single sqrt only for leaves actually
+     * inside the field.
+     */
+    const AVOID_RADIUS = isMobile ? 0 : 150;
+    const AVOID_R2 = AVOID_RADIUS * AVOID_RADIUS;
+    const AVOID_PUSH = 40; // px of travel at the centre of the field
+    const AVOID_ATTACK = 16; // 1/s, ~62ms to part
+    const AVOID_RELEASE = 4; // 1/s, ~250ms to drift back home
+    const POINTER_RATE = 40; // 1/s, ~25ms of de-stutter and not a frame more
+    const POINTER_LEAD = 0.035; // s of velocity look-ahead, cancels the above
+    const POINTER_LEAD_MAX = 56; // px, so a flick cannot fling the field away
+
     let raf = 0;
     let last = performance.now();
+    let resumed = true; // the loop was idle last frame (hidden tab / out of range)
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       // Pause work when the tab is hidden or the layer is out of range.
-      if (pausedRef.current || !active) return;
+      if (pausedRef.current || !active) {
+        resumed = true;
+        return;
+      }
+      // Back from a hidden tab or an out-of-range scroll: adopt the live
+      // cursor instead of easing across wherever it wandered while we idled.
+      if (resumed) {
+        resumed = false;
+        mouse.sx = mouse.x;
+        mouse.sy = mouse.y;
+        mouse.vx = 0;
+        mouse.vy = 0;
+      }
 
-      // Smooth the raw pointer position toward a lagging point, so the dodge
-      // below reacts to a gentle trail rather than snapping frame-to-frame.
-      mouse.sx += (mouse.x - mouse.sx) * 0.1;
-      mouse.sy += (mouse.y - mouse.sy) * 0.1;
+      // Pointer smoothing, frame-rate independent and deliberately short: it
+      // only de-stutters the raw samples. The velocity lead underneath then
+      // pushes the field centre forward by roughly the distance the smoothing
+      // costs, so leaves part around where the cursor IS, not where it was.
+      const pe = 1 - Math.exp(-dt * POINTER_RATE);
+      const prevSx = mouse.sx;
+      const prevSy = mouse.sy;
+      mouse.sx += (mouse.x - mouse.sx) * pe;
+      mouse.sy += (mouse.y - mouse.sy) * pe;
+      const ve = 1 - Math.exp(-dt * 18);
+      mouse.vx += ((mouse.sx - prevSx) / dt - mouse.vx) * ve;
+      mouse.vy += ((mouse.sy - prevSy) / dt - mouse.vy) * ve;
+      let leadX = mouse.vx * POINTER_LEAD;
+      let leadY = mouse.vy * POINTER_LEAD;
+      const leadD2 = leadX * leadX + leadY * leadY;
+      if (leadD2 > POINTER_LEAD_MAX * POINTER_LEAD_MAX) {
+        const clampK = POINTER_LEAD_MAX / Math.sqrt(leadD2);
+        leadX *= clampK;
+        leadY *= clampK;
+      }
+      const fieldX = mouse.sx + leadX;
+      const fieldY = mouse.sy + leadY;
+      const fieldOn = AVOID_RADIUS > 0 && mouse.active;
+      const attack = 1 - Math.exp(-dt * AVOID_ATTACK);
+      const release = 1 - Math.exp(-dt * AVOID_RELEASE);
 
       // Footer pile: gently build a shallow drift while the footer is in view
       // (slow leaves rarely complete a full fall, so we drip a few in), capped.
@@ -405,16 +477,6 @@ export function AmbientLeaves() {
       }
 
       const height = vh();
-      // Cursor dodge tuning: desktop only (no persistent pointer on touch,
-      // where the tap-flick below is the interactive affordance instead).
-      // Gentle by design — low stiffness (a slow ease rate), high damping
-      // (the pointer itself is pre-smoothed above), and a small displacement
-      // radius, so leaves drift barely-noticeably away from the cursor
-      // rather than flinching from it. A leaf never snaps toward or away
-      // in either direction.
-      const AVOID_RADIUS = isMobile ? 0 : 92;
-      const AVOID_PUSH = 16; // px, strongest push right at the cursor's center
-      const AVOID_RATE = 3.2;
       for (const l of leaves) {
         if (!l.el || l.landed) continue;
         if (l.wait > 0) {
@@ -448,26 +510,50 @@ export function AmbientLeaves() {
           continue;
         }
 
-        // Smoothly avoid the cursor: eased toward a push vector pointing away
-        // from it while within range, eased back to zero once the cursor
-        // moves off or out of range — never a jump-cut in either direction.
+        // Part around the cursor: ease toward a push vector pointing away
+        // from the field centre while inside it, ease back to zero once the
+        // cursor moves off — never a jump-cut in either direction.
+        //
+        // Sampled from the leaf's CENTRE, not its top-left corner. The corner
+        // sits up to 20px up-and-left of the glyph you can actually see, so
+        // the old corner test meant the cursor had to overshoot a leaf before
+        // it would budge, and the push came out skewed.
+        //
+        // The field is always read at the leaf's UNDISPLACED position, so a
+        // leaf can never push itself further into or out of its own force
+        // reading. That feedback loop is what turns a field like this into a
+        // buzzing mess; keep it this way.
         let targetAvoidX = 0;
         let targetAvoidY = 0;
-        if (AVOID_RADIUS > 0 && mouseRef.current.active) {
-          const dx = x - mouse.sx;
-          const dy = l.y - mouse.sy;
-          const dist = Math.hypot(dx, dy);
-          if (dist < AVOID_RADIUS) {
-            const strength = 1 - dist / AVOID_RADIUS;
-            const inv = dist > 0.001 ? 1 / dist : 0;
-            targetAvoidX = dx * inv * strength * AVOID_PUSH;
-            targetAvoidY = dy * inv * strength * AVOID_PUSH;
+        if (fieldOn) {
+          const half = l.size * 0.5;
+          const dx = x + half - fieldX;
+          const dy = l.y + half - fieldY;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < AVOID_R2) {
+            const dist = Math.sqrt(d2) || 1;
+            const t = 1 - dist / AVOID_RADIUS;
+            // Saturating falloff (1 - (1 - t)^2): real pull out at the rim so
+            // leaves begin to part well before contact, topping out toward the
+            // centre rather than spiking there. That shape is what reads as a
+            // magnet; a linear ramp reads as a bump and an inverse-square
+            // spike reads as a shove.
+            const push = (t * (2 - t) * AVOID_PUSH) / dist;
+            targetAvoidX = dx * push;
+            targetAvoidY = dy * push;
           }
         }
-        const ease = Math.min(1, dt * AVOID_RATE);
+        // Fast in, slow out: the parting is immediate, the drift home is lazy.
+        const growing =
+          targetAvoidX * targetAvoidX + targetAvoidY * targetAvoidY >=
+          l.avoidX * l.avoidX + l.avoidY * l.avoidY;
+        const ease = growing ? attack : release;
         l.avoidX += (targetAvoidX - l.avoidX) * ease;
         l.avoidY += (targetAvoidY - l.avoidY) * ease;
-        const avoidMag = Math.min(1, Math.hypot(l.avoidX, l.avoidY) / AVOID_PUSH);
+        const avoidMag = Math.min(
+          1,
+          Math.sqrt(l.avoidX * l.avoidX + l.avoidY * l.avoidY) / AVOID_PUSH
+        );
 
         let scale = 1 + avoidMag * 0.1;
         let op = 0.82 + avoidMag * 0.16;
