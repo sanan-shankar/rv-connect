@@ -7,7 +7,13 @@ import { AnimatePresence, motion } from "motion/react";
 import { ImagePlus, Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HouseYearEntry } from "@/lib/houses";
-import { academicSpanLabel, seedHouseYearRows, type HouseYearRow } from "@/lib/house-spans";
+import {
+  academicSpanLabel,
+  missingYears,
+  restoreAllYearRows,
+  seedHouseYearRows,
+  type HouseYearRow,
+} from "@/lib/house-spans";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { InfoTooltip } from "@/components/common/info-tooltip";
 import { LocationPicker, type PlaceSelection } from "@/components/common/location-picker";
@@ -132,8 +138,12 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
     seedHouseYearRows(user.houses, user.yearJoined, user.yearLeft)
   );
   const [linkRows, setLinkRows] = useState<LinkRow[]>(() => parseLinkRows(user.links));
+  // Which year's house panel is open. Held here (not inside HousePicker) so
+  // committing one year can hand the run to the next.
+  const [openHouseYear, setOpenHouseYear] = useState<number | null>(null);
 
   const currentYear = new Date().getFullYear();
+  const missingHouseYears = missingYears(houseRows, user.yearJoined, user.yearLeft);
 
   // One sticky save bar for the whole form: any change (native form field,
   // or one of the array reducers above) marks the form dirty, the bar
@@ -151,6 +161,21 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
   }
   function removeHouseRow(year: number) {
     setHouseRows((rs) => rs.filter((r) => r.year !== year));
+    markDirty();
+  }
+  // Picking a house hands the run straight to the next year still needing one,
+  // so a whole school career is one click per year with no dismiss in between.
+  // Skips years already filled in (someone correcting a single mid-career year
+  // is not made to walk the rest of the list), and stops at the end rather
+  // than wrapping around to the top.
+  function advanceHouseYear(fromYear: number) {
+    const next = [...houseRows]
+      .sort((a, b) => a.year - b.year)
+      .find((r) => r.year > fromYear && r.houses.length === 0);
+    setOpenHouseYear(next ? next.year : null);
+  }
+  function restoreHouseYears() {
+    setHouseRows((rs) => restoreAllYearRows(rs, user.yearJoined, user.yearLeft));
     markDirty();
   }
   // Anchor for "add a year without typing": whatever we know about when this
@@ -265,7 +290,7 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
       profileResult.error || placesResult.error || ("error" in housesResult ? housesResult.error : undefined);
     if (error) return toast.error(error);
 
-    toast.success("Saved. Looking good.");
+    toast.success("Saved");
     setDirty(false);
     router.refresh();
   }
@@ -408,7 +433,7 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
                     setAbout((a) => (a ? `${a}\n\n${p} ` : `${p} `));
                     markDirty();
                   }}
-                  className="rounded-full border border-border bg-mist/60 px-3 py-1.5 text-[12px] font-semibold text-foreground transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+                  className="rounded-full border border-border bg-mist/60 px-3 py-1.5 text-[12px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
                 >
                   {p}
                 </button>
@@ -617,6 +642,10 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
                       value={row.houses}
                       onChange={(next) => updateHouseRowHouses(row.year, next)}
                       ariaLabel={`House(s) for ${academicSpanLabel(row.year, row.year)}`}
+                      yearLabel={academicSpanLabel(row.year, row.year)}
+                      open={openHouseYear === row.year}
+                      onOpenChange={(o) => setOpenHouseYear(o ? row.year : null)}
+                      onPicked={() => advanceHouseYear(row.year)}
                     />
                     <Button
                       type="button"
@@ -638,6 +667,12 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
                     <Plus className="h-4 w-4" />
                     Later year
                   </Button>
+                  {missingHouseYears.length > 0 && (
+                    <Button type="button" variant="outline" size="sm" onClick={restoreHouseYears}>
+                      <Plus className="h-4 w-4" />
+                      Add all my years ({missingHouseYears.length})
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -653,7 +688,12 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 24 }}
               transition={SPRINGS.gentle}
-              className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(16px,env(safe-area-inset-bottom))]"
+              // Sits BELOW floating popups (--z-floating: 30), not above them.
+              // The bar appears the moment anything is edited, so on a phone a
+              // z-40 bar covered the bottom of the city/house suggestion lists
+              // and swallowed taps on the last few rows. It only has to clear
+              // page content, and a dropdown opened on top of it should win.
+              className="fixed inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[max(16px,env(safe-area-inset-bottom))]"
             >
               <div className="glass flex w-full max-w-3xl items-center justify-between gap-4 rounded-2xl border border-border px-5 py-3.5 shadow-[0_18px_38px_-16px_rgba(35,36,30,0.35)]">
                 <p className="text-[13.5px] font-semibold text-foreground">You have unsaved changes</p>

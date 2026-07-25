@@ -7,7 +7,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { HousePicker } from "@/components/common/house-picker";
 import type { HouseYearEntry } from "@/lib/houses";
-import { academicSpanLabel, parseHouseSpans, seedHouseYearRows, type HouseYearRow } from "@/lib/house-spans";
+import {
+  academicSpanLabel,
+  missingYears,
+  parseHouseSpans,
+  restoreAllYearRows,
+  seedHouseYearRows,
+  type HouseYearRow,
+} from "@/lib/house-spans";
 import { getOnboardingHouses, saveOnboardingHouses } from "../actions";
 import type { OnboardingUser } from "../onboarding-flow";
 
@@ -84,6 +91,9 @@ export function HousesStep({
   const [saving, setSaving] = useState(false);
   const [rowsRef] = useAutoAnimate<HTMLDivElement>();
   const [chainRef] = useAutoAnimate<HTMLDivElement>();
+  // Which year's house panel is open. Held here (not inside HousePicker) so
+  // committing one year can hand the run to the next.
+  const [openYear, setOpenYear] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +115,17 @@ export function HousesStep({
   }
   function removeRow(year: number) {
     setRows((rs) => rs.filter((r) => r.year !== year));
+  }
+  // Picking a house opens the next year still needing one, so the whole career
+  // is one click per year. Skips already-filled years and stops at the end.
+  function advanceYear(fromYear: number) {
+    const next = [...rows]
+      .sort((a, b) => a.year - b.year)
+      .find((r) => r.year > fromYear && r.houses.length === 0);
+    setOpenYear(next ? next.year : null);
+  }
+  function restoreYears() {
+    setRows((rs) => restoreAllYearRows(rs, user.yearJoined, user.yearLeft));
   }
   // With no rows left, both buttons re-seed from the same anchor (whatever
   // we know about when this person was here, or last year as a fallback) so
@@ -151,6 +172,7 @@ export function HousesStep({
     onNext();
   }
 
+  const missingRowYears = missingYears(rows, user.yearJoined, user.yearLeft);
   const currentYear = new Date().getFullYear();
   const canAddEarlier = (rows.length ? Math.min(...rows.map((r) => r.year)) : anchorYear() + 1) - 1 >= MIN_YEAR;
   const canAddLater = (rows.length ? Math.max(...rows.map((r) => r.year)) : anchorYear() - 1) + 1 <= currentYear + 1;
@@ -213,6 +235,10 @@ export function HousesStep({
                   value={row.houses}
                   onChange={(next) => updateRowHouses(row.year, next)}
                   ariaLabel={`House(s) for ${academicSpanLabel(row.year, row.year)}`}
+                  yearLabel={academicSpanLabel(row.year, row.year)}
+                  open={openYear === row.year}
+                  onOpenChange={(o) => setOpenYear(o ? row.year : null)}
+                  onPicked={() => advanceYear(row.year)}
                 />
                 <Button
                   type="button"
@@ -234,6 +260,12 @@ export function HousesStep({
                 <Plus className="h-4 w-4" />
                 Later year
               </Button>
+              {missingRowYears.length > 0 && (
+                <Button type="button" variant="outline" size="sm" onClick={restoreYears}>
+                  <Plus className="h-4 w-4" />
+                  Add all my years ({missingRowYears.length})
+                </Button>
+              )}
             </div>
           </>
         )}

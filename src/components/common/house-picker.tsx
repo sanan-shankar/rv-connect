@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, Plus, X } from "lucide-react";
 import {
   Popover,
@@ -16,31 +16,81 @@ import { HOUSES, normalizeHouse } from "@/lib/houses";
 
 /**
  * Grouped house picker: a popover grid of pills, in the owner's canonical
- * house order, with comfortable 40px+ touch targets, replacing the old long
- * flat <select> dropdown. More than one house can be selected at once (the
- * owner: two houses in the same year is allowed), plus a free-typed "Other"
- * entry for anything not in the 22. The value is a plain string[] so callers
- * never need to know which entries are canonical vs. custom.
+ * house order, with comfortable 40px+ touch targets. More than one house can
+ * be selected for a year (two houses in one year is allowed), plus a
+ * free-typed "Other" entry for anything outside the canonical 22. The value is
+ * a plain string[] so callers never need to know which entries are canonical.
+ *
+ * Filling in a whole school career is a repetitive, one-house-per-year task,
+ * so the picker is tuned for that run rather than for a single isolated edit:
+ *
+ * - `yearLabel` prints the year INSIDE the panel. Previously the panel opened
+ *   over the row list, so once it was up you could no longer see which year you
+ *   were answering for.
+ * - Picking a house commits, closes, and calls `onPicked`, so the editor can
+ *   open the next year automatically. No dismiss-click between years.
+ * - On desktop the panel opens to the SIDE, leaving the year rows visible.
+ *   Narrow viewports have no room for that, so they keep the standard
+ *   below-the-trigger placement (where the in-panel year label carries the
+ *   context on its own).
+ *
+ * Deselecting a house deliberately does NOT close: that is a correction, and
+ * yanking the panel away mid-fix would be hostile.
  */
 export function HousePicker({
   value,
   onChange,
   ariaLabel = "Houses",
   placeholder = "Pick a house",
+  yearLabel,
+  open: controlledOpen,
+  onOpenChange,
+  onPicked,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   ariaLabel?: string;
   placeholder?: string;
+  /** e.g. "2014-15". Shown as the panel heading so the year stays on screen. */
+  yearLabel?: string;
+  /** Optional controlled open, so a parent can advance through years. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Fired after a house is added, once the panel has closed. */
+  onPicked?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [otherText, setOtherText] = useState("");
+  const [wide, setWide] = useState(false);
+
+  const open = controlledOpen ?? uncontrolledOpen;
+  function setOpen(next: boolean) {
+    if (controlledOpen === undefined) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  }
+
+  // Side placement is decided from the viewport rather than left to collision
+  // flipping: at 390px a "right" panel has nowhere to flip to that isn't also
+  // off-screen, so it would end up shifted over the rows anyway.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const canonicalSet: ReadonlySet<string> = new Set(HOUSES);
   const customEntries = value.filter((v) => !canonicalSet.has(v));
 
   function toggleHouse(h: string) {
-    onChange(value.includes(h) ? value.filter((v) => v !== h) : [...value, h]);
+    if (value.includes(h)) {
+      onChange(value.filter((v) => v !== h));
+      return;
+    }
+    onChange([...value, h]);
+    setOpen(false);
+    onPicked?.();
   }
 
   function addOther() {
@@ -48,6 +98,8 @@ export function HousePicker({
     if (!name) return;
     if (!value.includes(name)) onChange([...value, name]);
     setOtherText("");
+    setOpen(false);
+    onPicked?.();
   }
 
   function removeCustom(name: string) {
@@ -79,8 +131,14 @@ export function HousePicker({
         <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       </PopoverTrigger>
       <PopoverPortal>
-        <PopoverPositioner sideOffset={8} align="start">
+        <PopoverPositioner sideOffset={8} align="start" side={wide ? "right" : "bottom"}>
           <PopoverContent className="w-[300px] space-y-3">
+            {yearLabel && (
+              <p className="text-[13px] font-semibold text-foreground">
+                Which house in{" "}
+                <span className="tabular-nums text-canopy">{yearLabel}</span>?
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Pick one or more houses">
               {HOUSES.map((h) => {
                 const selected = value.includes(h);
@@ -91,10 +149,10 @@ export function HousePicker({
                     aria-pressed={selected}
                     onClick={() => toggleHouse(h)}
                     className={cn(
-                      "flex min-h-10 items-center justify-center rounded-full border px-2.5 py-2 text-center text-[13px] font-semibold leading-tight transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
+                      "flex min-h-10 items-center justify-center rounded-full border px-2.5 py-2 text-center text-[13px] font-semibold leading-tight transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
                       selected
                         ? "border-canopy bg-canopy text-white"
-                        : "border-border bg-mist/50 text-foreground hover:border-canopy/40"
+                        : "border-border bg-mist/50 text-foreground hover:border-canopy/40 hover:bg-canopy/10"
                     )}
                   >
                     {h}

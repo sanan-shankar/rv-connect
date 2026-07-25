@@ -53,7 +53,7 @@ export function PhotoStep({
       return;
     }
     setPhotoUrl(result.photoUrl ?? null);
-    toast.success("Looking good");
+    toast.success("Photo saved");
   }
 
   return (
