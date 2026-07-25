@@ -108,6 +108,20 @@ function splitLabel(label: string): { primary: string; secondary: string } {
   return { primary, secondary: rest.join(", ") };
 }
 
+/**
+ * Base UI change-reasons that mean "the person edited the text themselves"
+ * (see `@base-ui/react/utils/reason-parts`). Every other reason is the library
+ * echoing a highlighted or selected option's label back into the box, which
+ * multi mode must ignore. Kept as an allowlist, not a denylist, so a library
+ * upgrade that adds a new echo reason fails safe (input clears) rather than
+ * silently reintroducing the stuck-label bug.
+ */
+const TYPING_REASONS: ReadonlySet<string> = new Set([
+  "input-change",
+  "input-paste",
+  "input-clear",
+]);
+
 const DEBOUNCE_MS = 250;
 
 function usePlaceSearch(query: string) {
@@ -190,11 +204,25 @@ export function LocationPicker(props: LocationPickerProps) {
 
   const handleInputValueChange = useCallback(
     (value: string, eventDetails: { reason?: string }) => {
-      // Multi mode never fills the input with the just-picked label -- it
-      // resets to empty and stays focused, ready for the next "add another".
-      if (props.mode === "multi" && eventDetails.reason === "item-press") {
-        setQuery("");
-        return;
+      // Multi mode's box is a SEARCH field, never a value display: the picked
+      // cities live in the chips above it. So the only thing allowed to put
+      // text in it is the person typing.
+      //
+      // Base UI echoes an option's label back into the input on several other
+      // reasons -- `item-press` when you click a row, `list-navigation` when
+      // you arrow onto one, `input-blur` when focus leaves. Guarding only
+      // `item-press` (the previous behaviour) meant a click-selected city
+      // cleared but an arrow-then-Enter one left "Chennai, Tamil Nadu" sitting
+      // in the box. That leftover label is then re-queried, and since the
+      // places API prefix-matches on the bare name it returns nothing, so the
+      // just-added city reports "not found". Allowlisting the typing reasons
+      // fixes every path at once rather than playing whack-a-mole per reason.
+      if (props.mode === "multi") {
+        const reason = eventDetails.reason;
+        if (reason != null && !TYPING_REASONS.has(reason)) {
+          setQuery("");
+          return;
+        }
       }
       setQuery(value);
     },
@@ -218,7 +246,14 @@ export function LocationPicker(props: LocationPickerProps) {
       if (props.mode === "single") {
         lastAppliedRef.current = selection;
         props.onChange(selection);
-      } else if (!props.value.some((existing) => isSameSelection(existing, selection))) {
+        return;
+      }
+      // Belt and braces alongside the reason allowlist above: a commit is the
+      // authoritative "this city is now a chip" moment, so empty the search box
+      // here too. Also covers a duplicate pick, which adds no chip and would
+      // otherwise leave the box stuck on a label that finds nothing.
+      setQuery("");
+      if (!props.value.some((existing) => isSameSelection(existing, selection))) {
         props.onChange([...props.value, selection]);
       }
     },
