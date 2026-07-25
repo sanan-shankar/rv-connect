@@ -52,7 +52,6 @@ export function HousesChain({ houses }: { houses: string | null | undefined }) {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRINGS.gentle, delay: 0.05 * i }}
-            whileHover={{ y: -2, scale: 1.03 }}
             className={cn(
               "inline-flex snap-start items-baseline gap-1.5 rounded-full border px-3.5 py-1.5",
               HOUSE_TINTS[i % HOUSE_TINTS.length]

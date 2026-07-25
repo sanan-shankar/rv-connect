@@ -50,7 +50,7 @@ function SocialPill({ social }: { social: AboutSocial }) {
       href={socialHref(social.kind, social.value)}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:border-cinnamon/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.985]"
+      className="inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-cinnamon/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.985]"
     >
       <Icon className="h-[15px] w-[15px] shrink-0 text-cinnamon" aria-hidden />
       <span>{text}</span>
@@ -59,7 +59,7 @@ function SocialPill({ social }: { social: AboutSocial }) {
   );
 }
 
-/* One at-RV fact, a labelled column. On sm+ a dashed rule separates it from the
+/* One at-RV fact, a labelled column. On sm+ a hairline rule separates it from the
    previous fact so the three read as distinct fields, never one run of text
    ("2014-2023 . 9 years" | "Grade 5" | "London . Chennai"); on mobile they
    stack, so the rule would be a stray line and is dropped. */
@@ -68,7 +68,7 @@ function Fact({ label, value, divided }: { label: string; value: string; divided
     <div
       className={cn(
         "min-w-0",
-        divided && "sm:ml-[var(--space-l)] sm:border-l sm:border-dashed sm:border-border sm:pl-[var(--space-l)]"
+        divided && "sm:ml-[var(--space-l)] sm:border-l sm:border-border sm:pl-[var(--space-l)]"
       )}
     >
       <dt className="text-[10.5px] font-bold uppercase tracking-[0.15em] text-cinnamon/80">{label}</dt>
@@ -131,7 +131,7 @@ export function ProfileAbout({
         </section>
 
         {hasSocials && (
-          <section className="lg:border-l lg:border-dashed lg:border-border lg:pl-[var(--space-xl)]">
+          <section className="lg:border-l lg:border-border lg:pl-[var(--space-xl)]">
             <Eyebrow>Find them</Eyebrow>
             <div className="mt-[var(--space-m)] flex flex-wrap gap-2.5">
               {socials.map((s) => (
@@ -143,7 +143,7 @@ export function ProfileAbout({
       </div>
 
       {facts.length > 0 && (
-        <dl className="mt-[var(--space-xl)] flex flex-col gap-[var(--space-m)] border-t border-dashed border-border pt-[var(--space-l)] sm:flex-row sm:flex-wrap sm:items-start sm:gap-y-[var(--space-m)]">
+        <dl className="mt-[var(--space-xl)] flex flex-col gap-[var(--space-m)] border-t border-border pt-[var(--space-l)] sm:flex-row sm:flex-wrap sm:items-start sm:gap-y-[var(--space-m)]">
           {facts.map((fact, i) => (
             <Fact key={fact.label} label={fact.label} value={fact.value} divided={i > 0} />
           ))}

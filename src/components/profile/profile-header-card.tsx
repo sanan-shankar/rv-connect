@@ -7,7 +7,7 @@
  *
  *    - name + leaf, then "Batch of '23 . occupation" (no at-RV clutter,
  *      no cities up top - those live quiet, below the About).
- *    - email + phone as the two prioritised contacts, tidy pills.
+ *    - email + phone are NOT printed here; they live behind Get in touch.
  *    - the cinnamon admission stamp COMPOSED into the card's right
  *      props column beside the avatar (not floating in a corner).
  *    - Get in touch + Save contact (Edit profile on your own page).
@@ -27,9 +27,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Mail, Phone, Leaf, Pencil } from "lucide-react";
-import { Leaf as LeafMark } from "@phosphor-icons/react";
-import { cn } from "@/lib/utils";
+import { Leaf, Pencil } from "lucide-react";
 import { SPRINGS } from "@/components/common/motion";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
@@ -57,33 +55,6 @@ const CARD_WASH = [
   "radial-gradient(620px 420px at 98% 118%, rgba(194,98,47,0.05), transparent 60%)",
 ].join(", ");
 
-/* A prominent contact pill: canopy icon, warm fill, transform-only motion. */
-function ContactPill({
-  href,
-  icon: Icon,
-  children,
-  className,
-}: {
-  href: string;
-  icon: typeof Mail;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <a
-      href={href}
-      className={cn(
-        "group inline-flex min-w-0 items-center gap-2.5 rounded-[var(--radius-input)] border border-border bg-mist/70 px-3.5 py-2.5 text-[13.5px] font-semibold text-foreground",
-        "transition-transform duration-150 hover:-translate-y-0.5 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.985]",
-        className
-      )}
-    >
-      <Icon className="h-[16px] w-[16px] shrink-0 text-canopy" aria-hidden />
-      <span className="truncate">{children}</span>
-    </a>
-  );
-}
-
 /* The avatar as a lightly-mounted photograph: a cream index card tilted a
    hair, straightening when you reach for it. Holds the interactive bird
    (ProfileAvatar keeps click-the-bird + the species reveal on hover/tap). */
@@ -92,7 +63,6 @@ function PhotoMount({ user }: { user: HeaderUser }) {
     <motion.div
       className="relative"
       initial={{ rotate: -2.2 }}
-      whileHover={{ rotate: 0, scale: 1.03 }}
       transition={SPRINGS.snappy}
     >
       <div
@@ -121,8 +91,6 @@ export function ProfileHeaderCard({
   headerImage,
   batchLabel,
   occupation,
-  email,
-  phone,
   admissionNumber,
   isOwnProfile,
   contactMethods,
@@ -133,8 +101,6 @@ export function ProfileHeaderCard({
   headerImage: string | null;
   batchLabel: string;
   occupation: string | null;
-  email: string;
-  phone: string | null;
   admissionNumber: number | null;
   isOwnProfile: boolean;
   contactMethods: ContactMethod[];
@@ -150,10 +116,11 @@ export function ProfileHeaderCard({
       style={{ boxShadow: "0 1px 2px rgba(30,28,22,0.05), 0 22px 44px -30px rgba(30,28,22,0.42)" }}
     >
       {/* Treated valley band: a warm, aged strip - colour + life without
-          reading as a glossy cover photo. Desaturated toward sepia, washed with
-          cinnamon, and faded into the card so the content below reads on clean
-          paper. The avatar only kisses its lower edge, never straddles it. */}
-      <div className="relative h-36 w-full overflow-hidden sm:h-44" aria-hidden>
+          reading as a glossy cover photo. Desaturated toward sepia and washed
+          with cinnamon, ending on a CLEAN EDGE (it used to dissolve into the
+          card, which the owner rejected). The avatar only kisses its lower
+          edge, never straddles it. */}
+      <div className="relative h-52 w-full overflow-hidden sm:h-72" aria-hidden>
         {headerImage ? (
           <Image
             src={headerImage}
@@ -162,8 +129,18 @@ export function ProfileHeaderCard({
             priority
             fetchPriority="high"
             sizes="(max-width: 1024px) 100vw, 1120px"
+            // Taller band + an art-directed crop. At h-36/h-44 over a 1120px
+            // card this was a ~6.4:1 letterbox, and the sources are 3:2
+            // (1200x800) or 1:1 (900x900), so `object-cover` showed roughly a
+            // fifth of the frame at about 5x: the "insanely zoomed in crop"
+            // the owner reported. Taller brings it to ~3.9:1, and pinning the
+            // crop to 50% 42% keeps the horizon rather than whatever happened
+            // to sit dead centre.
             className="object-cover"
-            style={{ filter: "saturate(0.72) sepia(0.16) brightness(0.99)" }}
+            style={{
+              objectPosition: "50% 42%",
+              filter: "saturate(0.72) sepia(0.16) brightness(0.99)",
+            }}
           />
         ) : (
           <div
@@ -180,27 +157,22 @@ export function ProfileHeaderCard({
           className="absolute inset-0 mix-blend-multiply"
           style={{ background: "radial-gradient(130% 150% at 86% -30%, rgba(194,98,47,0.30), transparent 62%)" }}
         />
-        {/* fade the band into the card at its lower edge */}
-        <div
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(to top, var(--card) 3%, color-mix(in srgb, var(--card) 45%, transparent) 42%, transparent 88%)" }}
-        />
+        {/* NO fade into the card. The band used to dissolve into `--card` over
+            its lower ~40%, which the owner rejected outright: "fading from the
+            picture into white, that is just a definite no-go." The photo now
+            ends on a clean edge and the card starts. */}
       </div>
 
-      {/* Dossier ground: a faint paper wash plus a large leaf watermark filling
-          the card's middle, so the space between the identity block and the
-          avatar reads as an aged case file rather than an empty gap. It sits
-          below the band and behind the content (z-10). Decorative only. */}
+      {/* A faint paper wash under the identity block. The large leaf watermark
+          that used to fill this space is GONE (owner: "that random leaf that is
+          there, we don't need that. Everyone hated that"). Do not park another
+          decorative glyph here to fill the gap: if this region reads empty the
+          fix is the layout, not a garnish. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 top-36 overflow-hidden sm:top-44"
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-52 overflow-hidden sm:top-72"
       >
         <div className="absolute inset-0" style={{ backgroundImage: CARD_WASH }} />
-        <LeafMark
-          weight="duotone"
-          className="absolute left-[64%] top-1/2 hidden h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] text-leaf sm:block"
-          style={{ opacity: 0.06 }}
-        />
       </div>
 
       <div className="relative z-10 px-[var(--space-l)] pb-[var(--space-l)] pt-[var(--space-m)] sm:px-[var(--space-xl)] sm:pb-[var(--space-xl)]">
@@ -234,17 +206,14 @@ export function ProfileHeaderCard({
               </p>
             )}
 
-            {/* the two prioritised contacts */}
-            <div className="mt-[var(--space-m)] flex flex-wrap gap-2.5">
-              <ContactPill href={`mailto:${email}`} icon={Mail} className="max-w-full sm:max-w-[22rem]">
-                {email}
-              </ContactPill>
-              {phone && (
-                <ContactPill href={`tel:${phone}`} icon={Phone}>
-                  {phone}
-                </ContactPill>
-              )}
-            </div>
+            {/* Email and phone are deliberately NOT printed here. They used to
+                sit as two pills directly under the name; the owner cut them:
+                "I don't want the email and phone number to be right there. It
+                doesn't have to be the first thing you see with your name. If
+                people want to reach out, it should be there." Both are still
+                one click away, inside the Get in touch dialog below, and both
+                still ride along in the Save contact vCard. Reachable, just not
+                the headline. */}
 
             {/* mobile stamp: inline under the identity, so it never fights the
                 stacked header for width */}
@@ -270,14 +239,14 @@ export function ProfileHeaderCard({
 
         {/* HOUSES strip: the owner's favourite element, quiet under the card. */}
         {houseSpans.length > 0 ? (
-          <div className="mt-[var(--space-l)] border-t border-dashed border-border pt-[var(--space-l)]">
+          <div className="mt-[var(--space-l)] border-t border-border pt-[var(--space-l)]">
             <p className="mb-[var(--space-s)] text-[10.5px] font-bold uppercase tracking-[0.16em] text-cinnamon/85">
               Houses through the years
             </p>
             <HousesChain houses={housesRaw} />
           </div>
         ) : isOwnProfile ? (
-          <div className="mt-[var(--space-l)] border-t border-dashed border-border pt-[var(--space-l)]">
+          <div className="mt-[var(--space-l)] border-t border-border pt-[var(--space-l)]">
             <p className="text-[13px] leading-relaxed text-muted-foreground">
               Add the houses you were in over the years in{" "}
               <Link href="/settings" className="font-semibold text-leaf hover:underline">
