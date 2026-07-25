@@ -68,9 +68,9 @@ export const ROOMS: Room[] = [
   {
     slug: "houses",
     title: "The houses picker, as a game",
-    looked: "A working multi-year form.",
-    tell: "Five years of house selection is a memory, not data entry. It is currently the latter.",
-    status: "planned",
+    looked: "A working multi-year form with a genuinely clever auto-advance.",
+    tell: "It asks the same question five times, each an unaided scan of 22 uncoloured pills, about a fact you only have once. Three live alternatives; the best is one interaction.",
+    status: "built",
   },
   {
     slug: "type",
@@ -137,11 +137,13 @@ export function LabShell({
 
 export function Rule({ children, className }: { children: ReactNode; className?: string }) {
   return (
+    // The label must be allowed to wrap. `shrink-0` here pushed long section
+    // titles past a 390px viewport on five of six rooms.
     <div className={cn("flex items-center gap-4 pb-5 pt-14", className)}>
-      <h2 className="shrink-0 text-[11.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+      <h2 className="min-w-0 text-[11.5px] font-bold uppercase leading-[1.5] tracking-[0.16em] text-muted-foreground">
         {children}
       </h2>
-      <span className="h-px flex-1 bg-border" />
+      <span className="h-px min-w-6 flex-1 bg-border" />
     </div>
   );
 }

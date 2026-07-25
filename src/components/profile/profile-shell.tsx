@@ -51,7 +51,7 @@ function FolderTab({
       transition={SPRINGS.snappy}
       style={{ clipPath: TAB_CLIP }}
       className={cn(
-        "relative shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11.5px] font-bold uppercase tracking-[0.09em] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:px-6 sm:text-[13px]",
+        "relative shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11px] font-bold uppercase tracking-[0.09em] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:px-6 sm:text-[13px]",
         active
           ? "z-10 -mb-px bg-card text-foreground"
           : "z-0 bg-mist text-muted-foreground hover:text-foreground"

@@ -75,8 +75,8 @@ function useColumns(): number {
 function UTurn({ flip }: { flip: boolean }) {
   return (
     <svg
-      width="34"
-      height="26"
+      width="26"
+      height="20"
       viewBox="0 0 34 26"
       fill="none"
       aria-hidden
@@ -95,18 +95,26 @@ function UTurn({ flip }: { flip: boolean }) {
   );
 }
 
-export function HousesChain({ houses }: { houses: string | null | undefined }) {
+/**
+ * The trail itself, over already-parsed spans.
+ *
+ * Exported so the `/preview/delight/profiles` concepts render the SAME pills as
+ * the shipped profile instead of a lookalike. They previously had their own
+ * copy with solid-filled pills, which the owner rejected in favour of this
+ * bordered-tint style. One definition, no drift.
+ */
+export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
   const cols = useColumns();
-  const spans = parseHouseSpans(houses);
   if (spans.length === 0) return null;
 
   const rows = chunkRows(spans, cols);
 
   return (
-    // Width-capped so the edge-to-edge rows below stay dense enough to read as
-    // one chain. Spread across a full 1100px card, four pills sit so far apart
-    // that the arrows stop connecting anything.
-    <div className="flex max-w-[760px] flex-col gap-1">
+    // Deliberately narrow. Houses are a fun detail, not the subject of the
+    // page: given a full card's width the rows spread out and the block starts
+    // reading as a major section. Capped tight, the pills sit close enough to
+    // read as one chain AND the whole thing stays a quiet strip.
+    <div className="flex max-w-[520px] flex-col gap-0.5">
       {/* Screen readers get the plain sequence; the serpentine is purely visual. */}
       <p className="sr-only">
         Houses over the years:{" "}
@@ -117,11 +125,11 @@ export function HousesChain({ houses }: { houses: string | null | undefined }) {
         const backwards = rowIndex % 2 === 1;
         const isLastRow = rowIndex === rows.length - 1;
         return (
-          <div key={rowIndex} className="flex flex-col gap-1">
+          <div key={rowIndex} className="flex flex-col gap-0.5">
             <div
               aria-hidden
               className={cn(
-                "flex items-center gap-1.5",
+                "flex items-center gap-1",
                 backwards && "flex-row-reverse",
                 // Full rows stretch edge to edge so a row always ENDS on the
                 // container edge the U-turn sits on; otherwise the turn floats
@@ -136,18 +144,18 @@ export function HousesChain({ houses }: { houses: string | null | undefined }) {
               {row.map((span, i) => {
                 const absolute = rowIndex * cols + i;
                 return (
-                  <span key={`${span.house}-${span.fromYear}`} className="flex shrink-0 items-center gap-1.5">
+                  <span key={`${span.house}-${span.fromYear}`} className="flex shrink-0 items-center gap-1">
                     <motion.span
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ ...SPRINGS.gentle, delay: 0.05 * absolute }}
                       className={cn(
-                        "inline-flex items-baseline gap-1.5 rounded-full border px-3.5 py-1.5",
+                        "inline-flex items-baseline gap-1.5 rounded-full border px-2.5 py-1",
                         HOUSE_TINTS[absolute % HOUSE_TINTS.length]
                       )}
                     >
-                      <span className="font-heading text-[13px] font-bold leading-none">{span.house}</span>
-                      <span className="text-[11px] font-semibold tabular-nums leading-none opacity-75">
+                      <span className="font-heading text-[12.5px] font-bold leading-none">{span.house}</span>
+                      <span className="text-[10.5px] font-semibold tabular-nums leading-none opacity-75">
                         {yearRange(span)}
                       </span>
                     </motion.span>
@@ -173,4 +181,9 @@ export function HousesChain({ houses }: { houses: string | null | undefined }) {
       })}
     </div>
   );
+}
+
+/** The shipped profile's entry point: parse the raw `houses` JSON, then draw. */
+export function HousesChain({ houses }: { houses: string | null | undefined }) {
+  return <HouseTrail spans={parseHouseSpans(houses)} />;
 }

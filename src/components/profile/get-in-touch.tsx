@@ -95,10 +95,10 @@ export function GetInTouch({
                 >
                   <Icon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
                   <span className="min-w-0">
-                    <span className="block text-[13.5px] font-semibold text-foreground">
+                    <span className="block text-[13px] font-semibold text-foreground">
                       {m.label}
                     </span>
-                    <span className="block truncate text-[12px] text-muted-foreground">
+                    <span className="block truncate text-[12.5px] text-muted-foreground">
                       {m.value}
                     </span>
                   </span>

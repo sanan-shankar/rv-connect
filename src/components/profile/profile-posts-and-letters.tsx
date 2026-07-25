@@ -30,7 +30,7 @@ function GroupHeader({
         {label}
       </span>
       <span aria-hidden className="h-px flex-1 bg-border" />
-      <span className="text-[12px] font-semibold tabular-nums text-muted-foreground">{count}</span>
+      <span className="text-[12.5px] font-semibold tabular-nums text-muted-foreground">{count}</span>
     </div>
   );
 }
