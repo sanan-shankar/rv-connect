@@ -28,7 +28,7 @@ export async function GroupsModule({ userId }: { userId: string }) {
           .
         </p>
       ) : (
-        <div className="[&>a+a]:border-t [&>a+a]:border-border">
+        <div className="[&>*:last-child]:pb-0 [&>a+a]:border-t [&>a+a]:border-border">
           {myGroups.map((g) => (
             <Link
               key={g.id}
