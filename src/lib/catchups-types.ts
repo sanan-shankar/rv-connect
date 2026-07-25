@@ -36,13 +36,38 @@ export type ReminderMode = "all" | "last" | "off";
 /** CatchupPrompt.source. */
 export type PromptSource = "library" | "member" | "keeper";
 
-/** CatchupPrompt.category — a library set id, or null for a custom question. */
+/**
+ * CatchupPrompt.category — a library set id, or null for a custom question.
+ *
+ * The column is a plain String, so this doubles as the question's KIND: most
+ * sets are answered with text, while `photo-wall` and `songs` switch the
+ * answering UI to a picture upload and a song picker respectively. Carrying
+ * the kind here rather than in a new column keeps both special question types
+ * migration-free.
+ *
+ * The three `legacy-` entries are sets that were cut from the library on
+ * 2026-07-25. Rows written before then still carry those values, so they stay
+ * in the union to keep reads type-safe; nothing offers them any more.
+ */
 export type PromptCategory =
-  | "valley-days"
   | "right-now"
+  | "small-things"
+  | "the-valley"
+  | "photo-wall"
+  | "songs"
+  | "valley-days"
   | "most-likely-to"
-  | "on-the-horizon"
-  | "small-things";
+  | "on-the-horizon";
+
+/** How a question is answered. Derived from the category, see PROMPT_KIND. */
+export type PromptKind = "text" | "photo" | "songs";
+
+/** Only these two sets change the answering control; everything else is text. */
+export function promptKind(category: PromptCategory | null): PromptKind {
+  if (category === "photo-wall") return "photo";
+  if (category === "songs") return "songs";
+  return "text";
+}
 
 /** Notification.type values this feature writes. `type` is a free string, so no migration. */
 export type CatchupNotifyKind =

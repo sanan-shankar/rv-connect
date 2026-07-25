@@ -103,53 +103,34 @@ export type CatchupPromptSet = {
   prompts: string[];
 };
 
+/**
+ * REWRITTEN 2026-07-25 on the owner's direct instruction. The previous library
+ * was five sets of six, and the owner's verdict was blunt: "this library sucks,
+ * it is an awful library of questions", "none of these are cool", and on the
+ * nostalgia set specifically, that it was not worth keeping. Two structural
+ * notes from that review, because they explain the shape below:
+ *
+ * 1. A Catch-up question has to be answerable in a few lines. "Where has life
+ *    taken you since the Valley?" was called out as "the question for the
+ *    biography, not a short question" -- it asks for an essay, so nobody
+ *    answers it. Every question here can be answered in a sentence or two.
+ * 2. "Small things" was the one set the owner liked and asked to keep, so its
+ *    register (concrete, recent, low-stakes, no sentiment required) is the
+ *    model the other sets now follow.
+ *
+ * Deliberately short. Owner: "I think we don't need too many questions in the
+ * library. Just a few." Adding filler back is a regression, not an improvement.
+ */
 export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
-  {
-    id: "valley-days",
-    label: "Valley days",
-    prompts: [
-      "Which teacher's voice do you still hear in your head, and what does it say?",
-      "What would surprise your school self most about the life you have now?",
-      "Where on campus did you go when you needed to be on your own for a while?",
-      "What is something you learned in the Valley that has stayed with you ever since?",
-      "Who did you sit up talking to long after lights out, and what about?",
-      "What do you miss about those years that you never expected to?",
-    ],
-  },
   {
     id: "right-now",
     label: "Right now",
     prompts: [
-      "Where has life taken you since the Valley?",
       "What does an ordinary day look like for you now?",
-      "What is something you have learned recently, about anything at all?",
       "What are you working on these days, at work or otherwise?",
-      "Who do you come home to, and what does home look like right now?",
-      "What has been on your mind lately that you would tell a friend over tea?",
-    ],
-  },
-  {
-    id: "most-likely-to",
-    label: "Most likely to",
-    prompts: [
-      "Who from the Valley do you still talk to, and how did you keep it going?",
-      "Whose name still comes up when you tell stories from those years?",
-      "Who did you lose touch with that you would love to hear from again?",
-      "Who would you drop everything to see if they passed through town?",
-      "Who did you learn the most from who was not one of the teachers?",
-      "Who would you trust to tell you the truth when you needed to hear it?",
-    ],
-  },
-  {
-    id: "on-the-horizon",
-    label: "On the horizon",
-    prompts: [
-      "What are you working toward this year, even if you have not told many people?",
-      "What is a trip you keep meaning to take but have not yet?",
-      "What do you want more of in your life a year from now?",
-      "What is something you want to learn while you still have the time?",
-      "If a few of us met up somewhere next year, where should it be?",
-      "What would make the next stretch of your life a good one?",
+      "Something new you did recently that you did not think you would do.",
+      "What is something that made you happy recently?",
+      "What is a fun thing you did this summer?",
     ],
   },
   {
@@ -159,21 +140,54 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
       "What have you been reading, cooking, or growing lately?",
       "What is the best thing you have eaten in the last month?",
       "What is a small ritual that makes your days better?",
-      "Send a photo of the view from wherever you are sitting right now.",
       "What is something small that made you laugh this week?",
-      "What has been on repeat for you lately? A song, a show, anything.",
+    ],
+  },
+  {
+    // Kept to exactly two, and only the concrete ones. The cut set asked people
+    // what the Valley "taught" them or what they "miss"; these ask where you
+    // went and who you talked to, which have actual answers.
+    id: "the-valley",
+    label: "Back then",
+    prompts: [
+      "Where on campus did you go when you needed to be on your own?",
+      "Who did you sit up talking to long after lights out?",
+    ],
+  },
+  {
+    // Not a text question: everyone adds one picture and the Round prints them
+    // as a wall. `promptKind()` switches the answering control on this id.
+    id: "photo-wall",
+    label: "A photo from everyone",
+    prompts: [
+      "Add one photo from where you are right now.",
+      "Add one photo of something you made, cooked, or grew.",
+      "Add one photo from somewhere you went recently.",
+    ],
+  },
+  {
+    // Also not a text question: everyone adds songs. This replaces the old
+    // per-question "paste a Spotify link" field, which the owner never wanted
+    // attached to every single question.
+    id: "songs",
+    label: "Songs from everyone",
+    prompts: [
+      "Add the songs you have had on repeat lately.",
+      "Add a song you would put on for a long drive.",
     ],
   },
 ];
 
-/** The Round 1 auto-suggestion (spec section 3.2): one valley-days + one right-now prompt. */
+/**
+ * The Round 1 auto-suggestion. Both come from "Right now": the owner picked
+ * "What does an ordinary day look like for you now?" by name as the example a
+ * new Catch-up should open with, and a first Round wants two questions of the
+ * same easy register rather than one easy and one nostalgic.
+ */
 export function suggestSeedPrompts(): Array<{ category: PromptCategory; text: string }> {
-  const valley = CATCHUP_PROMPT_SETS.find((s) => s.id === "valley-days");
   const rightNow = CATCHUP_PROMPT_SETS.find((s) => s.id === "right-now");
-  const seeds: Array<{ category: PromptCategory; text: string }> = [];
-  if (valley?.prompts[0]) seeds.push({ category: "valley-days", text: valley.prompts[0] });
-  if (rightNow?.prompts[0]) seeds.push({ category: "right-now", text: rightNow.prompts[0] });
-  return seeds;
+  if (!rightNow) return [];
+  return rightNow.prompts.slice(0, 2).map((text) => ({ category: "right-now" as const, text }));
 }
 
 // ─── Calendar math ───────────────────────────────────────────────────────────
