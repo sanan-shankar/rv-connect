@@ -53,6 +53,15 @@ export interface MockProfile {
   name: string;
   /** Null here — this concept set uses the bird avatar, not a photo override. */
   photoUrl: string | null;
+  /**
+   * The one picture a member uploads for their own profile (the real column
+   * is `User.coverPhoto`). Source frames are 3:2 or 1:1, so a concept must
+   * give this a frame with a SANE aspect. The shipped page crops it into a
+   * 6.4:1 band, which shows about a quarter of a 3:2 source and reads as a
+   * ~5x magnified sliver. Portrait plates, squares, and 21:9 heroes are all
+   * fine; a letterbox strip is not.
+   */
+  coverPhoto: string | null;
   /** Index into ARCHETYPES (src/components/common/bird-avatar-v2.tsx); 3 = Indian Roller. */
   avatarSpecies: number;
   /** Common name for display; the internal glyph's short label is "Roller". */
@@ -107,6 +116,7 @@ export const PROFILE: MockProfile = {
   id: "mock-sanan-shankar",
   name: "Sanan Shankar",
   photoUrl: null,
+  coverPhoto: "/images/collection/v3.webp",
   avatarSpecies: 3,
   speciesName: "Indian Roller",
   accountType: "alumnus",
@@ -123,9 +133,20 @@ export const PROFILE: MockProfile = {
   admissionNumber: 1385,
   about:
     "Spent seven years in the valley, from a nervous fourth grader to someone who could name most of the campus birds on sound alone. These days he writes software in Chennai and still can't walk past a banyan tree without slowing down a little. Comes back for Founder's Day most years, flights permitting.",
+  // A full nine-year career, deliberately long enough to WRAP at every
+  // breakpoint. The old two-entry mock fit on one line everywhere, which is
+  // exactly why the chain's wrapping behaviour was never designed: the owner
+  // has eight houses and reported the trailing arrow pointing into empty
+  // space. Concepts must look right at this length, not just at two.
   houses: [
-    { house: "Aravali", fromYear: 2014, toYear: 2017 },
-    { house: "Krishna", fromYear: 2017, toYear: 2021 },
+    { house: "Golden", fromYear: 2014, toYear: 2014 },
+    { house: "Silver", fromYear: 2015, toYear: 2015 },
+    { house: "Neem", fromYear: 2016, toYear: 2016 },
+    { house: "Raavi", fromYear: 2017, toYear: 2017 },
+    { house: "Aravali", fromYear: 2018, toYear: 2018 },
+    { house: "Krishna", fromYear: 2019, toYear: 2020 },
+    { house: "Cauvery", fromYear: 2021, toYear: 2021 },
+    { house: "Amaltash", fromYear: 2022, toYear: 2022 },
   ],
   links: [
     { kind: "instagram", label: "Instagram", handle: "@sanan.shankar", href: "https://instagram.com/sanan.shankar" },
