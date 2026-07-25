@@ -1,5 +1,37 @@
 # Catch-ups
 
+> **COPY AND LAYOUT SUPERSEDED 2026-07-25 by `docs/planning/catchups-fixes-brief.md`. Read that first.**
+>
+> The owner reviewed the shipped feature end to end and rejected most of the copy in this
+> document, in these words: "what the hell is a gentle group newsletter", "tell me what the
+> fuck is a gentle round of questions, how can a round of questions be gentle", and of the
+> whole module, "such slop". Two rules came out of that review and they override every copy
+> example below:
+>
+> 1. **No subtitle under a heading unless it says something the heading does not.** Nearly
+>    every subtitle in this spec restates its heading in softer words. Those are deleted.
+> 2. **The words "gentle", "quiet", "small", "warm" and the phrase "a round of" are banned**
+>    from Catch-ups copy. That includes the section 1 explainer below, which is where this
+>    voice originally came from.
+>
+> Also changed by that review, against what this document says:
+> - Questions are NOT picked at creation time (section 3.2's seed-prompt step is gone). A new
+>   Catch-up opens with an empty `collecting` Round.
+> - The create flow's live preview card is deleted.
+> - The ~12-accepted-prompts cap is no longer surfaced anywhere and the ceiling is now 40.
+> - The question library in section 4 is replaced wholesale; see `src/lib/catchups.ts`. Two of
+>   the five sets are non-text kinds (`photo-wall`, `songs`) resolved via `promptKind()`.
+> - The per-question Spotify link field is removed; music is its own question kind.
+> - The answering sheet's ruled lines are removed.
+> - The published Round's full-bleed masthead is removed (it ran flush against the sidebar).
+> - Groups are being retired as a user-facing feature; a Catch-up is created from a set of
+>   PEOPLE and the Group row survives only as the hidden membership container.
+>
+> **What in this document is still binding:** the object model, the Round state machine
+> (2.2), the timing rules (2.3), the no-cron lazy advance (2.4), the preparing ritual (2.5),
+> the too-few-answers rule (2.6), the Prisma models and their `@@map`s (6), visibility and
+> Keeper rules (7), and the scope fences in section 8.
+
 The recurring group newsletter for Rishi Valley. Modelled on Letterloop (see
 `docs/planning/letterloop-research.md`) and tuned for a small, invite-only community where everyone
 already has an account, a profile, and a bird avatar. This spec supersedes the earlier build, which
