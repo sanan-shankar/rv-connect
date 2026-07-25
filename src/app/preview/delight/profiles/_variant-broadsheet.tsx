@@ -254,7 +254,7 @@ function LeadPhoto({ profile }: { profile: MockProfile }) {
             alt={`The picture ${profile.name.split(" ")[0]} chose for their profile`}
             fill
             priority
-            sizes="(max-width: 768px) 100vw, 560px"
+            sizes="(max-width: 768px) 100vw, 480px"
             className="object-cover"
             style={{ objectPosition: "50% 35%" }}
           />
@@ -353,7 +353,8 @@ function FolderTab({
 }
 
 /* ------------------------------------------------------------------ *
- *  Rail blocks
+ *  Blocks: a labelled rail section, and the social row the About panel
+ *  uses for "Find them".
  * ------------------------------------------------------------------ */
 function RailSection({ title, children }: { title: string; children: ReactNode }) {
   return (

@@ -224,11 +224,12 @@ export default function TilesRoom() {
 
       <Mount
         tone="shipped"
-        note="Drawn at true CSS pixel size. Column 764px, gap 30px, rail 318px, exactly as the page renders at 1440."
+        flush
+        note="Drawn at true CSS pixel size. Column 764px, gap 30px, rail 318px, exactly as /catchups renders at a 1440px viewport. The column measures 512.3px in both places."
       >
-        <div className="overflow-x-auto">
-          <div className="flex gap-4" style={{ minWidth: 1112 + 62 }}>
-            <Measure n={`${M.catchupColumn}px`} />
+        <div className="overflow-x-auto px-5 py-5">
+          <div className="flex gap-2" style={{ minWidth: 1112 + 20 }}>
+            <Measure slim />
             <CatchupsShipped />
           </div>
         </div>
@@ -270,7 +271,11 @@ export default function TilesRoom() {
           <div className="overflow-x-auto">
             <div className="flex gap-4" style={{ minWidth: 764 + 62 }}>
               <Measure n={`${NEW.catchupInset}px`} tone="good" />
-              <Ghost at={M.catchupColumn} label={`the five tiles are still going here, ${M.catchupColumn}px`}>
+              <Ghost
+                at={M.catchupColumn}
+                label={`the five tiles are still going here, ${M.catchupColumn}px`}
+                right="261.3px returned"
+              >
                 <CatchupsInset />
               </Ghost>
             </div>
@@ -354,6 +359,7 @@ export default function TilesRoom() {
               <Ghost
                 at={NEW.lettersShipped2}
                 label={`the shipped index has managed two letters by here, ${NEW.lettersShipped2}px`}
+                right="four more letters, 14px less"
               >
                 <LettersRuled />
               </Ghost>
@@ -415,10 +421,10 @@ export default function TilesRoom() {
         </Mount>
       </Bench>
 
-      <div className="mt-9 grid gap-6 xl:grid-cols-2">
+      <div className="mt-9 space-y-8">
         <Mount
           tone="shipped"
-          note="Two of the eight groups, true scale. The two boxes inside You are the same colour as You."
+          note="Two of the eight groups, true scale, 768px wide. Both boxes inside You are the same colour as You."
         >
           <div className="overflow-x-auto">
             <div className="flex gap-4" style={{ minWidth: 768 + 62 }}>
@@ -430,12 +436,18 @@ export default function TilesRoom() {
         <Mount
           tone="pick"
           label="Proposed · inset-grouped"
-          note="The same two groups in 431.5px against 721.5px, a 40% saving. Group label outside the container, one hairline row per field, label left and control right."
+          note="The same two groups in 431.5px against 721.5px, a 40% saving. Group label outside the container, one hairline row per field, label left and control right, nothing nested."
         >
           <div className="overflow-x-auto">
             <div className="flex gap-4" style={{ minWidth: 768 + 62 }}>
               <Measure n={`${NEW.settingsInset}px`} tone="good" />
-              <SettingsInset />
+              <Ghost
+                at={NEW.settingsShipped}
+                label={`the two shipped cards end here, ${NEW.settingsShipped}px`}
+                right="290px returned"
+              >
+                <SettingsInset />
+              </Ghost>
             </div>
           </div>
         </Mount>
