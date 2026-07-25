@@ -3,78 +3,90 @@
 /* ------------------------------------------------------------------ *
  *  Concept B: BROADSHEET
  *
- *  A newspaper front page. The person's name IS the nameplate: Libre
- *  Baskerville at up to 72px with -0.035em tracking, sitting across the
- *  top of the sheet with the lead photograph beside it. Under the
- *  nameplate runs a dateline strip (Batch / In the valley / Based in /
- *  Admission) divided by solid vertical hairlines, exactly where a paper
- *  prints "Vol. CXXIV, No. 42 | Monday | Fifty paise". Then the body: a
- *  wide article column carrying the folder tabs (About first and
- *  default), and a rail holding the contact actions and the record.
+ *  A newspaper front page. The masthead is the person: their name set in
+ *  Libre Baskerville across the sheet, the deck under it saying what
+ *  they do and where, the lead photograph beside it, and the admission
+ *  stamp pressed into the bottom-left corner the way an archive stamps a
+ *  filed edition. A dateline strip runs under all of it (Batch / In the
+ *  valley / Cities) exactly where a paper prints "Vol. CXXIV, No. 42 |
+ *  Monday | Fifty paise". Then the body: a wide article column carrying
+ *  the folder tabs (About first and default), and a rail holding the one
+ *  way to reach them.
  *
- *  The sheet opens on the NAME. There is no "Rishi Valley" / "Profile"
- *  kicker above it any more (owner: "remove Rishi Valley and Profile
- *  from broadsheet, they know that"), and nothing took its place.
+ *  THE DECISIONS WORTH THE NOTE:
  *
- *  FOUR DECISIONS WORTH THE NOTE:
- *
- *  1. This concept owns no page chrome. The harness now renders it
- *     inside the real app frame: flush green sidebar, the faint valley
+ *  1. This concept owns no page chrome. The harness renders it inside
+ *     the real app frame: flush green sidebar, the faint valley
  *     back-layer, a <main> capped at 1280 with its own gutters. So there
  *     is no background of its own, no max-width wrapper, and no
- *     full-bleed margin fighting the shell. The outermost element is a
- *     plain block that fills whatever the shell gives it.
+ *     full-bleed margin fighting the shell.
  *
- *  2. The photo is 21:9 EXACTLY, at every width, and is never full
- *     content width on desktop. A 1100px-wide frame capped at 300px tall
- *     is a 3.7:1 band, which is the "magnified sliver" the owner
- *     rejected. So the masthead splits at md into [name | photo], the
- *     photo taking 40% of the sheet: 286px wide on a tablet, 445px at
- *     1440, and therefore 122px to 190px tall. Always 21:9, always well
- *     under the ~300px the brief asks for, always art-directed at
- *     50% 35%, and it ends on a clean square edge with no rule, no
- *     gradient and no fade. Full width on a phone, where 21:9 is only
- *     153px tall and reads as a proper picture.
+ *  2. THE NAME IS NO LONGER SHOUTING. It ran to 72px, which the owner
+ *     read as overboard. It is now clamp(2rem, 4.4cqw, 3.25rem): 32px on
+ *     a phone, ~49px at a 1440 window, 52px at the cap. Still comfortably
+ *     the largest thing on the sheet (a letter's title is 30px), but a
+ *     headline rather than a hoarding.
  *
- *  3. ONE TYPE LADDER, the app's: body 15px/1.7, small 13.5px,
- *     secondary 12.5-13px, labels 10.5-11px uppercase. Libre Baskerville
- *     is the NAME, the section headings and a letter's title, and
- *     nothing else: every paragraph here is sans at 15px, the same as a
- *     post body. About used to be serif at 17px, which read as a mistake
- *     rather than as emphasis (owner: "the font size of About seems
- *     obnoxiously big and not in fitting with everything else").
+ *  3. THE PHOTOGRAPH BELONGS TO THE MASTHEAD, it is not parked in the
+ *     corner. Three ties, no chrome added to make them:
+ *       - It is a grid item in the masthead row, so its TOP edge starts
+ *         at the name's cap line.
+ *       - The masthead row has no bottom gap on desktop, so the picture's
+ *         BOTTOM edge lands on the dateline's top rule; the frame drops
+ *         its own bottom border there (`lg:border-b-0`) and the dateline
+ *         rule runs out from under the type to finish the picture. One
+ *         continuous hairline, shared between the two.
+ *       - The left column is `justify-between`, so the name sits on the
+ *         top edge and the deck plus stamp sit on the bottom one. Both
+ *         columns are ruled by the same two lines.
+ *     No border was added, no frame, no coloured bar (the cinnamon bar
+ *     under the picture was struck last round for exactly that reason).
+ *     The frame is 3:2, the most of a portrait source any landscape crop
+ *     here can honestly show, art-directed at 50% 35%.
  *
- *  4. Houses are a footnote, not a section. The chain is the owner's
+ *  4. NOTHING CONTACTABLE IS PRINTED. There is no social row on the
+ *     sheet at all. Email, phone, Instagram and LinkedIn all live inside
+ *     the shared Get in touch dialog, one click from the rail, next to
+ *     Save contact (.vcf). Owner: "only when you say contact them does
+ *     their email and number and stuff come out. That's how it should be
+ *     everywhere", and "the LinkedIn and IG don't need to be there
+ *     outside AND inside".
+ *
+ *  5. THE ADMISSION NUMBER IS AN ARTEFACT, not a column in a strip. It
+ *     used to be the fourth plain fact in the dateline. It is now the
+ *     shipped cinnamon double-ruled stamp, tilted, sitting in the
+ *     masthead where a paper carries its edition mark.
+ *
+ *  6. ONE TYPE LADDER, the app's: body 15px/1.7, small 13.5px, secondary
+ *     12.5-13px, labels 10.5-11px uppercase. Libre Baskerville is the
+ *     NAME, the section headings and a letter's title, nothing else.
+ *
+ *  7. Houses are a footnote, not a section. The chain is the owner's
  *     favourite element but, in their words, "house is just a fun thing,
  *     it's not that important... don't give it so much space." So it is
  *     one quiet strip at the foot of About under a 10.5px label, drawn
- *     by the SHIPPED component, never a rail block or a band of its own.
- *
- *  Email and phone are not on this page. They live inside the shared
- *  GetInTouch dialog (the same control the real profile ships), one
- *  click from the rail, alongside Save contact (.vcf).
+ *     bare by the SHIPPED component with no wrapper of its own.
  *
  *  Hover never moves anything here: no translate, no scale, no
- *  whileHover. Hover is a colour change. The press sink on :active
- *  stays, because that is feedback for a click you made.
+ *  whileHover. Hover is a colour change. The press sink on :active stays,
+ *  because that is feedback for a click you made.
  * ------------------------------------------------------------------ */
 
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Camera, Feather, Instagram, Linkedin, MessageCircle } from "lucide-react";
+import { Camera, Feather, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
 import { BookmarkButton } from "@/components/common/bookmark-button";
+import { AdmissionStamp } from "@/components/profile/admission-stamp";
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
 import { FadeRise, SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { HousesTrail } from "./_houses-trail";
 import {
-  metaParts,
   readMinutes,
-  type MockLink,
   type MockPost,
   type MockProfile,
   type ProfileVariantProps,
@@ -95,6 +107,14 @@ const TABS = [
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
+
+/* The dateline holds at most three facts, so its desktop column count is
+   a small lookup of literal classes rather than an arbitrary value. */
+const DATELINE_COLUMNS: Record<number, string> = {
+  1: "sm:grid-cols-1",
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-3",
+};
 
 /* ------------------------------------------------------------------ *
  *  Formatting helpers. Each guards the partial-data case the real
@@ -128,13 +148,6 @@ function valleyYears(profile: MockProfile): string | null {
   if (yearJoined) return `From ${yearJoined}`;
   if (yearLeft) return `Until ${yearLeft}`;
   return null;
-}
-
-/** The deck under the nameplate: what they do now, in one line. */
-function deckLine(profile: MockProfile): string {
-  const { jobTitle, workplace } = profile;
-  if (jobTitle && workplace) return `${jobTitle} at ${workplace}`;
-  return jobTitle || workplace || metaParts(profile).join(" · ");
 }
 
 function batchLabel(profile: MockProfile): string | null {
@@ -180,6 +193,27 @@ function Eyebrow({ children, tone = "cinnamon" }: { children: string; tone?: "ci
       )}
     >
       {children}
+    </p>
+  );
+}
+
+/**
+ * The deck: what they do and who they do it for, sitting with the name
+ * the way a newspaper's deck sits under its headline. Owner: "let the
+ * subtitle to the name be the occupation and organisation." The job
+ * carries the weight, the workplace follows it quietly; the city is NOT
+ * here (owner: "don't have the city under the name, it's not that
+ * important") and neither is the batch, which moved to the dateline.
+ */
+function Deck({ profile }: { profile: MockProfile }) {
+  const { jobTitle, workplace } = profile;
+  if (!jobTitle && !workplace) return null;
+
+  return (
+    <p className="min-w-0 text-[15px] leading-[1.6] text-muted-foreground">
+      {jobTitle && <span className="font-semibold text-foreground">{jobTitle}</span>}
+      {jobTitle && workplace ? " at " : null}
+      {workplace}
     </p>
   );
 }
@@ -233,27 +267,29 @@ function ChirpBird({ profile }: { profile: MockProfile }) {
 }
 
 /* ------------------------------------------------------------------ *
- *  The lead photograph. Exactly 21:9 at every width, hard square edges
- *  (a newspaper does not round its pictures) and a hairline frame. The
- *  picture ENDS THERE: the cinnamon rule that used to run under it is
- *  gone (owner: "remove the cinnamon bar under the pic in broadsheet"),
- *  and there was never a gradient or a fade into the sheet.
+ *  The lead photograph. A grid item in the masthead row, not a picture
+ *  pasted into the corner: its top edge starts at the name's cap line
+ *  and its bottom edge lands on the dateline rule, which runs out from
+ *  under the type and finishes the frame (hence `lg:border-b-0` — the
+ *  two share one hairline instead of stacking two).
+ *
+ *  3:2 and hard square edges: a newspaper does not round its pictures,
+ *  and the source is a 900x1300 portrait, so 3:2 is the most of the
+ *  frame any landscape crop can honestly show. No gradient, no fade.
  *  The upload slot is visibly designed: a Change photo control sits on
  *  the picture, since this is the owner's own profile view.
  * ------------------------------------------------------------------ */
 function LeadPhoto({ profile }: { profile: MockProfile }) {
   return (
-    // max-w is a guard, not the usual case: the shell caps the sheet at 1280,
-    // so the 40% column lands ~445px at 1440 and the frame stays ~190px tall.
-    <figure className="min-w-0 md:col-start-2 md:row-start-1 md:ml-auto md:w-full md:max-w-[560px] md:self-end">
-      <div className="relative aspect-[21/9] w-full overflow-hidden border border-border bg-mist">
+    <figure className="min-w-0 lg:col-start-2 lg:row-start-1 lg:self-end">
+      <div className="relative aspect-[3/2] w-full overflow-hidden border border-border bg-mist lg:border-b-0">
         {profile.coverPhoto ? (
           <Image
             src={profile.coverPhoto}
             alt={`The picture ${profile.name.split(" ")[0]} chose for their profile`}
             fill
             priority
-            sizes="(max-width: 768px) 100vw, 480px"
+            sizes="(max-width: 1024px) 100vw, 400px"
             className="object-cover"
             style={{ objectPosition: "50% 35%" }}
           />
@@ -276,21 +312,34 @@ function LeadPhoto({ profile }: { profile: MockProfile }) {
 }
 
 /* ------------------------------------------------------------------ *
- *  Dateline. Four facts in a row divided by SOLID vertical hairlines on
- *  desktop; a 2x2 grid with one horizontal hairline on a phone. The
- *  admission number is set here as an heirloom detail, never with a "#".
+ *  Dateline. The facts a paper prints beside its date, divided by SOLID
+ *  vertical hairlines; on a phone it folds to two columns with a
+ *  horizontal hairline between the rows.
+ *
+ *  Batch lives HERE, not next to the name (owner: "batch doesn't have to
+ *  be that close to the name, it can be elsewhere"). The city column is
+ *  labelled by how many cities there actually are, never "Based in",
+ *  which promises one place to people who have two. Admission is not in
+ *  this strip at all any more: it is the stamp up in the masthead.
  * ------------------------------------------------------------------ */
 function Dateline({ facts }: { facts: { label: string; value: string }[] }) {
+  const last = facts.length - 1;
+
   return (
-    <dl className="grid grid-cols-2 border-y border-border py-[var(--space-s)] sm:grid-cols-4">
+    <dl className={cn("grid grid-cols-2 border-y border-border", DATELINE_COLUMNS[facts.length])}>
       {facts.map((fact, i) => (
         <div
           key={fact.label}
           className={cn(
-            "min-w-0 border-border py-[var(--space-s)] pr-[var(--space-m)]",
-            i % 2 === 1 && "border-l pl-[var(--space-m)]",
-            i % 2 === 0 && "pl-0",
-            i >= 2 && "border-t sm:border-t-0",
+            "min-w-0 border-border py-[var(--space-m)] pr-[var(--space-m)]",
+            // Phone: a divider left of every second cell, a rule above row two,
+            // and an odd last fact spanning the full width rather than
+            // stranding half a column of nothing beside it.
+            i % 2 === 1 ? "border-l pl-[var(--space-m)]" : "pl-0",
+            i >= 2 && "border-t",
+            i === last && facts.length % 2 === 1 && i > 0 && "col-span-2",
+            // Desktop: one row, a divider before every cell but the first.
+            "sm:col-span-1 sm:border-t-0",
             i === 0 ? "sm:border-l-0 sm:pl-0" : "sm:border-l sm:pl-[var(--space-m)]"
           )}
         >
@@ -298,8 +347,7 @@ function Dateline({ facts }: { facts: { label: string; value: string }[] }) {
             {fact.label}
           </dt>
           {/* A fact is data, not a heading: sans at the body size, the same
-              15px every other value on the sheet is set in. It used to be
-              serif at 17/18px, a size that exists nowhere else in the app. */}
+              15px every other value on the sheet is set in. */}
           <dd className="mt-[var(--space-xxs)] truncate text-[15px] font-semibold leading-snug text-foreground">
             {fact.value}
           </dd>
@@ -352,8 +400,7 @@ function FolderTab({
 }
 
 /* ------------------------------------------------------------------ *
- *  Blocks: a labelled rail section, and the social row the About panel
- *  uses for "Find them".
+ *  A labelled rail section.
  * ------------------------------------------------------------------ */
 function RailSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -364,33 +411,11 @@ function RailSection({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-function LinkRow({ link }: { link: MockLink }) {
-  const Icon = link.kind === "instagram" ? Instagram : Linkedin;
-  return (
-    <a
-      href={link.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-2.5 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3 py-2 outline-none transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-[0.985]"
-    >
-      <Icon className="h-4 w-4 shrink-0 text-cinnamon" aria-hidden />
-      <span className="min-w-0">
-        <span className="block text-[13px] font-semibold leading-tight text-foreground">
-          {link.label}
-        </span>
-        <span className="block truncate text-[12.5px] leading-tight text-muted-foreground">
-          {link.handle}
-        </span>
-      </span>
-    </a>
-  );
-}
-
 /* ------------------------------------------------------------------ *
  *  Article entries. Posts and letters share one shape, with a date
  *  gutter on the left the way a paper stamps its filed pieces, and the
  *  letter given the exact register of the real Letters page: cinnamon
- *  eyebrow, feather, read time, serif body at 1.8.
+ *  eyebrow, feather, read time, serif title.
  * ------------------------------------------------------------------ */
 function ArticleEntry({
   post,
@@ -448,10 +473,9 @@ function ArticleEntry({
             alone left the bookmark stranded 200px past the last word.
 
             One body setting for both kinds: sans, 15px/1.7, 64ch, exactly
-            what a post body and the About prose use. A letter used to be
-            serif at 16.5px and a post sans at 15.5px, three near-duplicate
-            settings for the same job. The letter still reads as a letter,
-            from its cinnamon eyebrow, its feather and its serif title. */}
+            what a post body and the About prose use. The letter still reads
+            as a letter, from its cinnamon eyebrow, its feather and its serif
+            title. */}
         <div className="mt-[var(--space-s)] max-w-[64ch] text-[15px] leading-[1.7]">
           <div className="whitespace-pre-wrap text-foreground">{post.content}</div>
 
@@ -472,19 +496,6 @@ function ArticleEntry({
         </div>
       </div>
     </article>
-  );
-}
-
-function RecordRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-[var(--space-m)] py-[var(--space-s)]">
-      <dt className="shrink-0 text-[10.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="min-w-0 text-right text-[13.5px] font-semibold leading-snug text-foreground">
-        {value}
-      </dd>
-    </div>
   );
 }
 
@@ -521,13 +532,15 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
   }
 
   const firstName = profile.name.split(" ")[0];
-  const deck = deckLine(profile);
   const houses = profile.houses ?? [];
   const links = profile.links ?? [];
   const posts = profile.posts.filter((p) => p.kind === "post");
   const letters = profile.posts.filter((p) => p.kind === "letter");
 
   const { email, phone } = contactFor(profile);
+  // Every reachable thing, in ONE place, behind ONE button. Nothing in this
+  // list is printed on the sheet: not the email, not the phone, and since
+  // this round not Instagram or LinkedIn either.
   const contactMethods: ContactMethod[] = [
     { kind: "email", label: "Email", value: email, href: `mailto:${email}` },
     { kind: "phone", label: "Phone", value: phone, href: `tel:${phone.replace(/\s+/g, "")}` },
@@ -542,11 +555,16 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
     ),
   ];
 
+  // Two cities is the common case, so the label counts them rather than
+  // promising one. Never "Based in".
+  const cities = [profile.currentCity, profile.secondaryCity].filter((c): c is string =>
+    Boolean(c)
+  );
+
   const facts = [
     { label: "Batch", value: batchLabel(profile) },
     { label: "In the valley", value: valleyYears(profile) },
-    { label: "Based in", value: profile.currentCity },
-    { label: "Admission", value: profile.admissionNumber ? String(profile.admissionNumber) : null },
+    { label: cities.length > 1 ? "Cities" : "City", value: cities.join(", ") || null },
   ].filter((f): f is { label: string; value: string } => Boolean(f.value));
 
   const written = [
@@ -588,22 +606,33 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
     // sticky still resolves against the viewport; `hidden` would have killed it.
     // @container: the nameplate is sized off THIS sheet, not the window.
     <div className="@container w-full overflow-x-clip">
-      {/* ---------------- MASTHEAD ---------------- */}
+      {/* ---------------- MASTHEAD ----------------
+          One row, two columns, ruled top and bottom by the same two lines:
+          the name's cap line and the dateline. See note 3 at the top of the
+          file for why the picture is a grid item here rather than a floated
+          image with a gap around it. */}
       <header>
         <FadeRise y={12}>
-          <div className="grid gap-[var(--space-m)] md:grid-cols-[minmax(0,1fr)_minmax(0,40%)] md:items-end md:gap-[var(--space-l)]">
-            <div className="min-w-0 md:col-start-1 md:row-start-1">
+          {/* A third of the sheet for the picture, and the third is not
+              arbitrary: whatever the column gap is, a `[1fr, 33.333%]` track
+              puts the picture's left edge at exactly 2/3 of the sheet, which
+              is where the dateline's third divider falls. The hairline down
+              the left of the photograph and the hairline between the last two
+              facts are the same line, continued. That plus the shared bottom
+              rule is what stops the picture reading as pasted into a corner. */}
+          <div className="grid gap-[var(--space-m)] lg:grid-cols-[minmax(0,1fr)_minmax(0,33.333%)] lg:items-stretch lg:gap-[var(--space-xl)]">
+            <div className="flex min-w-0 flex-col lg:col-start-1 lg:row-start-1 lg:pb-[var(--space-m)]">
               {/* The verified leaf rides with the NAME, the way the shipped
                   header does it. Parked at the end of the deck line it kept
                   wrapping onto a line of its own on a phone, a lone leaf
-                  floating under the sentence. */}
-              {/* The sheet is ~328px narrower than the window now (sidebar plus
-                  the shell's gutters), so the nameplate is sized off the SHEET,
-                  not the viewport: 6.5cqw is 56px once the sheet passes 860px
-                  (a 1190 window) and hits the 72px cap at 1110px of sheet (a
-                  1440 window). vw would have set 72px while the sheet was still
-                  700px wide. */}
-              <h1 className="flex flex-wrap items-center gap-x-3 font-heading text-[clamp(2.25rem,6.5cqw,4.5rem)] font-bold leading-[0.95] tracking-[-0.035em] text-foreground">
+                  floating under the sentence.
+
+                  Sized off the SHEET, not the window (the sheet is ~328px
+                  narrower than the viewport once the sidebar and gutters are
+                  paid for): 4.4cqw is ~49px at a 1440 window and reaches the
+                  52px cap at the shell's 1200px maximum. It was 72px, which
+                  the owner called overboard. */}
+              <h1 className="flex flex-wrap items-center gap-x-3 font-heading text-[clamp(2rem,4.4cqw,3.25rem)] font-bold leading-[1.0] tracking-[-0.035em] text-foreground">
                 <span className="min-w-0">{profile.name}</span>
                 <VerifiedMark
                   user={{ verifyState: profile.verifyState, accountType: profile.accountType }}
@@ -611,22 +640,44 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
                 />
               </h1>
 
-              {/* The species name is NOT printed. Owner: "don't write the bird
+              {/* The deck stays WITH the name, one step under it, because
+                  that is what the owner asked the line to be: "let the
+                  subtitle to the name be the occupation and organisation...
+                  let those be positioned somewhere near".
+
+                  The species name is NOT printed. Owner: "don't write the bird
                   species anywhere, it's not that important, they can see it by
                   clicking the bird." It survives only in the button's
                   aria-label, for someone who cannot see the glyph at all. */}
-              <div className="mt-[var(--space-m)] flex items-center gap-[var(--space-s)] md:mt-[var(--space-l)]">
+              <div className="mt-[var(--space-m)] flex items-center gap-[var(--space-s)]">
                 <ChirpBird profile={profile} />
-                <p className="min-w-0 text-[15px] leading-[1.7] text-foreground">{deck}</p>
+                <Deck profile={profile} />
               </div>
+
+              {/* The admission number, given the one treatment the owner asked
+                  for: not a labelled fact in a row but the shipped cinnamon
+                  double-ruled stamp, tilted, pressed into the bottom-left
+                  corner of the sheet where a paper carries its edition mark.
+                  `mt-auto` sends it to the foot of the column, so the corner
+                  the type ends on and the corner the picture ends on are the
+                  same corner, on the same rule. */}
+              {profile.admissionNumber !== null && (
+                <AdmissionStamp
+                  number={profile.admissionNumber}
+                  className="ml-1 mt-[var(--space-l)] w-fit lg:mt-auto lg:pt-[var(--space-l)]"
+                />
+              )}
             </div>
 
             <LeadPhoto profile={profile} />
           </div>
         </FadeRise>
 
-        {/* ---------------- DATELINE ---------------- */}
-        <div className="mt-[var(--space-m)] sm:mt-[var(--space-l)]">
+        {/* ---------------- DATELINE ----------------
+            No top margin from lg: the strip's top rule IS the picture's
+            bottom edge. On a phone the picture keeps its own full border and
+            the strip sits below it with normal air. */}
+        <div className="mt-[var(--space-m)] lg:mt-0">
           <Dateline facts={facts} />
         </div>
       </header>
@@ -638,7 +689,7 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
 
           xl, not lg: inside the shell a 1024 window is only 696px of sheet, and
           splitting that would leave an article column too narrow to set a
-          paragraph in. The masthead still splits at md, so a tablet is never
+          paragraph in. The masthead still splits at lg, so a laptop is never
           just the phone layout stretched. */}
       <div className="mt-[var(--space-l)] grid gap-[var(--space-l)] sm:mt-[var(--space-xl)] xl:grid-cols-[minmax(0,1fr)_300px]">
         <aside className="min-w-0 xl:col-start-2 xl:row-start-1 xl:sticky xl:top-[var(--space-l)] xl:self-start">
@@ -653,22 +704,17 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
                 vcard={buildVcard(profile, email, phone)}
               />
               <p className="mt-[var(--space-s)] text-[12.5px] leading-[1.6] text-muted-foreground">
-                Email, phone, and socials, all in one place.
+                {links.length > 0
+                  ? "Email, phone and socials, all in one place."
+                  : "Email and phone, shown when you ask."}
               </p>
             </RailSection>
 
-            <RailSection title="The record">
-              <dl className="divide-y divide-border/70">
-                {profile.gradeJoined && profile.yearJoined && (
-                  <RecordRow
-                    label="Entered"
-                    value={`Grade ${profile.gradeJoined}, ${profile.yearJoined}`}
-                  />
-                )}
-                {profile.secondaryCity && <RecordRow label="Also in" value={profile.secondaryCity} />}
-                {written && <RecordRow label="Written" value={written} />}
-              </dl>
-            </RailSection>
+            {written && (
+              <RailSection title="Written">
+                <p className="text-[13.5px] font-semibold leading-snug text-foreground">{written}</p>
+              </RailSection>
+            )}
           </div>
         </aside>
 
@@ -692,40 +738,24 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
               <FadeRise key={tab} y={10}>
                 {tab === "about" && (
                   <div>
-                    <div className="grid gap-[var(--space-l)] min-[1400px]:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-                      <section className="min-w-0">
-                        {/* "About", the name the app standardised on this round.
-                            Sans at 15px/1.7, the same setting as a post body:
-                            this was serif at 17px, a typeface and a size and a
-                            half above every other paragraph, which read as a
-                            mistake rather than as emphasis. */}
-                        <Eyebrow>About</Eyebrow>
-                        <p className="mt-[var(--space-s)] max-w-[64ch] text-[15px] leading-[1.7] text-foreground">
-                          {profile.about}
-                        </p>
-                      </section>
-
-                      {links.length > 0 && (
-                        <section className="min-w-0">
-                          <Eyebrow>Find them</Eyebrow>
-                          {/* Capped: below 1400 this section is full panel width,
-                              and a two-line row stretched to 570px is mostly
-                              empty rule. */}
-                          <div className="mt-[var(--space-s)] flex max-w-[340px] flex-col gap-[var(--space-xs)]">
-                            {links.map((link) => (
-                              <LinkRow key={link.kind} link={link} />
-                            ))}
-                          </div>
-                        </section>
-                      )}
-                    </div>
+                    {/* "About", the name the app standardised on this round.
+                        Sans at 15px/1.7, the same setting as a post body. The
+                        social row that used to sit beside this is gone: nothing
+                        contactable is printed on the sheet any more. */}
+                    <section className="min-w-0">
+                      <Eyebrow>About</Eyebrow>
+                      <p className="mt-[var(--space-s)] max-w-[64ch] text-[15px] leading-[1.7] text-foreground">
+                        {profile.about}
+                      </p>
+                    </section>
 
                     {/* HOUSES: a footnote, not a feature. One quiet label at the
                         same 10.5px as every other minor label, no heading, no
-                        subtitle, no band of its own, and the shipped pills drawn
-                        by the shipped component. Owner: "house is just a fun
-                        thing, it's not that important, you're making it 50% of
-                        the profile. Don't give it so much space."
+                        subtitle, no band of its own, and the shipped component
+                        rendered bare (it sets its own width and spacing; a
+                        wrapper here would only fight it). Owner: "house is just
+                        a fun thing, it's not that important, you're making it
+                        50% of the profile. Don't give it so much space."
 
                         It lives at the foot of the panel because the shared
                         trail picks four pills per row on any desktop viewport,
@@ -734,12 +764,7 @@ export default function BroadsheetVariant({ profile }: ProfileVariantProps) {
                     {houses.length > 0 && (
                       <div className="mt-[var(--space-l)] border-t border-border pt-[var(--space-m)]">
                         <Eyebrow tone="muted">Houses</Eyebrow>
-                        {/* w-fit only ever makes the chain NARROWER: the shared
-                            trail stretches a full row edge to edge so its U-turn
-                            lands on the container's edge, so in a container
-                            wider than the pills need the arrows stretch out. On
-                            a phone this pulls the two-pill rows back together. */}
-                        <div className="mt-[var(--space-s)] w-fit">
+                        <div className="mt-[var(--space-s)]">
                           <HousesTrail houses={houses} />
                         </div>
                       </div>

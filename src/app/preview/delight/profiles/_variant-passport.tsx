@@ -26,7 +26,32 @@
  *   - valley years read "2014-2021", never "7 years"
  *   - nothing on the page owns a vertical scroller of its own
  *
- *  From the second owner review (2026-07-25), also load-bearing:
+ *  From the THIRD owner review (2026-07-25), all load-bearing:
+ *   - THE LINE UNDER THE NAME IS THE OCCUPATION. "Let the subtitle to the
+ *     name be the occupation and organisation." So it reads "Software
+ *     Engineer at Bluepeak Systems" and nothing else. The batch moved down
+ *     into the record ("batch doesn't have to be that close to the name, it
+ *     can be elsewhere") and the city is gone from up here entirely ("don't
+ *     have the city under the name, it's not that important").
+ *   - THE RECORD IS TWO FACTS PLUS WHERE THEY LIVE. "We don't have to
+ *     specify what batch entered and all. Just batch of whatever and what
+ *     years they were there." The old "Entered / Grade 4" cell is deleted.
+ *   - THE CITY LABEL IS PLURAL-TOLERANT. "Based in" promised one place and
+ *     then printed two, so the label counts: "City" for one, "Cities" for
+ *     several.
+ *   - NOTHING CONTACTABLE IS PRINTED ON THE SURFACE. "I love this idea of
+ *     only when you say contact them does their email and number and stuff
+ *     come out. That's how it should be everywhere", and "don't think the
+ *     LinkedIn and IG need to be there outside and inside the Get in touch."
+ *     The "Find them" pills are gone; Instagram, LinkedIn and any custom
+ *     link sit inside the Get in touch dialog beside the email and phone,
+ *     exactly as the shipped page now does it.
+ *   - THE ADMISSION NUMBER IS AN ARTEFACT, NOT A FIELD. "I don't want it
+ *     like any other text field. Something special about it." It is the
+ *     cinnamon double-ruled stamp on the plate, and it appears nowhere else
+ *     on the page as plain labelled text.
+ *
+ *  From the second owner review, still load-bearing:
  *   - HOUSES ARE A DETAIL, NOT A SECTION. "House is just a fun thing, it's
  *     not that important, you're making it 50% of the profile." The chain
  *     is the shipped one, unrestyled, and it rides as a quiet strip at the
@@ -48,7 +73,7 @@
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Camera, Feather, Images, Instagram, Linkedin, MessageCircle } from "lucide-react";
+import { Camera, Feather, Images, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
@@ -58,9 +83,7 @@ import { Button } from "@/components/ui/button";
 import { FadeRise, SPRINGS } from "@/components/common/motion";
 import { HousesTrail } from "./_houses-trail";
 import {
-  metaParts,
   readMinutes,
-  type MockLink,
   type MockPost,
   type MockProfile,
   type ProfileVariantProps,
@@ -91,6 +114,31 @@ function formatDate(iso: string): string {
   });
 }
 
+/**
+ * The one line under the name: what they do and where they do it. Owner:
+ * "let the subtitle to the name be the occupation and organisation." No
+ * batch (it sits in the record now), no city, no species, no contact.
+ */
+function occupationLine(profile: MockProfile): string | null {
+  const { jobTitle, workplace } = profile;
+  if (jobTitle && workplace) return `${jobTitle} at ${workplace}`;
+  return jobTitle ?? workplace ?? null;
+}
+
+/**
+ * Where they live, under a label that counts. "Based in" promised one place
+ * and then listed two, so the label is plural-tolerant: "City" for one,
+ * "Cities" for several. The real `User` already stores several (Place rows,
+ * plus currentCity/secondaryCity), so this is the honest shape.
+ */
+function citiesFact(profile: MockProfile): { label: string; value: string } | null {
+  const cities = [profile.currentCity, profile.secondaryCity].filter(
+    (c): c is string => Boolean(c)
+  );
+  if (cities.length === 0) return null;
+  return { label: cities.length > 1 ? "Cities" : "City", value: cities.join(" · ") };
+}
+
 /** Two years and a hyphen. Never a year count: people can subtract. */
 function valleyYears(profile: MockProfile): string | null {
   const { yearJoined, yearLeft } = profile;
@@ -106,40 +154,57 @@ function letterOpening(content: string): string {
 }
 
 /**
- * Contact methods for the dialog. The mock payload carries no email or
- * phone column (the real `User` does: email / displayEmail / phone), so
- * the email below is a stand-in that shows the slot working. The point
- * of the rule is where these live, not what they say: nothing here is
- * ever printed on the surface next to the name.
+ * EVERY way of reaching this person, in ONE place: the Get in touch dialog.
+ *
+ * Owner, third review: "I love this idea of only when you say contact them
+ * does their email and number and stuff come out. That's how it should be
+ * everywhere", and "don't think the LinkedIn and IG need to be there
+ * outside and inside the Get in touch." So Instagram and LinkedIn are not
+ * pills on the page any more, they are rows in here beside the email and
+ * the phone. Nothing contactable is printed on the surface at all.
+ *
+ * The mock payload carries no email or phone column (the real `User` does:
+ * email / displayEmail / phone), so both are stand-ins that show the slots
+ * working. The point of the rule is where these live, not what they say.
  */
+function stubEmail(profile: MockProfile): string {
+  return `${profile.name.trim().toLowerCase().replace(/\s+/g, ".")}@example.com`;
+}
+
+const STUB_PHONE = "+91 98840 21385";
+
 function contactMethods(profile: MockProfile): ContactMethod[] {
-  const handle = profile.name.trim().toLowerCase().replace(/\s+/g, ".");
-  const email = `${handle}@example.com`;
-  const methods: ContactMethod[] = [
+  const email = stubEmail(profile);
+  return [
     { kind: "email", label: "Email", value: email, href: `mailto:${email}` },
-  ];
-  for (const link of profile.links) {
-    methods.push({
+    {
+      kind: "phone",
+      label: "Phone",
+      value: STUB_PHONE,
+      href: `tel:${STUB_PHONE.replace(/\s+/g, "")}`,
+    },
+    ...profile.links.map((link) => ({
       kind: link.kind,
       label: link.label,
       value: link.handle,
       href: link.href,
       external: true,
-    });
-  }
-  return methods;
+    })),
+  ];
 }
 
 function vcardFor(profile: MockProfile): string {
-  const handle = profile.name.trim().toLowerCase().replace(/\s+/g, ".");
   const org = [profile.jobTitle, profile.workplace].filter(Boolean).join(", ");
+  const cities = [profile.currentCity, profile.secondaryCity].filter(Boolean) as string[];
   return [
     "BEGIN:VCARD",
     "VERSION:3.0",
     `FN:${profile.name}`,
     org ? `TITLE:${org}` : null,
-    `EMAIL:${handle}@example.com`,
-    profile.currentCity ? `ADR;TYPE=HOME:;;;${profile.currentCity};;;` : null,
+    `EMAIL:${stubEmail(profile)}`,
+    `TEL:${STUB_PHONE.replace(/\s+/g, "")}`,
+    ...cities.map((city) => `ADR:;;${city};;;;`),
+    ...profile.links.map((link) => `URL:${link.href}`),
     "END:VCARD",
   ]
     .filter(Boolean)
@@ -219,24 +284,11 @@ function ChangePhotoButton() {
   );
 }
 
-const LINK_ICON = { instagram: Instagram, linkedin: Linkedin } as const;
-const LINK_TINT = { instagram: "text-cinnamon", linkedin: "text-sky" } as const;
-
-function FindThemPill({ link }: { link: MockLink }) {
-  const Icon = LINK_ICON[link.kind];
-  return (
-    <a
-      href={link.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex max-w-full items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]"
-    >
-      <Icon className={cn("h-[15px] w-[15px] shrink-0", LINK_TINT[link.kind])} aria-hidden />
-      <span className="shrink-0">{link.label}</span>
-      <span className="min-w-0 truncate font-normal text-muted-foreground">{link.handle}</span>
-    </a>
-  );
-}
+/* There is deliberately NO social-pill component here any more. Instagram
+   and LinkedIn used to sit on the surface as "Find them" AND inside the
+   Get in touch dialog, which printed the same two links twice on one page.
+   The owner cut the surface copy: "don't think the LinkedIn and IG need to
+   be there outside and inside the Get in touch." One place, on asking. */
 
 function FolderTab({
   label,
@@ -286,11 +338,12 @@ function FolderTab({
  *
  * The strip is a WRAPPING ROW, not a fixed grid. It used to be
  * `grid-cols-2 sm:grid-cols-4` with the hairlines placed by index modulo
- * the column count, which only balanced at exactly four facts: drop one
- * (the bird species went, and "Batch" was already printed under the name)
- * and the grid left a hole where a cell used to be. A flex row with the
- * rule on every cell but the first reads correctly at one, two, or five
- * facts, and it is the same shape the shipped About tab uses.
+ * the column count, which only balanced at exactly four facts: drop one and
+ * the grid left a hole where a cell used to be. The cell count has since
+ * changed twice (the bird species went, then "Entered Grade 4" went and
+ * Batch arrived), which is the point: a flex row with the rule on every
+ * cell but the first reads correctly at one, two or five facts, and it is
+ * the same shape the shipped About tab uses.
  */
 function RecordCell({ label, value, divided }: { label: string; value: ReactNode; divided: boolean }) {
   return (
@@ -484,15 +537,19 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
     });
   }
 
-  const meta = metaParts(profile);
+  const occupation = occupationLine(profile);
   const years = valleyYears(profile);
-  // Facts the meta line under the name does NOT already carry. Batch used to
-  // be a fourth cell here and was printed twice on the same screen, which is
-  // half of why the strip felt like filler.
+  // The whole record, and deliberately no more than this. Owner: "we don't
+  // have to specify what batch entered and all. Just batch of whatever and
+  // what years they were there." So the "Entered / Grade 4" cell is gone.
+  // Batch has come DOWN here from the name block ("batch doesn't have to be
+  // that close to the name, it can be elsewhere"), and the cities cell wears
+  // a label that counts rather than "Based in", which promised one place and
+  // then listed two.
   const record: { label: string; value: string }[] = [
+    profile.batchYear ? { label: "Batch", value: String(profile.batchYear) } : null,
     years ? { label: "In the valley", value: years } : null,
-    profile.gradeJoined ? { label: "Entered", value: `Grade ${profile.gradeJoined}` } : null,
-    profile.secondaryCity ? { label: "Also in", value: profile.secondaryCity } : null,
+    citiesFact(profile),
   ].filter((c): c is { label: string; value: string } => c !== null);
   const posts = profile.posts.filter((p) => p.kind === "post");
   const letters = profile.posts.filter((p) => p.kind === "letter");
@@ -511,12 +568,21 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
     // Only the identity column opts out with `self-start`, which is also
     // what gives its sticky position room to move.
     //
+    // 310px, not the 340 it started at. The identity column's height is
+    // mostly its 4:5 plate, so the track width IS the height budget: at 340
+    // the plate ran 425px and the column stood ~120px taller than everything
+    // the About panel had left to say once the social pills came off the
+    // surface, which is exactly the void the owner keeps calling out. At 310
+    // the plate is 388 and the two columns end within a few pixels of each
+    // other, measured at 1440 and at 1920. It also buys the folder tabs the
+    // width they need at exactly 1024, where they used to overrun the card.
+    //
     // overflow-x-clip: VerifiedMark keeps its "Verified member" label in the
     // DOM at opacity 0 and parks it `left-full`, so at 390 the label hangs
     // 10px past the viewport and the page rubber-bands sideways. `clip`
     // rather than `hidden` on purpose: `hidden` would make this element a
     // scrollport and kill the identity column's sticky.
-    <div className="grid w-full grid-cols-1 gap-[var(--space-xl)] overflow-x-clip lg:grid-cols-[340px_minmax(0,1fr)]">
+    <div className="grid w-full grid-cols-1 gap-[var(--space-xl)] overflow-x-clip lg:grid-cols-[310px_minmax(0,1fr)]">
       {/* ---------------------------------------------------------- *
           IDENTITY COLUMN. Sticky on a laptop, first in the stack on a
           phone. Sticky only: it never gets a scroller of its own.
@@ -530,7 +596,7 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
                 alt={`${profile.name}'s picture`}
                 fill
                 priority
-                sizes="(min-width: 1024px) 340px, 100vw"
+                sizes="(min-width: 1024px) 310px, 100vw"
                 className="object-cover"
                 style={{ objectPosition: "50% 30%" }}
               />
@@ -572,26 +638,27 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
               size={17}
             />
           </div>
-          {meta.length > 0 && (
-            <p className="mt-[var(--space-xs)] text-[13.5px] leading-[1.55] text-muted-foreground">
-              {meta.join(" · ")}
+          {/* The subtitle to the name is the OCCUPATION AND ORGANISATION,
+              full stop. Batch went down to the record, the city went away
+              (owner: "it's not that important"), and email and phone were
+              never here. */}
+          {occupation && (
+            <p className="mt-[var(--space-xs)] text-[14px] leading-[1.5] text-muted-foreground">
+              {occupation}
             </p>
           )}
         </div>
 
-        {/* Contact actions. Email and phone are behind this dialog,
-            one click away and never printed beside the name.
-
-            "Find them" used to sit under this, and it was the reason
-            the About tab had a hole in it: the identity column ran
-            ~130px taller than everything the About panel had to say,
-            and the panel's bottom-anchored record strip turned the
-            difference into one big void. The socials are the same
-            block, moved into the About panel under the prose, which
-            shortens this column and lengthens that one at the same
-            time. Both columns now end within a pixel of each other
-            (measured at 1440 and 1920). It also matches the shipped
-            About tab, where the prose and "Find them" are neighbours. */}
+        {/* THE ONLY CONTACT AFFORDANCE ON THE PAGE. Email, phone,
+            Instagram, LinkedIn and any custom link are all one click
+            behind this dialog and none of them is printed anywhere on
+            the surface. That is the owner's note in full: "only when
+            you say contact them does their email and number and stuff
+            come out. That's how it should be everywhere", plus "don't
+            think the LinkedIn and IG need to be there outside and
+            inside the Get in touch." Save contact carries the same
+            details into a .vcf for people who would rather have the
+            card than the dialog. */}
         <div className="mt-[var(--space-l)]">
           <GetInTouch
             name={profile.name}
@@ -651,58 +718,62 @@ export default function PassportVariant({ profile }: ProfileVariantProps) {
                     </p>
                   </section>
 
-                  {profile.links.length > 0 && (
-                    <section className="mt-[var(--space-xl)]">
-                      <SectionLabel>Find them</SectionLabel>
-                      <div className="mt-[var(--space-m)] flex flex-wrap gap-[var(--space-s)]">
-                        {profile.links.map((link) => (
-                          <FindThemPill key={link.kind} link={link} />
-                        ))}
-                      </div>
-                    </section>
-                  )}
+                  {/* NOTHING contactable stands here. The Instagram and
+                      LinkedIn pills that used to fill this slot moved into
+                      the Get in touch dialog, which is the whole of the
+                      owner's note: reveal on asking, in one place. */}
 
-                  {/* The record closes the panel: the facts on one
-                      printed line, and the houses as the last quiet
-                      field on that same block.
-                      `mt-auto` only bites when there is slack, and it
-                      is the ONLY auto margin in this column: two of
-                      them do not stack, CSS splits the free space
-                      equally between them, which is what used to open
-                      a pair of voids (bio | void | houses | void |
-                      record). */}
                   {(record.length > 0 || profile.houses.length > 0) && (
-                    <section className="mt-auto border-t border-border pt-[var(--space-l)]">
-                      {record.length > 0 && (
-                        <dl className="flex flex-col gap-[var(--space-m)] sm:flex-row sm:flex-wrap sm:items-start">
-                          {record.map((cell, i) => (
-                            <RecordCell
-                              key={cell.label}
-                              label={cell.label}
-                              value={cell.value}
-                              divided={i > 0}
-                            />
-                          ))}
-                        </dl>
-                      )}
+                    <>
+                      {/* ALL the panel's spare height lands here, and never
+                          less than a section gap. It replaces the record's
+                          old `mt-auto`, which absorbed the slack the same
+                          way but collapsed to nothing the moment the two
+                          columns balanced, leaving the rule stuck to the
+                          last line of the About. One flexible element in
+                          this column and only one: two would split the free
+                          space between them and open a pair of holes. */}
+                      <div aria-hidden className="min-h-[var(--space-xl)] flex-1" />
 
-                      {/* HOUSES. Deliberately the smallest thing here.
-                          Owner: "house is just a fun thing, it's not
-                          that important, you're making it 50% of the
-                          profile." So it gets no heading, no band, no
-                          section of its own: one 10.5px field label,
-                          the same rung the facts above it wear, and
-                          the shipped chain underneath at its own
-                          narrow cap. */}
-                      {profile.houses.length > 0 && (
-                        <div className={cn(record.length > 0 && "mt-[var(--space-l)]")}>
-                          <FieldLabel>Houses</FieldLabel>
-                          <div className="mt-[var(--space-s)]">
-                            <HousesTrail houses={profile.houses} />
+                      {/* THE RECORD closes the panel, the way a passport
+                          prints its facts under the photograph: what they
+                          were, when they were here, where they are now, and
+                          the houses as the last quiet field of the same
+                          block. Nothing contactable, nothing that repeats
+                          the name block. */}
+                      <section className="border-t border-border pt-[var(--space-l)]">
+                        <SectionLabel>The record</SectionLabel>
+                        {record.length > 0 && (
+                          <dl className="mt-[var(--space-m)] flex flex-col gap-[var(--space-m)] sm:flex-row sm:flex-wrap sm:items-start">
+                            {record.map((cell, i) => (
+                              <RecordCell
+                                key={cell.label}
+                                label={cell.label}
+                                value={cell.value}
+                                divided={i > 0}
+                              />
+                            ))}
+                          </dl>
+                        )}
+
+                        {/* HOUSES. Deliberately the smallest thing here.
+                            Owner: "house is just a fun thing, it's not
+                            that important, you're making it 50% of the
+                            profile." So it gets no heading, no band, no
+                            section of its own: one 10.5px field label,
+                            the same rung the facts above it wear, and
+                            the shipped chain underneath, rendered bare
+                            at its own width. */}
+                        {profile.houses.length > 0 && (
+                          <div className={cn(record.length > 0 && "mt-[var(--space-l)]")}>
+                            <FieldLabel>Houses</FieldLabel>
+                            <div className="mt-[var(--space-s)]">
+                              <HousesTrail houses={profile.houses} />
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </section>
+                        )}
+                      </section>
+                    </>
                   )}
                 </div>
               )}

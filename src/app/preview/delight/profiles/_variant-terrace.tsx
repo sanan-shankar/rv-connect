@@ -16,20 +16,40 @@
  *  column, not a full-bleed header.
  *
  *  Composition:
- *    - Desktop: plate on the left, name and facts to its right, the
+ *    - Desktop: plate on the left, the identity to its right, the
  *      admission stamp anchored at the far right of the band. The plate
  *      hangs a little past the band's bottom edge like a photo left on a
  *      terrace table. Under it, an asymmetric [minmax(0,1fr)_320px]
- *      body: folder tabs on the left, a sticky rail on the right.
- *    - Mobile: one column, plate first, then name, facts, actions,
- *      tabs, rail. Nothing floats, nothing straddles.
+ *      body: folder tabs on the left, a sticky rail of facts on the
+ *      right.
+ *    - Mobile: one column. Plate, name, what they do, actions, the
+ *      stamp, then the rail's cards, then the tabs. The rail moves ABOVE
+ *      the tabs rather than below them, so the hard facts are read
+ *      before the long prose; that is the DOM order, and desktop puts it
+ *      back on the right with explicit grid placement.
+ *
+ *  WHAT SITS WHERE, after the owner's third review:
+ *    - The line under the name is what they DO ("Software Engineer at
+ *      Bluepeak Systems"), and only that. Batch and city used to share
+ *      that line; batch moved to the rail's record, the city stopped
+ *      being important enough to sit by the name at all.
+ *    - The record is Batch and the years in the valley. Nothing else:
+ *      no entry grade, no "started in".
+ *    - Cities take a plural-tolerant label ("City" for one, "Cities" for
+ *      several), because people have more than one and "Based in"
+ *      promises exactly one.
+ *    - Nothing contactable is printed on the surface. Email, phone,
+ *      Instagram and LinkedIn are all inside "Get in touch", revealed
+ *      only when someone asks for them.
+ *    - The admission number is the cinnamon double-ruled stamp, never a
+ *      labelled row in a facts grid. It is the one artefact on the page.
  *
  *  Houses are a QUIET STRIP, not a headline. Owner, round 3: "house is
  *  just a fun thing, it's not that important, you're making it 50% of
- *  the profile." So the trail is one more entry in the About tab's facts
- *  grid, under the same small label every other fact gets: no heading,
- *  no subtitle, no band of its own. The pills themselves are the shipped
- *  <HouseTrail>, drawn in exactly one place.
+ *  the profile." So the trail sits at the foot of the About tab under
+ *  the same small label every fact gets: no heading, no subtitle, no
+ *  band of its own. The pills themselves are the shipped <HouseTrail>,
+ *  drawn in exactly one place and never re-spaced from here.
  *
  *  Type ladder, one rung per job, nothing in between:
  *    name        font-heading 30 / 40 / 46
@@ -54,7 +74,7 @@
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Camera, Feather, Instagram, Linkedin, MessageCircle } from "lucide-react";
+import { Camera, Feather, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FadeRise, SPRINGS } from "@/components/common/motion";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
@@ -65,7 +85,6 @@ import { LoveButton } from "@/components/common/love-button";
 import { BookmarkButton } from "@/components/common/bookmark-button";
 import { HousesTrail } from "./_houses-trail";
 import {
-  metaParts,
   readMinutes,
   type MockPost,
   type MockProfile,
@@ -142,7 +161,37 @@ function batchLabel(profile: MockProfile): string | null {
   return parts.length > 0 ? parts.join(" ") : null;
 }
 
+/** "Software Engineer at Bluepeak Systems". The line under the name. */
+function occupationLine(profile: MockProfile): string | null {
+  if (profile.jobTitle && profile.workplace) {
+    return `${profile.jobTitle} at ${profile.workplace}`;
+  }
+  return profile.jobTitle || profile.workplace || null;
+}
+
+/**
+ * Cities, with a label that tells the truth about how many there are.
+ * "Based in" quietly promises one place; plenty of people here have two,
+ * so the label counts before it commits.
+ */
+function cityFact(profile: MockProfile): { label: string; value: string } | null {
+  const cities = [profile.currentCity, profile.secondaryCity].filter(
+    (c): c is string => Boolean(c)
+  );
+  if (cities.length === 0) return null;
+  const value =
+    cities.length > 1
+      ? `${cities.slice(0, -1).join(", ")} and ${cities[cities.length - 1]}`
+      : cities[0];
+  return { label: cities.length > 1 ? "Cities" : "City", value };
+}
+
 function buildContact(profile: MockProfile): { methods: ContactMethod[]; vcard: string } {
+  // Instagram and LinkedIn join email and phone in here, and appear NOWHERE
+  // else on the page. Owner, round 3: "I love this idea of only when you say
+  // contact them does their email and number and stuff come out. That's how it
+  // should be everywhere", and "don't think the LinkedIn and IG need to be
+  // there outside and inside the Get in touch." One place, on asking.
   const methods: ContactMethod[] = [
     { kind: "email", label: "Email", value: MOCK_EMAIL, href: `mailto:${MOCK_EMAIL}` },
     { kind: "phone", label: "Phone", value: MOCK_PHONE, href: `tel:${MOCK_PHONE.replace(/\s+/g, "")}` },
@@ -155,10 +204,7 @@ function buildContact(profile: MockProfile): { methods: ContactMethod[]; vcard: 
     })),
   ];
 
-  const occupation =
-    profile.jobTitle && profile.workplace
-      ? `${profile.jobTitle} at ${profile.workplace}`
-      : profile.jobTitle || profile.workplace || null;
+  const occupation = occupationLine(profile);
 
   const vcard = [
     "BEGIN:VCARD",
@@ -456,11 +502,18 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
     Object.fromEntries(profile.posts.map((p) => [p.id, { liked: false, count: p.likeCount }]))
   );
 
-  const meta = metaParts(profile);
+  const occupation = occupationLine(profile);
+  const city = cityFact(profile);
   const years = valleyYears(profile);
   const batch = batchLabel(profile);
   const posts = profile.posts.filter((p) => p.kind === "post");
   const letters = profile.posts.filter((p) => p.kind === "letter");
+  // ISO strings sort chronologically as plain strings, so no Date churn.
+  const newestLetter = letters.reduce<MockPost | null>(
+    (best, l) => (best === null || l.createdAt > best.createdAt ? l : best),
+    null
+  );
+  const latestLetter = newestLetter?.title ? newestLetter : null;
   const { methods, vcard } = buildContact(profile);
   const firstName = profile.name.split(" ")[0];
 
@@ -541,32 +594,37 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
               />
             </h1>
 
-            {meta.length > 0 && (
+            {/* The line under the name is what they DO and where. Batch moved
+                to the record in the rail, and the city left the name block
+                entirely: neither earns a place this close to the name. */}
+            {occupation && (
               <p className="mt-[var(--space-s)] max-w-[62ch] text-[15px] leading-snug text-muted-foreground">
-                {meta.join(" · ")}
+                {profile.jobTitle && profile.workplace ? (
+                  <>
+                    <span className="font-semibold text-foreground">{profile.jobTitle}</span>
+                    {" at "}
+                    <span className="font-semibold text-foreground">{profile.workplace}</span>
+                  </>
+                ) : (
+                  occupation
+                )}
               </p>
             )}
 
-            {/* Years read as a span, never as a count. The stamp rides along
-                here at narrow widths; on desktop it anchors the band's far
-                right instead. */}
-            <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-[var(--space-m)]">
-              {years && (
-                <div className="inline-flex items-baseline gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5">
-                  <Eyebrow className="text-canopy/80">In the valley</Eyebrow>
-                  <span className="text-[15px] font-bold tabular-nums text-foreground">{years}</span>
-                </div>
-              )}
-              {profile.admissionNumber && (
-                <AdmissionStamp number={profile.admissionNumber} className="lg:hidden" />
-              )}
-            </div>
-
-            {/* Email and phone are NOT on this surface. They live one click
-                inside "Get in touch", beside Save contact. */}
+            {/* Nothing contactable is printed here. Email, phone, Instagram
+                and LinkedIn are all one click inside "Get in touch". */}
             <div className="mt-[var(--space-l)]">
               <GetInTouch name={profile.name} methods={methods} vcard={vcard} />
             </div>
+
+            {/* The stamp rides in the identity column at narrow widths; on
+                desktop it anchors the band's far right instead. */}
+            {profile.admissionNumber && (
+              <AdmissionStamp
+                number={profile.admissionNumber}
+                className="ml-[var(--space-s)] mt-[var(--space-l)] w-fit lg:hidden"
+              />
+            )}
           </FadeRise>
 
           {/* The far-right anchor on wide screens, so the band's right side
@@ -581,12 +639,60 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
 
       {/* ---------------------------------------------------------- *
        *  BODY. Asymmetric two columns on desktop, tabs on the left.
-       *  On mobile the rail simply falls under the panel, in order,
-       *  because it is next in the DOM. The desktop top margin clears
-       *  the plate's overhang (see PhotoPlate).
+       *
+       *  The rail comes FIRST in the DOM, which is the mobile order: the
+       *  facts a visitor came for (batch, years, cities) before several
+       *  paragraphs of prose. Desktop then puts it back on the right
+       *  with explicit row/column placement, so the two layouts are
+       *  genuinely different rather than one stack reflowed.
+       *
+       *  The desktop top margin clears the plate's overhang (see
+       *  PhotoPlate).
        * ---------------------------------------------------------- */}
       <div className="mt-[var(--space-l)] grid grid-cols-1 items-start gap-[var(--space-l)] sm:mt-[var(--space-xl)] lg:mt-[var(--space-xxl)] lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-[var(--space-xl)]">
-        <div className="min-w-0">
+        {/* Rail. Sticky, never an internal scroller: it stays put while the
+            page scrolls past it and it never eats the wheel. */}
+        <aside className="flex flex-col gap-[var(--space-l)] lg:sticky lg:top-[var(--space-l)] lg:col-start-2 lg:row-start-1 lg:self-start">
+          <RailCard title="The record">
+            {/* Batch and the years in the valley, and nothing else. No entry
+                grade, no "started in": a batch and a span of years already
+                say everything the record has to say. */}
+            <div className="grid grid-cols-2 gap-x-[var(--space-m)] gap-y-[var(--space-l)]">
+              {batch && <Fact label="Batch" value={batch} />}
+              {years && <Fact label="In the valley" value={years} />}
+              {city && <Fact className="col-span-2" label={city.label} value={city.value} />}
+            </div>
+          </RailCard>
+
+          {/* The one thing the rail can say that the tabs cannot: what the
+              most recent letter actually IS. A second card of "Posts 5,
+              Letters 1" buttons used to live here and was struck: on a phone
+              it landed directly above a tab strip already reading POSTS 5,
+              LETTERS 1. */}
+          {latestLetter && (
+            <RailCard title="Latest letter">
+              <button
+                type="button"
+                onClick={() => setTab("letters")}
+                className="w-full rounded-[var(--radius-md)] border border-border bg-mist/60 p-3.5 text-left transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+              >
+                <span className="block text-[15px] font-semibold leading-snug text-foreground">
+                  {latestLetter.title}
+                </span>
+                <span className="mt-[var(--space-xs)] block text-[12.5px] text-muted-foreground">
+                  {formatDate(latestLetter.createdAt)}, {readMinutes(latestLetter.content)} min read
+                </span>
+              </button>
+              <p className="mt-[var(--space-s)] text-[12.5px] leading-[1.6] text-muted-foreground">
+                {letters.length === 1
+                  ? `The only letter ${firstName} has written here.`
+                  : `One of ${letters.length} letters ${firstName} has written here.`}
+              </p>
+            </RailCard>
+          )}
+        </aside>
+
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <div
             role="tablist"
             aria-label="Profile sections"
@@ -617,48 +723,19 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
                       {profile.about}
                     </p>
 
-                    <div className="my-[var(--space-l)] border-t border-border sm:my-[var(--space-xl)]" />
-
-                    {/* The facts live here, in the default tab, and nowhere
-                        else: the band already carries the years and the
-                        admission number, so nothing on this page is printed
-                        twice. */}
-                    <div className="grid grid-cols-2 gap-[var(--space-l)] sm:grid-cols-3">
-                      <Fact label="Lives in" value={profile.currentCity} />
-                      {profile.secondaryCity && (
-                        <Fact label="Also in" value={profile.secondaryCity} />
-                      )}
-                      {/* The longest value gets the full row on a phone, so
-                          the two-column grid never leaves one cell four
-                          lines tall beside a one-line neighbour. */}
-                      {profile.jobTitle && (
-                        <Fact
-                          className="col-span-2 sm:col-span-1"
-                          label="Work"
-                          value={
-                            profile.workplace
-                              ? `${profile.jobTitle} at ${profile.workplace}`
-                              : profile.jobTitle
-                          }
-                        />
-                      )}
-                      {profile.gradeJoined && (
-                        <Fact label="Started in" value={`Grade ${profile.gradeJoined}`} />
-                      )}
-                      {batch && <Fact label="Batch" value={batch} />}
-
-                      {/* Houses: one more fact, under the same small label as
-                          the rest, using the shipped pills. Deliberately not a
-                          heading, not a subtitle, not a section. */}
-                      {profile.houses.length > 0 && (
-                        <div className="col-span-2 min-w-0 sm:col-span-3">
-                          <Eyebrow className="text-canopy/80">Houses</Eyebrow>
-                          <div className="mt-[var(--space-s)]">
-                            <HousesTrail houses={profile.houses} />
-                          </div>
+                    {/* Houses: a small label and the shipped pills, at the
+                        foot of the prose. Deliberately not a heading, not a
+                        subtitle, not a band. The trail sizes itself, so it is
+                        rendered bare: no wrapper width, no re-spacing. */}
+                    {profile.houses.length > 0 && (
+                      <>
+                        <div className="my-[var(--space-l)] border-t border-border sm:my-[var(--space-xl)]" />
+                        <Eyebrow className="text-canopy/80">Houses</Eyebrow>
+                        <div className="mt-[var(--space-s)]">
+                          <HousesTrail houses={profile.houses} />
                         </div>
-                      )}
-                    </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -669,63 +746,6 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
             </div>
           </div>
         </div>
-
-        {/* Rail. Sticky, never an internal scroller: it stays put while the
-            page scrolls past it and it never eats the wheel. */}
-        <aside className="flex flex-col gap-[var(--space-l)] lg:sticky lg:top-[var(--space-l)] lg:self-start">
-          <RailCard title="Find them">
-            <div className="flex flex-col gap-2">
-              {profile.links.map((link) => {
-                const Icon = link.kind === "instagram" ? Instagram : Linkedin;
-                return (
-                  <a
-                    key={link.kind}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex min-w-0 items-center gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
-                  >
-                    <Icon className="h-[17px] w-[17px] shrink-0 text-cinnamon" aria-hidden />
-                    <span className="min-w-0">
-                      <span className="block text-[13.5px] font-semibold text-foreground">
-                        {link.label}
-                      </span>
-                      <span className="block truncate text-[12.5px] text-muted-foreground">
-                        {link.handle}
-                      </span>
-                    </span>
-                  </a>
-                );
-              })}
-            </div>
-          </RailCard>
-
-          <RailCard title="Posts and letters">
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => setTab("posts")}
-                className="flex items-baseline justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-canopy/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
-              >
-                <span className="text-[13.5px] font-semibold text-foreground">Posts</span>
-                <span className="text-[15px] font-bold tabular-nums text-canopy">{posts.length}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("letters")}
-                className="flex items-baseline justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-mist/60 px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
-              >
-                <span className="text-[13.5px] font-semibold text-foreground">Letters</span>
-                <span className="text-[15px] font-bold tabular-nums text-cinnamon">
-                  {letters.length}
-                </span>
-              </button>
-              <p className="mt-[var(--space-xxs)] text-[12.5px] leading-[1.6] text-muted-foreground">
-                Everything {firstName} has written here, newest first.
-              </p>
-            </div>
-          </RailCard>
-        </aside>
       </div>
     </div>
   );
