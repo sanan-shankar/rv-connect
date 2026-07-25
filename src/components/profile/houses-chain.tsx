@@ -144,7 +144,18 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
               {row.map((span, i) => {
                 const absolute = rowIndex * cols + i;
                 return (
-                  <span key={`${span.house}-${span.fromYear}`} className="flex shrink-0 items-center gap-1">
+                  // The wrapper bundles a pill with the arrow that LEAVES it,
+                  // so it has to be reversed alongside the row. Without this the
+                  // row reversed but each pill+arrow pair did not, so on a
+                  // right-to-left row every arrow painted on its pill's right,
+                  // which is the side it just came FROM: the first visual pair
+                  // got no arrow between them and the final arrow dangled off
+                  // the row's right edge pointing at nothing. That dangling
+                  // arrow is the precise thing the serpentine exists to kill.
+                  <span
+                    key={`${span.house}-${span.fromYear}`}
+                    className={cn("flex shrink-0 items-center gap-1", backwards && "flex-row-reverse")}
+                  >
                     <motion.span
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}

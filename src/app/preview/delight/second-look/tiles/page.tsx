@@ -17,12 +17,16 @@ import {
 } from "./_specimens";
 
 /* Heights of the proposed specimens, measured off this page in the browser
-   rather than estimated, same method as the shipped numbers in `M`. */
+   with getBoundingClientRect rather than estimated, same method as the
+   shipped numbers in `M`. The shipped mocks below reproduce their live
+   heights exactly: the Catch-ups column renders 512.3px here and 512.3px on
+   /catchups, and each letter card renders 224.9px in both places. */
 const NEW = {
-  catchupInset: 0,
-  lettersRuled: 0,
-  settingsInset: 0,
-  settingsShipped: 0,
+  catchupInset: 251,
+  lettersRuled: 451.8,
+  lettersShipped2: 465.8,
+  settingsInset: 431.5,
+  settingsShipped: 721.5,
 };
 
 export default function TilesRoom() {
@@ -37,7 +41,7 @@ export default function TilesRoom() {
           { n: "0 of 4", of: "gates a settings field group passes. It is drawn in eight stacked cards." },
           { n: "91.3px", of: "the height of all five Catch-up tiles. Identical to the decimal. Three of them say nothing has happened." },
           { n: "224.9px", of: "the height of all six letter cards. 36% of that is the letter; the rest is chrome." },
-          { n: "1", of: "place where the right pattern is already built: the Catch-ups rail, 30px to the right of the column that needed it.", tone: "plain" },
+          { n: "2", of: "places where the ruled-list pattern is already built and working. Both are in a 318px rail. Neither is in the column that needed it.", tone: "plain" },
         ]}
       >
         <p>
@@ -94,7 +98,8 @@ export default function TilesRoom() {
             <p className="mt-1.5 max-w-[66ch] text-[15px] leading-[1.7]">
               Does this item sit next to an item of a <b>different kind</b>? Boxes separate unlike
               things. Twelve boxes around twelve like things is what Dave Rupert named the{" "}
-              <b>hierarchy arms race</b> in &quot;Pitfalls of Card UIs&quot;: &quot;Once something is
+              <b>hierarchy arms race</b>{" "}
+              in &quot;Pitfalls of Card UIs&quot;: &quot;Once something is
               a card, it has a border, now everything else craves a border. Over a few iterations,
               everything becomes a card. A line gives prominence. Now everything wants
               prominence.&quot; The currency inflates until a border means nothing.
@@ -162,7 +167,8 @@ export default function TilesRoom() {
 
       <p className="mb-7 max-w-[72ch] text-[15px] leading-[1.7]">
         The cost of a border is linear in the count. The value is not: it collapses, because a
-        boundary is a <b>difference</b> signal and identical neighbours have no difference to signal.
+        boundary is a <b>difference</b>{" "}
+        signal and identical neighbours have no difference to signal.
         One card on a page is almost always right. Card 37 of 40 identical items is almost always
         wrong. NN/g measured the consequence: a vertical list &quot;is more scannable than cards
         because the positioning of the individual elements is fixed in size and more predictable for
@@ -191,9 +197,13 @@ export default function TilesRoom() {
         thirty years old because it works.
       </p>
       <p className="mt-3 max-w-[72ch] text-[15px] leading-[1.7]">
-        You do not have to take my word for it, because this app already contains a correct
-        implementation. It is called Fresh off the press, it lives in the Catch-ups rail, and it sits
-        30px to the right of the column that needed it.
+        You do not have to take my word for it, because this app already contains two correct
+        implementations. Both are one line of Tailwind:{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">
+          [&amp;&gt;a+a]:border-t [&amp;&gt;*:last-child]:pb-0
+        </code>{" "}
+        in Fresh off the press, and the same shape in the feed rail&apos;s New in the directory. One
+        of them sits 30px to the right of the column this room is about.
       </p>
 
       {/* ============================================================ */}
@@ -204,7 +214,7 @@ export default function TilesRoom() {
         one carries a group name, one row of bird avatars, <b>one status line</b>, and one pill.
         Three of the five say &quot;No Catch-up here yet&quot; and get exactly the same 91.3px, the
         same border, the same elevation and the same button prominence as the two with a live Round.
-        The page spends 60% of its main column telling you that nothing has happened in three places.
+        That is <b>273.9px of the 512.3px column</b> spent saying that nothing has happened.
       </p>
       <p className="mb-7 max-w-[72ch] text-[15px] leading-[1.7]">
         Meanwhile the 318px rail on the right renders the <b>same two published Rounds</b> with
@@ -229,21 +239,24 @@ export default function TilesRoom() {
           firstCol="30%"
           cols={["", "The 764px column", "The 318px rail"]}
           rows={[
-            { k: "Width", v: ["764px", "318px"], bad: [0], good: [1] },
-            { k: "Height for two published Rounds", v: ["182.6px", "185.9px"] },
-            { k: "Area for two published Rounds", v: ["139,506px²", "52,796px²"], bad: [0], good: [1] },
+            { k: "Width", v: ["764px", "318px"] },
+            { k: "Height used by the two published Rounds", v: ["182.6px", "185.9px"] },
+            { k: "Area used", v: ["139,506px²", "59,116px²"], bad: [0], good: [1] },
             {
               k: "Facts carried per Round",
-              v: ["group, avatars, one status line", "group, Round number, date, a quoted line, contributor count"],
+              v: [
+                "3: group, avatars, one status line",
+                "5: group, Round number, date, a quoted line, contributor count",
+              ],
               bad: [0],
               good: [1],
             },
-            { k: "Area per fact", v: ["23,251px²", "5,280px²"], bad: [0], good: [1] },
-            { k: "Rows spent on groups with no Catch-up", v: ["3 of 5, at 91.3px each", "0"], bad: [0], good: [1] },
+            { k: "Area per fact", v: ["23,251px²", "5,912px²"], bad: [0], good: [1] },
+            { k: "Space spent on groups with no Catch-up", v: ["273.9px, 3 rows of 5", "0px"], bad: [0], good: [1] },
           ]}
         />
         <p className="mt-3 text-[13px] leading-[1.6] text-muted-foreground">
-          Areas are width x measured height. The rail delivers a Round in <b>4.4x less area</b> than
+          Areas are width times measured height. The rail spends <b>3.9x less area per fact</b> than
           the column beside it, and the column is the one with 764px to play with.
         </p>
       </div>
@@ -252,7 +265,7 @@ export default function TilesRoom() {
         <Mount
           tone="pick"
           label="Proposed · inset-grouped list"
-          note="One container. A section header outside it. Hairline rows inside. Live Rounds get the state expressed; the three dormant groups collapse to one line of chips."
+          note="251px against 512.3px, a 51% saving, while carrying five facts per Round instead of three. One container, a header outside it, hairline rows inside. The three dormant groups collapse to one line of chips."
         >
           <div className="overflow-x-auto">
             <div className="flex gap-4" style={{ minWidth: 764 + 62 }}>
@@ -269,7 +282,7 @@ export default function TilesRoom() {
       <Rule>Surface two · the Letters index</Rule>
 
       <p className="mb-6 max-w-[72ch] text-[15px] leading-[1.7]">
-        Six letters, six cards, every one of them <b>224.9px</b> tall on a 240.8px pitch. Not
+        Six letters, six cards, every one of them <b>224.9px</b> tall on a 240.9px pitch. Not
         approximately: all six measured identical, because the title is cut at 80 characters and the
         preview is <code className="rounded bg-mist px-1.5 py-0.5 text-[13px]">line-clamp-2</code>.
         The layout deletes the variation that would have justified the box, then keeps the box.
@@ -312,15 +325,18 @@ export default function TilesRoom() {
             { k: "Card padding", v: ["40px"], flag: "bad" },
             { k: "Internal gaps", v: ["31.9px"], flag: "bad" },
             { k: "Gap to the next card", v: ["15.9px"], flag: "bad" },
-            { k: "Pitch per letter", v: ["240.8px"] },
+            { k: "Pitch per letter", v: ["240.9px"] },
           ]}
         />
       </div>
 
-      <Mount tone="shipped" note="Two letters, true scale, 768px wide. This is the whole of the first screen.">
+      <Mount
+        tone="shipped"
+        note="Two letters, true scale, 768px wide. Both cards render 224.9px here and 224.9px on /letters."
+      >
         <div className="overflow-x-auto">
           <div className="flex gap-4" style={{ minWidth: 768 + 62 }}>
-            <Measure n={`${M.letterCard * 2 + 16}px`} />
+            <Measure n={`${NEW.lettersShipped2}px`} />
             <LettersShipped n={2} />
           </div>
         </div>
@@ -330,12 +346,15 @@ export default function TilesRoom() {
         <Mount
           tone="pick"
           label="Proposed · editorial ruled index"
-          note="No boxes. The kicker appears only where it varies, the headline size varies with importance, the author leads the dateline, and a hairline does the separating."
+          note="All six letters in 451.8px. The shipped index spends 465.8px on two. No boxes: the kicker appears only where it varies, the headline size carries rank, the author leads the dateline, a hairline separates."
         >
           <div className="overflow-x-auto">
             <div className="flex gap-4" style={{ minWidth: 768 + 62 }}>
               <Measure n={`${NEW.lettersRuled}px`} tone="good" />
-              <Ghost at={M.letterCard * 2 + 16} label={`two shipped cards end here, ${M.letterCard * 2 + 16}px`}>
+              <Ghost
+                at={NEW.lettersShipped2}
+                label={`the shipped index has managed two letters by here, ${NEW.lettersShipped2}px`}
+              >
                 <LettersRuled />
               </Ghost>
             </div>
@@ -344,11 +363,12 @@ export default function TilesRoom() {
       </div>
 
       <p className="mt-6 max-w-[72ch] text-[15px] leading-[1.7]">
-        Same six letters, same information, and the lead can now be visibly the lead. Three things
-        changed and none of them is decoration. The kicker went from a label that never varies
-        (LETTER) to one that does (a city scope, a tribute). The headline got a size that carries
-        rank. The byline moved from the bottom of a box to the top of the entry, where an index puts
-        it.
+        <b>451.8px for six, against 465.8px for two.</b> Same information, and the lead can now be
+        visibly the lead: 27px for the piece of the month, 19px for the runner-up, 17px for the rest.
+        Three things changed and none of them is decoration. The kicker went from a label that never
+        varies (LETTER) to one that does (a city scope, a tribute). The headline got a size that
+        carries rank. The byline moved from the bottom of a box to the entry itself, where an index
+        puts it.
       </p>
 
       {/* ============================================================ */}
@@ -396,7 +416,10 @@ export default function TilesRoom() {
       </Bench>
 
       <div className="mt-9 grid gap-6 xl:grid-cols-2">
-        <Mount tone="shipped" note="Two of the eight cards, true scale. Note the two same-colour boxes inside You.">
+        <Mount
+          tone="shipped"
+          note="Two of the eight groups, true scale. The two boxes inside You are the same colour as You."
+        >
           <div className="overflow-x-auto">
             <div className="flex gap-4" style={{ minWidth: 768 + 62 }}>
               <Measure n={`${NEW.settingsShipped}px`} />
@@ -407,7 +430,7 @@ export default function TilesRoom() {
         <Mount
           tone="pick"
           label="Proposed · inset-grouped"
-          note="Group label outside the container. One row per field, label left, control right, hairline between. No nested surfaces at all."
+          note="The same two groups in 431.5px against 721.5px, a 40% saving. Group label outside the container, one hairline row per field, label left and control right."
         >
           <div className="overflow-x-auto">
             <div className="flex gap-4" style={{ minWidth: 768 + 62 }}>
@@ -442,15 +465,22 @@ export default function TilesRoom() {
             What the inset-grouped version actually fixes
           </h3>
           <ul className="ml-5 mt-2 max-w-[62ch] list-disc space-y-1.5 text-[14.5px] leading-[1.6] marker:text-muted-foreground">
-            <li>Nested surfaces go from 11 to 0. The two invisible boxes in You are just rows.</li>
-            <li>Every radius in the tree now descends: 16, then 12 for an input, then a circle.</li>
             <li>
-              Labels get a shared left edge and a fixed 168px column, so the eye scans one line
-              instead of eleven stacked blocks.
+              <b>721.5px becomes 431.5px</b> for the two groups shown, a 40% saving, with nothing
+              removed.
             </li>
             <li>
-              The group title leaves the card, which removes the header band from every group and
-              lets the container start at the first real row.
+              Nested surfaces in those two groups go from three to zero. The Houses group, not shown,
+              holds nine more at 20.8px inside a 20.8px card.
+            </li>
+            <li>Every radius now descends: 16 for the container, 12 for an input, then a circle.</li>
+            <li>
+              Labels get a shared left edge in a fixed 168px column, so the eye reads one line per
+              field instead of a stack of label-above-input blocks.
+            </li>
+            <li>
+              The group title leaves the container, which deletes the header band from all eight
+              groups and lets the container start at its first real row.
             </li>
           </ul>
         </div>

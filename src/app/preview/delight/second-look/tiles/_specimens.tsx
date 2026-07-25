@@ -27,9 +27,9 @@ export const M = {
   railCard: 239.7,
   railRows: [88.3, 97.6],
   letterCard: 224.9,
-  letterPitch: 240.8,
+  letterPitch: 240.9,
   letterCount: 6,
-  letterColumn: 1444.8, // 6 * 240.8
+  letterColumn: 1444.8, // 6 * 240.9
   settingsDoc: 3092,
   settingsCards: 8,
   dirCard: 183.8,
@@ -45,26 +45,36 @@ export const M = {
 export function Measure({
   n,
   tone = "bad",
+  slim = false,
 }: {
-  n: string;
+  n?: string;
   tone?: "bad" | "good" | "plain";
+  /** rule and ticks only, 12px wide, for specimens that need the horizontal room */
+  slim?: boolean;
 }) {
   const c =
     tone === "good" ? "text-leaf" : tone === "plain" ? "text-muted-foreground" : "text-cinnamon";
   const bg = tone === "good" ? "bg-leaf" : tone === "plain" ? "bg-muted-foreground" : "bg-cinnamon";
   return (
-    <div className="relative flex w-[62px] shrink-0 items-center justify-end pr-3">
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center justify-end",
+        slim ? "w-3 pr-1.5" : "w-[62px] pr-3",
+      )}
+    >
       <span className={cn("absolute right-0 top-0 bottom-0 w-px opacity-45", bg)} />
       <span className={cn("absolute right-0 top-0 h-px w-2.5", bg)} />
       <span className={cn("absolute right-0 bottom-0 h-px w-2.5", bg)} />
-      <span
-        className={cn(
-          "relative z-10 bg-mist px-1 text-[11px] font-bold tabular-nums leading-none",
-          c,
-        )}
-      >
-        {n}
-      </span>
+      {!slim && n && (
+        <span
+          className={cn(
+            "relative z-10 bg-mist px-1 text-[11px] font-bold tabular-nums leading-none",
+            c,
+          )}
+        >
+          {n}
+        </span>
+      )}
     </div>
   );
 }
@@ -73,10 +83,13 @@ export function Measure({
 export function Ghost({
   at,
   label,
+  right,
   children,
 }: {
   at: number;
   label: string;
+  /** the saving, printed at the far end of the same line */
+  right?: string;
   children: ReactNode;
 }) {
   return (
@@ -87,6 +100,9 @@ export function Ghost({
         style={{ top: at }}
       >
         <span className="absolute left-0 top-1.5 text-[11px] font-bold text-cinnamon">{label}</span>
+        {right && (
+          <span className="absolute right-0 top-1.5 text-[11px] font-bold text-leaf">{right}</span>
+        )}
       </div>
     </div>
   );
@@ -342,7 +358,7 @@ export const LETTERS: L[] = [
   },
   {
     title: "My Own Self-Created Mt Kailash",
-    deck: "Thirty years after leaving, a long walk in Uttarakhand kept turning back into a walk down the avenue of tamarinds.",
+    deck: "Thirty years after leaving, a long walk in Uttarakhand kept turning back into a walk down the avenue of tamarinds, and I gave up pretending the two were separate trips.",
     who: "Vedant Srihari",
     batch: "Batch of '94",
     date: "9 Jul 2026",
@@ -430,7 +446,7 @@ export function LettersRuled() {
             {lead.kicker}
           </div>
         )}
-        <h2 className="max-w-[24ch] font-heading text-[27px] font-bold leading-[1.14] tracking-[-0.02em] text-foreground">
+        <h2 className="max-w-[42ch] font-heading text-[27px] font-bold leading-[1.14] tracking-[-0.02em] text-foreground">
           <a
             href="#lead"
             onClick={(e) => e.preventDefault()}
@@ -439,7 +455,7 @@ export function LettersRuled() {
             {lead.title}
           </a>
         </h2>
-        <p className="mt-1.5 max-w-[62ch] text-[14.5px] leading-[1.5] text-muted-foreground">
+        <p className="mt-1.5 max-w-[78ch] text-[14.5px] leading-[1.5] text-muted-foreground">
           {lead.deck}
         </p>
         <p className="mt-2 text-[12px] leading-none text-muted-foreground">
