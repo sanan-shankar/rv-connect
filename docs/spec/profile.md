@@ -1,5 +1,34 @@
 # Spec: profile
 
+> **THE SHIPPED PROFILE IS REJECTED, 2026-07-25. Read `docs/planning/profile-concepts-brief.md`
+> before doing any profile work.**
+>
+> The owner's verdict on the page this spec produced: "the profile version we have is like the
+> main reason I feel like I can't ship this", and on being asked what to build instead, "I am
+> actually stumped, I can tell you what I like and what I don't like". Three fresh concepts are
+> in `/preview/delight/profiles` (`passport`, `broadsheet`, `terrace`); the brief above is the
+> rule set they were built to.
+>
+> Specific reversals against what is written below and what shipped:
+> - The decorative leaf watermark is out. ("Everyone hated that.")
+> - No dashed or dotted rules anywhere on the profile.
+> - No gradient fade from the header photo into the card. ("A definite no-go.")
+> - The header photo must not be a magnified sliver. The shipped band is ~6.4:1 over a 3:2 or
+>   1:1 source, showing roughly a quarter of the frame at about 5x. Give the picture a frame
+>   whose aspect is close to the source, and set an explicit `object-position`.
+> - Email and phone must NOT sit next to the name. They belong behind "Get in touch".
+> - Valley years render as `2014-2023`. Never append a year count.
+> - **About is the first and default tab**, not Posts.
+> - Hover never moves a control anywhere in the app. Colour change only.
+> - The houses chain must hold ten houses. When it wraps, it now runs as a serpentine with a
+>   180 turn at each row end, so no arrow ever points into empty space (the owner's own idea).
+>   Reference implementation: `src/app/preview/delight/profiles/_houses-trail.tsx`.
+> - No dead white space at 1440 or 1920, and a clear reading order at 390.
+>
+> Still binding: the CTA decisions in section 3, the admission-number privacy question in
+> section 4 (note the owner has since treated it as public but understated), the contact-link
+> model in section 5, and the guardrails in section 13.
+
 I now have everything I need. I have grounded the spec in the real schema (no `house`, no `avatarImage`, no teacher/memory/verified fields exist yet), the real profile page, the directory card, the shared `UserAvatar`, `formatBatch`, `PostCard`, and the locked v2 preview. Here is the spec.
 
 ---
