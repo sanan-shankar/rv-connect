@@ -142,6 +142,22 @@ export function restoreAllYearRows(
   return [...rows, ...gaps.map((year) => ({ year, houses: [] }))].sort((a, b) => a.year - b.year);
 }
 
+/**
+ * Split a list into fixed-size rows, for the houses trail's serpentine layout.
+ *
+ * The trail cannot use `flex-wrap`: a wrapped row's membership is only knowable
+ * after layout, but each row's DIRECTION (and which edge its U-turn sits on)
+ * has to be decided before render. So the column count is explicit per
+ * breakpoint and the rows are chunked here. Pure, so both the app chain and the
+ * preview concepts share exactly one definition of "what is a row".
+ */
+export function chunkRows<T>(items: T[], size: number): T[][] {
+  if (size < 1) return [items];
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
+  return rows;
+}
+
 /** Parse the raw `houses` JSON and collapse same-house runs into year spans. */
 export function parseHouseSpans(raw: string | null | undefined): HouseSpan[] {
   const entries = parseHouseYearEntries(raw);
