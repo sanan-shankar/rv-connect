@@ -31,6 +31,24 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(target, 308);
   }
 
+  // Check for NextAuth session cookie (lightweight check — actual session
+  // validation happens server-side in the layout)
+  const sessionCookie =
+    request.cookies.get("authjs.session-token") ||
+    request.cookies.get("__Secure-authjs.session-token");
+
+  // Signed-in visitors typing the bare domain want the app, not the sales
+  // pitch. Handled here rather than in `app/page.tsx` so the landing page
+  // stays statically rendered for logged-out visitors: calling `auth()` in
+  // the page would opt the whole route into dynamic rendering for everyone.
+  //
+  // A stale cookie sends them "/" -> "/feed" -> "/login" (the (main) layout
+  // does the real session check). That chain is self-correcting and lands
+  // them exactly where a logged-out visitor to "/feed" belongs anyway.
+  if (pathname === "/" && sessionCookie) {
+    return NextResponse.redirect(new URL("/feed", request.url));
+  }
+
   // Public routes that don't require auth
   // NOTE: "/preview" is temporary — design-direction mockups; remove before shipping.
   const publicPaths = ["/", "/login", "/signup", "/api/auth", "/preview"];
@@ -41,12 +59,6 @@ export function proxy(request: NextRequest) {
   if (isPublic) {
     return NextResponse.next();
   }
-
-  // Check for NextAuth session cookie (lightweight check — actual session
-  // validation happens server-side in the layout)
-  const sessionCookie =
-    request.cookies.get("authjs.session-token") ||
-    request.cookies.get("__Secure-authjs.session-token");
 
   if (!sessionCookie) {
     const loginUrl = new URL("/login", request.url);
