@@ -33,8 +33,9 @@ as an owner-only tab on your own profile (`src/components/profile/saved-posts-fe
 standalone `/saved` route was deliberately not built), and the support page now describes
 Vercel/Supabase/R2. Item 1 and item 8 from the 2026-07-03/04 batch closed overnight on 2026-07-05/06
 (see Settled). Round 6 (2026-07-18) closed item 10 (houses localStorage fallback) outright and
-narrowed item 4 down to just the outstanding UPI handle confirmation (see Settled for both). What
-remains below is current.
+narrowed item 4 down to just the outstanding UPI handle confirmation (see Settled for both). Item 4
+then closed on 2026-07-24 when the real handle and real scannable QR codes shipped (see Settled).
+What remains below is current.
 
 ### 2. Collection landing screenshot is stale
 `public/images/landing/collection.webp` still shows the pre-redesign UI because the Photo table has
@@ -52,13 +53,6 @@ unrelated features (secondary city, delete-user, map zoom) and the trims were no
 The `create-post-form.tsx` More-options item is moot: that composer was rebuilt overnight
 (staged-reveal, `96f7ae3`) and More is now a plain unboxed plus, not a pill.
 - Size: tiny.
-
-### 4. UPI handle confirmation still pending (owner action)
-The support page rework shipped in round 6 (`42614eb`, see Settled), but `UPI_ID = "rvalumni@upi"`
-in `support-contribute.tsx` is still placeholder data (flagged with a `TODO(owner)` comment in the
-file). The owner must confirm the real handle before launch; `PAYEE_NAME` "Rishi Valley" is the
-payment-facing account name and stays as data.
-- Size: tiny, owner confirmation only.
 
 ### 5. No desktop notifications affordance outside the feed
 Pre-existing: Directory/Groups/Letters/Collection/Catch-ups never pass `unreadCount` to their
@@ -197,10 +191,24 @@ so a future session does not "fix" one of these back to a state the owner delibe
   carries the owner-confirmed canonical 22-house list. Settings' batch field also dropped the retired
   grade-joined path in the same round (`6576aaf`).
 - Support page rewritten in rupees, round 6 (`42614eb`): the stale "Sign-in links and invites" Email
-  cost row is gone (no real email-sending infra to attach a cost to), the cost bar uses the brand
-  palette, and contribution is one-time-only presets (₹200/₹500/₹1,000/₹2,000/₹5,000, no monthly
-  ₹20). Do not reintroduce a monthly UPI amount or the old Render-era cost line. UPI handle
-  confirmation is still open, see Open #4.
+  cost row is gone (no real email-sending infra to attach a cost to), and the cost bar uses the brand
+  palette. Contribution is one-time-only presets, no monthly ₹20. Do not reintroduce a monthly UPI
+  amount or the old Render-era cost line.
+- UPI handle confirmed and wired, 2026-07-24 (`1f549b3`, closes the old Open #4): `UPI_ID` is the
+  owner's real handle and the placeholder `rvalumni@upi` is gone. The QR codes are now real and
+  scannable, generated and decode-verified by `scripts/gen-support-qr.mjs` (one SVG per amount, so
+  scanning prefills that amount); the old hand-drawn `support-qr-placeholder.svg` encoded nothing and
+  was deleted. `PAYEE_NAME` stays "Rishi Valley", which is also what a payer sees when they scan, so
+  the owner's personal name appears nowhere. The copyable UPI-ID text was deliberately removed from
+  the page for the same reason (the real handle contains the owner's name): people scan the QR or tap
+  the deep-link button. Do not print the UPI ID back onto the page.
+- Support amounts are ₹500/₹1,000/₹2,000/₹5,000 plus "Other", defaulting to ₹1,000 (2026-07-24, owner
+  decision). ₹200 was deliberately dropped; do not reintroduce it.
+- The one-time build cost is published as a fundraiser bar (2026-07-24, owner decision): ₹4,00,000
+  goal, in `BuildFundBar` (`cost-bar.tsx`). The amount recovered is a hand-maintained constant
+  (`BUILD_RECOVERED`) because nothing tracks UPI contributions automatically. The page no longer says
+  the build cost is withheld. Monthly costs are hosting ₹1,950, photos under ₹100, and domain ₹250 a
+  month; the domain is billed monthly now and sits inside the bar, not as a separate yearly pill.
 - Filters rework shipped for Directory and Collection, round 6 (`180968d` + follow-ups): the old
   all/all/all unlabeled-select bars are gone, replaced by a shared facet-filter pill system
   (`src/lib/directory-facets.ts`, `src/lib/collection-facets.ts`,
