@@ -21,12 +21,12 @@ import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useSoloHoopoe } from "@/components/mascot/moments/moment-hoopoe";
 
 export function GroupFirstGuidance({
-  primaryHref = "/groups",
-  primaryLabel = "Find a group",
-  primaryIcon: PrimaryIcon = Users,
-  secondaryHref = "/groups/new",
-  secondaryLabel = "Create a group",
-  secondaryIcon: SecondaryIcon = Plus,
+  primaryHref = "/catchups/new",
+  primaryLabel = "Start a Catch-up",
+  primaryIcon: PrimaryIcon = Plus,
+  secondaryHref = "/directory",
+  secondaryLabel = "Find people",
+  secondaryIcon: SecondaryIcon = Users,
 }: {
   primaryHref?: string;
   primaryLabel?: string;
@@ -55,10 +55,10 @@ export function GroupFirstGuidance({
       )}
 
       {/* No sub-copy under this heading: the two buttons below are the
-          instruction, so a line telling you to join or create a group would
-          only say what they already say. */}
+          instruction, so a line telling you to start one would only say what
+          they already say. */}
       <h2 className="relative max-w-md font-heading text-xl font-semibold tracking-tight text-foreground">
-        A Catch-up lives inside a group
+        You are not in a Catch-up yet
       </h2>
 
       <div className="relative flex flex-wrap items-center justify-center gap-3">

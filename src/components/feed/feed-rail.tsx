@@ -1,7 +1,6 @@
 import { LettersModule } from "./rail/letters-module";
 import { CollectionModule } from "./rail/collection-module";
 import { DirectoryModule } from "./rail/directory-module";
-import { GroupsModule } from "./rail/groups-module";
 import { PulseModule } from "./rail/pulse-module";
 
 /**
@@ -13,8 +12,7 @@ import { PulseModule } from "./rail/pulse-module";
  *   1. This week in Letters
  *   2. From the Collection
  *   3. New in the directory
- *   4. Your groups
- *   5. Signs of life (last, and only when the week is genuinely alive)
+ *   4. Signs of life (last, and only when the week is genuinely alive)
  */
 export async function FeedRail({ userId }: { userId: string }) {
   return (
@@ -23,7 +21,6 @@ export async function FeedRail({ userId }: { userId: string }) {
         <LettersModule />
         <CollectionModule />
         <DirectoryModule userId={userId} />
-        <GroupsModule userId={userId} />
         <PulseModule />
       </div>
     </div>
