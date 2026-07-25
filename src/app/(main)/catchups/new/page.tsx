@@ -1,103 +1,47 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
-import { GroupFirstGuidance } from "@/components/catchups/index/group-first-guidance";
-import { Plus, Users } from "lucide-react";
-import { GroupPicker, type PickableGroup, type ExistingGroupCatchup } from "@/components/catchups/create/group-picker";
 import { CreateCatchupForm } from "@/components/catchups/create/create-catchup-form";
 import { CADENCE_LABELS, isMissingCatchupTable } from "@/lib/catchups";
-import type { CatchupPersonRef } from "@/lib/catchups-types";
 
 export const metadata: Metadata = {
   title: "Start a Catch-up",
 };
 
-type LoadResult =
-  | { kind: "guidance" }
-  | { kind: "redirect"; catchupId: string }
-  | { kind: "picker"; groups: PickableGroup[]; existing: ExistingGroupCatchup[] }
-  | {
-      kind: "form";
-      group: { id: string; name: string; members: CatchupPersonRef[] };
-    };
-
 /**
- * A Catch-up can only be created from a group (spec 3.2). This resolves the
- * three entry shapes: no groups at all (guidance), a group already picked
- * via `?group=`, or a picker over the viewer's eligible groups. An invalid
- * or already-claimed `group` param never dead-ends: it either hands off to
- * the existing Catch-up or falls through to the picker/guidance below.
+ * Start a Catch-up.
+ *
+ * Previously this route could only be reached with a group in hand, and it
+ * resolved three shapes: guidance when you had no groups, a group picker, or
+ * the form for an already-chosen group. Groups are now being retired as a
+ * user-facing feature (owner, 2026-07-25), so all three collapse into one
+ * form: name it, pick the people, pick the rhythm. The Group row that still
+ * backs membership underneath is created silently by `createCatchupWithPeople`.
+ *
+ * The only thing loaded here is the viewer's batch year, which seeds both the
+ * suggested name and the "everyone from my batch" shortcut, so the overwhelmingly
+ * common case (a batch Catch-up) takes no typing at all.
  */
-async function loadCreateContext(userId: string, groupParam: string | undefined): Promise<LoadResult> {
-  const memberships = await prisma.groupMember.findMany({
-    where: { userId },
-    select: {
-      group: {
-        select: {
-          id: true,
-          name: true,
-          _count: { select: { members: true } },
-          catchup: { select: { id: true } },
-          members: {
-            take: 4,
-            select: { user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
-          },
-        },
-      },
-    },
-  });
-
-  const allGroups = memberships.map((m) => m.group);
-  if (allGroups.length === 0) return { kind: "guidance" };
-
-  if (groupParam) {
-    const match = allGroups.find((g) => g.id === groupParam);
-    if (match?.catchup) return { kind: "redirect", catchupId: match.catchup.id };
-    if (match) {
-      return {
-        kind: "form",
-        group: {
-          id: match.id,
-          name: match.name,
-          members: match.members.map((m) => m.user),
-        },
-      };
-    }
-    // Not a member of that group (or a stale/bogus id): behave as if no
-    // group param was given at all, below.
-  }
-
-  const eligible: PickableGroup[] = [];
-  const existing: ExistingGroupCatchup[] = [];
-  for (const g of allGroups) {
-    if (g.catchup) existing.push({ id: g.id, name: g.name, catchupId: g.catchup.id });
-    else eligible.push({ id: g.id, name: g.name, memberCount: g._count.members });
-  }
-
-  return { kind: "picker", groups: eligible, existing };
-}
-
-export default async function NewCatchupPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ group?: string }>;
-}) {
+export default async function NewCatchupPage() {
   const session = await auth();
   if (!session?.user) return null;
 
-  const { group: groupParam } = await searchParams;
-
-  let result: LoadResult | null = null;
+  let batchYear: number | null = null;
+  let tableMissing = false;
   try {
-    result = await loadCreateContext(session.user.id, groupParam);
+    const me = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { batchYear: true },
+    });
+    batchYear = me?.batchYear ?? null;
   } catch (err) {
     if (!isMissingCatchupTable(err)) throw err;
+    tableMissing = true;
   }
 
-  if (!result) {
+  if (tableMissing) {
     return (
       <div className="mx-auto max-w-5xl">
         <PageHeader title="Start a Catch-up" />
@@ -106,29 +50,14 @@ export default async function NewCatchupPage({
     );
   }
 
-  // Outside the try/catch on purpose: redirect() throws internally, and that
-  // throw must propagate to Next.js, never be caught by the block above.
-  if (result.kind === "redirect") {
-    redirect(`/catchups/${result.catchupId}`);
-  }
-
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title="Start a Catch-up" />
-      {result.kind === "guidance" && (
-        <GroupFirstGuidance
-          primaryHref="/groups/new"
-          primaryLabel="Create a group"
-          primaryIcon={Plus}
-          secondaryHref="/groups"
-          secondaryLabel="Find a group"
-          secondaryIcon={Users}
-        />
-      )}
-      {result.kind === "picker" && (
-        <GroupPicker groups={result.groups} existingGroups={result.existing} />
-      )}
-      {result.kind === "form" && <CreateCatchupForm group={result.group} cadenceLabels={CADENCE_LABELS} />}
+      <CreateCatchupForm
+        cadenceLabels={CADENCE_LABELS}
+        myBatchYear={batchYear}
+        suggestedName={batchYear ? `Batch of ${batchYear}` : ""}
+      />
     </div>
   );
 }

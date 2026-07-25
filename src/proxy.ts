@@ -49,6 +49,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/feed", request.url));
   }
 
+  // Groups was retired as a user-facing feature (owner, 2026-07-25): a
+  // Catch-up is now started from a set of people, and the Group row survives
+  // only as the hidden membership container underneath. Old links, bookmarks
+  // and notification deep links still exist, so send them somewhere real
+  // rather than to a 404.
+  if (pathname === "/groups" || pathname.startsWith("/groups/")) {
+    return NextResponse.redirect(new URL("/catchups", request.url));
+  }
+
   // Public routes that don't require auth
   // NOTE: "/preview" is temporary — design-direction mockups; remove before shipping.
   const publicPaths = ["/", "/login", "/signup", "/api/auth", "/preview"];

@@ -6,7 +6,6 @@ import { signOut } from "next-auth/react";
 import {
   Newspaper,
   Notebook,
-  Users,
   Images,
   Feather,
   MessagesSquare,
@@ -57,7 +56,6 @@ export interface SidebarUser {
 const NAV = [
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/directory", label: "Directory", icon: Notebook },
-  { href: "/groups", label: "Groups", icon: Users },
   { href: "/collection", label: "Collection", icon: Images },
   { href: "/letters", label: "Letters", icon: Feather },
   { href: "/catchups", label: "Catch-ups", icon: MessagesSquare },

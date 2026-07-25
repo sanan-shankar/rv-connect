@@ -121,6 +121,41 @@ const SCENARIOS = {
     }
   },
 
+  /**
+   * Catch-up creation: search a person by a CAPITALISED first name. That
+   * casing is the exact thing that used to return nothing, because Prisma's
+   * `contains` is case-sensitive on Postgres and the stored name differed in
+   * case. Also exercises the people picker that replaced the group picker.
+   */
+  async create({ page, shot }) {
+    await page.goto(`${BASE}/catchups/new`, { waitUntil: "domcontentloaded" });
+    await sleep(5000);
+    await shot("empty");
+    const input = await page.$('input[aria-label="Search people by name"]');
+    if (!input) throw new Error("people search input not found");
+    await input.click();
+    await input.type("Afya", { delay: 70 });
+    await sleep(7000);
+    await shot("searched");
+    const hits = await page.evaluate(() =>
+      [...document.querySelectorAll("li button")].map((b) => b.textContent.trim()).slice(0, 5)
+    );
+    console.log("RESULTS FOR 'Afya':", JSON.stringify(hits));
+    // The regression this guards: a capitalised query used to return nothing
+    // while a lowercase substring of the same name worked.
+    const casing = await page.evaluate(async () => {
+      const count = async (q) =>
+        (await (await fetch(`/api/users/search?q=${encodeURIComponent(q)}`)).json()).length;
+      return { Afya: await count("Afya"), afya: await count("afya"), fya: await count("fya") };
+    });
+    console.log("CASE CHECK (all three must match):", JSON.stringify(casing));
+    if (hits.length) {
+      await page.evaluate(() => document.querySelector("li button").click());
+      await sleep(1200);
+      await shot("picked");
+    }
+  },
+
   /** Shipped profile: resolve a real member from the directory, then capture it. */
   async profile({ page, shot }) {
     await page.goto(`${BASE}/directory`, { waitUntil: "domcontentloaded" });

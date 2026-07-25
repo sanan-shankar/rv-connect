@@ -14,7 +14,7 @@
  *  Flipping it on later is a one-line change plus the copy below.
  * ------------------------------------------------------------------ */
 
-export type TourStopId = "feed" | "directory" | "collection" | "catchups" | "groups";
+export type TourStopId = "feed" | "directory" | "collection" | "catchups";
 
 export interface TourStop {
   id: TourStopId;
@@ -102,21 +102,8 @@ export const TOUR_STOPS: TourStop[] = [
     title: "Catch-ups",
     body: [
       "A Catch-up is a little group letter that comes around now and then. It happens in three easy steps.",
-      "First, everyone adds a question or two. Then, for a few days, everyone answers. When the window closes, all the answers are gathered into one warm issue the whole group reads together.",
+      "First, everyone adds a question or two. Then, for a few days, everyone answers. When the window closes, all the answers are gathered into one issue the whole group reads.",
       "Ask, answer, read. It is a lovely way to hear from the people you do not speak to every day.",
-    ],
-  },
-  // Reserved slot, disabled in V1 (owner brief: Groups is being reworked
-  // separately). Stub copy only, to be rewritten once that lands.
-  {
-    id: "groups",
-    route: "/groups",
-    spotlight: "groups-primary",
-    enabled: false,
-    title: "Groups",
-    body: [
-      "Groups are the smaller circles inside the valley: your batch, your house, a shared interest. They are where Catch-ups live, and where some conversations feel more at home.",
-      "(We are giving Groups a fresh look, so there will be more to show you here soon.)",
     ],
   },
 ];
