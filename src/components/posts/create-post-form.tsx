@@ -181,9 +181,17 @@ export function CreatePostForm({
   const mentionRangeRef = useRef<Range | null>(null);
 
   const isLetter = kind === "letter";
+  // With a poll attached, this field IS the poll's question: the feed prints
+  // the post body directly above the options, so a second "question" input
+  // would just duplicate `Post.content`. Saying so in the placeholder is what
+  // turns the composer from "here are some options with no question" into a
+  // question followed by its choices.
+  const hasPoll = !isLetter && pollOptions !== null;
   const effectivePlaceholder = isLetter
     ? "Write your letter to the valley. Take your time."
-    : collapsedPlaceholder;
+    : hasPoll
+      ? "Ask your question"
+      : collapsedPlaceholder;
   const hasContent = content.trim().length > 0;
 
   function expand(startKind?: "post" | "letter") {
@@ -746,7 +754,6 @@ export function CreatePostForm({
               "ml-auto shrink-0 px-5 text-sm"
             )}
             animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
-            whileHover={hasContent && !submitting ? { scale: 1.03 } : undefined}
             whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
             transition={SPRINGS.snappy}
           >
