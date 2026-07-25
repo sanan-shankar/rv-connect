@@ -1,12 +1,11 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <AnswerExperience> — the answering screen's shell (spec 3.4, BINDING
- *  shape): a sticky left progress rail + one-prompt-at-a-time main pane on
- *  desktop, a slim sticky progress bar + one-prompt-per-screen stack on
- *  mobile. Owns the per-prompt draft state and the autosave calls; each
- *  child component (AnswerCard / PhotoAttachments / SongAttachment) is
- *  either a dumb controlled view or (song) self-contained.
+ *  <AnswerExperience> — the answering screen's shell: a sticky left
+ *  progress rail + one question at a time on desktop, a slim sticky bar +
+ *  one question per screen on mobile. Owns the per-prompt draft state and
+ *  the autosave calls; each child (AnswerCard, and through it
+ *  PhotoAttachments / SongNameField) is a dumb controlled view.
  *
  *  Motion: transform/opacity only, EASE_SPRING (no layout prop, no CSS
  *  gap animation, no hand-typed cubic-bezier), per the repo's known traps.
@@ -16,12 +15,12 @@ import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
-import { EASE_SPRING, SpringPress } from "@/components/common/motion";
+import { EASE_SPRING } from "@/components/common/motion";
 import { submitEntry } from "@/app/(main)/catchups/actions";
 import { AnswerCard } from "./answer-card";
 import { CompletionCard } from "./completion-card";
 import { MobileProgressBar, ProgressRail } from "./progress-rail";
-import { isMeaningfulEntry, type AnswerEntryDraft, type AnswerPromptData, type SongState } from "./types";
+import { isMeaningfulEntry, type AnswerEntryDraft, type AnswerPromptData } from "./types";
 
 type SaveStatus = "idle" | "saving" | "saved";
 
@@ -29,14 +28,12 @@ export function AnswerExperience({
   catchupId,
   groupName,
   prompts,
-  currentUser,
   othersAnsweredCount,
   clusterPeople,
 }: {
   catchupId: string;
   groupName: string;
   prompts: AnswerPromptData[];
-  currentUser: AvatarUser;
   othersAnsweredCount: number;
   clusterPeople: AvatarUser[];
 }) {
@@ -86,37 +83,36 @@ export function AnswerExperience({
     void persist(promptId, { images });
   }
 
-  function handleSongChange(promptId: string, song: SongState) {
-    updateEntry(promptId, { song });
-    setSaveStatus((s) => ({ ...s, [promptId]: "saved" }));
-  }
-
   const hasAnsweredAny = answeredIds.size > 0;
-  const upcoming = current ? prompts.slice(index + 1, index + 4) : [];
 
   return (
     <div>
       <p className="mb-[var(--space-l)] flex flex-wrap items-center gap-2 text-left text-sm text-muted-foreground">
-        {hasAnsweredAny ? (
-          <>
-            {clusterPeople.length > 0 && (
-              <span className="mr-0.5 flex -space-x-2">
-                {clusterPeople.map((p) => (
-                  <BirdAvatar key={p.id} user={p} size={22} className="ring-2 ring-card" />
-                ))}
-              </span>
-            )}
-            You have shared with {othersAnsweredCount} other{othersAnsweredCount === 1 ? "" : "s"} so far.
-          </>
-        ) : othersAnsweredCount > 0 ? (
-          <>
-            {othersAnsweredCount} {othersAnsweredCount === 1 ? "person has" : "people have"} already shared.
-            Add your voice whenever you are ready.
-          </>
-        ) : (
-          <>Be the first to share in this Round.</>
+        {othersAnsweredCount > 0 && clusterPeople.length > 0 && (
+          <span className="mr-0.5 flex -space-x-2">
+            {clusterPeople.map((p) => (
+              <BirdAvatar key={p.id} user={p} size={22} className="ring-2 ring-card" />
+            ))}
+          </span>
         )}
+        {othersAnsweredCount === 0
+          ? hasAnsweredAny
+            ? "You are the first to answer."
+            : "Nobody has answered yet."
+          : hasAnsweredAny
+            ? `You and ${othersAnsweredCount} other${othersAnsweredCount === 1 ? "" : "s"} have answered so far.`
+            : `${othersAnsweredCount} ${othersAnsweredCount === 1 ? "person has" : "people have"} answered so far.`}
       </p>
+
+      {/* Unwrapped, outside the grid, on purpose: a sticky box cannot leave
+          its parent, so inside the grid (or inside a wrapper of its own
+          height) it would never actually stick. Here its parent is the whole
+          experience and it rides the scroll. */}
+      <MobileProgressBar
+        done={answeredIds.size}
+        total={total}
+        className="mb-[var(--space-m)] lg:hidden"
+      />
 
       <div className="grid grid-cols-1 gap-[var(--space-xl)] lg:grid-cols-[272px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
@@ -127,10 +123,6 @@ export function AnswerExperience({
             onJump={(i) => goTo(i, i > index ? 1 : -1)}
           />
         </aside>
-
-        <div className="lg:hidden">
-          <MobileProgressBar done={answeredIds.size} total={total} currentIndex={index} />
-        </div>
 
         <div className="min-w-0">
           <AnimatePresence mode="wait" custom={direction}>
@@ -146,14 +138,11 @@ export function AnswerExperience({
                 <AnswerCard
                   prompt={current}
                   entry={entries[current.id]}
-                  currentUser={currentUser}
                   position={index + 1}
-                  total={total}
                   isLast={index === total - 1}
                   saveStatus={saveStatus[current.id] ?? "idle"}
                   onBodyBlur={(body) => handleBodyBlur(current.id, body)}
                   onImagesChange={(images) => handleImagesChange(current.id, images)}
-                  onSongChange={(song) => handleSongChange(current.id, song)}
                   onBack={() => goTo(index - 1, -1)}
                   onAdvance={() => goTo(index + 1, 1)}
                 />
@@ -169,24 +158,6 @@ export function AnswerExperience({
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* quiet filmstrip of upcoming prompts (spec 3.4), desktop only */}
-          {upcoming.length > 0 && (
-            <div className="mt-[var(--space-l)] hidden gap-3 overflow-x-auto pb-1 sm:flex">
-              {upcoming.map((p, offset) => (
-                <SpringPress
-                  key={p.id}
-                  as="button"
-                  onClick={() => goTo(index + 1 + offset, 1)}
-                  whileTap={{ scale: 0.98 }}
-                  className="line-clamp-3 w-52 shrink-0 rounded-[var(--radius-md)] border border-border/70 bg-card/70 p-3 text-left text-xs text-muted-foreground hover:border-leaf/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                  {...({ type: "button" } as object)}
-                >
-                  {p.text}
-                </SpringPress>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

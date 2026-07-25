@@ -8,7 +8,7 @@ import { GroupFirstGuidance } from "@/components/catchups/index/group-first-guid
 import { Plus, Users } from "lucide-react";
 import { GroupPicker, type PickableGroup, type ExistingGroupCatchup } from "@/components/catchups/create/group-picker";
 import { CreateCatchupForm } from "@/components/catchups/create/create-catchup-form";
-import { CADENCE_LABELS, CATCHUP_PROMPT_SETS, isMissingCatchupTable, suggestSeedPrompts } from "@/lib/catchups";
+import { CADENCE_LABELS, isMissingCatchupTable } from "@/lib/catchups";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ type LoadResult =
   | { kind: "picker"; groups: PickableGroup[]; existing: ExistingGroupCatchup[] }
   | {
       kind: "form";
-      group: { id: string; name: string; memberCount: number; members: CatchupPersonRef[] };
+      group: { id: string; name: string; members: CatchupPersonRef[] };
     };
 
 /**
@@ -62,7 +62,6 @@ async function loadCreateContext(userId: string, groupParam: string | undefined)
         group: {
           id: match.id,
           name: match.name,
-          memberCount: match._count.members,
           members: match.members.map((m) => m.user),
         },
       };
@@ -115,10 +114,7 @@ export default async function NewCatchupPage({
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader
-        title="Start a Catch-up"
-        subtitle="Everyone answers a few questions. Their replies become one issue the whole group reads."
-      />
+      <PageHeader title="Start a Catch-up" />
       {result.kind === "guidance" && (
         <GroupFirstGuidance
           primaryHref="/groups/new"
@@ -132,14 +128,7 @@ export default async function NewCatchupPage({
       {result.kind === "picker" && (
         <GroupPicker groups={result.groups} existingGroups={result.existing} />
       )}
-      {result.kind === "form" && (
-        <CreateCatchupForm
-          group={result.group}
-          cadenceLabels={CADENCE_LABELS}
-          promptSets={CATCHUP_PROMPT_SETS}
-          initialSeedPrompts={suggestSeedPrompts()}
-        />
-      )}
+      {result.kind === "form" && <CreateCatchupForm group={result.group} cadenceLabels={CADENCE_LABELS} />}
     </div>
   );
 }

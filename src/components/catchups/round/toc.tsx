@@ -8,9 +8,10 @@
  *  DOM positions (a sticky aside beside the body vs. a horizontal strip
  *  above it), so this file exports two small components that share one
  *  IntersectionObserver-driven `useActiveSection` hook rather than forking
- *  the scroll-spy logic. Only one of the two ever renders on a given
- *  viewport (Tailwind `lg:` visibility), so there is no duplicate observer
- *  cost in practice.
+ *  the scroll-spy logic. Both mount at every viewport (Tailwind `lg:`
+ *  visibility is CSS, not conditional rendering), so the hook keys its
+ *  effect on the joined id list: without that, `ids` being a fresh array
+ *  each render rebuilt both observers on every single re-render.
  *
  *  The desktop rail's active-item indicator reuses `NAV_MARKER_SPRING`
  *  (src/components/common/motion.tsx) - the same spring the sidebar's
@@ -29,9 +30,12 @@ export type TocItem = { id: string; label: string };
 
 function useActiveSection(ids: string[]): number {
   const [active, setActive] = useState(0);
+  const key = ids.join("|");
 
   useEffect(() => {
-    const sections = ids
+    const sections = key
+      .split("|")
+      .filter(Boolean)
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => !!el);
     if (sections.length === 0) return;
@@ -58,7 +62,7 @@ function useActiveSection(ids: string[]): number {
     );
     sections.forEach((s) => observer.observe(s));
     return () => observer.disconnect();
-  }, [ids]);
+  }, [key]);
 
   return active;
 }
@@ -119,17 +123,20 @@ export function RoundTocChips({ items, className }: { items: TocItem[]; classNam
   if (items.length === 0) return null;
 
   return (
-    <div className={cn("-mx-5 overflow-x-auto px-5 sm:-mx-7 sm:px-7", className)}>
+    // No full-bleed negative margin: below `lg` the sidebar is still on
+    // screen from `md` up, and bleeding past the shell's gutter put this row
+    // flush against it (owner review 2026-07-25).
+    <div className={cn("overflow-x-auto", className)}>
       <div className="flex w-max gap-2 pb-1">
         {items.map((item, i) => (
           <a
             key={item.id}
             href={`#${item.id}`}
             className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 text-[12.5px] font-medium whitespace-nowrap hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
+              "shrink-0 rounded-full border px-3 py-1.5 text-[12.5px] font-medium whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
               i === active
-                ? "border-canopy bg-canopy text-white"
-                : "border-border bg-card text-muted-foreground"
+                ? "border-canopy bg-canopy text-white hover:bg-canopy/90"
+                : "border-border bg-card text-muted-foreground hover:text-foreground"
             )}
           >
             {item.label}

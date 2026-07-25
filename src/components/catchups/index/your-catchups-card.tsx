@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------ *
- *  <YourCatchupsCard> — one row in the index's left column, one per
+ *  <YourCatchupsCard> - one row in the index's left column, one per
  *  group the viewer belongs to (spec section 3.1). The whole card is a
  *  single link to that state's primary action (mirrors GroupCard's
  *  whole-card-is-a-link shape, so there is exactly one focus target
@@ -38,10 +38,14 @@ export function YourCatchupsCard({ card }: { card: IndexCardView }) {
   return (
     <Link
       href={href}
-      className="card-elevated group flex flex-col gap-4 rounded-[var(--radius)] border border-border bg-card p-5 transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 sm:flex-row sm:items-center sm:justify-between"
+      className="card-elevated group flex flex-col gap-[var(--space-m)] rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] transition-colors duration-150 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:border-canopy/60 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="min-w-0">
-        <h3 className="truncate font-heading text-[17px] font-semibold tracking-tight text-foreground">
+        {/* leading-tight, not the 1.5 default: the card's padding is a
+            symmetric 16px, and a 25.5px line box on 17px type would push the
+            first glyph 4px further from the top edge than from the left,
+            which is exactly the lopsided-looking tile the owner flagged. */}
+        <h3 className="truncate font-heading text-[17px] font-semibold leading-tight tracking-tight text-foreground">
           {card.groupName}
         </h3>
         <div className="mt-2 flex items-center gap-2.5">
@@ -84,7 +88,7 @@ export function YourCatchupsCard({ card }: { card: IndexCardView }) {
       </div>
 
       {card.cta && (
-        <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-canopy px-4 py-2 text-[13px] font-semibold text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-transform duration-150 group-hover:scale-[1.03]">
+        <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-canopy px-4 py-2 text-[13px] font-semibold text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 group-hover:brightness-[1.08]">
           {card.cta.label}
         </span>
       )}

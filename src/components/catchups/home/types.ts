@@ -29,7 +29,9 @@ export type HomePersonRef = {
  *  "use server" file may only export async functions). UI copy only; the
  *  real enforcement lives server-side in `submitPrompt`/`curatePrompt`. */
 export const MAX_PENDING_PROMPTS_PER_MEMBER = 3;
-export const MAX_ACCEPTED_PROMPTS_PER_EDITION = 12;
+// Kept in sync with the server ceiling, but the UI must NOT print it: the
+// question count is shown as a plain "N questions in this round".
+export const MAX_ACCEPTED_PROMPTS_PER_EDITION = 40;
 
 export type HomePromptView = {
   id: string;
@@ -51,10 +53,10 @@ export type HomeEditionView = {
   answersCloseAt: string | null;
   publishAt: string | null;
   publishedAt: string | null;
-  /** Human status line, shared copy from `describeEditionStatus` (WP1). */
+  /** Human status line, shared copy from `describeEditionStatus` (WP1). This is
+   *  the whole of the console's status display now: the countdown ring that
+   *  used to wrap it went in the owner review of 2026-07-25. */
   statusLabel: string;
-  /** 0..1, elapsed fraction of the current window; drives the countdown ring. */
-  ringRatio: number;
   /** collecting: every prompt the viewer may see. answering: frozen accepted prompts only. */
   prompts: HomePromptView[];
   answeredCount: number;

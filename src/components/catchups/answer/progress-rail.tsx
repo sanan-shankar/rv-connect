@@ -1,10 +1,12 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <ProgressRail> / <MobileProgressBar> — spec 3.4: "a sticky left
- *  progress rail lists every prompt as a row with a check state and a
- *  small progress ring at top ('4 of 7 shared')." Mobile collapses to a
- *  slim sticky progress bar (no per-row list, to keep the screen calm).
+ *  <ProgressRail> / <MobileProgressBar> — a sticky left rail: the ring
+ *  ("4 of 7 shared") over every question as a row with a check state.
+ *  Mobile collapses to a slim sticky bar carrying the same one count.
+ *
+ *  This is the ONLY place the Round's count is printed. The answer card
+ *  used to repeat it as "Question N of M"; that duplicate is gone.
  * ------------------------------------------------------------------ */
 
 import { Check } from "lucide-react";
@@ -58,7 +60,7 @@ export function ProgressRail({
 }) {
   return (
     <div className="sticky top-7 flex flex-col gap-[var(--space-m)]">
-      <div className="flex items-center gap-3.5 rounded-[var(--radius)] border border-border bg-card p-4">
+      <div className="flex items-center gap-3.5 rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
         <ProgressRing done={answeredIds.size} total={prompts.length} />
         <div className="min-w-0">
           <p className="text-sm font-bold leading-tight text-foreground">
@@ -68,7 +70,10 @@ export function ProgressRail({
         </div>
       </div>
 
-      <nav aria-label="Questions in this Round" className="flex flex-col gap-1 rounded-[var(--radius)] border border-border bg-card p-2">
+      <nav
+        aria-label="Questions in this Round"
+        className="flex flex-col gap-1 rounded-[var(--radius)] border border-border bg-card p-[var(--space-s)]"
+      >
         {prompts.map((p, i) => {
           const done = answeredIds.has(p.id);
           const active = i === currentIndex;
@@ -104,25 +109,29 @@ export function ProgressRail({
 export function MobileProgressBar({
   done,
   total,
-  currentIndex,
+  className,
 }: {
   done: number;
   total: number;
-  currentIndex: number;
+  className?: string;
 }) {
-  const pct = total > 0 ? Math.min(100, ((currentIndex + 1) / total) * 100) : 0;
+  const pct = total > 0 ? Math.min(1, done / total) : 0;
   return (
-    <div className="glass sticky top-14 z-[var(--z-elevated)] rounded-[var(--radius-md)] border border-border/70 px-4 py-3">
-      <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-        <span>
-          Question {Math.min(currentIndex + 1, total)} of {total}
-        </span>
-        <span>{done} shared</span>
-      </div>
+    <div
+      className={cn(
+        "glass sticky top-14 z-[var(--z-elevated)] rounded-[var(--radius-md)] border border-border/70 px-4 py-2.5",
+        className
+      )}
+    >
+      <p className="text-xs font-semibold text-muted-foreground">
+        {done} of {total} shared
+      </p>
       <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-mist">
-        <div
-          className="h-full rounded-full bg-canopy"
-          style={{ width: `${pct}%`, transition: "width 0.4s ease-out" }}
+        <motion.div
+          className="h-full w-full origin-left rounded-full bg-canopy"
+          initial={false}
+          animate={{ scaleX: pct }}
+          transition={SPRINGS.gentle}
         />
       </div>
     </div>
