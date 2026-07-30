@@ -4,12 +4,11 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import {
   Popover,
-  PopoverContent,
   PopoverPortal,
   PopoverPositioner,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { FacetClearButton, facetPillClass } from "./pill-shell";
+import { FacetClearButton, FacetPanel, facetPillClass } from "./pill-shell";
 
 const DECADE_PRESETS = [
   { label: "2020s", from: 2020, to: 2029 },
@@ -63,7 +62,10 @@ export function RangeFacetPill({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <div className={facetPillClass(set, className)}>
-        <PopoverTrigger className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none">
+        <PopoverTrigger
+          data-facet-trigger=""
+          className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none"
+        >
           <span className="truncate">{text}</span>
           {!set && <ChevronDown className="size-3.5 shrink-0 opacity-70" aria-hidden />}
         </PopoverTrigger>
@@ -71,7 +73,13 @@ export function RangeFacetPill({
       </div>
       <PopoverPortal>
         <PopoverPositioner sideOffset={6} align="start">
-          <PopoverContent className="w-72">
+          {/* Same menu material as every other facet panel, but p-3: this
+              panel holds form controls, not menu rows, and the material's
+              4px inset is sized for row highlights. 12px of air also keeps
+              the 12px-radius year inputs' corners clear of the panel's own
+              12px arc (inset >= radius, so the two curves never read against
+              each other despite being equal). */}
+          <FacetPanel className="w-72 p-3">
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
                 From
@@ -116,14 +124,17 @@ export function RangeFacetPill({
                         to: String(Math.min(d.to, maxYear)),
                       })
                     }
-                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-[colors,transform] hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                    // Canopy focus ring: --ring (leaf) is the INPUT ring
+                    // only; these presets are buttons (globals.css token
+                    // note), unlike the year <select>s above which keep it.
+                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-[colors,transform] hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
                   >
                     {d.label}
                   </button>
                 ))}
               </div>
             )}
-          </PopoverContent>
+          </FacetPanel>
         </PopoverPositioner>
       </PopoverPortal>
     </Popover>

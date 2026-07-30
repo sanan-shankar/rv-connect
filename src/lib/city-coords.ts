@@ -1,7 +1,16 @@
 // A curated, offline gazetteer of cities where RV alumni are likely to be,
-// mapping a normalized city name to [lng, lat]. This is the MVP stand-in for a
-// full GeoNames gazetteer + City model; unknown cities fall into "Unmapped".
-// Keys are lowercased; common variants (Bangalore/Bengaluru) both included.
+// mapping a normalized city name to [lng, lat]. Keys are lowercased; common
+// variants (Bangalore/Bengaluru, Gurgaon/Gurugram) both included.
+//
+// SCOPE (revised 2026-07-30, the Gurgaon/Northfield fix): this table is no
+// longer the map's only geocoder, just its fast middle layer for legacy
+// free-typed rows. The resolution ladder for a UserPlace is (1) the row's own
+// lat/lng, written by the GeoNames LocationPicker; (2) this table; (3) the
+// 234,934-row Place gazetteer via src/lib/geocode.ts. A place this table
+// cannot represent (the several US Northfields need an admin1 dimension a
+// flat name key does not have) is NOT a failure here -- it falls through to
+// the layers that can. Misses after all three are console.warned in dev by
+// the map's buildPins, never silently dropped.
 
 export const CITY_COORDS: Record<string, [number, number]> = {
   // India
@@ -41,6 +50,14 @@ export const CITY_COORDS: Record<string, [number, number]> = {
   shimla: [77.17, 31.1],
   guwahati: [91.74, 26.14],
   bhubaneswar: [85.82, 20.3],
+  // NCR satellite towns. Their absence is what put the owner's Gurgaon
+  // report in the Unmapped bucket: the table had Delhi but none of the
+  // commuter cities half the NCR actually lives in.
+  gurgaon: [77.03, 28.46],
+  gurugram: [77.03, 28.46],
+  noida: [77.39, 28.54],
+  faridabad: [77.32, 28.41],
+  ghaziabad: [77.45, 28.67],
   // Gulf
   dubai: [55.27, 25.2],
   "abu dhabi": [54.37, 24.45],
@@ -79,14 +96,34 @@ export const CITY_COORDS: Record<string, [number, number]> = {
   auckland: [174.76, -36.85],
 };
 
-/** Normalize a free-text city string to a gazetteer key. */
+/**
+ * Fold case, accents and whitespace, KEEPING any comma-qualified tail:
+ * "Gurgáon " and "gurgaon" meet at one key, and "Northfield, Minnesota"
+ * survives intact for lookups that can use the qualifier. NFKD splits each
+ * accented letter into base + combining marks; stripping the marks (\p{M})
+ * is what makes the fold spelling-insensitive without a lookup table.
+ */
+export function normalizePlaceString(raw: string): string {
+  return raw
+    .normalize("NFKD")
+    .replace(/\p{M}+/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*/g, ", ")
+    .trim();
+}
+
+/** Normalize a free-text city string to a short gazetteer key (the part
+ *  before any comma: "Bengaluru, Karnataka" -> "bengaluru"). */
 export function normalizeCity(raw: string): string {
-  return raw.trim().toLowerCase().replace(/\s*,.*$/, "").replace(/\s+/g, " ");
+  return normalizePlaceString(raw).replace(/,.*$/, "").trim();
 }
 
 export function cityCoords(raw: string | null | undefined): [number, number] | null {
   if (!raw) return null;
-  return CITY_COORDS[normalizeCity(raw)] ?? null;
+  // Qualified form first, so a future "x, y" key can win before the string
+  // collapses to its ambiguous bare name; then the short key.
+  return CITY_COORDS[normalizePlaceString(raw)] ?? CITY_COORDS[normalizeCity(raw)] ?? null;
 }
 
 /**

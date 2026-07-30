@@ -4,13 +4,14 @@ import * as React from "react"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox"
 
 import { cn } from "@/lib/utils"
+import { MENU_PANEL_CLASS } from "@/components/ui/menu-material"
 
 /**
  * Thin shadcn-style wrapper around Base UI's Combobox primitive, following
- * the same Portal -> Positioner -> Popup shape as select.tsx and the same
- * warm-popover / ring-1 treatment as dialog.tsx. Accessibility, keyboard
- * navigation, and positioning all come from the primitive; this file only
- * carries the visual language (radii, colour, motion-safe animate-in/out).
+ * the same Portal -> Positioner -> Popup shape as select.tsx, with the
+ * dropdown surface drawn in the shared menu material (ui/menu-material.ts).
+ * Accessibility, keyboard navigation, and positioning all come from the
+ * primitive; this file only carries the visual language.
  *
  * This is a generic list/search primitive -- domain composition (server
  * search wiring, chips, the free-text fallback) lives in the feature
@@ -81,30 +82,36 @@ function ComboboxPortal(props: ComboboxPrimitive.Portal.Props) {
 function ComboboxPositioner({
   className,
   sideOffset = 6,
+  // Base UI's own default is align="center", which floated this one popup
+  // centred under its trigger while every other menu opened from the leading
+  // edge. The menu material has ONE placement: below the trigger, leading
+  // edge, 6px offset, flipping only on viewport collision.
+  align = "start",
   ...props
 }: ComboboxPrimitive.Positioner.Props) {
   return (
     <ComboboxPrimitive.Positioner
       data-slot="combobox-positioner"
       sideOffset={sideOffset}
+      align={align}
       className={cn("isolate z-(--z-floating)", className)}
       {...props}
     />
   )
 }
 
-// The dropdown surface: pure white (--popover), the one place a floating
-// layer is allowed to depart from the warm-dimmed rule (sec. 4, "Float"
-// token), 16px card radius (one step up from the 12px input beneath it, per
-// the nesting rule), a layered ink-tinted shadow (never flat shadow-md), and
-// a real opacity/scale entrance via tw-animate-css -- transform + opacity
-// only, matching the app-wide animation rule.
+// The dropdown surface: the shared menu material (Float white, 12px panel,
+// warm hairline, layered ink shadow, one origin scale/fade) plus this
+// popup's own sizing and the material's 4px inset. The old class list here
+// claimed rounded-2xl was the "16px card radius"; in this repo's scale it is
+// actually 27.2px, the oversized arc behind the Directory dropdown bug.
 function ComboboxPopup({ className, ...props }: ComboboxPrimitive.Popup.Props) {
   return (
     <ComboboxPrimitive.Popup
       data-slot="combobox-popup"
       className={cn(
-        "relative max-h-80 w-(--anchor-width) min-w-64 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl bg-popover p-1.5 text-popover-foreground ring-1 ring-foreground/10 shadow-[0_18px_38px_-16px_rgba(35,36,30,0.28)] duration-150 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+        MENU_PANEL_CLASS,
+        "relative max-h-80 w-(--anchor-width) min-w-64 overflow-x-hidden overflow-y-auto p-1",
         className
       )}
       {...props}
@@ -122,16 +129,16 @@ function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
   )
 }
 
-// Item radius (10px) is intentionally a notch under the 16px popup it nests
-// inside (the "inner box is never the same radius as its container" rule).
-// Highlighted (keyboard/hover) state uses the leaf-tinted accent, matching
-// every other list-hover surface in the app.
+// Menu-material row: 36px minimum, --radius-sm (8.8px) -- one rung under the
+// 12px panel and concentric with it through the 4px inset, so the highlight
+// can never read as cutting the panel corner. Highlight is the --accent
+// hover lift, matching every other menu row in the app.
 function ComboboxItem({ className, ...props }: ComboboxPrimitive.Item.Props) {
   return (
     <ComboboxPrimitive.Item
       data-slot="combobox-item"
       className={cn(
-        "flex cursor-pointer scroll-my-1 flex-col gap-0.5 rounded-[10px] px-3 py-2 outline-none transition-transform duration-100 select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground active:scale-[0.99] data-disabled:pointer-events-none data-disabled:opacity-50",
+        "flex min-h-9 cursor-pointer scroll-my-1 flex-col justify-center gap-0.5 rounded-[var(--radius-sm)] px-3 py-2 outline-none transition-transform duration-100 select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground active:scale-[0.99] data-disabled:pointer-events-none data-disabled:opacity-50",
         className
       )}
       {...props}
