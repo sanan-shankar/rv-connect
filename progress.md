@@ -828,8 +828,10 @@ Headline changes:
   `PUBLISHED_ONLY` fragment; a draft's detail page 404s for anyone but its author.
 - **Direct-to-R2 uploads**: `/api/upload/presign` + browser PUT + `/api/upload/finalize` (posts) /
   `contributePhotoDirect` (collection, stores the FULL-RES original). Kills the Vercel ~4.5MB cap and the
-  browser downscale. Graceful fallback to the proxied path until the bucket CORS rule is applied - blocked
-  on an admin-scoped R2 token (`node scripts/setup-r2-cors.mjs`); the app token got AccessDenied.
+  browser downscale. The bucket CORS rule was the one blocker (the app's R2 token is object-scoped and got
+  AccessDenied from `scripts/setup-r2-cors.mjs`); the owner applied it by hand from the Cloudflare dashboard
+  on 2026-07-30, so the direct path is live. The proxied path stays as a graceful fallback for any origin the
+  rule does not name. See `docs/ops/r2-cors.md`.
 - **Shipped from the second-look rooms**: sidebar contrast (opaque idle ink 5.80:1, active/hover ladder,
   batch not email in the footer chip), support page (hedging copy deleted, knob-on-track fundraiser at zero,
   cost -> reward -> ask with 10 colourful real birds, build fund demoted to an inset note), public `/birds`

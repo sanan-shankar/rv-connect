@@ -1,7 +1,20 @@
 # R2 bucket CORS, for direct photo uploads
 
-**Status:** waiting on the owner. Until this is applied, uploads silently fall back to the
-old server-proxied path, which works fine locally but is capped at roughly 4.5MB on Vercel.
+**Status: applied.** The owner set the bucket's CORS policy by hand from the Cloudflare
+dashboard (option A below) on 2026-07-30. Direct browser-to-R2 uploads are live, so the
+~4.5MB Vercel body cap no longer applies to photos.
+
+The server-proxied path is still in the code and still runs whenever the direct PUT cannot
+be made (no R2 configured locally, a transient presign failure, or an origin the CORS rule
+does not name). That is deliberate belt-and-braces, not leftover scaffolding: an upload
+should degrade rather than strand a member's photo.
+
+Two things still worth checking, because a CORS rule only covers the origins it names:
+
+- the real production domain is in `AllowedOrigins`, not just `http://localhost:3000`
+- if Vercel preview deployments should upload too, the `*.vercel.app` origin is in there
+
+See "Checking it worked" at the bottom for how to confirm from the browser.
 
 ## Why this is needed
 
@@ -20,7 +33,7 @@ token in `.env.local` is scoped to **Object** Read & Write, which cannot change 
 configuration. Either use the dashboard (option A, no new token) or mint an admin-scoped
 token (option B).
 
-## Option A: the Cloudflare dashboard (simplest)
+## Option A: the Cloudflare dashboard (simplest) — this is the one that was used
 
 1. Go to <https://dash.cloudflare.com> and open **R2** in the left sidebar.
 2. Click the bucket **`rv-alumni-media`**.

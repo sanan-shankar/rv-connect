@@ -99,7 +99,11 @@ export function directUploadAvailable(): boolean {
  * one-time signed URL, and the public URL the object will live at.
  *
  * NOTE: the R2 bucket must have a CORS rule allowing PUT from the site
- * origin. `node scripts/setup-r2-cors.mjs` applies it once per bucket.
+ * origin. Applied for `rv-alumni-media` on 2026-07-30 from the Cloudflare
+ * dashboard; `node scripts/setup-r2-cors.mjs` does the same from an
+ * admin-scoped token. Any NEW origin (a fresh domain, a preview URL) has to
+ * be added to that rule or its uploads quietly take the proxied path.
+ * See docs/ops/r2-cors.md.
  */
 export async function presignImagePut(
   subdir: string,
