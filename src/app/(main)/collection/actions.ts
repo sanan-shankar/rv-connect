@@ -4,38 +4,14 @@ import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { putImage, delImage } from "@/lib/storage";
+import { putImage, delImage, getImageBuffer, delImageByKey, publicUrlForKey } from "@/lib/storage";
 import { photoSchema } from "@/lib/validators";
+import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/lib/upload-shared";
 import { eraFromYear } from "@/lib/collection";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { revalidatePath } from "next/cache";
 
-const MAX_INPUT = 20 * 1024 * 1024; // 20MB input; output is tightly compressed
 const PAGE_SIZE = 24;
-
-/** True for iPhone photos exported as HEIC/HEIF. sharp's prebuilt binary has
- *  no HEVC decoder (patent licensing), so these fail with an opaque "unsupported
- *  image format" error from sharp; catch them earlier with a message that
- *  actually explains what to do. file.type is occasionally blank for these on
- *  some mobile browsers, so the filename extension is checked too. */
-function isUnsupportedHeic(file: File) {
-  return (
-    file.type === "image/heic" || file.type === "image/heif" || /\.hei[cf]$/i.test(file.name)
-  );
-}
-
-/** Turn a sharp processing error into a message that names the actual reason
- *  instead of a raw libvips exception string. */
-function describeProcessingError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  if (/unsupported image format/i.test(message)) {
-    return "This photo's format isn't supported. Please export it as JPG or PNG and try again.";
-  }
-  if (/premature end|truncated|invalid/i.test(message)) {
-    return "This photo looks corrupted or only partially uploaded. Please try again.";
-  }
-  return `Could not process the photo: ${message}`;
-}
 
 export type PhotoData = {
   id: string;
@@ -105,7 +81,7 @@ export async function contributePhoto(formData: FormData) {
         'This is a HEIC/HEIF photo, which isn\'t supported yet. Export it as JPG or PNG (or turn off "High Efficiency" in your camera settings) and try again.',
     };
   }
-  if (file.size > MAX_INPUT) {
+  if (file.size > MAX_UPLOAD_BYTES) {
     return { error: `Photo is over the 20MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` };
   }
 
@@ -176,6 +152,110 @@ export async function contributePhoto(formData: FormData) {
       // Subject tagging and the bird/species free-tag field were removed from
       // the form (2026-07-18 rework); kept as empty/null for older rows and
       // any other Collection surface still reading them.
+      subject: "",
+      area: parsed.data.area || null,
+      era,
+      freeTags: null,
+      photoYear: parsed.data.photoYear ?? null,
+      photoMonth: parsed.data.photoMonth ?? null,
+      datePrecision: parsed.data.datePrecision ?? (parsed.data.photoYear !== undefined ? "year" : "unknown"),
+      approved: autoApprove,
+      approvedAt: autoApprove ? new Date() : null,
+      approvedById: autoApprove ? session.user.id : null,
+    },
+  });
+
+  revalidatePath("/collection");
+  return { success: true, autoApprove };
+}
+
+// Only objects the collection presign step itself created may be recorded.
+const COLLECTION_ORIGINAL_KEY = /^collection\/\d{4}\/\d{2}\/[a-z0-9]+-o\.(jpg|jpeg|png|webp|gif)$/;
+
+/**
+ * The direct-to-R2 completion of a Collection contribution: the browser has
+ * already PUT the FULL-RESOLUTION original via a presigned URL (see
+ * /api/upload/presign), dodging Vercel's ~4.5MB body cap; this validates it,
+ * builds the grid thumbnail off it, and records the row with the original
+ * itself as the photo's URL. Nothing between the camera and storage ever
+ * rescales it (owner, 2026-07-30: high-res in the Collection is the point).
+ */
+export async function contributePhotoDirect(input: {
+  key: string;
+  caption?: string;
+  area?: string;
+  era?: string;
+  datePrecision?: string;
+  photoYear?: number;
+  photoMonth?: number;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  if (typeof input.key !== "string" || !COLLECTION_ORIGINAL_KEY.test(input.key)) {
+    return { error: "Bad upload reference" };
+  }
+
+  const parsed = photoSchema.safeParse({
+    caption: input.caption || undefined,
+    area: input.area || undefined,
+    era: input.era || undefined,
+    datePrecision: input.datePrecision || undefined,
+    photoYear: input.photoYear,
+    photoMonth: input.photoMonth,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const era =
+    parsed.data.photoYear !== undefined ? eraFromYear(parsed.data.photoYear) : parsed.data.era || "unknown";
+
+  // Independent of the image work below; overlap the round trips.
+  const mePromise = prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { photoTrusted: true },
+  });
+
+  let thumbUrl: string;
+  let width: number;
+  let height: number;
+  try {
+    const original = await getImageBuffer(input.key);
+    if (original.byteLength > MAX_UPLOAD_BYTES + 1024) {
+      // A presigned PUT cannot enforce size; enforce it here instead.
+      await delImageByKey(input.key);
+      return { error: "Photo is over the 20MB limit" };
+    }
+
+    // Dimensions of the original as DISPLAYED: EXIF orientations 5-8 are the
+    // rotated ones, where the stored width/height swap.
+    const md = await sharp(original).metadata();
+    const swap = (md.orientation ?? 1) >= 5;
+    width = (swap ? md.height : md.width) ?? 0;
+    height = (swap ? md.width : md.height) ?? 0;
+    if (!width || !height) throw new Error("unsupported image format");
+
+    const thumb = await sharp(original)
+      .rotate()
+      .resize(480, 480, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 72 })
+      .toBuffer();
+    thumbUrl = await putImage(thumb, "collection", `${createId()}-t.webp`);
+  } catch (e) {
+    await delImageByKey(input.key);
+    return { error: describeProcessingError(e) };
+  }
+
+  const me = await mePromise;
+  const autoApprove = session.user.role === "admin" || !!me?.photoTrusted;
+
+  await prisma.photo.create({
+    data: {
+      uploaderId: session.user.id,
+      thumbUrl,
+      url: publicUrlForKey(input.key),
+      width,
+      height,
+      caption: parsed.data.caption || null,
       subject: "",
       area: parsed.data.area || null,
       era,
