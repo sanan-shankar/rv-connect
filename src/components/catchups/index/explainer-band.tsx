@@ -7,7 +7,10 @@
  *  Two sizes, picked by the caller from real data (page.tsx), not a
  *  client toggle: a viewer with no Catch-up anywhere yet gets the three
  *  beats at full size, labelled discs they can actually read. Once the
- *  viewer belongs to at least one Catch-up it collapses to a strip.
+ *  viewer belongs to at least one Catch-up it collapses to a strip that
+ *  sits in the page header beside "Start a Catch-up" (owner, 2026-07-30:
+ *  "beside the catch up section, not below it") wherever the header row
+ *  can afford it, with a fallback row above the cards below that width.
  *  Both variants carry the beats and nothing else: the prose that used
  *  to sit here was cut on owner review (2026-07-25), because "Ask ->
  *  Answer -> Read" already says what a Catch-up is. The "Catch-ups"
@@ -21,6 +24,7 @@
  *  so the "use client" bump above is solely to host that anchor hook.
  * ------------------------------------------------------------------ */
 
+import { useEffect, useState } from "react";
 import { HelpCircle, PenLine, BookOpen, ArrowRight } from "lucide-react";
 import { useTourAnchor } from "@/components/tour/tour-anchors";
 
@@ -30,8 +34,38 @@ const BEATS = [
   { icon: BookOpen, label: "Read" },
 ] as const;
 
-export function ExplainerBand({ compact = false }: { compact?: boolean }) {
-  const tourAnchorRef = useTourAnchor<HTMLDivElement>("catchups-explainer");
+/* The header-vs-fallback handoff line. Must stay in lockstep with the
+   `min-[1280px]` classes on the two compact instances in
+   catchups/page.tsx and catchups/loading.tsx: 1280 rather than the
+   rail's 1180 because at 1180 the main column is ~504px and the title
+   (~175px) + this pill (~155px) + the CTA (~146px) + gaps come to ~502px,
+   a collision away from overflowing the flex-nowrap header row. */
+const HEADER_PILL_QUERY = "(min-width: 1280px)";
+
+export function ExplainerBand({
+  compact = false,
+  anchorWhen = "always",
+}: {
+  compact?: boolean;
+  /** Which side of the 1280px line this instance registers the tour
+   *  anchor on. The index mounts the compact pill TWICE (header row and
+   *  fallback row) and shows exactly one via CSS; the anchor has to
+   *  follow the visible one, because a display:none anchor measures 0x0
+   *  and the tour would cut its spotlight at the viewport corner. */
+  anchorWhen?: "always" | "wide" | "narrow";
+}) {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    if (anchorWhen === "always") return;
+    const mql = window.matchMedia(HEADER_PILL_QUERY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Mirrors the header-pill breakpoint into state so the tour anchor tracks whichever of the two mounted instances is actually visible.
+    setWide(mql.matches);
+    const onChange = () => setWide(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [anchorWhen]);
+  const anchorEnabled = anchorWhen === "always" || (anchorWhen === "wide") === wide;
+  const tourAnchorRef = useTourAnchor<HTMLDivElement>("catchups-explainer", anchorEnabled);
 
   if (compact) {
     return (

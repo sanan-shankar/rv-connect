@@ -1,21 +1,33 @@
-/* Mirrors the shape of the Catch-ups index exactly: a bare "Catch-ups"
-   h1 with no sub-line, the Ask/Answer/Read strip, then the cards column
-   and the rail. Nothing here stands in for copy that no longer exists,
-   so the skeleton does not shift when the real page lands. */
+import { RAIL_GRID, RAIL_ASIDE } from "@/components/layout/rail-grid";
+
+/* Mirrors the shape of the Catch-ups index exactly: the header row inside
+   the rail grid (title left; from 1280px the Ask/Answer/Read pill plus the
+   canopy CTA on the right, per the header-pill handoff in
+   explainer-band.tsx), the pill's own fallback row below 1280, then the
+   cards column and the rail. Skeleton widths approximate the common
+   has-Catch-ups state, so the page does not shift when the real one lands. */
 export default function CatchupsLoading() {
   return (
     <div>
-      <header className="mb-6">
-        <div className="skeleton-warm h-8 w-40 rounded-md" />
-      </header>
+      <div className={RAIL_GRID}>
+        <div className="min-w-0">
+          <header className="mb-6 flex flex-nowrap items-start justify-between gap-4">
+            <div className="skeleton-warm h-8 w-40 rounded-md" />
+            <div className="flex flex-nowrap items-center gap-2.5">
+              {/* 36px tall, matching the real pill (py-2 on a 12px line). */}
+              <div className="skeleton-warm hidden h-9 w-40 rounded-full min-[1280px]:block" />
+              {/* The "Start a Catch-up" canopy pill: h-10, ~146px wide. */}
+              <div className="skeleton-warm h-10 w-36 rounded-full" />
+            </div>
+          </header>
+        </div>
+      </div>
 
-      <div className="mb-[var(--space-l)]">
-        {/* 36px tall, matching the real pill (py-2 on a 12px line), so the
-            strip does not resize under the cards when the page lands. */}
+      <div className="mb-[var(--space-l)] min-[1280px]:hidden">
         <div className="skeleton-warm h-9 w-64 max-w-full rounded-full" />
       </div>
 
-      <div className="grid grid-cols-1 gap-x-[30px] gap-y-[var(--space-m)] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
+      <div className={`${RAIL_GRID} gap-y-[var(--space-m)]`}>
         <div className="min-w-0 space-y-3.5">
           {[1, 2, 3].map((i) => (
             <div
@@ -31,7 +43,7 @@ export default function CatchupsLoading() {
             </div>
           ))}
         </div>
-        <aside className="hidden min-[1180px]:block">
+        <aside className={RAIL_ASIDE}>
           <div className="rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
             <div className="skeleton-warm h-3 w-32 rounded-full" />
             {[1, 2].map((i) => (

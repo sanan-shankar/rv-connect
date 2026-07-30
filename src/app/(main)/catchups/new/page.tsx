@@ -96,7 +96,15 @@ export default async function NewCatchupPage({
   }
 
   return (
-    <div>
+    /* This route rides the CENTERED 768px column (content-column.tsx), but
+       a three-field form only needs a 576px (max-w-xl) measure. The mx-auto
+       centres that narrower measure INSIDE the column with the title
+       travelling along, flush with the card's left edge; without it the
+       card left-pinned 96px off the page's centre, i.e. (768 - 576) / 2
+       (owner, 2026-07-30: "weirdly to the left"). A narrower reading
+       measure inside the centered column is the sanctioned exception to
+       the no-page-level-widths rule; see content-column.tsx. */
+    <div className="mx-auto max-w-xl">
       <PageHeader title="Start a Catch-up" />
       <CreateCatchupForm
         cadenceLabels={CADENCE_LABELS}

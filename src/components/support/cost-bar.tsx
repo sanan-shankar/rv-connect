@@ -9,18 +9,22 @@
    so all three costs sit inside the one bar, which also keeps all three brand
    colours represented.
 
-   The one-time build-fund progress lives nested inside this same card, as a
-   smaller, recessed note (bg-mist, rounded-md/12px inside the card's own
-   rounded-lg/16px -- the project's own box-in-a-box nesting rule). It used to
-   be its own card-elevated peer sitting directly under the monthly bill's
-   card, which forced a full-bar/empty-bar comparison the one-off always lost.
-   Demoting it to a subordinate note fixes that.
+   The one-time build-fund progress is this card's SECOND SECTION: a sibling
+   of the monthly breakdown, with the same heading register and the same left
+   edge. It was briefly a recessed mist note nested inside the monthly
+   section, but the owner overruled that (2026-07-30): the build cost is not
+   a subset of where the monthly bill goes, so it does not sit inside that
+   section's box. (It also once lived as a card-elevated peer CARD, which
+   forced a full-bar/empty-bar twin comparison; one card, two sections,
+   avoids both failure modes.)
 
-   The progress indicator itself is a track with a solid circular knob, not a
-   fill bar: at ₹0 the knob simply sits at the start of the track, so the page
-   reads as "a thing at its beginning" rather than an empty, illegible bar
-   (bg-mist on bg-card was 1.09:1; the rail here is bg-muted-foreground, which
-   clears 3:1 against both bg-card and bg-mist).
+   Its indicator is the same bar recipe as the monthly one, not the old
+   track-and-knob slider: one canopy fill in a mist pill trough, where the
+   fill's MINIMUM width equals the track's height. At ₹0 that minimum is all
+   there is, so the fill renders as a single circle resting at the left end:
+   progress that has visibly started, never a dial thumb bigger than its
+   rail (owner, 2026-07-30: "the circle will have the same size as the bar.
+   Not bigger or smaller").
 
    transform/opacity only. Rupees throughout, no vendor names. */
 
@@ -43,11 +47,13 @@ const MONTHLY_TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
 const BUILD_COST = 400000;
 const BUILD_RECOVERED = 0;
 
-/* The knob's own diameter (h-4 w-4). Its resting x is offset by half of this so
-   the knob's CENTRE, not its left edge, marks the current position -- at 0%
-   that centre sits exactly on the track's start. */
-const KNOB_SIZE = 16;
-const KNOB_RADIUS = KNOB_SIZE / 2;
+/* The fund bar's track height in px, which is also the fill's MINIMUM width:
+   at ₹0 the fill is a circle of exactly this diameter, equal to the track,
+   per the owner ("not bigger or smaller" - no dial knob). 20 matches the
+   monthly bar's outer h-5, so the two troughs read as the same object; this
+   one takes no inner p-1, because an inset would leave the fill 12px tall
+   against a 20px track and the 0% circle must match the track exactly. */
+const FUND_TRACK_H = 20;
 
 /* Counts a figure up from 0 the first time the card scrolls into view, paired
    with the bar fill so the number and the bar land together. A rAF ease-out
@@ -122,33 +128,11 @@ function useCountUpOnView(target: number) {
   return { ref, shown, value };
 }
 
-/* Measures the track's rendered pixel width so the knob's transform-based
-   travel (translateX in px) lines up exactly with the fill's transform-based
-   width (scaleX, resolution-independent). Re-measures on resize/reflow. */
-function useTrackWidth() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const measure = () => setWidth(el.getBoundingClientRect().width);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  return { ref, width };
-}
-
 export function CostBar() {
   const { ref, shown, value } = useCountUpOnView(MONTHLY_TOTAL);
   const { ref: fundRef, shown: fundShown, value: fundValue } = useCountUpOnView(BUILD_RECOVERED);
-  const { ref: trackRef, width: trackWidth } = useTrackWidth();
 
   const fundPct = Math.min(100, (BUILD_RECOVERED / BUILD_COST) * 100);
-  const knobX = (fundPct / 100) * trackWidth - KNOB_RADIUS;
 
   return (
     <div
@@ -202,26 +186,40 @@ export function CostBar() {
         A few people chipping in comfortably covers the whole month.
       </p>
 
-      {/* The one-time build fund: a smaller, recessed note (rounded-md/12px)
-          nested inside this card (rounded-lg/16px), never a peer card of its
-          own -- see the nesting rule in DESIGN-SYSTEM.md. */}
-      <div ref={fundRef} className="mt-[var(--space-m)] rounded-md bg-mist p-[var(--space-m)]">
+      {/* The one-time build fund: the card's second section, a sibling of
+          the monthly breakdown above with the same heading register and the
+          same left edge, never inset inside it (owner, 2026-07-30: "it's
+          not a subset of where the monthly bill goes"). --space-l of air
+          marks the section break; no rule between them, because a divider
+          here would be a border neither box has earned. */}
+      <div ref={fundRef} className="mt-[var(--space-l)]">
         <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xxs)]">
-          <p className="text-sm font-semibold text-foreground">
+          <p className="font-heading text-base font-bold text-foreground">
             Recovering what it cost to build
           </p>
-          <p className="inline-flex items-center gap-0.5 text-sm font-semibold tabular-nums text-canopy">
-            <IndianRupee className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+          <p className="inline-flex items-center gap-0.5 text-lg font-semibold tabular-nums text-canopy">
+            <IndianRupee className="h-4 w-4" strokeWidth={2.5} aria-hidden />
             {fundValue.toLocaleString("en-IN")}
-            <span className="ml-1 text-xs font-medium text-muted-foreground">
+            <span className="ml-1 text-sm font-medium text-muted-foreground">
               of ₹{BUILD_COST.toLocaleString("en-IN")}
             </span>
           </p>
         </div>
 
+        {/* The monthly bar's own trough recipe (a mist pill; the owner asked
+            for the twin explicitly, which outranks the one-well-per-card
+            guidance here), minus its 4px inset so fill height == track
+            height (see FUND_TRACK_H). The max() keeps the fill's width from
+            ever dropping below the track height, so at 0% it is a perfect
+            canopy circle at the left end and later progress stretches that
+            same circle into a pill. Width is set statically rather than
+            animated with scaleX like the bar above: a transform scale would
+            squash the 0% circle into an ellipse, and width itself may not
+            animate (transform/opacity only), so the on-view reveal is an
+            opacity fade instead. */}
         <div
-          ref={trackRef}
-          className="relative mt-[var(--space-m)] h-1.5 w-full rounded-full bg-muted-foreground"
+          className="relative mt-[var(--space-m)] w-full overflow-hidden rounded-full bg-mist"
+          style={{ height: FUND_TRACK_H }}
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={BUILD_COST}
@@ -229,15 +227,10 @@ export function CostBar() {
           aria-label="Progress towards recovering the one-time cost of building the site"
         >
           <motion.div
-            className="absolute inset-y-0 left-0 h-full w-full origin-left rounded-full bg-canopy"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: fundShown ? fundPct / 100 : 0 }}
-            transition={SPRINGS.gentle}
-          />
-          <motion.div
-            className="absolute left-0 top-1/2 h-4 w-4 rounded-full bg-canopy shadow-[0_2px_6px_-2px_rgba(35,92,73,0.55)] ring-2 ring-mist"
-            initial={{ x: -KNOB_RADIUS, y: "-50%" }}
-            animate={{ x: fundShown ? knobX : -KNOB_RADIUS, y: "-50%" }}
+            className="h-full rounded-full bg-canopy"
+            style={{ width: `max(${fundPct}%, ${FUND_TRACK_H}px)` }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: fundShown ? 1 : 0 }}
             transition={SPRINGS.gentle}
           />
         </div>
