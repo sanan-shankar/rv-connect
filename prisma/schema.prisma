@@ -47,6 +47,7 @@ model User {
   verifyMethod  String?   // office_list | community | admin_manual
   isBlocked     Boolean   @default(false)
   adminNote     String?
+  theme         String?   // UI theme preference: "light" | "dark"; null = light (the default, so existing rows need no backfill). Mirrored into the rv-theme cookie (src/lib/theme.ts) for SSR.
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

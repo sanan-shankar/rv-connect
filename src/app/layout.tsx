@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { MascotFlightLayer } from "@/components/mascot/mascot-flight-layer";
+import { getThemeCookie } from "@/lib/theme";
 import "./globals.css";
 
 const libreBaskerville = Libre_Baskerville({
@@ -38,11 +39,20 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  /* Dark-mode groundwork: the per-request theme comes from the rv-theme
+   * cookie (set by the settings theme action alongside User.theme), so SSR
+   * paints the member's choice with no flash. HARD GUARD: until a .dark block
+   * exists in globals.css this is visually inert; the class may flip on
+   * <html>, but with no dark tokens defined every token still resolves to its
+   * :root value, so the rendered output is identical to the old
+   * forcedTheme="light". enableSystem is off because dark is only ever
+   * entered through the settings confirmation flow, never the OS setting. */
+  const theme = (await getThemeCookie()) ?? "light";
   return (
     <html
       lang="en"
@@ -52,7 +62,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col antialiased">
         <ThemeProvider
           attribute="class"
-          forcedTheme="light"
+          defaultTheme={theme}
+          enableSystem={false}
         >
           {children}
           {/* The ONE hoopoe, mid-flight: renders nothing until a landing CTA
