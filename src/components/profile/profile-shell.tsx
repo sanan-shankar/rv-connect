@@ -118,7 +118,7 @@ export function ProfileShell({
   const activeKey = tabs.some((t) => t.key === tab) ? tab : "about";
 
   return (
-    <div className="mx-auto w-full max-w-[1120px]">
+    <div className="w-full">
       {headerNode}
 
       {/* FOLDER: tabs + one padded body card. */}
