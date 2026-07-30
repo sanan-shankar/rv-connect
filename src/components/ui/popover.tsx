@@ -7,10 +7,11 @@ import { cn } from "@/lib/utils"
 
 /**
  * Thin shadcn-style wrapper around Base UI's Popover primitive, following the
- * same Portal -> Positioner -> Popup shape as select.tsx / combobox.tsx, and
- * the same warm-popover / ring-1 / layered-shadow treatment as combobox.tsx.
- * Used for anything that needs a floating panel anchored to a trigger that
- * ISN'T itself a listbox/select (e.g. RangeFacetPill's From/To picker).
+ * same Portal -> Positioner -> Popup shape as select.tsx / combobox.tsx. The
+ * panel is the one floating-panel material from DESIGN-SYSTEM "Menus &
+ * dropdowns": Float white, 12px --radius-md, hairline border, the layered ink
+ * shadow. Used for anything that needs a floating panel anchored to a trigger
+ * that ISN'T itself a listbox/select (e.g. RangeFacetPill's From/To picker).
  */
 
 function Popover({ ...props }: PopoverPrimitive.Root.Props) {
@@ -47,7 +48,11 @@ function PopoverContent({ className, ...props }: PopoverPrimitive.Popup.Props) {
     <PopoverPrimitive.Popup
       data-slot="popover-content"
       className={cn(
-        "relative w-72 origin-(--transform-origin) rounded-2xl bg-popover p-4 text-popover-foreground ring-1 ring-foreground/10 shadow-[0_18px_38px_-16px_rgba(35,36,30,0.28)] outline-none duration-150 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+        // --radius-md (12px) is the protocol's floating-panel radius: the old
+        // rounded-2xl computed to 27.2px here, rounder than the 16px card the
+        // panel floats over, which inverts the radius ladder. The hairline
+        // border + layered ink shadow are the shared menu-material treatment.
+        "relative w-72 origin-(--transform-origin) rounded-[var(--radius-md)] border border-border bg-popover p-4 text-popover-foreground shadow-[0_18px_38px_-16px_rgba(35,36,30,0.28)] outline-none duration-150 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
         className
       )}
       {...props}

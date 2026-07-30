@@ -22,7 +22,7 @@ function createPrismaClient() {
 // that lacks the new models. In production this is a no-op (one client, one
 // process) and behaves exactly as a plain `new PrismaClient()` would.
 const globalForPrismaKey = globalThis as unknown as { prismaKey: string | undefined };
-const clientKey = "adminThreads-v1";
+const clientKey = "labRoomState-v1";
 
 if (globalForPrisma.prisma && globalForPrismaKey.prismaKey !== clientKey) {
   globalForPrisma.prisma = undefined;

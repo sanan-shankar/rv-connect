@@ -6,13 +6,13 @@ export default function HousesRoom() {
   return (
     <LabShell
       title="The houses picker, refined"
-      lede="Same interaction the owner liked: year rows, tap a year, pick a house, auto-advance to the next unfilled one. Nothing about the question changed. What changed is where the panel sits on a phone, the radii around it, and the small motion when an answer lands."
+      lede="Same interaction the owner liked: year rows, tap a year, pick a house, auto-advance to the next unfilled one. Nothing about the question changed. What changed is where the panel sits on a phone, the radii around it, and how the panel lays out its 22 houses."
     >
       <Tell
         label="What this pass touched"
         tone="leaf"
         stats={[
-          { n: "0", of: "new colours. No per-house tint, no family grouping -- one calm neutral pill, selected reads canopy.", tone: "plain" },
+          { n: "0", of: "new colours. No per-house tint, no family grouping -- one calm neutral row, selected reads canopy.", tone: "plain" },
           { n: "1", of: "shell swap: below 1024px the panel is now a bottom sheet, not a popover that opened over the rows it was asking about." },
           { n: "44px", of: "minimum touch target through the panel, up from 40.", tone: "good" },
           { n: "16 / 12 / 8", of: "the radius ladder that now actually holds: group, picker, year chip.", tone: "good" },
@@ -75,7 +75,7 @@ export default function HousesRoom() {
       <div className="grid max-w-[76ch] gap-3 text-[17px] leading-[1.65]">
         <p>
           <b>Where the panel sits on a phone.</b> Below 1024px the panel used to open as a popover
-          anchored under the trigger, side=&quot;bottom&quot;, which on a 22-house grid routinely ran past
+          anchored under the trigger, side=&quot;bottom&quot;, which with 22 houses to show routinely ran past
           the bottom of the screen and sat on top of the very rows it was asking about -- the exact
           complaint. It is now the same bottom sheet the Directory and Collection filters already use
           (shared, not rebuilt): fixed to the viewport, its own scroll, a backdrop, and the year restated as
@@ -91,12 +91,15 @@ export default function HousesRoom() {
           <b>The radii.</b> The settings and onboarding rows around this picker used to nest a 20.8px tile
           inside a 20.8px card, around a 16px year box, around a 12px picker, around a pill: radii running
           in every direction at once. It is now a strict ladder -- 16px group, 12px picker, 8px year chip,
-          pill houses -- and no two nested surfaces share a number.
+          8.8px rows inside the panel -- and no two nested surfaces share a number.
         </p>
         <p>
-          <b>The micro-motion.</b> A picked house lands in its row with a small spring settle instead of
-          just appearing. The panel itself fades and rises in on open. Touch targets in the grid are 44px
-          minimum throughout, up from 40.
+          <b>The panel body.</b> The 22 houses used to render as a two-column wall of bordered pills; they
+          are now two quiet columns of plain text rows in the canonical order, flowing down the first
+          column then the second. No idle border, no idle fill -- hover lifts, and a picked house reads
+          canopy with a small leading check. The trigger shows the answer as plain text
+          (&quot;Alamanda · Jacaranda&quot;) instead of nested pills, so a two-house year never wraps the
+          row. Touch targets stay 44px minimum throughout, up from 40.
         </p>
         <p className="text-muted-foreground">
           <b>What did not change:</b> the question (year by year), the auto-advance, the flat uncoloured
@@ -108,8 +111,8 @@ export default function HousesRoom() {
         <p>
           The picker asks the same question it always did, in the same order, with the same auto-advance.
           What changed is narrower than a redesign: a phone no longer has to fight the panel to see what it
-          is answering, the radii finally form one system instead of four competing ones, and picking a
-          house feels like landing rather than teleporting.
+          is answering, the radii finally form one system instead of four competing ones, and the panel
+          reads as one intentional list instead of a wall of lozenges.
         </p>
       </Verdict>
     </LabShell>

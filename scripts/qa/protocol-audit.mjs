@@ -62,6 +62,7 @@ const HEX_ALLOW = new Map([
   ["src/components/ui/sonner.tsx", "toast shadow, pending tokenised shadows"],
   ["src/app/layout.tsx", "themeColor meta must be a literal; kept in lockstep with --background by hand"],
   ["src/components/ui/dialog.tsx", "the dialog material's warm-ink scrim (#241a12), same register as the viewer backdrop"],
+  ["src/components/ui/sheet.tsx", "the edge-anchored variant of the dialog material, sharing its warm-ink scrim (#241a12)"],
   ["src/components/common/bird-avatar.tsx", "glyph plumage support white"],
   ["src/components/landing/footer-hoopoe.tsx", "tuft plumage art (marigold family)"],
 ]);
@@ -87,7 +88,6 @@ const DRAB_RE = /bg-canopy\/10(?!\d)|#1A6B3C/i;
    rebuild wave owns the migration (TEMP entries). */
 const DRAB_ALLOW = new Map([
   ["src/components/settings/settings-form.tsx", "TEMP: Wave-2 settings rebuild owns this"],
-  ["src/components/common/house-picker.tsx", "TEMP: Wave-2"],
   ["src/components/onboarding/steps/houses-step.tsx", "TEMP: Wave-2"],
   ["src/components/directory/directory-client.tsx", "TEMP: Wave-4 directory redo"],
   ["src/components/messages/thread-list.tsx", "selected thread row (selection state)"],
