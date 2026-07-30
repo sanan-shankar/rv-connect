@@ -43,6 +43,7 @@ export function useHoopoe(): UseHoopoe {
       land: p("land"),
       takeOff: p("takeOff"),
       glide: v("glide"),
+      legsDown: v("legsDown"),
       perch: p("perch"),
       turn: p("turn"),
       point: p("point"),

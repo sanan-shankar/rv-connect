@@ -60,6 +60,18 @@ export function normalizeFlightSpeed(speed: number | undefined): number {
 }
 
 /**
+ * Optical landing lift, in px. The auth pages apply this as a constant
+ * `translateY(-PERCH_LIFT_PX)` on the tight box around their hoopoe — the same
+ * box whose measured rect they report as the perch — so the report, the
+ * flyer's landing, and the destination bird all agree to the pixel while all
+ * sitting marginally high. Why high: a bird alighting a touch above the
+ * geometric spot reads as perched ON it; geometric centring read as sunk INTO
+ * it (owner: "it lands a couple of pixels too low. let it land marginally
+ * higher"). 2px is the whole ask — any more starts to read as floating.
+ */
+export const PERCH_LIFT_PX = 2;
+
+/**
  * sessionStorage key the launcher sets right before it pushes to the auth
  * route, and the destination reads-once on mount. It is what tells the
  * destination page "you were arrived-at by a flight, so keep your own hoopoe

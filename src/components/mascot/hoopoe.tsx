@@ -39,6 +39,7 @@ import {
   SPRINGS,
   EASE_SPRING,
   EASE_SOFT,
+  LEGS_DOWN_AT,
   PARTS,
   EXPRESSIONS,
   makeDamper,
@@ -80,6 +81,13 @@ const C = {
   shadow: "#3A2E22",
   heart: "#E03A33",
 };
+
+// Extra clearance, in px, above the viewport for a "sky" fly-in spawn: the
+// soft drop shadow renders below the feet and the first cruise frames already
+// descend a few px, so without this slack the shadow could peek over the top
+// edge on the bird's very first visible frame. 24px covers the shadow's
+// offset plus several frames of initial descent with room to spare.
+const SKY_PAD_PX = 24;
 
 // pivot tucked into the crown (head top is ~y29) so feather bases never detach when the fan opens/folds
 const CREST_PIVOT = { x: 60, y: 37 };
@@ -660,6 +668,17 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     // pin the landing exactly on target
     txs[N] = p.x;
     tys[N] = p.y;
+    // Landing gear down mid-descent (LEGS_DOWN_AT of the cruise): the legs are
+    // tucked at 138° for flight and used to unfold only in the landing block
+    // below, i.e. after the bird was already sitting on the perch — a visibly
+    // legless bird for the first beat of every landing. The delay rides the
+    // same clock as the cruise so the unfold always falls in the final
+    // descent. Fire-and-forget: the landing block no longer re-animates the
+    // legs (a superseded spring's `.finished` never resolves, so awaiting a
+    // second leg write there could hang this promise chain), and awaiting
+    // these here would stall touchdown behind the spring settle.
+    A(PARTS.leftLeg, { rotate: 0 }, { ...SPRINGS.gentle, delay: dur * LEGS_DOWN_AT });
+    A(PARTS.rightLeg, { rotate: 0 }, { ...SPRINGS.gentle, delay: dur * LEGS_DOWN_AT });
     await Promise.all([
       A(PARTS.root, { x: txs, y: tys }, { duration: dur, ease: "linear" }).finished,
       A(PARTS.leftWing, { rotate: lw }, { duration: dur, ease: "linear" }).finished,
@@ -671,7 +690,10 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     ]);
     rootX.current = p.x;
     rootY.current = p.y;
-    // land: wings fold back, legs reach down, a soft cushioned squash, shadow restores
+    // land: wings fold back, a soft cushioned squash, shadow restores. The legs
+    // are deliberately NOT touched here: they were already sent to 0 mid-descent
+    // above, and their spring may still be settling — superseding it would leave
+    // an unresolvable `.finished` (see the comment on the mid-descent unfold).
     await Promise.all([
       A(PARTS.leftWing, { rotate: 0 }, SPRINGS.settle).finished,
       A(PARTS.rightWing, { rotate: 0 }, SPRINGS.settle).finished,
@@ -679,8 +701,6 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
       A(PARTS.rightWingArm, { opacity: 0 }, { duration: 0.2 }).finished,
       A(PARTS.leftWingFold, { opacity: 1 }, { duration: 0.2 }).finished,
       A(PARTS.rightWingFold, { opacity: 1 }, { duration: 0.2 }).finished,
-      A(PARTS.leftLeg, { rotate: 0 }, SPRINGS.gentle).finished,
-      A(PARTS.rightLeg, { rotate: 0 }, SPRINGS.gentle).finished,
       A(PARTS.shadow, { scaleX: 1, opacity: 0.18 }, SPRINGS.gentle).finished,
       A(PARTS.body, { scaleY: [1.08, 0.95, 1], y: [0, 3, 0], rotate: 0 }, { duration: 0.45, ease: EASE_SPRING }).finished,
     ]);
@@ -730,6 +750,18 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     const marginPx = Math.max(w, h) * 1.15;
     if (edge === "left") return { x: -marginPx * vbPerPxX, y: -marginPx * 0.25 * vbPerPxY };
     if (edge === "right") return { x: marginPx * vbPerPxX, y: -marginPx * 0.25 * vbPerPxY };
+    if (edge === "sky") {
+      // Fully above the VIEWPORT, not merely above the rig's own box. The auth
+      // pages' rig sits mid-viewport, so the box-relative "top" margin below
+      // started the bird already on screen and it "half-appeared" mid-air.
+      // `rect.top + h` px of lift puts the bird's bottom edge exactly at
+      // viewport y=0; SKY_PAD_PX more keeps the drop shadow (drawn below the
+      // feet) and the first frames of descent clear of the edge. The
+      // box-relative margin stays as a floor so a rig scrolled to (or above)
+      // the viewport top still starts clear of its own box, never below it.
+      const skyPx = Math.max(marginPx, (r?.top ?? 0) + h + SKY_PAD_PX);
+      return { x: 0, y: -skyPx * vbPerPxY };
+    }
     return { x: 0, y: -marginPx * vbPerPxY }; // "top" (default)
   }
   async function flyInRaw(edge: FlyInEdge, target?: Target) {
@@ -739,17 +771,25 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     try {
       // snap straight to the airborne pose at the off-canvas point; no ground crouch
       // to play since the bird is meant to already be mid-flight when it appears.
+      // The duration-0 warps are AWAITED before the arc (motion applies them on
+      // its next frame, not synchronously): starting the arc in the same tick
+      // let its keyframes race the warps for the same properties, and a caller
+      // revealing the rig for a fly-in could paint one frame of the seated bird
+      // at the perch before the warp moved it off-screen (the mobile auth
+      // "ghost frame"). Costs at most one frame, off-screen.
       rootX.current = start.x;
       rootY.current = start.y;
-      A(PARTS.root, { x: start.x, y: start.y }, { duration: 0 });
-      A(PARTS.leftWingFold, { opacity: 0 }, { duration: 0 });
-      A(PARTS.rightWingFold, { opacity: 0 }, { duration: 0 });
-      A(PARTS.leftWingArm, { opacity: 1 }, { duration: 0 });
-      A(PARTS.rightWingArm, { opacity: 1 }, { duration: 0 });
-      A(PARTS.leftLeg, { rotate: 138 }, { duration: 0 });
-      A(PARTS.rightLeg, { rotate: -138 }, { duration: 0 });
-      A(PARTS.leftWing, { rotate: -50 }, { duration: 0 });
-      A(PARTS.rightWing, { rotate: 50 }, { duration: 0 });
+      await Promise.all([
+        A(PARTS.root, { x: start.x, y: start.y }, { duration: 0 }).finished,
+        A(PARTS.leftWingFold, { opacity: 0 }, { duration: 0 }).finished,
+        A(PARTS.rightWingFold, { opacity: 0 }, { duration: 0 }).finished,
+        A(PARTS.leftWingArm, { opacity: 1 }, { duration: 0 }).finished,
+        A(PARTS.rightWingArm, { opacity: 1 }, { duration: 0 }).finished,
+        A(PARTS.leftLeg, { rotate: 138 }, { duration: 0 }).finished,
+        A(PARTS.rightLeg, { rotate: -138 }, { duration: 0 }).finished,
+        A(PARTS.leftWing, { rotate: -50 }, { duration: 0 }).finished,
+        A(PARTS.rightWing, { rotate: 50 }, { duration: 0 }).finished,
+      ]);
       await arcAndLand(start.x, start.y, end);
     } finally {
       damper.resume();
@@ -795,6 +835,19 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   // animation, and a superseded motion animation's `.finished` never resolves,
   // so an awaited-in-queue take-off would hang the pump forever.)
   const takeOff = () => (variant === "icon" ? Promise.resolve() : takeOffRaw());
+
+  // 1.5 landing gear: the legs come out of the 138° flight tuck DURING the
+  // final descent (the flight layer fires this at LEGS_DOWN_AT of its cruise;
+  // arcAndLand times its own equivalent), so the bird crosses touchdown with
+  // legs already extended instead of sprouting them after it has landed. Not
+  // queued (see takeOff) and fire-and-forget: perch settles the legs again
+  // anyway, and nothing must ever await this — a later same-part write would
+  // supersede the spring and leave its `.finished` unresolvable.
+  const legsDown = () => {
+    if (variant === "icon") return;
+    A(PARTS.leftLeg, { rotate: 0 }, SPRINGS.gentle);
+    A(PARTS.rightLeg, { rotate: 0 }, SPRINGS.gentle);
+  };
 
   // 2. cruise: continuous wingbeats (up -74 .. down -26) plus a steady bank into
   //    the direction of travel and streamed-back crest/tail. Not queued (a live
@@ -1052,7 +1105,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   // so freezing the object keeps it correct while giving useImperativeHandle a stable identity.
   const api = useMemo<HoopoeApi>(
     () => ({
-      walk, hop, flyTo, land, takeOff, glide, perch, turn, point, wave, nod, shake, crest, crestFlick,
+      walk, hop, flyTo, land, takeOff, glide, legsDown, perch, turn, point, wave, nod, shake, crest, crestFlick,
       preen, peck, flyIn,
       express, celebrate, blinkOnce, gaze: gazeTo, bindPassword,
       coverEyes, peek, sleep: sleepVerb, wake: wakeVerb, sequence, react, stop, cancel, rest, isBusy,
