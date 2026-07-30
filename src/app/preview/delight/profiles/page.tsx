@@ -11,8 +11,8 @@
  *  Deep links for screenshot agents: append ?v=<key> to load a concept
  *  directly, e.g.
  *    http://localhost:3000/preview/delight/profiles?v=field-guide
- *  Valid keys: letterhead | field-guide | editorial | dossier | broadsheet
- *  | passport | terrace.
+ *  Valid keys: letterhead | letterhead-2 | field-guide | editorial | dossier
+ *  | broadsheet | passport | terrace.
  *  Omitting ?v=, or passing an unknown key, falls back to the first tab
  *  (letterhead). Clicking a tab in the browser rewrites ?v= to match, so
  *  the address bar always reflects what's on screen and can be copied
@@ -27,6 +27,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { SpringPress } from "@/components/common/motion";
 import { PROFILE } from "./_data";
 import LetterheadVariant from "./_variant-letterhead";
+import LetterheadTwoVariant from "./_variant-letterhead-2";
 import FieldGuideVariant from "./_variant-field-guide";
 import EditorialVariant from "./_variant-editorial";
 import DossierVariant from "./_variant-dossier";
@@ -36,6 +37,7 @@ import TerraceVariant from "./_variant-terrace";
 
 const CONCEPTS = [
   { key: "letterhead", label: "Letterhead", Component: LetterheadVariant },
+  { key: "letterhead-2", label: "Letterhead II", Component: LetterheadTwoVariant },
   { key: "field-guide", label: "Field guide", Component: FieldGuideVariant },
   { key: "editorial", label: "Editorial", Component: EditorialVariant },
   { key: "dossier", label: "Dossier", Component: DossierVariant },
@@ -78,11 +80,11 @@ function ProfileConceptsHarness() {
     <div className="min-h-screen bg-background">
       <header className="glass sticky top-0 z-[var(--z-elevated)] flex flex-wrap items-center gap-4 border-b border-border px-6 py-3">
         <Link
-          href="/preview/delight"
+          href="/lab"
           className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
         >
           <PeaksMark size={16} />
-          Delight
+          Lab
         </Link>
 
         <nav className="flex flex-1 flex-wrap items-center gap-2" aria-label="Profile concept">

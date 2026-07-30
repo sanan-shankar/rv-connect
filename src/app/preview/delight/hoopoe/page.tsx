@@ -21,7 +21,7 @@ export default function HoopoeLab() {
     <div className={`hl ${dark ? "hl-dark" : ""}`}>
       <style>{CSS}</style>
       <header className="hl-top">
-        <Link href="/preview/delight" className="hl-back">‹ Delight</Link>
+        <Link href="/lab" className="hl-back">‹ Lab</Link>
         <div className="hl-title">
           <h1>The hoopoe mascot</h1>
           <p>One rigged baby hoopoe, one queued controller. Walk, fly, point, gaze, emote, fold the crest, celebrate. Drive it below.</p>

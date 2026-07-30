@@ -211,8 +211,8 @@ export function DelightShell({
         <header className="dl-topbar">
           <div className="dl-topbar-l">
             {!index && (
-              <Link href="/preview/delight" className="dl-back" aria-label="Back to delight index">
-                <PeaksMark size={20} /> <span>Delight</span>
+              <Link href="/lab" className="dl-back" aria-label="Back to the lab index">
+                <PeaksMark size={20} /> <span>Lab</span>
               </Link>
             )}
             <div>

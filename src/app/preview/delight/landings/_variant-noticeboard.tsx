@@ -501,7 +501,7 @@ function BoardNav() {
         }}
       >
         <Link
-          href="/preview/delight"
+          href="/lab"
           className="rounded-md outline-none transition-transform duration-150 hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-canopy/60 active:translate-y-0"
         >
           <Wordmark size={22} fontSize={17} variant="light" textClassName="text-[#241E14]" />
