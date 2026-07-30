@@ -17,7 +17,7 @@ model User {
   photoUrl      String?   // uploaded profile photo; overrides the bird avatar everywhere
   bio           String?
   about         String?   // long-form "in their words" paragraph (profile About tab)
-  openTo        String?   // comma list of soft "Open to" tags (mentoring, hosting, etc.)
+  openTo        String?   // retired 2026-07-30 (owner call). Column kept for a future cleanup migration; no reader or writer remains.
   currentCity   String?   // primary city, shown everywhere
   secondaryCity String?   // optional second base, shown on the profile and searchable
   houses        String?   // JSON string of [{year, house}]; canonical house list in src/lib/houses.ts
@@ -234,6 +234,7 @@ model Post {
   groupId       String?   // null = main feed; set = posted into a group
   cityScope     String?   // null = everyone; otherwise the city short-name this post is limited to (admins see all)
   isHidden      Boolean   @default(false)
+  status        String    @default("published") // "published" | "draft" — drafts are letters saved before sending; only ever visible to their author
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
