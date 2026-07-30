@@ -1,17 +1,39 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, SearchIcon } from "lucide-react";
+import { Check, ChevronDown, SearchIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
-  PopoverContent,
   PopoverPortal,
   PopoverPositioner,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { FACET_ITEM_CLASS, FacetClearButton, facetPillClass } from "./pill-shell";
+import { FACET_ITEM_CLASS, FacetClearButton, FacetPanel, facetPillClass } from "./pill-shell";
 import type { FacetOption } from "./types";
+
+/**
+ * One row of the searchable panel. Selection is a canopy check, never a
+ * fill: the `--accent` wash is the hover state (FACET_ITEM_CLASS), and the
+ * old selected wash reused the identical swatch, leaving hovered and
+ * selected rows indistinguishable.
+ */
+function FacetSearchRow({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} className={cn(FACET_ITEM_CLASS, "gap-2")}>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {selected && <Check className="size-4 shrink-0 text-canopy" aria-hidden />}
+    </button>
+  );
+}
 
 /**
  * FacetSearchSelect — the searchable-panel variant for long option lists
@@ -65,7 +87,10 @@ export function FacetSearchSelect({
       }}
     >
       <div className={facetPillClass(set, className)}>
-        <PopoverTrigger className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none">
+        <PopoverTrigger
+          data-facet-trigger=""
+          className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none"
+        >
           <span className="truncate">{text}</span>
           {!set && <ChevronDown className="size-3.5 shrink-0 opacity-70" aria-hidden />}
         </PopoverTrigger>
@@ -73,7 +98,11 @@ export function FacetSearchSelect({
       </div>
       <PopoverPortal>
         <PopoverPositioner sideOffset={6} align="start">
-          <PopoverContent className="w-64 p-0">
+          {/* p-0 + overflow-hidden: the option list below is a square-edged
+              scroller flush with the panel bottom; without the clip its row
+              highlight paints past the panel's 12px corner (the spill the
+              owner saw on the City/House lists). */}
+          <FacetPanel className="w-64 overflow-hidden p-0">
             <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
               <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
               <input
@@ -85,29 +114,27 @@ export function FacetSearchSelect({
                 className="h-6 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
-            <div className="max-h-64 overflow-y-auto p-1.5">
-              <button
-                type="button"
+            {/* The material's 4px inset lives on the scroller so rows stay
+                concentric (12px panel - 4px = the 8.8px row radius). */}
+            <div className="max-h-64 overflow-y-auto p-1">
+              <FacetSearchRow
+                label={anyLabel ?? `Any ${label.toLowerCase()}`}
+                selected={!set}
                 onClick={() => pick("")}
-                className={cn(FACET_ITEM_CLASS, !set && "bg-accent text-accent-foreground")}
-              >
-                {anyLabel ?? `Any ${label.toLowerCase()}`}
-              </button>
+              />
               {filtered.map((o) => (
-                <button
+                <FacetSearchRow
                   key={o.value}
-                  type="button"
+                  label={o.label}
+                  selected={value === o.value}
                   onClick={() => pick(o.value)}
-                  className={cn(FACET_ITEM_CLASS, value === o.value && "bg-accent text-accent-foreground")}
-                >
-                  {o.label}
-                </button>
+                />
               ))}
               {filtered.length === 0 && (
                 <p className="px-3 py-6 text-center text-sm text-muted-foreground">No matches</p>
               )}
             </div>
-          </PopoverContent>
+          </FacetPanel>
         </PopoverPositioner>
       </PopoverPortal>
     </Popover>

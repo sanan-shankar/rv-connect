@@ -1,12 +1,29 @@
 "use client";
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FACET_ITEM_CLASS, FACET_POPUP_CLASS, FacetClearButton, facetPillClass } from "./pill-shell";
 import type { FacetOption } from "./types";
 
 const ANY = "__any__";
+
+/**
+ * One option row: label left, and a canopy check on the selected value.
+ * Selection is a check, never a fill -- the `--accent` wash is the
+ * hover/keyboard-highlight state, and a selected row that reused it would
+ * read as two rows hovered at once.
+ */
+function FacetOptionRow({ value, label }: { value: string; label: string }) {
+  return (
+    <SelectPrimitive.Item value={value} className={cn(FACET_ITEM_CLASS, "cursor-default gap-2")}>
+      <SelectPrimitive.ItemText className="min-w-0 flex-1 truncate">{label}</SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemIndicator className="ml-auto shrink-0">
+        <Check className="size-4 text-canopy" aria-hidden />
+      </SelectPrimitive.ItemIndicator>
+    </SelectPrimitive.Item>
+  );
+}
 
 /**
  * The dropdown body shared by FacetSelect and SortPill: same portal/positioner/
@@ -31,14 +48,10 @@ function FacetOptionsPopup({
         <SelectPrimitive.Popup className={FACET_POPUP_CLASS}>
           <SelectPrimitive.List className="flex flex-col gap-0.5">
             {anyItem && (
-              <SelectPrimitive.Item value={anyItem.value} className={cn(FACET_ITEM_CLASS, "cursor-default")}>
-                <SelectPrimitive.ItemText>{anyItem.label}</SelectPrimitive.ItemText>
-              </SelectPrimitive.Item>
+              <FacetOptionRow value={anyItem.value} label={anyItem.label} />
             )}
             {options.map((o) => (
-              <SelectPrimitive.Item key={o.value} value={o.value} className={cn(FACET_ITEM_CLASS, "cursor-default")}>
-                <SelectPrimitive.ItemText>{o.label}</SelectPrimitive.ItemText>
-              </SelectPrimitive.Item>
+              <FacetOptionRow key={o.value} value={o.value} label={o.label} />
             ))}
           </SelectPrimitive.List>
         </SelectPrimitive.Popup>
@@ -80,7 +93,10 @@ export function FacetSelect({
       onValueChange={(v) => onChange(v === ANY ? "" : String(v ?? ""))}
     >
       <div className={facetPillClass(set, className)}>
-        <SelectPrimitive.Trigger className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none">
+        <SelectPrimitive.Trigger
+          data-facet-trigger=""
+          className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none"
+        >
           <span className="truncate">{text}</span>
           {!set && <ChevronDown className="size-3.5 shrink-0 opacity-70" aria-hidden />}
         </SelectPrimitive.Trigger>
@@ -116,7 +132,10 @@ export function SortPill({
       onValueChange={(v) => onChange(String(v ?? selected.value))}
     >
       <div className={facetPillClass(false, className)}>
-        <SelectPrimitive.Trigger className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none">
+        <SelectPrimitive.Trigger
+          data-facet-trigger=""
+          className="flex min-w-0 flex-1 items-center gap-1.5 py-2 outline-none"
+        >
           <span className="truncate">Sort: {selected.label}</span>
           <ChevronDown className="size-3.5 shrink-0 opacity-70" aria-hidden />
         </SelectPrimitive.Trigger>

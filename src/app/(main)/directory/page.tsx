@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { DirectoryClient } from "@/components/directory/directory-client";
 import { cityCoords } from "@/lib/city-coords";
+import { resolvePlacesFromGazetteer } from "@/lib/geocode";
 import { buildDirectoryWhere, directoryOrderBy } from "./where";
 import type { CityPin, PinPerson } from "@/components/directory/alumni-map";
 
@@ -31,6 +32,11 @@ const PERSON_SELECT = {
 // Fields the map needs from each located alumnus. `places` (not `currentCity`)
 // drives pins: a person plots in EVERY city they list, not just a primary one
 // (owner override, see docs/planning/round6-specs/filters-rework.md).
+// lat/lng ride along because the LocationPicker already wrote exact GeoNames
+// coordinates onto every picked row; the old select dropped them, and the map
+// then re-geocoded the bare city string against the small curated table --
+// which is how "Gurgaon" and "Northfield, Minnesota" fell off the map while
+// their rows held perfectly good coordinates.
 const PIN_SELECT = {
   id: true,
   name: true,
@@ -42,7 +48,10 @@ const PIN_SELECT = {
   batchType: true,
   batchYear: true,
   jobTitle: true,
-  places: { select: { city: true }, orderBy: { position: "asc" as const } },
+  places: {
+    select: { city: true, lat: true, lng: true },
+    orderBy: { position: "asc" as const },
+  },
 } as const;
 
 type PinRow = {
@@ -56,17 +65,37 @@ type PinRow = {
   batchType: string | null;
   batchYear: number | null;
   jobTitle: string | null;
-  places: { city: string }[];
+  places: { city: string; lat: number | null; lng: number | null }[];
 };
+
+// Coordinate resolution ladder for one UserPlace (the Gurgaon/Northfield
+// fix): (1) the row's own lat/lng, written by the GeoNames picker at save
+// time; (2) the curated static table, for legacy free-typed rows; (3) the
+// batched gazetteer fallback resolved before buildPins runs. Only a string
+// all three layers miss leaves a member off the map, and that miss is
+// warned in dev rather than silent.
+function placeCoords(
+  place: PinRow["places"][number],
+  fallbackCoords: Map<string, [number, number]>
+): [number, number] | null {
+  if (place.lng != null && place.lat != null) return [place.lng, place.lat];
+  return cityCoords(place.city) ?? fallbackCoords.get(place.city) ?? null;
+}
 
 // Aggregate located alumni into counted, sorted city pins. A person with
 // several cities plots once per resolvable city (the owner explicitly wants
 // "let me appear in all of those locations"); a person plots in "unmapped"
 // only if NONE of their cities resolve against the gazetteer. Shared by the
 // global browse map and the filtered map so both render the same shape of pin.
-function buildPins(rows: PinRow[]): { cityPins: CityPin[]; unmappedPeople: PinPerson[] } {
+function buildPins(
+  rows: PinRow[],
+  fallbackCoords: Map<string, [number, number]>
+): { cityPins: CityPin[]; unmappedPeople: PinPerson[] } {
   const pinMap = new Map<string, CityPin>();
   const unmappedPeople: PinPerson[] = [];
+  // One dev warn per distinct unresolvable string, not per member: the fix
+  // is per-string (add data), so per-member repeats would only bury it.
+  const warned = new Set<string>();
   for (const u of rows) {
     const base = {
       id: u.id,
@@ -80,24 +109,38 @@ function buildPins(rows: PinRow[]): { cityPins: CityPin[]; unmappedPeople: PinPe
       batchYear: u.batchYear,
       jobTitle: u.jobTitle,
     };
-    // Resolve every one of this person's cities to gazetteer coords once,
-    // deduped by coordinate (so "Bangalore" listed twice never double-plots).
-    // Kept alongside each pin entry as `otherCities` -- a person appears in
-    // EVERY city they list (owner override) -- even though the drilldown no
-    // longer renders an "Also in ..." line for it (owner call, 2026-07).
-    const resolvedByKey = new Map<string, string>();
+    // Resolve every one of this person's cities once, deduped by pin key (so
+    // "Bangalore" listed twice never double-plots). Kept alongside each pin
+    // entry as `otherCities` -- a person appears in EVERY city they list
+    // (owner override) -- even though the drilldown no longer renders an
+    // "Also in ..." line for it (owner call, 2026-07).
+    const resolvedByKey = new Map<string, { city: string; coords: [number, number] }>();
     for (const place of u.places) {
-      const coords = cityCoords(place.city);
-      if (!coords) continue;
-      const key = coords.join(",");
-      if (!resolvedByKey.has(key)) resolvedByKey.set(key, place.city);
+      const coords = placeCoords(place, fallbackCoords);
+      if (!coords) {
+        if (process.env.NODE_ENV !== "production" && !warned.has(place.city)) {
+          warned.add(place.city);
+          console.warn(
+            `[directory map] no coordinates for "${place.city}" (e.g. member ${u.name}); ` +
+              `they will sit in the Unmapped bucket. Every resolver missed: the row has no ` +
+              `lat/lng, and the string matched neither city-coords.ts nor the Place gazetteer.`
+          );
+        }
+        continue;
+      }
+      // Pins group on a 0.1-degree grid (~11 km), not exact coordinates:
+      // GeoNames puts Bengaluru at 77.5946 while the legacy table says
+      // 77.59, and exact keys would split one city into two stacked pins.
+      // 0.1 degrees merges that noise while keeping real neighbours (Delhi
+      // 77.21 vs Gurgaon 77.03) distinct. Display coords stay exact.
+      const key = `${coords[0].toFixed(1)},${coords[1].toFixed(1)}`;
+      if (!resolvedByKey.has(key)) resolvedByKey.set(key, { city: place.city, coords });
     }
-    const allMappedCities = [...resolvedByKey.values()];
+    const allMappedCities = [...resolvedByKey.values()].map((r) => r.city);
 
     let placedSomewhere = false;
-    for (const [key, city] of resolvedByKey) {
+    for (const [key, { city, coords }] of resolvedByKey) {
       placedSomewhere = true;
-      const coords = key.split(",").map(Number) as [number, number];
       const otherCities = allMappedCities.filter((c) => c !== city);
       const person: PinPerson = {
         ...base,
@@ -250,7 +293,19 @@ export default async function DirectoryPage({
   const users = hasMore ? pageRows.slice(0, PAGE_SIZE) : pageRows;
   const nextCursor = hasMore ? users[users.length - 1].id : null;
 
-  const { cityPins, unmappedPeople } = buildPins(mapped);
+  // Legacy rows (saved before the GeoNames picker, so lat/lng are null) whose
+  // city string also misses the curated table get one batched shot at the
+  // real gazetteer. resolvePlacesFromGazetteer caches module-wide, so the
+  // steady state of this await is zero queries.
+  const needsFallback = new Set<string>();
+  for (const u of mapped) {
+    for (const p of u.places) {
+      if ((p.lat == null || p.lng == null) && !cityCoords(p.city)) needsFallback.add(p.city);
+    }
+  }
+  const fallbackCoords = await resolvePlacesFromGazetteer([...needsFallback]);
+
+  const { cityPins, unmappedPeople } = buildPins(mapped, fallbackCoords);
 
   return (
     <div>

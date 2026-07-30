@@ -4,6 +4,7 @@ import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
 import { cn } from "@/lib/utils"
+import { MENU_PANEL_CLASS } from "@/components/ui/menu-material"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
 const Select = SelectPrimitive.Root
@@ -60,7 +61,9 @@ function SelectContent({
   className,
   children,
   side = "bottom",
-  sideOffset = 4,
+  // The menu material's one placement: below the trigger, aligned to its
+  // leading edge, 6px off it (flip only on viewport collision).
+  sideOffset = 6,
   align = "start",
   alignOffset = 0,
   // `alignItemWithTrigger` (Base UI's native-<select>-style "open with the
@@ -87,20 +90,22 @@ function SelectContent({
         alignItemWithTrigger={alignItemWithTrigger}
         className="isolate z-50"
       >
+        {/* Surface + motion come from MENU_PANEL_CLASS (the one menu
+            material); this popup adds sizing only. When alignItemWithTrigger
+            is (ever) turned on, the popup free-floats over the trigger and an
+            origin animation has nothing honest to grow from, so the
+            transition is suppressed for that mode. */}
         <SelectPrimitive.Popup
           data-slot="select-content"
           data-align-trigger={alignItemWithTrigger}
-          className={cn("relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 data-[align-trigger=true]:animate-none data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95", className )}
+          className={cn(MENU_PANEL_CLASS, "relative isolate z-50 max-h-(--available-height) w-(--anchor-width) min-w-36 overflow-x-hidden overflow-y-auto data-[align-trigger=true]:transition-none", className )}
           {...props}
         >
           <SelectScrollUpButton />
-          {/* p-1 inset matches DropdownMenu/Combobox: it's what keeps the
-              item highlight (rounded-md, 12px) from sitting flush against
-              the popup's own rounded-lg (16px) corner -- without it the two
-              radii collide right at the corner with no gap to read as
-              "nested," which is the "hover bar inset wrong" bug. Lives on
-              List (not Popup) so the scroll arrows can still sit flush at
-              the popup's top/bottom edge. */}
+          {/* The material's 4px inset lives on List (not Popup) so the
+              scroll arrows can sit flush at the popup's top/bottom edge. It
+              is what keeps the item highlight (--radius-sm, 8.8px) reading
+              as nested inside the 12px panel corner: concentric, 12 - 4. */}
           <SelectPrimitive.List className="p-1">{children}</SelectPrimitive.List>
           <SelectScrollDownButton />
         </SelectPrimitive.Popup>
@@ -131,7 +136,9 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        // Menu-material row: 36px minimum, --radius-sm (8.8px, concentric
+        // with the 12px panel via its 4px inset), --accent highlight lift.
+        "relative flex min-h-9 w-full cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
       )}
       {...props}
@@ -139,12 +146,15 @@ function SelectItem({
       <SelectPrimitive.ItemText className="flex flex-1 shrink-0 gap-2 whitespace-nowrap">
         {children}
       </SelectPrimitive.ItemText>
+      {/* Selection is a canopy check, never a fill: the accent wash is the
+          hover state, so a selected row reusing it would read as two rows
+          hovered at once. */}
       <SelectPrimitive.ItemIndicator
         render={
           <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
         }
       >
-        <CheckIcon className="pointer-events-none" />
+        <CheckIcon className="pointer-events-none text-canopy" />
       </SelectPrimitive.ItemIndicator>
     </SelectPrimitive.Item>
   )
