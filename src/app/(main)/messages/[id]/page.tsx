@@ -69,7 +69,7 @@ export default async function ThreadPage({
   const title = threadTitle(thread);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <Link
         href="/messages"
         className="mb-6 inline-flex items-center gap-1.5 rounded-full text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"

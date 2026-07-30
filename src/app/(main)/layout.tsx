@@ -44,6 +44,8 @@ export default async function MainLayout({
           avatarColor: session.user.avatarColor,
           photoUrl: session.user.photoUrl,
           birdOverride: session.user.birdOverride,
+          batchType: session.user.batchType,
+          batchYear: session.user.batchYear,
         }}
         unreadCount={unreadCount}
       >
