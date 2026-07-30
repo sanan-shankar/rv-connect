@@ -127,7 +127,6 @@ export default async function DirectoryPage({
     city?: string;
     profession?: string;
     house?: string;
-    openTo?: string;
     type?: string;
     sort?: string;
     yearFrom?: string;
@@ -150,7 +149,6 @@ export default async function DirectoryPage({
     city: params.city,
     profession: params.profession,
     house: params.house,
-    openTo: params.openTo,
     type: params.type,
     sort: params.sort,
     yearFrom: params.yearFrom,
@@ -164,7 +162,6 @@ export default async function DirectoryPage({
     params.city ||
     params.profession ||
     params.house ||
-    params.openTo ||
     params.type ||
     yearFrom ||
     yearTo
@@ -239,7 +236,7 @@ export default async function DirectoryPage({
     // City facet options: live distinct `UserPlace.city` values (frequency,
     // then A-Z), NOT `distinct User.currentCity` -- a person now has an
     // unlimited ordered city list, so the option source moved to the child
-    // table. Profession/House/Open-to/Type are static vocabularies (no query
+    // table. Profession/House/Type are static vocabularies (no query
     // needed) imported straight into the client component.
     prisma.userPlace.groupBy({
       by: ["city"],
@@ -256,7 +253,7 @@ export default async function DirectoryPage({
   const { cityPins, unmappedPeople } = buildPins(mapped);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <PageHeader
         title="Directory"
         subtitle="Find the people who grew up under the same trees."
@@ -280,7 +277,6 @@ export default async function DirectoryPage({
           city: params.city || "",
           profession: params.profession || "",
           house: params.house || "",
-          openTo: params.openTo || "",
           type: params.type || "",
           yearFrom: params.yearFrom || "",
           yearTo: params.yearTo || "",

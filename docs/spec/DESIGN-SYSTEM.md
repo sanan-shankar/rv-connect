@@ -130,8 +130,20 @@ small-label use — a good default rotation whenever a short label needs a colou
   the app. (The only thing that pauses motion is the browser tab being hidden.) Consolidate to one
   `useMotionGovernor`; remove the OS checks left in older components; reconcile the two `useValleyMotion`
   forks into it.
-- **Curves:** import `EASE_POP` / `EASE_SPRING` / `SPRINGS` from `src/components/common/motion.tsx`.
-  Never hand-type a `cubic-bezier(...)`.
+- **Curves:** import `EASE_POP` / `EASE_SPRING` / `EASE_OUT_SMOOTH` / `EASE_IN_OUT_SCENE` / `SPRINGS`
+  from `src/components/common/motion.tsx`. Never hand-type a `cubic-bezier(...)`.
+  Picking between the two slide curves: `EASE_OUT_SMOOTH` starts at full speed, which is right for a
+  small element answering a click. `EASE_IN_OUT_SCENE` ramps in and settles, which is what a large,
+  viewport-scale move needs; using the out-only curve there reads as an abrupt lurch because the eye
+  never gets to pick the movement up.
+- **HOVER NEVER MOVES A CONTROL** (owner, 2026-07-25). No `hover:-translate-y-*`, no `hover:scale-*`,
+  no `whileHover` carrying `y` or `scale`, on any button, pill, chip, tab, card, or nav item. Hover is
+  a colour or background change and nothing else: "it changes color marginally, and that's enough. It
+  doesn't have to physically move." The press sink on `:active` / `whileTap` STAYS, because that is
+  feedback for an action you took rather than a control drifting under an idle cursor.
+  The one exception is a PHOTO scaling inside its own `overflow-hidden` frame, where the frame itself
+  does not move. Every clickable still needs `hover`, `focus-visible` and `active` states, so when a
+  transform is removed a colour hover has to be there in its place.
 - **`SpringPress` is mandatory** on every clickable/interactive element. No bespoke Tailwind transitions.
 - **Auto-animate is mandatory** on every list that adds/removes items.
 - **`AnimatePresence` with a real exit** on every modal/panel (this is what prevents the close-jump bugs).

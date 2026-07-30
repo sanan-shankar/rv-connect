@@ -7,7 +7,7 @@
  *  The fact is chosen once on mount inside useEffect (never during
  *  render, never in a useState initializer) so it is SSR-safe and
  *  stays steady across repeated hovers in a session, then differs on
- *  reload. Ported from the /preview/delight/eggs logo-fact demo onto
+ *  reload. Ported from the /lab/eggs logo-fact demo onto
  *  the real sidebar with real tokens. Transform/opacity only.
  * ------------------------------------------------------------------ */
 

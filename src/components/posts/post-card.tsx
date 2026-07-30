@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight, ShieldAlert, MapPin } from "lucide-react";
 import { ChatCircle, Feather } from "@phosphor-icons/react";
@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { IdentityRow } from "@/components/common/identity-row";
+import { ImageViewer } from "@/components/common/image-viewer";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
@@ -21,7 +22,7 @@ import { ReportDialog } from "./report-dialog";
 import { EditPostDialog } from "./edit-post-dialog";
 import { PollDisplay } from "./poll-display";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
-import { formatTimeAgo, parseJsonArray, renderRichText, batchLine, letterTitle } from "@/lib/utils";
+import { formatTimeAgo, formatDisplayDate, parseJsonArray, renderRichText, batchLine, letterTitle } from "@/lib/utils";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
@@ -69,10 +70,19 @@ export interface PostData {
 export function PostCard({
   post,
   variant = "card",
+  demo = false,
   onBookmarkChange,
 }: {
   post: PostData;
   variant?: "card" | "sheet";
+  /**
+   * Concept/lab pages (src/app/lab/**) render this card against a mock
+   * payload whose ids exist in no table. `demo` keeps every action local: the
+   * optimistic UI still runs, but nothing calls a server action that would fail
+   * on a foreign key, and the letter opens nowhere. It exists so a preview can
+   * show the REAL card instead of a look-alike copy of it.
+   */
+  demo?: boolean;
   /** Fired after a confirmed bookmark toggle. The Saved view uses this to drop a card once un-saved. */
   onBookmarkChange?: (bookmarked: boolean) => void;
 }) {
@@ -86,8 +96,20 @@ export function PostCard({
   const [showEdit, setShowEdit] = useState(false);
   const [showModeration, setShowModeration] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const [viewerAt, setViewerAt] = useState<number | null>(null);
 
   const images = parseJsonArray(post.images);
+  // Built once per post payload, not on every like/comment re-render.
+  const viewerImages = useMemo(
+    () =>
+      parseJsonArray(post.images).map((src) => ({
+        src,
+        author: post.author,
+        date: formatDisplayDate(post.createdAt),
+        caption: post.kind === "letter" ? null : post.content,
+      })),
+    [post.images, post.author, post.createdAt, post.kind, post.content]
+  );
   const isLetter = post.kind === "letter";
   const isLongText = post.content.length > READ_MORE_TRUNCATE_LEN;
   // Split (rather than swap) the text so "Read more" can ease the remainder open
@@ -113,6 +135,7 @@ export function PostCard({
     const next = !liked;
     setLiked(next);
     setLikeCount(next ? likeCount + 1 : likeCount - 1);
+    if (demo) return;
     const result = await toggleLike(post.id);
     if (result.error) {
       setLiked(liked);
@@ -122,6 +145,7 @@ export function PostCard({
   }
 
   async function handleDelete() {
+    if (demo) return;
     if (!confirm("Delete this post? This cannot be undone.")) return;
     const result = await deletePost(post.id);
     if (result.error) toast.error(result.error);
@@ -136,6 +160,10 @@ export function PostCard({
   async function handleBookmark() {
     const next = !bookmarked;
     setBookmarked(next);
+    if (demo) {
+      onBookmarkChange?.(next);
+      return;
+    }
     const result = await toggleBookmark(post.id);
     if (result.error) {
       setBookmarked(!next);
@@ -230,7 +258,7 @@ export function PostCard({
         {isLetter ? (
           /* Compact letter card: title + excerpt + read time, opens the reading view */
           <Link
-            href={`/letters/${post.id}`}
+            href={demo ? `#${post.id}` : `/letters/${post.id}`}
             className="mt-3 block rounded-xl border border-border bg-paper/60 p-4 transition-colors hover:border-leaf/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
@@ -304,7 +332,9 @@ export function PostCard({
               />
             )}
 
-            {/* Images */}
+            {/* Images. Each opens the shared full-screen viewer at itself
+                (owner, 2026-07-30: "when something is posted, people do like
+                to click on it and zoom in"). */}
             {images.length > 0 && (
               <div
                 className={`mt-3 gap-2 ${
@@ -312,20 +342,29 @@ export function PostCard({
                 }`}
               >
                 {images.map((img, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <button
                     key={i}
-                    src={img}
-                    alt=""
-                    loading="lazy"
-                    className={`w-full rounded-xl border border-border object-cover ${
-                      images.length === 3 && i === 0
-                        ? "col-span-2 max-h-64"
-                        : images.length === 1
-                          ? "max-h-96"
-                          : "max-h-48"
+                    type="button"
+                    onClick={() => setViewerAt(i)}
+                    aria-label={`View photo ${i + 1} of ${images.length} full screen`}
+                    className={`block w-full overflow-hidden rounded-xl border border-border transition-opacity duration-150 hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-90 ${
+                      images.length === 3 && i === 0 ? "col-span-2" : ""
                     }`}
-                  />
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img}
+                      alt=""
+                      loading="lazy"
+                      className={`w-full object-cover ${
+                        images.length === 3 && i === 0
+                          ? "max-h-64"
+                          : images.length === 1
+                            ? "max-h-96"
+                            : "max-h-48"
+                      }`}
+                    />
+                  </button>
                 ))}
               </div>
             )}
@@ -344,7 +383,6 @@ export function PostCard({
             aria-expanded={showComments}
             aria-controls={`comments-${post.id}`}
             aria-label={showComments ? "Hide comments" : "Show comments"}
-            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.93 }}
             transition={SPRINGS.snappy}
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
@@ -378,6 +416,15 @@ export function PostCard({
           )}
         </AnimatePresence>
       </article>
+
+      {images.length > 0 && (
+        <ImageViewer
+          images={viewerImages}
+          initialIndex={viewerAt ?? 0}
+          open={viewerAt !== null}
+          onClose={() => setViewerAt(null)}
+        />
+      )}
 
       {/* Always mounted (not gated on showReport) so ReportDialog's own
           AnimatePresence can play the close animation instead of the whole

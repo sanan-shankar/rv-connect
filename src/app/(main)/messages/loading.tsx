@@ -1,6 +1,6 @@
 export default function MessagesLoading() {
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <header className="mb-6 space-y-2.5">
         <div className="skeleton-warm h-8 w-64 rounded-md" />
         <div className="skeleton-warm h-4 w-80 rounded-md" />

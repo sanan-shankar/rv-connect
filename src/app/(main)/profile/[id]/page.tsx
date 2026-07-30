@@ -6,16 +6,12 @@ import { auth } from "@/lib/auth";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { socialHref, socialDisplay, parseUserLinks } from "@/lib/social";
-import { headerImageFor } from "@/lib/header-image";
 import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
-import { ProfileShell } from "@/components/profile/profile-shell";
-import { ProfileHeaderCard } from "@/components/profile/profile-header-card";
-import { ProfileAbout, type AboutSocial } from "@/components/profile/profile-about";
-import { ProfilePostsAndLetters } from "@/components/profile/profile-posts-and-letters";
-import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
+import { LetterheadProfile } from "@/components/profile/letterhead-profile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
+import { PUBLISHED_ONLY } from "@/lib/posts";
 
 export async function generateMetadata({
   params,
@@ -31,13 +27,15 @@ export async function generateMetadata({
   return { title: user.name };
 }
 
-/** "2014-2021 . 7 years" / partial fragments; never "undefined". */
+/**
+ * "2014-2023" / partial fragments; never "undefined".
+ *
+ * No year count. It used to read "2014-2023 · 9 years"; the owner cut the
+ * count: "if we don't need nine years, everyone can freaking calculate a
+ * number of years." The range already carries it.
+ */
 function rvYearsLabel(yearJoined: number | null, yearLeft: number | null): string | null {
-  if (yearJoined && yearLeft) {
-    const n = yearLeft - yearJoined;
-    const dur = n > 0 ? ` · ${n} ${n === 1 ? "year" : "years"}` : "";
-    return `${yearJoined}–${yearLeft}${dur}`;
-  }
+  if (yearJoined && yearLeft) return `${yearJoined}–${yearLeft}`;
   if (yearJoined) return `From ${yearJoined}`;
   if (yearLeft) return `Until ${yearLeft}`;
   return null;
@@ -72,13 +70,20 @@ export default async function ProfilePage({
     authorId: user.id,
     isHidden: false,
     groupId: null,
+    // A profile only ever shows published work, even to the profile's own
+    // owner: an in-progress letter draft belongs on /letters ("Your drafts"),
+    // never on the public Posts & Letters tab or the Photos grid.
+    ...PUBLISHED_ONLY,
     ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
   };
 
-  // Post / letter counts drive which groups render in the Posts & Letters tab.
-  const [postCount, letterCount] = await Promise.all([
+  // Counts drive the segmented switcher's numbers. The Saved count is the
+  // viewer's OWN bookmark total and is only ever read on their own profile,
+  // so it is never a window into anyone else's saves.
+  const [postCount, letterCount, savedCount] = await Promise.all([
     prisma.post.count({ where: { ...visiblePostsWhere, kind: "post" } }),
     prisma.post.count({ where: { ...visiblePostsWhere, kind: "letter" } }),
+    isOwnProfile ? prisma.bookmark.count({ where: { userId: session.user.id } }) : 0,
   ]);
 
   // Photos: flatten image arrays from this author's visible posts.
@@ -109,16 +114,15 @@ export default async function ProfilePage({
       : user.jobTitle || user.workplace || null;
 
   const contactEmail = user.displayEmail?.trim() || user.email;
-  const headerImage = headerImageFor(user);
 
-  // Socials (Find them) + the Get in touch method list.
-  const socials: AboutSocial[] = [
-    user.instagram ? { kind: "instagram" as const, value: user.instagram } : null,
-    user.linkedin ? { kind: "linkedin" as const, value: user.linkedin } : null,
-    user.facebook ? { kind: "facebook" as const, value: user.facebook } : null,
-    ...parseUserLinks(user.links).map((l) => ({ kind: "link" as const, value: l.url, label: l.label })),
-  ].filter(Boolean) as AboutSocial[];
-
+  // Every way of reaching someone, in ONE place: the Get in touch sheet.
+  //
+  // Instagram and LinkedIn used to ALSO sit on the surface in a "Find them"
+  // block, so the same two links appeared twice on one page. The owner cut the
+  // duplicate ("don't think the LinkedIn and IG need to be there outside and
+  // inside the Get in touch") and liked the reveal-on-ask pattern enough to
+  // want it everywhere, so the surface now shows no contact details at all and
+  // this list carries the lot, custom links included.
   const methods: ContactMethod[] = [
     { kind: "email" as const, label: "Email", value: contactEmail, href: `mailto:${contactEmail}` },
     user.phone
@@ -142,6 +146,22 @@ export default async function ProfilePage({
           external: true,
         }
       : null,
+    user.facebook
+      ? {
+          kind: "website" as const,
+          label: "Facebook",
+          value: socialDisplay("facebook", user.facebook),
+          href: socialHref("facebook", user.facebook),
+          external: true,
+        }
+      : null,
+    ...parseUserLinks(user.links).map((l) => ({
+      kind: "website" as const,
+      label: l.label,
+      value: socialDisplay("website", l.url),
+      href: socialHref("website", l.url),
+      external: true,
+    })),
   ].filter(Boolean) as ContactMethod[];
 
   // vCard: the shown email, all cities, houses summarised in the note. Years
@@ -191,51 +211,33 @@ export default async function ProfilePage({
     ) : null;
 
   return (
-    <ProfileShell
-      headerNode={
-        <ProfileHeaderCard
-          user={{
-            id: user.id,
-            name: user.name,
-            photoUrl: user.photoUrl,
-            birdOverride: user.birdOverride,
-            verifyState: user.verifyState,
-            accountType: user.accountType,
-          }}
-          headerImage={headerImage}
-          batchLabel={batchLine(user)}
-          occupation={occupation}
-          email={contactEmail}
-          phone={user.phone}
-          admissionNumber={user.admissionNumber ?? null}
-          isOwnProfile={isOwnProfile}
-          contactMethods={methods}
-          vcard={vcard}
-          housesRaw={user.houses}
-        />
-      }
-      aboutNode={
-        <ProfileAbout
-          about={user.about}
-          firstName={firstName}
-          isOwnProfile={isOwnProfile}
-          socials={socials}
-          rvYears={rvYearsLabel(user.yearJoined, user.yearLeft)}
-          enteredGrade={user.gradeJoined ?? null}
-          cities={cities}
-        />
-      }
-      postsNode={
-        <ProfilePostsAndLetters
-          authorId={user.id}
-          firstName={firstName}
-          isOwnProfile={isOwnProfile}
-          letterCount={letterCount}
-          postCount={postCount}
-        />
-      }
+    <LetterheadProfile
+      user={{
+        id: user.id,
+        name: user.name,
+        photoUrl: user.photoUrl,
+        birdOverride: user.birdOverride,
+        verifyState: user.verifyState,
+        accountType: user.accountType,
+        batchType: user.batchType,
+        batchYear: user.batchYear,
+      }}
+      firstName={firstName}
+      isOwnProfile={isOwnProfile}
+      occupation={occupation}
+      admissionNumber={user.admissionNumber ?? null}
+      about={user.about}
+      cities={cities}
+      rvYears={rvYearsLabel(user.yearJoined, user.yearLeft)}
+      batchLabel={user.batchYear ? String(user.batchYear) : null}
+      houseSpans={houseSpans}
+      contactMethods={methods}
+      vcard={vcard}
+      postCount={postCount}
+      letterCount={letterCount}
+      photoCount={photos.length}
+      savedCount={savedCount}
       photosNode={photosNode}
-      savedNode={isOwnProfile ? <SavedPostsFeed /> : null}
       adminNode={
         isAdmin && !isOwnProfile ? (
           <AdminProfileTools

@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { CatchupHomeShell } from "@/components/catchups/home/catchup-home-shell";
+import type { PublishedIssue } from "@/components/catchups/home/console-published";
+import type { RoundEntry } from "@/components/catchups/round/answer-card";
 import type {
   CatchupHomeData,
   CatchupHomeResult,
@@ -17,16 +19,23 @@ import type {
 } from "@/components/catchups/home/types";
 import {
   advanceEdition,
-  ANSWER_WINDOW_DAYS,
   CATCHUP_PROMPT_SETS,
-  catchupTitle,
-  DAY_MS,
   describeEditionStatus,
   isEffectiveKeeper,
   isMissingCatchupTable,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
-import type { Cadence, CatchupStatus, EditionStatus, ReminderMode } from "@/lib/catchups-types";
+import type {
+  Cadence,
+  CatchupPersonRef,
+  CatchupPromptView,
+  CatchupStatus,
+  EditionStatus,
+  PromptCategory,
+  PromptSource,
+  ReminderMode,
+} from "@/lib/catchups-types";
+import { batchLine, parseJsonArray } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
  *  The Catch-up home (spec 3.3): the command surface for the live
@@ -38,8 +47,14 @@ import type { Cadence, CatchupStatus, EditionStatus, ReminderMode } from "@/lib/
  *  instead of a 500 (migration handoff rule 3b).
  * ------------------------------------------------------------------ */
 
-function clamp01(n: number): number {
-  return Math.min(1, Math.max(0, n));
+/**
+ * This screen's heading: "{Group name} catch-up", singular, because it is one
+ * Catch-up being looked at (owner review 2026-07-25). A Keeper's custom title
+ * wins when they have set one. Deliberately not `catchupTitle()`, which is the
+ * plural "{group} Catch-ups" label used by the index and the archive.
+ */
+function homeTitle(title: string | null | undefined, groupName: string): string {
+  return title?.trim() || `${groupName} catch-up`;
 }
 
 export async function generateMetadata({
@@ -54,10 +69,115 @@ export async function generateMetadata({
       select: { title: true, group: { select: { name: true } } },
     });
     if (!catchup) return { title: "Catch-ups" };
-    return { title: catchupTitle(catchup.title, catchup.group.name) };
+    return { title: homeTitle(catchup.title, catchup.group.name) };
   } catch {
     return { title: "Catch-ups" };
   }
+}
+
+/**
+ * The published Round, in full, for reading inline on this page (one surface,
+ * owner review 2026-07-25). Only ever called once the caller has confirmed the
+ * fresh status is `published`: answer bodies are never pulled into a render of
+ * a Round that has not revealed yet, Keeper included (spec 2.5, threat
+ * T-catchups-04). Mirrors the heavy query in `round/[editionId]/page.tsx`.
+ */
+async function loadPublishedIssue(
+  editionId: string,
+  viewerId: string,
+  isKeeper: boolean
+): Promise<PublishedIssue | null> {
+  const round = await prisma.catchupEdition.findUnique({
+    where: { id: editionId },
+    select: {
+      publishedAt: true,
+      prompts: {
+        where: { accepted: true },
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          text: true,
+          category: true,
+          source: true,
+          showAsker: true,
+          accepted: true,
+          position: true,
+          author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+          entries: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              promptId: true,
+              body: true,
+              images: true,
+              songUrl: true,
+              songTitle: true,
+              songArt: true,
+              createdAt: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  photoUrl: true,
+                  birdOverride: true,
+                  accountType: true,
+                  batchType: true,
+                  batchYear: true,
+                },
+              },
+              _count: { select: { loves: true } },
+              loves: { where: { userId: viewerId }, select: { id: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!round) return null;
+
+  const toPersonRef = (u: {
+    id: string;
+    name: string;
+    photoUrl: string | null;
+    birdOverride?: string | null;
+  }): CatchupPersonRef => ({
+    id: u.id,
+    name: u.name,
+    photoUrl: u.photoUrl,
+    birdOverride: u.birdOverride,
+  });
+
+  const sections = round.prompts.map((p) => {
+    const askerVisible = p.showAsker || isKeeper;
+    const prompt: CatchupPromptView = {
+      id: p.id,
+      text: p.text,
+      category: p.category as PromptCategory | null,
+      source: p.source as PromptSource,
+      showAsker: p.showAsker,
+      accepted: p.accepted,
+      position: p.position,
+      asker: askerVisible ? toPersonRef(p.author) : null,
+    };
+    const entries: RoundEntry[] = p.entries.map((e) => ({
+      id: e.id,
+      promptId: e.promptId,
+      author: toPersonRef(e.author),
+      authorMeta: batchLine(e.author),
+      body: e.body,
+      images: parseJsonArray(e.images),
+      song: e.songUrl ? { url: e.songUrl, title: e.songTitle ?? e.songUrl, art: e.songArt } : null,
+      loveCount: e._count.loves,
+      lovedByViewer: e.loves.length > 0,
+      createdAt: e.createdAt,
+    }));
+    return { prompt, entries };
+  });
+
+  return {
+    publishedAt: round.publishedAt?.toISOString() ?? null,
+    sections,
+  };
 }
 
 async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHomeResult> {
@@ -198,17 +318,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       };
     });
 
-    let ringRatio = 0;
-    if (status === "collecting" && freshLatest.questionsCloseAt) {
-      const close = freshLatest.questionsCloseAt.getTime();
-      const start = freshLatest.createdAt.getTime();
-      ringRatio = clamp01((now - start) / Math.max(1, close - start));
-    } else if (status === "answering" && freshLatest.answersCloseAt) {
-      const close = freshLatest.answersCloseAt.getTime();
-      const start = close - ANSWER_WINDOW_DAYS * DAY_MS;
-      ringRatio = clamp01((now - start) / Math.max(1, close - start));
-    }
-
     editionView = {
       id: freshLatest.id,
       number: freshLatest.number,
@@ -221,7 +330,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         { status, number: freshLatest.number, questionsCloseAt: freshLatest.questionsCloseAt, answersCloseAt: freshLatest.answersCloseAt },
         new Date(now)
       ),
-      ringRatio,
       prompts,
       answeredCount: answeredAuthorIds.length,
       answeredAuthorIds,
@@ -268,7 +376,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     catchupId: catchup.id,
     groupId: catchup.groupId,
     groupName: catchup.group.name,
-    title: catchupTitle(catchup.title, catchup.group.name),
+    title: homeTitle(catchup.title, catchup.group.name),
     cadence: catchup.cadence as Cadence,
     catchupStatus: catchup.status as CatchupStatus,
     keeperName: catchup.createdBy?.name ?? null,
@@ -298,12 +406,15 @@ function NotAvailableCard({
   cta?: { href: string; label: string };
 }) {
   return (
-    <div className="mx-auto max-w-3xl text-center">
-      <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12">
+    <div className="mx-auto max-w-2xl text-center">
+      {/* Symmetric padding, one LiftKit token, same as every other Catch-ups
+          tile. It was `p-12`: an arbitrary step, and far bigger than the copy
+          it held (owner review 2026-07-25). */}
+      <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)]">
         <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">{title}</h1>
-        <p className="mt-2 text-muted-foreground">{body}</p>
+        <p className="mt-[var(--space-xs)] text-muted-foreground">{body}</p>
         {cta && (
-          <Link href={cta.href} className="mt-5 inline-flex">
+          <Link href={cta.href} className="mt-[var(--space-m)] inline-flex">
             <Button variant="primary">{cta.label}</Button>
           </Link>
         )}
@@ -322,14 +433,20 @@ export default async function CatchupHomePage({
   if (!session?.user?.id) redirect("/login");
 
   let result: CatchupHomeResult;
+  let issue: PublishedIssue | null = null;
   try {
     result = await loadHome(catchupId, session.user.id);
+    if (result.kind === "ok" && result.edition?.status === "published") {
+      issue = await loadPublishedIssue(result.edition.id, session.user.id, result.viewer.isKeeper);
+    }
   } catch (err) {
     if (isMissingCatchupTable(err)) {
       return (
         <div>
           <PageHeader title="Catch-ups" />
-          <AlmostReady />
+          {/* Explicit copy: the component's own default body still carries the
+              banned "gentle"/"warm" words (fix brief rule B). */}
+          <AlmostReady title="Catch-ups are almost ready." body="Check back in a moment." />
         </div>
       );
     }
@@ -347,22 +464,24 @@ export default async function CatchupHomePage({
   }
 
   if (result.kind === "not-member") {
+    // Was `/groups/${result.groupId}` -- groups have no user-facing page
+    // anymore (dead route, owner review 2026-07-25). The viewer already
+    // isn't a member here, so this Catch-up's own URL would just bounce them
+    // back to this same wall; the index is the one place that actually goes
+    // somewhere.
     return (
       <NotAvailableCard
         title="This Catch-up is for group members."
         body={`Join ${result.groupName} to add questions, answer, and read the archive.`}
-        cta={{ href: `/groups/${result.groupId}`, label: "View the group" }}
+        cta={{ href: "/catchups", label: "Back to Catch-ups" }}
       />
     );
   }
 
   return (
     <div>
-      <PageHeader
-        title={result.title}
-        subtitle={`A gentle round of questions for ${result.groupName}, answered together and gathered into one issue.`}
-      />
-      <CatchupHomeShell data={result} />
+      <PageHeader title={result.title} />
+      <CatchupHomeShell data={result} issue={issue} />
     </div>
   );
 }

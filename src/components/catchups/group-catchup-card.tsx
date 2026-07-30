@@ -84,9 +84,9 @@ async function loadGroupCatchup(groupId: string) {
 const ICON_MEDALLION_LEAF = "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-leaf/10 text-leaf";
 const ICON_MEDALLION_CINNAMON = "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-cinnamon/10 text-cinnamon";
 const CARD_SHELL =
-  "card-elevated group relative flex flex-col gap-4 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-5 transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0";
+  "card-elevated group relative flex flex-col gap-4 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-5 transition-colors duration-150 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 const CTA_PILL =
-  "relative inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-canopy px-4 py-2 text-[13px] font-semibold text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-transform duration-150 group-hover:scale-[1.03]";
+  "relative inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-canopy px-4 py-2 text-[13px] font-semibold text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 group-hover:brightness-[1.08]";
 
 export async function GroupCatchupCard({
   groupId,
@@ -111,7 +111,7 @@ export async function GroupCatchupCard({
             Catch-ups are coming to {groupName}
           </p>
           <p className="mt-0.5 text-[13px] text-muted-foreground">
-            A gentle group newsletter is being wired up. Check back soon.
+            Catch-ups are being wired up. Check back soon.
           </p>
         </div>
       </div>

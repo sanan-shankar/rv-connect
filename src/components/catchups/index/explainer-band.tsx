@@ -1,17 +1,20 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <ExplainerBand> — the newcomer explainer atop the index (spec
+ *  <ExplainerBand> - the newcomer explainer atop the index (spec
  *  section 1 + 3.1).
  *
  *  Two sizes, picked by the caller from real data (page.tsx), not a
- *  client toggle: a viewer with no Catch-up anywhere yet sees the full
- *  teaching card (two-sentence concept + the Ask -> Answer -> Read
- *  beats). Once the viewer belongs to at least one Catch-up, they
- *  already know what this is — the full card would just push "The Old
- *  Quadrangle / Answering now" further below the fold, so it collapses
- *  to a single-line strip that keeps the same three beats as small
- *  inline text.
+ *  client toggle: a viewer with no Catch-up anywhere yet gets the three
+ *  beats at full size, labelled discs they can actually read. Once the
+ *  viewer belongs to at least one Catch-up it collapses to a strip.
+ *  Both variants carry the beats and nothing else: the prose that used
+ *  to sit here was cut on owner review (2026-07-25), because "Ask ->
+ *  Answer -> Read" already says what a Catch-up is. The "Catch-ups"
+ *  eyebrow label that used to sit beside the beats is gone too (owner
+ *  review 2026-07-25): the page's own h1 already says "Catch-ups"
+ *  immediately above this band, so repeating it here was just the same
+ *  word twice in a row for no reason.
  *
  *  Carries the `data-tour="catchups-explainer"` spotlight target for the
  *  product tour (walkthrough spec sec 2) on whichever variant renders,
@@ -35,23 +38,17 @@ export function ExplainerBand({ compact = false }: { compact?: boolean }) {
       <div
         ref={tourAnchorRef}
         data-tour="catchups-explainer"
-        className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-full border border-border/70 bg-card/70 px-4 py-2.5"
+        // inline-flex, not flex: with no eyebrow or trailing clause left,
+        // there is nothing to fill a full-bleed strip, so the pill hugs its
+        // three beats instead of stretching an empty band across the column.
+        className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full border border-border/70 bg-card/70 px-4 py-2 text-[12px] font-semibold text-muted-foreground"
       >
-        <span className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-leaf">
-          Catch-ups
-        </span>
-        <span className="hidden h-3 w-px bg-border sm:block" aria-hidden />
-        <span className="flex items-center gap-1 text-[12px] font-semibold text-muted-foreground">
-          {BEATS.map((beat, i) => (
-            <span key={beat.label} className="flex items-center gap-1">
-              {beat.label}
-              {i < BEATS.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground/50" aria-hidden />}
-            </span>
-          ))}
-        </span>
-        <span className="hidden text-[12.5px] text-muted-foreground sm:inline">
-          &middot; a gentle group newsletter on a rhythm.
-        </span>
+        {BEATS.map((beat, i) => (
+          <span key={beat.label} className="flex items-center gap-1">
+            {beat.label}
+            {i < BEATS.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground/50" aria-hidden />}
+          </span>
+        ))}
       </div>
     );
   }
@@ -60,7 +57,7 @@ export function ExplainerBand({ compact = false }: { compact?: boolean }) {
     <section
       ref={tourAnchorRef}
       data-tour="catchups-explainer"
-      className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-6 sm:p-8"
+      className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:p-[var(--space-l)]"
     >
       <div
         aria-hidden
@@ -71,18 +68,10 @@ export function ExplainerBand({ compact = false }: { compact?: boolean }) {
         }}
       />
 
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-xl">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-leaf">
-            Catch-ups
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-foreground">
-            A Catch-up is a gentle group newsletter on a rhythm. Everyone in the group answers the
-            same few questions during an open window, and once it closes their replies are
-            gathered into one warm issue the whole group reads together.
-          </p>
-        </div>
-
+      {/* With the eyebrow and the paragraph both gone, the beats are the
+          entire content, so they just center in the card rather than
+          anchoring one end of a row that used to hold a label too. */}
+      <div className="relative flex justify-center">
         {/* items-start + an h-10 arrow wrapper keeps each connector vertically
             centered on the icon discs (40px tall), not on the taller
             disc+label column, so the arrows read as linking the circles. */}

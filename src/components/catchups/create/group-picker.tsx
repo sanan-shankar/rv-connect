@@ -47,7 +47,7 @@ export function GroupPicker({
             <Link
               key={g.id}
               href={`/catchups/new?group=${g.id}`}
-              className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-background/50 p-4 transition-transform duration-150 hover:-translate-y-0.5 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0"
+              className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-background/50 p-4 transition-colors duration-150 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <div className="min-w-0">
                 <p className="truncate text-[14.5px] font-semibold text-foreground">{g.name}</p>

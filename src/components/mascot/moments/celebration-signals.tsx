@@ -15,6 +15,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { CelebrationDetector } from "./celebration-detector";
+import { PUBLISHED_ONLY } from "@/lib/posts";
 
 // How long after account creation a visit still counts as "just signed up"
 // for the welcome moment. Generous enough to cover a slow first look
@@ -29,8 +30,10 @@ export async function CelebrationSignals({ userId }: { userId: string }) {
       where: { id: userId },
       select: { createdAt: true, bio: true, currentCity: true, workplace: true, jobTitle: true },
     }),
-    prisma.post.count({ where: { authorId: userId, isHidden: false } }),
-    prisma.post.count({ where: { authorId: userId, kind: "letter", isHidden: false } }),
+    prisma.post.count({ where: { authorId: userId, isHidden: false, ...PUBLISHED_ONLY } }),
+    prisma.post.count({
+      where: { authorId: userId, kind: "letter", isHidden: false, ...PUBLISHED_ONLY },
+    }),
   ]);
 
   if (!user) return null;

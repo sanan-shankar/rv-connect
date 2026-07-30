@@ -1,0 +1,45 @@
+import type { Metadata } from "next";
+import { REGISTRY } from "./_registry";
+import { readOverrides } from "./actions";
+import { LabClient } from "./_lab-client";
+
+export const metadata: Metadata = {
+  title: "Lab",
+};
+
+/* Read the overrides file on every request so an archive toggle shows up
+   immediately rather than at the next build. */
+export const dynamic = "force-dynamic";
+
+/* ------------------------------------------------------------------ *
+ *  /lab - the one index for every dev/lab room in the app.
+ *
+ *  Fixes the owner's complaint (2026-07-30): rooms under
+ *  /lab were invisible from /lab and
+ *  vice versa, and routes like /lab/logo or /copy-editor had no index
+ *  anywhere. `scripts/qa/lab-audit.mjs` proves nothing on disk is missing
+ *  from `REGISTRY`.
+ *
+ *  The status shown is the registry's committed default with
+ *  `archive-overrides.json` layered on top, so the owner's own archiving
+ *  wins. See ./actions.ts for why that is a file and not localStorage.
+ *
+ *  This redesigns no room. It is only an index over files that already
+ *  exist, each keeping its own URL.
+ * ------------------------------------------------------------------ */
+export default async function LabPage() {
+  const overrides = await readOverrides();
+
+  const entries = REGISTRY.map((entry) => {
+    const override = overrides[entry.href];
+    return override === undefined
+      ? entry
+      : { ...entry, status: override ? ("archived" as const) : ("active" as const) };
+  });
+
+  return (
+    <div className="min-h-screen bg-background">
+      <LabClient entries={entries} editable={process.env.NODE_ENV === "development"} />
+    </div>
+  );
+}

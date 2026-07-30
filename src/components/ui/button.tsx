@@ -13,7 +13,13 @@ const CANOPY_FILL =
   "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.08] focus-visible:border-canopy focus-visible:ring-canopy/50"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none transition-transform transition-shadow duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1 hover:-translate-y-px active:translate-y-0 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:translate-y-0 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  // OWNER RULE (2026-07-25): hover NEVER moves a control. No lift, no grow.
+  // Hover is a colour change and nothing else; the only transform left is the
+  // press sink on :active, which is direct feedback for a click rather than a
+  // control drifting under an idle cursor. Do not reintroduce
+  // `hover:-translate-y-*` or `hover:scale-*` on any button, pill, chip, tab,
+  // or card anywhere in the app.
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none transition-[colors,box-shadow,transform] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -35,7 +41,7 @@ const buttonVariants = cva(
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline hover:translate-y-0 active:translate-y-0 active:scale-100",
+        link: "text-primary underline-offset-4 hover:underline active:scale-100",
       },
       size: {
         // Optical centering: an icon glyph carries less ink than its box and

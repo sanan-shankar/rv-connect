@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils";
  * The label sits to the RIGHT of the leaf (owner: below covered other elements
  * like the meta line on the profile header). If there is not enough room to the
  * right, it flips to the left instead.
+ *
+ * SIZES: exactly two are sanctioned (owner, 2026-07-30: one pill, used the
+ * same way everywhere). The default 13 beside body-size names (feed rows,
+ * directory cards); 16 beside a page-title name (profile headers). Never a
+ * third value; the hover label is identical at both.
  */
 export function VerifiedMark({
   user,

@@ -17,7 +17,14 @@ export function AboutProse({ text }: { text: string }) {
   return (
     <div>
       <p
-        className="max-w-[64ch] whitespace-pre-wrap font-heading text-[16.5px] leading-[1.78] text-foreground"
+        // Body face at the app's standard body measure, NOT the serif at
+        // 16.5px this used to be. A different typeface a size and a half up
+        // from every other block of text on the page read as a mistake rather
+        // than as emphasis (owner: "the font size of About seems obnoxiously
+        // big and not in fitting with everything else"). 15px/1.7 is exactly
+        // what a post body uses, so About now sits in the same rhythm as the
+        // feed it lives beside.
+        className="max-w-[64ch] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground"
         style={expanded || !isLong ? undefined : {
           display: "-webkit-box",
           WebkitLineClamp: 7,

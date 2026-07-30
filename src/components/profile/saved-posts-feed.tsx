@@ -118,9 +118,10 @@ export function SavedPostsFeed() {
   const { ref, cols } = useContainerColumns();
   const bookmarkRef = useRef<HTMLDivElement>(null);
 
+  // Mount-once fetch. `loading` already starts true, so re-arming it
+  // synchronously here only bought a cascading render.
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     loadSavedPosts().then((data) => {
       if (cancelled) return;
       setPosts(data.posts as PostData[]);

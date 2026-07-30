@@ -778,3 +778,105 @@ Headline changes:
   the `.vercel.app` host, causing stray redirects); confirm the real UPI handle; deploy to production
   so Vercel Analytics starts collecting; pick a groups-rethink concept (and, independently, the landing
   preview concept from an earlier round).
+
+## 2026-07-30 - Letterhead II, one spine, image viewer, drafts, direct uploads
+
+- **Letterhead II** (`/preview/delight/profiles?v=letterhead-2`): the letterhead rebuilt to the owner's notes.
+  PeaksMark + admission number as the colophon (pressing it stamps the sheet; the stamp thumps in, holds, fades),
+  bird inside the sheet (no species name, chirps on press), occupation as the name's subtitle, exactly three
+  facts (batch / cities / years) a step larger, houses trail under About, one Get in touch CTA (single pill,
+  contacts stay in the dialog), tabs flush on the sheet's one left edge, entries drawn as the FEED's post UI.
+  A "Preview data" toggle proves the sparse case (`&sample=sparse`): every missing slot degrades to absence.
+- **Letterhead II, rebuilt again** to the owner's second review, same file (Letterhead I untouched, no
+  Letterhead III). Colophon is the mark plus a bare `1385` with Letterhead I's 8px step to the name; the
+  verified leaf is back on the name's baseline; Get in touch is the shared CTA at the app's default height,
+  centred on the name's line box by calc (measured 0px off). Facts are batch / in the valley / cities in that
+  order with every sub-line deleted, and cities are a flat equal series (`Chennai, Bengaluru, Delhi`), never a
+  primary and a secondary. The bird perches on the sheet's top-right edge, still (the idle bob is gone) and
+  nameless; upload a photo and the perch disappears in favour of a circle on the sheet's left edge whose
+  diameter is measured from the top of the mark to the bottom of the name, so it still holds when a long name
+  wraps (`&avatar=photo`). The one engraved rule gets equal air above and below and is drawn only when there
+  is a body under it to separate, so a sparse sheet ends after the facts. Entries are the SHIPPED `PostCard`
+  standing free on the page with nothing wrapped around them (new `demo` flag keeps its actions local against
+  mock ids). The switcher above them went through three rounds before it landed: underline tabs were rejected
+  as "tiny pieces of text ... insignificant", Dossier's folder tabs were rejected because a folder tab needs a
+  folder and boxing the tiles inside one "doesn't look good", so it is now the app's OWN segmented pill (the
+  Catch-ups cadence control's shape) with a canopy fill gliding between segments on a shared `layoutId`, plus
+  a live count per segment. It is deliberately not a scroll container, so parking the pointer on it never
+  steals the wheel from the page (verified: page moves 300px, strip scrollLeft stays 0, zero horizontal
+  overflow). The lab toggles moved off to a fixed panel on the right (a compact glass bar above the mobile
+  nav below lg) so the profile starts at the top of the shell gutter exactly as the shipped page would. Four
+  states shot at 1440 and 390 by `scripts/qa/lh2-states.mjs`, which also prints the spacing it measures off
+  the DOM: colophon to name 8px, CTA centre 0px off the name's line box, rule 25.9px above and below, photo
+  diameter 0px off the lockup at both one and two name lines, card left edge 0px off the sheet's.
+  If this concept ships, that segmented pill and `cadence-control.tsx` should be extracted into one shared
+  `SegmentedPills` in `src/components/common/`.
+- **Houses trail rebuilt (4th iteration)**: no more grid columns. Rows pack to natural pill widths, straight
+  arrows sit dead-center between pills, and each 180 turn is a side-gutter arc from the end of one row's
+  centerline around to the start of the next. Green is leaf again. Shared component, so shipped profile +
+  all preview variants updated together.
+- **One spine**: every `(main)` route's content now sits in one shell-owned `max-w-5xl` column - title left
+  edge measured at exactly 332px and top 40px on all 11 routes (was 6 different edges, 224px apart). Shell
+  padding equalized (p-5/7/10) so title-top == title-left. PageHeader is the one h1 (32px, bold); About,
+  Admin, Messages hand-rolled headings removed.
+- **Image viewer** (`src/components/common/image-viewer.tsx`, room at `/preview/delight/viewer`): full-screen
+  warm-ink overlay, cross-dissolve steps with neighbor pre-decoding, drag/arrows/Esc, chrome hides on tap,
+  caption folds up from the bottom, download + open-page actions, author chip. Wired into feed post images,
+  letter photo stacks, and Collection tiles (permalink one press away).
+- **Letter drafts**: `Post.status` column (additive push). Save as draft in the composer, "Your drafts" strip
+  on Letters, edit/publish/delete draft flows, drafts excluded from every read path via one shared
+  `PUBLISHED_ONLY` fragment; a draft's detail page 404s for anyone but its author.
+- **Direct-to-R2 uploads**: `/api/upload/presign` + browser PUT + `/api/upload/finalize` (posts) /
+  `contributePhotoDirect` (collection, stores the FULL-RES original). Kills the Vercel ~4.5MB cap and the
+  browser downscale. The bucket CORS rule was the one blocker (the app's R2 token is object-scoped and got
+  AccessDenied from `scripts/setup-r2-cors.mjs`); the owner applied it by hand from the Cloudflare dashboard
+  on 2026-07-30, so the direct path is live. The proxied path stays as a graceful fallback for any origin the
+  rule does not name. See `docs/ops/r2-cors.md`.
+- **Shipped from the second-look rooms**: sidebar contrast (opaque idle ink 5.80:1, active/hover ladder,
+  batch not email in the footer chip), support page (hedging copy deleted, knob-on-track fundraiser at zero,
+  cost -> reward -> ask with 10 colourful real birds, build fund demoted to an inset note), public `/birds`
+  gallery, settings rebuilt to label-outside groups with one hairline row per field (admission number moved
+  to About, dashed rules gone, Card/Dialog radius corrected to a true 16px with a 16 -> 12 -> 8 ladder),
+  house picker mobile bottom sheet (active year stays visible above it), houses game room deleted and
+  replaced with the refined real picker, catch-ups (persistent Start a Catch-up CTA, ?group= preload fixed,
+  CTA sizing/alignment, duplicate label gone), "Open to" feature removed, marker room at
+  `/preview/delight/second-look/spine-marker` with five fused active-marker treatments to choose from.
+- **Quality pass**: 4-angle simplify review applied - shared `PUBLISHED_ONLY`, `MAX_UPLOAD_BYTES` +
+  processing-error helpers, one `directUploadPut` client helper, one display-date formatter, batch formats
+  colocated, dead `chunkRows` deleted, parallelized deletes/queries, memoized viewer payloads.
+- Owner actions pending: mint an Admin Read & Write R2 token and run `node scripts/setup-r2-cors.mjs`
+  (until then direct upload silently falls back, capped ~4.5MB on Vercel only); pick a sidebar marker
+  version from the spine-marker room; review Letterhead II.
+
+## 2026-07-30 (later) - heading revert, two column modes, /lab
+
+- **Heading weight reverted.** `PageHeader`'s h1 is back to exactly `font-heading text-[30px]
+  leading-none tracking-[-0.02em]` with NO `font-bold` (owner: the bolded trial was "way too
+  overpowering"). Feed and Directory are byte-identical to before. The last two hand-rolled bold
+  titles (Settings' "Your profile", the Support hero) were brought down to the same weight so every
+  page title in the app now matches instead of two staying heavy.
+- **Two page columns, owned by the shell** (`src/components/layout/content-column.tsx`), replacing
+  the single 1024 spine:
+  - WIDE, flush to the sidebar, for two-column and screen-hungry surfaces (feed, directory,
+    collection, catch-ups, admin, birds): measured at 1440 -> left 288, width 1112, right 40, so
+    left padding == top padding == right padding == 40. Was 1024 centered at 332.
+  - CENTERED single column (768) for everything that reads top to bottom (letters, support, about,
+    settings, messages, profile): left 460, right 212. Text stays left-aligned; the column centres.
+  - Two opt-outs, named with reasons: `/catchups/new` (a narrow form stranded at the left edge of a
+    1100px band) and `/collection/<id>` (a detail view, not the gallery).
+  - No page declares a page-level width any more; only reading measures (the letter reader's 680)
+    survive, centred in the column. `AppShell`'s dead `rightRail` prop deleted.
+- **`/lab`**: `/preview/delight` and `/preview/delight/second-look` are folded into one index and
+  now 308-redirect to it. All 39 dev/preview routes are registered in `src/app/lab/_registry.ts`
+  with a group, an active/archived status and an honest note; 31 active, 8 archived (both old
+  indexes, `/preview/logos` as the superseded logo exploration, and all five `groups-rethink` rooms
+  since Groups was removed). Every room keeps its own file and URL; eight back-links repointed at
+  `/lab` so no room dead-ends. `/lab` added to `src/proxy.ts` publicPaths.
+- **`scripts/qa/lab-audit.mjs`** is the anti-stranding guard: it reconciles every `page.tsx` on disk
+  against the registry in both directions and exits 1 on a stranded page or a dead href. Verified by
+  planting a fake page (caught, exit 1) and removing it (clean, 39 routes). Noted in CLAUDE.md as a
+  required step for any new preview page.
+- Stale doc references corrected in CLAUDE.md: `/preview/decisions` never existed, and `/preview/logos`
+  was listed as approved when `/preview/logo` is the shipped mark.
+- **`docs/ops/r2-cors.md`** written: exact dashboard steps and the admin-token alternative for the
+  one thing still blocking full-resolution uploads.
