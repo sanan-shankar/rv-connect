@@ -85,9 +85,14 @@ compose from what already exists: a look-around is `gaze(-x)` → `gaze(x)` → 
 
 `flyIn(edge, target?)` is a same-mount off-canvas entrance for a spot with no CTA-click origin to launch a
 cross-page flight from (e.g. a small mobile auth panel with nothing to fly in FROM). `edge` is `"top"`
-(default), `"left"`, or `"right"`. It instantly (no animated travel) warps the puppet to just outside its own
-rendered box on that edge, already posed for flight, then runs the exact same cruise-and-land arc `flyTo`
-uses onto `target` (defaults to the rig's own rest anchor, i.e. wherever it is mounted). It shares its
+(default), `"left"`, `"right"`, or `"sky"` — `"top"` warps just above the rig's own box (right when the rig
+sits near the top of what the viewer sees, e.g. the tour offer card), while `"sky"` spawns fully above the
+VIEWPORT for a genuine descent from off-screen (the mobile auth pages, where a box-relative start point was
+still visibly inside the viewport). It instantly (no animated travel) warps the puppet to that point,
+already posed for flight, then runs the exact same cruise-and-land arc `flyTo`
+uses onto `target` (defaults to the rig's own rest anchor, i.e. wherever it is mounted). During any
+arc-and-land flight the legs unfold at 70% of the cruise (`LEGS_DOWN_AT`, shared with the cross-page flight
+layer's `legsDown()` primitive) so the bird never lands legless. It shares its
 arc/landing math with `flyTo` via an internal `arcAndLand` helper so the two moves read identically; the only
 difference is `flyIn` skips `flyTo`'s ground-takeoff crouch, since the bird is meant to already be mid-flight
 the instant it appears. This is a same-component primitive, not a replacement for the cross-page

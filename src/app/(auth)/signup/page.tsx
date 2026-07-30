@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,8 +14,9 @@ import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
 import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
+import { cn } from "@/lib/utils";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
-import { reportPerch, onHandoff, FLIGHT_FLAG } from "@/components/mascot/mascot-flight";
+import { reportPerch, onHandoff, FLIGHT_FLAG, PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
 
 type Step = "trivia" | "register";
 
@@ -68,29 +69,36 @@ export default function SignupPage() {
   const mobileFlyInFired = useRef(false);
 
   const hoopoeBoxRef = useRef<HTMLDivElement>(null);
+  // The form entrance element (the motion.div that slides x 48 -> 0). The
+  // perch report below reads its live transform to un-shift rects measured
+  // mid-entrance.
+  const entranceRef = useRef<HTMLDivElement>(null);
   const hoopoeApiRef = useRef<HoopoeApi | null>(null);
   const introDone = useRef(false);
   // Hidden until the flyer hands off when arriving via a flight; shown from the
   // start on a direct visit (there is no flyer to wait for). Deliberately does
-  // NOT also fold in `mobileFlyIn` here: a mismatched inline `style` attribute
-  // between the server render (which can never know the viewport) and the
-  // client's first hydration pass is a class of hydration error React does not
-  // patch up (it leaves the server value in place until some unrelated update
-  // touches the node), so computing this from a client-only viewport check
-  // would leave the hoopoe wrongly VISIBLE at its rest pose through the whole
-  // hidden window instead of hidden. The mobile fly-in effect below hides it
-  // instead, via a plain client-only state update after mount (not a
-  // hydration commit), which React always reconciles correctly.
+  // NOT also fold in the mobile case here: a mismatched inline `style`
+  // attribute between the server render (which can never know the viewport)
+  // and the client's first hydration pass is a class of hydration error React
+  // does not patch up (it leaves the server value in place until some
+  // unrelated update touches the node). The mobile fly-in instead hides the
+  // bird with the SSR-safe `max-lg:opacity-0` CLASS below — className swaps
+  // hydrate fine, and a media-scoped class is inert at lg+ so the server can
+  // render it unconditionally.
   const [hoopoeShown, setHoopoeShown] = useState(!arrivedViaFlight);
 
-  // Mobile fly-in, part 1: the instant we know this is a fly-in viewport, hide
-  // the hoopoe before the browser paints (useLayoutEffect, not useEffect), so
-  // the SSR-rendered "already sitting there" frame is never actually shown.
-  // This is a genuine post-hydration update, so it is exempt from the
-  // attribute-hydration-mismatch pitfall the comment above describes.
+  // Mobile fly-in, part 1: the pre-flight veil. Rendered on the bird's OUTER
+  // box (the inner box carries an inline opacity, which would beat any class)
+  // as `max-lg:opacity-0`, so on a phone the seated bird is invisible from the
+  // very first painted frame — including the SSR paint, which the previous
+  // hide-after-hydration approach could not cover on a slow device. Lifted
+  // before paint for every non-fly-in arrival so a later narrow-resize can
+  // never hide a legitimately visible bird; the fly-in effect below lifts it
+  // for the mobile path once the bird is posed off-screen.
+  const [preFlightVeil, setPreFlightVeil] = useState(true);
   useLayoutEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hides the mascot before the browser paints on fly-in viewports. Deliberately a layout effect: the point is to update after hydration but before paint, so the server's 'already sitting there' frame is never shown.
-    if (mobileFlyIn) setHoopoeShown(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate pre-paint lift; see the comment above
+    if (!mobileFlyIn) setPreFlightVeil(false);
   }, [mobileFlyIn]);
 
   // a warm wave-and-nod greeting, then it leans in, curious, ready to quiz you.
@@ -106,9 +114,63 @@ export default function SignupPage() {
     if (!arrivedViaFlight && !mobileFlyIn) runIntro(api);
   }
 
+  // Where this hoopoe will rest, reported to the flight bus. The form entrance
+  // above the bird animates x 48 -> 0 on a spring, so a rect measured while it
+  // is still sliding sits shifted by whatever translation remains; subtracting
+  // the entrance element's live transform yields the SETTLED rect. That makes
+  // the mount-time report below exactly as accurate as the settle-time one —
+  // and the mount-time report is the fix for the owner's "lands lower and then
+  // corrects" jank: the old single report only fired AFTER the entrance
+  // spring finished, ~2s in, when the flyer's cruise had already ended on a
+  // provisional guess ~25px low.
+  const reportPerchRect = useCallback(() => {
+    if (!arrivedViaFlight) return;
+    const el = hoopoeBoxRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    let dx = 0;
+    let dy = 0;
+    const host = entranceRef.current;
+    if (host) {
+      const t = getComputedStyle(host).transform;
+      if (t && t !== "none") {
+        const m = new DOMMatrix(t);
+        dx = m.e;
+        dy = m.f;
+      }
+    }
+    reportPerch({ left: r.left - dx, top: r.top - dy, width: r.width, height: r.height });
+  }, [arrivedViaFlight]);
+
+  // Report the perch EARLY — before this page's first paint, while the flyer
+  // is still mid-cruise — and keep it fresh (ResizeObserver + resize + scroll,
+  // the tour-spotlight measuring pattern) until the handoff makes it moot. The
+  // flight bus explicitly supports repeated reports and the flyer retargets
+  // smoothly every frame, so the bird is never aiming at a stale rect.
+  // `perchWatchStop` lets the handoff reveal below drop the listeners the
+  // moment they stop mattering.
+  const perchWatchStop = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => {
+    if (!arrivedViaFlight) return;
+    reportPerchRect();
+    const el = hoopoeBoxRef.current;
+    const ro = new ResizeObserver(reportPerchRect);
+    if (el) ro.observe(el);
+    window.addEventListener("resize", reportPerchRect);
+    window.addEventListener("scroll", reportPerchRect, { passive: true, capture: true });
+    const stop = () => {
+      ro.disconnect();
+      window.removeEventListener("resize", reportPerchRect);
+      window.removeEventListener("scroll", reportPerchRect, true);
+      perchWatchStop.current = null;
+    };
+    perchWatchStop.current = stop;
+    return stop;
+  }, [arrivedViaFlight, reportPerchRect]);
+
   // Flight handoff: reveal + greet when the flyer lands; the fallback timer (set
   // longer than the flyer's own failsafe) guarantees the bird is never stranded
-  // hidden. The perch rect itself is reported once the entry settles (below).
+  // hidden.
   useEffect(() => {
     if (!arrivedViaFlight) return;
     try {
@@ -116,7 +178,14 @@ export default function SignupPage() {
     } catch {
       // storage disabled: nothing to clear
     }
+    // One-shot: on the failsafe path the flyer's forced handoff AND the
+    // fallback timer below can both land here, and running the greet intro
+    // twice queued a double wave.
+    let revealed = false;
     const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      perchWatchStop.current?.();
       setHoopoeShown(true);
       const api = hoopoeApiRef.current;
       if (api && !introDone.current) runIntro(api);
@@ -129,36 +198,42 @@ export default function SignupPage() {
     };
   }, [arrivedViaFlight]);
 
-  // Mobile fly-in, part 2: ~500ms after the page settles, reveal the (now
-  // hidden, per the layout effect above) hoopoe and have it fly itself in
-  // from off-screen onto its own rest anchor (no target = wherever it is
-  // mounted), landing exactly where the static mascot would otherwise sit.
-  // `flyIn` is a same-mount primitive (no cross-page bus involved), so no
-  // `reportPerch`/`onHandoff` wiring is needed here; it only ever fires when
-  // `arrivedViaFlight` is false, so it can never race the flight-bus reveal
-  // above.
+  // Mobile fly-in, part 2: ~500ms after the page settles, the hoopoe flies
+  // itself in from above the viewport onto its own rest anchor (no target =
+  // wherever it is mounted), landing exactly where the static mascot would
+  // otherwise sit. `flyIn` is a same-mount primitive (no cross-page bus
+  // involved), so no `reportPerch`/`onHandoff` wiring is needed here; it only
+  // ever fires when `arrivedViaFlight` is false, so it can never race the
+  // flight-bus reveal above.
   useEffect(() => {
     if (!mobileFlyIn) return;
     const timer = setTimeout(() => {
       if (mobileFlyInFired.current) return;
       const api = hoopoeApiRef.current;
-      if (!api) return;
+      if (!api) {
+        // The rig never reported ready (it mounts statically, so this is
+        // near-impossible): show the seated bird rather than none at all.
+        setPreFlightVeil(false);
+        return;
+      }
       mobileFlyInFired.current = true;
-      setHoopoeShown(true);
-      api.flyIn("top").then(() => {
+      // "sky", not "top": the top edge spawns relative to the rig's own box,
+      // which sits mid-viewport here, so the bird used to pop in already on
+      // screen. The sky edge starts it fully above the VIEWPORT (see
+      // offCanvasStart in hoopoe.tsx) for a genuine descent from off-screen.
+      void api.flyIn("sky").then(() => {
         if (!introDone.current) runIntro(api);
       });
+      // Lift the veil two frames later: motion renders the fly-in's duration-0
+      // pose warps on its NEXT animation frame, so revealing in the same tick
+      // could paint one frame of the seated bird at the perch before the warp
+      // moves it off-screen. Instant reveal, no fade — the bird is above the
+      // viewport by then, so a fade could only ever be seen as a mid-air
+      // ghost during the descent.
+      requestAnimationFrame(() => requestAnimationFrame(() => setPreFlightVeil(false)));
     }, 500);
     return () => clearTimeout(timer);
   }, [mobileFlyIn]);
-
-  function reportPerchRect() {
-    if (!arrivedViaFlight) return;
-    const el = hoopoeBoxRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    reportPerch({ left: r.left, top: r.top, width: r.width, height: r.height });
-  }
 
   return (
     // Not a grid: the photo half is viewport-fixed (below), so it must never take part
@@ -214,18 +289,25 @@ export default function SignupPage() {
         </Link>
 
         <motion.div
+          ref={entranceRef}
           className="my-auto w-full max-w-[400px] self-center text-center"
           initial={{ opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
           onAnimationComplete={reportPerchRect}
         >
-          <div className="mx-auto mb-1 grid h-[112px] place-items-center">
+          <div className={cn("mx-auto mb-1 grid h-[112px] place-items-center", preFlightVeil && "max-lg:opacity-0")}>
             {/* Tight box around the SVG so its rect is the exact perch target;
-                hidden + idle-off until the flyer hands off. */}
+                hidden + idle-off until the flyer hands off, then revealed with
+                NO fade (the flyer holds two frames over this exact rect, so two
+                identical opaque birds swap invisibly — a fade dipped the
+                stack's combined opacity and read as a dissolve). The box rides
+                PERCH_LIFT_PX high (argued in mascot-flight.ts); its measured
+                rect includes the lift, so report, flyer and bird all agree. */}
             <div
               ref={hoopoeBoxRef}
-              style={{ opacity: hoopoeShown ? 1 : 0, transition: "opacity 160ms ease" }}
+              data-hoopoe-perch
+              style={{ opacity: hoopoeShown ? 1 : 0, transform: `translateY(-${PERCH_LIFT_PX}px)` }}
             >
               <Hoopoe ref={hoopoeRef} size={96} onReady={onHoopoeReady} idle={hoopoeShown} />
             </div>

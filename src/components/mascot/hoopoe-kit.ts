@@ -74,8 +74,25 @@ export type EyeShape = "round" | "wide" | "happy" | "sleepy" | "closed";
 export type Dir = "left" | "right";
 export type Target = HTMLElement | DOMRect | { x: number; y: number } | null;
 export type Level = 1 | 2 | 3;
-// Off-canvas entry edge for `flyIn`: the two side edges, or the top (default).
-export type FlyInEdge = Dir | "top";
+// Off-canvas entry edge for `flyIn`: the two side edges, the top of the rig's
+// own box (default), or "sky" — above the VIEWPORT. "top" spawns just above
+// the bird's own rendered box, which is right when the rig already sits near
+// the top of what the viewer sees (the tour offer's card, the sidebar perch);
+// "sky" spawns fully above the viewport so the entrance is a genuine descent
+// from off-screen (the mobile auth pages, whose rig sits mid-viewport — a
+// box-relative start point there was still visibly inside the viewport, so
+// the bird "half-appeared" mid-air instead of flying in).
+export type FlyInEdge = Dir | "top" | "sky";
+
+// How far through a flight's cruise (0..1) the landing legs begin unfolding
+// from their 138° flight tuck. 0.7 puts the unfold in the final descent: late
+// enough that the bird does not dangle its legs through the whole glide, early
+// enough that the gentle spring has them visibly extended at touchdown.
+// Unfolding only AFTER arrival (the old behaviour) is what read as a legless
+// bird for the first beat of every landing ("the legs are cut off for a second
+// and then appear"). Shared by the in-SVG arc (arcAndLand) and the cross-page
+// flight layer so both landings read identically.
+export const LEGS_DOWN_AT = 0.7;
 
 export type Expression =
   | "content"
@@ -124,6 +141,12 @@ export interface HoopoeApi {
   // wing-flap + bank (not queued, like gaze), `perch` folds back down and settles.
   takeOff(): Promise<void>;
   glide(dir?: 1 | -1): void;
+  // Begin the landing-leg unfold (138° flight tuck -> extended) early, during
+  // the final descent — fired by whoever owns the flight clock at
+  // LEGS_DOWN_AT of the cruise. Not queued (the flight layer owns flight
+  // timing externally, same as takeOff/glide/perch) and fire-and-forget:
+  // `perch` settles the legs again anyway, so nothing needs to await this.
+  legsDown(): void;
   perch(): Promise<void>;
   turn(dir: Dir | 0): Promise<void>;
   point(target: Target | Dir, opts?: { label?: string; hold?: number }): Promise<void>;
