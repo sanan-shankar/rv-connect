@@ -36,15 +36,20 @@ export function CreateCatchupForm({
   cadenceLabels,
   myBatchYear,
   suggestedName,
+  initialPeople = [],
 }: {
   cadenceLabels: Record<Cadence, string>;
   myBatchYear: number | null;
   /** e.g. "Batch of 2023", so the common case needs no typing. */
   suggestedName: string;
+  /** Preloaded from `?group=<id>` (an existing group with no Catch-up yet
+   *  clicking "Start one"): the page resolves the group's members server-side
+   *  so the picker opens with them already chipped in instead of empty. */
+  initialPeople?: PickedPerson[];
 }) {
   const router = useRouter();
   const [name, setName] = useState(suggestedName);
-  const [people, setPeople] = useState<PickedPerson[]>([]);
+  const [people, setPeople] = useState<PickedPerson[]>(initialPeople);
   const [cadence, setCadence] = useState<Cadence>("monthly");
   const [submitting, setSubmitting] = useState(false);
 
@@ -105,10 +110,15 @@ export function CreateCatchupForm({
         </div>
       </div>
 
-      <div className="flex items-center justify-end border-t border-border pt-[var(--space-m)]">
+      {/* Left-aligned like every other row in this form (owner review
+          2026-07-25: "why is everything left aligned and then start the
+          first round is right aligned"), and spacing instead of a rule above
+          it -- the border was the odd stray line the owner flagged, not a
+          real section break. */}
+      <div className="flex items-center pt-[var(--space-l)]">
         <Button
           variant="primary"
-          size="lg"
+          size="default"
           onClick={handleSubmit}
           disabled={submitting || !trimmedName}
         >

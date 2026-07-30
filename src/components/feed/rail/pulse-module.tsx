@@ -1,6 +1,7 @@
 import { Feather, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { RailCard } from "./rail-card";
+import { PUBLISHED_ONLY } from "@/lib/posts";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -18,7 +19,11 @@ const MIN_AUTHORS = 2;
  */
 export async function PulseModule() {
   const weekPosts = await prisma.post.findMany({
-    where: { isHidden: false, createdAt: { gte: new Date(Date.now() - WEEK_MS) } },
+    where: {
+      isHidden: false,
+      ...PUBLISHED_ONLY,
+      createdAt: { gte: new Date(Date.now() - WEEK_MS) },
+    },
     select: { authorId: true },
   });
 

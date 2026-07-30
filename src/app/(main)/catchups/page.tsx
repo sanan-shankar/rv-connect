@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { ExplainerBand } from "@/components/catchups/index/explainer-band";
 import { YourCatchupsCard, type IndexCardView } from "@/components/catchups/index/your-catchups-card";
@@ -238,7 +241,22 @@ export default async function CatchupsPage() {
 
   return (
     <div>
-      <PageHeader title="Catch-ups" />
+      {/* Persistent, always-visible way to start a new Catch-up with new
+          people (owner review 2026-07-25: with five groups already, there
+          was no button anywhere for a sixth). The zero-groups guidance below
+          also offers this same action inline; that is not a conflict, it is
+          the empty-state repeat of the one thing this header always offers. */}
+      <PageHeader
+        title="Catch-ups"
+        actions={
+          <Link href="/catchups/new" className="inline-flex">
+            <Button variant="primary">
+              <Plus className="h-4 w-4" />
+              Start a Catch-up
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="mb-[var(--space-l)]">
         <ExplainerBand compact={data.cards.some((c) => c.catchupId !== null)} />

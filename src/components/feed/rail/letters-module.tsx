@@ -3,6 +3,7 @@ import { Feather } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";
 import { batchLine, letterTitle, plainExcerpt } from "@/lib/utils";
 import { RailCard } from "./rail-card";
+import { PUBLISHED_ONLY } from "@/lib/posts";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -19,6 +20,7 @@ export async function LettersModule() {
       kind: "letter",
       isHidden: false,
       groupId: null,
+      ...PUBLISHED_ONLY,
       createdAt: { gte: new Date(Date.now() - WEEK_MS) },
     },
     orderBy: { createdAt: "desc" },

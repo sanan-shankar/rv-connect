@@ -10,7 +10,11 @@
  *  viewer belongs to at least one Catch-up it collapses to a strip.
  *  Both variants carry the beats and nothing else: the prose that used
  *  to sit here was cut on owner review (2026-07-25), because "Ask ->
- *  Answer -> Read" already says what a Catch-up is.
+ *  Answer -> Read" already says what a Catch-up is. The "Catch-ups"
+ *  eyebrow label that used to sit beside the beats is gone too (owner
+ *  review 2026-07-25): the page's own h1 already says "Catch-ups"
+ *  immediately above this band, so repeating it here was just the same
+ *  word twice in a row for no reason.
  *
  *  Carries the `data-tour="catchups-explainer"` spotlight target for the
  *  product tour (walkthrough spec sec 2) on whichever variant renders,
@@ -34,23 +38,17 @@ export function ExplainerBand({ compact = false }: { compact?: boolean }) {
       <div
         ref={tourAnchorRef}
         data-tour="catchups-explainer"
-        // inline-flex, not flex: with the trailing clause cut there is nothing
-        // left to fill a full-bleed strip, so the pill hugs its three beats
-        // instead of stretching an empty band across the column.
-        className="inline-flex max-w-full flex-wrap items-center gap-x-2.5 gap-y-1 rounded-full border border-border/70 bg-card/70 px-4 py-2"
+        // inline-flex, not flex: with no eyebrow or trailing clause left,
+        // there is nothing to fill a full-bleed strip, so the pill hugs its
+        // three beats instead of stretching an empty band across the column.
+        className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full border border-border/70 bg-card/70 px-4 py-2 text-[12px] font-semibold text-muted-foreground"
       >
-        <span className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-leaf">
-          Catch-ups
-        </span>
-        <span className="hidden h-3 w-px bg-border sm:block" aria-hidden />
-        <span className="flex items-center gap-1 text-[12px] font-semibold text-muted-foreground">
-          {BEATS.map((beat, i) => (
-            <span key={beat.label} className="flex items-center gap-1">
-              {beat.label}
-              {i < BEATS.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground/50" aria-hidden />}
-            </span>
-          ))}
-        </span>
+        {BEATS.map((beat, i) => (
+          <span key={beat.label} className="flex items-center gap-1">
+            {beat.label}
+            {i < BEATS.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground/50" aria-hidden />}
+          </span>
+        ))}
       </div>
     );
   }
@@ -70,15 +68,10 @@ export function ExplainerBand({ compact = false }: { compact?: boolean }) {
         }}
       />
 
-      {/* Not justify-between: with the paragraph cut there is nothing left to
-          hold the middle, so pushing a 70px eyebrow and the beats to opposite
-          ends of a 1100px card leaves a wall of empty gradient between them.
-          Label then beats, the same composition as the compact pill. */}
-      <div className="relative flex flex-col gap-[var(--space-m)] sm:flex-row sm:items-center sm:gap-[var(--space-l)]">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-leaf">
-          Catch-ups
-        </p>
-
+      {/* With the eyebrow and the paragraph both gone, the beats are the
+          entire content, so they just center in the card rather than
+          anchoring one end of a row that used to hold a label too. */}
+      <div className="relative flex justify-center">
         {/* items-start + an h-10 arrow wrapper keeps each connector vertically
             centered on the icon discs (40px tall), not on the taller
             disc+label column, so the arrows read as linking the circles. */}

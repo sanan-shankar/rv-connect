@@ -53,7 +53,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-background p-4 text-sm ring-1 ring-foreground/10 opacity-100 scale-100 transition-[opacity,scale] duration-[280ms] ease-[cubic-bezier(0.34,1.5,0.64,1)] outline-none sm:max-w-sm data-starting-style:opacity-0 data-starting-style:scale-96 data-ending-style:opacity-0 data-ending-style:scale-96 data-closed:opacity-0 data-closed:scale-96",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[var(--radius)] bg-background p-4 text-sm ring-1 ring-foreground/10 opacity-100 scale-100 transition-[opacity,scale] duration-[280ms] ease-[cubic-bezier(0.34,1.5,0.64,1)] outline-none sm:max-w-sm data-starting-style:opacity-0 data-starting-style:scale-96 data-ending-style:opacity-0 data-ending-style:scale-96 data-closed:opacity-0 data-closed:scale-96",
           className
         )}
         {...props}
@@ -102,7 +102,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-[var(--radius)] border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
