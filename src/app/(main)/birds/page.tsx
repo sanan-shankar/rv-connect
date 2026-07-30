@@ -13,7 +13,7 @@ export const metadata: Metadata = {
  * SPECIES_FULL_NAMES (bird-avatar-v2.tsx) so this gallery can never drift from the names shown
  * elsewhere in the app.
  *
- * Adapted from the /preview/birds-rv scratch page for a public, in-app route: this version drops
+ * Adapted from the /lab/birds-rv scratch page for a public, in-app route: this version drops
  * the preview's own full-bleed background and standalone heading in favour of the shared app shell
  * and PageHeader every other (main) route uses. Renders BirdGlyphV2 directly with
  * `speciesOverride={i}` (not BirdAvatar, whose species prop is id-hash-derived) so the gallery shows

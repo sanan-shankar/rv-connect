@@ -15,7 +15,7 @@
   --color-sidebar-accent: var(--sidebar-accent);
   /* Opaque idle/meta ink (never an alpha of white over the saturated sidebar
      green) and a separated hover/active ladder. See docs/spec/DESIGN-SYSTEM.md
-     and /preview/delight/second-look/craft for the contrast math. */
+     and /lab/craft for the contrast math. */
   --color-sidebar-foreground-idle: var(--sidebar-foreground-idle);
   --color-sidebar-foreground-muted: var(--sidebar-foreground-muted);
   --color-sidebar-hover: var(--sidebar-hover);
@@ -91,7 +91,7 @@
 
 :root {
   /* Warm, dimmed light theme. Surfaces are never pure white (that is reserved for floating modals). */
-  --background: #E7E1D3;  /* matches /preview/v2 warmth exactly */
+  --background: #E7E1D3;  /* matches /lab/v2 warmth exactly */
   --foreground: #23241E;
   --card: #F6F2E8;
   --card-foreground: #23241E;

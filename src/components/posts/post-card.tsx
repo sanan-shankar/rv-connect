@@ -76,7 +76,7 @@ export function PostCard({
   post: PostData;
   variant?: "card" | "sheet";
   /**
-   * Concept/preview pages (src/app/preview/**) render this card against a mock
+   * Concept/lab pages (src/app/lab/**) render this card against a mock
    * payload whose ids exist in no table. `demo` keeps every action local: the
    * optimistic UI still runs, but nothing calls a server action that would fail
    * on a foreign key, and the letter opens nowhere. It exists so a preview can
