@@ -4,7 +4,7 @@
  *  Shared motion foundation for the real app. One spring set, one set
  *  of ease curves, and two primitives (FadeRise, SpringPress), so every
  *  promoted delight reads like one hand made it. Ported from the
- *  /preview/delight lab kit. Light-mode app; transform/opacity only.
+ *  /lab lab kit. Light-mode app; transform/opacity only.
  *
  *  Owner decision: motion runs all the time, by choice. We deliberately
  *  do NOT gate any of this on the OS prefers-reduced-motion setting.

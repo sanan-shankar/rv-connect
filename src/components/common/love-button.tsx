@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
 
 // Tiny flecks that drift up when a heart is liked, in the valley palette. Timing/scale ported from
-// the /preview/delight feedback lab so they drift slowly (0.9s) instead of snapping.
+// the /lab feedback lab so they drift slowly (0.9s) instead of snapping.
 const LEAF_FLECKS = [
   { x: -14, y: -34, c: "#1F8A4C" },
   { x: 13, y: -40, c: "#C2622F" },

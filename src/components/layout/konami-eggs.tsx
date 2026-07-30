@@ -2,7 +2,7 @@
 
 /* ------------------------------------------------------------------ *
  *  Konami valley flush. A hidden easter egg ported from the
- *  /preview/delight/eggs lab (KonamiDemo): type the Konami sequence
+ *  /lab/eggs lab (KonamiDemo): type the Konami sequence
  *  anywhere in the authenticated shell and a small flock crosses the
  *  viewport while a few leaves drift down, then it clears.
  *

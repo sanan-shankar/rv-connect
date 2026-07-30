@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /* ------------------------------------------------------------------ *
- *  /lab - the one index for every dev/preview room in the app.
+ *  /lab - the one index for every dev/lab room in the app.
  *
  *  Fixes the owner's complaint (2026-07-30): rooms under
- *  /preview/delight were invisible from /preview/delight/second-look and
- *  vice versa, and routes like /preview/logo or /copy-editor had no index
+ *  /lab were invisible from /lab and
+ *  vice versa, and routes like /lab/logo or /copy-editor had no index
  *  anywhere. `scripts/qa/lab-audit.mjs` proves nothing on disk is missing
  *  from `REGISTRY`.
  *

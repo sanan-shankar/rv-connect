@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
  * RailCard: the shared shell for every module in the feed's right rail, one
  * card treatment and one microhead style so a new module reads like it
  * belongs the moment it ships. Matches the kit proven in
- * /preview/delight/feed-canvas, productionized.
+ * /lab/feed-canvas, productionized.
  */
 export function RailCard({
   label,

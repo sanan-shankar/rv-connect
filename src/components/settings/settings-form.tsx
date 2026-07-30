@@ -108,7 +108,7 @@ function toHttpsUrl(raw: string): string {
 
 /* ------------------------------------------------------------------ *
  *  Inset-grouped layout, per the owner-approved verdict in
- *  /preview/delight/second-look/tiles ("When a box earns its border"):
+ *  /lab/tiles ("When a box earns its border"):
  *  "Group label outside a single container, one hairline row per field,
  *  zero nested surfaces." The group label sits above the border, never
  *  inside it; every field is one hairline row, never its own nested card.
