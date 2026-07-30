@@ -12,7 +12,6 @@ export type DirectoryFilters = {
   city?: string;
   profession?: string;
   house?: string;
-  openTo?: string;
   type?: string; // "alumni" | "teachers"
   sort?: string;
   yearFrom?: string;
@@ -38,7 +37,6 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
       { name: { contains: filters.q, ...insensitive } },
       { workplace: { contains: filters.q, ...insensitive } },
       { jobTitle: { contains: filters.q, ...insensitive } },
-      { openTo: { contains: filters.q, ...insensitive } },
       { places: { some: { city: { contains: filters.q, ...insensitive } } } },
     ];
   }
@@ -65,7 +63,6 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
   }
   if (filters.profession) where.workplace = filters.profession;
   if (filters.house) where.houses = { contains: filters.house };
-  if (filters.openTo) where.openTo = { contains: filters.openTo };
   if (filters.type === "alumni") {
     where.accountType = "alumnus";
   } else if (filters.type === "teachers") {
