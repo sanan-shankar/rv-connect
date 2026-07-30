@@ -34,7 +34,10 @@ const buttonVariants = cva(
         // "primary" everywhere else.
         leaf: CANOPY_FILL,
         outline:
-          "border-border bg-background hover:bg-accent hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          /* bg-transparent, not bg-background: on the tan page they render
+             identically, but on the white dialog material a bg-background
+             Cancel read as a filled tan pill instead of an outline. */
+          "border-border bg-transparent hover:bg-accent hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-accent aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:

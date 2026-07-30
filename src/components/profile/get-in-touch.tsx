@@ -125,12 +125,14 @@ export function GetInTouch({
               );
             })}
           </div>
-          {/* A real button, visibly a button before hover: filled, pill,
-              full width. */}
-          <Button variant="secondary" className="w-full" onClick={saveContact}>
-            <Download className="h-4 w-4" />
-            Save contact card
-          </Button>
+          {/* The material's one footer shape: a right-aligned action row
+              (no full-width buttons in dialogs; the X handles close). */}
+          <div className="flex justify-end pt-1">
+            <Button variant="secondary" onClick={saveContact}>
+              <Download className="h-4 w-4" />
+              Save contact card
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>

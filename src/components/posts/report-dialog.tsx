@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ReportModal } from "@/components/common/report-modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -45,22 +51,16 @@ export function ReportDialog({
   }
 
   return (
-    <ReportModal
-      open={open}
-      onClose={onClose}
-      labelledBy="report-post-title"
-      describedBy="report-post-description"
-    >
-      <div className="flex flex-col gap-2">
-        <h2 id="report-post-title" className="font-heading text-base font-medium leading-none">
-          Report Post
-        </h2>
-        <p id="report-post-description" className="text-sm text-muted-foreground">
-          Help us keep the community safe. Tell us why you&apos;re reporting
-          this post.
-        </p>
-      </div>
-      <div className="mt-4 space-y-4">
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Report post</DialogTitle>
+          <DialogDescription>
+            Help us keep the community safe. Tell us why you&apos;re reporting
+            this post.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
         <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
           <SelectTrigger>
             <SelectValue placeholder="Select a reason" />
@@ -85,19 +85,20 @@ export function ReportDialog({
           rows={3}
         />
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!reason || submitting}
-            variant="primary"
-          >
-            {submitting ? "Submitting..." : "Submit Report"}
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!reason || submitting}
+              variant="primary"
+            >
+              {submitting ? "Submitting..." : "Submit report"}
+            </Button>
+          </div>
         </div>
-      </div>
-    </ReportModal>
+      </DialogContent>
+    </Dialog>
   );
 }

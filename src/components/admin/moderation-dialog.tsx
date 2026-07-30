@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
-import { ReportModal } from "@/components/common/report-modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -50,33 +55,24 @@ export function ModerationDialog({
   }
 
   return (
-    <ReportModal
-      open={open}
-      onClose={handleClose}
-      labelledBy="moderation-dialog-title"
-      describedBy="moderation-dialog-description"
-    >
-      <div className="flex items-start gap-2.5">
-        {/* Sky: the cool administrative register (colour protocol's chip trio;
-            the old canopy/10 grey-sage pairing is dead). */}
-        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-sky/35 bg-sky/[0.10] text-sky">
-          <ShieldCheck className="size-4" strokeWidth={1.9} />
-        </span>
-        <div className="flex flex-col gap-1">
-          <h2
-            id="moderation-dialog-title"
-            className="font-heading text-base font-medium leading-tight"
-          >
-            Remove this {itemLabel}
-          </h2>
-          <p id="moderation-dialog-description" className="text-sm text-muted-foreground">
-            It comes down for everyone right away. You can let the author know why, warmly --
-            this is optional.
-          </p>
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent>
+        <div className="flex items-start gap-2.5">
+          {/* Sky: the cool administrative register (colour protocol's chip trio;
+              the old canopy/10 grey-sage pairing is dead). */}
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-sky/35 bg-sky/[0.10] text-sky">
+            <ShieldCheck className="size-4" strokeWidth={1.9} />
+          </span>
+          <div className="flex flex-col gap-1">
+            <DialogTitle className="leading-tight">Remove this {itemLabel}</DialogTitle>
+            <DialogDescription>
+              It comes down for everyone right away. You can let the author know why, warmly --
+              this is optional.
+            </DialogDescription>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-4 space-y-4">
+        <div className="space-y-4">
         <Textarea
           placeholder="Add a short note to the author (optional) -- e.g. asking them not to share that type of content again"
           value={note}
@@ -85,15 +81,16 @@ export function ModerationDialog({
           rows={3}
         />
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={handleClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleConfirm} disabled={submitting}>
-            {submitting ? "Removing..." : `Remove ${itemLabel}`}
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleClose} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleConfirm} disabled={submitting}>
+              {submitting ? "Removing..." : `Remove ${itemLabel}`}
+            </Button>
+          </div>
         </div>
-      </div>
-    </ReportModal>
+      </DialogContent>
+    </Dialog>
   );
 }

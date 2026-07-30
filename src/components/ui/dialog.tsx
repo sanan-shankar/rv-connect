@@ -23,6 +23,15 @@ function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
+/* THE dialog material (owner, 2026-07-30: edit post / report post / get in
+ * touch / flag person "should be reusing the same template"; the report
+ * register won). Backdrop: a constant warm-ink tint + blur whose OPACITY is
+ * the only animated property, so the fade reads as the background gradually
+ * blurring rather than a hard cut. Panel: Float white (the one sanctioned
+ * pure-white surface), 20.8px floating-modal radius, layered ink shadow,
+ * entering a beat (80ms) after the backdrop on a spring-ish curve; the exit
+ * runs immediately (no delay) so closing never lags. Every dialog in the app
+ * comes through this file - divergence is a bug, not a choice. */
 function DialogOverlay({
   className,
   ...props
@@ -31,7 +40,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 opacity-100 transition-[opacity] duration-[280ms] ease-[cubic-bezier(0.34,1.5,0.64,1)] supports-backdrop-filter:backdrop-blur-md data-starting-style:opacity-0 data-ending-style:opacity-0 data-closed:opacity-0",
+        "fixed inset-0 isolate z-50 bg-[#241a12]/55 backdrop-blur-md opacity-100 transition-[opacity] duration-[220ms] ease-out-smooth data-starting-style:opacity-0 data-ending-style:opacity-0 data-closed:opacity-0 data-closed:duration-[180ms]",
         className
       )}
       {...props}
@@ -53,7 +62,15 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[var(--radius)] bg-background p-4 text-sm ring-1 ring-foreground/10 opacity-100 scale-100 transition-[opacity,scale] duration-[280ms] ease-[cubic-bezier(0.34,1.5,0.64,1)] outline-none sm:max-w-sm data-starting-style:opacity-0 data-starting-style:scale-96 data-ending-style:opacity-0 data-ending-style:scale-96 data-closed:opacity-0 data-closed:scale-96",
+          /* -translate-y-1/2 centres; the enter/exit y-drift rides ON TOP of it
+             via calc so the two never fight over one transform. Enter: rise 12px
+             + scale from 0.94, delayed 80ms behind the backdrop (the delay lives
+             on the OPEN state so the exit reads a 0ms delay from the closed
+             state and leaves immediately). */
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-border bg-float p-4 text-sm shadow-[0_1px_2px_rgba(30,28,22,0.06),0_24px_48px_-24px_rgba(30,28,22,0.55)] opacity-100 scale-100 transition-[opacity,scale,translate] duration-[260ms] ease-spring outline-none sm:max-w-sm",
+          "data-open:delay-[80ms]",
+          "data-starting-style:opacity-0 data-starting-style:scale-94 data-starting-style:translate-y-[calc(-50%+12px)]",
+          "data-ending-style:opacity-0 data-ending-style:scale-96 data-ending-style:translate-y-[calc(-50%+8px)] data-closed:opacity-0 data-closed:duration-[200ms]",
           className
         )}
         {...props}
@@ -102,7 +119,9 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-[var(--radius)] border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        /* A plain right-aligned row, not a recessed tray: the dialog material
+           has ONE surface (Float) and a box must earn its border. */
+        "flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
