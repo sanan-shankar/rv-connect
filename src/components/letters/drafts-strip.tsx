@@ -1,14 +1,9 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PenLine } from "lucide-react";
-import { EditPostDialog } from "@/components/posts/edit-post-dialog";
 
 export type DraftSummary = {
   id: string;
   title: string | null;
-  content: string;
   updatedAt: string;
 };
 
@@ -17,14 +12,11 @@ export type DraftSummary = {
  * shown above the published list on /letters (only when they have at least
  * one). Deliberately subordinate to the main list -- a hairline mist inset,
  * never a full card -- since these are unfinished, not content to browse.
- * Opening a row reuses the shared EditPostDialog in its draft mode (continue
- * editing, save as draft again, or publish).
+ * Each row is a plain LINK to the writing desk (/letters/[id]/edit): a draft
+ * is a letter mid-write, and letters are written on a whole page, not in the
+ * 384px quick-edit dialog this used to open (owner, 2026-07-30).
  */
 export function DraftsStrip({ drafts }: { drafts: DraftSummary[] }) {
-  const router = useRouter();
-  const [openId, setOpenId] = useState<string | null>(null);
-  const open = drafts.find((d) => d.id === openId) ?? null;
-
   if (drafts.length === 0) return null;
 
   return (
@@ -34,10 +26,9 @@ export function DraftsStrip({ drafts }: { drafts: DraftSummary[] }) {
       </p>
       <div className="space-y-0.5">
         {drafts.map((d) => (
-          <button
+          <Link
             key={d.id}
-            type="button"
-            onClick={() => setOpenId(d.id)}
+            href={`/letters/${d.id}/edit`}
             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
           >
             <PenLine className="h-3.5 w-3.5 shrink-0 text-cinnamon" aria-hidden />
@@ -51,23 +42,9 @@ export function DraftsStrip({ drafts }: { drafts: DraftSummary[] }) {
                 month: "short",
               })}
             </span>
-          </button>
+          </Link>
         ))}
       </div>
-
-      {open && (
-        <EditPostDialog
-          postId={open.id}
-          kind="letter"
-          initialContent={open.content}
-          initialTitle={open.title}
-          initialTag={null}
-          open
-          isDraft
-          onClose={() => setOpenId(null)}
-          onChanged={() => router.refresh()}
-        />
-      )}
     </div>
   );
 }

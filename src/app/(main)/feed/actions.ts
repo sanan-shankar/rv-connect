@@ -300,7 +300,7 @@ export async function editPost(postId: string, formData: FormData) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, kind: true, groupId: true },
+    select: { authorId: true, kind: true, groupId: true, status: true },
   });
 
   if (!post) return { error: "Post not found" };
@@ -319,12 +319,30 @@ export async function editPost(postId: string, formData: FormData) {
     return { error: "Title must be 160 characters or fewer" };
   }
 
+  // Images may be rewritten ONLY on the author's own letter DRAFT (the
+  // immersive /letters/[id]/edit surface adds photos mid-draft). A published
+  // row's media never changes through this action, so a tampered field
+  // cannot rewrite what readers have already seen.
+  let imagesUpdate: { images: string | null } | undefined;
+  const imagesRaw = formData.get("images");
+  if (imagesRaw !== null && isLetter && post.status === "draft") {
+    try {
+      const arr = JSON.parse(imagesRaw as string);
+      if (Array.isArray(arr) && arr.every((u) => typeof u === "string") && arr.length <= 3) {
+        imagesUpdate = { images: arr.length > 0 ? JSON.stringify(arr) : null };
+      }
+    } catch {
+      /* ignore a malformed field; the draft keeps its images */
+    }
+  }
+
   await prisma.post.update({
     where: { id: postId },
     data: {
       content,
       // Tags are post-only; a letter keeps its title and ignores tags.
       ...(isLetter ? { title: title?.trim() || null } : { tag: tag || null }),
+      ...imagesUpdate,
     },
   });
 
