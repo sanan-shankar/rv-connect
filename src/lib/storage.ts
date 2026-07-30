@@ -1,9 +1,11 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { writeFile, mkdir, unlink, readFile } from "fs/promises";
 import path from "path";
 
 /**
@@ -79,18 +81,86 @@ export async function putImage(
   return `/${key}`;
 }
 
-/** Delete an image by its public URL (best-effort; never throws). */
-export async function delImage(url: string | null | undefined): Promise<void> {
-  if (!url) return;
+/**
+ * Whether direct-to-R2 presigned uploads are available. When false (local
+ * dev without R2 env), callers fall back to proxying bytes through the
+ * server, which is fine locally: only Vercel imposes the ~4.5MB request
+ * body cap that presigning exists to dodge.
+ */
+export function directUploadAvailable(): boolean {
+  return useR2;
+}
+
+/**
+ * Presign a direct browser PUT to R2. This is how a 20MB original reaches
+ * storage at full resolution on Vercel: the bytes go browser -> R2, never
+ * through a serverless function, so the platform's ~4.5MB request cap
+ * never applies. Returns the key (for a later server-side fetch), the
+ * one-time signed URL, and the public URL the object will live at.
+ *
+ * NOTE: the R2 bucket must have a CORS rule allowing PUT from the site
+ * origin. `node scripts/setup-r2-cors.mjs` applies it once per bucket.
+ */
+export async function presignImagePut(
+  subdir: string,
+  filename: string,
+  contentType: string
+): Promise<{ key: string; signedUrl: string; publicUrl: string }> {
+  if (!useR2) throw new Error("Direct upload unavailable without R2");
+  const key = buildKey(subdir, filename);
+  const signedUrl = await getSignedUrl(
+    r2(),
+    new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: key,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+    { expiresIn: 600 }
+  );
+  return { key, signedUrl, publicUrl: `${R2_PUBLIC_BASE_URL}/${key}` };
+}
+
+/** The public URL a raw object key serves from. */
+export function publicUrlForKey(key: string): string {
+  return useR2 ? `${R2_PUBLIC_BASE_URL}/${key}` : `/${key}`;
+}
+
+/** Fetch an object's bytes back (for post-upload processing: thumbnails,
+ *  display sizes). Works for both R2 keys and local dev paths. */
+export async function getImageBuffer(key: string): Promise<Buffer> {
+  if (useR2) {
+    const res = await r2().send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    const bytes = await res.Body?.transformToByteArray();
+    if (!bytes) throw new Error(`Empty object at ${key}`);
+    return Buffer.from(bytes);
+  }
+  return readFile(path.join(process.cwd(), "public", key));
+}
+
+/** Delete an object by its raw key (for cleaning up presigned originals
+ *  that fail validation or finish processing). Best-effort. */
+export async function delImageByKey(key: string): Promise<void> {
   try {
-    if (useR2 && R2_PUBLIC_BASE_URL && url.startsWith(R2_PUBLIC_BASE_URL)) {
-      const key = url.slice(R2_PUBLIC_BASE_URL.length + 1);
+    if (useR2) {
       await r2().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
-    } else if (url.startsWith("/")) {
-      await unlink(path.join(process.cwd(), "public", url));
+    } else {
+      await unlink(path.join(process.cwd(), "public", key));
     }
-    // Any other remote URL (e.g. a legacy host) is left alone on purpose.
   } catch {
     // best-effort cleanup
   }
+}
+
+/** Delete an image by its public URL (best-effort; never throws). Derives
+ *  the object key and hands off to `delImageByKey`, so the actual R2-vs-local
+ *  delete logic lives in exactly one place. */
+export async function delImage(url: string | null | undefined): Promise<void> {
+  if (!url) return;
+  if (useR2 && R2_PUBLIC_BASE_URL && url.startsWith(R2_PUBLIC_BASE_URL)) {
+    await delImageByKey(url.slice(R2_PUBLIC_BASE_URL.length + 1));
+  } else if (url.startsWith("/")) {
+    await delImageByKey(url.slice(1));
+  }
+  // Any other remote URL (e.g. a legacy host) is left alone on purpose.
 }

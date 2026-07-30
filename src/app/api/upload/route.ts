@@ -3,35 +3,9 @@ import { auth } from "@/lib/auth";
 import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { putImage } from "@/lib/storage";
+import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/lib/upload-shared";
 
-const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20MB
 const MAX_FILES = 3;
-
-/** True for iPhone photos exported as HEIC/HEIF. sharp's prebuilt binary has
- *  no HEVC decoder (patent licensing), so these fail in sharp with an opaque
- *  "unsupported image format" error; catch them earlier with a message that
- *  actually explains what to do. file.type is occasionally blank for these on
- *  some mobile browsers, so the extension is checked too. */
-function isUnsupportedHeic(file: File) {
-  return (
-    file.type === "image/heic" ||
-    file.type === "image/heif" ||
-    /\.hei[cf]$/i.test(file.name)
-  );
-}
-
-/** Turn a sharp processing error into a message that names the actual reason
- *  instead of a raw libvips exception string. */
-function describeProcessingError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  if (/unsupported image format/i.test(message)) {
-    return "That photo's format isn't supported. Please export it as JPG or PNG and try again.";
-  }
-  if (/premature end|truncated|invalid/i.test(message)) {
-    return "That photo looks corrupted or only partially uploaded. Please try again.";
-  }
-  return `Could not process the photo (${message}).`;
-}
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -87,7 +61,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (file.size > MAX_FILE_BYTES) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json(
         { error: `"${file.name}" is over the 20MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` },
         { status: 400 }
