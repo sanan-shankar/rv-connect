@@ -21,7 +21,6 @@ import {
 import {
   PROFESSION_OPTIONS,
   HOUSE_OPTIONS,
-  OPEN_TO_FACET_OPTIONS,
   TYPE_OPTIONS,
   directorySortOptions,
   directoryDefaultSort,
@@ -52,7 +51,6 @@ interface DirectoryFiltersState {
   city: string;
   profession: string;
   house: string;
-  openTo: string;
   type: string;
   yearFrom: string;
   yearTo: string;
@@ -102,7 +100,7 @@ export function DirectoryClient({
   const tourAnchorRef = useTourAnchor<HTMLDivElement>("directory-search");
   const [query, setQuery] = useState(initialFilters.q);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(
-    !!(initialFilters.house || initialFilters.openTo || initialFilters.type)
+    !!(initialFilters.house || initialFilters.type)
   );
   const [sheetOpen, setSheetOpen] = useState(false);
   // When filtering, default to the People (grid) view so results are visible;
@@ -135,7 +133,6 @@ export function DirectoryClient({
         city: initialFilters.city || undefined,
         profession: initialFilters.profession || undefined,
         house: initialFilters.house || undefined,
-        openTo: initialFilters.openTo || undefined,
         type: initialFilters.type || undefined,
         sort: initialFilters.sort || undefined,
         yearFrom: initialFilters.yearFrom || undefined,
@@ -206,7 +203,6 @@ export function DirectoryClient({
 
   const secondaryCount =
     (initialFilters.house ? 1 : 0) +
-    (initialFilters.openTo ? 1 : 0) +
     (initialFilters.type ? 1 : 0);
 
   const activeChips: ActiveChip[] = [];
@@ -236,14 +232,6 @@ export function DirectoryClient({
       key: "house",
       label: `House: ${initialFilters.house}`,
       onClear: () => updateFilters("house", ""),
-    });
-  }
-  if (initialFilters.openTo) {
-    const openToOption = OPEN_TO_FACET_OPTIONS.find((o) => o.value === initialFilters.openTo);
-    activeChips.push({
-      key: "openTo",
-      label: `Open to: ${openToOption?.label ?? initialFilters.openTo}`,
-      onClear: () => updateFilters("openTo", ""),
     });
   }
   if (initialFilters.type) {
@@ -308,14 +296,6 @@ export function DirectoryClient({
           onChange={(v) => updateFilters("house", v)}
           options={HOUSE_OPTIONS}
           anyLabel="Any house"
-          className={className}
-        />
-        <FacetSelect
-          label="Open to"
-          value={initialFilters.openTo}
-          onChange={(v) => updateFilters("openTo", v)}
-          options={OPEN_TO_FACET_OPTIONS}
-          anyLabel="Any"
           className={className}
         />
         <FacetSelect

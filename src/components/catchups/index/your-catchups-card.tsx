@@ -88,7 +88,13 @@ export function YourCatchupsCard({ card }: { card: IndexCardView }) {
       </div>
 
       {card.cta && (
-        <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-canopy px-4 py-2 text-[13px] font-semibold text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 group-hover:brightness-[1.08]">
+        // Matches the shared Button's `sm` size exactly (h-9, px-3.5,
+        // text-[0.8rem], font-medium): this used to be a hand-rolled 13px/
+        // semibold/py-2 pill that matched no Button size in the app (owner
+        // review 2026-07-25). Stays a span, not a nested <Button>/<Link>: the
+        // whole card is already the one interactive element and one focus
+        // target.
+        <span className="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-canopy px-3.5 text-[0.8rem] font-medium text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 group-hover:brightness-[1.08]">
           {card.cta.label}
         </span>
       )}

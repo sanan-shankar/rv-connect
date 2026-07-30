@@ -464,11 +464,16 @@ export default async function CatchupHomePage({
   }
 
   if (result.kind === "not-member") {
+    // Was `/groups/${result.groupId}` -- groups have no user-facing page
+    // anymore (dead route, owner review 2026-07-25). The viewer already
+    // isn't a member here, so this Catch-up's own URL would just bounce them
+    // back to this same wall; the index is the one place that actually goes
+    // somewhere.
     return (
       <NotAvailableCard
         title="This Catch-up is for group members."
         body={`Join ${result.groupName} to add questions, answer, and read the archive.`}
-        cta={{ href: `/groups/${result.groupId}`, label: "View the group" }}
+        cta={{ href: "/catchups", label: "Back to Catch-ups" }}
       />
     );
   }
