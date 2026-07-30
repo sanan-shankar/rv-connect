@@ -42,8 +42,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
         },
         style: {
           borderRadius: "12px",
+          // Same layered ink shadow as .card-elevated, via the --shadow-ink
+          // channel triple (globals.css :root) so a dark theme retints it.
           boxShadow:
-            "0 1px 2px rgba(30,28,22,0.06), 0 18px 36px -26px rgba(30,28,22,0.55)",
+            "0 1px 2px rgb(var(--shadow-ink) / 0.06), 0 18px 36px -26px rgb(var(--shadow-ink) / 0.55)",
         },
       }}
       {...props}

@@ -37,7 +37,7 @@ export function AppShell({
           reads as atmosphere at 0.09; at 0.11 it tinted every card above it. */}
       <div
         aria-hidden
-        className="valley-tree pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-[0.09]"
+        className="valley-tree pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-[0.09] dark:opacity-[0.04]"
         style={{ backgroundImage: "url(/images/landing.jpeg)" }}
       />
       <KonamiEggs />

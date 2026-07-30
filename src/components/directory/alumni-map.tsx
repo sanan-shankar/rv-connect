@@ -299,7 +299,11 @@ export function AlumniMap({
   const mapBody = (
     <div
       className="relative h-full w-full overflow-hidden"
-      style={{ background: "var(--surface-2, #EEE8DA)" }}
+      // The ocean is a recessed well, so it sits on --muted. (The old
+      // var(--surface-2, #EEE8DA) referenced a token that never existed, so
+      // the hardcoded fallback always won and froze the sea at pre-protocol
+      // mist; --muted is 2 RGB steps cooler and follows theme flips.)
+      style={{ background: "var(--muted)" }}
     >
       <svg
         ref={svgRef}

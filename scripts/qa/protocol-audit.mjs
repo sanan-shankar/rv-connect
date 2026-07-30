@@ -64,6 +64,7 @@ const HEX_ALLOW = new Map([
   ["src/components/ui/dialog.tsx", "the dialog material's warm-ink scrim (#241a12), same register as the viewer backdrop"],
   ["src/components/ui/sheet.tsx", "the edge-anchored variant of the dialog material, sharing its warm-ink scrim (#241a12)"],
   ["src/components/common/bird-avatar.tsx", "glyph plumage support white"],
+  ["src/components/settings/nightfall.tsx", "the dark-mode payoff scene's fixed dusk sky, sun and stars - scene art that must render identically under either theme"],
   ["src/components/landing/footer-hoopoe.tsx", "tuft plumage art (marigold family)"],
 ]);
 const HEX_RE = /#[0-9a-fA-F]{6}\b/;

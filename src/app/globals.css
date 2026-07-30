@@ -75,23 +75,20 @@
   --ease-out-smooth: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Valley palette (light-mode-first). Neutrals carry the UI; accents are used sparingly.
-     The neutrals form THE SURFACE LADDER (docs/spec/DESIGN-SYSTEM.md, colour protocol):
-     background < mist < secondary < paper < accent < float, each rung ~5 RGB steps up.
-     Warmth lives at the BOTTOM of the ladder and surfaces cool and lighten as they
-     rise; hover always lifts a surface up the ladder, never sinks it into tan.
-     All four neutrals were cooled ~20-25% on 2026-07-30 (owner: "tone down the warm
-     background everywhere by 20%, slightly cooler") -- the warm cast (R minus B) drops
-     from 20 to 15 on the page, 14 to 11 on paper, at unchanged lightness. */
-  --color-leaf: #1F8A4C;        /* primary green */
-  --color-leaf-light: #34C759;  /* lit accent (active nav) */
-  --color-canopy: #235C49;      /* deep sidebar green */
-  --color-sky: #3F7CA6;         /* office blue, the vivid pop */
-  --color-cinnamon: #C2622F;    /* warm accent (saved, events, hoopoe) */
-  --color-heart: #E03A33;       /* the heart is always this red */
-  --color-paper: #F5F2EA;       /* surface (preview warmth, cooled) */
-  --color-float: #FFFFFF;       /* floating modals only */
-  --color-ink: #23241E;         /* warm near-black text */
-  --color-mist: #ECE8DD;        /* recessed wells ONLY, one per card, never two adjacent */
+     These lines only bind the utility names (bg-leaf, text-ink, ...); the hex
+     values live in :root below, the same indirection the shadcn tokens above
+     already use, so a future .dark block can flip the raw vars and every
+     bg-mist / var(--color-paper) call site follows without edits. */
+  --color-leaf: var(--leaf);
+  --color-leaf-light: var(--leaf-light);
+  --color-canopy: var(--canopy);
+  --color-sky: var(--sky);
+  --color-cinnamon: var(--cinnamon);
+  --color-heart: var(--heart);
+  --color-paper: var(--paper);
+  --color-float: var(--float);
+  --color-ink: var(--ink);
+  --color-mist: var(--mist);
 
   /* LiftKit Golden Ratio Spacing (phi = 1.618) */
   --space-xxs: 0.236em;
@@ -165,15 +162,96 @@
      Separated so hover and active each read as their own rung. */
   --sidebar-hover: #2E6A55;
   --sidebar-active: #357760;
+
+  /* Valley palette raw values (consumed by the @theme indirection above).
+     The neutrals form THE SURFACE LADDER (docs/spec/DESIGN-SYSTEM.md, colour protocol):
+     background < mist < secondary < paper < accent < float, each rung ~5 RGB steps up.
+     Warmth lives at the BOTTOM of the ladder and surfaces cool and lighten as they
+     rise; hover always lifts a surface up the ladder, never sinks it into tan.
+     All four neutrals were cooled ~20-25% on 2026-07-30 (owner: "tone down the warm
+     background everywhere by 20%, slightly cooler") -- the warm cast (R minus B) drops
+     from 20 to 15 on the page, 14 to 11 on paper, at unchanged lightness. */
+  --leaf: #1F8A4C;        /* primary green */
+  --leaf-light: #34C759;  /* lit accent (active nav) */
+  --canopy: #235C49;      /* deep sidebar green */
+  --sky: #3F7CA6;         /* office blue, the vivid pop */
+  --cinnamon: #C2622F;    /* warm accent (saved, events, hoopoe) */
+  --heart: #E03A33;       /* the heart is always this red */
+  --paper: #F5F2EA;       /* surface (preview warmth, cooled) */
+  --float: #FFFFFF;       /* floating modals only */
+  --ink: #23241E;         /* warm near-black text */
+  --mist: #ECE8DD;        /* recessed wells ONLY, one per card, never two adjacent */
+
+  /* Shadow tint as a bare channel triple (r g b), consumed as
+     rgb(var(--shadow-ink) / alpha). 30 28 22 is the historical card-shadow
+     ink: a hair deeper than text ink #23241E (35 36 30), because a shadow at
+     4% alpha needs a darker base than body text to register at all. A channel
+     triple rather than a hex because the layered shadows reuse ONE tint at
+     several alphas; a future .dark block flips just this triple to re-tint
+     every elevated surface at once. */
+  --shadow-ink: 30 28 22;
 }
 
-/* Dark mode: no .dark block exists YET on purpose. The old scaffold (a cool
-   blue-black skin that dimmed the sidebar and muted every accent) was deleted
-   outright on owner instruction, 2026-07-30: "the previous dark mode was a
-   stub... by no means should you be inspired by that." The real dark theme is
-   rebuilt from a blank sheet with three fixed constraints: warm charcoal
-   (never pure black), the Canopy sidebar does not change, and the heart stays
-   #E03A33. Until it ships, the app renders forcedTheme="light" (layout.tsx). */
+/* Dark mode: the valley after dark. Written from a blank sheet on
+   2026-07-30 (the old cool blue-black scaffold was deleted on owner
+   instruction and nothing here descends from it). Three fixed constraints:
+   warm charcoal, never pure black; the Canopy sidebar does NOT change (the
+   --sidebar* family is deliberately absent from this block); the heart and
+   destructive red stay #E03A33 in every theme.
+
+   The surface ladder holds in the dark, same rule, inverted register:
+   background < mist < secondary < card < accent < float, each rung a few
+   RGB steps LIGHTER as surfaces rise, so hover still lifts and wells still
+   recess. Every value keeps the warm green-grey cast (G >= R > B) so the
+   charcoal reads as the valley at night, not a phone in a cave.
+
+   Brand colour policy (owner, 2026-07-30: "the greens and the cinnamon
+   should be the same; we wouldn't want the sidebar to change"): canopy,
+   cinnamon, leaf-light, heart and the primary CTA fill are byte-identical
+   to light mode. The two ACCENTS that render as small text on charcoal
+   brighten for legibility per the standing accents-get-brighter rule:
+   leaf #1F8A4C would sit at ~2.5:1 on this page (illegible), so leaf and
+   the focus ring lift to #3FD16A (~7.7:1) and sky lifts to #5FA6D6. */
+.dark {
+  --background: #1C2420;
+  --foreground: #E8EDE6;
+  --card: #262E29;
+  --card-foreground: #E8EDE6;
+  /* The dark float: the TOP of the ladder. Pure white is impossible here, so
+     "float" means the lightest charcoal in the room, and menus/dialogs keep
+     their relief by sitting visibly above every card. */
+  --popover: #333D37;
+  --popover-foreground: #E8EDE6;
+  --primary: #1F8A4C;
+  --primary-foreground: #FFFFFF;
+  --secondary: #242D28;
+  --secondary-foreground: #E8EDE6;
+  --muted: #212925;
+  --muted-foreground: #9AA69E;
+  /* Hover still LIFTS: one rung lighter than the card it sits on. */
+  --accent: #2F3933;
+  --accent-foreground: #E8EDE6;
+  --destructive: #E03A33;
+  --border: #34403A;
+  --input: #34403A;
+  --ring: #3FD16A;
+  --chart-1: #3FD16A;
+  --chart-2: #5FA6D6;
+  --chart-3: #D2743E;
+  --chart-4: #34C759;
+  --chart-5: #D06A8C;
+
+  /* Brand raws (see the policy note above). */
+  --leaf: #3FD16A;
+  --sky: #5FA6D6;
+  --paper: #262E29;
+  --float: #333D37;
+  --ink: #E8EDE6;
+  --mist: #212925;
+  /* True black tint: on charcoal, an ink-brown shadow reads as mud; a black
+     one reads as depth. */
+  --shadow-ink: 0 0 0;
+}
 
 /*
  * Type scale (docs/spec/DESIGN-SYSTEM.md sec 5). Heading = Libre Baskerville
@@ -234,9 +312,11 @@
 }
 
 @layer components {
-  /* Layered, colour-tinted card shadow (never a flat shadow-md). */
+  /* Layered, colour-tinted card shadow (never a flat shadow-md). The tint is
+     the --shadow-ink triple (:root) so the same 30 28 22 renders as before
+     while a dark theme can retint it in one place. */
   .card-elevated {
-    box-shadow: 0 1px 2px rgba(30, 28, 22, 0.04), 0 18px 40px -28px rgba(30, 28, 22, 0.5);
+    box-shadow: 0 1px 2px rgb(var(--shadow-ink) / 0.04), 0 18px 40px -28px rgb(var(--shadow-ink) / 0.5);
   }
   /* The middle dot that separates name/batch/time. Slightly larger and optically
      centred, in the soft-ink colour, so it reads as a deliberate divider. */
@@ -257,13 +337,15 @@
   }
   /* Warm shimmer loading state (mist -> paper -> mist), used instead of a grey
      pulse for skeletons. Apply alongside a rounded box; the gradient animates
-     across it. */
+     across it. Reads the raw :root vars (not the @theme --color-* aliases) so
+     the shimmer follows a future .dark flip with no dependence on how
+     Tailwind emits its theme variables. */
   .skeleton-warm {
     background: linear-gradient(
       100deg,
-      var(--color-mist) 30%,
-      var(--color-paper) 50%,
-      var(--color-mist) 70%
+      var(--mist) 30%,
+      var(--paper) 50%,
+      var(--mist) 70%
     );
     background-size: 200% 100%;
     animation: warm-shimmer 1.6s ease-in-out infinite;
