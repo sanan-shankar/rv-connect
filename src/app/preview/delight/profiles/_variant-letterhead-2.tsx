@@ -253,13 +253,26 @@ export default function LetterheadTwoVariant({ profile }: ProfileVariantProps) {
     masthead === "photo" ? { ...base, photoUrl: DEMO_PHOTO } : { ...base, photoUrl: null };
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-      {/* Lab chrome, not part of the concept: the two axes the review asked to
-          see, a filled-in member against a near-empty one and their bird
-          against an uploaded picture. Kept on the LEFT and a full step clear of
-          the sheet, because the bird perches over the sheet's top-right corner
-          and would otherwise sit on these controls. */}
-      <div className="mb-[var(--space-xl)] flex flex-wrap items-center gap-x-[var(--space-l)] gap-y-[var(--space-s)]">
+    <>
+      {/* The concept starts at the very top of the shell's own gutter, the way
+          the shipped profile would, with no lab furniture above it. The only
+          top padding is the perch clearance the bird needs to hang over the
+          sheet's edge without being cut off. No horizontal padding of its own
+          either: the shell owns the gutter in the real app, so it owns it
+          here. */}
+      <div className="mx-auto w-full max-w-3xl pb-[var(--space-xl)] pt-[var(--space-m)] sm:pt-[var(--space-l)]">
+        {/* Keyed so all sheet state (tab, stamp, likes) resets with the mock. */}
+        <Letterhead key={`${sample}-${masthead}`} profile={active} />
+      </div>
+
+      {/* Lab chrome, floated off to the side so it never sits in the concept's
+          own space: a panel on the right edge from lg up (where the page has
+          empty margin to spare), a glass bar above the mobile nav below that.
+          Not part of the concept. */}
+      <div
+        className="glass fixed bottom-20 left-1/2 z-[var(--z-overlay)] flex -translate-x-1/2 flex-row items-center gap-[var(--space-m)] rounded-[var(--radius)] border border-border p-2.5 lg:bottom-auto lg:left-auto lg:right-5 lg:top-36 lg:translate-x-0 lg:flex-col lg:items-start lg:gap-[var(--space-s)]"
+        style={{ boxShadow: "0 1px 2px rgba(35,36,30,0.06), 0 18px 40px -28px rgba(35,36,30,0.7)" }}
+      >
         <ToggleGroup
           label="Preview data"
           options={[
@@ -279,10 +292,7 @@ export default function LetterheadTwoVariant({ profile }: ProfileVariantProps) {
           onChange={(k) => setMasthead(k as Masthead)}
         />
       </div>
-
-      {/* Keyed so all sheet state (tab, stamp, likes) resets with the mock. */}
-      <Letterhead key={`${sample}-${masthead}`} profile={active} />
-    </div>
+    </>
   );
 }
 
@@ -298,25 +308,31 @@ function ToggleGroup({
   onChange: (key: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+    /* A row on the mobile bar, a labelled stack in the desktop panel, which
+       keeps the panel narrow enough to sit clear of the sheet's right edge. */
+    <div className="flex shrink-0 items-center gap-2 lg:flex-col lg:items-start lg:gap-1.5">
+      {/* The labels earn their room only in the desktop side panel; the mobile
+          bar floats over the concept, so it stays as small as it can. */}
+      <span className="hidden whitespace-nowrap text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70 lg:inline">
         {label}
       </span>
-      {options.map((o) => (
-        <SpringPress
-          key={o.key}
-          as="button"
-          onClick={() => onChange(o.key)}
-          aria-pressed={value === o.key}
-          className={`rounded-full border px-3 py-1 text-[11.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-            value === o.key
-              ? "border-transparent bg-canopy text-white"
-              : "border-border bg-card text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {o.label}
-        </SpringPress>
-      ))}
+      <div className="flex items-center gap-2">
+        {options.map((o) => (
+          <SpringPress
+            key={o.key}
+            as="button"
+            onClick={() => onChange(o.key)}
+            aria-pressed={value === o.key}
+            className={`rounded-full border px-3 py-1 text-[11.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+              value === o.key
+                ? "border-transparent bg-canopy text-white"
+                : "border-border bg-card text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {o.label}
+          </SpringPress>
+        ))}
+      </div>
     </div>
   );
 }
@@ -667,70 +683,93 @@ function PerchedBird({ profile }: { profile: MockProfile }) {
   );
 }
 
-/* Folder-tab silhouette, lifted verbatim from the Dossier concept: the one
-   diagonal cut every physical file tab shares. */
-const TAB_CLIP = "polygon(0 100%, 0 30%, 15% 0, 100% 0, 100% 100%)";
-
 /**
- * One folder tab, Dossier's control exactly: the active tab takes the folder's
- * own colour and sits flush against it (-mb-px covers the folder's top border),
- * the inactive ones sit 6px lower and a shade darker, like a fanned stack
- * underneath. One motion element owns the whole transform so a Tailwind
- * translate class can never be clobbered by framer's inline transform.
+ * The switcher. Not underline tabs (a 2px line sliding under grey text is not
+ * a control, it is a hint) and not folder tabs (those need a folder, and
+ * boxing the post tiles inside another box is exactly what this page is
+ * trying not to do). This is the app's OWN segmented pill: a paper track at
+ * the same 40px height as every filter pill in the product, with one canopy
+ * fill that GLIDES between segments on a shared `layoutId`. It already exists
+ * in shipped code as the Catch-ups cadence control
+ * (src/components/catchups/create/cadence-control.tsx), which is why it reads
+ * as part of the furniture instead of as a one-off invented for this page. If
+ * this concept ships, that control and this one should be extracted to one
+ * shared `SegmentedPills` in src/components/common/.
  *
- * The surface ladder is one step down from Dossier's, because this folder
- * HOLDS feed cards rather than ledger rows: page -> inactive tab -> folder ->
- * card, each step lighter than the last, so the cards still read as cards
- * instead of merging into a body of their own colour.
+ * What it adds over the cadence control: a live count per segment, so the
+ * switcher carries information rather than just state, and it survives a
+ * 390px viewport with all four labels visible, so it never needs to become a
+ * scroll container. That matters beyond tidiness: a horizontally scrollable
+ * strip swallows the wheel, and parking the pointer on it stops the page and
+ * slides the labels sideways instead (owner, 2026-07-30, on Dossier's
+ * `overflow-x-auto` tab row). There is nothing here to scroll.
+ *
+ * Hover never moves it (owner rule): hover is colour, the press sink is the
+ * only transform.
  */
-function FolderTab({
-  label,
-  active,
-  onSelect,
+function WritingSwitch<T extends string>({
+  options,
+  value,
+  onChange,
 }: {
-  label: string;
-  active: boolean;
-  onSelect: () => void;
+  options: { key: T; label: string; count: number }[];
+  value: T;
+  onChange: (key: T) => void;
 }) {
   return (
-    <motion.button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onSelect}
-      initial={false}
-      animate={{ y: active ? 0 : 6 }}
-      whileHover={{ y: active ? 0 : 2 }}
-      whileTap={{ scale: 0.96 }}
-      transition={SPRINGS.snappy}
+    <div
+      role="tablist"
+      aria-label="Profile sections"
+      className="inline-flex w-fit max-w-full items-center gap-1 rounded-full border border-border bg-card p-1"
       style={{
-        clipPath: TAB_CLIP,
-        background: active
-          ? "var(--color-mist)"
-          : "color-mix(in srgb, var(--color-ink) 7%, var(--color-background))",
+        boxShadow:
+          "0 1px 2px rgba(35,36,30,0.04), 0 10px 24px -20px rgba(35,36,30,0.5)",
       }}
-      className={`relative min-w-[64px] shrink-0 px-3 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11.5px] font-bold uppercase tracking-[0.08em] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:min-w-[92px] sm:px-5 sm:text-[13px] ${
-        active ? "z-10 -mb-px text-foreground" : "z-0 text-muted-foreground hover:text-foreground"
-      }`}
     >
-      {label}
-    </motion.button>
+      {options.map((o) => {
+        const active = o.key === value;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.key)}
+            className={`relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] sm:px-4 ${
+              active ? "text-white" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {active && (
+              <motion.span
+                layoutId="lh2WritingThumb"
+                aria-hidden
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={SPRINGS.snappy}
+                className="absolute inset-0 rounded-full bg-canopy shadow-[0_5px_13px_-12px_var(--color-canopy)]"
+              />
+            )}
+            <span className="relative">{o.label}</span>
+            <span
+              className={`relative text-[11.5px] font-semibold tabular-nums ${
+                active ? "text-white/70" : "text-muted-foreground/60"
+              }`}
+            >
+              {o.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 /* ------------------------------------------------------------------ *
- *  What they have written: Dossier's folder tabs on a folder of the
- *  feed's own cards. The folder sits BELOW the letterhead sheet and
- *  shares its outer left edge; the cards inside are the shipped
- *  PostCard untouched, on a recessed board so they still read as
- *  discrete cards rather than as one body.
- *
- *  The tab strip is deliberately NOT a scroll container. Dossier's is
- *  `overflow-x-auto`, and a horizontally scrollable strip swallows the
- *  wheel: put the pointer on the tabs and the page stops moving while
- *  the headings slide sideways instead (owner, 2026-07-30). The four
- *  labels are sized to fit a 390px viewport outright, so there is
- *  nothing to scroll and the wheel always belongs to the page.
+ *  What they have written: the switcher, then the shipped PostCard
+ *  standing free on the page. No folder, no board, no container of any
+ *  kind around the tiles (owner, 2026-07-30: "the post tiles aren't in
+ *  anything"), so the sheet, the switcher and every card share the
+ *  column's one outer left edge and the cards read exactly as the feed's.
  * ------------------------------------------------------------------ */
 function Writing({ profile }: { profile: MockProfile }) {
   const sorted = [...profile.posts].sort(
@@ -768,45 +807,27 @@ function Writing({ profile }: { profile: MockProfile }) {
   return (
     <FadeRise delay={0.12}>
       <div className="mt-[var(--space-l)] sm:mt-[var(--space-xl)]">
-        <div
-          role="tablist"
-          aria-label="Profile sections"
-          className="relative z-10 flex gap-1 pl-[var(--space-m)] sm:pl-[var(--space-l)]"
-        >
-          {TABS.map((t) => (
-            <FolderTab
-              key={t.key}
-              label={t.label}
-              active={t.key === tab}
-              onSelect={() => setTab(t.key)}
-            />
-          ))}
-        </div>
+        <WritingSwitch
+          options={TABS.map((t) => ({ key: t.key, label: t.label, count: t.items.length }))}
+          value={tab}
+          onChange={setTab}
+        />
 
-        {/* The folder. Square top-left where the first tab attaches, rounded
-            everywhere else, exactly as Dossier draws it. */}
-        <div
-          className="relative rounded-b-[var(--radius-xl)] rounded-tr-[var(--radius-xl)] border border-border bg-mist p-[var(--space-s)]"
-          style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)" }}
-        >
-          {/* auto-animate cross-fades the swap, so switching tabs reads as the
-              same stack re-settling rather than a hard cut. */}
-          <div ref={listRef} className="space-y-2.5">
-            {active.items.length === 0 ? (
-              <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-10 text-center">
-                <p className="font-heading text-lg tracking-tight text-foreground">
-                  {active.empty}
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  Share a memory, a sighting, or a note for the valley.
-                </p>
-              </div>
-            ) : (
-              active.items.map((post) => (
-                <PostCard key={post.id} post={toPostData(post, profile)} variant="card" demo />
-              ))
-            )}
-          </div>
+        {/* Nothing wraps the tiles. auto-animate cross-fades the swap, so
+            switching reads as the same stack re-settling rather than a cut. */}
+        <div ref={listRef} className="mt-[var(--space-m)] space-y-2.5">
+          {active.items.length === 0 ? (
+            <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-10 text-center">
+              <p className="font-heading text-lg tracking-tight text-foreground">{active.empty}</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Share a memory, a sighting, or a note for the valley.
+              </p>
+            </div>
+          ) : (
+            active.items.map((post) => (
+              <PostCard key={post.id} post={toPostData(post, profile)} variant="card" demo />
+            ))
+          )}
         </div>
       </div>
     </FadeRise>
