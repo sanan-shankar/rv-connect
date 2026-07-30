@@ -8,7 +8,9 @@ decisions, so you do not need the owner to re-explain):
 - `docs/ROADMAP.md` — the phased build plan (decisions, shared components, data model, 13 phases). Source of truth.
 - `docs/spec/` — deep specs per area.
 - `docs/planning/bugs.md` — outstanding bugs and small fixes (consolidated 2026-07-02 from the old feedback checklist + punchlist). `docs/planning/FEATURES.md` — parked feature ideas.
-- `progress.md` — session history. `/preview/v2` (and `/preview/logos`, `/preview/decisions`) — the approved look to match.
+- `progress.md` — session history. `/preview/v2` — the approved look to match. `/preview/logo` documents the
+  final mark. (`/preview/logos` is the superseded early exploration; `/preview/decisions` does not exist.)
+- **`/lab` is the one index of every dev and preview room.** Nothing is browsable that is not listed there.
 
 Key locked decisions: light-mode-first (dark parked); flush green sidebar nav; warm dimmed surfaces (never pure
 white); ruled-sheet feed; bird avatars (deterministic, 50 species, real colors, no disc — shipped, see
@@ -46,7 +48,8 @@ CTAs/chips/tags are full pills. Do not use the old three-greens palette below ex
 ### BEFORE work
 
 - Read `docs/spec/DESIGN-SYSTEM.md` plus the relevant `docs/spec/*` file for the area you're touching.
-- Confirm the shapes you're about to build against `/preview/v2` and `/preview/decisions` (the approved look).
+- Confirm the shapes you're about to build against `/preview/v2` (the approved look); browse `/lab` for the
+  room that already explored the area.
 - Import shared primitives (`Button`, `BirdAvatar`, `LoveButton`, `FeedColumn`, `src/components/common/motion.tsx`)
   instead of hand-rolling. Do not rebuild what already exists.
 - Check `components.json` for installed shadcn components before adding a new one.
@@ -125,6 +128,7 @@ Screenshots save to `./temporary screenshots/screenshot-N.png` (auto-incremented
 1. **Stale `.next` cache.** If every route 404s, or a `globals.css` change does not show up, the Turbopack `.next` cache is corrupt. `rm -rf` is blocked and an in-folder move can exceed the 5GB cap, so move it to the scratchpad (same volume, instant): `mv .next "<scratchpad>/next-old"` then `npm run dev`. Always clear `.next` and restart after editing `globals.css` (HMR does not reliably pick up token/CSS-rule changes).
 2. **Screenshots need real Chrome.** The bundled Puppeteer Chrome is broken here. `scripts/qa/screenshot.mjs` now auto-falls-back to `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`; any sub-agent driving Puppeteer directly must set `PUPPETEER_EXECUTABLE_PATH` to that path or it cannot screenshot.
 3. **Verify at runtime, not just `tsc`.** `tsc --noEmit` has passed a Prisma `select` on a non-existent column that then 500'd the feed. Always screenshot the surface and watch the console / server log for `PrismaClientValidationError` / `pageerror`.
+4. **Every new preview/dev page must be registered.** Add it to `src/app/lab/_registry.ts` (the single index at `/lab` for every dev/preview room) in the same change, and run `node scripts/qa/lab-audit.mjs` to prove nothing is stranded.
 
 ## Design Guardrails
 
