@@ -15,7 +15,7 @@ export default function ThreadLoading() {
               <div className="skeleton-warm size-9 shrink-0 rounded-full" />
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="skeleton-warm h-3.5 w-40 rounded-md" />
-                <div className="skeleton-warm h-16 w-full rounded-xl" />
+                <div className="skeleton-warm h-16 w-full rounded-[var(--radius)]" />
               </div>
             </div>
           ))}

@@ -6,7 +6,7 @@ import { BadgeCheck, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { adminVerifyUser } from "@/components/profile/admin-actions";
-import { batchLine } from "@/lib/utils";
+import { batchLine, metaLine } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface PendingUser {
@@ -64,9 +64,12 @@ export function VerificationQueue({ users }: { users: PendingUser[] }) {
                 )}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {batchLine(u)} · {u.email}
-                {u.admissionNumber != null && ` · Adm. ${u.admissionNumber}`}
-                {u.yearJoined && u.yearLeft && ` · ${u.yearJoined}-${u.yearLeft}`}
+                {metaLine(
+                  batchLine(u),
+                  u.email,
+                  u.admissionNumber != null && `Adm. ${u.admissionNumber}`,
+                  Boolean(u.yearJoined && u.yearLeft) && `${u.yearJoined}-${u.yearLeft}`
+                )}
               </p>
             </div>
             <Button size="sm" variant="primary" disabled={busy === u.id} onClick={() => verify(u.id)}>

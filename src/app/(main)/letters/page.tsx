@@ -8,7 +8,7 @@ import { LetterComposer } from "@/components/letters/letter-composer";
 import { DraftsStrip } from "@/components/letters/drafts-strip";
 import { IdentityRow } from "@/components/common/identity-row";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
-import { formatBatch, letterTitle } from "@/lib/utils";
+import { batchLine, formatDisplayDate, letterTitle, metaLine } from "@/lib/utils";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 
 export const metadata: Metadata = {
@@ -53,7 +53,7 @@ export default async function LettersPage() {
     },
     include: {
       author: {
-        select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, batchType: true, batchYear: true },
+        select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, accountType: true, batchType: true, batchYear: true },
       },
       _count: { select: { comments: { where: { isHidden: false } }, likes: true } },
     },
@@ -138,14 +138,13 @@ export default async function LettersPage() {
                     name={l.author.name}
                     nameClassName="truncate text-[13px] font-semibold leading-none text-foreground"
                     meta={
-                      <>
-                        {formatBatch(l.author.batchType, l.author.batchYear)} ·{" "}
-                        {new Date(l.createdAt).toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </>
+                      /* metaLine drops the dot beside an empty segment: the
+                         Anonymous profile's batch line is "", so its letters
+                         read as just the date (owner rule: a middle dot only
+                         ever sits BETWEEN elements). batchLine, not
+                         formatBatch, so teachers read "Teacher" rather than
+                         silently losing their segment. */
+                      metaLine(batchLine(l.author), formatDisplayDate(l.createdAt))
                     }
                     metaClassName="truncate leading-none"
                   />

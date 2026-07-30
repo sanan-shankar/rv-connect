@@ -93,16 +93,37 @@ export function formatDisplayDate(date: Date | string): string {
  * Note: this reads batchYear only, never batchType, so a mid-school leaver who
  * has no board credential (batchType null) still reads "Batch of '09" as long
  * as batchYear was computed. See computeBatchFromSchooling below.
+ *
+ * The site's Anonymous profile (id "anonymous", the byline for curated/archive
+ * content) gets "" rather than the "Member" fallback: a manufactured word under
+ * "Anonymous" says nothing, and the owner's separator rule (2026-07-30) wants
+ * such bylines to be just the date, no filler, no dot. Pair every use of this
+ * with `metaLine`/`<MetaDots>` so an empty return also drops its separator.
  */
 export function batchLine(user: {
+  id?: string
   accountType?: string | null
   batchType?: string | null
   batchYear?: number | null
 }): string {
+  if (user.id === "anonymous") return ""
   if (user.accountType === "teacher") return "Teacher"
   if (user.accountType === "ex_teacher") return "Former teacher"
   if (user.batchYear == null) return "Member"
   return `Batch of '${String(user.batchYear).slice(-2)}`
+}
+
+/**
+ * The one separator rule (owner, 2026-07-30): a middle dot appears only
+ * BETWEEN elements, never leading, trailing, or beside an empty segment.
+ * Pass every candidate; empty ones vanish and take their dot with them.
+ * The repo had converged on this shape independently three times (masthead,
+ * image-viewer, alumni-map) before it was extracted here.
+ */
+export function metaLine(
+  ...parts: Array<string | null | undefined | false>
+): string {
+  return parts.filter(Boolean).join(" · ")
 }
 
 /**

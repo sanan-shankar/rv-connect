@@ -16,6 +16,7 @@
 
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { roundLabel } from "@/lib/catchups";
+import { metaLine } from "@/lib/utils";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
 
 const MAX_SHOWN_CONTRIBUTORS = 14;
@@ -52,9 +53,7 @@ export function RoundMasthead({
       })
     : null;
 
-  const metaLine = [roundLabel(number), dateLabel ? `Published ${dateLabel}` : null]
-    .filter(Boolean)
-    .join(" · ");
+  const pressLine = metaLine(roundLabel(number), dateLabel && `Published ${dateLabel}`);
 
   const shown = contributors.slice(0, MAX_SHOWN_CONTRIBUTORS);
   const overflow = contributors.length - shown.length;
@@ -64,7 +63,7 @@ export function RoundMasthead({
       <h1 className="font-heading text-[1.9rem] leading-[1.05] tracking-[-0.025em] text-foreground sm:text-[2.3rem]">
         {title}
       </h1>
-      <p className="mt-[var(--space-s)] text-sm text-muted-foreground">{metaLine}</p>
+      <p className="mt-[var(--space-s)] text-sm text-muted-foreground">{pressLine}</p>
 
       <div className="mt-[var(--space-m)] flex flex-wrap items-center gap-x-[var(--space-s)] gap-y-[var(--space-xs)]">
         {shown.length > 0 && (

@@ -7,7 +7,7 @@ export default function MessagesLoading() {
       </header>
 
       <div className="mb-8 rounded-[var(--radius)] border border-border bg-card p-4 sm:p-5">
-        <div className="skeleton-warm h-[76px] w-full rounded-xl" />
+        <div className="skeleton-warm h-[76px] w-full rounded-[var(--radius)]" />
         <div className="mt-3 flex items-center gap-2">
           <div className="skeleton-warm h-7 w-32 rounded-full" />
           <div className="skeleton-warm h-7 w-20 rounded-full" />

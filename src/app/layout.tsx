@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Libre_Baskerville, Source_Sans_3 } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "next-themes";
@@ -25,6 +25,17 @@ export const metadata: Metadata = {
   },
   description:
     "A space for the Rishi Valley community to stay connected.",
+};
+
+/* Without an explicit themeColor, iOS Safari paints its top/bottom chrome in
+ * its own default surface, which sat as two alien warm-white slabs around the
+ * app (owner, 2026-07-30: they "ruin the immersive nature vibe"). Matching the
+ * page base makes the browser chrome part of the scene. viewport-fit=cover
+ * lets content extend under the home indicator; the handful of fixed bottom
+ * bars already pad with env(safe-area-inset-bottom). */
+export const viewport: Viewport = {
+  themeColor: "#E4E1D5", // == --background; keep in lockstep with globals.css
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

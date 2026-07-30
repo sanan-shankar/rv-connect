@@ -44,7 +44,7 @@ export function AdminMark({ size = 36 }: { size?: number }) {
 function SystemNote({ message }: { message: ConversationMessage }) {
   return (
     <li className="flex justify-center px-1">
-      <p className="max-w-[36rem] whitespace-pre-wrap rounded-xl bg-mist/70 px-4 py-3 text-center text-[13.5px] leading-[1.65] text-muted-foreground">
+      <p className="max-w-[36rem] whitespace-pre-wrap rounded-[var(--radius)] bg-mist/70 px-4 py-3 text-center text-[13.5px] leading-[1.65] text-muted-foreground">
         {message.body}
       </p>
     </li>
@@ -89,7 +89,7 @@ function MessageRow({
           </span>
         </div>
         <div
-          className={`mt-1.5 rounded-xl px-3.5 py-3 ${
+          className={`mt-1.5 rounded-[var(--radius)] px-3.5 py-3 ${
             message.fromAdmin ? "bg-canopy/[0.07]" : "bg-mist/70"
           }`}
         >

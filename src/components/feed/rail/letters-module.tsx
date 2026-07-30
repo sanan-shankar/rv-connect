@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { Feather } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";
-import { batchLine, letterTitle, plainExcerpt } from "@/lib/utils";
+import { batchLine, letterTitle, metaLine, plainExcerpt } from "@/lib/utils";
 import { RailCard } from "./rail-card";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 
@@ -62,7 +62,7 @@ export async function LettersModule() {
           {plainExcerpt(letter.content)}
         </p>
         <p className="mt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-          {letter.author.name} · {batchLine(letter.author)} · {readMinutes} min read
+          {metaLine(letter.author.name, batchLine(letter.author), `${readMinutes} min read`)}
         </p>
       </Link>
     </RailCard>

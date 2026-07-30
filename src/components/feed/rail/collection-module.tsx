@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { batchLine } from "@/lib/utils";
+import { batchLine, metaLine } from "@/lib/utils";
 import { RailCard } from "./rail-card";
 
 /**
@@ -44,7 +44,7 @@ export async function CollectionModule() {
               </p>
             )}
             <p className="mt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.05em] text-white/85">
-              {photo.uploader.name} · {batchLine(photo.uploader)}
+              {metaLine(photo.uploader.name, batchLine(photo.uploader))}
             </p>
           </div>
         </div>

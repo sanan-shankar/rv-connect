@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { IdentityRow } from "@/components/common/identity-row";
 import { ImageViewer } from "@/components/common/image-viewer";
+import { MetaDots } from "@/components/common/meta-dots";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
@@ -22,7 +23,7 @@ import { ReportDialog } from "./report-dialog";
 import { EditPostDialog } from "./edit-post-dialog";
 import { PollDisplay } from "./poll-display";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
-import { formatTimeAgo, formatDisplayDate, parseJsonArray, renderRichText, batchLine, letterTitle } from "@/lib/utils";
+import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, renderRichText, batchLine, letterTitle } from "@/lib/utils";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
@@ -201,11 +202,16 @@ export function PostCard({
             }
             nameClassName="flex items-center gap-1"
             meta={
-              <>
-                <span>{batchLine(post.author)}</span>
-                <span className="dotsep">·</span>
-                <span>{formatTimeAgo(new Date(post.createdAt))}</span>
-              </>
+              /* MetaDots drops the dot when a segment is empty (the Anonymous
+                 profile's batch line is ""), so an archive post reads as just
+                 its date rather than "· 3w ago". Owner rule: a middle dot only
+                 ever sits BETWEEN elements. */
+              <MetaDots
+                parts={[
+                  batchLine(post.author),
+                  formatTimeAgo(new Date(post.createdAt)),
+                ]}
+              />
             }
             metaClassName="flex items-center gap-1.5 leading-none"
           />
@@ -259,7 +265,7 @@ export function PostCard({
           /* Compact letter card: title + excerpt + read time, opens the reading view */
           <Link
             href={demo ? `#${post.id}` : `/letters/${post.id}`}
-            className="mt-3 block rounded-xl border border-border bg-paper/60 p-4 transition-colors hover:border-leaf/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="mt-3 block rounded-[var(--radius-md)] border border-border bg-paper/60 p-4 transition-colors hover:border-leaf/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
               <Feather size={13} weight="fill" />
@@ -347,7 +353,7 @@ export function PostCard({
                     type="button"
                     onClick={() => setViewerAt(i)}
                     aria-label={`View photo ${i + 1} of ${images.length} full screen`}
-                    className={`block w-full overflow-hidden rounded-xl border border-border transition-opacity duration-150 hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-90 ${
+                    className={`block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-90 ${
                       images.length === 3 && i === 0 ? "col-span-2" : ""
                     }`}
                   >
@@ -371,11 +377,23 @@ export function PostCard({
           </>
         )}
 
-        {/* Actions. The negative margin pulls the buttons' padding outward so the heart GLYPH's
+        {/* Actions. The negative margins pull the buttons' padding outward so the heart GLYPH's
             left edge sits flush with the content's left line (avatar/text/photo) and the share
             GLYPH's right edge sits flush with the content's right line (photo edge / the dots
-            menu). Touch targets stay full-size; only the padding overhangs into the card gutter. */}
-        <div className="mt-2 -mx-2.5 flex items-center gap-1 text-muted-foreground">
+            menu). Touch targets stay full-size; only the padding overhangs into the card gutter.
+            The vertical cancel is -7px, not the -6px a bare py-1.5 suggests: LoveButton's text-sm
+            count span sets a 20px line box around the 18px glyph, so its box is 32px and the
+            glyph's optical inset is (32-18)/2 = 7. That lands the ink 17px above the card's
+            bottom border, equal to the sides (owner: bottom padding must match the sides).
+            (AnswerCard uses -mb-1.5 for a countless heart in a 30px box; 6 is exact THERE.)
+            Only when the row is the card's last child: with comments open, CommentsSection
+            takes over the bottom edge and the pull would just crowd the divider. */}
+        <div
+          className={cn(
+            "mt-2 -mx-2.5 flex items-center gap-1 text-muted-foreground",
+            !showComments && "-mb-[7px]"
+          )}
+        >
           <LoveButton liked={liked} count={likeCount} onToggle={handleLike} label="Like this post" />
 
           <motion.button
@@ -385,7 +403,7 @@ export function PostCard({
             aria-label={showComments ? "Hide comments" : "Show comments"}
             whileTap={{ scale: 0.93 }}
             transition={SPRINGS.snappy}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <ChatCircle size={18} weight="regular" />
             <span>{commentCount}</span>

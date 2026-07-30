@@ -278,7 +278,7 @@ function QuestionsList({
                           aria-label="Move up"
                           disabled={i === 0}
                           onClick={() => handleMove(i, -1)}
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:opacity-30"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:opacity-30"
                         >
                           <ArrowUp className="h-3.5 w-3.5" />
                         </button>
@@ -287,7 +287,7 @@ function QuestionsList({
                           aria-label="Move down"
                           disabled={i === accepted.length - 1}
                           onClick={() => handleMove(i, 1)}
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:opacity-30"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:opacity-30"
                         >
                           <ArrowDown className="h-3.5 w-3.5" />
                         </button>

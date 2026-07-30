@@ -66,7 +66,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
       className={cn(
-        "grid shrink-0 place-items-center rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 [&_svg]:size-3.5",
+        "grid shrink-0 place-items-center rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 [&_svg]:size-3.5",
         className
       )}
       {...props}

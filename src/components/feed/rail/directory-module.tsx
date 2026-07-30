@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
-import { formatBatch } from "@/lib/utils";
+import { formatBatch, metaLine } from "@/lib/utils";
 import { shortPlaceLabel } from "@/lib/normalize";
 import { RailCard } from "./rail-card";
 
@@ -49,10 +49,13 @@ export async function DirectoryModule({ userId }: { userId: string }) {
               </Link>
             }
             meta={
-              <>
-                {formatBatch(m.batchType, m.batchYear)}
-                {m.currentCity ? ` · ${shortPlaceLabel(m.currentCity)}` : ""}
-              </>
+              /* metaLine: formatBatch is deliberately blank for members with
+                 no batch year (a compact rail, no "Member" filler wanted), and
+                 the blank must take its dot with it or the row reads "· City". */
+              metaLine(
+                formatBatch(m.batchType, m.batchYear),
+                m.currentCity && shortPlaceLabel(m.currentCity)
+              )
             }
             metaClassName="truncate leading-none"
           />

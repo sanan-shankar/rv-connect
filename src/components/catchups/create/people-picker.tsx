@@ -184,7 +184,9 @@ export function PeoplePicker({
         <ul className="flex flex-wrap gap-1.5 pt-1">
           {value.map((person) => (
             <li key={person.id}>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-canopy/10 py-1 pl-1.5 pr-2 text-[13px] font-medium text-canopy">
+              {/* Leaf tint from the protocol's chip trio (people = leaf; the
+                  drab canopy/10 pairing is dead). */}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-leaf/30 bg-leaf/[0.07] py-1 pl-1.5 pr-2 text-[13px] font-medium text-leaf">
                 <BirdAvatar
                   user={{
                     id: person.id,

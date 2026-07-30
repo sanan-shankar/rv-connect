@@ -32,9 +32,12 @@ export function AppShell({
           Its height comes from `.valley-tree` (100lvh, the LARGE viewport), not
           from this inset-0, so the image keeps one constant crop when the mobile
           keyboard opens and shrinks the dynamic viewport. */}
+      {/* 0.09, down from 0.11 (owner 2026-07-30: the warm wash is one of the
+          three stacked warmth sources; tone the sum down ~20%). The photo still
+          reads as atmosphere at 0.09; at 0.11 it tinted every card above it. */}
       <div
         aria-hidden
-        className="valley-tree pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-[0.11]"
+        className="valley-tree pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-[0.09]"
         style={{ backgroundImage: "url(/images/landing.jpeg)" }}
       />
       <KonamiEggs />

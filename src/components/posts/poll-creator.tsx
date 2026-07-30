@@ -56,7 +56,7 @@ export function PollCreator({
           type="button"
           onClick={onRemove}
           aria-label="Remove poll"
-          className="rounded-full p-1 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+          className="rounded-full p-1 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
         >
           <X className="h-4 w-4" />
         </button>
