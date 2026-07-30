@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FeedColumn } from "@/components/posts/feed-column";
 import { PageHeader } from "@/components/layout/page-header";
+import { RAIL_GRID, RAIL_ASIDE } from "@/components/layout/rail-grid";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { NewPostCTA } from "@/components/feed/new-post-cta";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
@@ -41,7 +42,7 @@ export default async function FeedPage({
           signup lands there first, before ever reaching this page) — this
           mount stays for the other two, which are unrelated to onboarding. */}
       <CelebrationSignals userId={session.user.id} />
-      <div className="grid grid-cols-1 gap-x-[30px] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
+      <div className={RAIL_GRID}>
         <div className="min-w-0">
           {/* The header lives in the main column, so the space beside it (above the
               rail) stays header-only, and the search / bell / New post never run
@@ -55,7 +56,7 @@ export default async function FeedPage({
           />
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-x-[30px] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
+      <div className={RAIL_GRID}>
         <div className="min-w-0">
           <FeedColumn
             showControls={false}
@@ -64,7 +65,7 @@ export default async function FeedPage({
             userPlaces={userPlaces.map((p) => p.city)}
           />
         </div>
-        <aside className="hidden min-[1180px]:block">
+        <aside className={RAIL_ASIDE}>
           <FeedRail userId={session.user.id} />
         </aside>
       </div>

@@ -1,6 +1,8 @@
+import { RAIL_GRID } from "@/components/layout/rail-grid";
+
 export default function FeedLoading() {
   return (
-    <div className="grid grid-cols-1 gap-x-[30px] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
+    <div className={RAIL_GRID}>
       <div className="min-w-0 space-y-6">
       {/* Create post skeleton */}
       <div className="rounded-[var(--radius)] border border-border bg-card p-6">

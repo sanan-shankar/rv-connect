@@ -1,36 +1,37 @@
+/* Mirrors the real page exactly: one max-w-xl measure centred inside the
+   768px CENTERED column (see new/page.tsx), a bare title, then the single
+   form card with its three label+field pairs and a LEFT-aligned pill
+   button (create-catchup-form.tsx; the owner ruled the button left-aligned
+   and the rule above it removed, 2026-07-25). The old skeleton was a
+   1024px two-column layout with a preview rail card and a right-aligned
+   CTA, none of which exists any more, so the page visibly jumped left and
+   narrowed when the real content landed. */
 export default function NewCatchupLoading() {
   return (
-    <div className="mx-auto max-w-5xl">
-      <header className="mb-6 space-y-2">
-        <div className="skeleton-warm h-8 w-52 rounded-md" />
-        <div className="skeleton-warm h-4 w-80 max-w-full rounded-md" />
+    <div className="mx-auto max-w-xl">
+      <header className="mb-6">
+        <div className="skeleton-warm h-8 w-56 rounded-md" />
       </header>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div className="space-y-7 rounded-[var(--radius)] border border-border bg-card p-6 sm:p-7">
-          <div className="space-y-2">
-            <div className="skeleton-warm h-3 w-16 rounded-full" />
-            <div className="skeleton-warm h-9 w-48 rounded-full" />
-          </div>
-          <div className="space-y-2">
-            <div className="skeleton-warm h-3 w-16 rounded-full" />
-            <div className="skeleton-warm h-9 w-64 rounded-full" />
-          </div>
-          <div className="space-y-2.5">
-            <div className="skeleton-warm h-3 w-28 rounded-full" />
-            <div className="skeleton-warm h-14 w-full rounded-md" />
-            <div className="skeleton-warm h-14 w-full rounded-md" />
-          </div>
-          <div className="flex justify-end border-t border-border pt-5">
-            <div className="skeleton-warm h-11 w-44 rounded-full" />
-          </div>
-        </div>
-
-        <div className="rounded-[var(--radius)] border border-border bg-card p-5">
+      <div className="space-y-[var(--space-l)] rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:p-[var(--space-l)]">
+        {/* Name */}
+        <div className="space-y-2">
           <div className="skeleton-warm h-3 w-16 rounded-full" />
-          <div className="skeleton-warm mt-3 h-5 w-40 rounded-md" />
-          <div className="skeleton-warm mt-4 h-16 w-full rounded-md" />
-          <div className="skeleton-warm mt-2.5 h-16 w-full rounded-md" />
+          <div className="skeleton-warm h-10 w-full rounded-[var(--radius-input)]" />
+        </div>
+        {/* With (people picker trigger) */}
+        <div className="space-y-2">
+          <div className="skeleton-warm h-3 w-16 rounded-full" />
+          <div className="skeleton-warm h-10 w-full rounded-[var(--radius-input)]" />
+        </div>
+        {/* Rhythm (segmented pill row) */}
+        <div className="space-y-2">
+          <div className="skeleton-warm h-3 w-20 rounded-full" />
+          <div className="skeleton-warm h-10 w-64 max-w-full rounded-full" />
+        </div>
+        {/* "Start the first Round", left-aligned like the real button */}
+        <div className="flex items-center pt-[var(--space-l)]">
+          <div className="skeleton-warm h-10 w-44 rounded-full" />
         </div>
       </div>
     </div>

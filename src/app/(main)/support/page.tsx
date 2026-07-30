@@ -10,11 +10,11 @@ export const metadata: Metadata = {
   description: "Help keep the Rishi Valley community running.",
 };
 
-// The owner opted into publishing the one-time build cost: it now runs as a
-// progress track nested inside CostBar's own card (see cost-bar.tsx), not a
-// fundraiser bar of its own. The amount recovered is a hand-maintained
-// constant in cost-bar.tsx, since nothing tracks UPI contributions
-// automatically.
+// The owner opted into publishing the one-time build cost: it runs as the
+// second section of CostBar's card, a sibling of the monthly breakdown
+// rather than a note nested inside it (see cost-bar.tsx). The amount
+// recovered is a hand-maintained constant in cost-bar.tsx, since nothing
+// tracks UPI contributions automatically.
 
 // A hand-picked set of species for the reward preview: colourful and visibly
 // different from one another (not the first N indices), because the point of
@@ -100,8 +100,12 @@ export default function SupportPage() {
         <ul className="mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-s)] gap-y-[var(--space-m)] sm:grid-cols-5">
           {REWARD_SPECIES.map(({ i, name }) => (
             <li key={i}>
+              {/* A bare 72px grid cell, no disc behind the glyph: the mist
+                  circle read as a border drawn around every bird, and a box
+                  must earn its border (owner, 2026-07-30). The span survives
+                  purely to carry the accessible name and hold the cell size. */}
               <span
-                className="inline-grid place-items-center rounded-full bg-mist"
+                className="inline-grid place-items-center"
                 style={{ width: 72, height: 72 }}
                 role="img"
                 aria-label={name}

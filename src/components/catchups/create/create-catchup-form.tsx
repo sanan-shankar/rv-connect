@@ -78,7 +78,9 @@ export function CreateCatchupForm({
   }
 
   return (
-    <div className="card-elevated max-w-xl space-y-[var(--space-l)] rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:p-[var(--space-l)]">
+    // Width comes from the page's own centred max-w-xl wrapper (new/page.tsx),
+    // not from this card, so the title above and the card share one edge.
+    <div className="card-elevated space-y-[var(--space-l)] rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] sm:p-[var(--space-l)]">
       <div>
         <label
           htmlFor="catchup-name"
