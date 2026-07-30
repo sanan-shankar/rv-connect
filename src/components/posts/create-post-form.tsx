@@ -6,13 +6,13 @@ import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2 } from "lucide-
 import { motion, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
-import { createPost } from "@/app/(main)/feed/actions";
+import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 import { downscaleImage } from "@/lib/image-downscale";
 import { directUploadPut } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
-import { cn } from "@/lib/utils";
+import { cn, renderRichText } from "@/lib/utils";
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
 import { useTourAnchor } from "@/components/tour/tour-anchors";
@@ -131,6 +131,13 @@ export function CreatePostForm({
   currentUser,
   userPlaces,
   onPosted,
+  immersive = false,
+  postId,
+  initialTitle,
+  initialContent,
+  initialImages,
+  onDraftSaved,
+  onAutosaveState,
 }: {
   groupId?: string;
   scope?: ComposerScope;
@@ -141,6 +148,23 @@ export function CreatePostForm({
    *  control below; omitted or empty means the control simply doesn't render. */
   userPlaces?: string[];
   onPosted?: () => void;
+  /** The /letters/new and /letters/[id]/edit surfaces: no card shell (the page
+   *  provides the paper sheet), and the body composes at READING fidelity
+   *  (Libre Baskerville 17px/1.8) so what you type is what publishes. */
+  immersive?: boolean;
+  /** An existing DRAFT being resumed: saves become in-place updates
+   *  (editPost) and "Publish letter" flips it live via publishDraft, so the
+   *  same draft row is edited continuously instead of a new row per save. */
+  postId?: string;
+  initialTitle?: string;
+  initialContent?: string;
+  initialImages?: string[];
+  /** First "Save as draft" on a FRESH letter: called with the new row's id so
+   *  the page can adopt it (router.replace to the edit route) instead of the
+   *  editor wiping itself, which is exactly the failure the owner hit. */
+  onDraftSaved?: (id: string) => void;
+  /** Quiet autosave status for the desk chrome ("Saving..." / "Saved"). */
+  onAutosaveState?: (s: "saving" | "saved") => void;
 } = {}) {
   // Resolve scope: explicit prop wins, else infer from defaultLetter / groupId.
   const resolvedScope: ComposerScope =
@@ -150,11 +174,13 @@ export function CreatePostForm({
   // top-level composer, never a group's or a letter's.
   const isFeedComposer = resolvedScope === "post" && !groupId;
   const tourAnchorRef = useTourAnchor<HTMLButtonElement>("feed-composer", isFeedComposer);
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(initialContent ?? "");
   const [kind, setKind] = useState<"post" | "letter">(defaultLetter ? "letter" : "post");
-  const [title, setTitle] = useState("");
-  const [images, setImages] = useState<string[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [title, setTitle] = useState(initialTitle ?? "");
+  // A resumed draft's images are already-public URLs, so they serve as their
+  // own previews; fresh uploads append object URLs as before.
+  const [images, setImages] = useState<string[]>(initialImages ?? []);
+  const [previews, setPreviews] = useState<string[]>(initialImages ?? []);
   const [uploading, setUploading] = useState(false);
   // Determinate-feeling progress for the "Photo" button label while a batch
   // uploads one file at a time (no byte-level progress events on a plain
@@ -202,6 +228,50 @@ export function CreatePostForm({
     setExpanded(true);
     setTimeout(() => richRef.current?.focus({ preventScroll: true }), 0);
   }
+
+  /* Resumed-draft hydration: the contentEditable is uncontrolled, so its DOM
+     must be written directly, once, on mount. renderRichText is the same
+     markdown -> HTML bridge the reading page uses, and
+     serializeEditableToMarkdown is its inverse, so the draft round-trips. */
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (hydratedRef.current || !initialContent || !richRef.current) return;
+    hydratedRef.current = true;
+    richRef.current.innerHTML = renderRichText(initialContent);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Quiet autosave, resumed drafts only (a fresh letter has no row to update
+     until the first explicit "Save as draft"). 2.5s of idle after the last
+     keystroke; skipped while a real submit is in flight and when the body is
+     empty (editPost requires content, and an emptied draft should not be
+     "saved" out from under the writer). */
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveSkipFirst = useRef(true);
+  useEffect(() => {
+    if (!postId) return;
+    if (autosaveSkipFirst.current) {
+      // The hydration pass itself sets content/title; that is not an edit.
+      autosaveSkipFirst.current = false;
+      return;
+    }
+    if (!content.trim()) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(async () => {
+      if (submitting || savingDraft) return;
+      onAutosaveState?.("saving");
+      const fd = new FormData();
+      fd.set("content", content);
+      if (title.trim()) fd.set("title", title.trim());
+      fd.set("images", JSON.stringify(images));
+      const result = await editPost(postId, fd);
+      if (!result.error) onAutosaveState?.("saved");
+    }, 2500);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, title, images, postId]);
 
   // Collapse back to the resting pill, closing any open popovers. Letters
   // default to expanded, so they never retract to a pill. Only ever called
@@ -477,9 +547,43 @@ export function CreatePostForm({
     // hidden outside letter mode, but this keeps the payload honest either way.
     if (isLetter && saveAsDraft) formData.set("saveAsDraft", "true");
 
+    /* Resumed draft: the row already exists, so every save is an in-place
+       update, and publishing is update-then-flip. The editor never clears -
+       on publish the page navigates away, on save the writer keeps writing. */
+    if (postId) {
+      const editResult = await editPost(postId, formData);
+      if (editResult.error) {
+        toast.error(editResult.error);
+      } else if (saveAsDraft) {
+        toast.success("Draft saved");
+        onAutosaveState?.("saved");
+      } else {
+        const pub = await publishDraft(postId);
+        if ("error" in pub && pub.error) {
+          toast.error(pub.error);
+        } else {
+          toast.success("Your letter is published");
+          onPosted?.();
+        }
+      }
+      if (saveAsDraft) setSavingDraft(false);
+      else setSubmitting(false);
+      return;
+    }
+
     const result = await createPost(formData);
     if (result.error) {
       toast.error(result.error);
+    } else if (saveAsDraft && onDraftSaved && result.postId) {
+      /* First save of a fresh letter on the immersive page: hand the new
+         draft's id to the page (it adopts the row and moves to the edit
+         route) and leave the editor exactly as the writer left it. The old
+         behaviour - wiping the screen to a toast - is the exact failure the
+         owner reported. */
+      toast.success("Draft saved");
+      onDraftSaved(result.postId);
+      setSavingDraft(false);
+      return;
     } else {
       // The editor is uncontrolled contentEditable, so clearing `content` alone
       // does not clear what's on screen: clear the DOM explicitly too.
@@ -533,7 +637,12 @@ export function CreatePostForm({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Title your letter"
           maxLength={160}
-          className="mb-2 w-full bg-transparent font-heading text-xl font-bold tracking-[-0.01em] text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none"
+          className={cn(
+            "mb-2 w-full bg-transparent font-heading font-bold tracking-[-0.01em] text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none",
+            // Immersive: the title sets at the reading page's own display size,
+            // so the sheet you write on is the page you publish.
+            immersive ? "text-[26px] leading-tight sm:text-[30px]" : "text-xl"
+          )}
         />
       )}
 
@@ -558,9 +667,16 @@ export function CreatePostForm({
           onInput={handleRichInput}
           onKeyDown={handleEditorKeyDown}
           onPaste={handlePaste}
-          style={{ minHeight: isLetter ? 260 : 96 }}
+          style={{ minHeight: immersive ? "55vh" : isLetter ? 260 : 96 }}
           className={cn(
-            "peer block w-full resize-none whitespace-pre-wrap break-words rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] text-foreground outline-none focus-visible:outline-none",
+            "peer block w-full resize-none whitespace-pre-wrap break-words text-foreground outline-none focus-visible:outline-none",
+            // Immersive: no box at all - the page's paper sheet IS the field's
+            // surface, and the body composes at the reading page's own face
+            // (Libre Baskerville 17px/1.8) so nothing changes at publish. The
+            // caret is the focus indicator on a writing page.
+            immersive
+              ? "bg-transparent font-heading text-[17px] leading-[1.8]"
+              : "rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7]",
             // Kill WebKit's own tap-highlight flash on touch/trackpad taps: it
             // paints a square-cornered highlight over this rounded field, which
             // reads as an uneven ring (thicker at the corners) for an instant
@@ -584,14 +700,16 @@ export function CreatePostForm({
             read as a ring "thicker at the corners" for about a second before the
             wrapper stopped clipping. An inset ring has nothing outside the border
             box to clip, so it is even on every frame, expanding or settled. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[var(--radius-input)] opacity-0 peer-focus:opacity-100"
-          style={{
-            boxShadow: "inset 0 0 0 2px color-mix(in srgb, var(--color-leaf) 42%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--color-leaf) 60%, var(--border))",
-          }}
-        />
+        {!immersive && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-[var(--radius-input)] opacity-0 peer-focus:opacity-100"
+            style={{
+              boxShadow: "inset 0 0 0 2px color-mix(in srgb, var(--color-leaf) 42%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--color-leaf) 60%, var(--border))",
+            }}
+          />
+        )}
         {mentionQuery !== null && (
           <MentionDropdown query={mentionQuery} onSelect={handleMentionSelect} />
         )}
@@ -649,6 +767,8 @@ export function CreatePostForm({
           <div className="flex gap-2">
             {previews.map((preview, i) => (
               <div key={i} className="relative h-20 w-20">
+                {/* eslint-disable-next-line @next/next/no-img-element -- local
+                    object URLs and R2 originals; next/image buys nothing here */}
                 <img
                   src={preview}
                   alt=""
@@ -903,10 +1023,15 @@ export function CreatePostForm({
       <div
         ref={rootRef}
         data-composer
-        className="card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-4"
+        className={cn(
+          // Immersive: the page provides the paper sheet, so the editor wears
+          // no shell of its own (a card inside the sheet would be exactly the
+          // box-in-box the protocol forbids).
+          !immersive && "card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-4"
+        )}
       >
         <div className="flex items-start gap-3">
-          {currentUser && (
+          {currentUser && !immersive && (
             <BirdAvatar user={currentUser} size="sm" className="mt-0.5 hidden shrink-0 sm:inline-grid" />
           )}
           <motion.div

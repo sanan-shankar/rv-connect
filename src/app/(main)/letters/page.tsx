@@ -4,8 +4,8 @@ import { ArrowRight, Feather, MapPin } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
-import { LetterComposer } from "@/components/letters/letter-composer";
 import { DraftsStrip } from "@/components/letters/drafts-strip";
+import { buttonVariants } from "@/components/ui/button";
 import { IdentityRow } from "@/components/common/identity-row";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, formatDisplayDate, letterTitle, metaLine } from "@/lib/utils";
@@ -79,17 +79,23 @@ export default async function LettersPage() {
       <PageHeader
         title="Letters"
         subtitle="Longer pieces from the valley. Essays, tributes, travelogues, reflections."
+        actions={
+          /* Writing happens on its own page now (owner: "a whole page, so
+             people can properly immerse themselves"); the index just points
+             the way with the standard page-level canopy pill. */
+          <Link href="/letters/new" className={buttonVariants({ variant: "primary" })}>
+            <Feather className="h-4 w-4" />
+            Write a letter
+          </Link>
+        }
       />
 
       <div className="space-y-5">
-        <LetterComposer userPlaces={viewerCities} />
-
         {drafts.length > 0 && (
           <DraftsStrip
             drafts={drafts.map((d) => ({
               id: d.id,
               title: d.title,
-              content: d.content,
               updatedAt: d.updatedAt.toISOString(),
             }))}
           />
