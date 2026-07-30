@@ -3,12 +3,17 @@
  * composer and the Collection contribute dialog so the presign contract
  * (and its CORS-failure fallback behaviour) lives in exactly one place.
  *
- * Returns the staged object's key/publicUrl on success, or null whenever
- * the direct path is unavailable (no R2 locally, bucket CORS not applied
- * yet, presign rejected transiently) - the caller then falls back to its
- * classic server-proxied upload. A definitive validation error (bad type,
- * over the size limit) is thrown instead, so callers surface it rather
- * than silently retrying a file the server will always refuse.
+ * The bucket's CORS rule is live (applied 2026-07-30, see docs/ops/r2-cors.md),
+ * so this is the path a browser normally takes.
+ *
+ * Returns the staged object's key/publicUrl on success, or null whenever the
+ * direct path is unavailable anyway: no R2 configured locally, a transient
+ * presign failure, or an origin the CORS rule does not name (a new domain, a
+ * Vercel preview URL). The caller then falls back to its classic
+ * server-proxied upload, which is capped at ~4.5MB on Vercel but is better
+ * than stranding the photo. A definitive validation error (bad type, over the
+ * size limit) is thrown instead, so callers surface it rather than silently
+ * retrying a file the server will always refuse.
  */
 export async function directUploadPut(
   file: File,
@@ -48,8 +53,9 @@ export async function directUploadPut(
     });
     if (!put.ok) return null;
   } catch {
-    // Bucket CORS rule not applied yet (scripts/setup-r2-cors.mjs): the
-    // browser blocks the PUT. Fall back rather than strand the upload.
+    // The browser blocked the PUT, which in practice means this origin is not
+    // in the bucket's CORS rule (docs/ops/r2-cors.md). Fall back rather than
+    // strand the upload.
     return null;
   }
 

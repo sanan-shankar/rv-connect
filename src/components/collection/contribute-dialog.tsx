@@ -115,9 +115,9 @@ export function ContributeDialog({
       // Preferred path: presigned PUT straight to storage (the shared
       // `directUploadPut` helper), so the FULL RESOLUTION original lands
       // there untouched (Vercel's ~4.5MB request cap never sees the bytes).
-      // A null return means the direct path is unavailable (local dev, or
-      // the bucket's CORS rule isn't applied yet) and the classic
-      // server-proxied path picks the upload up instead.
+      // A null return means the direct path is unavailable for this request
+      // (local dev without R2, or an origin the bucket's CORS rule does not
+      // name) and the classic server-proxied path picks the upload up instead.
       const staged = await directUploadPut(file, "collection");
 
       if (staged) {
