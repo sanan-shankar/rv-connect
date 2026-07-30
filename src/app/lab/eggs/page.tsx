@@ -47,6 +47,7 @@ function LogoFactDemo() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Picks a random fact on the client only. Randomising during render is exactly what would desync the server and client markup.
     setFactIndex(Math.floor(Math.random() * VALLEY_FACTS.length));
   }, []);
 

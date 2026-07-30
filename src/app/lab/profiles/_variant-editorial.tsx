@@ -295,7 +295,7 @@ export default function EditorialVariant({ profile }: ProfileVariantProps) {
                         {i > 0 && <ArrowRight className="h-3 w-3 text-muted-foreground/50" aria-hidden />}
                         {h.house}
                         <span className="text-muted-foreground/60">
-                          '{String(h.fromYear).slice(2)}–'{String(h.toYear).slice(2)}
+                          &apos;{String(h.fromYear).slice(2)}–&apos;{String(h.toYear).slice(2)}
                         </span>
                       </span>
                     ))}

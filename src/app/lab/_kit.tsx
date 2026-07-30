@@ -199,6 +199,7 @@ export function DelightShell({
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reads the URL query after mount. Doing it during render would make the first client render disagree with the server's.
     if (q.get("theme") === "dark") setTheme("dark");
     if (q.get("reduced") === "1") setReduced(true);
   }, []);

@@ -89,6 +89,7 @@ export default function SignupPage() {
   // This is a genuine post-hydration update, so it is exempt from the
   // attribute-hydration-mismatch pitfall the comment above describes.
   useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hides the mascot before the browser paints on fly-in viewports. Deliberately a layout effect: the point is to update after hydration but before paint, so the server's 'already sitting there' frame is never shown.
     if (mobileFlyIn) setHoopoeShown(false);
   }, [mobileFlyIn]);
 

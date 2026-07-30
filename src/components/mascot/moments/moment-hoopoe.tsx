@@ -39,6 +39,7 @@ import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
 export function useSoloHoopoe(): boolean {
   const [show, setShow] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks the DOM whether another hoopoe is already on screen. Only answerable after mount.
     setShow(!anotherHoopoeOnScreen());
   }, []);
   return show;

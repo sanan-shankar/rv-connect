@@ -23,6 +23,7 @@ const gazeFor = (len: number, over: number) =>
 function useHoverCapable() {
   const [capable, setCapable] = useState(true);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks matchMedia whether the device has a real pointer. A media query has no server-side answer, so this has to happen after mount.
     setCapable(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
   }, []);
   return capable;

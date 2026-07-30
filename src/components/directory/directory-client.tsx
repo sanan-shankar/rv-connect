@@ -118,6 +118,7 @@ export function DirectoryClient({
   const [gridRef] = useAutoAnimate();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Resyncs the list from freshly server-rendered props when the query changes. The server is the source of truth here; this mirrors it into the local paging state.
     setResults(users);
     setCursor(nextCursor);
     setBrowseView(hasFilter ? "people" : "map");

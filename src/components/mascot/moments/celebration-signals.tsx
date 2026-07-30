@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/purity --
+   Async Server Component: Date.now() is compared against a stored timestamp to
+   decide server-side which signal to send, not during a React render. */
 /* ------------------------------------------------------------------ *
  *  CelebrationSignals — the one place that reads the numbers the three
  *  "earned" celebration moments key off of, and hands them down to the

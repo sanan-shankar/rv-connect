@@ -134,6 +134,7 @@ function usePlaceSearch(query: string) {
     const trimmed = query.trim();
     if (!trimmed) {
       abortRef.current?.abort();
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clears the result list the moment the query empties, before any request is issued.
       setResults([]);
       setLoading(false);
       return;
