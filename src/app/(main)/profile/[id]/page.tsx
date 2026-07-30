@@ -115,6 +115,12 @@ export default async function ProfilePage({
 
   const contactEmail = user.displayEmail?.trim() || user.email;
 
+  // Every phone on file: the multi-number list, or the legacy single column
+  // while `phones` is still null (saves that predate the repeater). Ordered as
+  // the member saved them, first number first.
+  const parsedPhones = parseJsonArray(user.phones);
+  const phoneNumbers = parsedPhones.length > 0 ? parsedPhones : user.phone ? [user.phone] : [];
+
   // Every way of reaching someone, in ONE place: the Get in touch sheet.
   //
   // Instagram and LinkedIn used to ALSO sit on the surface in a "Find them"
@@ -125,9 +131,14 @@ export default async function ProfilePage({
   // this list carries the lot, custom links included.
   const methods: ContactMethod[] = [
     { kind: "email" as const, label: "Email", value: contactEmail, href: `mailto:${contactEmail}` },
-    user.phone
-      ? { kind: "phone" as const, label: "Phone", value: user.phone, href: `tel:${user.phone}` }
-      : null,
+    ...phoneNumbers.map((p, i) => ({
+      kind: "phone" as const,
+      // The first number stays plain "Phone"; later ones are numbered from 2
+      // so no two rows in the Get in touch sheet share a label.
+      label: i === 0 ? "Phone" : `Phone ${i + 1}`,
+      value: p,
+      href: `tel:${p}`,
+    })),
     user.instagram
       ? {
           kind: "instagram" as const,
@@ -178,7 +189,7 @@ export default async function ProfilePage({
     "VERSION:3.0",
     `FN:${user.name}`,
     `EMAIL:${contactEmail}`,
-    user.phone ? `TEL:${user.phone}` : null,
+    ...phoneNumbers.map((p) => `TEL:${p}`),
     occupation ? `TITLE:${occupation}` : null,
     ...cityLabels.map((c) => `ADR:;;${c};;;;`),
     user.instagram ? `URL:${socialHref("instagram", user.instagram)}` : null,

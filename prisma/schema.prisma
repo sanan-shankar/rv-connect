@@ -26,6 +26,7 @@ model User {
   workplace     String?
   jobTitle      String?
   phone         String?
+  phones        String?   // JSON string of string[] (bare numbers; the first one is mirrored into legacy `phone`)
   instagram     String?
   linkedin      String?
   facebook      String?
@@ -593,4 +594,19 @@ model CatchupPref {
 
   @@unique([catchupId, userId])
   @@map("CatchupReminderPref") // see collision note above; legacy "CatchupPref" table has `optedOut boolean`, not `reminderMode`
+}
+
+// ─── Lab: per-room archive state for /lab (2026-07-30) ───────────────────────
+// Replaces src/app/lab/archive-overrides.json: a deployed Vercel filesystem is
+// read-only, so a file written at request time could never persist the owner's
+// archiving on the domain. One row per room whose archived flag differs from
+// its registry default (src/app/lab/_registry.ts); no row = default applies.
+// Table created by prisma/migrations-manual/2026-07-30-lab-archive.sql (db
+// push is blocked, see the Place note above); until it runs, reads fall back
+// to the registry defaults via the P2021 guard in src/app/lab/_archive-state.ts.
+
+model LabRoomState {
+  href      String   @id // the room's registry href, e.g. "/lab/houses"
+  archived  Boolean  @default(false)
+  updatedAt DateTime @default(now()) @updatedAt
 }

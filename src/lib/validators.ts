@@ -56,7 +56,15 @@ export const profileSchema = z.object({
   secondaryCity: z.string().trim().max(100).optional(),
   workplace: z.string().max(100).optional(),
   jobTitle: z.string().max(100).optional(),
-  phone: z.string().max(20).optional(),
+  // max(24) matches signupSchema's phone cap (it was 20, so a number accepted
+  // at sign-up could fail to save in settings).
+  phone: z.string().max(24).optional(),
+  // Multiple phone numbers (the settings repeater). Free-form here;
+  // updateUserProfile runs each through normalizePhone before storing and
+  // mirrors the first into legacy `phone`. min(4) rejects stray fragments,
+  // max(24) matches the single-phone cap, and 5 numbers is plenty of reach
+  // for one person.
+  phones: z.array(z.string().trim().min(4).max(24)).max(5).optional(),
   instagram: z.string().max(100).optional(),
   linkedin: z.string().max(200).optional(),
   facebook: z.string().max(200).optional(),

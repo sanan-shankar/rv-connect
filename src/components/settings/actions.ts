@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { putImage, delImage } from "@/lib/storage";
 import { profileSchema } from "@/lib/validators";
 import { batchTypeFromLeaving } from "@/lib/utils";
-import { titleCase } from "@/lib/normalize";
+import { titleCase, normalizePhone } from "@/lib/normalize";
 import { revalidatePath } from "next/cache";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
@@ -27,6 +27,17 @@ export async function updateUserProfile(formData: FormData) {
     rawLinks = undefined;
   }
 
+  // Phone numbers travel the same way: the form serialises its repeater rows
+  // to a JSON string; malformed JSON is treated as "none" rather than failing
+  // the whole save.
+  let rawPhones: unknown;
+  try {
+    const phonesField = formData.get("phones") as string | null;
+    rawPhones = phonesField ? JSON.parse(phonesField) : undefined;
+  } catch {
+    rawPhones = undefined;
+  }
+
   const raw = {
     name: formData.get("name") as string,
     about: (formData.get("about") as string) || undefined,
@@ -37,6 +48,7 @@ export async function updateUserProfile(formData: FormData) {
     instagram: (formData.get("instagram") as string) || undefined,
     linkedin: (formData.get("linkedin") as string) || undefined,
     facebook: (formData.get("facebook") as string) || undefined,
+    phones: rawPhones,
     links: rawLinks,
     batchYear: formData.get("batchYear")
       ? Number(formData.get("batchYear"))
@@ -77,6 +89,16 @@ export async function updateUserProfile(formData: FormData) {
   const cleanJobTitle = parsed.data.jobTitle ? titleCase(parsed.data.jobTitle) : null;
   const displayEmail = parsed.data.displayEmail?.trim() || null;
 
+  // Phone numbers: the repeater rows when the form sent them, else the legacy
+  // single field as a one-element list (so an older client that only posts
+  // `phone` can't wipe anything). Every entry is normalized the same way
+  // registerUser does, empties dropped, duplicates removed (Set keeps first
+  // occurrence, so the order the member chose survives).
+  const phoneInput = parsed.data.phones ?? (parsed.data.phone ? [parsed.data.phone] : []);
+  const phoneArr = Array.from(
+    new Set(phoneInput.map(normalizePhone).filter((p) => p.length > 0))
+  );
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
@@ -85,7 +107,11 @@ export async function updateUserProfile(formData: FormData) {
       displayEmail,
       workplace: cleanWorkplace,
       jobTitle: cleanJobTitle,
-      phone: parsed.data.phone || null,
+      // The mirror is the contract: legacy `phone` always holds the FIRST
+      // number (or null), so every reader that predates the list (directory,
+      // vCard fallback, profile fallback) keeps working untouched.
+      phone: phoneArr[0] ?? null,
+      phones: phoneArr.length > 0 ? JSON.stringify(phoneArr) : null,
       instagram: parsed.data.instagram || null,
       linkedin: parsed.data.linkedin || null,
       facebook: parsed.data.facebook || null,

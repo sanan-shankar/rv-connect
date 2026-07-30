@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Plus, X } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -14,11 +13,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { MetaDots } from "@/components/common/meta-dots";
 import { HOUSES, normalizeHouse } from "@/lib/houses";
-import { SPRINGS } from "@/components/common/motion";
 
 /**
- * Grouped house picker: a panel of pills, in the owner's canonical house
+ * Grouped house picker: a panel of house rows in the owner's canonical
  * order, with comfortable 44px+ touch targets. More than one house can be
  * selected for a year (two houses in one year is allowed), plus a
  * free-typed "Other" entry for anything outside the canonical 22. The value
@@ -143,7 +142,27 @@ export function HousePicker({
       {value.length === 0 ? (
         <span className="text-muted-foreground">{placeholder}</span>
       ) : (
-        <HousePills value={value} canonicalSet={canonicalSet} />
+        /* Plain text, not nested pills: a pill inside the 12px trigger is the
+         * box-in-box the owner rejected, and a two-house year used to wrap and
+         * break the row height. MetaDots is metaLine's styled twin (same
+         * separator rule) - needed here, not the string helper, because custom
+         * entries keep their subtle cinnamon tint. Removing a house happens
+         * inside the panel, where every selected row toggles off.
+         * [&_.dotsep]:mx-1: MetaDots grew up inside flex rows whose `gap`
+         * spaces the dot; in this plain inline span the dot would sit flush
+         * against both names ("Alamanda·Jacaranda"), so the breathing room is
+         * scoped in here rather than baked into the shared dot. */
+        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground [&_.dotsep]:mx-1">
+          <MetaDots
+            parts={value.map((h) =>
+              canonicalSet.has(h) ? h : (
+                <span key={h} className="text-cinnamon">
+                  {h}
+                </span>
+              )
+            )}
+          />
+        </span>
       )}
       <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     </>
@@ -233,45 +252,18 @@ export function HousePicker({
  * ------------------------------------------------------------------ */
 
 // scroll-mt clears the sticky top nav, so the "start"-aligned scrollIntoView
-// above never tucks the row in underneath it.
+// above never tucks the row in underneath it. Deliberately single-line: the
+// selected houses render as truncating text, so a two-house year can never
+// wrap and change the row height.
 const TRIGGER_CLASS =
-  "flex min-h-11 w-full flex-1 flex-wrap items-center gap-1.5 rounded-[var(--radius-input)] border border-input bg-transparent px-3 py-1.5 text-left text-[13px] outline-none transition-colors duration-150 scroll-mt-24 hover:border-ring/60 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "flex min-h-11 w-full flex-1 items-center gap-1.5 rounded-[var(--radius-input)] border border-input bg-transparent px-3 py-1.5 text-left text-[13px] outline-none transition-colors duration-150 scroll-mt-24 hover:border-ring/60 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
-/** The selected-house pills inside the trigger. Each new pick lands with a
- *  small spring settle rather than just appearing, so the answer visibly
- *  arrives; a removed one (via the "Other" chip's own X) leaves the same way. */
-function HousePills({
-  value,
-  canonicalSet,
-}: {
-  value: string[];
-  canonicalSet: ReadonlySet<string>;
-}) {
-  return (
-    <AnimatePresence initial={false}>
-      {value.map((h) => (
-        <motion.span
-          key={h}
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.7, opacity: 0 }}
-          transition={SPRINGS.snappy}
-          className={cn(
-            "rounded-full px-2.5 py-1 text-[12.5px] font-semibold",
-            canonicalSet.has(h) ? "bg-canopy/10 text-canopy" : "bg-cinnamon/10 text-cinnamon"
-          )}
-        >
-          {h}
-        </motion.span>
-      ))}
-    </AnimatePresence>
-  );
-}
-
-/** The grid of 22 houses plus the free-text "Other" row, shared between the
- *  desktop popover and the mobile sheet so the two shells never drift apart.
- *  One calm neutral style throughout: no per-house colour, no family
- *  grouping. Selected is the one canopy state. */
+/** The panel body: the 22 houses as two quiet columns of text rows, plus the
+ *  free-text "Other" escape, shared between the desktop popover and the
+ *  mobile sheet so the two shells never drift apart. One calm neutral style:
+ *  no idle border, no idle fill, no per-house colour, no family grouping.
+ *  Selected is the one canopy state - a small check plus canopy text, never
+ *  a solid slab. */
 function HouseOptions({
   value,
   onToggle,
@@ -292,34 +284,51 @@ function HouseOptions({
   /** An in-body heading; omitted when the shell (the sheet's own title) already carries the year. */
   heading?: ReactNode;
 }) {
+  // No motion wrapper here: the shells already animate their own entrance
+  // (the popover's fade/zoom, the sheet's rise), and a second inner animation
+  // on top of that read as a stutter, not a flourish.
+  //
+  // An explicit midpoint split (not CSS columns) keeps the canonical order
+  // flowing down column one then column two while DOM order stays 1..22, so
+  // keyboard tabbing walks the list in the same order the eye reads it, and
+  // no row can ever fragment across a column break.
+  const mid = Math.ceil(HOUSES.length / 2);
+  const columns = [HOUSES.slice(0, mid), HOUSES.slice(mid)];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={SPRINGS.gentle}
-      className="space-y-3"
-    >
+    <div className="space-y-3">
       {heading}
-      <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Pick one or more houses">
-        {HOUSES.map((h) => {
-          const selected = value.includes(h);
-          return (
-            <button
-              key={h}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => onToggle(h)}
-              className={cn(
-                "flex min-h-11 items-center justify-center rounded-full border px-2.5 py-2 text-center text-[13px] font-semibold leading-tight transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
-                selected
-                  ? "border-canopy bg-canopy text-white"
-                  : "border-border bg-mist/50 text-foreground hover:border-canopy/40 hover:bg-canopy/10"
-              )}
-            >
-              {h}
-            </button>
-          );
-        })}
+      <div className="grid grid-cols-2 gap-x-2" role="group" aria-label="Pick one or more houses">
+        {columns.map((column, ci) => (
+          <div key={ci}>
+            {column.map((h) => {
+              const selected = value.includes(h);
+              return (
+                <button
+                  key={h}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onToggle(h)}
+                  className={cn(
+                    // min-h-11 holds the owner's 44px touch floor; radius-sm
+                    // (8.8px) is one rung inside the 12px panel per the radius
+                    // ladder. No idle border or fill - hover is the accent
+                    // lift, selection is the check + canopy text below.
+                    "flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-left text-[13.5px] transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]",
+                    selected ? "font-semibold text-canopy" : "font-medium text-foreground"
+                  )}
+                >
+                  {/* The icon slot is always reserved so a pick never nudges
+                      the name sideways; only the check inside it comes and
+                      goes. */}
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden>
+                    {selected && <Check className="h-4 w-4 text-canopy" />}
+                  </span>
+                  {h}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       <div className="space-y-1.5 border-t border-border pt-3">
@@ -369,6 +378,6 @@ function HouseOptions({
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

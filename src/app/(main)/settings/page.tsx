@@ -20,7 +20,6 @@ export default async function SettingsPage() {
       name: true,
       email: true,
       photoUrl: true,
-      avatarColor: true,
       birdOverride: true,
       about: true,
       displayEmail: true,
@@ -28,6 +27,10 @@ export default async function SettingsPage() {
       workplace: true,
       jobTitle: true,
       phone: true,
+      // NOTE: the "phones" column only exists after
+      // prisma/migrations-manual/2026-07-30-phones.sql has been run; until
+      // then this select 500s at runtime even though tsc is happy.
+      phones: true,
       instagram: true,
       linkedin: true,
       facebook: true,
