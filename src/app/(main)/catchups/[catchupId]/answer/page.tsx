@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseJsonArray } from "@/lib/utils";
-import { advanceEdition, catchupTitle, isMissingCatchupTable, type AdvanceEditionInput } from "@/lib/catchups";
-import type { EditionStatus } from "@/lib/catchups-types";
+import { advanceEdition, isMissingCatchupTable, type AdvanceEditionInput } from "@/lib/catchups";
+import { promptKind, type EditionStatus, type PromptCategory } from "@/lib/catchups-types";
 import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { NotAvailableCard } from "@/components/catchups/answer/not-available";
@@ -36,6 +36,16 @@ function redirectMessageFor(status: EditionStatus, groupName: string): string {
     default:
       return "Answering is not open for this Round right now.";
   }
+}
+
+/**
+ * The back link names the one Catch-up being answered, so it is singular:
+ * "{Group name} catch-up" (owner review 2026-07-25, same rule and wording as
+ * `homeTitle` on the Catch-up home). Deliberately not `catchupTitle()`, which
+ * is the plural "{group} Catch-ups" label the index and archive use.
+ */
+function surfaceTitle(title: string | null | undefined, groupName: string): string {
+  return title?.trim() || `${groupName} catch-up`;
 }
 
 function closesLabel(at: Date | null): string {
@@ -96,11 +106,16 @@ export default async function CatchupAnswerPage({
     });
 
     if (!membership) {
+      // Was `/groups/${catchup.group.id}` -- groups have no user-facing page
+      // anymore (dead route, owner review 2026-07-25). The viewer already
+      // isn't a member here, so this Catch-up's own URL would just bounce
+      // them back to this same wall; the index is the one place that
+      // actually goes somewhere.
       return (
         <NotAvailableCard
           title="This Catch-up is for group members."
           body={`Join ${catchup.group.name} to add questions, answer, and read the archive.`}
-          cta={{ href: `/groups/${catchup.group.id}`, label: "View the group" }}
+          cta={{ href: "/catchups", label: "Back to Catch-ups" }}
         />
       );
     }
@@ -160,13 +175,14 @@ export default async function CatchupAnswerPage({
         select: {
           id: true,
           text: true,
+          category: true,
           showAsker: true,
           author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
         },
       }),
       prisma.catchupEntry.findMany({
         where: { editionId: edition.id, authorId: session.user.id },
-        select: { promptId: true, body: true, images: true, songUrl: true, songTitle: true, songArt: true },
+        select: { promptId: true, body: true, images: true },
       }),
       prisma.catchupEntry.findMany({
         where: { editionId: edition.id },
@@ -191,13 +207,13 @@ export default async function CatchupAnswerPage({
       return {
         id: p.id,
         text: p.text,
+        // The category doubles as the question's kind (photo-wall / songs
+        // switch the answering control; everything else writes text).
+        kind: promptKind(p.category as PromptCategory | null),
         asker: p.showAsker ? p.author : null,
         entry: {
           body: entry?.body ?? "",
           images: parseJsonArray(entry?.images),
-          song: entry?.songUrl
-            ? { url: entry.songUrl, title: entry.songTitle ?? entry.songUrl, art: entry.songArt }
-            : null,
         },
       };
     });
@@ -211,7 +227,7 @@ export default async function CatchupAnswerPage({
           className="mb-3 inline-flex items-center gap-1.5 rounded-sm text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          {catchupTitle(catchup.title, catchup.group.name)}
+          {surfaceTitle(catchup.title, catchup.group.name)}
         </Link>
 
         <PageHeader title={`Round ${edition.number}`} subtitle={closesLabel(edition.answersCloseAt)} />
@@ -220,12 +236,6 @@ export default async function CatchupAnswerPage({
           catchupId={catchup.id}
           groupName={catchup.group.name}
           prompts={promptData}
-          currentUser={{
-            id: session.user.id,
-            name: session.user.name,
-            photoUrl: session.user.photoUrl,
-            birdOverride: session.user.birdOverride,
-          }}
           othersAnsweredCount={others.length}
           clusterPeople={others.slice(0, 3).map((r) => r.author)}
         />

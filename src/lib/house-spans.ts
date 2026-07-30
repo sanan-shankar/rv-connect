@@ -103,6 +103,45 @@ export function seedHouseYearRows(
   return [...rows, ...extra].sort((a, b) => a.year - b.year);
 }
 
+/**
+ * Every academic year in a known [yearJoined, yearLeft) range that the editor
+ * is not currently showing a row for. Drives the "Add all my years" restore:
+ * an empty array means the skeleton is already complete, so the affordance
+ * stays hidden instead of sitting there doing nothing.
+ */
+export function missingYears(
+  rows: HouseYearRow[],
+  yearJoined: number | null,
+  yearLeft: number | null
+): number[] {
+  if (yearJoined == null || yearLeft == null || yearLeft < yearJoined) return [];
+  const present = new Set(rows.map((r) => r.year));
+  const missing: number[] = [];
+  for (let y = yearJoined; y < yearLeft; y++) {
+    if (!present.has(y)) missing.push(y);
+  }
+  return missing;
+}
+
+/**
+ * Put the whole academic-year skeleton back, keeping every house already
+ * picked and any manually-added out-of-range row.
+ *
+ * Deleting rows is cheap and reversible in one click; without this, clearing
+ * the list means clicking "Later year" once per school year to build it back
+ * up (nine times for a full career), which is the kind of chore nobody should
+ * ever be handed twice.
+ */
+export function restoreAllYearRows(
+  rows: HouseYearRow[],
+  yearJoined: number | null,
+  yearLeft: number | null
+): HouseYearRow[] {
+  const gaps = missingYears(rows, yearJoined, yearLeft);
+  if (gaps.length === 0) return rows;
+  return [...rows, ...gaps.map((year) => ({ year, houses: [] }))].sort((a, b) => a.year - b.year);
+}
+
 /** Parse the raw `houses` JSON and collapse same-house runs into year spans. */
 export function parseHouseSpans(raw: string | null | undefined): HouseSpan[] {
   const entries = parseHouseYearEntries(raw);

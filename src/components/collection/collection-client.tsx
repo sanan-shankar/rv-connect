@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import Link from "next/link";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import { Heart, MagnifyingGlass } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -18,15 +17,19 @@ import {
 import { WHEN_OPTIONS, COLLECTION_SORT_OPTIONS } from "@/lib/collection-facets";
 import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
 import { ContributeDialog } from "./contribute-dialog";
+import { ImageViewer } from "@/components/common/image-viewer";
+import { formatDisplayDate } from "@/lib/utils";
 import { useTourAnchor } from "@/components/tour/tour-anchors";
 
 type SortBy = "newest" | "oldest" | "loved" | "wander";
 
-function Tile({ photo }: { photo: PhotoData }) {
+function Tile({ photo, onOpen }: { photo: PhotoData; onOpen: () => void }) {
   return (
-    <Link
-      href={`/collection/${photo.id}`}
-      className="group relative mb-3 block break-inside-avoid overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={photo.caption ?? `Photograph by ${photo.uploader.name}`}
+      className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -55,8 +58,22 @@ function Tile({ photo }: { photo: PhotoData }) {
           </div>
         </div>
       </div>
-    </Link>
+    </button>
   );
+}
+
+/** Map a Collection photo onto the shared viewer's shape. The permalink page
+ *  (love, moderation, tags) stays one press away via the viewer's open-page
+ *  action. */
+function toViewerImage(p: PhotoData) {
+  return {
+    src: p.url,
+    alt: p.caption ?? undefined,
+    caption: p.caption,
+    author: { id: p.uploader.id, name: p.uploader.name },
+    date: formatDisplayDate(p.createdAt),
+    href: `/collection/${p.id}`,
+  };
 }
 
 export function CollectionClient({
@@ -76,6 +93,15 @@ export function CollectionClient({
   const [loadingMore, setLoadingMore] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Which strip the full-screen viewer is browsing (the pending strip and the
+  // approved grid are separate sets), and where in it.
+  const [viewer, setViewer] = useState<{ list: "pending" | "main"; index: number } | null>(null);
+  // Memoized so the whole (paginated, unbounded) photo list isn't re-mapped
+  // on every unrelated re-render while the viewer sits closed.
+  const viewerImages = useMemo(
+    () => (viewer?.list === "pending" ? pending : photos).map(toViewerImage),
+    [viewer?.list, pending, photos]
+  );
   // Two different Buttons share this one ref/key: the compact toolbar
   // "Contribute" (shown while photos/pending exist) and the empty-state
   // card's "Contribute a photo" (shown when `trulyEmpty`, resolved from the
@@ -270,7 +296,7 @@ export function CollectionClient({
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
             >
               <SlidersHorizontal className="size-3.5" aria-hidden />
               Filters
@@ -358,17 +384,24 @@ export function CollectionClient({
                 Awaiting review
               </h2>
               <div className="[column-gap:0.75rem] columns-2 sm:columns-3 lg:columns-4">
-                {pending.map((p) => (
-                  <Tile key={p.id} photo={p} />
+                {pending.map((p, i) => (
+                  <Tile key={p.id} photo={p} onOpen={() => setViewer({ list: "pending", index: i })} />
                 ))}
               </div>
             </div>
           )}
           <div className="[column-gap:0.75rem] columns-2 sm:columns-3 lg:columns-4">
-            {photos.map((p) => (
-              <Tile key={p.id} photo={p} />
+            {photos.map((p, i) => (
+              <Tile key={p.id} photo={p} onOpen={() => setViewer({ list: "main", index: i })} />
             ))}
           </div>
+
+          <ImageViewer
+            images={viewerImages}
+            initialIndex={viewer?.index ?? 0}
+            open={viewer !== null}
+            onClose={() => setViewer(null)}
+          />
           {hasMore && (
             <div className="flex justify-center pt-4">
               <Button

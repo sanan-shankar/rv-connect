@@ -6,7 +6,6 @@ import { signOut } from "next-auth/react";
 import {
   Newspaper,
   Notebook,
-  Users,
   Images,
   Feather,
   MessagesSquare,
@@ -38,6 +37,7 @@ import {
 import { motion } from "motion/react";
 import { NAV_MARKER_SPRING } from "@/components/common/motion";
 import { IdentityRow } from "@/components/common/identity-row";
+import { formatBatchChip } from "@/lib/utils";
 import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
 import { Wordmark } from "./peaks-mark";
@@ -52,12 +52,14 @@ export interface SidebarUser {
   avatarColor: string | null;
   photoUrl?: string | null;
   birdOverride?: string | null;
+  batchType?: string | null;
+  batchYear?: number | null;
 }
+
 
 const NAV = [
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/directory", label: "Directory", icon: Notebook },
-  { href: "/groups", label: "Groups", icon: Users },
   { href: "/collection", label: "Collection", icon: Images },
   { href: "/letters", label: "Letters", icon: Feather },
   { href: "/catchups", label: "Catch-ups", icon: MessagesSquare },
@@ -115,10 +117,10 @@ function NavLinks({
             href={n.href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
-            className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 ${
+            className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 ${
               active
                 ? "font-semibold text-sidebar-accent-foreground"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground"
+                : "text-sidebar-foreground-idle hover:bg-sidebar-hover hover:text-sidebar-foreground"
             }`}
           >
             {active && (
@@ -134,7 +136,7 @@ function NavLinks({
                 <motion.span
                   layoutId={`${markerId}-pill`}
                   initial={false}
-                  className="absolute inset-0 z-0 rounded-xl bg-sidebar-accent"
+                  className="absolute inset-0 z-0 rounded-xl bg-sidebar-active"
                   transition={NAV_MARKER_SPRING}
                 />
                 <motion.span
@@ -147,7 +149,7 @@ function NavLinks({
             )}
             <n.icon
               className="relative z-[2] h-[18px] w-[18px] shrink-0"
-              strokeWidth={1.9}
+              strokeWidth={2}
             />
             <span className="relative z-[2]">{n.label}</span>
           </Link>
@@ -159,6 +161,7 @@ function NavLinks({
 
 function UserMenu({ user }: { user: SidebarUser }) {
   const router = useRouter();
+  const meta = formatBatchChip(user.batchType, user.batchYear);
   return (
     <div className="flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
       <DropdownMenu>
@@ -169,8 +172,8 @@ function UserMenu({ user }: { user: SidebarUser }) {
             textClassName="flex-1"
             name={user.name}
             nameClassName="truncate text-[13px] font-semibold leading-none text-sidebar-foreground"
-            meta={user.email}
-            metaClassName="truncate text-[11px] font-normal normal-case leading-none tracking-normal text-sidebar-foreground/55"
+            meta={meta}
+            metaClassName="truncate text-[11px] font-normal normal-case leading-none tracking-normal text-sidebar-foreground-muted"
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="top" className="w-52">

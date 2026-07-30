@@ -49,7 +49,7 @@ function FacetOptionsPopup({
 
 /**
  * FacetSelect — the labelled-value pill for a single-choice facet (Profession,
- * House, Open to, Type, When, Part of school...). Renders its own
+ * House, Type, When, Part of school...). Renders its own
  * `Label: Value` text from props (never `<SelectValue>`), so it can never
  * echo a raw option id. Empty reads just the label; set reads `Label: Value`
  * in canopy with an `x` that clears the facet without opening the dropdown.

@@ -62,6 +62,31 @@ export function formatBatch(
 }
 
 /**
+ * The compact credential form, "ISC 2023": used where the batch is a badge
+ * about YOU (the sidebar footer chip), not a line under someone's name (that
+ * register is `formatBatch`'s "Batch of '23"). Kept beside it so the two
+ * batch formats can't drift apart unseen.
+ */
+export function formatBatchChip(
+  batchType?: string | null,
+  batchYear?: number | null
+): string | undefined {
+  if (batchType && batchYear) return `${batchType} ${batchYear}`
+  if (batchYear) return `Batch of ${batchYear}`
+  if (batchType) return batchType
+  return undefined
+}
+
+/** One display-date format for photo/letter attribution ("22 May 2026"). */
+export function formatDisplayDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+}
+
+/**
  * The single line shown under a person's name everywhere. Alumni get
  * "Batch of '09"; teachers get a role label since they have no batch.
  *

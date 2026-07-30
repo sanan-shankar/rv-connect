@@ -1,6 +1,6 @@
 export default function SettingsLoading() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="skeleton-warm h-9 w-40 rounded-md" />
 
       <div className="rounded-xl border border-border bg-card p-6">

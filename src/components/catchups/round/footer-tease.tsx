@@ -1,8 +1,11 @@
 /* ------------------------------------------------------------------ *
- *  <RoundFooterTease> - the quiet close of the reader (spec 3.6): a gentle
- *  next-Round tease for recurring cadences, plus a way back to the group's
- *  Catch-up home (not the global /catchups index - "back to {group}
- *  Catch-ups" reads as this Catch-up specifically).
+ *  <RoundFooterTease> - the close of the reader: when the next Round opens
+ *  (recurring cadences only), and the way back to this group's Catch-up
+ *  home rather than the global /catchups index.
+ *
+ *  The link used to read "Back to {group} Catch-ups", which was the third
+ *  print of the Catch-up's name on one page. The name is printed once now,
+ *  in the masthead h1 (owner review 2026-07-25).
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
@@ -10,14 +13,12 @@ import { ArrowLeft } from "lucide-react";
 
 export function RoundFooterTease({
   catchupId,
-  groupName,
   nextOpensAt,
   showNextOpens,
 }: {
   catchupId: string;
-  groupName: string;
   nextOpensAt: Date | string | null;
-  /** False for a paused/ended Catchup, where there is no next Round to tease. */
+  /** False for a paused/ended Catchup, where there is no next Round. */
   showNextOpens: boolean;
 }) {
   const nextLabel =
@@ -30,14 +31,14 @@ export function RoundFooterTease({
       : null;
 
   return (
-    <footer className="mt-[var(--space-3xl)] border-t border-border pt-[var(--space-l)] text-center">
+    <footer className="mt-[var(--space-xl)] border-t border-border pt-[var(--space-l)] text-center">
       {nextLabel && <p className="text-sm text-muted-foreground">Next Round opens {nextLabel}.</p>}
       <Link
         href={`/catchups/${catchupId}`}
         className="mt-[var(--space-xs)] inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-leaf hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Back to {groupName} Catch-ups
+        Back to the Catch-up
       </Link>
     </footer>
   );

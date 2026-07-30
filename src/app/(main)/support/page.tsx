@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { SupportContribute } from "@/components/support/support-contribute";
-import { BuildFundBar, CostBar } from "@/components/support/cost-bar";
+import { CostBar } from "@/components/support/cost-bar";
+import { BirdGlyphV2 } from "@/components/common/bird-avatar-v2";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -10,13 +11,31 @@ export const metadata: Metadata = {
 };
 
 // The owner opted into publishing the one-time build cost: it now runs as a
-// fundraiser-style bar (BuildFundBar, ₹4,00,000 goal) under the monthly bill.
-// The amount recovered is a hand-maintained constant in cost-bar.tsx, since
-// nothing tracks UPI contributions automatically.
+// progress track nested inside CostBar's own card (see cost-bar.tsx), not a
+// fundraiser bar of its own. The amount recovered is a hand-maintained
+// constant in cost-bar.tsx, since nothing tracks UPI contributions
+// automatically.
+
+// A hand-picked set of species for the reward preview: colourful and visibly
+// different from one another (not the first N indices), because the point of
+// this row is to show the collection's variety, not just that it exists.
+// Indices are positions in SPECIES_FULL_NAMES / ARCHES (bird-avatar-v2.tsx).
+const REWARD_SPECIES = [
+  { i: 5, name: "Indian Pitta" },
+  { i: 3, name: "Indian Roller" },
+  { i: 9, name: "Coppersmith Barbet" },
+  { i: 20, name: "Black-hooded Oriole" },
+  { i: 22, name: "Purple Sunbird" },
+  { i: 26, name: "Asian Paradise Flycatcher" },
+  { i: 37, name: "Red Avadavat" },
+  { i: 41, name: "Black-rumped Flameback" },
+  { i: 43, name: "Purple-rumped Sunbird" },
+  { i: 44, name: "Tickell's Blue Flycatcher" },
+];
 
 export default function SupportPage() {
   return (
-    <div className="mx-auto max-w-3xl pb-[var(--space-xl)]">
+    <div className="pb-[var(--space-xl)]">
       {/* Hero */}
       <header className="mb-[var(--space-xl)]">
         <style>{`
@@ -36,13 +55,16 @@ export default function SupportPage() {
             <Tree size={28} weight="duotone" />
           </span>
         </span>
-        <h1 className="mt-[var(--space-m)] font-heading text-3xl font-bold tracking-[-0.02em] text-foreground">
+        {/* Same weight and size as every other page title (PageHeader's h1);
+            this one keeps its own element because it sits inside the hero,
+            under the motif, rather than at the top of the page. */}
+        <h1 className="mt-[var(--space-m)] font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
           Keep the network in the valley alive.
         </h1>
         <p className="mt-[var(--space-s)] text-lg leading-relaxed text-muted-foreground">
           Rishi Valley runs on a small monthly bill. If it has helped you find an
-          old friend or a lost batchmate, you can help keep it going. There is no
-          pressure, and the site is always free to use.
+          old friend or a lost batchmate, you can help keep it going. The site
+          is always free to use.
         </p>
       </header>
 
@@ -60,10 +82,45 @@ export default function SupportPage() {
           designing and building it.
         </p>
         <CostBar />
-        <p className="mt-[var(--space-s)] text-sm leading-relaxed text-muted-foreground">
-          A few people chipping in comfortably covers the whole month.
+      </section>
+
+      {/* The one perk for chipping in, shown before the ask so the reward is
+          seen before the QR code, not after it */}
+      <section aria-labelledby="perk-heading" className="mb-[var(--space-xl)]">
+        <h2
+          id="perk-heading"
+          className="mb-[var(--space-s)] font-heading text-xl font-bold tracking-tight text-foreground"
+        >
+          A little something back
+        </h2>
+        <p className="leading-relaxed text-foreground">
+          Anyone who chips in gets to pick their own bird, instead of the one
+          you were given at random.
         </p>
-        <BuildFundBar />
+        <ul className="mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-s)] gap-y-[var(--space-m)] sm:grid-cols-5">
+          {REWARD_SPECIES.map(({ i, name }) => (
+            <li key={i}>
+              <span
+                className="inline-grid place-items-center rounded-full bg-mist"
+                style={{ width: 72, height: 72 }}
+                role="img"
+                aria-label={name}
+              >
+                <BirdGlyphV2 seed={`birds-gallery-${i}`} px={72} speciesOverride={i} />
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-[var(--space-m)] leading-relaxed text-foreground">
+          Choose any species from the{" "}
+          <Link
+            href="/birds"
+            className="rounded-[2px] font-medium text-canopy underline decoration-canopy/40 underline-offset-2 transition-opacity duration-150 ease-out hover:decoration-canopy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+          >
+            full collection
+          </Link>{" "}
+          of 50, to wear as your avatar across the site.
+        </p>
       </section>
 
       {/* Contribution panel, sitting over the fixed background via .glass */}
@@ -77,27 +134,6 @@ export default function SupportPage() {
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)]">
           <SupportContribute />
         </div>
-      </section>
-
-      {/* The one perk for chipping in */}
-      <section aria-labelledby="perk-heading" className="mb-[var(--space-xl)]">
-        <h2
-          id="perk-heading"
-          className="mb-[var(--space-s)] font-heading text-xl font-bold tracking-tight text-foreground"
-        >
-          A little something back
-        </h2>
-        <p className="leading-relaxed text-foreground">
-          Anyone who chips in gets to pick their own bird. Instead of the one
-          you were given at random, choose any species from our{" "}
-          <Link
-            href="/preview/birds-rv"
-            className="rounded-[2px] font-medium text-canopy underline decoration-canopy/40 underline-offset-2 transition-opacity duration-150 ease-out hover:decoration-canopy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
-          >
-            collection
-          </Link>{" "}
-          of 50, to wear as your avatar across the site.
-        </p>
       </section>
 
       <p className="leading-relaxed text-foreground">Thank you for your support.</p>

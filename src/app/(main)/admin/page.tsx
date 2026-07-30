@@ -3,12 +3,14 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 import { Users, FileText, AlertTriangle, UserPlus, Images, Mail } from "lucide-react";
 import { UserManagement } from "@/components/admin/user-management";
 import { ReportManagement } from "@/components/admin/report-management";
 import { PhotoQueue } from "@/components/admin/photo-queue";
 import { VerificationQueue } from "@/components/admin/verification-queue";
 import { MessageQueue } from "@/components/admin/message-queue";
+import { PUBLISHED_ONLY } from "@/lib/posts";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -34,7 +36,9 @@ export default async function AdminPage({
   const [totalUsers, totalPosts, newSignups, pendingReports, pendingPhotos] =
     await Promise.all([
       prisma.user.count({ where: { isBlocked: false } }),
-      prisma.post.count(),
+      // Drafts are unpublished, private letters -- don't count them toward
+      // the sitewide "Total Posts" stat.
+      prisma.post.count({ where: { ...PUBLISHED_ONLY } }),
       prisma.user.count({
         where: { createdAt: { gte: weekAgo } },
       }),
@@ -133,10 +137,8 @@ export default async function AdminPage({
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <h1 className="font-heading text-3xl font-bold text-foreground">
-        Admin Panel
-      </h1>
+    <div className="space-y-8">
+      <PageHeader title="Admin Panel" />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

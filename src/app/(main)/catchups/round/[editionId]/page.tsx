@@ -27,7 +27,6 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   advanceEdition,
-  catchupTitle,
   isEffectiveKeeper,
   isMissingCatchupTable,
   roundLabel,
@@ -49,6 +48,22 @@ import { RoundFooterTease } from "@/components/catchups/round/footer-tease";
 import { PublishNowButton } from "@/components/catchups/round/publish-now-button";
 import { NotYetPublished } from "@/components/catchups/round/not-yet-published";
 import type { RoundEntry } from "@/components/catchups/round/answer-card";
+
+/**
+ * This reader's heading: "{Group name} catch-up", singular, because it is one
+ * Catch-up being read (owner review 2026-07-25). A Keeper's custom title wins
+ * when they have set one. Deliberately not `catchupTitle()`, which is the
+ * plural "{group} Catch-ups" label the index and the archive use for the
+ * series; the Catch-up home and the answering screen both name it this way,
+ * and the reader must not disagree with them.
+ *
+ * TODO: this is now the third copy of the same one-liner (see `homeTitle` in
+ * ../../[catchupId]/page.tsx and ../../[catchupId]/answer/page.tsx). It wants
+ * to be one exported helper in src/lib/catchups.ts, next to `catchupTitle`.
+ */
+function roundTitle(title: string | null | undefined, groupName: string): string {
+  return title?.trim() || `${groupName} catch-up`;
+}
 
 const LIGHT_EDITION_SELECT = {
   id: true,
@@ -122,7 +137,7 @@ export async function generateMetadata({
     if (!membership) return { title: "Catch-ups" };
 
     return {
-      title: `${roundLabel(edition.number)} - ${catchupTitle(edition.catchup.title, edition.catchup.group.name)}`,
+      title: `${roundLabel(edition.number)} - ${roundTitle(edition.catchup.title, edition.catchup.group.name)}`,
     };
   } catch {
     return { title: "Catch-ups" };
@@ -158,7 +173,7 @@ export default async function RoundPage({
   if (!membership) notFound();
 
   const status = edition.status as EditionStatus;
-  const title = catchupTitle(edition.catchup.title, edition.catchup.group.name);
+  const title = roundTitle(edition.catchup.title, edition.catchup.group.name);
   const keeper = isEffectiveKeeper({
     viewerId: session.user.id,
     createdById: edition.catchup.createdById,
@@ -173,7 +188,7 @@ export default async function RoundPage({
         <AlmostReady
           eyebrow={`${title} - ${roundLabel(edition.number)}`}
           title="Putting your Catch-up together."
-          body="Every answer is being gathered into one issue. No one can read them yet, not even the Keeper - the reveal lands all at once, very soon."
+          body="No one can read the answers yet, not even the Keeper. They all appear at once when this Round publishes."
         />
         {keeper && (
           <div className="mx-auto mt-[var(--space-l)] flex max-w-3xl justify-center">
@@ -189,7 +204,6 @@ export default async function RoundPage({
     return (
       <NotYetPublished
         catchupId={edition.catchupId}
-        groupName={edition.catchup.group.name}
         title={title}
         number={edition.number}
         status={status}
@@ -268,18 +282,32 @@ export default async function RoundPage({
       position: p.position,
       asker: askerVisible ? toPersonRef(p.author) : null,
     };
-    const entries: RoundEntry[] = p.entries.map((e) => ({
-      id: e.id,
-      promptId: e.promptId,
-      author: toPersonRef(e.author),
-      authorMeta: batchLine(e.author),
-      body: e.body,
-      images: parseJsonArray(e.images),
-      song: e.songUrl ? { url: e.songUrl, title: e.songTitle ?? e.songUrl, art: e.songArt } : null,
-      loveCount: e._count.loves,
-      lovedByViewer: e.loves.length > 0,
-      createdAt: e.createdAt,
-    }));
+    const entries: RoundEntry[] = p.entries.map((e) => {
+      // The songUrl/songTitle/songArt trio is Spotify-shaped: `songTitle` is
+      // only ever written by the oembed resolver, so it carries rows from the
+      // old per-question "paste a Spotify link" field. A song is worth
+      // printing as soon as we have a name for it, hence the fall back to the
+      // raw URL when resolution failed soft. `url: ""` is the signal to
+      // SpotifyCard to render an unlinked row.
+      //
+      // The NEW `songs` prompt kind does not write here at all: it saves the
+      // typed song name in `body` (see the TODO in answer/song-attachment.tsx
+      // naming the `CatchupEntry.songs Json?` column that would lift it to
+      // five). AnswerCard reads `kind` and prints that body as a song row.
+      const songTitle = e.songTitle?.trim() || e.songUrl?.trim() || null;
+      return {
+        id: e.id,
+        promptId: e.promptId,
+        author: toPersonRef(e.author),
+        authorMeta: batchLine(e.author),
+        body: e.body,
+        images: parseJsonArray(e.images),
+        song: songTitle ? { url: e.songUrl ?? "", title: songTitle, art: e.songArt } : null,
+        loveCount: e._count.loves,
+        lovedByViewer: e.loves.length > 0,
+        createdAt: e.createdAt,
+      };
+    });
     return { prompt, entries };
   });
 
@@ -302,7 +330,6 @@ export default async function RoundPage({
     <div className="pb-4">
       <RoundMasthead
         title={title}
-        groupName={edition.catchup.group.name}
         number={round.number}
         publishedAt={round.publishedAt}
         contributors={contributors}
@@ -311,12 +338,12 @@ export default async function RoundPage({
       <RoundTocChips items={tocItems} className="mt-[var(--space-l)] lg:hidden" />
 
       {sections.length === 0 ? (
-        <p className="mt-[var(--space-xl)] text-center text-sm italic text-muted-foreground">
+        <p className="mt-[var(--space-l)] text-center text-sm italic text-muted-foreground">
           This Round did not gather any questions.
         </p>
       ) : (
-        <div className="mt-[var(--space-xl)] grid grid-cols-1 gap-x-[30px] gap-y-[var(--space-xxl)] lg:grid-cols-[minmax(0,1fr)_220px]">
-          <div className="min-w-0 space-y-[var(--space-xxl)]">
+        <div className="mt-[var(--space-l)] grid grid-cols-1 gap-x-[30px] gap-y-[var(--space-xl)] lg:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="min-w-0 space-y-[var(--space-xl)]">
             {sections.map((section, i) => (
               <QuestionSection
                 key={section.prompt.id}
@@ -337,7 +364,6 @@ export default async function RoundPage({
 
       <RoundFooterTease
         catchupId={edition.catchupId}
-        groupName={edition.catchup.group.name}
         nextOpensAt={edition.catchup.nextOpensAt}
         showNextOpens={catchupActive}
       />

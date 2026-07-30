@@ -1,13 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { AnimatePresence, motion } from "motion/react";
 import { ImagePlus, Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HouseYearEntry } from "@/lib/houses";
-import { academicSpanLabel, seedHouseYearRows, type HouseYearRow } from "@/lib/house-spans";
+import {
+  academicSpanLabel,
+  missingYears,
+  restoreAllYearRows,
+  seedHouseYearRows,
+  type HouseYearRow,
+} from "@/lib/house-spans";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { InfoTooltip } from "@/components/common/info-tooltip";
 import { LocationPicker, type PlaceSelection } from "@/components/common/location-picker";
@@ -32,8 +38,6 @@ import {
   deleteAccount,
   updateAvatar,
   removeAvatar,
-  updateCover,
-  removeCover,
   updateUserPlaces,
 } from "./actions";
 import { saveOnboardingHouses } from "@/components/onboarding/actions";
@@ -43,7 +47,6 @@ interface SettingsUser {
   name: string;
   email: string;
   photoUrl: string | null;
-  coverPhoto: string | null;
   avatarColor: string | null;
   birdOverride: string | null;
   about: string | null;
@@ -100,6 +103,69 @@ function toHttpsUrl(raw: string): string {
   return `https://${v}`;
 }
 
+/* ------------------------------------------------------------------ *
+ *  Inset-grouped layout, per the owner-approved verdict in
+ *  /lab/tiles ("When a box earns its border"):
+ *  "Group label outside a single container, one hairline row per field,
+ *  zero nested surfaces." The group label sits above the border, never
+ *  inside it; every field is one hairline row, never its own nested card.
+ *  Radius ladder: 16px container -> 12px inputs / 8-ish inner chips,
+ *  never the same radius twice in a row.
+ * ------------------------------------------------------------------ */
+
+function SettingsGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <h2 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </h2>
+      <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** One field, one hairline row. `block` stacks the control full-width below
+ *  the label (for a textarea, a repeater, a picker); otherwise the label
+ *  sits in a fixed-width left column with the control at the right on
+ *  desktop, and both stack on mobile. */
+function SettingsRow({
+  label,
+  hint,
+  htmlFor,
+  last = false,
+  block = false,
+  children,
+}: {
+  label: ReactNode;
+  hint?: ReactNode;
+  htmlFor?: string;
+  last?: boolean;
+  block?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex gap-3 px-4 py-3.5 sm:gap-6",
+        block ? "flex-col" : "flex-col sm:flex-row sm:items-center",
+        !last && "border-b border-border"
+      )}
+    >
+      <div className={cn(block ? "" : "sm:w-[168px] sm:shrink-0")}>
+        <Label htmlFor={htmlFor} className="text-[13.5px] font-medium text-foreground">
+          {label}
+        </Label>
+        {hint && <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{hint}</p>}
+      </div>
+      <div className={cn("min-w-0 flex-1", !block && "flex flex-wrap items-center gap-3 sm:justify-end")}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function SettingsForm({ user }: { user: SettingsUser }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -110,9 +176,6 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
   const [photoBusy, setPhotoBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [coverPhoto, setCoverPhoto] = useState<string | null>(user.coverPhoto);
-  const [coverBusy, setCoverBusy] = useState(false);
-  const coverRef = useRef<HTMLInputElement>(null);
 
   const [about, setAbout] = useState(user.about ?? "");
 
@@ -132,8 +195,12 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
     seedHouseYearRows(user.houses, user.yearJoined, user.yearLeft)
   );
   const [linkRows, setLinkRows] = useState<LinkRow[]>(() => parseLinkRows(user.links));
+  // Which year's house panel is open. Held here (not inside HousePicker) so
+  // committing one year can hand the run to the next.
+  const [openHouseYear, setOpenHouseYear] = useState<number | null>(null);
 
   const currentYear = new Date().getFullYear();
+  const missingHouseYears = missingYears(houseRows, user.yearJoined, user.yearLeft);
 
   // One sticky save bar for the whole form: any change (native form field,
   // or one of the array reducers above) marks the form dirty, the bar
@@ -151,6 +218,21 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
   }
   function removeHouseRow(year: number) {
     setHouseRows((rs) => rs.filter((r) => r.year !== year));
+    markDirty();
+  }
+  // Picking a house hands the run straight to the next year still needing one,
+  // so a whole school career is one click per year with no dismiss in between.
+  // Skips years already filled in (someone correcting a single mid-career year
+  // is not made to walk the rest of the list), and stops at the end rather
+  // than wrapping around to the top.
+  function advanceHouseYear(fromYear: number) {
+    const next = [...houseRows]
+      .sort((a, b) => a.year - b.year)
+      .find((r) => r.year > fromYear && r.houses.length === 0);
+    setOpenHouseYear(next ? next.year : null);
+  }
+  function restoreHouseYears() {
+    setHouseRows((rs) => restoreAllYearRows(rs, user.yearJoined, user.yearLeft));
     markDirty();
   }
   // Anchor for "add a year without typing": whatever we know about when this
@@ -204,32 +286,6 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
     router.refresh();
   }
 
-  async function handleCoverPick(f: File | null) {
-    if (!f) return;
-    if (!f.type.startsWith("image/")) return toast.error("Please choose an image");
-    if (f.size > 15 * 1024 * 1024) return toast.error("Photo must be under 15MB");
-    setCoverBusy(true);
-    const fd = new FormData();
-    fd.set("file", f);
-    const result = await updateCover(fd);
-    setCoverBusy(false);
-    if (coverRef.current) coverRef.current.value = "";
-    if (result.error) return toast.error(result.error);
-    setCoverPhoto(result.coverPhoto ?? null);
-    toast.success("Header picture updated");
-    router.refresh();
-  }
-
-  async function handleCoverRemove() {
-    setCoverBusy(true);
-    const result = await removeCover();
-    setCoverBusy(false);
-    if (result.error) return toast.error(result.error);
-    setCoverPhoto(null);
-    toast.success("Header picture removed");
-    router.refresh();
-  }
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
@@ -265,7 +321,7 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
       profileResult.error || placesResult.error || ("error" in housesResult ? housesResult.error : undefined);
     if (error) return toast.error(error);
 
-    toast.success("Saved. Looking good.");
+    toast.success("Saved");
     setDirty(false);
     router.refresh();
   }
@@ -303,102 +359,52 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
         onChange={markDirty}
         className="space-y-6 pb-4"
       >
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">You</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="name">Your name</Label>
-              <Input id="name" name="name" defaultValue={user.name} required minLength={2} />
-            </div>
+        <SettingsGroup label="You">
+          <SettingsRow label="Your name" htmlFor="name">
+            <Input id="name" name="name" defaultValue={user.name} required minLength={2} className="sm:max-w-[280px]" />
+          </SettingsRow>
 
-            <div className="space-y-2">
-              <Label>Profile photo</Label>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handlePhotoPick(e.target.files?.[0] ?? null)}
-              />
-              <div className="flex items-center gap-4 rounded-[var(--radius)] border border-border bg-paper/50 p-4">
-                <BirdAvatar
-                  user={{
-                    id: user.id,
-                    name: user.name,
-                    photoUrl,
-                    avatarColor: user.avatarColor,
-                    birdOverride: user.birdOverride,
-                  }}
-                  size="lg"
-                />
-                <div className="space-y-1.5">
-                  <p className="text-sm text-muted-foreground">
-                    {photoUrl
-                      ? "Your photo shows everywhere in place of your bird."
-                      : "Upload a photo, or keep your valley bird."}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" size="sm" disabled={photoBusy} onClick={() => fileRef.current?.click()}>
-                      {photoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-                      {photoUrl ? "Change photo" : "Upload photo"}
-                    </Button>
-                    {photoUrl && (
-                      <Button type="button" variant="ghost" size="sm" disabled={photoBusy} className="text-muted-foreground hover:text-foreground" onClick={handlePhotoRemove}>
-                        Remove photo
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <SettingsRow
+            label="Profile photo"
+            hint={photoUrl ? "Shows everywhere in place of your bird." : "Upload a photo, or keep your valley bird."}
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handlePhotoPick(e.target.files?.[0] ?? null)}
+            />
+            <BirdAvatar
+              user={{
+                id: user.id,
+                name: user.name,
+                photoUrl,
+                avatarColor: user.avatarColor,
+                birdOverride: user.birdOverride,
+              }}
+              size="sm"
+            />
+            <Button type="button" variant="outline" size="sm" disabled={photoBusy} onClick={() => fileRef.current?.click()}>
+              {photoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+              {photoUrl ? "Change" : "Upload"}
+            </Button>
+            {photoUrl && (
+              <Button type="button" variant="ghost" size="sm" disabled={photoBusy} className="text-muted-foreground hover:text-foreground" onClick={handlePhotoRemove}>
+                Remove
+              </Button>
+            )}
+          </SettingsRow>
 
-            <div className="space-y-2">
-              <Label>Header picture</Label>
-              <input
-                ref={coverRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleCoverPick(e.target.files?.[0] ?? null)}
-              />
-              <div className="space-y-3 rounded-[var(--radius)] border border-border bg-paper/50 p-4">
-                <div
-                  className="relative h-28 overflow-hidden rounded-xl border border-border bg-mist bg-cover bg-center"
-                  style={{ backgroundImage: `url(${coverPhoto || "/images/collection/v1.webp"})` }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/30" />
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground">
-                    {coverPhoto ? "Shown across the top of your profile." : "A valley photo shows until you add your own."}
-                  </p>
-                  <div className="flex shrink-0 flex-wrap gap-2">
-                    <Button type="button" variant="outline" size="sm" disabled={coverBusy} onClick={() => coverRef.current?.click()}>
-                      {coverBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-                      {coverPhoto ? "Change header" : "Upload header"}
-                    </Button>
-                    {coverPhoto && (
-                      <Button type="button" variant="ghost" size="sm" disabled={coverBusy} className="text-muted-foreground hover:text-foreground" onClick={handleCoverRemove}>
-                        Remove header
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </SettingsGroup>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">About</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-[13px] leading-relaxed text-muted-foreground">
-              A few lines about who you are now. Not homework, just enough that a batchmate smiles when they land here.
-            </p>
+        <SettingsGroup label="About">
+          <SettingsRow
+            label="About"
+            hint="A few lines about who you are now. Not homework, just enough that a batchmate smiles when they land here."
+            htmlFor="about"
+            block
+          >
             <div className="flex flex-wrap gap-2">
               {ABOUT_PROMPTS.map((p) => (
                 <button
@@ -408,7 +414,7 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
                     setAbout((a) => (a ? `${a}\n\n${p} ` : `${p} `));
                     markDirty();
                   }}
-                  className="rounded-full border border-border bg-mist/60 px-3 py-1.5 text-[12px] font-semibold text-foreground transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+                  className="rounded-full border border-border bg-mist/60 px-3 py-1.5 text-[12px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
                 >
                   {p}
                 </button>
@@ -421,162 +427,147 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
               onChange={(e) => setAbout(e.target.value.slice(0, ABOUT_MAX))}
               rows={5}
               placeholder="I studied here from 2014, was in Neem and Palm, and now I build small software in Bengaluru..."
+              className="mt-2.5"
             />
-            <p className="text-right text-[12px] tabular-nums text-muted-foreground">
+            <p className="mt-1.5 text-right text-[12px] tabular-nums text-muted-foreground">
               {about.length} / {ABOUT_MAX}
             </p>
-          </CardContent>
-        </Card>
+          </SettingsRow>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">Your batch</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor="batchYear">Which batch are you in?</Label>
+          <SettingsRow label="Admission number" htmlFor="admissionNumber" last>
+            <Input
+              id="admissionNumber"
+              name="admissionNumber"
+              type="number"
+              defaultValue={user.admissionNumber || ""}
+              placeholder="e.g. 1234"
+              min={0}
+              max={10000}
+              className="sm:max-w-[160px]"
+            />
+          </SettingsRow>
+        </SettingsGroup>
+
+        <SettingsGroup label="Your batch">
+          <SettingsRow
+            label={
+              <span className="inline-flex items-center gap-1.5">
+                Which batch are you in?
                 <InfoTooltip label="What does batch mean?">{BATCH_EXPLANATION}</InfoTooltip>
-              </div>
-              <YearInput
-                id="batchYear"
-                name="batchYear"
-                placeholder="e.g. 2023"
-                value={batchYear}
-                onValueChange={setBatchYear}
-                className="max-w-[160px]"
-              />
-            </div>
+              </span>
+            }
+            htmlFor="batchYear"
+          >
+            <YearInput
+              id="batchYear"
+              name="batchYear"
+              placeholder="e.g. 2023"
+              value={batchYear}
+              onValueChange={setBatchYear}
+              className="sm:max-w-[140px]"
+            />
+          </SettingsRow>
+          <SettingsRow label="Year you joined" htmlFor="yearJoined">
+            <YearInput id="yearJoined" name="yearJoined" placeholder="e.g. 2014" value={yearJoined} onValueChange={setYearJoined} className="sm:max-w-[140px]" />
+          </SettingsRow>
+          <SettingsRow label="Year you left" htmlFor="yearLeft" last>
+            <YearInput id="yearLeft" name="yearLeft" placeholder="e.g. 2021" value={yearLeft} onValueChange={setYearLeft} className="sm:max-w-[140px]" />
+          </SettingsRow>
+        </SettingsGroup>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="yearJoined">Year you joined</Label>
-                <YearInput id="yearJoined" name="yearJoined" placeholder="e.g. 2014" value={yearJoined} onValueChange={setYearJoined} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="yearLeft">Year you left</Label>
-                <YearInput id="yearLeft" name="yearLeft" placeholder="e.g. 2021" value={yearLeft} onValueChange={setYearLeft} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <SettingsGroup label="Work">
+          <SettingsRow label="What you do" htmlFor="jobTitle">
+            <Input id="jobTitle" name="jobTitle" defaultValue={user.jobTitle || ""} placeholder="e.g. Teacher" className="sm:max-w-[280px]" />
+          </SettingsRow>
+          <SettingsRow label="Where" htmlFor="workplace" last>
+            <Input id="workplace" name="workplace" defaultValue={user.workplace || ""} placeholder="e.g. Tata Consultancy Services" className="sm:max-w-[280px]" />
+          </SettingsRow>
+        </SettingsGroup>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">Work</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="jobTitle">What you do</Label>
-                <Input id="jobTitle" name="jobTitle" defaultValue={user.jobTitle || ""} placeholder="e.g. Teacher" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="workplace">Where</Label>
-                <Input id="workplace" name="workplace" defaultValue={user.workplace || ""} placeholder="e.g. Tata Consultancy Services" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">Contact</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <SettingsGroup label="Contact">
+          <SettingsRow
+            label="Email shown on your profile"
+            hint={`Leave blank to use your sign-in email (${user.email}). Editing this never changes how you log in.`}
+            htmlFor="displayEmail"
+          >
+            <Input id="displayEmail" name="displayEmail" type="email" defaultValue={user.displayEmail || ""} placeholder={user.email} className="sm:max-w-[280px]" />
+          </SettingsRow>
+          <SettingsRow label="Phone" htmlFor="phone">
+            <Input id="phone" name="phone" defaultValue={user.phone || ""} placeholder="+91 ..." className="sm:max-w-[220px]" />
+          </SettingsRow>
+          <SettingsRow label="Instagram" htmlFor="instagram">
+            <Input id="instagram" name="instagram" defaultValue={user.instagram || ""} placeholder="@handle" className="sm:max-w-[220px]" />
+          </SettingsRow>
+          <SettingsRow label="LinkedIn" htmlFor="linkedin">
+            <Input id="linkedin" name="linkedin" defaultValue={user.linkedin || ""} placeholder="Profile URL" className="sm:max-w-[280px]" />
+          </SettingsRow>
+          <SettingsRow label="Facebook" htmlFor="facebook">
+            <Input id="facebook" name="facebook" defaultValue={user.facebook || ""} placeholder="Profile URL" className="sm:max-w-[280px]" />
+          </SettingsRow>
+          <SettingsRow
+            label="Other links"
+            hint="Your blog, a project, anything else worth a link. Give each one a short label."
+            block
+            last
+          >
             <div className="space-y-2">
-              <Label htmlFor="displayEmail">Email shown on your profile</Label>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
-                Leave blank to use your sign-in email ({user.email}). Editing this never changes how you log in.
-              </p>
-              <Input id="displayEmail" name="displayEmail" type="email" defaultValue={user.displayEmail || ""} placeholder={user.email} />
+              {linkRows.map((row) => (
+                <div key={row.key} className="flex items-center gap-2">
+                  <Input
+                    aria-label="Link label"
+                    placeholder="e.g. My blog"
+                    value={row.label}
+                    onChange={(e) => updateLinkRow(row.key, { label: e.target.value })}
+                    className="w-2/5 min-w-0 shrink-0"
+                  />
+                  <Input
+                    aria-label="Link URL"
+                    // Deliberately type="text", not type="url": the browser's
+                    // native url validity check requires a scheme up front
+                    // and silently blocks submission (no visible error) the
+                    // moment someone types "example.com" without "https://"
+                    // -- exactly the case toHttpsUrl() exists to forgive.
+                    type="text"
+                    inputMode="url"
+                    placeholder="https://..."
+                    value={row.url}
+                    onChange={(e) => updateLinkRow(row.key, { url: e.target.value })}
+                    className="min-w-0 flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Remove this link"
+                    onClick={() => {
+                      setLinkRows((rs) => rs.filter((r) => r.key !== row.key));
+                      markDirty();
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setLinkRows((rs) => [...rs, { key: linkKey++, label: "", url: "" }])}
+              >
+                <Plus className="h-4 w-4" />
+                Add a link
+              </Button>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" name="phone" defaultValue={user.phone || ""} placeholder="+91 ..." />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="instagram">Instagram</Label>
-                <Input id="instagram" name="instagram" defaultValue={user.instagram || ""} placeholder="@handle" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="linkedin">LinkedIn</Label>
-                <Input id="linkedin" name="linkedin" defaultValue={user.linkedin || ""} placeholder="Profile URL" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="facebook">Facebook</Label>
-                <Input id="facebook" name="facebook" defaultValue={user.facebook || ""} placeholder="Profile URL" />
-              </div>
-            </div>
+          </SettingsRow>
+        </SettingsGroup>
 
-            <div className="space-y-2 border-t border-dashed border-border pt-4">
-              <Label>Other links</Label>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
-                Your blog, a project, anything else worth a link. Give each one a short label.
-              </p>
-              <div className="space-y-2">
-                {linkRows.map((row) => (
-                  <div key={row.key} className="flex items-center gap-2">
-                    <Input
-                      aria-label="Link label"
-                      placeholder="e.g. My blog"
-                      value={row.label}
-                      onChange={(e) => updateLinkRow(row.key, { label: e.target.value })}
-                      className="w-2/5 min-w-0 shrink-0"
-                    />
-                    <Input
-                      aria-label="Link URL"
-                      // Deliberately type="text", not type="url": the browser's
-                      // native url validity check requires a scheme up front
-                      // and silently blocks submission (no visible error) the
-                      // moment someone types "example.com" without "https://"
-                      // -- exactly the case toHttpsUrl() exists to forgive.
-                      type="text"
-                      inputMode="url"
-                      placeholder="https://..."
-                      value={row.url}
-                      onChange={(e) => updateLinkRow(row.key, { url: e.target.value })}
-                      className="min-w-0 flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Remove this link"
-                      onClick={() => {
-                        setLinkRows((rs) => rs.filter((r) => r.key !== row.key));
-                        markDirty();
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLinkRows((rs) => [...rs, { key: linkKey++, label: "", url: "" }])}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add a link
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">Where you are</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-[13px] leading-relaxed text-muted-foreground">
-              Every place you call home. Add as many as you like; they all show equally on your profile.
-            </p>
+        <SettingsGroup label="Where you are">
+          <SettingsRow
+            label="Your cities"
+            hint="Every place you call home. Add as many as you like; they all show equally on your profile."
+            block
+            last
+          >
             <LocationPicker
               mode="multi"
               value={places}
@@ -586,63 +577,66 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
               }}
               aria-label="Your cities"
             />
-          </CardContent>
-        </Card>
+          </SettingsRow>
+        </SettingsGroup>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading">Houses</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="admissionNumber">Admission number</Label>
-              <Input id="admissionNumber" name="admissionNumber" type="number" defaultValue={user.admissionNumber || ""} placeholder="e.g. 1234" min={0} max={10000} className="max-w-[200px]" />
-            </div>
+        <SettingsGroup label="Houses">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              {user.yearJoined != null && user.yearLeft != null && houseRows.length > 0
+                ? "We've laid out your years below. Pick a house for each; add or remove years if we got the range wrong."
+                : "Which house, which year. Add an academic year, then pick the house (or two, if you switched)."}
+            </p>
+          </div>
 
-            <div className="space-y-2 border-t border-dashed border-border pt-4">
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
-                {user.yearJoined != null && user.yearLeft != null && houseRows.length > 0
-                  ? "We've laid out your years below. Pick a house for each; add or remove years if we got the range wrong."
-                  : "Which house, which year. Add an academic year, then pick the house (or two, if you switched)."}
-              </p>
-              <div className="space-y-2">
-                {houseRows.map((row) => (
-                  <div key={row.year} className="flex items-center gap-2 rounded-xl bg-mist/40 p-2.5">
-                    <div className="flex h-10 w-[68px] shrink-0 items-center justify-center rounded-lg bg-canopy/10 px-1 text-center">
-                      <span className="text-[13px] font-bold tabular-nums leading-tight text-canopy">
-                        {academicSpanLabel(row.year, row.year)}
-                      </span>
-                    </div>
-                    <HousePicker
-                      value={row.houses}
-                      onChange={(next) => updateHouseRowHouses(row.year, next)}
-                      ariaLabel={`House(s) for ${academicSpanLabel(row.year, row.year)}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Remove ${academicSpanLabel(row.year, row.year)}`}
-                      onClick={() => removeHouseRow(row.year)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={addEarlierHouseYear}>
-                    <Plus className="h-4 w-4" />
-                    Earlier year
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={addLaterHouseYear}>
-                    <Plus className="h-4 w-4" />
-                    Later year
-                  </Button>
-                </div>
+          {houseRows.map((row) => (
+            <div key={row.year} className="flex items-center gap-3 border-b border-border px-4 py-2.5">
+              {/* Radius ladder: 16px group container -> 12px HousePicker
+                  trigger -> this year chip at 8px, so no two nested surfaces
+                  here ever share a radius. */}
+              <span className="flex h-9 w-16 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-canopy/10 text-center text-[13px] font-bold tabular-nums leading-tight text-canopy">
+                {academicSpanLabel(row.year, row.year)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <HousePicker
+                  value={row.houses}
+                  onChange={(next) => updateHouseRowHouses(row.year, next)}
+                  ariaLabel={`House(s) for ${academicSpanLabel(row.year, row.year)}`}
+                  yearLabel={academicSpanLabel(row.year, row.year)}
+                  open={openHouseYear === row.year}
+                  onOpenChange={(o) => setOpenHouseYear(o ? row.year : null)}
+                  onPicked={() => advanceHouseYear(row.year)}
+                />
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Remove ${academicSpanLabel(row.year, row.year)}`}
+                onClick={() => removeHouseRow(row.year)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+
+          <div className="flex flex-wrap gap-2 px-4 py-3">
+            <Button type="button" variant="outline" size="sm" onClick={addEarlierHouseYear}>
+              <Plus className="h-4 w-4" />
+              Earlier year
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={addLaterHouseYear}>
+              <Plus className="h-4 w-4" />
+              Later year
+            </Button>
+            {missingHouseYears.length > 0 && (
+              <Button type="button" variant="outline" size="sm" onClick={restoreHouseYears}>
+                <Plus className="h-4 w-4" />
+                Add all my years ({missingHouseYears.length})
+              </Button>
+            )}
+          </div>
+        </SettingsGroup>
 
         {/* One sticky save bar for the whole form: appears the moment
             anything above changes, saves it all in a single action. */}
@@ -653,7 +647,12 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 24 }}
               transition={SPRINGS.gentle}
-              className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(16px,env(safe-area-inset-bottom))]"
+              // Sits BELOW floating popups (--z-floating: 30), not above them.
+              // The bar appears the moment anything is edited, so on a phone a
+              // z-40 bar covered the bottom of the city/house suggestion lists
+              // and swallowed taps on the last few rows. It only has to clear
+              // page content, and a dropdown opened on top of it should win.
+              className="fixed inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[max(16px,env(safe-area-inset-bottom))]"
             >
               <div className="glass flex w-full max-w-3xl items-center justify-between gap-4 rounded-2xl border border-border px-5 py-3.5 shadow-[0_18px_38px_-16px_rgba(35,36,30,0.35)]">
                 <p className="text-[13.5px] font-semibold text-foreground">You have unsaved changes</p>
@@ -672,7 +671,9 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
         </AnimatePresence>
       </form>
 
-      {/* Danger zone */}
+      {/* Danger zone -- the one place a tile is still earned: it is the only
+          destructive action on the screen, and it deliberately reads as a
+          separate, heavier thing than the form above it. */}
       <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle className="font-heading text-destructive">Danger zone</CardTitle>

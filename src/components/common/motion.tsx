@@ -4,7 +4,7 @@
  *  Shared motion foundation for the real app. One spring set, one set
  *  of ease curves, and two primitives (FadeRise, SpringPress), so every
  *  promoted delight reads like one hand made it. Ported from the
- *  /preview/delight lab kit. Light-mode app; transform/opacity only.
+ *  /lab lab kit. Light-mode app; transform/opacity only.
  *
  *  Owner decision: motion runs all the time, by choice. We deliberately
  *  do NOT gate any of this on the OS prefers-reduced-motion setting.
@@ -31,6 +31,21 @@ export const EASE_SPRING = [0.34, 1.5, 0.64, 1] as const; // softer settle
    would read as the layout "wobbling", rather than a bounce that suits a
    small playful UI detail. */
 export const EASE_OUT_SMOOTH = [0.16, 1, 0.3, 1] as const;
+
+/* A symmetric ease-in-out for LARGE, full-screen travel: a scene change rather
+   than a UI response. `EASE_OUT_SMOOTH` deliberately starts at full speed, which
+   is right for a small panel answering a click but reads as an abrupt lurch when
+   the thing moving is a viewport-sized photo -- there is no ramp-up, so the eye
+   never gets to follow it away. This curve eases in, carries, and settles, so a
+   long slide feels like one continuous gesture. Weighted slightly toward the
+   out-side (0.55 rather than a true symmetric 0.65) so the first frame still
+   answers the click promptly instead of feeling laggy. */
+export const EASE_IN_OUT_SCENE = [0.55, 0, 0.25, 1] as const;
+
+/* How long the landing -> auth photo slide takes. Exported so the photo, the
+   headline exit, and both gradient crossfades stay locked to one number: they
+   are one gesture, and drifting them apart is what makes a handoff look busy. */
+export const AUTH_SLIDE_SECONDS = 0.9;
 
 /* The sidebar active-row marker glides with a touch more weight than `snappy`, so the pill and its
    cinnamon edge settle rather than snap dead. Shared so any future edge-marker reads the same. */
@@ -91,7 +106,12 @@ export function FadeRise({
   );
 }
 
-/* A clear press on every clickable: a sink on tap, a small lift on hover, one spring. */
+/* A clear press on every clickable: a sink on tap, one spring.
+ *
+ * Deliberately has NO hover transform. Per the owner (2026-07-25), hover must
+ * never move a control -- a colour change is the whole hover story. The tap
+ * sink stays because that is feedback for an action you took, not a control
+ * shifting under an idle cursor. */
 export function SpringPress({
   children,
   className,
@@ -109,7 +129,6 @@ export function SpringPress({
     <Comp
       className={className}
       onClick={onClick}
-      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.93 }}
       transition={SPRINGS.snappy}
       {...rest}

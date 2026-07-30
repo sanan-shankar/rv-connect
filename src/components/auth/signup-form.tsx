@@ -370,7 +370,7 @@ export function SignupForm({
                   type="button"
                   onClick={() => setAccountType(t.value)}
                   aria-pressed={selected}
-                  className={`relative rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                  className={`relative rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
                     selected
                       ? "text-canopy"
                       : "text-muted-foreground hover:text-foreground"

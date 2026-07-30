@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/layout/page-header";
 import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
 
 export const metadata: Metadata = {
@@ -9,15 +10,13 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-10">
-        <h1 className="font-heading text-3xl font-bold tracking-[-0.02em] text-foreground">
-          About Rishi Valley
-        </h1>
-        <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-          A space for the Rishi Valley community to stay connected.
-        </p>
-      </div>
+    // AppShell provides the shared page column; the prose takes a narrower
+    // reading measure against its left edge.
+    <div>
+      <PageHeader
+        title="About Rishi Valley"
+        subtitle="A space for the Rishi Valley community to stay connected."
+      />
 
       <div className="space-y-10">
         <section>

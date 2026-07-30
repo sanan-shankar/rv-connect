@@ -7,8 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
 import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
+import { LetterImages } from "@/components/letters/letter-images";
 import { canViewCityScope } from "@/lib/city-scope";
-import { formatBatch, renderRichText, parseJsonArray, letterTitle } from "@/lib/utils";
+import { formatBatch, formatDisplayDate, renderRichText, parseJsonArray, letterTitle } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -21,9 +22,24 @@ export async function generateMetadata({
 
   const letter = await prisma.post.findUnique({
     where: { id },
-    select: { title: true, content: true, kind: true, isHidden: true, groupId: true, cityScope: true },
+    select: {
+      title: true,
+      content: true,
+      kind: true,
+      isHidden: true,
+      groupId: true,
+      cityScope: true,
+      status: true,
+      authorId: true,
+    },
   });
   if (!letter || letter.kind !== "letter" || letter.isHidden) return { title: "Letter" };
+
+  // A draft is only ever visible to its own author; never leak its title
+  // (even indirectly, via the tab title) to anyone else.
+  if (letter.status === "draft" && letter.authorId !== session.user.id) {
+    return { title: "Letter" };
+  }
 
   // Group letters are private to members; do not leak the title to non-members.
   if (letter.groupId) {
@@ -63,6 +79,14 @@ export default async function LetterPage({
 
   if (!letter || letter.kind !== "letter" || letter.isHidden) notFound();
 
+  // A draft is only ever visible to its own author: a preview of a letter
+  // still being written, not a published page. Everyone else gets the same
+  // 404 as a letter that doesn't exist, so a draft's existence is never
+  // revealed by a different error.
+  const isAuthor = letter.authorId === session.user.id;
+  const isDraft = letter.status === "draft";
+  if (isDraft && !isAuthor) notFound();
+
   // Group letters are private to members.
   if (letter.groupId) {
     const membership = await prisma.groupMember.findUnique({
@@ -81,6 +105,8 @@ export default async function LetterPage({
   const readMinutes = Math.max(1, Math.round(words / 200));
 
   return (
+    // A reading measure (line length), not a page width: the column itself is
+    // the shell's. Centered inside it so the text sits under its own title.
     <article className="mx-auto max-w-[680px]">
       <Link
         href={letter.groupId ? `/groups/${letter.groupId}` : "/letters"}
@@ -89,6 +115,18 @@ export default async function LetterPage({
         <ArrowLeft className="h-4 w-4" />
         {letter.groupId ? "Back to group" : "All letters"}
       </Link>
+
+      {isDraft && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-cinnamon/30 bg-cinnamon/10 px-4 py-3 text-sm">
+          <span className="font-medium text-cinnamon">Draft, only visible to you.</span>
+          <Link
+            href="/letters"
+            className="rounded-sm font-semibold text-cinnamon underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            Continue editing
+          </Link>
+        </div>
+      )}
 
       <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
         <Feather className="h-3.5 w-3.5" />
@@ -130,30 +168,30 @@ export default async function LetterPage({
         dangerouslySetInnerHTML={{ __html: renderRichText(letter.content) }}
       />
 
-      {images.length > 0 && (
-        <div className="mt-8 space-y-4">
-          {images.map((img, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={i}
-              src={img}
-              alt=""
-              loading="lazy"
-              className="w-full rounded-xl border border-border object-cover"
-            />
-          ))}
-        </div>
-      )}
-
-      <LetterEngagement
-        postId={letter.id}
-        groupId={letter.groupId}
-        initialLiked={letter.likes.length > 0}
-        initialLikeCount={letter._count.likes}
-        initialBookmarked={letter.bookmarks.length > 0}
-        initialCommentCount={letter._count.comments}
-        viewerIsAdmin={session.user.role === "admin"}
+      <LetterImages
+        images={images}
+        author={{
+          id: letter.author.id,
+          name: letter.author.name,
+          photoUrl: letter.author.photoUrl,
+          birdOverride: letter.author.birdOverride,
+        }}
+        date={formatDisplayDate(letter.createdAt)}
       />
+
+      {/* A draft hasn't been published yet, so there is nothing to like,
+          comment on, bookmark, or share -- that all starts once it's out. */}
+      {!isDraft && (
+        <LetterEngagement
+          postId={letter.id}
+          groupId={letter.groupId}
+          initialLiked={letter.likes.length > 0}
+          initialLikeCount={letter._count.likes}
+          initialBookmarked={letter.bookmarks.length > 0}
+          initialCommentCount={letter._count.comments}
+          viewerIsAdmin={session.user.role === "admin"}
+        />
+      )}
     </article>
   );
 }

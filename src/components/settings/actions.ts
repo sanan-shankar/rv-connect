@@ -11,7 +11,6 @@ import { titleCase } from "@/lib/normalize";
 import { revalidatePath } from "next/cache";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
-const MAX_COVER_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
 
 export async function updateUserProfile(formData: FormData) {
   const session = await auth();
@@ -209,69 +208,6 @@ export async function removeAvatar() {
     data: { photoUrl: null },
   });
   if (prev?.photoUrl) await delImage(prev.photoUrl);
-
-  revalidatePath("/settings");
-  revalidatePath(`/profile/${session.user.id}`);
-  return { success: true };
-}
-
-export async function updateCover(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
-
-  const file = formData.get("file") as File | null;
-  if (!file) return { error: "No photo provided" };
-  if (!file.type.startsWith("image/")) return { error: "Only image files are allowed" };
-  if (file.type === "image/heic" || file.type === "image/heif")
-    return { error: "HEIC is not supported yet. Please export as JPG or PNG." };
-  if (file.size > MAX_COVER_INPUT) return { error: "Photo must be under 15MB" };
-
-  let url: string;
-  try {
-    const input = Buffer.from(await file.arrayBuffer());
-    const id = createId();
-    // Wide banner crop to WebP. The header renders it with bg-cover/center, so
-    // a landscape frame crops cleanly across desktop and mobile bands.
-    const webp = await sharp(input)
-      .rotate()
-      .resize(1600, 600, { fit: "cover", position: "centre" })
-      .webp({ quality: 80 })
-      .toBuffer();
-    url = await putImage(webp, "covers", `${id}.webp`);
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    return { error: `Could not process the photo: ${message}` };
-  }
-
-  // Replace any prior uploaded cover, best-effort.
-  const prev = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { coverPhoto: true },
-  });
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { coverPhoto: url },
-  });
-  if (prev?.coverPhoto && prev.coverPhoto !== url) await delImage(prev.coverPhoto);
-
-  revalidatePath("/settings");
-  revalidatePath(`/profile/${session.user.id}`);
-  return { success: true, coverPhoto: url };
-}
-
-export async function removeCover() {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
-
-  const prev = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { coverPhoto: true },
-  });
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { coverPhoto: null },
-  });
-  if (prev?.coverPhoto) await delImage(prev.coverPhoto);
 
   revalidatePath("/settings");
   revalidatePath(`/profile/${session.user.id}`);

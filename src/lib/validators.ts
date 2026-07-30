@@ -110,6 +110,9 @@ export const postSchema = z.object({
   // City-scoped audience: the poster's own city string, or omitted for "Everyone".
   // Validated server-side against the poster's actual UserPlace list (createPost).
   cityScope: z.string().max(120).optional(),
+  // Save this letter as a draft instead of publishing it. Only meaningful
+  // when kind === "letter" (createPost ignores it for a plain post).
+  saveAsDraft: z.boolean().optional(),
 });
 
 // The Collection contribute form (contribute-dialog.tsx) simplified to three

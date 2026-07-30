@@ -1,56 +1,94 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <ConsolePublished> - the left console once the latest Round is out
- *  (spec 3.3): a "Round N is out" banner with the "Read the Round" CTA.
+ *  <ConsolePublished> - the console once the latest Round is out.
+ *
+ *  The Catch-up home is one surface (owner review 2026-07-25): when the
+ *  Round is published the issue is READ here, not linked to. The
+ *  dedicated `/catchups/round/[editionId]` route stays a real page (it
+ *  is the shareable deep link), so the header keeps one plain link to
+ *  it, but nobody has to navigate to read what their group wrote.
  * ------------------------------------------------------------------ */
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { FadeRise } from "@/components/common/motion";
-import { MemberStrip } from "./member-strip";
-import type { CatchupHomeData, HomeEditionView } from "./types";
+import { QuestionSection } from "@/components/catchups/round/question-section";
+import type { RoundEntry } from "@/components/catchups/round/answer-card";
+import type { CatchupPromptView } from "@/lib/catchups-types";
+import type { HomeEditionView } from "./types";
+
+/** The published Round, loaded inline by this screen's page.tsx. Declared
+ *  here (not in `home/types.ts`) because this console is its only consumer. */
+export type PublishedIssue = {
+  publishedAt: string | null;
+  sections: Array<{ prompt: CatchupPromptView; entries: RoundEntry[] }>;
+};
+
+const TILE = "card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]";
+
+function formatDate(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export function ConsolePublished({
-  data,
   edition,
+  issue,
 }: {
-  data: CatchupHomeData;
   edition: HomeEditionView;
+  issue: PublishedIssue | null;
 }) {
+  const dateLabel = formatDate(issue?.publishedAt ?? edition.publishedAt);
+
   return (
-    <FadeRise>
-      <div className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-8 sm:p-10">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(90% 80% at 0% 0%, color-mix(in srgb, var(--color-leaf) 10%, transparent), transparent 60%), radial-gradient(90% 80% at 100% 100%, color-mix(in srgb, var(--color-cinnamon) 9%, transparent), transparent 55%)",
-          }}
-        />
-        <div className="relative flex flex-wrap items-center justify-between gap-6">
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-leaf">
-              {data.groupName} Catch-ups
-            </p>
-            <h2 className="mt-2 font-heading text-2xl font-bold tracking-[-0.02em] text-foreground">
+    <div className="space-y-[var(--space-l)]">
+      <FadeRise>
+        <div className={TILE}>
+          <div className="flex flex-wrap items-baseline justify-between gap-[var(--space-s)]">
+            <h2 className="font-heading text-[1.35rem] font-bold tracking-[-0.02em] text-foreground">
               Round {edition.number} is out.
             </h2>
-            <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              {edition.answeredCount} of {data.memberCount} wrote in. Read the whole issue together.
-            </p>
-            <MemberStrip members={data.members} className="mt-4" max={10} />
+            <Link
+              href={`/catchups/round/${edition.id}`}
+              className="inline-flex items-center gap-1 rounded-full text-sm font-semibold text-canopy transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            >
+              Open it on its own page
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <Link href={`/catchups/round/${edition.id}`}>
-            <Button variant="primary" size="lg">
-              Read the Round
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
+          {/* Round number is in the heading, so this line carries only the
+              date. Who wrote in is not counted at the reader: every
+              contributor is named on their own answer, just below. */}
+          {dateLabel && (
+            <p className="mt-[var(--space-xxs)] text-sm text-muted-foreground">
+              Published {dateLabel}
+            </p>
+          )}
         </div>
-      </div>
-    </FadeRise>
+      </FadeRise>
+
+      {issue === null ? null : issue.sections.length === 0 ? (
+        <p className="text-sm italic text-muted-foreground">
+          This round did not gather any questions.
+        </p>
+      ) : (
+        <div className="space-y-[var(--space-xl)]">
+          {issue.sections.map((section, i) => (
+            <QuestionSection
+              key={section.prompt.id}
+              id={`q-${section.prompt.id}`}
+              index={i}
+              prompt={section.prompt}
+              entries={section.entries}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

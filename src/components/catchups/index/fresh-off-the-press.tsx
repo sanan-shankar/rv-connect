@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------ *
- *  <FreshOffThePress> — the index's right rail: the most recently
+ *  <FreshOffThePress> - the index's right rail: the most recently
  *  published Rounds across the viewer's groups (spec section 3.1).
  *  Mirrors the compact rail-card shape used by FeedRail so the app's
  *  right-rail language stays consistent.
@@ -24,16 +24,20 @@ function formatDate(d: Date | string | null): string {
 
 export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {
   return (
-    <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
+    <section className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
       <h3 className="mb-1 text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
         Fresh off the press
       </h3>
       {items.length === 0 ? (
         <p className="py-2 text-[13px] leading-relaxed text-muted-foreground">
-          Published Rounds from your groups will show up here once the first one is out.
+          Nothing published yet.
         </p>
       ) : (
-        <div className="[&>a+a]:border-t [&>a+a]:border-border">
+        // `[&>*:last-child]:pb-0`: without it the last row's own py-3 stacks on
+        // the card's 16px padding and the bottom inset reads 28px against a
+        // 16px top, which is the lopsided tile the owner flagged. Same fix the
+        // feed rail's Your Groups module already carries.
+        <div className="[&>*:last-child]:pb-0 [&>a+a]:border-t [&>a+a]:border-border">
           {items.map((item) => (
             <Link
               key={item.editionId}
@@ -54,7 +58,7 @@ export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {
                 </p>
               )}
               <p className="mt-1 text-[11px] font-semibold text-leaf">
-                {item.contributorCount} wrote in
+                {item.contributorCount} {item.contributorCount === 1 ? "person" : "people"} wrote in
               </p>
             </Link>
           ))}

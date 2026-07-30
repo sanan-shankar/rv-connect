@@ -62,7 +62,7 @@ export function LandingNav() {
           </Link>
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-sm transition-transform duration-150 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-[1.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
           >
             Join
           </Link>

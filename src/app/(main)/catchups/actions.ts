@@ -72,7 +72,11 @@ import type {
 // ─── Soft caps (spec 3.3.1, enforced here rather than only surfaced as UI copy) ──
 
 const MAX_PENDING_PROMPTS_PER_MEMBER = 3;
-const MAX_ACCEPTED_PROMPTS_PER_EDITION = 12;
+// Raised from 12 and no longer surfaced anywhere in the UI. The owner's call:
+// a visible "3 of 12" counter made a Round feel rationed for no reason nobody
+// could explain. This is now purely a runaway/spam ceiling that a real group
+// will never reach, not a budget members are asked to manage.
+const MAX_ACCEPTED_PROMPTS_PER_EDITION = 40;
 
 // ─── Validation ──────────────────────────────────────────────────────────────
 
@@ -99,6 +103,13 @@ const createCatchupSchema = z.object({
   groupId: z.string().min(1),
   cadence: cadenceSchema.default("monthly"),
   seedPrompts: z.array(seedPromptSchema).max(MAX_ACCEPTED_PROMPTS_PER_EDITION).default([]),
+});
+
+/** People-first creation: no pre-existing group needed, see createCatchupWithPeople. */
+const createCatchupWithPeopleSchema = z.object({
+  name: z.string().trim().min(1, "Give this Catch-up a name.").max(80, "Keep the name under 80 characters."),
+  memberIds: z.array(z.string().min(1)).max(500),
+  cadence: cadenceSchema.default("monthly"),
 });
 
 const submitPromptSchema = z.object({
@@ -339,6 +350,94 @@ export async function createCatchup(input: {
   });
 }
 
+/**
+ * Start a Catch-up from a set of PEOPLE rather than an existing group.
+ *
+ * Groups are being retired as a user-facing feature (owner, 2026-07-25: "for
+ * now, let us have basically no groups, let's just have catch-ups... within
+ * catch-ups you'll have to build in the functionality to create your own
+ * group"). The Group row survives as the membership container underneath,
+ * because everything downstream already keys off it: `Catchup.groupId` is
+ * unique, `catchups-notify` derives its whole audience from `GroupMember`, and
+ * post/letter scoping uses `Post.groupId`. Rebuilding all of that onto a new
+ * join table would be a large migration to arrive at the same place, so
+ * instead the group is created silently here and never surfaced.
+ *
+ * It is created `private` so it cannot be browsed or auto-joined: the only way
+ * into one of these is to have been picked when the Catch-up was started.
+ */
+export async function createCatchupWithPeople(input: {
+  name: string;
+  memberIds: string[];
+  cadence?: Cadence;
+}) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+
+    const parsed = createCatchupWithPeopleSchema.safeParse(input);
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
+    const { name, memberIds, cadence } = parsed.data;
+    const creatorId = session.user.id;
+
+    // The creator is always in, and never twice. Anyone who is not a real,
+    // unblocked user is dropped rather than failing the whole creation: the
+    // picker can go stale between rendering and submitting.
+    const invitedIds = [...new Set(memberIds.filter((id) => id !== creatorId))];
+    const realMembers = invitedIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: invitedIds }, isBlocked: false },
+          select: { id: true },
+        })
+      : [];
+    const memberRows = [
+      { userId: creatorId, role: "admin" },
+      ...realMembers.map((u) => ({ userId: u.id, role: "member" })),
+    ];
+
+    const now = new Date();
+    const catchupId = await prisma.$transaction(async (tx) => {
+      const group = await tx.group.create({
+        data: {
+          name,
+          visibility: "private",
+          creatorId,
+          members: { create: memberRows },
+        },
+        select: { id: true, name: true },
+      });
+      const catchup = await tx.catchup.create({
+        data: { groupId: group.id, createdById: creatorId, cadence },
+      });
+      // Round 1 opens straight into `collecting` with NO questions. Questions
+      // are no longer picked at creation time (owner: "why would I need to add
+      // questions while creating the catch-up?"), so an empty collecting Round
+      // is the correct initial state: the home screen's whole job right now is
+      // to collect them.
+      const edition = await tx.catchupEdition.create({
+        data: {
+          catchupId: catchup.id,
+          number: 1,
+          status: "collecting",
+          questionsCloseAt: addDays(now, QUESTION_WINDOW_DAYS),
+        },
+      });
+      await notifyQuestionsOpen(tx, {
+        catchupId: catchup.id,
+        editionId: edition.id,
+        groupId: group.id,
+        groupName: group.name,
+        excludeUserId: creatorId,
+      });
+      return catchup.id;
+    });
+
+    revalidatePath("/catchups");
+    revalidatePath(`/catchups/${catchupId}`);
+    return { success: true as const, catchupId };
+  });
+}
+
 /** Keeper-only: change the recurring rhythm (spec 3.3 settings). */
 export async function updateCatchupCadence(catchupId: string, cadence: Cadence) {
   return runAction(async () => {
@@ -505,7 +604,7 @@ export async function submitPrompt(input: {
         where: { editionId, accepted: true },
       });
       if (acceptedCount >= MAX_ACCEPTED_PROMPTS_PER_EDITION) {
-        return { error: "This Round already has its 12 questions. Remove one to add another." };
+        return { error: "This Round has as many questions as it can hold. Remove one to add another." };
       }
     } else {
       const pendingCount = await prisma.catchupPrompt.count({
@@ -628,7 +727,7 @@ export async function curatePrompt(input: CuratePromptInput) {
         where: { editionId: prompt.editionId, accepted: true },
       });
       if (acceptedCount >= MAX_ACCEPTED_PROMPTS_PER_EDITION) {
-        return { error: "This Round already has its 12 questions. Remove one to add another." };
+        return { error: "This Round has as many questions as it can hold. Remove one to add another." };
       }
       await prisma.catchupPrompt.update({
         where: { id: promptId },

@@ -21,7 +21,6 @@ import {
 import {
   PROFESSION_OPTIONS,
   HOUSE_OPTIONS,
-  OPEN_TO_FACET_OPTIONS,
   TYPE_OPTIONS,
   directorySortOptions,
   directoryDefaultSort,
@@ -52,7 +51,6 @@ interface DirectoryFiltersState {
   city: string;
   profession: string;
   house: string;
-  openTo: string;
   type: string;
   yearFrom: string;
   yearTo: string;
@@ -102,7 +100,7 @@ export function DirectoryClient({
   const tourAnchorRef = useTourAnchor<HTMLDivElement>("directory-search");
   const [query, setQuery] = useState(initialFilters.q);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(
-    !!(initialFilters.house || initialFilters.openTo || initialFilters.type)
+    !!(initialFilters.house || initialFilters.type)
   );
   const [sheetOpen, setSheetOpen] = useState(false);
   // When filtering, default to the People (grid) view so results are visible;
@@ -135,7 +133,6 @@ export function DirectoryClient({
         city: initialFilters.city || undefined,
         profession: initialFilters.profession || undefined,
         house: initialFilters.house || undefined,
-        openTo: initialFilters.openTo || undefined,
         type: initialFilters.type || undefined,
         sort: initialFilters.sort || undefined,
         yearFrom: initialFilters.yearFrom || undefined,
@@ -206,7 +203,6 @@ export function DirectoryClient({
 
   const secondaryCount =
     (initialFilters.house ? 1 : 0) +
-    (initialFilters.openTo ? 1 : 0) +
     (initialFilters.type ? 1 : 0);
 
   const activeChips: ActiveChip[] = [];
@@ -236,14 +232,6 @@ export function DirectoryClient({
       key: "house",
       label: `House: ${initialFilters.house}`,
       onClear: () => updateFilters("house", ""),
-    });
-  }
-  if (initialFilters.openTo) {
-    const openToOption = OPEN_TO_FACET_OPTIONS.find((o) => o.value === initialFilters.openTo);
-    activeChips.push({
-      key: "openTo",
-      label: `Open to: ${openToOption?.label ?? initialFilters.openTo}`,
-      onClear: () => updateFilters("openTo", ""),
     });
   }
   if (initialFilters.type) {
@@ -311,14 +299,6 @@ export function DirectoryClient({
           className={className}
         />
         <FacetSelect
-          label="Open to"
-          value={initialFilters.openTo}
-          onChange={(v) => updateFilters("openTo", v)}
-          options={OPEN_TO_FACET_OPTIONS}
-          anyLabel="Any"
-          className={className}
-        />
-        <FacetSelect
           label="Type"
           value={initialFilters.type}
           onChange={(v) => updateFilters("type", v)}
@@ -379,7 +359,7 @@ export function DirectoryClient({
               type="button"
               onClick={() => setMoreFiltersOpen((v) => !v)}
               aria-expanded={moreFiltersOpen}
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy"
             >
               <SlidersHorizontal className="size-3.5" aria-hidden />
               More filters
@@ -430,7 +410,7 @@ export function DirectoryClient({
           <button
             type="button"
             onClick={() => setSheetOpen(true)}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 hover:-translate-y-0.5 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
           >
             <SlidersHorizontal className="size-3.5" aria-hidden />
             Filters
@@ -576,7 +556,7 @@ export function DirectoryClient({
                     <button
                       key={c.city}
                       onClick={() => updateFilters("city", c.city)}
-                      className="flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-[13px] text-foreground transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                      className="flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-[13px] text-foreground transition-[colors,transform] hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
                     >
                       <span className="font-medium">{c.city}</span>
                       <span className="text-muted-foreground">{c.count}</span>
@@ -593,7 +573,7 @@ export function DirectoryClient({
             <button
               key={year}
               onClick={() => updateFilters("year", String(year))}
-              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[colors,transform] duration-200 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
             >
               <span className="font-heading text-lg font-bold tracking-tight text-foreground group-hover:text-primary">
                 &apos;{String(year).slice(-2)}
@@ -606,7 +586,7 @@ export function DirectoryClient({
           {facultyCount > 0 && (
             <button
               onClick={() => updateFilters("year", "faculty")}
-              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[colors,transform] duration-200 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
             >
               <span className="font-heading text-base font-bold tracking-tight text-foreground group-hover:text-primary">
                 Faculty

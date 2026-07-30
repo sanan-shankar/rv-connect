@@ -1,10 +1,16 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <PhotoAttachments> — "Add a photo" (spec 3.4): reuses POST /api/upload
- *  (WebP via Sharp server-side), up to 3 images per answer, shown as small
- *  framed plates. A dumb controlled list: the parent (AnswerCard) owns the
- *  autosave call and only passes the resulting url array back in.
+ *  <PhotoAttachments> — pictures on an answer. Uploads through
+ *  POST /api/upload (WebP via Sharp server-side).
+ *
+ *  `max` is 3 when photos ride along with a written answer, and 1 for a
+ *  `photo` prompt, where the picture IS the answer: everyone adds one, and
+ *  the Round prints them as a wall. That single picture gets a real plate
+ *  rather than a thumbnail, since nothing else sits beside it.
+ *
+ *  A dumb controlled list: the parent (AnswerCard) owns the autosave call
+ *  and only passes the resulting url array back in.
  * ------------------------------------------------------------------ */
 
 import { useRef, useState } from "react";
@@ -12,26 +18,31 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { SpringPress } from "@/components/common/motion";
+import { cn } from "@/lib/utils";
 
-const MAX_PHOTOS = 3;
 const MAX_BYTES = 5 * 1024 * 1024;
 
 export function PhotoAttachments({
   images,
   onChange,
+  max = 3,
 }: {
   images: string[];
   onChange: (next: string[]) => void;
+  max?: number;
 }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [listRef] = useAutoAnimate();
 
+  const single = max === 1;
+  const plateSize = single ? "h-44 w-full sm:w-72" : "h-20 w-20";
+
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const remaining = MAX_PHOTOS - images.length;
+    const remaining = max - images.length;
     if (remaining <= 0) {
-      toast.error("Up to 3 photos per answer.");
+      toast.error(single ? "One photo for this question." : `Up to ${max} photos per answer.`);
       return;
     }
     const picked = Array.from(files).slice(0, remaining);
@@ -68,7 +79,7 @@ export function PhotoAttachments({
         ref={inputRef}
         type="file"
         accept="image/*"
-        multiple
+        multiple={!single}
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
@@ -76,29 +87,35 @@ export function PhotoAttachments({
         {images.map((src, i) => (
           <div
             key={src}
-            className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-border/70 bg-mist shadow-[0_1px_2px_rgba(30,28,22,0.06),0_10px_20px_-16px_rgba(30,28,22,0.45)]"
+            className={cn(
+              "group relative shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-border/70 bg-mist shadow-[0_1px_2px_rgba(30,28,22,0.06),0_10px_20px_-16px_rgba(30,28,22,0.45)]",
+              plateSize
+            )}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt="" className="h-full w-full object-cover" />
             <SpringPress
               as="button"
               onClick={() => onChange(images.filter((_, idx) => idx !== i))}
-              className="absolute right-1 top-1 inline-grid h-5 w-5 place-items-center rounded-full bg-foreground/70 text-background opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+              className="absolute right-1.5 top-1.5 inline-grid h-6 w-6 place-items-center rounded-full bg-foreground/70 text-background opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               {...({ type: "button", "aria-label": "Remove photo" } as object)}
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </SpringPress>
           </div>
         ))}
-        {images.length < MAX_PHOTOS && (
+        {images.length < max && (
           <SpringPress
             as="button"
             onClick={() => inputRef.current?.click()}
-            className="inline-flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-border text-muted-foreground hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-default disabled:opacity-50"
+            className={cn(
+              "inline-flex flex-col items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-dashed border-border text-muted-foreground hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-default disabled:opacity-50",
+              plateSize
+            )}
             {...({ type: "button", disabled: uploading, "aria-label": "Add a photo" } as object)}
           >
-            <ImagePlus className="h-4 w-4" />
-            <span className="text-[10.5px] font-semibold">
+            <ImagePlus className={single ? "h-5 w-5" : "h-4 w-4"} />
+            <span className={single ? "text-[13px] font-semibold" : "text-[10.5px] font-semibold"}>
               {uploading ? "Adding..." : "Add a photo"}
             </span>
           </SpringPress>

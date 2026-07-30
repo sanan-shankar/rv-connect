@@ -1,9 +1,8 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  <CompletionCard> — the soft completion moment (spec 3.4): "That is you
- *  in this Round. See you when it is out." No streaks, no badges, just a
- *  settled hoopoe and a warm sign-off.
+ *  <CompletionCard> — the end of the deck: "That is you in this Round. See
+ *  you when it is out." No streaks, no badges, one settled hoopoe.
  *
  *  One-hoopoe rule: gated on `useSoloHoopoe()`. When another bird is
  *  already on screen, the hoopoe drops out and the heading simply leads
@@ -29,7 +28,7 @@ export function CompletionCard({
   const solo = useSoloHoopoe();
 
   return (
-    <FadeRise className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-8 text-center sm:p-12">
+    <FadeRise className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] text-center sm:p-[var(--space-l)]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -46,12 +45,12 @@ export function CompletionCard({
             solo && "mt-[var(--space-m)]"
           )}
         >
-          That is you in this Round.
+          {answeredCount > 0 ? "That is you in this Round." : "Nothing from you yet."}
         </h2>
         <p className="mx-auto mt-[var(--space-xs)] max-w-sm text-[15px] leading-relaxed text-muted-foreground">
           {answeredCount > 0
             ? `See you when ${groupName}'s Catch-up is out.`
-            : "Come back any time before answers close. Even one line is plenty."}
+            : "You can come back any time before answers close."}
         </p>
         <Link href={`/catchups/${catchupId}`} className="mt-[var(--space-l)] inline-flex">
           <Button variant="primary">Back to the Catch-up</Button>

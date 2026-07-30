@@ -21,9 +21,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ERAS, PHOTO_YEAR_MIN, eraLabel } from "@/lib/collection";
-import { contributePhoto } from "@/app/(main)/collection/actions";
+import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
+import { directUploadPut } from "@/lib/upload-client";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 
-const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20MB
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -85,7 +86,7 @@ export function ContributeDialog({
       toast.error('HEIC photos aren\'t supported yet. Export as JPG or PNG (or turn off "High Efficiency" in your camera settings).');
       return;
     }
-    if (f.size > MAX_FILE_BYTES) {
+    if (f.size > MAX_UPLOAD_BYTES) {
       toast.error(`Photo must be under 20MB (this one is ${(f.size / (1024 * 1024)).toFixed(1)}MB)`);
       return;
     }
@@ -94,37 +95,61 @@ export function ContributeDialog({
     setPreview(URL.createObjectURL(f));
   }
 
+  /** Date fields exactly as contributePhoto's FormData path encodes them. */
+  function dateMeta(): { era?: string; datePrecision?: string; photoYear?: number; photoMonth?: number } {
+    if (yearChoice !== NOT_SURE) {
+      const monthIndex = MONTHS.indexOf(monthChoice); // -1 when NO_MONTH
+      return monthIndex >= 0
+        ? { photoYear: Number(yearChoice), photoMonth: monthIndex + 1, datePrecision: "month" }
+        : { photoYear: Number(yearChoice), datePrecision: "year" };
+    }
+    return { era: decade, datePrecision: decade === "unknown" ? "unknown" : "decade" };
+  }
+
   async function handleSubmit() {
     if (!file) return toast.error("Choose a photo first");
     setSubmitting(true);
-    const fd = new FormData();
-    fd.set("file", file);
-    if (caption.trim()) fd.set("caption", caption.trim());
-    if (area.trim()) fd.set("area", area.trim());
-
-    if (yearChoice !== NOT_SURE) {
-      fd.set("photoYear", yearChoice);
-      const monthIndex = MONTHS.indexOf(monthChoice); // -1 when NO_MONTH
-      if (monthIndex >= 0) {
-        fd.set("photoMonth", String(monthIndex + 1));
-        fd.set("datePrecision", "month");
-      } else {
-        fd.set("datePrecision", "year");
-      }
-    } else {
-      fd.set("era", decade);
-      fd.set("datePrecision", decade === "unknown" ? "unknown" : "decade");
-    }
 
     let result: Awaited<ReturnType<typeof contributePhoto>>;
     try {
-      result = await contributePhoto(fd);
-    } catch {
-      // The request can be dropped before contributePhoto ever runs (a
-      // truncated body, whether from a lost connection or an oversized
-      // photo look identical here), so name both possibilities.
+      // Preferred path: presigned PUT straight to storage (the shared
+      // `directUploadPut` helper), so the FULL RESOLUTION original lands
+      // there untouched (Vercel's ~4.5MB request cap never sees the bytes).
+      // A null return means the direct path is unavailable for this request
+      // (local dev without R2, or an origin the bucket's CORS rule does not
+      // name) and the classic server-proxied path picks the upload up instead.
+      const staged = await directUploadPut(file, "collection");
+
+      if (staged) {
+        result = await contributePhotoDirect({
+          key: staged.key,
+          caption: caption.trim() || undefined,
+          area: area.trim() || undefined,
+          ...dateMeta(),
+        });
+      } else {
+        const fd = new FormData();
+        fd.set("file", file);
+        if (caption.trim()) fd.set("caption", caption.trim());
+        if (area.trim()) fd.set("area", area.trim());
+        const meta = dateMeta();
+        if (meta.photoYear !== undefined) fd.set("photoYear", String(meta.photoYear));
+        if (meta.photoMonth !== undefined) fd.set("photoMonth", String(meta.photoMonth));
+        if (meta.era) fd.set("era", meta.era);
+        if (meta.datePrecision) fd.set("datePrecision", meta.datePrecision);
+        result = await contributePhoto(fd);
+      }
+    } catch (err) {
       setSubmitting(false);
-      toast.error("The upload didn't make it through. The photo may be too large, or the connection dropped. Try again.");
+      // directUploadPut throws with a real message for definitive verdicts
+      // (unsupported format, over the limit); otherwise the bytes were
+      // dropped mid-flight, where a lost connection and an oversized body
+      // look identical, so name both possibilities.
+      toast.error(
+        err instanceof Error && err.message
+          ? err.message
+          : "The upload didn't make it through. The photo may be too large, or the connection dropped. Try again."
+      );
       return;
     }
     setSubmitting(false);
@@ -171,7 +196,7 @@ export function ContributeDialog({
                   setPreview(null);
                   setFile(null);
                 }}
-                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-[colors,transform] hover:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
                 aria-label="Remove photo"
               >
                 <X className="h-4 w-4" />

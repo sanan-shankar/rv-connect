@@ -34,6 +34,10 @@ export function PageHeader({
   return (
     <header className="mb-6 flex flex-nowrap items-start justify-between gap-4">
       <div className="min-w-0">
+        {/* Every main surface routes its title through here; no page hand-rolls
+            its own heading (they used to drift across 4 variants). The weight is
+            the face's own regular, NOT font-bold: owner, 2026-07-30, on a bolded
+            trial, "it's all a bit thicker, this is way too overpowering". */}
         <h1 className="font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
           {title}
         </h1>

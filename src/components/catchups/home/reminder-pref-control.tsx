@@ -43,17 +43,16 @@ export function ReminderPrefControl({
 
   return (
     <FadeRise delay={0.02}>
-      <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
+      <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-leaf" />
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
             Reminders
           </p>
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          When to nudge you about this Catch-up while answers are open.
-        </p>
-        <div className="relative mt-3 grid grid-cols-3 gap-1 rounded-full border border-border bg-muted/40 p-1">
+        {/* All / Last day / Off need no sub-copy: the three labels are the
+            explanation (owner review, 2026-07-25). */}
+        <div className="relative mt-[var(--space-s)] grid grid-cols-3 gap-1 rounded-full border border-border bg-muted/40 p-1">
           {OPTIONS.map((opt) => {
             const selected = mode === opt.value;
             return (
@@ -63,7 +62,10 @@ export function ReminderPrefControl({
                 aria-pressed={selected}
                 onClick={() => handlePick(opt.value)}
                 className={cn(
-                  "relative rounded-full px-2 py-1.5 text-[12px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  // `color`, not `colors`: `transition-[colors,...]` emits
+                  // `transition-property: colors` which matches no CSS property,
+                  // so the hover tint would snap instead of easing.
+                  "relative rounded-full px-2 py-1.5 text-[12px] font-medium transition-[color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
                   selected ? "text-canopy" : "text-muted-foreground hover:text-foreground"
                 )}
               >

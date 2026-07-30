@@ -1,23 +1,27 @@
 import { Sidebar, type SidebarUser } from "./sidebar";
 import { KonamiEggs } from "./konami-eggs";
+import { ContentColumn } from "./content-column";
 
 /**
  * AppShell: flush full-height sidebar + a warm content column with a faint
  * valley atmosphere behind it. Replaces the old top Navbar + fixed background
  * image + max-w-7xl wrapper.
  *
- * Pass `rightRail` to switch the content into the contract's 3-column layout
- * (main + a 318px rail) at >=1180px, collapsing to a single column below.
+ * The shell owns the page's padding and its column. Padding is EQUAL on all
+ * four sides, so a title's distance from the sidebar is its distance from the
+ * top. Which of the two columns a route gets (wide vs centered) is decided in
+ * `content-column.tsx`; no page sets a page-level width itself.
+ *
+ * The old `rightRail` prop is gone: it was dead (no caller ever passed one),
+ * and the surfaces that do have a rail build their own grid inside `children`.
  */
 export function AppShell({
   user,
   unreadCount,
-  rightRail,
   children,
 }: {
   user: SidebarUser;
   unreadCount: number;
-  rightRail?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -37,18 +41,11 @@ export function AppShell({
       <Sidebar user={user} unreadCount={unreadCount} />
       {/* pb on mobile clears the fixed bottom tab bar */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
-        {rightRail ? (
-          <div className="mx-auto grid w-full max-w-[1280px] flex-1 grid-cols-1 gap-x-[30px] px-5 pb-16 pt-6 sm:px-7 lg:px-9 lg:py-7 min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
-            <main className="min-w-0">{children}</main>
-            {/* On the contract the rail starts level with the composer, not the
-                page header, so it carries its own top offset. */}
-            <aside className="hidden min-[1180px]:block">{rightRail}</aside>
-          </div>
-        ) : (
-          <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 py-6 sm:px-7 lg:px-10 lg:py-8">
-            {children}
-          </main>
-        )}
+        {/* Padding rule (owner, 2026-07-30): the title's distance from the
+            left edge EQUALS its distance from the top, at every breakpoint. */}
+        <main className="w-full flex-1 p-5 sm:p-7 lg:p-10">
+          <ContentColumn>{children}</ContentColumn>
+        </main>
       </div>
     </div>
   );

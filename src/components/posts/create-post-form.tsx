@@ -10,6 +10,8 @@ import { createPost } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 import { downscaleImage } from "@/lib/image-downscale";
+import { directUploadPut } from "@/lib/upload-client";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import { cn } from "@/lib/utils";
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
@@ -104,7 +106,6 @@ const COLLAPSED_H = 44;
 // counted down. No red numbers, no limits messaging: just a hint.
 const LETTER_NUDGE_LEN = 600;
 
-const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB
 const UPLOAD_TIMEOUT_MS = 60_000;
 
 // The keyboard path to formatting, now that the toolbar is gone. Same keys
@@ -160,6 +161,7 @@ export function CreatePostForm({
   // fetch, but "uploading 2 of 3" reads as real progress).
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [expanded, setExpanded] = useState(defaultLetter);
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -181,9 +183,17 @@ export function CreatePostForm({
   const mentionRangeRef = useRef<Range | null>(null);
 
   const isLetter = kind === "letter";
+  // With a poll attached, this field IS the poll's question: the feed prints
+  // the post body directly above the options, so a second "question" input
+  // would just duplicate `Post.content`. Saying so in the placeholder is what
+  // turns the composer from "here are some options with no question" into a
+  // question followed by its choices.
+  const hasPoll = !isLetter && pollOptions !== null;
   const effectivePlaceholder = isLetter
     ? "Write your letter to the valley. Take your time."
-    : collapsedPlaceholder;
+    : hasPoll
+      ? "Ask your question"
+      : collapsedPlaceholder;
   const hasContent = content.trim().length > 0;
 
   function expand(startKind?: "post" | "letter") {
@@ -320,6 +330,34 @@ export function CreatePostForm({
     mentionRangeRef.current = null;
   }
 
+  /**
+   * Preferred upload path: presigned PUT straight to R2 (the shared
+   * `directUploadPut` helper), then a finalize call that turns the staged
+   * FULL-RESOLUTION original into the display WebP server-side. No bytes
+   * pass through a serverless function, so Vercel's ~4.5MB request cap
+   * never applies and nothing needs shrinking in the browser (owner,
+   * 2026-07-30: client-side downscaling defeats the point of a 20MB limit).
+   *
+   * Falls back to the classic proxied POST when the direct path is
+   * unavailable; only that fallback still browser-downscales, since it is
+   * the path the platform cap can actually bite.
+   */
+  async function uploadViaPresign(original: File): Promise<string> {
+    const staged = await directUploadPut(original, "post");
+    if (staged) {
+      const fin = await fetch("/api/upload/finalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys: [staged.key] }),
+      });
+      const data = await fin.json().catch(() => ({}));
+      if (fin.ok && data.urls?.[0]) return data.urls[0] as string;
+      throw new Error(data.error || `"${original.name}" failed to upload`);
+    }
+    const shrunk = await downscaleImage(original);
+    return uploadOneFile(shrunk);
+  }
+
   async function uploadOneFile(file: File): Promise<string> {
     const formData = new FormData();
     formData.append("files", file);
@@ -362,13 +400,13 @@ export function CreatePostForm({
     }
 
     // Validate the ORIGINAL size up front (skip oversized files individually
-    // rather than aborting the whole batch on the first one). This is only a
-    // sanity ceiling on the source file; downscaleImage below shrinks whatever
-    // survives it to well under Vercel's ~4.5MB request-body cap before upload.
+    // rather than aborting the whole batch on the first one). 20MB is the
+    // real ceiling now that the direct path PUTs originals straight to
+    // storage; only the proxied fallback still shrinks in the browser.
     const candidates = Array.from(fileList).slice(0, remaining);
     const valid: File[] = [];
     for (const file of candidates) {
-      if (file.size > MAX_IMAGE_BYTES) {
+      if (file.size > MAX_UPLOAD_BYTES) {
         toast.error(`"${file.name}" is over the 20MB limit`);
         continue;
       }
@@ -383,16 +421,13 @@ export function CreatePostForm({
     const uploadedUrls: string[] = [];
     const uploadedPreviews: string[] = [];
 
-    // One request per file (sequential): gives a real "uploading N of M"
+    // One file at a time (sequential): gives a real "uploading N of M"
     // state and means one bad file doesn't sink the others.
     for (let i = 0; i < valid.length; i++) {
       const original = valid[i];
       setUploadProgress({ done: i, total: valid.length });
       try {
-        // Shrink in the browser first so the bytes on the wire stay under the
-        // platform body cap; GIF/HEIC and undecodable files pass through as-is.
-        const file = await downscaleImage(original);
-        const url = await uploadOneFile(file);
+        const url = await uploadViaPresign(original);
         uploadedUrls.push(url);
         // Preview from the original file: higher quality than the re-encode,
         // and it is only ever shown locally in the composer.
@@ -420,9 +455,10 @@ export function CreatePostForm({
     });
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(saveAsDraft = false) {
     if (!content.trim()) return;
-    setSubmitting(true);
+    if (saveAsDraft) setSavingDraft(true);
+    else setSubmitting(true);
 
     const formData = new FormData();
     formData.set("content", content);
@@ -437,6 +473,9 @@ export function CreatePostForm({
         formData.set("pollOptions", JSON.stringify(validOptions));
       }
     }
+    // "Save as draft" only ever applies to a letter; the button itself is
+    // hidden outside letter mode, but this keeps the payload honest either way.
+    if (isLetter && saveAsDraft) formData.set("saveAsDraft", "true");
 
     const result = await createPost(formData);
     if (result.error) {
@@ -456,11 +495,18 @@ export function CreatePostForm({
       setSettled(false);
       setExpanded(defaultLetter);
       toast.success(
-        isLetter ? "Your letter is published" : groupId ? "Posted to the group" : "Post shared!"
+        saveAsDraft
+          ? "Draft saved"
+          : isLetter
+            ? "Your letter is published"
+            : groupId
+              ? "Posted to the group"
+              : "Post shared!"
       );
       onPosted?.();
     }
-    setSubmitting(false);
+    if (saveAsDraft) setSavingDraft(false);
+    else setSubmitting(false);
   }
 
   // The "+" menu only earns its place when it has something to offer: a poll
@@ -730,34 +776,46 @@ export function CreatePostForm({
             </button>
           )}
 
-          {/* Post sits INLINE, at the end of the same row. Same pill CTA language
-              as "New post" (shared buttonVariants, canopy fill, font-medium --
-              never bold), but a step down from the page-level CTA's 40px: 36px
-              tall with golden-ratio-generous 20px sides, so it reads as the
-              confident primary action of the composer without competing with
-              the header's own button. Still bespoke/animated (subdued until
-              there's text, springs to life) so it can't use <Button> directly. */}
-          <motion.button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!content.trim() || submitting}
-            className={cn(
-              buttonVariants({ variant: "primary", size: "sm" }),
-              "ml-auto shrink-0 px-5 text-sm"
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {/* Letters only: a quiet way to stop for now without losing the
+                piece. Outline pill, one step down from Publish, so it never
+                reads as the confident primary action. */}
+            {isLetter && (
+              <button
+                type="button"
+                onClick={() => handleSubmit(true)}
+                disabled={!content.trim() || submitting || savingDraft}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "px-4 text-sm")}
+              >
+                {savingDraft ? "Saving..." : "Save as draft"}
+              </button>
             )}
-            animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
-            whileHover={hasContent && !submitting ? { scale: 1.03 } : undefined}
-            whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
-            transition={SPRINGS.snappy}
-          >
-            {submitting
-              ? isLetter
-                ? "Publishing..."
-                : "Posting..."
-              : isLetter
-                ? "Publish letter"
-                : "Post"}
-          </motion.button>
+
+            {/* Post sits INLINE, at the end of the same row. Same pill CTA language
+                as "New post" (shared buttonVariants, canopy fill, font-medium --
+                never bold), but a step down from the page-level CTA's 40px: 36px
+                tall with golden-ratio-generous 20px sides, so it reads as the
+                confident primary action of the composer without competing with
+                the header's own button. Still bespoke/animated (subdued until
+                there's text, springs to life) so it can't use <Button> directly. */}
+            <motion.button
+              type="button"
+              onClick={() => handleSubmit(false)}
+              disabled={!content.trim() || submitting || savingDraft}
+              className={cn(buttonVariants({ variant: "primary", size: "sm" }), "px-5 text-sm")}
+              animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
+              whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
+              transition={SPRINGS.snappy}
+            >
+              {submitting
+                ? isLetter
+                  ? "Publishing..."
+                  : "Posting..."
+                : isLetter
+                  ? "Publish letter"
+                  : "Post"}
+            </motion.button>
+          </div>
         </div>
 
         {/* Gentle, non-blocking nudge once a post runs long: no red numbers, no

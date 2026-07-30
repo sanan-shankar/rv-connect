@@ -133,7 +133,7 @@ export function ProfileAvatar({
             {showTip && (
               <motion.span
                 id={tipId}
-                className="relative block w-max max-w-[168px] whitespace-normal rounded-2xl bg-foreground px-3 py-1.5 text-center text-[11.5px] font-bold leading-snug text-background"
+                className="relative block w-max max-w-[168px] whitespace-normal rounded-2xl bg-foreground px-3 py-1.5 text-center text-[11px] font-bold leading-snug text-background"
                 style={{
                   boxShadow:
                     "0 1px 2px rgba(35,36,30,0.28), 0 10px 24px -12px rgba(35,36,30,0.7)",
