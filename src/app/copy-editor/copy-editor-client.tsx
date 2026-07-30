@@ -90,7 +90,7 @@ export function CopyEditorClient({
       "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1",
       active
         ? "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)]"
-        : "text-foreground hover:bg-muted"
+        : "text-foreground hover:bg-accent"
     );
 
   return (

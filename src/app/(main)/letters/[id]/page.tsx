@@ -9,7 +9,7 @@ import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { LetterImages } from "@/components/letters/letter-images";
 import { canViewCityScope } from "@/lib/city-scope";
-import { formatBatch, formatDisplayDate, renderRichText, parseJsonArray, letterTitle } from "@/lib/utils";
+import { batchLine, formatDisplayDate, metaLine, renderRichText, parseJsonArray, letterTitle } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -69,7 +69,7 @@ export default async function LetterPage({
     where: { id },
     include: {
       author: {
-        select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, batchType: true, batchYear: true },
+        select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, accountType: true, batchType: true, batchYear: true },
       },
       _count: { select: { comments: { where: { isHidden: false } }, likes: true } },
       likes: { where: { userId: session.user.id }, select: { id: true } },
@@ -151,14 +151,18 @@ export default async function LetterPage({
           </Link>
         }
         meta={
-          <>
-            {formatBatch(letter.author.batchType, letter.author.batchYear)} ·{" "}
-            {new Date(letter.createdAt).toLocaleDateString("en-GB", {
+          /* metaLine drops the dot beside an empty segment (the Anonymous
+             profile's batch line), so an archive letter reads as just its
+             date. Month stays long-form: the reading page's unhurried
+             register, vs the index's short month. */
+          metaLine(
+            batchLine(letter.author),
+            new Date(letter.createdAt).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "long",
               year: "numeric",
-            })}
-          </>
+            })
+          )
         }
         metaClassName="leading-none"
       />

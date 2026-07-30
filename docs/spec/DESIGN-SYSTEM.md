@@ -42,12 +42,55 @@ Live values in `globals.css`. Surfaces are **never pure white** (`#FFFFFF` is re
 | Cinnamon | `#C2622F` | **Secondary accent** (the hoopoe's colour). Use more, tastefully. |
 | Sky | `#3F7CA6` | The vivid cool pop, used sparingly. |
 | Heart | `#E03A33` | The heart / destructive red, always, in every theme. |
-| Paper | `#F6F2E8` | Card / elevated surface. |
-| Float | `#FFFFFF` | Floating modals only. |
+| Paper | `#F5F2EA` | Card / elevated surface. |
+| Float | `#FFFFFF` | Floating modals, menus, dialogs only. |
 | Ink | `#23241E` | Warm near-black text. |
-| Background | `#E7E1D3` | Page base. |
-| Mist | `#EEE8DA` | Recessed surface. |
-| Border | `#E0D8C8` | Hairlines / input borders. |
+| Background | `#E4E1D5` | Page base. |
+| Mist | `#ECE8DD` | Recessed wells only (== `--muted`). |
+| Secondary | `#F0EDE4` | Quiet filled controls (`--secondary`). |
+| Accent | `#FAF8F2` | The hover lift (`--accent`). |
+| Border | `#DFD8CB` | Hairlines / input borders. |
+
+### The surface ladder (colour protocol, 2026-07-30)
+
+The neutrals are a single ladder, bottom to top, each rung ~5 RGB steps lighter:
+
+```
+background #E4E1D5  <  mist #ECE8DD  <  secondary #F0EDE4  <  paper #F5F2EA  <  accent #FAF8F2  <  float #FFFFFF
+   page          recessed wells      quiet filled controls   cards/content        hover lift        menus/dialogs
+```
+
+Why a ladder: the pre-protocol palette had FOUR token names resolving to one hex
+(`--secondary` = `--muted` = `--accent` = mist `#EEE8DA`), so idle chips, hover states and
+recessed wells all converged on one ochre and hovers went *darker* into tan. Roughly 300 of
+430 production background usages were the warm-tan family. That convergence, plus the photo
+wash, is what read as "everything brown". The owner's calibration: all-white is a 0 (corporate,
+characterless), the old state a 10; the app sits at ~5 - warm at the base, clean where content
+and interaction live.
+
+**The rules** (each enforceable in review):
+
+1. **Warmth lives at the bottom.** The page base and the valley-photo wash carry the boutique
+   warmth. Surfaces get *cooler and lighter as they rise*. A floating surface (menu, dialog,
+   popover) is Float white - that contrast is deliberate relief, not a bug.
+2. **Hover lifts, never sinks.** Interactive hover/highlight is `--accent` (a rung *above*
+   paper). Never `hover:bg-muted`, never `hover:bg-secondary/70`, never any tint darker than
+   the resting surface. (Press/active may sink - that is feedback for an action.)
+3. **One well per card.** At most one mist/`--muted` recessed region inside any card, and
+   never two mist surfaces adjacent (nested or side by side). Everything else sits directly
+   on the card's paper; if it needs an edge, it earns a border, not a fill.
+4. **No green-on-green DECORATIVE chips.** The drab pairing (`bg-canopy/10` + `text-canopy`,
+   or the old off-palette `#1A6B3C` text on tan) is dead for informational chips, tags and
+   icon bubbles. Those use the approved tint trio - `border-leaf/30 bg-leaf/[0.07] text-leaf`,
+   `border-cinnamon/30 bg-cinnamon/[0.07] text-cinnamon`, `border-sky/35 bg-sky/[0.10]
+   text-sky` (first shipped in the profile houses chain) - rotated so one screen never repeats
+   a single tint. The canopy wash survives in exactly ONE role: a **selected/active state**
+   (an active thread row, a pressed filter, a segmented-control thumb) - selection is the app's
+   one green state, like an OS selection colour. Solid selection stays canopy fill + white text.
+5. **Text on tinted chips must clear AA.** At small bold sizes leaf text on paper is ~4.1:1;
+   when in doubt the chip's text steps down the ladder to canopy over a leaf wash.
+6. **No new hexes.** Any colour not in the table above needs a token and a written reason, or
+   it does not merge. (Plumage art - bird glyphs, the hoopoe - is the standing exception.)
 
 ### The green rule (this is what stops the "three greens" mess)
 
@@ -67,7 +110,12 @@ Live values in `globals.css`. Surfaces are **never pure white** (`#FFFFFF` is re
 
 ### Dark mode
 
-- Parked (`forcedTheme="light"`). Leave the scaffold; revisit later.
+- Being rebuilt from scratch (owner, 2026-07-30). The old `.dark` scaffold was **deleted** —
+  "pretty garbage", never build on it. Constraints for the rebuild: warm charcoal, never pure
+  black; the Canopy sidebar does **not** change; the heart stays `#E03A33`; accents get
+  *brighter* on dark, not dimmer. Ships behind a deliberately funny multi-step confirmation
+  flow in settings (easy to turn OFF, theatrically hard to turn on), with a payoff transition.
+  Until then `forcedTheme="light"`.
 
 ### Feature label accents
 
@@ -92,6 +140,51 @@ small-label use — a good default rotation whenever a short label needs a colou
   **Exception:** the feed composer's inline post box stays a **full pill**.
 - **Avatars: full circle.**
 
+### The radius ladder (shape protocol, 2026-07-30)
+
+One ladder, three rungs down from the card, everything derived from `--radius: 1rem`:
+
+| Rung | Token | Value | What sits here |
+|---|---|---|---|
+| Container | `--radius` (`rounded-lg`) | 16px | Cards, tiles, the composer shell |
+| Nested | `--radius-md` | 12px | Photos inside a card, the letter-preview outline, inner panels; also every input (`--radius-input`, same 12px) and menu panels |
+| Thumbnail | `--radius-sm` | 8.8px | Small media (80px previews), the viewer photo, third-level boxes |
+| Control | `rounded-full` | pill | Buttons, chips, tags, the composer trigger |
+
+**The rules:**
+
+1. **Inner is always SHARPER, one rung down.** 16 → 12 → 8.8. Never equal, never rounder.
+   The concentric formula (inner = outer − inset) collapses to 0 when the inset equals the
+   radius, so the ladder is the binding rule, not the formula.
+2. **`rounded-xl` is a trap in this repo** — it computes to 20.8px (`--radius × 1.3`), which is
+   *rounder than the 16px card*. It exists for standalone hero surfaces only; it never
+   appears inside a card. When in doubt, name the token (`rounded-[var(--radius-md)]`), don't
+   reach for a Tailwind step.
+3. **Pills are for controls, not containers.** A pill is correct on anything you press that is
+   a single row tall. A multi-line region is never a pill.
+4. **A highlight inside a panel is concentric with the panel**: item radius = panel radius −
+   panel padding (e.g. a 12px menu with 4px padding highlights its rows at 8px). A highlight
+   whose radius ≥ its panel's reads as a cut — this is the exact dropdown bug the owner named.
+
+### Menus & dropdowns: one material (2026-07-30)
+
+"What would Apple do": a menu is a *material*, not a per-screen decision. Every dropdown,
+select, combobox and context menu in the app — Directory and Collection filters included —
+is the same object:
+
+- **Surface:** Float `#FFFFFF`, `--radius-md` 12px panel, 4px inner padding, the layered
+  ink-tinted shadow (`.card-elevated` register), hairline border.
+- **Rows:** highlight = `--accent` lift (never a tan sink, never a green wash), radius 8px
+  (concentric: 12 − 4), full-width, 36–40px tall.
+- **Placement:** opens BELOW its trigger, aligned to the trigger's leading edge, 6px offset,
+  flipping only when the viewport forces it. Never centred-under-nothing, never a different
+  edge on a different page.
+- **Motion:** one origin animation — scale/fade from the trigger corner on `EASE_POP`,
+  ~140ms, exit faster than enter. No slide-downs on one page and pops on another.
+- **Enforcement:** these live in the shared primitives (`ui/dropdown-menu`, `ui/select`,
+  `ui/popover`, `pill-shell`); a page may not override radius, colour, offset or animation.
+  If a surface needs something a menu primitive can't do, it isn't a menu.
+
 ---
 
 ## 4. Depth, elevation, glass
@@ -113,6 +206,11 @@ small-label use — a good default rotation whenever a short label needs a colou
   small `0.875rem` · label `0.75rem` uppercase, letter-spacing `0.08–0.16em`.
 - **Heading tracking:** tight (`-0.025em`).
 - No mono font (the dead `--font-mono` token is removed).
+- **Meta lines & the middle dot** (owner, 2026-07-30): a `·` separator appears only BETWEEN
+  surviving segments — never leading, trailing, or beside an empty one. A byline with one
+  segment renders dotless; an Anonymous-profile byline is just the date (no "Member" filler).
+  Never hand-write ` · ` in a template string: use `metaLine()` (`src/lib/utils.ts`) for plain
+  strings or `<MetaDots>` (`src/components/common/meta-dots.tsx`) for styled spans.
 
 ---
 
@@ -152,6 +250,12 @@ small-label use — a good default rotation whenever a short label needs a colou
   modularity failure we are fixing. Extract it once, reuse it.
 - **Loading:** every async route ships a loading state, using the **warm shimmer** (not the grey pulse).
   The "sleeping birds waking" idea builds on top of the warm shimmer.
+- **The viewer step (named pattern, 2026-07-30):** moving between photos in the full-screen
+  viewer is a film advance — incoming drifts 28px from the direction of travel on
+  `EASE_IN_OUT_SCENE`, outgoing slips 18px the other way; opacity is asymmetric (140ms out,
+  200ms in) so the cross never dips see-through. **No scale in any image-to-image step,
+  anywhere** — a size mismatch between stacked frames reads as a zoom-bounce. Drag gestures
+  live on a stable wrapper, never on the keyed frame they would exit with.
 - **Mascot:** wire the hoopoe onto the **signup** password field (reuse the `/login` rig). More
   placements come later.
 
@@ -204,6 +308,9 @@ Marigold `#C79318`, Plum `#8A5BB0`, Indigo `#5566C4`, Rose `#C7508A`, Forest sla
 **Heart:** the shared `LoveButton` hardcodes `#E03A33` with `transition: none` so it never flashes
 black on the fill-weight swap (the old bug, now fixed by extraction).
 
-**Parked dark mode** (post-MVP; the rule is warm charcoal, never pure black, and accents get *brighter*
-on dark, not dimmer): page `#1C2420`, elevated `#262E29`, recessed `#222A26`, border `#34403A`,
-sidebar `#16332A`, ink `#E8EDE6`, office blue `#5FA6D6`, heart `#FF5B4D`, leaf `#3FD16A`.
+**Dark mode working palette** (rebuild in progress; the rule is warm charcoal, never pure black, and
+accents get *brighter* on dark, not dimmer): page `#1C2420`, elevated `#262E29`, recessed `#222A26`,
+border `#34403A`, ink `#E8EDE6`, office blue `#5FA6D6`, leaf `#3FD16A`.
+Owner overrides (2026-07-30, these win over any older note): the **sidebar does not change** in dark
+(stays Canopy `#235C49`, not the once-parked `#16332A`), and the **heart stays `#E03A33`** in every
+theme (the `#FF5B4D` bright variant is rejected — brand colours do not shift).

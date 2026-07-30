@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { roundLabel } from "@/lib/catchups";
+import { metaLine } from "@/lib/utils";
 
 export type FreshRoundItem = {
   editionId: string;
@@ -46,7 +47,7 @@ export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[13px] font-semibold text-foreground">
-                  {roundLabel(item.number)} &middot; {item.groupName}
+                  {metaLine(roundLabel(item.number), item.groupName)}
                 </span>
                 <span className="shrink-0 text-[11px] text-muted-foreground">
                   {formatDate(item.publishedAt)}

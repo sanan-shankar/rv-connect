@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 export const PILL_BASE =
   "inline-flex h-10 shrink-0 items-center rounded-full border text-[13px] font-medium transition-[colors,transform] duration-150 focus-within:ring-2 focus-within:ring-ring/50 active:scale-[0.97]";
 
-export const PILL_IDLE = "border-border bg-secondary text-foreground hover:bg-secondary/70";
+export const PILL_IDLE = "border-border bg-secondary text-foreground hover:bg-accent";
 
 export const PILL_SET = "border-canopy/35 bg-canopy/[0.08] text-canopy hover:bg-canopy/[0.12]";
 

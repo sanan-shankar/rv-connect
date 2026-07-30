@@ -540,8 +540,12 @@ export function CreatePostForm({
       {/* The field, with ONE clean focus ring overlay. A contentEditable surface
           (not a textarea) so Bold/Italic/etc. render live: execCommand applies a
           real <b>/<i>/<u>/<s> to the selection, so raw "**" never shows on screen.
-          The overlay's inset-0 box traces the field's border box on all four edges. */}
-      <div className="group relative rounded-[var(--radius)]">
+          The overlay's inset-0 box traces the field's border box on all four edges.
+          Radius is --radius-input (12px): inputs are one step less round than the
+          16px card (DESIGN-SYSTEM sec. 3), and a nested box must never repeat its
+          container's radius. Wrapper, field and ring overlay share the value; if
+          one changes without the others the ring stops tracing the corner. */}
+      <div className="group relative rounded-[var(--radius-input)]">
         <div
           ref={richRef}
           contentEditable
@@ -556,7 +560,7 @@ export function CreatePostForm({
           onPaste={handlePaste}
           style={{ minHeight: isLetter ? 260 : 96 }}
           className={cn(
-            "peer block w-full resize-none whitespace-pre-wrap break-words rounded-[var(--radius)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] text-foreground outline-none focus-visible:outline-none",
+            "peer block w-full resize-none whitespace-pre-wrap break-words rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7] text-foreground outline-none focus-visible:outline-none",
             // Kill WebKit's own tap-highlight flash on touch/trackpad taps: it
             // paints a square-cornered highlight over this rounded field, which
             // reads as an uneven ring (thicker at the corners) for an instant
@@ -582,7 +586,7 @@ export function CreatePostForm({
             box to clip, so it is even on every frame, expanding or settled. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[var(--radius)] opacity-0 peer-focus:opacity-100"
+          className="pointer-events-none absolute inset-0 rounded-[var(--radius-input)] opacity-0 peer-focus:opacity-100"
           style={{
             boxShadow: "inset 0 0 0 2px color-mix(in srgb, var(--color-leaf) 42%, transparent)",
             border: "1px solid color-mix(in srgb, var(--color-leaf) 60%, var(--border))",
@@ -601,13 +605,83 @@ export function CreatePostForm({
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0, transition: { ...SPRINGS.settle, delay: 0.16 } }}
       >
-        {/* ONE control row. With the formatting icons gone (formatting now comes
-            from the phone's own selection bar, Cmd/Ctrl+B/I/U, or markdown typed
-            by hand) there is room for Post to sit inline instead of dropping to
-            its own line. The two remaining controls are one group -- both are
-            "add something to this post" -- so no divider earns its place. */}
+        {/* Gentle, non-blocking nudge once a post runs long: no red numbers, no
+            limits messaging, just a hint that Letters might suit it better.
+            Only opacity animates (mounts fresh each time, so the surrounding
+            layout reflows once instead of the row height itself animating). */}
+        <AnimatePresence>
+          {!isLetter && content.length > LETTER_NUDGE_LEN && (
+            <motion.p
+              key="letter-nudge"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={SPRINGS.gentle}
+              className="text-[13px] leading-snug text-muted-foreground"
+            >
+              This might make a lovely{" "}
+              <Link
+                href="/letters"
+                className="font-medium text-cinnamon hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:rounded-sm"
+              >
+                Letter
+              </Link>
+              .
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        {!isLetter && pollOptions && (
+          <PollCreator
+            options={pollOptions}
+            onChange={setPollOptions}
+            onRemove={() => setPollOptions(null)}
+          />
+        )}
+
+        {/* Attachment previews sit between the field and the control row (the
+            order every familiar composer uses), which also keeps the control
+            row the composer's LAST row in every state -- the icon cluster's
+            optical bottom cancel below depends on nothing rendering under it.
+            Radius is --radius-sm (8.8px): an 80px thumbnail is the third rung
+            of the 16 -> 12 -> 8 nesting ladder, not the second. */}
+        {previews.length > 0 && (
+          <div className="flex gap-2">
+            {previews.map((preview, i) => (
+              <div key={i} className="relative h-20 w-20">
+                <img
+                  src={preview}
+                  alt=""
+                  className="h-full w-full rounded-[var(--radius-sm)] object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ONE control row, deliberately the last row. With the formatting icons
+            gone (formatting now comes from the phone's own selection bar,
+            Cmd/Ctrl+B/I/U, or markdown typed by hand) there is room for Post to
+            sit inline instead of dropping to its own line. The two remaining
+            controls are one group -- both are "add something to this post" --
+            so no divider earns its place.
+            The icon cluster wears self-end -mb-[9px] -ml-[9px]: iconControl is a
+            36px box around an 18px glyph, an optical inset of (36-18)/2 = 9, so
+            the cancel lands the glyph INK 17px from the card's bottom and left
+            edges, equal to the field's border on the other sides (owner: bottom
+            padding must match the sides). self-end, not items-center, because a
+            flex row re-centres a shrunken margin box and would swallow half the
+            pull. The Post pill keeps its own corner: its FILL is the visual
+            edge and already sits at the padding line, so it must not sink. */}
         <div className="flex items-center gap-2">
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="-mb-[9px] -ml-[9px] flex shrink-0 items-center gap-1 self-end">
             <input
               ref={fileInputRef}
               type="file"
@@ -817,61 +891,6 @@ export function CreatePostForm({
             </motion.button>
           </div>
         </div>
-
-        {/* Gentle, non-blocking nudge once a post runs long: no red numbers, no
-            limits messaging, just a hint that Letters might suit it better.
-            Only opacity animates (mounts fresh each time, so the surrounding
-            layout reflows once instead of the row height itself animating). */}
-        <AnimatePresence>
-          {!isLetter && content.length > LETTER_NUDGE_LEN && (
-            <motion.p
-              key="letter-nudge"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={SPRINGS.gentle}
-              className="text-[13px] leading-snug text-muted-foreground"
-            >
-              This might make a lovely{" "}
-              <Link
-                href="/letters"
-                className="font-medium text-cinnamon hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:rounded-sm"
-              >
-                Letter
-              </Link>
-              .
-            </motion.p>
-          )}
-        </AnimatePresence>
-
-        {!isLetter && pollOptions && (
-          <PollCreator
-            options={pollOptions}
-            onChange={setPollOptions}
-            onRemove={() => setPollOptions(null)}
-          />
-        )}
-
-        {previews.length > 0 && (
-          <div className="flex gap-2">
-            {previews.map((preview, i) => (
-              <div key={i} className="relative h-20 w-20">
-                <img
-                  src={preview}
-                  alt=""
-                  className="h-full w-full rounded-lg object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </motion.div>
     </>
   );
@@ -942,7 +961,7 @@ export function CreatePostForm({
             animate={{ opacity: expanded ? 0 : 1 }}
             transition={SPRINGS.gentle}
             style={{ pointerEvents: expanded ? "none" : undefined }}
-            className="flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 active:scale-[0.99]"
+            className="flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 active:scale-[0.99]"
           >
             <span className="truncate">{collapsedPlaceholder}</span>
           </motion.button>

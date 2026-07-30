@@ -187,7 +187,7 @@ export function ContributeDialog({
             onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
           />
           {preview ? (
-            <div className="relative overflow-hidden rounded-xl border border-border">
+            <div className="relative overflow-hidden rounded-[var(--radius-md)] border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={preview} alt="" className="max-h-64 w-full object-cover" />
               <button
@@ -205,7 +205,7 @@ export function ContributeDialog({
           ) : (
             <button
               onClick={() => fileRef.current?.click()}
-              className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-paper/50 py-10 text-muted-foreground transition-colors hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-border bg-paper/50 py-10 text-muted-foreground transition-colors hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <ImagePlus className="h-7 w-7" />
               <span className="text-sm font-medium">Choose a photo (up to 20MB)</span>

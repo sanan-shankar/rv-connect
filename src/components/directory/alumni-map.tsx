@@ -12,7 +12,7 @@ import Supercluster from "supercluster";
 import worldData from "world-atlas/countries-110m.json";
 import type { Feature, Geometry } from "geojson";
 import { IdentityRow } from "@/components/common/identity-row";
-import { batchLine, cn } from "@/lib/utils";
+import { batchLine, cn, metaLine } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -568,14 +568,14 @@ export function AlumniMap({
                 <Link
                   key={p.id}
                   href={`/profile/${p.id}`}
-                  className="group block rounded-[var(--radius-md)] px-2 py-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  className="group block rounded-[var(--radius-md)] px-2 py-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
                 >
                   <IdentityRow
                     user={{ id: p.id, name: p.name, photoUrl: p.photoUrl, birdOverride: p.birdOverride }}
                     textClassName="flex-1"
                     name={p.name}
                     nameClassName="truncate text-[15px] font-semibold leading-none text-foreground group-hover:underline"
-                    meta={[batchLine(p), p.jobTitle].filter(Boolean).join(" · ")}
+                    meta={metaLine(batchLine(p), p.jobTitle)}
                     metaClassName="truncate leading-none"
                   />
                 </Link>

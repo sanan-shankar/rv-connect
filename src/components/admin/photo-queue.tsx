@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { approvePhoto, declinePhoto } from "@/app/(main)/collection/actions";
 import { subjectLabel, areaLabel, eraLabel } from "@/lib/collection";
+import { metaLine } from "@/lib/utils";
 
 interface PendingPhoto {
   id: string;
@@ -78,12 +79,14 @@ export function PhotoQueue({ photos }: { photos: PendingPhoto[] }) {
               ))}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {p.uploaderName} ·{" "}
-              {new Date(p.createdAt).toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
+              {metaLine(
+                p.uploaderName,
+                new Date(p.createdAt).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })
+              )}
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-2">

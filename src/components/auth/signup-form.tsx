@@ -110,7 +110,7 @@ function InfoTip({ label, children }: { label: string; children: React.ReactNode
             exit={{ opacity: 0, scale: 0.96, y: -2 }}
             transition={SPRINGS.snappy}
             style={{ left: tipLeft ?? undefined, right: tipLeft == null ? 0 : undefined }}
-            className="absolute top-full z-30 mt-2 w-64 max-w-[80vw] rounded-xl border border-border bg-paper px-3.5 py-2.5 text-[12.5px] leading-relaxed text-foreground shadow-lg"
+            className="absolute top-full z-30 mt-2 w-64 max-w-[80vw] rounded-[var(--radius-md)] border border-border bg-paper px-3.5 py-2.5 text-[12.5px] leading-relaxed text-foreground shadow-lg"
           >
             {children}
           </motion.div>

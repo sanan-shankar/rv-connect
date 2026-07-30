@@ -66,17 +66,24 @@
   --z-floating: 30;
   --z-overlay: 50;
 
-  /* Valley palette (light-mode-first). Neutrals carry the UI; accents are used sparingly. */
+  /* Valley palette (light-mode-first). Neutrals carry the UI; accents are used sparingly.
+     The neutrals form THE SURFACE LADDER (docs/spec/DESIGN-SYSTEM.md, colour protocol):
+     background < mist < secondary < paper < accent < float, each rung ~5 RGB steps up.
+     Warmth lives at the BOTTOM of the ladder and surfaces cool and lighten as they
+     rise; hover always lifts a surface up the ladder, never sinks it into tan.
+     All four neutrals were cooled ~20-25% on 2026-07-30 (owner: "tone down the warm
+     background everywhere by 20%, slightly cooler") -- the warm cast (R minus B) drops
+     from 20 to 15 on the page, 14 to 11 on paper, at unchanged lightness. */
   --color-leaf: #1F8A4C;        /* primary green */
   --color-leaf-light: #34C759;  /* lit accent (active nav) */
   --color-canopy: #235C49;      /* deep sidebar green */
   --color-sky: #3F7CA6;         /* office blue, the vivid pop */
   --color-cinnamon: #C2622F;    /* warm accent (saved, events, hoopoe) */
   --color-heart: #E03A33;       /* the heart is always this red */
-  --color-paper: #F6F2E8;       /* surface (preview warmth) */
+  --color-paper: #F5F2EA;       /* surface (preview warmth, cooled) */
   --color-float: #FFFFFF;       /* floating modals only */
   --color-ink: #23241E;         /* warm near-black text */
-  --color-mist: #EEE8DA;        /* recessed surface */
+  --color-mist: #ECE8DD;        /* recessed wells ONLY, one per card, never two adjacent */
 
   /* LiftKit Golden Ratio Spacing (phi = 1.618) */
   --space-xxs: 0.236em;
@@ -90,24 +97,38 @@
 }
 
 :root {
-  /* Warm, dimmed light theme. Surfaces are never pure white (that is reserved for floating modals). */
-  --background: #E7E1D3;  /* matches /lab/v2 warmth exactly */
+  /* Warm, dimmed light theme. Surfaces are never pure white (that is reserved for
+     floating modals). The neutrals follow the surface ladder documented on the
+     palette block above. Until 2026-07-30, --secondary, --muted and --accent were
+     all the SAME hex as mist (#EEE8DA): four names, one ochre, so idle chips,
+     hovers and wells converged on one tan and hovers went DARKER into it. The
+     ladder splits them: muted recesses, secondary sits just under paper, accent
+     lifts above it. */
+  --background: #E4E1D5;  /* the /lab/v2 warmth, cooled ~25% (was #E7E1D3) */
   --foreground: #23241E;
-  --card: #F6F2E8;
+  --card: #F5F2EA;
   --card-foreground: #23241E;
   --popover: #FFFFFF;
   --popover-foreground: #23241E;
   --primary: #1F8A4C;
   --primary-foreground: #FFFFFF;
-  --secondary: #EEE8DA;
-  --secondary-foreground: #1A6B3C;
-  --muted: #EEE8DA;
+  /* Quiet filled controls (composer trigger pill, filter pills at rest). One
+     rung under paper so the fill reads without a border, but no longer the
+     same hex as the wells. Text is ink: the old #1A6B3C dark-green text on
+     tan was the "weird green background, darker green text" the owner killed. */
+  --secondary: #F0EDE4;
+  --secondary-foreground: #23241E;
+  /* Recessed wells (== mist). ONE per card, never two adjacent. */
+  --muted: #ECE8DD;
   --muted-foreground: #6E7268;
-  --accent: #EEE8DA;
-  --accent-foreground: #1A6B3C;
+  /* The hover token. A hover LIFTS the surface toward light (paper mixed up
+     toward white, stopping short of pure #FFFFFF, which stays reserved for
+     floating modals). It must never sink a control into tan. */
+  --accent: #FAF8F2;
+  --accent-foreground: #23241E;
   --destructive: #E03A33;
-  --border: #E0D8C8;
-  --input: #E0D8C8;
+  --border: #DFD8CB;
+  --input: #DFD8CB;
   /* Leaf. This is the INPUT focus ring only (one ring, no doubled outline).
      Buttons never use this token — a canopy-filled button gets a canopy-based
      focus ring instead, so a green button never wears a mismatched leaf halo. */
@@ -138,41 +159,13 @@
   --sidebar-active: #357760;
 }
 
-/* Dark mode scaffolding is kept but NOT shipped for MVP (forcedTheme="light").
-   It loses character today; revisit later as a warm "gray not black" treatment. */
-.dark {
-  --background: #10171A;
-  --foreground: #E8EDE7;
-  --card: #18211D;
-  --card-foreground: #E8EDE7;
-  --popover: #1E2823;
-  --popover-foreground: #E8EDE7;
-  --primary: #34B083;
-  --primary-foreground: #08120D;
-  --secondary: #1E2823;
-  --secondary-foreground: #D0D8D2;
-  --muted: #1E2823;
-  --muted-foreground: #9DA8A0;
-  --accent: #1E2823;
-  --accent-foreground: #D0D8D2;
-  --destructive: #F0675A;
-  --border: #28332D;
-  --input: #28332D;
-  --ring: #34B083;
-  --chart-1: #34B083;
-  --chart-2: #5C9BC4;
-  --chart-3: #D98A4F;
-  --chart-4: #34C759;
-  --chart-5: #C75F7A;
-  --sidebar: #16271F;
-  --sidebar-foreground: #E8EDE7;
-  --sidebar-primary: #34C759;
-  --sidebar-primary-foreground: #08120D;
-  --sidebar-accent: #23302A;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #28332D;
-  --sidebar-ring: #34C759;
-}
+/* Dark mode: no .dark block exists YET on purpose. The old scaffold (a cool
+   blue-black skin that dimmed the sidebar and muted every accent) was deleted
+   outright on owner instruction, 2026-07-30: "the previous dark mode was a
+   stub... by no means should you be inspired by that." The real dark theme is
+   rebuilt from a blank sheet with three fixed constraints: warm charcoal
+   (never pure black), the Canopy sidebar does not change, and the heart stays
+   #E03A33. Until it ships, the app renders forcedTheme="light" (layout.tsx). */
 
 /*
  * Type scale (docs/spec/DESIGN-SYSTEM.md sec 5). Heading = Libre Baskerville

@@ -72,7 +72,7 @@ export function LoveButton({
       aria-label={label}
       whileTap={{ scale: 0.93 }}
       transition={SPRINGS.snappy}
-      className={`inline-flex items-center ${gap} rounded-full ${padding} text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+      className={`inline-flex items-center ${gap} rounded-full ${padding} text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
         liked ? "text-heart" : "hover:text-foreground"
       } ${className}`}
     >

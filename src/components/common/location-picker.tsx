@@ -293,7 +293,9 @@ export function LocationPicker(props: LocationPickerProps) {
         <ul className="flex flex-wrap gap-2">
           {props.value.map((place, index) => (
             <li key={place.placeId != null ? `place-${place.placeId}` : `${place.label}-${index}`}>
-              <span className="inline-flex max-w-72 items-center gap-1.5 rounded-full bg-canopy/10 py-1 pr-1.5 pl-3 text-sm font-medium text-canopy">
+              {/* Sky tint from the protocol's chip trio (places = sky, matching
+                  the Directory's label colour; the drab canopy/10 pairing is dead). */}
+              <span className="inline-flex max-w-72 items-center gap-1.5 rounded-full border border-sky/35 bg-sky/[0.10] py-1 pr-1.5 pl-3 text-sm font-medium text-sky">
                 <span className="truncate">{place.label}</span>
                 <SpringPress
                   as="button"
@@ -335,7 +337,7 @@ export function LocationPicker(props: LocationPickerProps) {
             <SpringPress
               as="button"
               onClick={clearSingle}
-              className="grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+              className="grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
               {...({ type: "button", "aria-label": "Clear city" } as object)}
             >
               <XIcon className="size-3.5" />

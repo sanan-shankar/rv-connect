@@ -62,7 +62,7 @@ export function BookmarkButton({
       aria-label={label ?? (saved ? "Remove bookmark" : "Save")}
       whileTap={{ scale: 0.93 }}
       transition={SPRINGS.snappy}
-      className={`flex items-center rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+      className={`flex items-center rounded-full px-2.5 py-1.5 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
         saved ? "text-cinnamon" : "hover:text-foreground"
       } ${className}`}
     >
@@ -99,7 +99,7 @@ export function BookmarkButton({
             y="-48"
             width="34"
             height="104"
-            fill="#C2622F"
+            fill="var(--color-cinnamon)"
             style={{ transformBox: "fill-box", transformOrigin: "50% 50%" }}
             initial={false}
             animate={{ scaleY: saved ? 1 : 0 }}

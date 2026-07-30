@@ -6,11 +6,16 @@
  *  Collection.
  *
  *  The shape of it: the photo owns the screen on a warm near-black
- *  wash. Moving forward or back is a cross-dissolve (the incoming
- *  frame drifts from 1.015x to rest while the outgoing one fades, so a
- *  step reads as one continuous piece of film, not a swap). The two
- *  neighbouring images are pre-decoded the moment a frame settles, off
- *  the main path, so the dissolve never waits on the network.
+ *  wash. Moving forward or back advances the film one frame: the
+ *  incoming photo drifts in from the side you are heading toward while
+ *  the outgoing one slips the opposite way and fades out faster than
+ *  the newcomer fades in (so the cross never dips to a see-through
+ *  midpoint). No scale anywhere in the step -- equal-size frames read
+ *  as one photograph replacing another; any size mismatch reads as a
+ *  zoom-and-settle, which is the exact bounce the owner rejected
+ *  (2026-07-30). The two neighbouring images are pre-decoded the
+ *  moment a frame settles, off the main path, so the step never waits
+ *  on the network.
  *
  *  Chrome stays out of the photo's way: a counter and the actions sit
  *  in slim bars top and bottom, and a tap on the photo puts them away
@@ -28,8 +33,8 @@ import { AlignLeft, ArrowUpRight, ChevronLeft, ChevronRight, Download, X } from 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
-import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
-import { cn } from "@/lib/utils";
+import { SPRINGS, EASE_OUT_SMOOTH, EASE_IN_OUT_SCENE } from "@/components/common/motion";
+import { cn, metaLine } from "@/lib/utils";
 
 export interface ViewerImage {
   src: string;
@@ -47,6 +52,39 @@ export interface ViewerImage {
 }
 
 const BACKDROP = "rgba(24, 25, 20, 0.94)"; // warm ink, never pure black
+
+/* The step: one frame of film advancing. The incoming photo drifts in from
+ * the side you are heading toward (+x when stepping forward) and the
+ * outgoing one slips the opposite way, so forward and back read
+ * differently and a step between two similar valley photographs still
+ * visibly HAPPENS. Distances are a whisper (28px in, 18px out, on a
+ * viewport-scale move) because the drift is a cue, not a slide. The x legs
+ * ride EASE_IN_OUT_SCENE -- the documented curve for viewport-scale travel
+ * (DESIGN-SYSTEM sec. 7); an out-only curve here reads as a lurch. The
+ * opacity legs are asymmetric on purpose: 140ms out vs 200ms in keeps the
+ * cross from dipping to a half-transparent midpoint where the backdrop
+ * shows through both frames. No scale anywhere -- see the header comment. */
+const STEP_X_IN = 28;
+const STEP_X_OUT = 18;
+const FRAME_VARIANTS = {
+  enter: (dir: 1 | -1) => ({ x: dir * STEP_X_IN, opacity: 0 }),
+  center: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      x: { duration: 0.26, ease: EASE_IN_OUT_SCENE },
+      opacity: { duration: 0.2, ease: EASE_OUT_SMOOTH },
+    },
+  },
+  exit: (dir: 1 | -1) => ({
+    x: dir * -STEP_X_OUT,
+    opacity: 0,
+    transition: {
+      x: { duration: 0.26, ease: EASE_IN_OUT_SCENE },
+      opacity: { duration: 0.14, ease: EASE_OUT_SMOOTH },
+    },
+  }),
+};
 
 function basename(src: string): string {
   try {
@@ -71,6 +109,9 @@ export function ImageViewer({
   const [index, setIndex] = useState(initialIndex);
   const [chromeHidden, setChromeHidden] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
+  /* Which way the last step went; feeds the frame variants (via `custom`)
+     so the drift matches the direction of travel. */
+  const [stepDir, setStepDir] = useState<1 | -1>(1);
   const stageRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
 
@@ -84,6 +125,7 @@ export function ImageViewer({
         if (next < 0 || next >= count) return i;
         return next;
       });
+      setStepDir(dir);
       setCaptionOpen(false);
     },
     [count]
@@ -218,42 +260,54 @@ export function ImageViewer({
           </div>
         </div>
 
-        {/* STAGE. The dissolve: outgoing frame fades where it stands while
-            the incoming one fades up from a 1.015x drift; sync mode keeps
-            both mounted through the cross. */}
+        {/* STAGE. The step animation lives on the keyed frame (FRAME_VARIANTS,
+            top of file); sync mode keeps both frames mounted through the cross.
+            The swipe gesture lives on a stable wrapper, not the keyed frame:
+            drag and an animated `x` on the same node fight over one
+            MotionValue, and a keyed frame that exits mid-swipe would carry its
+            drag offset and momentum snap-back into the exit -- the second,
+            mobile-only bounce the owner reported. Here the wrapper rubber-bands
+            under the finger and springs home while the frames inside advance
+            independently. The desktop arrows sit outside the wrapper so they
+            never move with a drag. */}
         <div
           ref={stageRef}
           tabIndex={-1}
           className="relative flex-1 outline-none"
           onClick={(e) => e.stopPropagation()}
         >
-          <AnimatePresence mode="sync" initial={false}>
-            <motion.div
-              key={index}
-              className="absolute inset-0 flex items-center justify-center p-4 pb-16 pt-16 sm:p-14"
-              initial={{ opacity: 0, scale: 1.015 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.32, ease: EASE_OUT_SMOOTH }}
-              drag={count > 1 ? "x" : false}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.14}
-              onDragEnd={(_, info) => {
-                if (info.offset.x < -70 || info.velocity.x < -420) step(1);
-                else if (info.offset.x > 70 || info.velocity.x > 420) step(-1);
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={current.src}
-                alt={current.alt ?? current.caption ?? ""}
-                draggable={false}
-                onClick={() => setChromeHidden((h) => !h)}
-                className="max-h-full max-w-full select-none rounded-[var(--radius-sm)] object-contain"
-                style={{ boxShadow: "0 24px 80px -24px rgba(0,0,0,0.8)" }}
-              />
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            className="absolute inset-0"
+            drag={count > 1 ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.14}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -70 || info.velocity.x < -420) step(1);
+              else if (info.offset.x > 70 || info.velocity.x > 420) step(-1);
+            }}
+          >
+            <AnimatePresence mode="sync" initial={false} custom={stepDir}>
+              <motion.div
+                key={index}
+                custom={stepDir}
+                variants={FRAME_VARIANTS}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="absolute inset-0 flex items-center justify-center p-4 pb-16 pt-16 sm:p-14"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={current.src}
+                  alt={current.alt ?? current.caption ?? ""}
+                  draggable={false}
+                  onClick={() => setChromeHidden((h) => !h)}
+                  className="max-h-full max-w-full select-none rounded-[var(--radius-sm)] object-contain"
+                  style={{ boxShadow: "0 24px 80px -24px rgba(0,0,0,0.8)" }}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
 
           {/* Desktop step arrows; mobile navigates by dragging the photo. */}
           {index > 0 && (
@@ -346,7 +400,7 @@ export function ImageViewer({
                 <p className="text-[15px] leading-[1.65] text-white/92">{current.caption}</p>
                 {(current.author || current.date) && (
                   <p className="mt-3 text-[12.5px] text-white/55">
-                    {[current.author?.name, current.date].filter(Boolean).join(" · ")}
+                    {metaLine(current.author?.name, current.date)}
                   </p>
                 )}
               </div>

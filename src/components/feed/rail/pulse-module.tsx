@@ -39,7 +39,10 @@ export async function PulseModule() {
     <RailCard label="Signs of life">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-canopy/10 text-canopy">
+          {/* Tint trio, rotated (colour protocol): leaf for posts, sky for
+              people, never two of one tint in a card. The old canopy-wash
+              pairing is dead. */}
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-leaf/30 bg-leaf/[0.07] text-leaf">
             <Feather className="h-4 w-4" />
           </span>
           <p className="text-[13px] leading-snug text-foreground">
@@ -48,7 +51,7 @@ export async function PulseModule() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-canopy/10 text-canopy">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-sky/35 bg-sky/[0.10] text-sky">
             <Users className="h-4 w-4" />
           </span>
           <p className="text-[13px] leading-snug text-foreground">

@@ -19,8 +19,10 @@ export function DoneStep({ name }: { name: string }) {
           actually plays (see onboarding-flow.tsx), so it doubles as the one
           moment that needs to read clean against the mascot mid-flight. */}
       <div className="space-y-[var(--space-l)] rounded-2xl border border-border bg-card p-[var(--space-l)]">
+        {/* Celebration bubble in the leaf tint (colour protocol's chip trio);
+            cinnamon would fight the hoopoe flying through this same moment. */}
         <div
-          className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-canopy/10 text-canopy"
+          className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-leaf/30 bg-leaf/[0.07] text-leaf"
           aria-hidden
         >
           <PartyPopper className="h-7 w-7" />

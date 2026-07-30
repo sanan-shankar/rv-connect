@@ -78,8 +78,10 @@ export default function ViewerRoom() {
 
       <main className="mx-auto max-w-3xl px-5 py-10">
         <p className="text-[15px] leading-[1.7] text-muted-foreground">
-          The shared viewer, live. Click any photo. Then: arrow keys or the edge buttons step with
-          a cross-dissolve, dragging the photo steps on touch, a tap on the photo puts the chrome
+          The shared viewer, live. Click any photo. Then: arrow keys or the edge buttons advance
+          the film one frame (the incoming photo drifts in from the side you are heading toward,
+          the outgoing slips the other way and fades first; no scale, so nothing zooms or
+          bounces), dragging the photo steps on touch, a tap on the photo puts the chrome
           away, Caption turns the bottom of the screen up, the arrow-out button appears only when
           a photo has its own page, and Esc or the backdrop closes. The third photo has no
           caption, so the Caption affordance is absent there.

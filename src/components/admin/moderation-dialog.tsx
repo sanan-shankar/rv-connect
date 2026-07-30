@@ -57,7 +57,9 @@ export function ModerationDialog({
       describedBy="moderation-dialog-description"
     >
       <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-canopy/10 text-canopy">
+        {/* Sky: the cool administrative register (colour protocol's chip trio;
+            the old canopy/10 grey-sage pairing is dead). */}
+        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-sky/35 bg-sky/[0.10] text-sky">
           <ShieldCheck className="size-4" strokeWidth={1.9} />
         </span>
         <div className="flex flex-col gap-1">

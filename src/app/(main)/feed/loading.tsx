@@ -3,13 +3,13 @@ export default function FeedLoading() {
     <div className="grid grid-cols-1 gap-x-[30px] min-[1180px]:grid-cols-[minmax(0,1fr)_318px]">
       <div className="min-w-0 space-y-6">
       {/* Create post skeleton */}
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="rounded-[var(--radius)] border border-border bg-card p-6">
         <div className="skeleton-warm h-20 w-full rounded-md" />
       </div>
 
       {/* Post skeletons */}
       {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-xl border border-border bg-card p-6">
+        <div key={i} className="rounded-[var(--radius)] border border-border bg-card p-6">
           <div className="flex items-center gap-3">
             <div className="skeleton-warm h-10 w-10 rounded-full" />
             <div className="space-y-2">
