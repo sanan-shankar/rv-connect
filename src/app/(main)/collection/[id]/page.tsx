@@ -63,7 +63,7 @@ export default async function PhotoPage({
     : [];
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <Link
         href="/collection"
         className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"

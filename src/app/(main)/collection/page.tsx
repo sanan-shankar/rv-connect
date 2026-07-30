@@ -32,7 +32,7 @@ export default async function CollectionPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <PageHeader
         title="The Valley Collection"
         subtitle="A shared picture of the place: the banyan, Rishi Konda, the birds, the light."
