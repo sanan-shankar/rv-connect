@@ -23,6 +23,15 @@
  *  Adding a room: append an entry. Retiring one: flip its status to
  *  "archived" rather than deleting the row (or the file) so history
  *  stays visible instead of silently vanishing again.
+ *
+ *  A room with URL-nested sub-pages (an overview plus /lab/room/x pages)
+ *  lists them as `children` on the overview entry, so /lab shows ONE
+ *  card per room with the sub-pages tucked under it (owner, 2026-07-30:
+ *  "groups rethink is showing as 5 different pages. It should just show
+ *  as one page the overview and the rest are there under that").
+ *  Children keep the `href:` key name: scripts/qa/lab-audit.mjs regexes
+ *  every href out of this file, so a child under any other key would be
+ *  reported as stranded.
  * ------------------------------------------------------------------ */
 
 export type LabStatus = "active" | "archived";
@@ -32,8 +41,15 @@ export type LabGroup =
   | "Second look"
   | "Profiles"
   | "Brand"
-  | "Tools"
-  | "Groups rethink";
+  | "Tools";
+
+/** A sub-page of a room: reachable from its parent's card, never its own card. */
+export interface LabChildEntry {
+  href: string;
+  title: string;
+  /** one honest line, surfaced as the link's tooltip rather than card copy */
+  note: string;
+}
 
 export interface LabEntry {
   href: string;
@@ -42,6 +58,8 @@ export interface LabEntry {
   status: LabStatus;
   /** one honest line: what this room is actually for */
   note: string;
+  /** URL-nested sub-pages, folded under this card (archived with it) */
+  children?: LabChildEntry[];
 }
 
 /** display order for the group sections on /lab */
@@ -51,25 +69,30 @@ export const GROUP_ORDER: LabGroup[] = [
   "Profiles",
   "Brand",
   "Tools",
-  "Groups rethink",
 ];
 
 export const REGISTRY: LabEntry[] = [
   /* ---------------------------------------------------------------- *
    *  Delight, the general motion + concept lab
+   *
+   *  Six rooms below ship with status "archived": the owner archived
+   *  them from /lab itself (2026-07-30) while the state still lived in
+   *  archive-overrides.json. When that file was replaced by the
+   *  LabRoomState table those choices were folded in here as the
+   *  committed defaults, so they hold even before the table has rows.
    * ---------------------------------------------------------------- */
   {
     href: "/lab/transitions",
     title: "Navigation & transitions",
     group: "Delight",
-    status: "active",
+    status: "archived",
     note: "The sliding sidebar marker, the seg thumb, content cross-fade between views, the landing-to-login lateral pass, and a coordinated first paint.",
   },
   {
     href: "/lab/composer",
     title: "The composer, reworked",
     group: "Delight",
-    status: "active",
+    status: "archived", // owner archive choice, folded in from archive-overrides.json
     note: "A slim pill that unfurls: photo, poll and letter tucked away, no tag walls, bold/italic/underline/strike, click outside to close.",
   },
   {
@@ -139,7 +162,7 @@ export const REGISTRY: LabEntry[] = [
     href: "/lab/viewer",
     title: "The image viewer",
     group: "Delight",
-    status: "active",
+    status: "archived", // owner archive choice, folded in from archive-overrides.json
     note: "Exercises the real shared ImageViewer against Collection photographs: multi-image navigation, captions folded and unfolded, an author chip, single-image sets, keyboard and drag input.",
   },
 
@@ -150,14 +173,14 @@ export const REGISTRY: LabEntry[] = [
     href: "/lab/craft",
     title: "Why the sidebar looks 1080p",
     group: "Second look",
-    status: "active",
+    status: "archived", // owner archive choice, folded in from archive-overrides.json
     note: "Idle nav text runs at 70% alpha of white over green (4.31:1 contrast); the same colour fails AA 568 times across the app. Live fixes on the real sidebar specimen.",
   },
   {
     href: "/lab/spine",
     title: "Six different left edges",
     group: "Second look",
-    status: "active",
+    status: "archived", // owner archive choice, folded in from archive-overrides.json
     note: "Every page header looks reasonable alone; side by side, eleven routes use six different left edges, 224px apart end to end.",
   },
   {
@@ -187,19 +210,19 @@ export const REGISTRY: LabEntry[] = [
     group: "Second look",
     status: "active",
     note: "Same year-by-year auto-advance flow the owner liked; what changed is the panel becoming a bottom sheet below 1024px, the radius ladder, and the touch target size.",
-  },
-  {
-    href: "/lab/houses/demo",
-    title: "Houses picker demo target",
-    group: "Second look",
-    status: "active",
-    note: "Bare render target with no lab chrome, loaded inside the houses room's two iframes so the mobile picker genuinely sees a 390px window. Not meant to be browsed directly.",
+    children: [
+      {
+        href: "/lab/houses/demo",
+        title: "Demo target",
+        note: "Bare render target with no lab chrome, loaded inside the houses room's two iframes so the mobile picker genuinely sees a 390px window. Not meant to be browsed directly.",
+      },
+    ],
   },
   {
     href: "/lab/type",
     title: "The font question",
     group: "Second look",
-    status: "active",
+    status: "archived", // owner archive choice, folded in from archive-overrides.json
     note: "Five live type pairings measured off the actual font binaries, arguing Libre Baskerville is a body face currently doing display work.",
   },
   {
@@ -237,13 +260,13 @@ export const REGISTRY: LabEntry[] = [
     group: "Brand",
     status: "active",
     note: "Dynamic harness (/lab/[dir], valid keys grove | almanac | canopy) rendering one of three early competing shell/feed directions; predates the v2 system that was eventually chosen. Example shown: grove.",
-  },
-  {
-    href: "/lab/grove/auth",
-    title: "Three shell directions, login view",
-    group: "Brand",
-    status: "active",
-    note: "The same three-direction harness (/lab/[dir]/auth), the login screen for whichever key is in the URL. Example shown: grove.",
+    children: [
+      {
+        href: "/lab/grove/auth",
+        title: "Login view",
+        note: "The same three-direction harness (/lab/[dir]/auth), the login screen for whichever key is in the URL. Example shown: grove.",
+      },
+    ],
   },
   {
     href: "/lab/birds-bg",
@@ -300,41 +323,38 @@ export const REGISTRY: LabEntry[] = [
   },
 
   /* ---------------------------------------------------------------- *
-   *  Groups rethink: fully archived, the Groups feature was removed
+   *  Groups rethink: one archived room. Its four concept pages are
+   *  children of the overview (the owner's exact complaint about five
+   *  cards), which dissolved the single-purpose "Groups rethink" group;
+   *  the one card lives in Delight, the general concept lab.
    * ---------------------------------------------------------------- */
   {
     href: "/lab/groups-rethink",
     title: "Groups rethink, overview",
-    group: "Groups rethink",
+    group: "Delight",
     status: "archived",
     note: "Index and comparison matrix for four static concepts answering 'what should Groups become'. The Groups feature was removed from the app entirely, so this whole tree is superseded.",
-  },
-  {
-    href: "/lab/groups-rethink/circles",
-    title: "Concept A: Circles for Catch-ups",
-    group: "Groups rethink",
-    status: "archived",
-    note: "Groups vanish as a noun; a Circle is just the invisible plumbing a Catch-up runs on.",
-  },
-  {
-    href: "/lab/groups-rethink/batches-interest",
-    title: "Concept B: Batches + Special Interest",
-    group: "Groups rethink",
-    status: "archived",
-    note: "Two space types, neither user-created: an auto Batch plus a short admin-curated interest shelf like Burdens of RV.",
-  },
-  {
-    href: "/lab/groups-rethink/dissolve",
-    title: "Concept C: Groups dissolve away",
-    group: "Groups rethink",
-    status: "archived",
-    note: "No groups surface at all; batches and places move into the Directory, cohorts into a Feed filter, Catch-ups onto the batch itself.",
-  },
-  {
-    href: "/lab/groups-rethink/gatherings",
-    title: "Concept D: Gatherings (synthesis)",
-    group: "Groups rethink",
-    status: "archived",
-    note: "Batch rooms plus a curated Gatherings shelf plus threshold Places in the Directory, one demoted nav entry. The recommended concept.",
+    children: [
+      {
+        href: "/lab/groups-rethink/circles",
+        title: "Concept A: Circles for Catch-ups",
+        note: "Groups vanish as a noun; a Circle is just the invisible plumbing a Catch-up runs on.",
+      },
+      {
+        href: "/lab/groups-rethink/batches-interest",
+        title: "Concept B: Batches + Special Interest",
+        note: "Two space types, neither user-created: an auto Batch plus a short admin-curated interest shelf like Burdens of RV.",
+      },
+      {
+        href: "/lab/groups-rethink/dissolve",
+        title: "Concept C: Groups dissolve away",
+        note: "No groups surface at all; batches and places move into the Directory, cohorts into a Feed filter, Catch-ups onto the batch itself.",
+      },
+      {
+        href: "/lab/groups-rethink/gatherings",
+        title: "Concept D: Gatherings (synthesis)",
+        note: "Batch rooms plus a curated Gatherings shelf plus threshold Places in the Directory, one demoted nav entry. The recommended concept.",
+      },
+    ],
   },
 ];
