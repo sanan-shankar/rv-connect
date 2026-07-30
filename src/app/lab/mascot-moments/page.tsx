@@ -104,7 +104,7 @@ export default function MascotMoments() {
           trigger="You scroll. The bird tracks the page, section by section."
           does={
             <>
-              As each section comes up, the hoopoe does a <V>flyTo</V> to that section's corner
+              As each section comes up, the hoopoe does a <V>flyTo</V> to that section&apos;s corner
               and perches, a <V>gaze</V> at what you are reading, an occasional <V>crestFlick</V>.
               It always sits in the margin, never over the words.
             </>
@@ -149,7 +149,7 @@ export default function MascotMoments() {
           trigger="Your first Letter posts successfully. Once, ever."
           does={
             <>
-              A <V>react("success")</V>, which is a <V>celebrate(2)</V> with the particle burst
+              A <V>react(&quot;success&quot;)</V>, which is a <V>celebrate(2)</V> with the particle burst
               and a fanned crest. An earned, rare moment, not something on every post.
             </>
           }
@@ -163,7 +163,7 @@ export default function MascotMoments() {
           trigger="No interaction for several minutes."
           does={
             <>
-              A <V>react("idleBored")</V>: the hoopoe looks around, drifts into <V>express("sleepy")</V>,
+              A <V>react(&quot;idleBored&quot;)</V>: the hoopoe looks around, drifts into <V>express(&quot;sleepy&quot;)</V>,
               a slow double <V>blinkOnce</V>, maybe tucks its head. It just gets sleepy in its
               corner. No popup, no sound.
             </>
@@ -193,7 +193,7 @@ export default function MascotMoments() {
           trigger="You complete a profile step or pass a milestone."
           does={
             <>
-              An <V>express("proud")</V>, a <V>wave</V>, <V>crest(true)</V>, and a <V>nod</V>.
+              An <V>express(&quot;proud&quot;)</V>, a <V>wave</V>, <V>crest(true)</V>, and a <V>nod</V>.
               Brief and warm, then back to quiet.
             </>
           }
@@ -354,7 +354,12 @@ function V({ children, soft = false }: { children: ReactNode; soft?: boolean }) 
  * ------------------------------------------------------------------ */
 function useAutoplay(ref: RefObject<HTMLElement | null>, play: () => void) {
   const playRef = useRef(play);
-  playRef.current = play;
+  // Keep the ref pointing at the latest callback. Assigned after commit rather
+  // than during render: the only reader is the IntersectionObserver below,
+  // which cannot run until after the commit anyway.
+  useEffect(() => {
+    playRef.current = play;
+  });
   const fired = useRef(false);
   useEffect(() => {
     const el = ref.current;
@@ -465,9 +470,9 @@ function NoResultsDemo() {
       trigger="A query comes back with nothing."
       does={
         <>
-          An <V>express("curious")</V>, then it will <V>gaze</V> left and right as if hunting for
+          An <V>express(&quot;curious&quot;)</V>, then it will <V>gaze</V> left and right as if hunting for
           the match, a small <V>shake</V> that reads as no luck, and back to{" "}
-          <V>express("content")</V>. No copy needed, the bird says it.
+          <V>express(&quot;content&quot;)</V>. No copy needed, the bird says it.
         </>
       }
     >
@@ -522,7 +527,7 @@ function LoadingDemo() {
         <>
           The hoopoe will <V>hop</V> in place with the odd <V>crestFlick</V> and blink, keeping
           you company. When the content lands it does one <V>land</V> and a quick{" "}
-          <V>express("happy")</V> as the hand-off.
+          <V>express(&quot;happy&quot;)</V> as the hand-off.
         </>
       }
     >
@@ -575,7 +580,7 @@ function NotFoundDemo() {
       trigger="You reach a URL that does not exist."
       does={
         <>
-          An <V>express("worried")</V>, a <V>shake</V>, then it will <V>gaze</V> around as if
+          An <V>express(&quot;worried&quot;)</V>, a <V>shake</V>, then it will <V>gaze</V> around as if
           lost, <V>point</V> at Back to the feed, give a <V>wave</V>, and settle.
         </>
       }
@@ -626,7 +631,7 @@ function NoSavedDemo() {
       does={
         <>
           The hoopoe sits by an empty bookmark, will <V>gaze</V> at it, goes a touch{" "}
-          <V>express("sleepy")</V> with a slow double <V>blinkOnce</V>, then back to content.
+          <V>express(&quot;sleepy&quot;)</V> with a slow double <V>blinkOnce</V>, then back to content.
           Quiet, never nagging.
         </>
       }

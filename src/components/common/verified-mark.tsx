@@ -64,6 +64,7 @@ function VerifiedMarkInner({
     const margin = 8;
     const wouldOverflowRight =
       wrapRect.right + 6 + tip.offsetWidth > window.innerWidth - margin;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Measures the tooltip against the viewport and flips it to the other side if it would overflow. Pure measure-then-position; the opacity fade hides the one-frame correction.
     setSide(wouldOverflowRight ? "left" : "right");
   }, [open]);
 

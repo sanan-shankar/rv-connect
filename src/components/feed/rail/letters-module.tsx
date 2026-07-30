@@ -1,3 +1,7 @@
+/* eslint-disable react-hooks/purity --
+   This is an async Server Component: the body runs once per request on the
+   server to build a Prisma query, not inside a React render pass, so Date.now()
+   here is not the impurity the rule is guarding against. */
 import Link from "next/link";
 import { Feather } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";

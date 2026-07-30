@@ -18,7 +18,7 @@
  *  `express("content")`, never lingers on a downbeat pose.
  * ------------------------------------------------------------------ */
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 
@@ -62,7 +62,11 @@ export function CelebrationHoopoe({
   // A ref so onReady (which only ever fires once, per hoopoe.tsx's
   // once-per-mount guard) always calls the latest onDone.
   const onDoneRef = useRef(onDone);
-  onDoneRef.current = onDone;
+  // Assigned after commit rather than during render. onReady fires from the
+  // hoopoe's own once-per-mount guard, which is always after a commit.
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
 
   function handleReady(api: HoopoeApi) {
     void playCelebration(api, kind).then(() => onDoneRef.current());

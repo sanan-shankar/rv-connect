@@ -107,12 +107,14 @@ export function PostFeed({
     if (typeof window === "undefined") return;
     const key = `${LAST_SEEN_KEY}:${groupId ?? scope}`;
     const stored = window.localStorage.getItem(key);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reads the last-seen timestamp out of localStorage, which has no server-side value.
     setLastSeen(stored ? Number(stored) : null);
   }, [groupId, scope]);
 
   // First page whenever filters, group, or an external reload trigger change.
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Re-arms the skeleton whenever the filters, group or reload trigger change, so a filter change never leaves the old posts on screen.
     setLoading(true);
     fetchPosts(null).then((data) => {
       if (cancelled) return;

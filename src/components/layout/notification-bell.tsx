@@ -104,6 +104,7 @@ export function NotificationBell({
 
   useEffect(() => {
     if (unreadCount > prevUnread.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Shakes the bell when the unread count RISES. That comparison only exists across renders, which is what the ref and this effect are for.
       setShakeKey((k) => k + 1);
     }
     prevUnread.current = unreadCount;

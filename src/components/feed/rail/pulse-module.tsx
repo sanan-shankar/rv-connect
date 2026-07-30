@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/purity --
+   Async Server Component: Date.now() builds the week window for a Prisma query
+   on the server, not during a React render. */
 import { Feather, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { RailCard } from "./rail-card";

@@ -195,6 +195,7 @@ function LedgerSpine() {
   // screen.
   useEffect(() => {
     const harnessHeader = document.querySelector("header");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Measures the harness header's real height after layout. There is no render-time value to derive this from.
     if (harnessHeader) setHeaderH(harnessHeader.getBoundingClientRect().height);
   }, []);
 
@@ -273,6 +274,7 @@ function ScrollNav() {
 
   useEffect(() => {
     const harnessHeader = document.querySelector("header");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Measures the harness header, then tracks scroll. Both come from the DOM after mount.
     if (harnessHeader) setTop(harnessHeader.getBoundingClientRect().height);
 
     const onScroll = () => setVisible(window.scrollY > window.innerHeight * 0.62);

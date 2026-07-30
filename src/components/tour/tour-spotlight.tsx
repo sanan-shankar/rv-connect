@@ -39,6 +39,7 @@ export function TourSpotlight({ active, spotlightKey }: { active: boolean; spotl
 
   useEffect(() => {
     if (!active || !spotlightKey) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Measures the spotlit element's box after layout so the cut-out can be drawn over it.
       setHole(null);
       return;
     }

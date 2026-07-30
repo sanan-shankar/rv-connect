@@ -1,3 +1,8 @@
+/* eslint-disable react-hooks/error-boundaries --
+   Async Server Component. The try/catch guards the awaited Prisma calls (the
+   Catch-up tables can be absent before a push); the JSX inside it is only the
+   value those branches return, and is never rendered inside the try. An error
+   boundary cannot do this job, because the failure happens during the await. */
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";

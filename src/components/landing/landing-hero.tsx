@@ -153,6 +153,7 @@ export function LandingHero() {
   useEffect(() => {
     // Cache hit: the image is already complete before onLoad can fire.
     if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reveals from the image's load state, including the cache-hit case where the element is already complete and onLoad will never fire.
       reveal();
       return;
     }

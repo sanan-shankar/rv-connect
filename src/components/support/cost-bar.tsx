@@ -62,7 +62,11 @@ function useCountUpOnView(target: number) {
   const raf = useRef<number | null>(null);
   const { paused } = useMotionGovernor();
   const pausedRef = useRef(paused);
-  pausedRef.current = paused;
+  // Assigned after commit rather than during render. The reader is the rAF
+  // loop below, which only ever ticks after a commit.
+  useEffect(() => {
+    pausedRef.current = paused;
+  });
   const [shown, setShown] = useState(false);
   const [value, setValue] = useState(0);
 

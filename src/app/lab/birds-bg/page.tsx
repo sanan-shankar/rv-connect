@@ -73,14 +73,22 @@ function Bird({ i, px, mode, adj, uid }: { i: number; px: number; mode: Mode; ad
 const MODE_LABEL: Record<Mode, string> = { none: "no background", outline: "no bg + outline", inset: "small in circle" };
 const MODES: Mode[] = ["none", "outline", "inset"];
 
-export default async function BirdsBg() {
-  const adj = JSON.parse(
-    readFileSync(join(process.cwd(), "src/components/common/bird-adjust.json"), "utf8"),
-  ) as Record<string, { x?: number; y?: number; s?: number }>;
-
-  const problem = [2, 4, 14, 8, 16, 25]; // owlet, kingfisher, magpie-robin, bee-eater, koel, spurfowl
-
-  const Section = ({ title, mode, surface }: { title: string; mode: Mode; surface?: string }) => (
+/* One labelled grid of all the archetypes at three sizes, in one treatment.
+   Module scope, not inside the page: a component declared during render is a
+   fresh component type every time, which throws away reconciliation. `adj` is
+   threaded in rather than closed over, which is what let it live inside. */
+function Section({
+  title,
+  mode,
+  surface,
+  adj,
+}: {
+  title: string;
+  mode: Mode;
+  surface?: string;
+  adj: Record<string, { x?: number; y?: number; s?: number }>;
+}) {
+  return (
     <>
       <h2 className="mt-10 font-heading text-lg">{title}</h2>
       <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 rounded-lg p-5 md:grid-cols-3 lg:grid-cols-4"
@@ -96,6 +104,14 @@ export default async function BirdsBg() {
       </div>
     </>
   );
+}
+
+export default async function BirdsBg() {
+  const adj = JSON.parse(
+    readFileSync(join(process.cwd(), "src/components/common/bird-adjust.json"), "utf8"),
+  ) as Record<string, { x?: number; y?: number; s?: number }>;
+
+  const problem = [2, 4, 14, 8, 16, 25]; // owlet, kingfisher, magpie-robin, bee-eater, koel, spurfowl
 
   return (
     <div className="min-h-screen bg-[#EFE7D8] p-10 text-[#33302B]">
@@ -147,9 +163,9 @@ export default async function BirdsBg() {
         </div>
       ))}
 
-      <Section title="ALL 26 — option A: no background" mode="none" />
-      <Section title="ALL 26 — option B: no bg + thin outline" mode="outline" />
-      <Section title="ALL 26 — option C: small in circle" mode="inset" />
+      <Section title="ALL 26 — option A: no background" mode="none" adj={adj} />
+      <Section title="ALL 26 — option B: no bg + thin outline" mode="outline" adj={adj} />
+      <Section title="ALL 26 — option C: small in circle" mode="inset" adj={adj} />
     </div>
   );
 }

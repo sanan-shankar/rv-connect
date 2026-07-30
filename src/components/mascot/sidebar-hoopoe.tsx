@@ -72,6 +72,7 @@ export function SidebarHoopoe() {
   // so the idle machinery below only ever arms on desktop.
   useEffect(() => {
     const mql = window.matchMedia("(min-width: 768px)");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Subscribes to the md breakpoint and mirrors it into state, so the idle machinery only ever arms on desktop.
     setDesktop(mql.matches);
     const onChange = () => setDesktop(mql.matches);
     mql.addEventListener("change", onChange);
@@ -86,6 +87,7 @@ export function SidebarHoopoe() {
       clearTimeout(readyTimerRef.current);
       phaseRef.current = "waiting";
       apiRef.current = null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Tears the idle machinery down when the breakpoint stops matching, rather than leaving a bird stranded mid-flight.
       setMounted(false);
       return;
     }

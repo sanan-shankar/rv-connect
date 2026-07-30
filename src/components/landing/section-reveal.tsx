@@ -29,6 +29,7 @@ export function SectionReveal({
     if (!el) return;
 
     // Arm the hidden start state, then observe to reveal.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Arms the hidden start state, then reveals from an IntersectionObserver.
     setShown(false);
     setArmed(true);
 

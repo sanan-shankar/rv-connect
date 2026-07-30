@@ -244,6 +244,7 @@ export default function FieldGuideVariant({ profile }: ProfileVariantProps) {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Drops back to a visible tab when the owner-only tab stops being offered, so the panel can never be left pointing at a tab that is gone.
     if (!viewingAsOwner && activeTab === "saved") setActiveTab("observations");
   }, [viewingAsOwner, activeTab]);
 

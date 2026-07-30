@@ -61,6 +61,10 @@ export function TourOffer({ onStart, onMaybeLater }: { onStart: () => void; onMa
       >
         <div className="absolute left-1/2 top-3 -translate-x-1/2 -translate-y-full" style={{ width: 84 }}>
           <Hoopoe
+            // h.ref is the ref OBJECT returned by useHoopoe, handed straight to
+            // the child. Nothing reads .current here; the rule cannot see
+            // through the hook's return type.
+            // eslint-disable-next-line react-hooks/refs
             ref={h.ref}
             size={84}
             idle={false}

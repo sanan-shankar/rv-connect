@@ -142,6 +142,7 @@ export function CollectionClient({
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Re-arms the skeleton when the filters change, so changing a filter never leaves the previous results sitting on screen as though they matched.
     setLoading(true);
     setPage(0);
     fetchPage(0).then((data) => {

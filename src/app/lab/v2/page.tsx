@@ -430,6 +430,7 @@ export default function PreviewV2() {
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reads the URL query after mount, for the same server/client parity reason as the other lab rooms.
     if (q.get("theme") === "dark") setTheme("dark");
     const v = q.get("view");
     if (v === "login" || v === "profile") setView(v);

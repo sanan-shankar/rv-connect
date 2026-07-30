@@ -54,6 +54,7 @@ export function LogoFact({
   const closeTimer = useRef<number | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Picks a random fact on the client only, so the server and client markup agree.
     setFactIndex(Math.floor(Math.random() * VALLEY_FACTS.length));
   }, []);
 
