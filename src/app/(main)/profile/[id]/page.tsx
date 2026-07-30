@@ -6,15 +6,10 @@ import { auth } from "@/lib/auth";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, parseJsonArray } from "@/lib/utils";
 import { socialHref, socialDisplay, parseUserLinks } from "@/lib/social";
-import { headerImageFor } from "@/lib/header-image";
 import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
-import { ProfileShell } from "@/components/profile/profile-shell";
-import { ProfileHeaderCard } from "@/components/profile/profile-header-card";
-import { ProfileAbout } from "@/components/profile/profile-about";
-import { ProfilePostsAndLetters } from "@/components/profile/profile-posts-and-letters";
-import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
+import { LetterheadProfile } from "@/components/profile/letterhead-profile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 
@@ -82,10 +77,13 @@ export default async function ProfilePage({
     ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
   };
 
-  // Post / letter counts drive which groups render in the Posts & Letters tab.
-  const [postCount, letterCount] = await Promise.all([
+  // Counts drive the segmented switcher's numbers. The Saved count is the
+  // viewer's OWN bookmark total and is only ever read on their own profile,
+  // so it is never a window into anyone else's saves.
+  const [postCount, letterCount, savedCount] = await Promise.all([
     prisma.post.count({ where: { ...visiblePostsWhere, kind: "post" } }),
     prisma.post.count({ where: { ...visiblePostsWhere, kind: "letter" } }),
+    isOwnProfile ? prisma.bookmark.count({ where: { userId: session.user.id } }) : 0,
   ]);
 
   // Photos: flatten image arrays from this author's visible posts.
@@ -116,7 +114,6 @@ export default async function ProfilePage({
       : user.jobTitle || user.workplace || null;
 
   const contactEmail = user.displayEmail?.trim() || user.email;
-  const headerImage = headerImageFor(user);
 
   // Every way of reaching someone, in ONE place: the Get in touch sheet.
   //
@@ -214,47 +211,33 @@ export default async function ProfilePage({
     ) : null;
 
   return (
-    <ProfileShell
-      headerNode={
-        <ProfileHeaderCard
-          user={{
-            id: user.id,
-            name: user.name,
-            photoUrl: user.photoUrl,
-            birdOverride: user.birdOverride,
-            verifyState: user.verifyState,
-            accountType: user.accountType,
-          }}
-          headerImage={headerImage}
-          occupation={occupation}
-          admissionNumber={user.admissionNumber ?? null}
-          isOwnProfile={isOwnProfile}
-          contactMethods={methods}
-          vcard={vcard}
-          housesRaw={user.houses}
-        />
-      }
-      aboutNode={
-        <ProfileAbout
-          about={user.about}
-          firstName={firstName}
-          isOwnProfile={isOwnProfile}
-          batchLabel={batchLine(user)}
-          rvYears={rvYearsLabel(user.yearJoined, user.yearLeft)}
-          cities={cities}
-        />
-      }
-      postsNode={
-        <ProfilePostsAndLetters
-          authorId={user.id}
-          firstName={firstName}
-          isOwnProfile={isOwnProfile}
-          letterCount={letterCount}
-          postCount={postCount}
-        />
-      }
+    <LetterheadProfile
+      user={{
+        id: user.id,
+        name: user.name,
+        photoUrl: user.photoUrl,
+        birdOverride: user.birdOverride,
+        verifyState: user.verifyState,
+        accountType: user.accountType,
+        batchType: user.batchType,
+        batchYear: user.batchYear,
+      }}
+      firstName={firstName}
+      isOwnProfile={isOwnProfile}
+      occupation={occupation}
+      admissionNumber={user.admissionNumber ?? null}
+      about={user.about}
+      cities={cities}
+      rvYears={rvYearsLabel(user.yearJoined, user.yearLeft)}
+      batchLabel={user.batchYear ? String(user.batchYear) : null}
+      houseSpans={houseSpans}
+      contactMethods={methods}
+      vcard={vcard}
+      postCount={postCount}
+      letterCount={letterCount}
+      photoCount={photos.length}
+      savedCount={savedCount}
       photosNode={photosNode}
-      savedNode={isOwnProfile ? <SavedPostsFeed /> : null}
       adminNode={
         isAdmin && !isOwnProfile ? (
           <AdminProfileTools
