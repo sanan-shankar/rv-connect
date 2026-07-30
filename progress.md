@@ -796,11 +796,21 @@ Headline changes:
   nameless; upload a photo and the perch disappears in favour of a circle on the sheet's left edge whose
   diameter is measured from the top of the mark to the bottom of the name, so it still holds when a long name
   wraps (`&avatar=photo`). The one engraved rule gets equal air above and below and is drawn only when there
-  is a body under it to separate, so a sparse sheet ends after the facts. Entries are Dossier's folder tabs
-  over a folder of the SHIPPED `PostCard` (new `demo` flag keeps its actions local against mock ids); the tab
-  strip is deliberately not a scroll container, so parking the pointer on it never steals the wheel from the
-  page (verified: page moves 300px, strip scrollLeft stays 0, zero horizontal overflow). Four states shot at
-  1440 and 390 by `scripts/qa/lh2-states.mjs`, which now also prints the spacing it measures off the DOM.
+  is a body under it to separate, so a sparse sheet ends after the facts. Entries are the SHIPPED `PostCard`
+  standing free on the page with nothing wrapped around them (new `demo` flag keeps its actions local against
+  mock ids). The switcher above them went through three rounds before it landed: underline tabs were rejected
+  as "tiny pieces of text ... insignificant", Dossier's folder tabs were rejected because a folder tab needs a
+  folder and boxing the tiles inside one "doesn't look good", so it is now the app's OWN segmented pill (the
+  Catch-ups cadence control's shape) with a canopy fill gliding between segments on a shared `layoutId`, plus
+  a live count per segment. It is deliberately not a scroll container, so parking the pointer on it never
+  steals the wheel from the page (verified: page moves 300px, strip scrollLeft stays 0, zero horizontal
+  overflow). The lab toggles moved off to a fixed panel on the right (a compact glass bar above the mobile
+  nav below lg) so the profile starts at the top of the shell gutter exactly as the shipped page would. Four
+  states shot at 1440 and 390 by `scripts/qa/lh2-states.mjs`, which also prints the spacing it measures off
+  the DOM: colophon to name 8px, CTA centre 0px off the name's line box, rule 25.9px above and below, photo
+  diameter 0px off the lockup at both one and two name lines, card left edge 0px off the sheet's.
+  If this concept ships, that segmented pill and `cadence-control.tsx` should be extracted into one shared
+  `SegmentedPills` in `src/components/common/`.
 - **Houses trail rebuilt (4th iteration)**: no more grid columns. Rows pack to natural pill widths, straight
   arrows sit dead-center between pills, and each 180 turn is a side-gutter arc from the end of one row's
   centerline around to the start of the next. Green is leaf again. Shared component, so shipped profile +
