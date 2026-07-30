@@ -38,8 +38,6 @@ import {
   deleteAccount,
   updateAvatar,
   removeAvatar,
-  updateCover,
-  removeCover,
   updateUserPlaces,
 } from "./actions";
 import { saveOnboardingHouses } from "@/components/onboarding/actions";
@@ -49,7 +47,6 @@ interface SettingsUser {
   name: string;
   email: string;
   photoUrl: string | null;
-  coverPhoto: string | null;
   avatarColor: string | null;
   birdOverride: string | null;
   about: string | null;
@@ -179,9 +176,6 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
   const [photoBusy, setPhotoBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [coverPhoto, setCoverPhoto] = useState<string | null>(user.coverPhoto);
-  const [coverBusy, setCoverBusy] = useState(false);
-  const coverRef = useRef<HTMLInputElement>(null);
 
   const [about, setAbout] = useState(user.about ?? "");
 
@@ -289,32 +283,6 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
     if (result.error) return toast.error(result.error);
     setPhotoUrl(null);
     toast.success("Photo removed");
-    router.refresh();
-  }
-
-  async function handleCoverPick(f: File | null) {
-    if (!f) return;
-    if (!f.type.startsWith("image/")) return toast.error("Please choose an image");
-    if (f.size > 15 * 1024 * 1024) return toast.error("Photo must be under 15MB");
-    setCoverBusy(true);
-    const fd = new FormData();
-    fd.set("file", f);
-    const result = await updateCover(fd);
-    setCoverBusy(false);
-    if (coverRef.current) coverRef.current.value = "";
-    if (result.error) return toast.error(result.error);
-    setCoverPhoto(result.coverPhoto ?? null);
-    toast.success("Header picture updated");
-    router.refresh();
-  }
-
-  async function handleCoverRemove() {
-    setCoverBusy(true);
-    const result = await removeCover();
-    setCoverBusy(false);
-    if (result.error) return toast.error(result.error);
-    setCoverPhoto(null);
-    toast.success("Header picture removed");
     router.refresh();
   }
 
@@ -428,32 +396,6 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
             )}
           </SettingsRow>
 
-          <SettingsRow
-            label="Header picture"
-            hint={coverPhoto ? "Shown across the top of your profile." : "A valley photo shows until you add your own."}
-            last
-          >
-            <input
-              ref={coverRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleCoverPick(e.target.files?.[0] ?? null)}
-            />
-            <div
-              className="h-10 w-[72px] shrink-0 overflow-hidden rounded-[var(--radius-sm)] border border-border bg-mist bg-cover bg-center"
-              style={{ backgroundImage: `url(${coverPhoto || "/images/collection/v1.webp"})` }}
-            />
-            <Button type="button" variant="outline" size="sm" disabled={coverBusy} onClick={() => coverRef.current?.click()}>
-              {coverBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-              {coverPhoto ? "Change" : "Upload"}
-            </Button>
-            {coverPhoto && (
-              <Button type="button" variant="ghost" size="sm" disabled={coverBusy} className="text-muted-foreground hover:text-foreground" onClick={handleCoverRemove}>
-                Remove
-              </Button>
-            )}
-          </SettingsRow>
         </SettingsGroup>
 
         <SettingsGroup label="About">

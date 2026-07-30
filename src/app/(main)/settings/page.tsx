@@ -20,7 +20,6 @@ export default async function SettingsPage() {
       name: true,
       email: true,
       photoUrl: true,
-      coverPhoto: true,
       avatarColor: true,
       birdOverride: true,
       about: true,
