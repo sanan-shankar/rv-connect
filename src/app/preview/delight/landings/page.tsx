@@ -62,11 +62,11 @@ function LandingConceptsHarness() {
     <div className="min-h-screen bg-background">
       <header className="glass sticky top-0 z-[var(--z-elevated)] flex flex-wrap items-center gap-4 border-b border-border px-6 py-3">
         <Link
-          href="/preview/delight"
+          href="/lab"
           className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground transition-transform duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-px hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.97]"
         >
           <PeaksMark size={16} />
-          Delight
+          Lab
         </Link>
 
         <nav className="flex flex-1 flex-wrap items-center gap-2" aria-label="Landing concept">

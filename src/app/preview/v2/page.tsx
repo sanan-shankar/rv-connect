@@ -340,7 +340,6 @@ function ProfileView({
                   fully left. Always up for a campus walk or a dawn climb up Rishi Konda.
                 </p>
                 <div className="tag-row">
-                  <span className="v2-tag-soft">Open to mentoring</span>
                   <span className="v2-tag-soft">Hosting visitors</span>
                   <span className="v2-tag-soft">Coffee in Bengaluru</span>
                 </div>

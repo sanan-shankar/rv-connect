@@ -121,12 +121,10 @@ export function LabShell({
   title,
   lede,
   children,
-  index = false,
 }: {
   title: string;
   lede?: string;
   children: ReactNode;
-  index?: boolean;
 }) {
   const [sections, setSections] = useState<{ id: string; label: string }[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -161,10 +159,10 @@ export function LabShell({
       <header className="sticky top-0 z-40 border-b border-border bg-background">
         <div className="mx-auto flex max-w-[1240px] items-baseline gap-4 px-6 py-3.5 sm:px-9">
           <Link
-            href={index ? "/preview/delight" : "/preview/delight/second-look"}
+            href="/lab"
             className="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
           >
-            {index ? "Delight" : "Second look"}
+            Lab
           </Link>
           <span className="min-w-0 truncate font-heading text-[16px] font-bold tracking-tight">
             {title}

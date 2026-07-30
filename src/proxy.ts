@@ -60,7 +60,10 @@ export function proxy(request: NextRequest) {
 
   // Public routes that don't require auth
   // NOTE: "/preview" is temporary — design-direction mockups; remove before shipping.
-  const publicPaths = ["/", "/login", "/signup", "/api/auth", "/preview"];
+  // "/lab" is the index over "/preview" (and other dev-only routes) added 2026-07-30;
+  // it must stay public alongside "/preview" for the same reason, and should be
+  // removed in the same pass.
+  const publicPaths = ["/", "/login", "/signup", "/api/auth", "/preview", "/lab"];
   const isPublic = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + "/")
   );

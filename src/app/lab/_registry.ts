@@ -1,0 +1,347 @@
+/* ------------------------------------------------------------------ *
+ *  The lab registry.
+ *
+ *  Every dev/preview route in the app that lives outside the real
+ *  product, (main) and (auth), gets exactly one entry here. This is the
+ *  fix for the owner's complaint (2026-07-30): rooms living under
+ *  /preview/delight were invisible from /preview/delight/second-look
+ *  and vice versa, and routes like /preview/logo or /copy-editor had no
+ *  index at all. `/lab` (./page.tsx) renders this list; nothing may be
+ *  reachable on disk that is not also reachable from here.
+ *
+ *  `scripts/qa/lab-audit.mjs` proves that both directions hold: every
+ *  page.tsx on disk has a row below, and every href below points at a
+ *  real page.tsx. Add the row in the SAME change that adds the page.
+ *
+ *  Adding a room: append an entry. Retiring one: flip its status to
+ *  "archived" rather than deleting the row (or the file) so history
+ *  stays visible instead of silently vanishing again.
+ * ------------------------------------------------------------------ */
+
+export type LabStatus = "active" | "archived";
+
+export type LabGroup =
+  | "Delight"
+  | "Second look"
+  | "Profiles"
+  | "Brand"
+  | "Tools"
+  | "Groups rethink";
+
+export interface LabEntry {
+  href: string;
+  title: string;
+  group: LabGroup;
+  status: LabStatus;
+  /** one honest line: what this room is actually for */
+  note: string;
+}
+
+/** display order for the group sections on /lab */
+export const GROUP_ORDER: LabGroup[] = [
+  "Delight",
+  "Second look",
+  "Profiles",
+  "Brand",
+  "Tools",
+  "Groups rethink",
+];
+
+export const REGISTRY: LabEntry[] = [
+  /* ---------------------------------------------------------------- *
+   *  Delight, the general motion + concept lab
+   * ---------------------------------------------------------------- */
+  {
+    href: "/preview/delight",
+    title: "Delight (old index)",
+    group: "Delight",
+    status: "archived",
+    note: "Superseded index, now a permanent redirect to /lab so old links and bookmarks still resolve. The rooms it used to list keep their own URLs below.",
+  },
+  {
+    href: "/preview/delight/transitions",
+    title: "Navigation & transitions",
+    group: "Delight",
+    status: "active",
+    note: "The sliding sidebar marker, the seg thumb, content cross-fade between views, the landing-to-login lateral pass, and a coordinated first paint.",
+  },
+  {
+    href: "/preview/delight/composer",
+    title: "The composer, reworked",
+    group: "Delight",
+    status: "active",
+    note: "A slim pill that unfurls: photo, poll and letter tucked away, no tag walls, bold/italic/underline/strike, click outside to close.",
+  },
+  {
+    href: "/preview/delight/feed-canvas",
+    title: "Feed canvas",
+    group: "Delight",
+    status: "active",
+    note: "Making the feed feel full: eleven right-rail modules to choose from with a recommended stack, four fixes for the empty top-right rectangle, and the account-type colour call.",
+  },
+  {
+    href: "/preview/delight/landing",
+    title: "The living valley (landing)",
+    group: "Delight",
+    status: "active",
+    note: "A calm photo hero, then a living section: leaves with real veins the cursor parts, and legged birds that walk, peck and hop between frames.",
+  },
+  {
+    href: "/preview/delight/feedback",
+    title: "Feedback moments",
+    group: "Delight",
+    status: "active",
+    note: "A smoother heart, an even bookmark that tucks, share without the wiggle, RSVP, poll bars, the bell dot, fund progress, a better chirp.",
+  },
+  {
+    href: "/preview/delight/loading",
+    title: "Loading states",
+    group: "Delight",
+    status: "active",
+    note: "Warm valley shimmer that loops clean, leaves that settle on hand-off, the Letters draw-on, a bird crossing the skeleton rows.",
+  },
+  {
+    href: "/preview/delight/loading-ideas",
+    title: "Loading, ideas round 2",
+    group: "Delight",
+    status: "active",
+    note: "Richer living loading scenes to choose from before building: sports-day athletes, foraging birds, one reusable relay, sleepers that wake.",
+  },
+  {
+    href: "/preview/delight/eggs",
+    title: "Easter eggs & ambient",
+    group: "Delight",
+    status: "active",
+    note: "Hover the logo for a valley fact, the konami valley flash, and an honest note on what actually shipped versus what was parked.",
+  },
+  {
+    href: "/preview/delight/mascot-moments",
+    title: "Mascot moments",
+    group: "Delight",
+    status: "active",
+    note: "Ideas catalogue for where the hoopoe appears across the product (guided tour, login fly-in, empty states, loading, a 404, quiet easter eggs); five ideas carry a live mini-demo.",
+  },
+  {
+    href: "/preview/delight/landings",
+    title: "Landing page concepts",
+    group: "Delight",
+    status: "active",
+    note: "Five full-page directions for the public landing redesign (Postcard, Notice Board, Prospectus, Living Valley, Clarity), all pulling the same approved copy; append ?v=<key> to deep-link a concept.",
+  },
+  {
+    href: "/preview/delight/hoopoe",
+    title: "The hoopoe mascot control room",
+    group: "Delight",
+    status: "active",
+    note: "Drives the real Hoopoe rig and controller through every expression, gaze, cover/peek and crest fold so the whole cast can be judged in one place.",
+  },
+  {
+    href: "/preview/delight/viewer",
+    title: "The image viewer",
+    group: "Delight",
+    status: "active",
+    note: "Exercises the real shared ImageViewer against Collection photographs: multi-image navigation, captions folded and unfolded, an author chip, single-image sets, keyboard and drag input.",
+  },
+
+  /* ---------------------------------------------------------------- *
+   *  Second look, the "this already looked fine" audit
+   * ---------------------------------------------------------------- */
+  {
+    href: "/preview/delight/second-look",
+    title: "Second look (old index)",
+    group: "Second look",
+    status: "archived",
+    note: "Superseded index, now a permanent redirect to /lab. Its named-pattern catalogue is retired along with it; the built rooms keep their own URLs below.",
+  },
+  {
+    href: "/preview/delight/second-look/craft",
+    title: "Why the sidebar looks 1080p",
+    group: "Second look",
+    status: "active",
+    note: "Idle nav text runs at 70% alpha of white over green (4.31:1 contrast); the same colour fails AA 568 times across the app. Live fixes on the real sidebar specimen.",
+  },
+  {
+    href: "/preview/delight/second-look/spine",
+    title: "Six different left edges",
+    group: "Second look",
+    status: "active",
+    note: "Every page header looks reasonable alone; side by side, eleven routes use six different left edges, 224px apart end to end.",
+  },
+  {
+    href: "/preview/delight/second-look/support",
+    title: "The ask that argues against itself",
+    group: "Second look",
+    status: "active",
+    note: "A progress bar drawn near-flat against its own card, animated with a count-up that counts to zero, above a caption saying it does not matter if it never fills.",
+  },
+  {
+    href: "/preview/delight/second-look/everything",
+    title: "Everything else",
+    group: "Second look",
+    status: "active",
+    note: "76 findings from one read-through across nine surfaces: actually broken, working but never decided, and genuinely good, all filterable.",
+  },
+  {
+    href: "/preview/delight/second-look/tiles",
+    title: "When a box earns its border",
+    group: "Second look",
+    status: "active",
+    note: "Four gates decide whether a border is earned; scores eight real surfaces against them, a feed post passes 4 of 4 while a Catch-up row passes 1.",
+  },
+  {
+    href: "/preview/delight/second-look/houses",
+    title: "The houses picker, refined",
+    group: "Second look",
+    status: "active",
+    note: "Same year-by-year auto-advance flow the owner liked; what changed is the panel becoming a bottom sheet below 1024px, the radius ladder, and the touch target size.",
+  },
+  {
+    href: "/preview/delight/second-look/houses/demo",
+    title: "Houses picker demo target",
+    group: "Second look",
+    status: "active",
+    note: "Bare render target with no lab chrome, loaded inside the houses room's two iframes so the mobile picker genuinely sees a 390px window. Not meant to be browsed directly.",
+  },
+  {
+    href: "/preview/delight/second-look/type",
+    title: "The font question",
+    group: "Second look",
+    status: "active",
+    note: "Five live type pairings measured off the actual font binaries, arguing Libre Baskerville is a body face currently doing display work.",
+  },
+  {
+    href: "/preview/delight/second-look/spine-marker",
+    title: "One unit, five ways",
+    group: "Second look",
+    status: "active",
+    note: "Five fused treatments for the sidebar's active-row marker, answering the owner's 2026-07-30 complaint that the pill and its cinnamon bar read as two unrelated shapes. Not linked from the old second-look index on purpose; visit directly.",
+  },
+
+  /* ---------------------------------------------------------------- *
+   *  Profiles
+   * ---------------------------------------------------------------- */
+  {
+    href: "/preview/delight/profiles",
+    title: "Profile page concepts",
+    group: "Profiles",
+    status: "active",
+    note: "Eight directions for the profile redesign (letterhead, letterhead II, field guide, editorial, dossier, broadsheet, passport, terrace) reviewed against one realistic mock alumnus; append ?v=<key> to deep-link a concept.",
+  },
+
+  /* ---------------------------------------------------------------- *
+   *  Brand: the logo, the bird set, and the early shell directions
+   * ---------------------------------------------------------------- */
+  {
+    href: "/preview/v2",
+    title: "The v2 system reference",
+    group: "Brand",
+    status: "active",
+    note: "The approved look the rest of the redesign matches (see CLAUDE.md): the full app shell, feed, and chrome built from the current tokens.",
+  },
+  {
+    href: "/preview/grove",
+    title: "Three shell directions, feed view",
+    group: "Brand",
+    status: "active",
+    note: "Dynamic harness (/preview/[dir], valid keys grove | almanac | canopy) rendering one of three early competing shell/feed directions; predates the v2 system that was eventually chosen. Example shown: grove.",
+  },
+  {
+    href: "/preview/grove/auth",
+    title: "Three shell directions, login view",
+    group: "Brand",
+    status: "active",
+    note: "The same three-direction harness (/preview/[dir]/auth), the login screen for whichever key is in the URL. Example shown: grove.",
+  },
+  {
+    href: "/preview/birds-bg",
+    title: "Bird avatar background treatments",
+    group: "Brand",
+    status: "active",
+    note: "Dev harness comparing three avatar background treatments (no background, outline halo, small-in-circle) across all 26 archetypes plus the tricky pale/dark birds; the shipped avatars use no background, so this documents that call.",
+  },
+  {
+    href: "/preview/birds-rv",
+    title: "The birds of the valley",
+    group: "Brand",
+    status: "active",
+    note: "Public-facing gallery of the full deterministic alumni bird set, one glyph per species by index, named from the same list the app uses so it can never drift.",
+  },
+  {
+    href: "/preview/centroid",
+    title: "Bird glyph centroid probe",
+    group: "Brand",
+    status: "active",
+    note: "Dev-only render target for scripts/dev/centroid.mjs (npm run dev:centroid): one bird glyph alone at 600x600 so the script can compute its true pixel centroid for optical centering.",
+  },
+  {
+    href: "/preview/logo",
+    title: "The logo, in context",
+    group: "Brand",
+    status: "active",
+    note: "The selected two-plane PeaksMark, shown standalone and in its real lockup contexts (sidebar green, light surface, photo overlay). Current reference.",
+  },
+  {
+    href: "/preview/logos",
+    title: "Logo options (early)",
+    group: "Brand",
+    status: "archived",
+    note: "Six early non-bird mark directions (wordmark only, monogram, valley + hills, feather, leaf, outline monogram) to choose from. Valley + hills won and is now PeaksMark, documented live at /preview/logo.",
+  },
+
+  /* ---------------------------------------------------------------- *
+   *  Tools: dev-only utilities, not design rooms
+   * ---------------------------------------------------------------- */
+  {
+    href: "/copy-editor",
+    title: "Copy editor workbench",
+    group: "Tools",
+    status: "active",
+    note: "Dev-only tool (404s outside NODE_ENV=development) for walking .copy-review/inventory.json string by string during the copy pass; throwaway, meant to be deleted once that pass is done.",
+  },
+  {
+    href: "/preview/location-picker",
+    title: "Location picker harness",
+    group: "Tools",
+    status: "active",
+    note: "Dev harness for the shared LocationPicker against the live GeoNames search endpoint, both single and multi mode, with the raw controlled state visible for testing.",
+  },
+
+  /* ---------------------------------------------------------------- *
+   *  Groups rethink: fully archived, the Groups feature was removed
+   * ---------------------------------------------------------------- */
+  {
+    href: "/preview/groups-rethink",
+    title: "Groups rethink, overview",
+    group: "Groups rethink",
+    status: "archived",
+    note: "Index and comparison matrix for four static concepts answering 'what should Groups become'. The Groups feature was removed from the app entirely, so this whole tree is superseded.",
+  },
+  {
+    href: "/preview/groups-rethink/circles",
+    title: "Concept A: Circles for Catch-ups",
+    group: "Groups rethink",
+    status: "archived",
+    note: "Groups vanish as a noun; a Circle is just the invisible plumbing a Catch-up runs on.",
+  },
+  {
+    href: "/preview/groups-rethink/batches-interest",
+    title: "Concept B: Batches + Special Interest",
+    group: "Groups rethink",
+    status: "archived",
+    note: "Two space types, neither user-created: an auto Batch plus a short admin-curated interest shelf like Burdens of RV.",
+  },
+  {
+    href: "/preview/groups-rethink/dissolve",
+    title: "Concept C: Groups dissolve away",
+    group: "Groups rethink",
+    status: "archived",
+    note: "No groups surface at all; batches and places move into the Directory, cohorts into a Feed filter, Catch-ups onto the batch itself.",
+  },
+  {
+    href: "/preview/groups-rethink/gatherings",
+    title: "Concept D: Gatherings (synthesis)",
+    group: "Groups rethink",
+    status: "archived",
+    note: "Batch rooms plus a curated Gatherings shelf plus threshold Places in the Directory, one demoted nav entry. The recommended concept.",
+  },
+];
