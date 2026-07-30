@@ -210,7 +210,12 @@ export function LetterheadProfile({
   ) : null;
 
   return (
-    <>
+    /* Perch clearance. The bird hangs 48px above the sheet's top edge, and the
+       shell's own gutter is 40px (desktop) / 20px (mobile), so without this the
+       bird's head is cut off by the top of the scroll area and, on a phone,
+       painted over the sticky header. Measured, not guessed: 8px short on
+       desktop and 10px on mobile before this. */
+    <div className="pt-4">
       {/* Not clipped, so the perched bird can overlap the sheet's own edge. */}
       <div className="relative" style={IDENTITY_VARS}>
         {!hasPhoto && <PerchedBird user={user} />}
@@ -403,7 +408,7 @@ export function LetterheadProfile({
           {flagNode}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
