@@ -196,7 +196,7 @@ export function ProfileHeaderCard({
               {user.verifyState === "verified" ? (
                 <VerifiedMark
                   user={{ verifyState: user.verifyState, accountType: user.accountType }}
-                  size={19}
+                  size={16}
                 />
               ) : (
                 <Leaf className="h-[18px] w-[18px] shrink-0 text-leaf/55" aria-hidden />

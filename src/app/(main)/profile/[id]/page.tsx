@@ -16,6 +16,7 @@ import { ProfileAbout } from "@/components/profile/profile-about";
 import { ProfilePostsAndLetters } from "@/components/profile/profile-posts-and-letters";
 import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
+import { PUBLISHED_ONLY } from "@/lib/posts";
 
 export async function generateMetadata({
   params,
@@ -74,6 +75,10 @@ export default async function ProfilePage({
     authorId: user.id,
     isHidden: false,
     groupId: null,
+    // A profile only ever shows published work, even to the profile's own
+    // owner: an in-progress letter draft belongs on /letters ("Your drafts"),
+    // never on the public Posts & Letters tab or the Photos grid.
+    ...PUBLISHED_ONLY,
     ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
   };
 
