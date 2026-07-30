@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { DraftsStrip } from "@/components/letters/drafts-strip";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { IdentityRow } from "@/components/common/identity-row";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, formatDisplayDate, letterTitle, metaLine } from "@/lib/utils";
@@ -82,11 +82,13 @@ export default async function LettersPage() {
         actions={
           /* Writing happens on its own page now (owner: "a whole page, so
              people can properly immerse themselves"); the index just points
-             the way with the standard page-level canopy pill. */
-          <Link href="/letters/new" className={buttonVariants({ variant: "primary" })}>
+             the way with the standard page-level canopy pill. Button's base-ui
+             `render` swaps its element for the Link (buttonVariants itself is
+             client-only and cannot be CALLED from this server component). */
+          <Button variant="primary" nativeButton={false} render={<Link href="/letters/new" />}>
             <Feather className="h-4 w-4" />
             Write a letter
-          </Link>
+          </Button>
         }
       />
 
