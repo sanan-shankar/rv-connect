@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/layout/page-header";
 import { MessageComposer } from "@/components/messages/message-composer";
 import { ThreadList } from "@/components/messages/thread-list";
 import { MessagesEmptyHoopoe } from "@/components/messages/messages-empty-hoopoe";
@@ -58,15 +59,11 @@ export default async function MessagesPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <header className="mb-6">
-        <h1 className="font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
-          You and the admins
-        </h1>
-        <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
-          Something broken, an idea, a question. Write a line and someone will read it.
-        </p>
-      </header>
+    <div>
+      <PageHeader
+        title="You and the admins"
+        subtitle="Something broken, an idea, a question. Write a line and someone will read it."
+      />
 
       <section
         aria-label="Write to the admins"
