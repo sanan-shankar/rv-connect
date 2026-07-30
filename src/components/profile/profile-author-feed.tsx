@@ -19,6 +19,7 @@ export function ProfileAuthorFeed({
   kind,
   emptyTitle,
   emptyBody,
+  layout = "sheet",
 }: {
   authorId: string;
   firstName: string;
@@ -27,6 +28,14 @@ export function ProfileAuthorFeed({
   kind?: "post" | "letter";
   emptyTitle?: string;
   emptyBody?: string;
+  /**
+   * "sheet" stacks the posts inside one bordered card, divider-separated.
+   * "cards" lets each post stand free on the page as its own card, exactly as
+   * the feed draws it. The letterhead profile uses "cards": its masthead is
+   * already a bordered sheet, and nesting bordered cards inside another
+   * bordered box is the box-in-a-box the design system rules out.
+   */
+  layout?: "sheet" | "cards";
 }) {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -35,9 +44,14 @@ export function ProfileAuthorFeed({
   const [loadingMore, setLoadingMore] = useState(false);
   const [animateRef] = useAutoAnimate();
 
+  // `loading` starts true and is only ever turned OFF here, from the fetch's
+  // own callback. It is deliberately not re-armed synchronously at the top of
+  // this effect: that is a cascading render, and callers that switch scope
+  // (the profile's segmented switcher) remount this with a fresh `key`, which
+  // restores the skeleton properly rather than flashing the previous scope's
+  // posts under a new heading.
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     loadPosts({ authorId, kind }).then((data) => {
       if (cancelled) return;
       setPosts(data.posts);
@@ -59,11 +73,26 @@ export function ProfileAuthorFeed({
     setLoadingMore(false);
   }
 
+  const asCards = layout === "cards";
+
   if (loading) {
     return (
-      <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
+      <div
+        className={
+          asCards
+            ? "space-y-2.5"
+            : "card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
+        }
+      >
         {[1, 2, 3].map((i) => (
-          <div key={i} className="border-b border-border px-5 py-4 last:border-0">
+          <div
+            key={i}
+            className={
+              asCards
+                ? "card-elevated rounded-[var(--radius)] border border-border bg-card p-4"
+                : "border-b border-border px-5 py-4 last:border-0"
+            }
+          >
             <div className="flex items-center gap-3">
               <Skeleton className="h-10 w-10 rounded-full" />
               <div className="space-y-2">
@@ -99,10 +128,14 @@ export function ProfileAuthorFeed({
     <>
       <div
         ref={animateRef}
-        className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
+        className={
+          asCards
+            ? "space-y-2.5"
+            : "card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card"
+        }
       >
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} variant="sheet" />
+          <PostCard key={post.id} post={post} variant={asCards ? "card" : "sheet"} />
         ))}
       </div>
       {hasMore && (
