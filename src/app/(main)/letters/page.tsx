@@ -5,9 +5,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { LetterComposer } from "@/components/letters/letter-composer";
+import { DraftsStrip } from "@/components/letters/drafts-strip";
 import { IdentityRow } from "@/components/common/identity-row";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { formatBatch, letterTitle } from "@/lib/utils";
+import { PUBLISHED_ONLY } from "@/lib/posts";
 
 export const metadata: Metadata = {
   title: "Letters",
@@ -34,11 +36,14 @@ export default async function LettersPage() {
   const viewerCities = isAdmin ? [] : await getViewerCities(session.user.id);
   // Reused below for the composer's "Show to" audience control (same list, no
   // second query -- getViewerCities already returns it in position order).
-  const letters = await prisma.post.findMany({
+  const lettersQuery = prisma.post.findMany({
     where: {
       kind: "letter",
       isHidden: false,
       groupId: null,
+      // Drafts are never public, even to the person browsing their own
+      // batch/city -- they only ever show in the "Your drafts" strip below.
+      ...PUBLISHED_ONLY,
       OR: [
         { targetBatches: null },
         { targetBatches: "" },
@@ -56,8 +61,21 @@ export default async function LettersPage() {
     take: 40,
   });
 
+  // The viewer's own in-progress letters. Author-only by construction (this
+  // query is always scoped to the signed-in session's own id), so this can
+  // never leak someone else's unpublished draft.
+  const draftsQuery = prisma.post.findMany({
+    where: { kind: "letter", authorId: session.user.id, status: "draft" },
+    select: { id: true, title: true, content: true, updatedAt: true },
+    orderBy: { updatedAt: "desc" },
+    take: 20,
+  });
+
+  // Independent queries; no reason to serialize them.
+  const [letters, drafts] = await Promise.all([lettersQuery, draftsQuery]);
+
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <PageHeader
         title="Letters"
         subtitle="Longer pieces from the valley. Essays, tributes, travelogues, reflections."
@@ -65,6 +83,17 @@ export default async function LettersPage() {
 
       <div className="space-y-5">
         <LetterComposer userPlaces={viewerCities} />
+
+        {drafts.length > 0 && (
+          <DraftsStrip
+            drafts={drafts.map((d) => ({
+              id: d.id,
+              title: d.title,
+              content: d.content,
+              updatedAt: d.updatedAt.toISOString(),
+            }))}
+          />
+        )}
 
         {letters.length === 0 ? (
           <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
@@ -101,7 +130,7 @@ export default async function LettersPage() {
                 <p className="mt-2 line-clamp-2 text-[14.5px] leading-relaxed text-muted-foreground">
                   {excerpt(l.content)}
                 </p>
-                <div className="mt-4 flex items-center gap-2.5 border-t border-border pt-3.5">
+                <div className="mt-3.5 flex items-center gap-2.5">
                   <IdentityRow
                     user={{ id: l.author.id, name: l.author.name, photoUrl: l.author.photoUrl, birdOverride: l.author.birdOverride }}
                     className="min-w-0 flex-1 gap-2.5"

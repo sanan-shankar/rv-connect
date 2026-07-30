@@ -7,6 +7,20 @@ import { revalidatePath } from "next/cache";
 import { delImage } from "@/lib/storage";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
+import { PUBLISHED_ONLY } from "@/lib/posts";
+
+/** Best-effort cleanup of a post's stored image files, in parallel. Bad JSON
+ *  is ignored: a post with a corrupt images column should still delete. */
+async function deletePostImages(images: string | null): Promise<void> {
+  if (!images) return;
+  try {
+    const parsed = JSON.parse(images) as string[];
+    await Promise.all(parsed.map((img) => delImage(img)));
+  } catch {
+    // ignore parse errors
+  }
+}
+
 
 // Postgres accepts `mode: "insensitive"` on `contains`; SQLite's Prisma
 // adapter rejects it (and SQLite `LIKE` is already case-insensitive for
@@ -47,6 +61,7 @@ export async function createPost(formData: FormData) {
     images: (formData.get("images") as string) || undefined,
     pollOptions,
     cityScope: (formData.get("cityScope") as string) || undefined,
+    saveAsDraft: formData.get("saveAsDraft") === "true" ? true : undefined,
   };
 
   const parsed = postSchema.safeParse(raw);
@@ -79,6 +94,10 @@ export async function createPost(formData: FormData) {
     cityScope = ownPlace?.city ?? null;
   }
 
+  // "Save as draft" only exists for letters; a plain post ignores the flag
+  // even if a tampered form field sends it.
+  const isDraft = parsed.data.kind === "letter" && parsed.data.saveAsDraft === true;
+
   const post = await prisma.post.create({
     data: {
       authorId: session.user.id,
@@ -90,11 +109,13 @@ export async function createPost(formData: FormData) {
       groupId,
       images: parsed.data.images || null,
       cityScope,
+      status: isDraft ? "draft" : "published",
     },
   });
 
-  // Create poll options if present
-  if (parsed.data.pollOptions && parsed.data.pollOptions.length >= 2) {
+  // Create poll options if present (drafts are letters-only, so this never
+  // applies to one, but the guard costs nothing).
+  if (!isDraft && parsed.data.pollOptions && parsed.data.pollOptions.length >= 2) {
     for (let i = 0; i < parsed.data.pollOptions.length; i++) {
       await prisma.pollOption.create({
         data: {
@@ -106,9 +127,65 @@ export async function createPost(formData: FormData) {
     }
   }
 
-  revalidatePath(groupId ? `/groups/${groupId}` : "/feed");
+  // A draft is never posted anywhere public, so there is nothing to revalidate
+  // except the letters page (its own "Your drafts" strip).
+  if (!isDraft) revalidatePath(groupId ? `/groups/${groupId}` : "/feed");
   if (parsed.data.kind === "letter") revalidatePath("/letters");
-  return { success: true, postId: post.id };
+  return { success: true, postId: post.id, isDraft };
+}
+
+/**
+ * Flips a letter draft to published: only its own author may call this. The
+ * draft's createdAt is bumped to now so it enters the feed/letters list at
+ * the moment it is actually published, not whenever it was first drafted.
+ */
+export async function publishDraft(postId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true, status: true, kind: true, groupId: true },
+  });
+  if (!post) return { error: "Draft not found" };
+  if (post.authorId !== session.user.id) return { error: "Not authorized" };
+  if (post.kind !== "letter" || post.status !== "draft") {
+    return { error: "That letter isn't a draft" };
+  }
+
+  await prisma.post.update({
+    where: { id: postId },
+    data: { status: "published", createdAt: new Date() },
+  });
+
+  revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
+  revalidatePath("/letters");
+  revalidatePath(`/letters/${postId}`);
+  return { success: true };
+}
+
+/**
+ * Deletes a letter draft. Author-only (a draft is never visible to anyone
+ * else, admins included, so there is no group-admin or site-admin bypass
+ * here the way deletePost has).
+ */
+export async function deleteDraft(postId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true, status: true, images: true },
+  });
+  if (!post) return { error: "Draft not found" };
+  if (post.authorId !== session.user.id) return { error: "Not authorized" };
+  if (post.status !== "draft") return { error: "That letter isn't a draft" };
+
+  await deletePostImages(post.images);
+
+  await prisma.post.delete({ where: { id: postId } });
+  revalidatePath("/letters");
+  return { success: true };
 }
 
 export async function votePoll(postId: string, optionId: string) {
@@ -179,16 +256,7 @@ export async function deletePost(postId: string) {
   if (!authorized) return { error: "Not authorized" };
 
   // Delete image files
-  if (post.images) {
-    try {
-      const images = JSON.parse(post.images) as string[];
-      for (const img of images) {
-        await delImage(img);
-      }
-    } catch {
-      // ignore parse errors
-    }
-  }
+  await deletePostImages(post.images);
 
   await prisma.post.delete({ where: { id: postId } });
   revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
@@ -543,6 +611,10 @@ export async function loadPosts(opts?: {
 
   const baseWhere = {
     isHidden: false,
+    // Drafts (letters saved before publishing) never surface in any feed,
+    // including the author's own profile/group feeds -- they only ever show
+    // in the "Your drafts" strip on /letters.
+    ...PUBLISHED_ONLY,
     ...(opts?.authorId ? { authorId: opts.authorId } : {}),
     ...(opts?.tag ? { tag: opts.tag } : {}),
     ...(opts?.kind ? { kind: opts.kind } : {}),
@@ -685,6 +757,10 @@ export async function loadSavedPosts() {
       userId,
       post: {
         isHidden: false,
+        // A draft can never be bookmarked in the first place (it never renders
+        // in a card with a bookmark ribbon), but this guards the read path the
+        // same way every other post list does.
+        ...PUBLISHED_ONLY,
         OR: [{ groupId: null }, { groupId: { in: groupIds } }],
         // Same cityScope visibility rule as the main feed query: a bookmarked
         // post scoped to a city the viewer no longer lists should drop out of
