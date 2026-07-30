@@ -1,65 +1,66 @@
 "use server";
 
-import { readFile, writeFile } from "fs/promises";
-import path from "path";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { REGISTRY } from "./_registry";
+import { isMissingLabTable } from "./_archive-state";
 
 /* ------------------------------------------------------------------ *
  *  Archiving a room, from the room list itself.
  *
  *  `_registry.ts` holds the DEFAULT status for every room. This writes
- *  an override on top of it into `archive-overrides.json`, a file that
- *  lives in the repo, so curating the lab is durable: it survives a
- *  restart, a different browser, and another machine once committed.
- *  That is the whole point (owner: "I can periodically archive certain
- *  rooms"), and it is why this is a file rather than localStorage.
- *
- *  Dev only. The lab is a development surface, and a deployed Vercel
- *  filesystem is read-only anyway, so in production this is a no-op
- *  that reports why instead of throwing.
+ *  an override on top of it into the LabRoomState table (see
+ *  ./_archive-state.ts for the read side and for why the old
+ *  archive-overrides.json file could never work on Vercel), so curating
+ *  the lab is durable: it survives a restart, a different browser,
+ *  another machine, and, the owner's actual ask, the deployed domain.
  * ------------------------------------------------------------------ */
-
-const OVERRIDES_PATH = path.join(process.cwd(), "src/app/lab/archive-overrides.json");
-
-export type ArchiveOverrides = Record<string, boolean>;
-
-export async function readOverrides(): Promise<ArchiveOverrides> {
-  try {
-    const raw = await readFile(OVERRIDES_PATH, "utf8");
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? (parsed as ArchiveOverrides) : {};
-  } catch {
-    // Missing or malformed: fall back to the registry defaults rather than
-    // taking the whole page down over a scratch file.
-    return {};
-  }
-}
 
 export async function setArchived(
   href: string,
   archived: boolean
 ): Promise<{ ok: boolean; error?: string }> {
+  /* /lab is public in production (src/proxy.ts publicPaths), so this write
+     must be gated on the session role exactly like the moderation actions
+     (collection/actions.ts), not on an env check. Local dev keeps the old
+     frictionless behaviour with no sign-in, because the only person at a dev
+     server is the owner and the old NODE_ENV gate was never a complaint. */
   if (process.env.NODE_ENV !== "development") {
-    return { ok: false, error: "Archiving is only editable when running locally." };
-  }
-  if (typeof href !== "string" || !href.startsWith("/")) {
-    return { ok: false, error: "Unknown room." };
+    const session = await auth();
+    if (session?.user?.role !== "admin") return { ok: false, error: "Not authorized." };
   }
 
-  const overrides = await readOverrides();
-  // An override that merely restates the registry's own default is noise, so
-  // it is dropped instead of stored. Setting a room back to how it ships
-  // leaves the file exactly as it was.
-  const fallsBackToDefault =
-    REGISTRY.find((e) => e.href === href)?.status === (archived ? "archived" : "active");
-  if (fallsBackToDefault) delete overrides[href];
-  else overrides[href] = archived;
+  /* Only a registered top-level room may hold state: children archive with
+     their parent, and an unconstrained href would let this table collect
+     junk rows forever. */
+  const entry = REGISTRY.find((e) => e.href === href);
+  if (!entry) return { ok: false, error: "Unknown room." };
+  const nextArchived = archived === true;
 
   try {
-    await writeFile(OVERRIDES_PATH, `${JSON.stringify(overrides, null, 2)}\n`, "utf8");
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not save." };
+    if (entry.status === (nextArchived ? "archived" : "active")) {
+      // An override that merely restates the registry's own default is noise,
+      // so it is removed instead of stored. Setting a room back to how it
+      // ships leaves the table exactly as it was.
+      await prisma.labRoomState.deleteMany({ where: { href } });
+    } else {
+      await prisma.labRoomState.upsert({
+        where: { href },
+        create: { href, archived: nextArchived },
+        update: { archived: nextArchived },
+      });
+    }
+  } catch (err) {
+    if (isMissingLabTable(err)) {
+      return {
+        ok: false,
+        error:
+          "The archive table is not set up yet. Run prisma/migrations-manual/2026-07-30-lab-archive.sql once.",
+      };
+    }
+    console.error("[lab] setArchived failed", err);
+    return { ok: false, error: "Could not save." };
   }
 
   revalidatePath("/lab");

@@ -10,20 +10,24 @@
  *
  *  So it is the delight index's shape again: a grid of real cards, one
  *  per room, each with its title, what it is for, and an Open
- *  affordance. On top of that, the two things that make 39 rooms
+ *  affordance. On top of that, the things that make ~30 rooms
  *  actually manageable:
  *
  *    - A search box that filters by title, note and path as you type,
  *      so finding a room is one word rather than a scroll.
- *    - Archive and unarchive on every card, persisted to a file in the
- *      repo (see ./actions.ts), so the owner curates the list instead
- *      of asking for a code change. Archived rooms are a separate
- *      view, not a hidden appendix.
+ *    - Archive and unarchive on every card, persisted to the
+ *      LabRoomState table (see ./actions.ts), so the owner curates the
+ *      list on the domain as well as locally. Archived rooms are a
+ *      separate view, not a hidden appendix.
+ *    - A room's URL-nested sub-pages fold under its one card as a
+ *      quiet link list (owner: groups-rethink "should just show as one
+ *      page the overview and the rest are there under that").
  * ------------------------------------------------------------------ */
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
-import { Archive, ArchiveRestore, ArrowUpRight, Search, X } from "lucide-react";
+import { toast } from "sonner";
+import { Archive, ArchiveRestore, ArrowUpRight, CornerDownRight, Search, X } from "lucide-react";
 import { FadeRise, SpringPress } from "@/components/common/motion";
 import { GROUP_ORDER, type LabEntry, type LabGroup } from "./_registry";
 import { setArchived } from "./actions";
@@ -35,10 +39,10 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
   const [view, setView] = useState<View>("active");
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
 
   /* The card flips the moment it is pressed; the server action and its
-     revalidate catch up behind it. */
+     revalidate catch up behind it. On failure the transition settles with no
+     revalidated data, so useOptimistic snaps the card back by itself. */
   const [optimistic, applyOptimistic] = useOptimistic(
     entries,
     (current: LabEntry[], change: { href: string; archived: boolean }) =>
@@ -51,11 +55,18 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
 
   function toggle(entry: LabEntry) {
     const archived = entry.status !== "archived";
-    setError(null);
     startTransition(async () => {
       applyOptimistic({ href: entry.href, archived });
-      const result = await setArchived(entry.href, archived);
-      if (!result.ok) setError(result.error ?? "Could not save.");
+      /* The try/catch is load-bearing: a stale tab whose server-action id was
+         invalidated by an HMR recompile REJECTS this call, and uncaught that
+         rejection is exactly the red dev-overlay badge the owner kept seeing.
+         Caught, it is a toast and the card snaps back. */
+      try {
+        const result = await setArchived(entry.href, archived);
+        if (!result.ok) toast.error(result.error ?? "Could not save.");
+      } catch {
+        toast.error("Could not save. Reload the page and try again.");
+      }
     });
   }
 
@@ -71,7 +82,14 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
         e.title.toLowerCase().includes(q) ||
         e.note.toLowerCase().includes(q) ||
         e.href.toLowerCase().includes(q) ||
-        e.group.toLowerCase().includes(q)
+        e.group.toLowerCase().includes(q) ||
+        // A sub-page match surfaces its parent's card (the only card it is on).
+        (e.children ?? []).some(
+          (c) =>
+            c.title.toLowerCase().includes(q) ||
+            c.note.toLowerCase().includes(q) ||
+            c.href.toLowerCase().includes(q)
+        )
       );
     });
   }, [optimistic, view, query]);
@@ -160,7 +178,7 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-mist"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -169,14 +187,9 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
         </div>
       </FadeRise>
 
-      {error && (
-        <p className="mt-4 rounded-[var(--radius-md)] border border-cinnamon/30 bg-cinnamon/10 px-4 py-2.5 text-[13px] text-cinnamon">
-          {error}
-        </p>
-      )}
       {!editable && (
         <p className="mt-4 text-[12.5px] text-muted-foreground">
-          Archiving is editable when running locally. This is a read-only view.
+          Archiving is saved for everyone, so it needs an admin sign-in. This is a read-only view.
         </p>
       )}
 
@@ -215,9 +228,12 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
 }
 
 /**
- * One room. The whole card is the link (the delight index's shape, which
- * the owner asked for back), with the archive control layered on top as
- * its own button so it never fights the link for the click.
+ * One room. The card's upper region is the overview link (the delight index's
+ * shape, which the owner asked for back), the archive control is layered on
+ * top as its own button so it never fights the link for the click, and any
+ * sub-pages sit below as their own quiet link rows. The card chrome lives on
+ * the wrapper because links may not nest: the overview link and the child
+ * links are siblings inside one bordered surface.
  */
 function RoomCard({
   room,
@@ -229,16 +245,19 @@ function RoomCard({
   onToggle: () => void;
 }) {
   const isArchived = room.status === "archived";
+  const children = room.children ?? [];
 
   return (
-    <div className="group relative">
+    <div
+      className={cn(
+        "group relative flex h-full flex-col rounded-[var(--radius)] border border-border bg-card transition-[border-color] duration-150 hover:border-leaf/40 focus-within:border-leaf/40",
+        isArchived && "opacity-75"
+      )}
+      style={{ boxShadow: "0 1px 2px rgba(35,36,30,0.04), 0 20px 40px -30px rgba(35,36,30,0.5)" }}
+    >
       <Link
         href={room.href}
-        className={cn(
-          "block h-full rounded-[var(--radius)] border border-border bg-card p-[18px] transition-[border-color,background-color] duration-150 hover:border-leaf/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-          isArchived && "opacity-75"
-        )}
-        style={{ boxShadow: "0 1px 2px rgba(35,36,30,0.04), 0 20px 40px -30px rgba(35,36,30,0.5)" }}
+        className="block flex-1 rounded-[inherit] p-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         {/* pr keeps the title clear of the archive button in the corner */}
         <h3 className="pr-9 font-heading text-[16.5px] font-bold leading-snug tracking-[-0.01em] text-foreground">
@@ -256,6 +275,27 @@ function RoomCard({
         </div>
       </Link>
 
+      {children.length > 0 && (
+        /* The hairline earns its keep by splitting two click targets: above it
+           the whole surface opens the overview, below it each row is its own
+           sub-page. 7px inset + 11px row padding = the card's own 18px text
+           edge, and 16 - 7 = 9 keeps the 8.8px row highlight concentric with
+           the card (the radius ladder's third rung). */
+        <div className="border-t border-border/60 p-[7px]">
+          {children.map((child) => (
+            <Link
+              key={child.href}
+              href={child.href}
+              title={child.note}
+              className="flex items-center gap-2 rounded-[var(--radius-sm)] px-[11px] py-2 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-mist"
+            >
+              <CornerDownRight className="h-3 w-3 shrink-0 text-muted-foreground/60" aria-hidden />
+              <span className="truncate">{child.title}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={onToggle}
@@ -266,9 +306,9 @@ function RoomCard({
             ? isArchived
               ? "Move back to Active"
               : "Move to Archived"
-            : "Editable when running locally"
+            : "Sign in as an admin to archive"
         }
-        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
       >
         {isArchived ? (
           <ArchiveRestore className="h-[15px] w-[15px]" />
