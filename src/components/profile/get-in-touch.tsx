@@ -31,15 +31,29 @@ const ICONS = {
  * "Get in touch" CTA for other people's profiles. Opens a small dialog of the
  * contact methods the person actually shared, plus a Save contact (.vcf) action.
  * Honest about being a directory: no fake inbox.
+ *
+ * `showSave` controls the OUTER Save-contact button only; the dialog always
+ * carries its own. Surfaces that want a single CTA (Letterhead II's masthead)
+ * pass false.
+ *
+ * `size` is the shared Button scale. "sm" (h-9) is the default because this
+ * usually sits in a crowded action row; a surface where this is the page's ONE
+ * action passes "default" (h-10) so it reads at the same weight as every other
+ * primary CTA in the app (owner, 2026-07-30: "I wanted like a proper size like
+ * we have in the feed and everywhere ... it's kind of shrunken").
  */
 export function GetInTouch({
   name,
   methods,
   vcard,
+  showSave = true,
+  size = "sm",
 }: {
   name: string;
   methods: ContactMethod[];
   vcard: string;
+  showSave?: boolean;
+  size?: "sm" | "default";
 }) {
   const [open, setOpen] = useState(false);
   const firstName = name.split(" ")[0];
@@ -59,19 +73,21 @@ export function GetInTouch({
     <>
       <div className="flex gap-2">
         <Button
-          size="sm"
+          size={size}
           className="rounded-full"
           onClick={() => setOpen(true)}
           disabled={!hasMethods}
           title={hasMethods ? undefined : "This member hasn't shared contact details yet."}
         >
-          <Mail className="h-3.5 w-3.5" />
+          <Mail className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
           Get in touch
         </Button>
-        <Button variant="outline" size="sm" className="rounded-full" onClick={saveContact}>
-          <Download className="h-3.5 w-3.5" />
-          Save contact
-        </Button>
+        {showSave && (
+          <Button variant="outline" size={size} className="rounded-full" onClick={saveContact}>
+            <Download className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
+            Save contact
+          </Button>
+        )}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -82,7 +98,10 @@ export function GetInTouch({
               {firstName} chose to share these ways to connect.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1">
+          {/* One tile per shared method. Every tile is the same shape: 12px
+              radius (a step inside the dialog's own corner, per the nesting
+              rule), one border weight, one 8px gap. */}
+          <div className="space-y-2">
             {methods.map((m) => {
               const Icon = ICONS[m.kind];
               return (
@@ -91,7 +110,7 @@ export function GetInTouch({
                   href={m.href}
                   target={m.external ? "_blank" : undefined}
                   rel={m.external ? "noopener noreferrer" : undefined}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 transition-colors duration-150 hover:border-leaf/40 hover:bg-leaf/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border bg-card px-3.5 py-3 transition-colors duration-150 hover:border-leaf/40 hover:bg-leaf/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
                 >
                   <Icon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
                   <span className="min-w-0">
@@ -106,7 +125,9 @@ export function GetInTouch({
               );
             })}
           </div>
-          <Button variant="outline" className="rounded-full" onClick={saveContact}>
+          {/* A real button, visibly a button before hover: filled, pill,
+              full width. */}
+          <Button variant="secondary" className="w-full" onClick={saveContact}>
             <Download className="h-4 w-4" />
             Save contact card
           </Button>

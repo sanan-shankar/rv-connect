@@ -1,60 +1,101 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  Concept: Letterhead II
+ *  Concept: Letterhead II (rebuilt 2026-07-30 to the owner's review)
  *
- *  The letterhead rebuilt to the owner's 2026-07-30 notes. What changed
- *  from Letterhead I, point by point:
+ *  WHAT THE REVIEW ASKED FOR, and where each answer lives:
  *
- *  - The masthead colophon is the PeaksMark LOGO plus the admission
- *    number in small cinnamon capitals; the words "Rishi Valley" are
- *    gone. Pressing the number stamps the sheet: the cinnamon accession
- *    stamp thumps in, sits a moment, and fades away. There is no
- *    permanently-printed stamp anywhere.
- *  - The bird sits INSIDE the sheet, top right. No species name, no
- *    hovering over the border, no reserved air above the sheet. It does
- *    its slow idle bob and chirps (thump + cinnamon arcs) when pressed.
- *  - The occupation is the name's subtitle. The fact band below holds
- *    exactly three things: batch, cities, years in the valley, set a
- *    full step larger than before. Houses and admission number left the
- *    band (houses go under About as the shipped serpentine trail; the
- *    admission number moved up into the colophon).
- *  - One primary action: Get in touch, right-aligned in the masthead,
- *    opening the shared contact dialog. No Follow, no Write a letter,
- *    no socials row; contact details stay tucked away until asked for.
- *  - Entries under the tabs are the FEED's post UI (identity row with
- *    bird + name + batch/time, body, love/comment/bookmark/share rail),
- *    not a bespoke diary layout. The tabs sit flush on the sheet's one
- *    left edge and do not scroll.
- *  - Every slot degrades: no about, no houses, no admission number, no
- *    occupation, no cities, no posts - each section simply is not
- *    there, and the sheet still reads as finished stationery. The
- *    "Preview data" toggle above the sheet proves it.
+ *  1. "The thing I liked about letterhead one was the spacing between the
+ *     logo and the Rishi Valley text, and then the name, and then the size
+ *     of that name, and then the positioning of the verified leaf."
+ *     -> The colophon is one 16px row (mark + number, 6px apart) and the
+ *        name sits 8px under it, exactly Letterhead I's step. The leaf is
+ *        back on the name's BASELINE (`align-baseline`, no lift), which is
+ *        where Letterhead I put it, so it reads as a mark on the name
+ *        rather than a superscript floating off its shoulder.
+ *  2. "We don't need to say number 1385, we can just say 1385."
+ *     -> The colophon reads `1385`. Pressing it still stamps the sheet.
+ *  3. "I really don't want these weird subtitles. No ISC, no often in
+ *     Bangalore, no joined eighth grade. You're conveying no new
+ *     information except the cities."
+ *     -> The fact band is three label+value pairs and nothing else. Every
+ *        sub-line is gone.
+ *  4. "Cities are not primary and secondary, they are all equally
+ *     important. Batch first, then in the valley, then cities on the
+ *     right."
+ *     -> `profile.cities` is a flat list, printed as one comma series in
+ *        the third (right-hand) column.
+ *  5. "The bird can stop moving." / "If they upload a photo we can't have
+ *     it floating above; put the circle to the left of the logo and name,
+ *     its height from the top of the orange logo to the bottom of the
+ *     name."
+ *     -> Two masthead modes. No photo: the bird perches on the sheet's own
+ *        top edge (Letterhead I's spot, so it costs no vertical space),
+ *        dead still, no species name, and still chirps when pressed. Photo
+ *        uploaded: no perch at all, a circle on the sheet's left edge whose
+ *        diameter is literally `colophon + gap + name line`, with the
+ *        colophon, number and name set to its right.
+ *  6. "Get in touch in line with the name, at a proper size like we have
+ *     in the feed."
+ *     -> The shared `GetInTouch` at the app's default button height (40px),
+ *        vertically centred on the name's line box by calc, not by eye.
+ *  7. "I don't know why we need a horizontal line, and it is not centred."
+ *     -> One engraved rule, with the SAME gap above and below it, and only
+ *        when there is a body section under it to separate. When About and
+ *        Houses are both empty the rule is not drawn, because a divider
+ *        that divides nothing is just a line.
+ *  8. "Use the posts card we use in feed and the letters card we use in
+ *     feed. I don't like this at all."
+ *     -> Entries are the shipped `PostCard` itself (`demo` keeps its
+ *        actions local against mock ids), not a look-alike, and they sit
+ *        BELOW the sheet. Nesting bordered cards inside the bordered
+ *        letterhead would be the box-in-a-box the design system forbids;
+ *        in their own folder they read exactly as the feed does. Tab
+ *        changes cross-fade through auto-animate.
+ *  8b. "Use the dossier navigation style, and make sure the mouse on it
+ *      doesn't scroll the headings."
+ *     -> Dossier's `FolderTab` verbatim (bevelled clip, active tab flush
+ *        with the folder, inactive ones sitting 6px lower), attached to a
+ *        recessed folder that holds the cards. The strip is NOT a scroll
+ *        container the way Dossier's is: see the note above `FolderTab`.
+ *  9. "I don't want the lack of elements to look like gaping white space."
+ *     -> Nothing reserves space. Sparse (`&sample=sparse`) drops the
+ *        number, the occupation, the missing facts, the rule, About and
+ *        Houses, so the tabs come straight up under a short sheet.
  *
- *  Spacing contract: the sheet's padding is EQUAL on all four sides
- *  (24px, 40px from sm up), and every block inside shares the same
- *  single left edge. Section rhythm is --space-xl between the masthead
- *  rule and each major section, --space-s between a section label and
- *  its content. One engraved rule total.
+ *  THE SPACING CONTRACT (the part the review said had to be justified):
+ *
+ *  - The sheet's padding is EQUAL on all four sides (24px, 40px from sm),
+ *    so the name's distance from the top is its distance from the left.
+ *  - Vertical gaps come from four levels of the golden-ratio scale and
+ *    nothing in between, each chosen by how related the two blocks are
+ *    (Gestalt proximity: the gap IS the statement of relatedness):
+ *       8px   `--lh2-gap`      colophon -> name        (one lockup)
+ *       6px   `--space-xs`     name -> occupation      (title/subtitle)
+ *      10px   `--space-s`      section label -> body   (label owns body)
+ *      26px   `--space-l`      block -> block          (peer sections)
+ *      42px   `--space-xl`     sheet -> the writing    (different objects)
+ *    Tokens are `em`, so they are only ever set on elements left at the
+ *    16px base size; anywhere the type is smaller the px value is derived
+ *    from the identity variables below instead of guessed.
+ *  - One left edge: colophon, name, occupation, facts, rule, About and
+ *    Houses all start at the sheet's left padding line, and the sheet, the
+ *    tab row and the cards all share the column's outer left edge.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronDown, MoreHorizontal } from "lucide-react";
-import { ChatCircle, Feather } from "@phosphor-icons/react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { motion, AnimatePresence } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
-import { LoveButton } from "@/components/common/love-button";
-import { BookmarkButton } from "@/components/common/bookmark-button";
-import { ShareButton } from "@/components/common/share-button";
+import { PostCard, type PostData } from "@/components/posts/post-card";
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
 import { AdmissionStamp } from "@/components/profile/admission-stamp";
 import { PeaksMark } from "@/components/layout/peaks-mark";
-import { SpringPress, SPRINGS, EASE_SPRING, EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
-import { formatTimeAgo, batchLine } from "@/lib/utils";
+import { SpringPress, SPRINGS, EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
 import { HousesTrail } from "./_houses-trail";
-import { readMinutes, type MockPost, type MockProfile, type ProfileVariantProps } from "./_data";
+import type { MockPost, MockProfile, ProfileVariantProps } from "./_data";
 
 /* A faint grain so the sheet reads as paper, not a flat fill. */
 const PAPER_GRAIN =
@@ -72,19 +113,31 @@ const DEMO_SAVED_IDS = new Set(["letter1", "p2"]);
 /** The concept assumes the viewer's own profile so the Saved tab can show. */
 const IS_OWN_PROFILE = true;
 
+/** Stand-in for an uploaded profile picture, to prove the photo masthead. */
+const DEMO_PHOTO = "/images/collection/c3.webp";
+
+/**
+ * The identity lockup's geometry, declared once and then DERIVED from.
+ *
+ * Two things in the masthead have to agree with the name's type: the photo
+ * circle (its diameter is "top of the mark to the bottom of the name", the
+ * owner's own definition) and the Get in touch pill (centred on the name's
+ * line box). Both are calc()ed off these, so changing the name size moves
+ * them correctly instead of leaving two magic numbers behind.
+ */
+const IDENTITY_VARS = {
+  "--lh2-colophon": "1rem", // the colophon row's fixed height: 16px
+  "--lh2-gap": "0.5rem", // colophon -> name, Letterhead I's step: 8px
+  "--lh2-name": "clamp(1.9rem, 7vw, 2.6rem)",
+  "--lh2-head": "calc(var(--lh2-colophon) + var(--lh2-gap) + var(--lh2-name) * 1.05)",
+  // Centre a 40px (h-10) pill on the name's line box.
+  "--lh2-cta-top":
+    "calc(var(--lh2-colophon) + var(--lh2-gap) + (var(--lh2-name) * 1.05 - 2.5rem) / 2)",
+} as CSSProperties;
+
 type TabKey = "all" | "posts" | "letters" | "saved";
-
-function plainText(content: string): string {
-  return content
-    .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function excerpt(content: string, max = 200): string {
-  const plain = plainText(content);
-  return plain.length > max ? plain.slice(0, max).trimEnd() + "..." : plain;
-}
+type Sample = "full" | "sparse";
+type Masthead = "bird" | "photo";
 
 /** Placeholder reach-outs, derived only to exercise the Get in touch dialog
  *  (the mock payload has no email/phone columns; the real `User` does). */
@@ -92,12 +145,7 @@ function contactMethodsFor(profile: MockProfile): ContactMethod[] {
   if (profile.links.length === 0) return [];
   const slug = profile.name.toLowerCase().replace(/\s+/g, ".");
   const methods: ContactMethod[] = [
-    {
-      kind: "email",
-      label: "Email",
-      value: `${slug}@example.com`,
-      href: `mailto:${slug}@example.com`,
-    },
+    { kind: "email", label: "Email", value: `${slug}@example.com`, href: `mailto:${slug}@example.com` },
     { kind: "phone", label: "Phone", value: "+91 98450 33712", href: "tel:+919845033712" },
   ];
   for (const link of profile.links) {
@@ -125,7 +173,7 @@ function buildVcard(profile: MockProfile, methods: ContactMethod[]): string {
     phone ? `TEL:${phone}` : null,
     profile.jobTitle ? `TITLE:${profile.jobTitle}` : null,
     profile.workplace ? `ORG:${profile.workplace}` : null,
-    profile.currentCity ? `ADR:;;;${profile.currentCity};;;` : null,
+    profile.cities[0] ? `ADR:;;;${profile.cities[0]};;;` : null,
     "END:VCARD",
   ]
     .filter(Boolean)
@@ -138,8 +186,9 @@ function sparseOf(p: MockProfile): MockProfile {
     ...p,
     jobTitle: null,
     workplace: null,
-    secondaryCity: null,
     currentCity: "",
+    secondaryCity: null,
+    cities: [],
     yearJoined: null,
     yearLeft: null,
     gradeJoined: null,
@@ -154,81 +203,152 @@ function sparseOf(p: MockProfile): MockProfile {
   };
 }
 
+/** Mock post -> the shipped card's payload. Everything the mock has no column
+ *  for (tags, images, polls, city scope) is honestly null rather than faked. */
+function toPostData(post: MockPost, author: MockProfile): PostData {
+  return {
+    id: post.id,
+    kind: post.kind,
+    title: post.title ?? null,
+    content: post.content,
+    tag: null,
+    images: null,
+    cityScope: null,
+    createdAt: post.createdAt,
+    author: {
+      id: author.id,
+      name: author.name,
+      photoUrl: author.photoUrl,
+      birdOverride: null,
+      accountType: author.accountType,
+      verifyState: author.verifyState,
+      batchType: author.batchType,
+      batchYear: author.batchYear,
+    },
+    commentCount: post.commentCount,
+    likeCount: post.likeCount,
+    liked: false,
+    bookmarked: DEMO_SAVED_IDS.has(post.id),
+    isOwn: IS_OWN_PROFILE,
+    poll: null,
+  };
+}
+
 export default function LetterheadTwoVariant({ profile }: ProfileVariantProps) {
-  // ?sample=sparse deep-links the near-empty mock (for screenshot agents).
+  // ?sample=sparse and ?avatar=photo deep-link the other three states, so a
+  // screenshot agent can shoot all four without clicking anything. Read as the
+  // initial value only; the toggles own the state from then on. (Safe against
+  // a prerendered shell because the harness page keeps this whole tree inside
+  // a Suspense boundary, which is exactly what useSearchParams asks for.)
   const searchParams = useSearchParams();
-  const [sample, setSample] = useState<"full" | "sparse">(
+  const [sample, setSample] = useState<Sample>(() =>
     searchParams.get("sample") === "sparse" ? "sparse" : "full"
   );
-  const active = sample === "full" ? profile : sparseOf(profile);
+  const [masthead, setMasthead] = useState<Masthead>(() =>
+    searchParams.get("avatar") === "photo" ? "photo" : "bird"
+  );
+
+  const base = sample === "full" ? profile : sparseOf(profile);
+  const active: MockProfile =
+    masthead === "photo" ? { ...base, photoUrl: DEMO_PHOTO } : { ...base, photoUrl: null };
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-      {/* Lab chrome, not part of the concept: flips the mock between a
-          filled-in member and a near-empty one, because the layout has to
-          hold up for both. */}
-      <div className="mb-[var(--space-s)] flex items-center justify-end gap-2">
-        <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
-          Preview data
-        </span>
-        {(["full", "sparse"] as const).map((key) => (
-          <SpringPress
-            key={key}
-            as="button"
-            onClick={() => setSample(key)}
-            aria-pressed={sample === key}
-            className={`rounded-full border px-3 py-1 text-[11.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-              sample === key
-                ? "border-transparent bg-canopy text-white"
-                : "border-border bg-card text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {key === "full" ? "Full" : "Sparse"}
-          </SpringPress>
-        ))}
+      {/* Lab chrome, not part of the concept: the two axes the review asked to
+          see, a filled-in member against a near-empty one and their bird
+          against an uploaded picture. Kept on the LEFT and a full step clear of
+          the sheet, because the bird perches over the sheet's top-right corner
+          and would otherwise sit on these controls. */}
+      <div className="mb-[var(--space-xl)] flex flex-wrap items-center gap-x-[var(--space-l)] gap-y-[var(--space-s)]">
+        <ToggleGroup
+          label="Preview data"
+          options={[
+            { key: "full", label: "Full" },
+            { key: "sparse", label: "Sparse" },
+          ]}
+          value={sample}
+          onChange={(k) => setSample(k as Sample)}
+        />
+        <ToggleGroup
+          label="Avatar"
+          options={[
+            { key: "bird", label: "Bird" },
+            { key: "photo", label: "Photo" },
+          ]}
+          value={masthead}
+          onChange={(k) => setMasthead(k as Masthead)}
+        />
       </div>
 
-      {/* Keyed so all sheet state (tabs, likes, stamp) resets with the mock. */}
-      <LetterheadSheet key={sample} profile={active} />
+      {/* Keyed so all sheet state (tab, stamp, likes) resets with the mock. */}
+      <Letterhead key={`${sample}-${masthead}`} profile={active} />
     </div>
   );
 }
 
-function LetterheadSheet({ profile }: { profile: MockProfile }) {
-  const sortedPosts = [...profile.posts].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+function ToggleGroup({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { key: string; label: string }[];
+  value: string;
+  onChange: (key: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+        {label}
+      </span>
+      {options.map((o) => (
+        <SpringPress
+          key={o.key}
+          as="button"
+          onClick={() => onChange(o.key)}
+          aria-pressed={value === o.key}
+          className={`rounded-full border px-3 py-1 text-[11.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+            value === o.key
+              ? "border-transparent bg-canopy text-white"
+              : "border-border bg-card text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {o.label}
+        </SpringPress>
+      ))}
+    </div>
   );
-  const postsOnly = sortedPosts.filter((p) => p.kind === "post");
-  const lettersOnly = sortedPosts.filter((p) => p.kind === "letter");
-  const savedOnly = sortedPosts.filter((p) => DEMO_SAVED_IDS.has(p.id));
+}
 
-  const TABS: { key: TabKey; label: string; items: MockPost[] }[] = [
-    { key: "all", label: "All", items: sortedPosts },
-    { key: "posts", label: "Posts", items: postsOnly },
-    { key: "letters", label: "Letters", items: lettersOnly },
-  ];
-  if (IS_OWN_PROFILE) TABS.push({ key: "saved", label: "Saved", items: savedOnly });
+function Letterhead({ profile }: { profile: MockProfile }) {
+  const methods = contactMethodsFor(profile);
+  const about = profile.about.trim();
+  const hasPhoto = Boolean(profile.photoUrl);
 
-  const [tab, setTab] = useState<TabKey>("all");
-  const activeTab = TABS.find((t) => t.key === tab) ?? TABS[0];
-
-  const [likeState, setLikeState] = useState<Record<string, { liked: boolean; count: number }>>(
-    () => Object.fromEntries(profile.posts.map((p) => [p.id, { liked: false, count: p.likeCount }]))
-  );
-
-  function toggleLike(id: string) {
-    setLikeState((prev) => {
-      const cur = prev[id];
-      if (!cur) return prev;
-      return {
-        ...prev,
-        [id]: { liked: !cur.liked, count: cur.liked ? cur.count - 1 : cur.count + 1 },
-      };
+  /* Exactly three possible facts, in the owner's order, with no sub-lines:
+     batch, then the valley years, then every city as one equal series. */
+  const facts: { label: string; value: string; wide?: boolean }[] = [];
+  if (profile.batchYear) facts.push({ label: "Batch", value: String(profile.batchYear) });
+  if (profile.yearJoined && profile.yearLeft) {
+    facts.push({ label: "In the valley", value: `${profile.yearJoined}-${profile.yearLeft}` });
+  }
+  if (profile.cities.length > 0) {
+    facts.push({
+      label: profile.cities.length > 1 ? "Cities" : "City",
+      // Wide on the 2-column phone grid: a comma series is the one fact that
+      // can run long, and clipping someone's third city to fit a column is
+      // exactly the ranking the owner asked to remove.
+      wide: true,
+      value: profile.cities.join(", "),
     });
   }
 
-  /* The stamp: pressed in on demand, held a moment, faded away. Re-pressing
-     restarts the whole performance. */
+  /* The rule only exists to separate the masthead from a body. No body, no
+     rule (the review: "nothing below it, it is just separating nothing"). */
+  const hasBody = Boolean(about) || profile.houses.length > 0;
+
+  /* The stamp: pressed in on demand, held a moment, faded away. */
   const [stamp, setStamp] = useState(0);
   const stampTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function fireStamp() {
@@ -243,254 +363,234 @@ function LetterheadSheet({ profile }: { profile: MockProfile }) {
     []
   );
 
-  const methods = contactMethodsFor(profile);
-  const about = profile.about.trim();
+  /* The photo circle's diameter is the owner's definition of it, taken from
+     the DOM rather than assumed: "from the top of that orange logo to the
+     bottom of the name". The calc in IDENTITY_VARS is the first-paint value
+     and is exact whenever the name holds one line; this observer is what keeps
+     the promise when a long name wraps on a phone. The loop settles because a
+     wider circle can only ever push the name to MORE lines, never back to
+     fewer, so height is monotonic and converges after one correction. */
+  const lockupRef = useRef<HTMLDivElement>(null);
+  const [diameter, setDiameter] = useState<number | null>(null);
+  useEffect(() => {
+    const el = lockupRef.current;
+    if (!hasPhoto || !el) return;
+    // ResizeObserver reports the initial size on observe(), so the first
+    // measurement arrives through the same callback as every later one.
+    const ro = new ResizeObserver(() => {
+      const h = el.getBoundingClientRect().height;
+      setDiameter((prev) => (prev !== null && Math.abs(prev - h) < 0.5 ? prev : h));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hasPhoto]);
+  const circle = diameter ? `${diameter}px` : "var(--lh2-head)";
 
-  /* Exactly three possible facts. Anything missing simply is not there. */
-  const facts: { label: string; value: string; sub?: string }[] = [];
-  if (profile.batchYear) {
-    facts.push({
-      label: "Batch",
-      value: String(profile.batchYear),
-      sub: profile.batchType ?? undefined,
-    });
-  }
-  if (profile.currentCity) {
-    facts.push({
-      label: profile.secondaryCity ? "Cities" : "City",
-      value: profile.currentCity,
-      sub: profile.secondaryCity ? `often in ${profile.secondaryCity}` : undefined,
-    });
-  }
-  if (profile.yearJoined && profile.yearLeft) {
-    facts.push({
-      label: "In the valley",
-      value: `${profile.yearJoined}-${profile.yearLeft}`,
-      sub: profile.gradeJoined ? `joined grade ${profile.gradeJoined}` : undefined,
-    });
-  }
+  const cta =
+    methods.length > 0 ? (
+      <GetInTouch
+        name={profile.name}
+        methods={methods}
+        vcard={buildVcard(profile, methods)}
+        showSave={false}
+        size="default"
+      />
+    ) : null;
 
   return (
-    <div
-      className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
-      style={{
-        boxShadow:
-          "0 1px 2px rgba(35,36,30,0.05), 0 24px 48px -32px rgba(35,36,30,0.55), 0 46px 96px -55px color-mix(in srgb, var(--color-cinnamon) 26%, transparent)",
-      }}
-    >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-multiply"
-        style={{ backgroundImage: `url("${PAPER_GRAIN}")` }}
-      />
-      <div
-        className="pointer-events-none absolute -top-16 right-14 h-56 w-56 rounded-full opacity-60"
-        style={{
-          background:
-            "radial-gradient(circle, color-mix(in srgb, var(--color-canopy) 14%, transparent), transparent 70%)",
-        }}
-      />
+    <>
+      {/* Not clipped, so the perched bird can overlap the sheet's own edge. */}
+      <div className="relative" style={IDENTITY_VARS}>
+        {!hasPhoto && <PerchedBird profile={profile} />}
 
-      {/* The stamp lands over the masthead, like a mark pressed onto the
-          letter itself. AnimatePresence handles the fade-away; the stamp's
-          own mount spring is the thump. */}
-      <AnimatePresence>
-        {stamp > 0 && profile.admissionNumber && (
-          <motion.div
-            key={stamp}
-            exit={{ opacity: 0, transition: { duration: 0.55, ease: "easeOut" } }}
-            className="pointer-events-none absolute left-1/2 top-[44px] z-20 -translate-x-1/2"
-          >
-            <AdmissionStamp number={profile.admissionNumber} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* EQUAL padding on all four sides: the title's distance from the left
-          edge is exactly its distance from the top. */}
-      <div className="relative p-6 sm:p-10">
-        <FadeRise>
-          <header className="flex items-start justify-between gap-5 sm:gap-8">
-            <div className="min-w-0 flex-1">
-              {/* Colophon: the mark, plus the admission number in cinnamon
-                  capitals. Pressing the number stamps the sheet. */}
-              {profile.admissionNumber ? (
-                <button
-                  type="button"
-                  onClick={fireStamp}
-                  aria-label={`Admission number ${profile.admissionNumber}. Press to stamp the sheet.`}
-                  className="inline-flex items-center gap-2 rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-60"
-                >
-                  <PeaksMark size={15} />
-                  <span className="text-[11px] font-bold uppercase tracking-[0.2em]">
-                    No. {profile.admissionNumber}
-                  </span>
-                </button>
-              ) : (
-                <span aria-hidden className="inline-flex text-cinnamon">
-                  <PeaksMark size={15} />
-                </span>
-              )}
-
-              {/* The mark rides inline after the LAST word, so a wrapping name
-                  never strands the leaf alone on its own line. */}
-              <h1 className="mt-[var(--space-m)] font-heading text-[clamp(1.9rem,7vw,2.6rem)] font-bold leading-[1.05] tracking-[-0.03em] text-foreground">
-                {profile.name}
-                <span className="ml-2.5 inline-flex -translate-y-1 align-middle">
-                  <VerifiedMark user={profile} size={16} />
-                </span>
-              </h1>
-
-              {(profile.jobTitle || profile.workplace) && (
-                <p className="mt-2 text-[15px] leading-[1.6] text-muted-foreground">
-                  {profile.jobTitle && (
-                    <span className="font-semibold text-foreground">{profile.jobTitle}</span>
-                  )}
-                  {profile.jobTitle && profile.workplace ? " at " : null}
-                  {profile.workplace}
-                </p>
-              )}
-
-              {/* On a phone the CTA lives here, under the identity, leaving
-                  the narrow right rail to the bird alone so the name keeps
-                  its column. From sm it moves up beside the bird. */}
-              {methods.length > 0 && (
-                <div className="mt-[var(--space-m)] sm:hidden">
-                  <GetInTouch
-                    name={profile.name}
-                    methods={methods}
-                    vcard={buildVcard(profile, methods)}
-                    showSave={false}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* The bird and the one action, on the sheet's right edge. When
-                the person shared no contact details there is no button at
-                all: an always-disabled CTA reads as something broken, and
-                absence keeps the masthead honest. */}
-            <div className="flex shrink-0 flex-col items-end gap-2.5">
-              <ChirpBird profile={profile} />
-              {methods.length > 0 && (
-                <div className="hidden sm:block">
-                  <GetInTouch
-                    name={profile.name}
-                    methods={methods}
-                    vcard={buildVcard(profile, methods)}
-                    showSave={false}
-                  />
-                </div>
-              )}
-            </div>
-          </header>
-
-          {facts.length > 0 && (
-            <dl className="mt-[var(--space-l)] grid grid-cols-2 gap-x-6 gap-y-[var(--space-m)] sm:grid-cols-3 sm:gap-x-8">
-              {facts.map((f) => (
-                <div key={f.label} className="min-w-0">
-                  <dt className="text-[11px] font-bold uppercase tracking-[0.16em] text-canopy">
-                    {f.label}
-                  </dt>
-                  <dd className="mt-1.5 text-[17px] font-semibold leading-tight text-foreground">
-                    {f.value}
-                  </dd>
-                  {f.sub && (
-                    <p className="mt-1 text-[13px] leading-tight text-muted-foreground">{f.sub}</p>
-                  )}
-                </div>
-              ))}
-            </dl>
-          )}
-
-          {/* The letterhead's one engraved rule. */}
+        <div
+          data-lh2="sheet"
+          className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
+          style={{
+            boxShadow:
+              "0 1px 2px rgba(35,36,30,0.05), 0 24px 48px -32px rgba(35,36,30,0.55), 0 46px 96px -55px color-mix(in srgb, var(--color-cinnamon) 26%, transparent)",
+          }}
+        >
           <div
-            aria-hidden
-            className="mt-[var(--space-l)] h-[3px] w-full rounded-full"
+            className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-multiply"
+            style={{ backgroundImage: `url("${PAPER_GRAIN}")` }}
+          />
+          <div
+            className="pointer-events-none absolute -top-16 right-14 h-56 w-56 rounded-full opacity-60"
             style={{
-              boxShadow: "inset 0 1px 0 rgba(0,0,0,0.14), inset 0 -1px 0 rgba(255,255,255,0.55)",
+              background:
+                "radial-gradient(circle, color-mix(in srgb, var(--color-canopy) 14%, transparent), transparent 70%)",
             }}
           />
-        </FadeRise>
 
-        {about && (
-          <FadeRise delay={0.06}>
-            <section className="mt-[var(--space-xl)]">
-              <SectionLabel>About</SectionLabel>
-              <p className="mt-[var(--space-s)] text-[17px] leading-[1.7] text-foreground">
-                {about}
-              </p>
-            </section>
-          </FadeRise>
-        )}
+          {/* The stamp lands over the masthead, like a mark pressed onto the
+              letter itself. AnimatePresence handles the fade-away; the stamp's
+              own mount spring is the thump. */}
+          <AnimatePresence>
+            {stamp > 0 && profile.admissionNumber && (
+              <motion.div
+                key={stamp}
+                exit={{ opacity: 0, transition: { duration: 0.55, ease: "easeOut" } }}
+                className="pointer-events-none absolute left-1/2 top-[44px] z-20 -translate-x-1/2"
+              >
+                <AdmissionStamp number={profile.admissionNumber} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {profile.houses.length > 0 && (
-          <FadeRise delay={0.09}>
-            <section className="mt-[var(--space-l)]">
-              <SectionLabel>Houses</SectionLabel>
-              <div className="mt-[var(--space-s)]">
-                <HousesTrail houses={profile.houses} />
-              </div>
-            </section>
-          </FadeRise>
-        )}
-
-        <FadeRise delay={0.12}>
-          <div className="mt-[var(--space-xl)]">
-            {/* Tabs, flush on the sheet's left edge: the first label starts at
-                the same x as the name, the facts, and every entry below. */}
-            <nav className="flex gap-6 border-b border-border" role="tablist" aria-label="Profile sections">
-              {TABS.map((t) => {
-                const isActive = t.key === tab;
-                return (
-                  <SpringPress
-                    key={t.key}
-                    as="button"
-                    onClick={() => setTab(t.key)}
-                    className={`relative py-2.5 text-[14px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-                      isActive ? "text-canopy" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    {...({ role: "tab", "aria-selected": isActive } as object)}
-                  >
-                    <span className="whitespace-nowrap">
-                      {t.label}
-                      <span className="ml-1.5 text-[11.5px] font-normal text-muted-foreground/70">
-                        {t.items.length}
-                      </span>
-                    </span>
-                    {isActive && (
-                      <motion.span
-                        layoutId="lh2TabThumb"
-                        className="absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-canopy"
-                        transition={SPRINGS.snappy}
+          {/* EQUAL padding on all four sides. */}
+          <div className="relative p-6 sm:p-10">
+            <FadeRise>
+              <header data-lh2="header">
+                <div className="flex items-start gap-[var(--space-m)]">
+                  {/* Photo masthead: the circle starts on the sheet's own left
+                      edge, level with the mark, and ends on the bottom of the
+                      name. Nothing else in the sheet indents for it. */}
+                  {hasPhoto && (
+                    <span
+                      data-lh2="photo"
+                      className="block shrink-0 overflow-hidden rounded-full border border-border/60 bg-mist"
+                      style={{ width: circle, height: circle }}
+                      role="img"
+                      aria-label={profile.name}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={profile.photoUrl ?? ""}
+                        alt=""
+                        className="h-full w-full object-cover"
                       />
-                    )}
-                  </SpringPress>
-                );
-              })}
-            </nav>
+                    </span>
+                  )}
 
-            {activeTab.items.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="font-heading text-[15px] text-muted-foreground">Nothing here yet.</p>
-              </div>
-            ) : (
-              <div>
-                {activeTab.items.map((post) => (
-                  <EntryRow
-                    key={post.id}
-                    post={post}
-                    author={profile}
-                    liked={likeState[post.id]?.liked ?? false}
-                    likeCount={likeState[post.id]?.count ?? post.likeCount}
-                    onToggleLike={() => toggleLike(post.id)}
-                  />
-                ))}
-              </div>
+                  {/* The lockup, and ONLY the lockup: mark, number, name. The
+                      occupation is deliberately outside it, so the measured
+                      circle answers the owner's "top of the logo to the bottom
+                      of the name" and not a line more. */}
+                  <div ref={lockupRef} data-lh2="lockup" className="min-w-0 flex-1">
+                    {/* A block-level row, not inline-flex: an inline box would
+                        add its line's leading under the mark and quietly turn
+                        the 8px step into 14.5px. */}
+                    {profile.admissionNumber ? (
+                      <button
+                        type="button"
+                        data-lh2="colophon"
+                        onClick={fireStamp}
+                        aria-label={`Admission number ${profile.admissionNumber}. Press to stamp the sheet.`}
+                        className="flex h-[var(--lh2-colophon)] w-fit items-center gap-1.5 rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-60"
+                      >
+                        <PeaksMark size={15} />
+                        <span className="text-[11px] font-bold uppercase tracking-[0.2em]">
+                          {profile.admissionNumber}
+                        </span>
+                      </button>
+                    ) : (
+                      <span
+                        aria-hidden
+                        data-lh2="colophon"
+                        className="flex h-[var(--lh2-colophon)] w-fit items-center text-cinnamon"
+                      >
+                        <PeaksMark size={15} />
+                      </span>
+                    )}
+
+                    {/* The leaf rides inline after the last word so a wrapping
+                        name never strands it on a line of its own, and sits on
+                        the BASELINE, which is where Letterhead I had it. */}
+                    <h1
+                      className="mt-[var(--lh2-gap)] font-heading font-bold tracking-[-0.03em] text-foreground"
+                      style={{ fontSize: "var(--lh2-name)", lineHeight: 1.05 }}
+                    >
+                      {profile.name}
+                      <span className="ml-2.5 inline-flex align-baseline">
+                        <VerifiedMark user={profile} size={16} />
+                      </span>
+                    </h1>
+                  </div>
+
+                  {/* The one action, in line with the name: the pill's box is
+                      centred on the name's first line by calc, not by eye.
+                      Held back on phones, where a 40px pill beside a 30px
+                      display name would squeeze the name's own column. */}
+                  {cta && (
+                    <div
+                      className="hidden shrink-0 sm:block"
+                      style={{ marginTop: "var(--lh2-cta-top)" }}
+                    >
+                      {cta}
+                    </div>
+                  )}
+                </div>
+
+                {(profile.jobTitle || profile.workplace) && (
+                  <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
+                    {profile.jobTitle && (
+                      <span className="font-semibold text-foreground">{profile.jobTitle}</span>
+                    )}
+                    {profile.jobTitle && profile.workplace ? " at " : null}
+                    {profile.workplace}
+                  </p>
+                )}
+
+                {cta && <div className="mt-[var(--space-m)] sm:hidden">{cta}</div>}
+              </header>
+
+              {facts.length > 0 && (
+                <dl className="mt-[var(--space-l)] grid grid-cols-2 gap-x-[var(--space-l)] gap-y-[var(--space-m)] sm:grid-cols-3">
+                  {facts.map((f) => (
+                    <div key={f.label} className={f.wide ? "col-span-2 sm:col-span-1" : "min-w-0"}>
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.16em] text-canopy">
+                        {f.label}
+                      </dt>
+                      <dd className="mt-[var(--space-xs)] text-[17px] font-semibold leading-[1.35] text-foreground">
+                        {f.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+
+              {/* The letterhead's one engraved rule, with equal air above and
+                  below it, and only when it has two things to sit between. */}
+              {hasBody && (
+                <div
+                  aria-hidden
+                  className="mt-[var(--space-l)] h-[3px] w-full rounded-full"
+                  style={{
+                    boxShadow:
+                      "inset 0 1px 0 rgba(0,0,0,0.14), inset 0 -1px 0 rgba(255,255,255,0.55)",
+                  }}
+                />
+              )}
+            </FadeRise>
+
+            {about && (
+              <FadeRise delay={0.06}>
+                <section className="mt-[var(--space-l)]">
+                  <SectionLabel>About</SectionLabel>
+                  <p className="mt-[var(--space-s)] text-[17px] leading-[1.7] text-foreground">
+                    {about}
+                  </p>
+                </section>
+              </FadeRise>
+            )}
+
+            {profile.houses.length > 0 && (
+              <FadeRise delay={0.09}>
+                <section className="mt-[var(--space-l)]">
+                  <SectionLabel>Houses</SectionLabel>
+                  <div className="mt-[var(--space-s)]">
+                    <HousesTrail houses={profile.houses} />
+                  </div>
+                </section>
+              </FadeRise>
             )}
           </div>
-        </FadeRise>
+        </div>
       </div>
-    </div>
+
+      <Writing profile={profile} />
+    </>
   );
 }
 
@@ -501,192 +601,214 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 /* ------------------------------------------------------------------ *
- *  The bird. Inside the sheet, idle bob always on; pressing it chirps:
- *  a spring thump and three cinnamon arcs. No species name anywhere.
+ *  The bird, perched on the sheet's own top edge exactly where
+ *  Letterhead I put it, so it costs the masthead no vertical space.
+ *  Still: the idle bob is gone (owner: "don't keep moving the bird").
+ *  No species name. Pressing it chirps, three cinnamon arcs and a thump,
+ *  because that only happens when someone asks for it.
  * ------------------------------------------------------------------ */
-function ChirpBird({ profile }: { profile: MockProfile }) {
+function PerchedBird({ profile }: { profile: MockProfile }) {
   const [chirp, setChirp] = useState(0);
 
   return (
-    <button
-      type="button"
-      onClick={() => setChirp((c) => c + 1)}
-      aria-label={`${profile.name}'s bird. Tap for a chirp.`}
-      className="relative shrink-0 rounded-full p-1.5 outline-none transition-[background-color,transform] duration-150 hover:bg-mist focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.95]"
-    >
-      <motion.span
-        animate={{ y: [0, -3, 0] }}
-        transition={{ duration: 4.4, repeat: Infinity, ease: EASE_SPRING }}
-        className="block"
+    /* Scaled from its FEET on phones (origin-bottom), so the perch line stays
+       put at both sizes and only one offset has to be right. */
+    <div className="absolute -top-12 right-6 z-20 origin-bottom scale-[0.8] sm:right-10 sm:scale-100">
+      <button
+        type="button"
+        onClick={() => setChirp((c) => c + 1)}
+        aria-label={`${profile.name}'s bird. Tap for a chirp.`}
+        className="relative block rounded-full outline-none transition-transform duration-150 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
       >
         <motion.span
           key={chirp}
-          initial={chirp > 0 ? { scale: 1.12, rotate: -7 } : false}
+          initial={chirp > 0 ? { scale: 1.1, rotate: -6 } : false}
           animate={{ scale: 1, rotate: 0 }}
           transition={SPRINGS.snappy}
           className="block"
         >
           <BirdAvatar
             user={{ id: profile.id, name: profile.name, avatarSpecies: profile.avatarSpecies }}
-            size={72}
+            size={80}
           />
         </motion.span>
-      </motion.span>
 
-      {chirp > 0 && (
-        <span key={chirp} aria-hidden className="pointer-events-none absolute right-[-4px] top-[20px]">
-          {[0, 1, 2].map((n) => {
-            const s = 13 + n * 9;
-            return (
-              <motion.span
-                key={n}
-                initial={{ opacity: 0.9, scale: 0.35, rotate: -45 }}
-                animate={{ opacity: 0, scale: 1.2, rotate: -45 }}
-                transition={{ duration: 0.55, delay: n * 0.07, ease: EASE_OUT_SMOOTH }}
-                className="absolute block rounded-full border-r-2 border-cinnamon"
-                style={{ width: s, height: s, left: 0, top: -s / 2 }}
-              />
-            );
-          })}
-        </span>
-      )}
-    </button>
+        {chirp > 0 && (
+          <span
+            key={`arcs-${chirp}`}
+            aria-hidden
+            className="pointer-events-none absolute right-[-2px] top-[22px]"
+          >
+            {[0, 1, 2].map((n) => {
+              const s = 13 + n * 9;
+              return (
+                <motion.span
+                  key={n}
+                  initial={{ opacity: 0.9, scale: 0.35, rotate: -45 }}
+                  animate={{ opacity: 0, scale: 1.2, rotate: -45 }}
+                  transition={{ duration: 0.55, delay: n * 0.07, ease: EASE_OUT_SMOOTH }}
+                  className="absolute block rounded-full border-r-2 border-cinnamon"
+                  style={{ width: s, height: s, left: 0, top: -s / 2 }}
+                />
+              );
+            })}
+          </span>
+        )}
+      </button>
+
+      {/* A soft contact shadow on the paper: what makes it read as perched on
+          the edge rather than pasted over it. */}
+      <span
+        aria-hidden
+        className="mx-auto -mt-1 block h-2 w-11 rounded-full"
+        style={{ background: "var(--color-ink)", opacity: 0.14, filter: "blur(3px)" }}
+      />
+    </div>
+  );
+}
+
+/* Folder-tab silhouette, lifted verbatim from the Dossier concept: the one
+   diagonal cut every physical file tab shares. */
+const TAB_CLIP = "polygon(0 100%, 0 30%, 15% 0, 100% 0, 100% 100%)";
+
+/**
+ * One folder tab, Dossier's control exactly: the active tab takes the folder's
+ * own colour and sits flush against it (-mb-px covers the folder's top border),
+ * the inactive ones sit 6px lower and a shade darker, like a fanned stack
+ * underneath. One motion element owns the whole transform so a Tailwind
+ * translate class can never be clobbered by framer's inline transform.
+ *
+ * The surface ladder is one step down from Dossier's, because this folder
+ * HOLDS feed cards rather than ledger rows: page -> inactive tab -> folder ->
+ * card, each step lighter than the last, so the cards still read as cards
+ * instead of merging into a body of their own colour.
+ */
+function FolderTab({
+  label,
+  active,
+  onSelect,
+}: {
+  label: string;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <motion.button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onSelect}
+      initial={false}
+      animate={{ y: active ? 0 : 6 }}
+      whileHover={{ y: active ? 0 : 2 }}
+      whileTap={{ scale: 0.96 }}
+      transition={SPRINGS.snappy}
+      style={{
+        clipPath: TAB_CLIP,
+        background: active
+          ? "var(--color-mist)"
+          : "color-mix(in srgb, var(--color-ink) 7%, var(--color-background))",
+      }}
+      className={`relative min-w-[64px] shrink-0 px-3 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11.5px] font-bold uppercase tracking-[0.08em] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:min-w-[92px] sm:px-5 sm:text-[13px] ${
+        active ? "z-10 -mb-px text-foreground" : "z-0 text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {label}
+    </motion.button>
   );
 }
 
 /* ------------------------------------------------------------------ *
- *  One entry, drawn as the FEED draws a post: identity row up top with
- *  the bird, the name, batch and time; the body; then the love /
- *  comment / bookmark / share rail. Letters keep the feed's nested
- *  letter card, except "Read this letter" opens it inline here (the
- *  real feed navigates to the letter page, which a mock cannot).
+ *  What they have written: Dossier's folder tabs on a folder of the
+ *  feed's own cards. The folder sits BELOW the letterhead sheet and
+ *  shares its outer left edge; the cards inside are the shipped
+ *  PostCard untouched, on a recessed board so they still read as
+ *  discrete cards rather than as one body.
+ *
+ *  The tab strip is deliberately NOT a scroll container. Dossier's is
+ *  `overflow-x-auto`, and a horizontally scrollable strip swallows the
+ *  wheel: put the pointer on the tabs and the page stops moving while
+ *  the headings slide sideways instead (owner, 2026-07-30). The four
+ *  labels are sized to fit a 390px viewport outright, so there is
+ *  nothing to scroll and the wheel always belongs to the page.
  * ------------------------------------------------------------------ */
-function EntryRow({
-  post,
-  author,
-  liked,
-  likeCount,
-  onToggleLike,
-}: {
-  post: MockPost;
-  author: MockProfile;
-  liked: boolean;
-  likeCount: number;
-  onToggleLike: () => void;
-}) {
-  const isLetter = post.kind === "letter";
-  const isLong = !isLetter && post.content.length > 300;
-  const [expanded, setExpanded] = useState(false);
-  const [showFull, setShowFull] = useState(false);
-  const [saved, setSaved] = useState(DEMO_SAVED_IDS.has(post.id));
+function Writing({ profile }: { profile: MockProfile }) {
+  const sorted = [...profile.posts].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
-  const avatarUser = { id: author.id, name: author.name, avatarSpecies: author.avatarSpecies };
+  const TABS: { key: TabKey; label: string; items: MockPost[]; empty: string }[] = [
+    { key: "all", label: "All", items: sorted, empty: "Nothing here yet." },
+    {
+      key: "posts",
+      label: "Posts",
+      items: sorted.filter((p) => p.kind === "post"),
+      empty: "No posts yet.",
+    },
+    {
+      key: "letters",
+      label: "Letters",
+      items: sorted.filter((p) => p.kind === "letter"),
+      empty: "No letters yet.",
+    },
+  ];
+  if (IS_OWN_PROFILE) {
+    TABS.push({
+      key: "saved",
+      label: "Saved",
+      items: sorted.filter((p) => DEMO_SAVED_IDS.has(p.id)),
+      empty: "Nothing saved yet.",
+    });
+  }
+
+  const [tab, setTab] = useState<TabKey>("all");
+  const active = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const [listRef] = useAutoAnimate();
 
   return (
-    <article className="border-b border-border/70 py-5 last:border-0">
-      <header className="flex items-start justify-between">
-        <div className="flex min-w-0 items-center gap-3">
-          <BirdAvatar user={avatarUser} size="sm" />
-          <div className="flex min-w-0 flex-col justify-center" style={{ gap: 5 }}>
-            <div className="flex min-w-0 items-center gap-1 leading-none">
-              <span className="text-sm font-semibold leading-none text-foreground">
-                {author.name}
-              </span>
-              <VerifiedMark user={author} />
-            </div>
-            <div className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.07em] leading-none text-muted-foreground">
-              <span>{batchLine(author)}</span>
-              <span className="dotsep">·</span>
-              <span>{formatTimeAgo(new Date(post.createdAt))}</span>
-            </div>
-          </div>
-        </div>
-        <button
-          type="button"
-          aria-label="Post menu (inactive in this preview)"
-          className="-mr-2 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+    <FadeRise delay={0.12}>
+      <div className="mt-[var(--space-l)] sm:mt-[var(--space-xl)]">
+        <div
+          role="tablist"
+          aria-label="Profile sections"
+          className="relative z-10 flex gap-1 pl-[var(--space-m)] sm:pl-[var(--space-l)]"
         >
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-      </header>
-
-      {isLetter ? (
-        <div className="mt-3 rounded-xl border border-border bg-paper/60 p-4">
-          <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
-            <Feather size={13} weight="fill" />
-            Letter
-            <span className="text-muted-foreground/70">· {readMinutes(post.content)} min read</span>
-          </div>
-          <h3 className="mt-2 font-heading text-xl font-bold leading-snug tracking-[-0.01em] text-foreground">
-            {post.title}
-          </h3>
-          {!expanded && (
-            <p className="mt-1.5 line-clamp-2 text-[14px] leading-relaxed text-muted-foreground">
-              {excerpt(post.content)}
-            </p>
-          )}
-          <AnimatePresence initial={false}>
-            {expanded && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={SPRINGS.gentle}
-                className="overflow-hidden"
-              >
-                <div className="mt-3 whitespace-pre-wrap font-heading text-[16px] leading-[1.8] text-foreground">
-                  {post.content}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <SpringPress
-            as="button"
-            onClick={() => setExpanded((e) => !e)}
-            className="mt-3 inline-flex items-center gap-1 rounded-sm text-sm font-semibold text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            {...({ "aria-expanded": expanded } as object)}
-          >
-            {expanded ? "Close letter" : "Read this letter"}
-            <ChevronDown
-              className={`h-[15px] w-[15px] transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+          {TABS.map((t) => (
+            <FolderTab
+              key={t.key}
+              label={t.label}
+              active={t.key === tab}
+              onSelect={() => setTab(t.key)}
             />
-          </SpringPress>
+          ))}
         </div>
-      ) : (
-        <div className="mt-2.5">
-          <p className="whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
-            {isLong && !showFull ? post.content.slice(0, 300).trimEnd() + "..." : post.content}
-          </p>
-          {isLong && !showFull && (
-            <button
-              onClick={() => setShowFull(true)}
-              className="mt-1 rounded-sm text-sm font-medium text-leaf hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            >
-              Read more
-            </button>
-          )}
-        </div>
-      )}
 
-      <div className="mt-2 -mx-2.5 flex items-center gap-1 text-muted-foreground">
-        <LoveButton liked={liked} count={likeCount} onToggle={onToggleLike} label="Like this post" />
-        <button
-          type="button"
-          aria-label="Comments (inactive in this preview)"
-          className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        {/* The folder. Square top-left where the first tab attaches, rounded
+            everywhere else, exactly as Dossier draws it. */}
+        <div
+          className="relative rounded-b-[var(--radius-xl)] rounded-tr-[var(--radius-xl)] border border-border bg-mist p-[var(--space-s)]"
+          style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)" }}
         >
-          <ChatCircle size={18} weight="regular" />
-          <span>{post.commentCount}</span>
-        </button>
-        <BookmarkButton
-          saved={saved}
-          onToggle={() => setSaved((s) => !s)}
-          id={post.id}
-          className="ml-auto"
-          label={saved ? "Remove bookmark" : "Save post"}
-        />
-        <ShareButton href={`/preview/delight/profiles?v=letterhead-2#${post.id}`} label="Copy link to post" />
+          {/* auto-animate cross-fades the swap, so switching tabs reads as the
+              same stack re-settling rather than a hard cut. */}
+          <div ref={listRef} className="space-y-2.5">
+            {active.items.length === 0 ? (
+              <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-10 text-center">
+                <p className="font-heading text-lg tracking-tight text-foreground">
+                  {active.empty}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  Share a memory, a sighting, or a note for the valley.
+                </p>
+              </div>
+            ) : (
+              active.items.map((post) => (
+                <PostCard key={post.id} post={toPostData(post, profile)} variant="card" demo />
+              ))
+            )}
+          </div>
+        </div>
       </div>
-    </article>
+    </FadeRise>
   );
 }

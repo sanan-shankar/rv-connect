@@ -72,6 +72,14 @@ export interface MockProfile {
   batchYear: number | null;
   currentCity: string;
   secondaryCity: string | null;
+  /**
+   * Every city this person is in, all of equal weight (owner, 2026-07-30:
+   * "I want to make sure that it's not like a primary city and a secondary
+   * city and all. You can just list as many cities as you're in and they're
+   * all equally important"). `currentCity`/`secondaryCity` above are the older
+   * ranked pair, kept only because the earlier concepts read them.
+   */
+  cities: string[];
   jobTitle: string | null;
   workplace: string | null;
   yearJoined: number | null;
@@ -125,6 +133,9 @@ export const PROFILE: MockProfile = {
   batchYear: 2023,
   currentCity: "Chennai",
   secondaryCity: "Bengaluru",
+  // Three, deliberately: a single city never exercises the separator and two
+  // reads as the old primary/secondary pair the owner rejected.
+  cities: ["Chennai", "Bengaluru", "Delhi"],
   jobTitle: "Software Engineer",
   workplace: "Bluepeak Systems",
   yearJoined: 2014,
