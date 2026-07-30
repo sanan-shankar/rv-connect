@@ -61,9 +61,9 @@ const HEX_ALLOW = new Map([
   ["src/components/common/image-viewer.tsx", "the viewer's warm-ink backdrop + photo shadow"],
   ["src/components/ui/sonner.tsx", "toast shadow, pending tokenised shadows"],
   ["src/app/layout.tsx", "themeColor meta must be a literal; kept in lockstep with --background by hand"],
+  ["src/components/ui/dialog.tsx", "the dialog material's warm-ink scrim (#241a12), same register as the viewer backdrop"],
   ["src/components/common/bird-avatar.tsx", "glyph plumage support white"],
   ["src/components/landing/footer-hoopoe.tsx", "tuft plumage art (marigold family)"],
-  ["src/components/common/report-modal.tsx", "warm-ink overlay scrim, same register as the viewer backdrop"],
 ]);
 const HEX_RE = /#[0-9a-fA-F]{6}\b/;
 
@@ -119,7 +119,7 @@ const XL_ALLOW = new Map([
   ["src/components/common/image-viewer.tsx", "caption fold panel, standalone overlay"],
   ["src/components/tour/tour-panel.tsx", "floating tour sheet, standalone overlay"],
   ["src/components/tour/tour-offer.tsx", "floating offer sheet, standalone overlay"],
-  ["src/components/common/report-modal.tsx", "floating modal, standalone overlay"],
+  ["src/components/ui/dialog.tsx", "THE floating-modal radius: the dialog material is a standalone overlay, not a nested card"],
   ["src/components/onboarding/steps/houses-step.tsx", "TEMP: Wave-2 houses rebuild owns this file"],
   ["src/components/layout/sidebar.tsx", "nav rows on the canopy panel, not nested in a card; radius revisit deferred"],
   ["src/components/layout/notification-bell.tsx", "sidebar bell row, same panel as above"],
@@ -147,6 +147,25 @@ for (const f of srcFiles()) {
       !/metaLine|MetaDots|dotsep/.test(line)
     ) {
       violations.push(`${f}:${i + 1}  hand-written dot separator (use metaLine/MetaDots): ${line.trim().slice(0, 90)}`);
+    }
+  });
+}
+
+/* 6 ---------------------------------------------------------------- */
+/* Dialogs are ONE material (ui/dialog.tsx). A hand-rolled aria-modal
+   anywhere else is a fork of the template. The image viewer is the one
+   exception: a full-screen experience, not a dialog. */
+const MODAL_ALLOW = new Set([
+  "src/components/ui/dialog.tsx",
+  "src/components/ui/sheet.tsx", // the edge-anchored variant of the same system
+  "src/components/common/image-viewer.tsx",
+]);
+for (const f of srcFiles()) {
+  if (MODAL_ALLOW.has(f)) continue;
+  const lines = readFileSync(f, "utf8").split("\n");
+  lines.forEach((line, i) => {
+    if (/aria-modal/.test(line)) {
+      violations.push(`${f}:${i + 1}  hand-rolled modal outside ui/dialog (dialogs are one material): ${line.trim().slice(0, 90)}`);
     }
   });
 }

@@ -64,9 +64,13 @@ Why a ladder: the pre-protocol palette had FOUR token names resolving to one hex
 (`--secondary` = `--muted` = `--accent` = mist `#EEE8DA`), so idle chips, hover states and
 recessed wells all converged on one ochre and hovers went *darker* into tan. Roughly 300 of
 430 production background usages were the warm-tan family. That convergence, plus the photo
-wash, is what read as "everything brown". The owner's calibration: all-white is a 0 (corporate,
-characterless), the old state a 10; the app sits at ~5 - warm at the base, clean where content
-and interaction live.
+wash, is what read as "everything brown". The owner's calibration (revised 2026-07-30, after
+finding iPhone True Tone had been exaggerating the yellow): all-white is a 0 (corporate,
+characterless), the old state a 10; the right zone is **5-9** and the app sits at ~7. Warmth
+IS the identity - the cure for drab is CONTRAST (hover lifts, white floats, rationed wells),
+not further de-warming. Do not cool these tokens again without an owner ask; verify any
+future "too warm/too cool" report against a reference display first (True Tone / Night
+Shift off).
 
 **The rules** (each enforceable in review):
 
@@ -184,6 +188,29 @@ is the same object:
 - **Enforcement:** these live in the shared primitives (`ui/dropdown-menu`, `ui/select`,
   `ui/popover`, `pill-shell`); a page may not override radius, colour, offset or animation.
   If a surface needs something a menu primitive can't do, it isn't a menu.
+
+### Dialogs: one material (2026-07-30)
+
+Owner: "edit post, report post, get in touch, flag person all have different styles even
+though they should be reusing the same template... report is the closest." So the report
+register IS the template, and it lives in exactly one file - `src/components/ui/dialog.tsx`:
+
+- **Backdrop:** constant warm-ink tint (`#241a12`/55) + blur; only OPACITY animates, so the
+  fade reads as the background gradually blurring. 220ms in, 180ms out.
+- **Panel:** Float `#FFFFFF` (the one sanctioned pure-white surface), 20.8px floating-modal
+  radius, hairline border, layered ink shadow, `max-w-sm`, 16px padding. It enters a beat
+  (80ms) after the backdrop - rise 12px + scale from 0.94 on the spring curve - and exits
+  immediately (no delay), so closing never lags. X close button top-right, always.
+- **Anatomy:** `DialogTitle` (heading face, 16px medium) + `DialogDescription` (14px muted) +
+  content + ONE footer shape: a right-aligned Cancel-then-action row. No recessed footer
+  trays, no full-width buttons, no per-dialog title sizes. Inner boxes step down the radius
+  ladder (12px inputs/tiles inside the 20.8px panel). Button *variants* carry the semantics
+  (primary / destructive); the layout never changes per dialog.
+- **Short interactions only.** A dialog is for something done in seconds (report, flag,
+  contact, a quick edit). Anything immersive (writing a letter) gets a page, not a dialog.
+- **Enforcement:** every modal imports from `ui/dialog`. `aria-modal` appearing anywhere
+  else is an audit violation (the full-screen image viewer is the one exception - it is an
+  experience, not a dialog).
 
 ---
 

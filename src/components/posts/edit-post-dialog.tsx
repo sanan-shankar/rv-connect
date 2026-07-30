@@ -116,7 +116,7 @@ export function EditPostDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isDraft ? "Continue your letter" : isLetter ? "Edit letter" : "Edit Post"}
+            {isDraft ? "Continue your letter" : isLetter ? "Edit letter" : "Edit post"}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
@@ -144,10 +144,13 @@ export function EditPostDialog({
                   key={t.value}
                   type="button"
                   onClick={() => setTag(tag === t.value ? null : t.value)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 ${
                     tag === t.value
-                      ? "bg-canopy/10 text-canopy ring-2 ring-canopy/50"
-                      : "bg-muted text-muted-foreground hover:bg-accent"
+                      ? /* The one sanctioned green selection wash (protocol
+                           colour rule 4); the old ring-2 double-outline cut
+                           against the pill's own edge. */
+                        "border-canopy/35 bg-canopy/[0.08] text-canopy"
+                      : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
                 >
                   {t.label}
