@@ -5,16 +5,14 @@
  *  a deliberately theatrical series of pages - "it's just difficult to
  *  turn it on" - while turning it OFF is one click in Appearance. The
  *  steps follow the owner's script: are-you-sure, experimental-feature,
- *  the liability waiver, the less-character confession, today's word
- *  (typed exactly), one final trial (the hoopoe judges a five second
- *  hold), and only then the toggle - whose flip pays off with the
- *  Nightfall scene. Any "No" along the way exits with visible relief.
+ *  the liability waiver, the less-character confession, today's REAL
+ *  Wordle answer (owner, 2026-07-31 - genuine homework by design), one
+ *  final trial (the hoopoe judges a five second hold), and only then
+ *  the toggle - whose flip pays off with the Nightfall scene. Any "No"
+ *  along the way exits with visible relief.
  *
  *  Tone rules: funny but never mean, no em dashes, every step still a
- *  real choice. The word step hides its own answer on the page (faint,
- *  rotated) because the joke is ceremony, not homework - the owner
- *  liked the Password Game's spirit but called it "a bit annoying
- *  after a point".
+ *  real choice.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
@@ -43,9 +41,9 @@ const RELIEF_LINES = [
 ];
 
 const WRONG_WORD_LINES = [
-  "That is not the word. The word disagrees with you.",
+  "That is not it. The Wordle disagrees with you.",
   "Close, possibly. Wrong, definitely.",
-  "The valley keeps its secrets. Look around this page more closely.",
+  "Have you actually played it today? Be honest.",
 ];
 
 /* The five second trial. Long enough to feel like a commitment, short
@@ -198,27 +196,18 @@ export function DarkGauntlet({ word }: { word: string }) {
         )}
 
         {step === "word" && (
-          <motion.div key="word" {...stepMotion} className="relative space-y-5 text-center">
+          <motion.div key="word" {...stepMotion} className="space-y-5 text-center">
             <StepKicker>Question 5 of 5</StepKicker>
             <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
-              What is today&apos;s word?
+              What is today&apos;s Wordle answer?
             </h2>
+            {/* The real one, from the New York Times, fetched server-side
+                (owner, 2026-07-31). This is genuine homework by design: if
+                you have not solved it, the dark can wait while you do. */}
             <p className="mx-auto max-w-[40ch] text-[14.5px] leading-relaxed text-muted-foreground">
-              It changes at midnight. It is also written somewhere on this very
-              page. Look closely.
+              Yes, that Wordle. The real one, today&apos;s. If you have not done
+              it yet, go do it. We will wait right here.
             </p>
-            {/* The answer, hiding in plain sight: rotated into the margin at
-                low opacity. After three misses it gets a touch braver, because
-                the joke is the ceremony, not actual homework. */}
-            <span
-              aria-hidden
-              className={
-                "pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 rotate-90 select-none text-[11px] font-bold uppercase tracking-[0.5em] text-foreground " +
-                (wrongCount >= 3 ? "opacity-30" : "opacity-[0.09]")
-              }
-            >
-              {word}
-            </span>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -229,8 +218,9 @@ export function DarkGauntlet({ word }: { word: string }) {
               <Input
                 value={wordGuess}
                 onChange={(e) => setWordGuess(e.target.value)}
-                placeholder="The word"
-                aria-label="Today's word"
+                placeholder="Five letters"
+                maxLength={5}
+                aria-label="Today's Wordle answer"
                 autoFocus
               />
               <Button type="submit" variant="primary" disabled={!wordGuess.trim()}>
