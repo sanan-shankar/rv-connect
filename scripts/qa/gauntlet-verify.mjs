@@ -63,15 +63,14 @@ await clickText("^I accept$", "Q4 character");
 await new Promise((r) => setTimeout(r, 400));
 await page.screenshot({ path: `${shots}/g4-word.png` });
 
-// the word of the day, typed exactly
-const word = await page.evaluate(() => {
-  // read the faint rotated answer off the page itself, like a sneaky human
-  const spans = [...document.querySelectorAll("span")];
-  const hidden = spans.find((s) => s.className.includes("rotate-90"));
-  return hidden?.textContent?.trim() ?? null;
-});
-console.log("word read off the page:", word);
-await page.type('input[aria-label="Today\'s word"]', word ?? "Parakeet");
+// today's REAL Wordle answer, fetched the same way the server fetches it
+const key = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+const word = await fetch(`https://www.nytimes.com/svc/wordle/v2/${key}.json`)
+  .then((r) => r.json())
+  .then((d) => d.solution)
+  .catch(() => null);
+console.log("today's Wordle answer:", word);
+await page.type('input[aria-label="Today\'s Wordle answer"]', word ?? "crane");
 await clickText("^Answer$", "word submit");
 await new Promise((r) => setTimeout(r, 600));
 await page.screenshot({ path: `${shots}/g5-trial.png` });
@@ -117,6 +116,17 @@ const sidebarDark = await page.evaluate(() => {
   return aside ? getComputedStyle(aside).backgroundColor : null;
 });
 console.log("sidebar in dark:", sidebarDark, "(must stay rgb(35, 92, 73))");
+
+// THE STICKINESS CHECK (owner report 2026-07-31: "it just stays in light
+// mode"): a full hard reload must come back DARK from the cookie alone,
+// with no client flash of light.
+await page.reload({ waitUntil: "networkidle2" });
+await new Promise((r) => setTimeout(r, 2500));
+const afterReload = await page.evaluate(() => ({
+  htmlDark: document.documentElement.classList.contains("dark"),
+  bg: getComputedStyle(document.body).backgroundColor,
+}));
+console.log("after HARD RELOAD:", JSON.stringify(afterReload), "(must stay dark)");
 
 // mobile dark spot-check
 await page.setViewport({ width: 390, height: 844 });

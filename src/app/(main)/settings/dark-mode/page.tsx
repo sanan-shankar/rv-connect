@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { getThemeCookie } from "@/lib/theme";
-import { wordOfDay } from "@/lib/word-of-day";
+import { getWordleAnswer } from "@/lib/wordle";
 import { DarkGauntlet } from "@/components/settings/dark-gauntlet";
 import { LightsOn } from "@/components/settings/lights-on";
 
@@ -26,5 +26,5 @@ export default async function DarkModePage() {
     return <LightsOn />;
   }
 
-  return <DarkGauntlet word={wordOfDay()} />;
+  return <DarkGauntlet word={await getWordleAnswer()} />;
 }
