@@ -178,7 +178,11 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-mist"
+                // state-layer replaces hover:bg-accent + active:bg-mist: this
+                // button sits on the search input's card fill, where accent was
+                // 2 dL* off the surface and mist went the wrong way (a press
+                // that turns tan). One translucent tint does both steps.
+                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -287,7 +291,7 @@ function RoomCard({
               key={child.href}
               href={child.href}
               title={child.note}
-              className="flex items-center gap-2 rounded-[var(--radius-sm)] px-[11px] py-2 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-mist"
+              className="flex items-center gap-2 rounded-[var(--radius-sm)] px-[11px] py-2 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <CornerDownRight className="h-3 w-3 shrink-0 text-muted-foreground/60" aria-hidden />
               <span className="truncate">{child.title}</span>
@@ -308,7 +312,7 @@ function RoomCard({
               : "Move to Archived"
             : "Sign in as an admin to archive"
         }
-        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-[color,transform] duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
       >
         {isArchived ? (
           <ArchiveRestore className="h-[15px] w-[15px]" />

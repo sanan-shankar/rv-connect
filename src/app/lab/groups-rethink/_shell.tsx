@@ -156,10 +156,10 @@ function Switcher({ current }: { current: ConceptSlug | "index" }) {
         <Link
           href="/lab/groups-rethink"
           className={[
-            "rounded-full px-3 py-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+            "state-layer rounded-full px-3 py-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
             current === "index"
               ? "bg-[#235C49] text-white"
-              : "text-muted-foreground hover:bg-mist hover:text-foreground",
+              : "text-muted-foreground hover:text-foreground",
           ].join(" ")}
         >
           Overview
@@ -170,10 +170,10 @@ function Switcher({ current }: { current: ConceptSlug | "index" }) {
             key={c.slug}
             href={`/lab/groups-rethink/${c.slug}`}
             className={[
-              "rounded-full px-3 py-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+              "state-layer rounded-full px-3 py-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
               current === c.slug
                 ? "bg-[#235C49] text-white"
-                : "text-muted-foreground hover:bg-mist hover:text-foreground",
+                : "text-muted-foreground hover:text-foreground",
             ].join(" ")}
           >
             <span className="font-bold">{c.n}</span>
@@ -269,8 +269,10 @@ export function CTA({
     primary:
       "bg-[#235C49] text-white hover:bg-[#1E5040] active:scale-[0.98] shadow-[0_1px_2px_rgba(30,28,22,0.12)]",
     outline:
-      "border border-border bg-card text-foreground hover:bg-mist active:scale-[0.98]",
-    ghost: "text-[#235C49] hover:bg-mist active:scale-[0.98]",
+      "state-layer border border-border bg-card text-foreground active:scale-[0.98]",
+    // The two quiet variants take the state layer; primary keeps its own darker
+    // canopy, which is a colour change the neutral tint would only muddy.
+    ghost: "state-layer text-[#235C49] active:scale-[0.98]",
   };
   return (
     <span

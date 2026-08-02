@@ -396,7 +396,7 @@ function FolderTab({
         "relative shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11px] font-bold uppercase tracking-[0.09em] outline-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-inset sm:px-6 sm:text-[13px]",
         active
           ? "z-10 -mb-px bg-card text-foreground"
-          : "z-0 bg-mist text-muted-foreground hover:bg-paper hover:text-foreground"
+          : "state-layer z-0 bg-mist text-muted-foreground hover:text-foreground"
       )}
     >
       {label}
@@ -674,7 +674,7 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
               <button
                 type="button"
                 onClick={() => setTab("letters")}
-                className="w-full rounded-[var(--radius-md)] border border-border bg-mist/60 p-3.5 text-left transition-colors duration-150 hover:border-cinnamon/45 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                className="state-layer w-full rounded-[var(--radius-md)] border border-border bg-mist/60 p-3.5 text-left transition-[border-color,transform] duration-150 hover:border-cinnamon/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
               >
                 <span className="block text-[15px] font-semibold leading-snug text-foreground">
                   {latestLetter.title}

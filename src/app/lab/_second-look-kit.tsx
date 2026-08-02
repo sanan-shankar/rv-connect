@@ -160,7 +160,7 @@ export function LabShell({
         <div className="mx-auto flex max-w-[1240px] items-baseline gap-4 px-6 py-3.5 sm:px-9">
           <Link
             href="/lab"
-            className="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+            className="state-layer shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 active:scale-[0.97]"
           >
             Lab
           </Link>
@@ -182,10 +182,13 @@ export function LabShell({
                   key={s.id}
                   href={`#${s.id}`}
                   className={cn(
-                    "shrink-0 rounded-full px-3 py-1 text-[13px] font-semibold transition-[background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+                    // state-layer on the base, not on the idle branch: it tints
+                    // whatever is under it, so the canopy chip gets the same
+                    // hover weight as the bare one. Selection stays canopy.
+                    "state-layer shrink-0 rounded-full px-3 py-1 text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
                     active === s.id
                       ? "bg-[#235C49] text-white"
-                      : "text-muted-foreground hover:bg-mist hover:text-foreground",
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <span className="mr-1.5 tabular-nums opacity-55">
@@ -554,10 +557,12 @@ export function Switches<K extends string>({
             aria-pressed={on}
             title={it.hint}
             className={cn(
-              "rounded-full border px-4 py-2 text-[14px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+              // The pressed leaf wash is the state, state-layer is the hover on
+              // top of it: a toggle needs both readable at once.
+              "state-layer rounded-full border px-4 py-2 text-[14px] font-semibold transition-[border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
               on
                 ? "border-leaf/40 bg-leaf/14 text-leaf"
-                : "border-border bg-card text-muted-foreground hover:bg-mist hover:text-foreground",
+                : "border-border bg-card text-muted-foreground hover:text-foreground",
             )}
           >
             {it.label}

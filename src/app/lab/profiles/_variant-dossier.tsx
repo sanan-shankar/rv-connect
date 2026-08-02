@@ -221,10 +221,12 @@ function ContactRow({ link }: { link: MockLink }) {
       href={link.href}
       target="_blank"
       rel="noopener noreferrer"
-      whileHover={{ scale: 1.02, y: -1 }}
+      // No whileHover: a hover never moves a control. The press stays, and the
+      // state layer plus the cinnamon edge is what the pointer gets. hover:bg-mist
+      // was invisible anyway, one 30% step off the mist/70 it rested on.
       whileTap={{ scale: 0.97 }}
       transition={SPRINGS.snappy}
-      className="inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground hover:border-cinnamon/40 hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="state-layer inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground hover:border-cinnamon/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       <Icon className="h-[15px] w-[15px] text-cinnamon" aria-hidden />
       {link.label}
@@ -338,8 +340,10 @@ function FolderTab({
       aria-selected={active}
       onClick={onSelect}
       initial={false}
+      // An idle tab rests 6px low, like a file behind the open one. It used to
+      // rise 4px of that on hover; a hover never moves a control, so the resting
+      // offset stays put and the state layer does the pointing.
       animate={{ y: active ? 0 : 6 }}
-      whileHover={{ y: active ? 0 : 2 }}
       whileTap={{ scale: 0.96 }}
       transition={SPRINGS.snappy}
       style={{ clipPath: TAB_CLIP }}
@@ -347,7 +351,7 @@ function FolderTab({
         "relative min-w-[72px] shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11.5px] font-bold uppercase tracking-[0.08em] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:min-w-[92px] sm:px-5 sm:text-[13px]",
         active
           ? "z-10 -mb-px bg-card text-foreground"
-          : "z-0 bg-mist text-muted-foreground hover:text-foreground"
+          : "state-layer z-0 bg-mist text-muted-foreground hover:text-foreground"
       )}
     >
       {label}

@@ -145,7 +145,9 @@ function ObservationCard({
   return (
     <article
       className={cn(
-        "card-elevated rounded-lg border border-border bg-card py-5 transition-transform duration-200 ease-out hover:-translate-y-0.5",
+        // The record used to lift on hover; a hover never moves anything, so
+        // the state layer tint carries the pointer feedback instead.
+        "state-layer card-elevated rounded-lg border border-border bg-card py-5",
         RECORD_X
       )}
     >
@@ -380,7 +382,7 @@ export default function FieldGuideVariant({ profile }: ProfileVariantProps) {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-transform duration-150 ease-out hover:-translate-y-px hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-0 active:scale-[0.97]"
+                    className="state-layer inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-[color,transform] duration-150 ease-out hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
                   >
                     {link.kind === "instagram" ? (
                       <Instagram className="h-3.5 w-3.5" />

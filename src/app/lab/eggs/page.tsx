@@ -337,8 +337,8 @@ const CSS = `
 .dle-logobtn { display:inline-flex; align-items:center; justify-content:center; padding:14px 18px; border-radius:16px;
   border:1px solid var(--border); background:var(--surface-2); color:var(--primary); cursor:pointer;
   transition:transform .16s var(--ease-pop), border-color .15s ease; }
-.dle-logobtn:hover { transform:translateY(-1px); border-color:color-mix(in srgb, var(--primary) 32%, var(--border)); }
-.dle-logobtn:active { transform:translateY(0) scale(.97); }
+.dle-logobtn:hover { border-color:color-mix(in srgb, var(--primary) 32%, var(--border)); background-image:linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent), color-mix(in srgb, var(--ink) 6%, transparent)); }
+.dle-logobtn:active { transform:scale(.97); }
 .dle-logobtn:focus-visible { outline:2px solid color-mix(in srgb, var(--primary) 55%, transparent); outline-offset:3px; }
 .dle-factcard { position:absolute; top:calc(100% + 12px); left:50%; transform:translateX(-50%); width:min(280px, 84vw); z-index:6;
   background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:13px 15px 14px;
