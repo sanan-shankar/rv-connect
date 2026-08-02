@@ -331,7 +331,7 @@ export default function SpineMarkerRoom() {
         <div className="mx-auto max-w-[1400px] px-6 py-5 sm:px-9">
           <Link
             href="/lab"
-            className="inline-flex shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+            className="state-layer inline-flex shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 active:scale-[0.97]"
           >
             Lab
           </Link>

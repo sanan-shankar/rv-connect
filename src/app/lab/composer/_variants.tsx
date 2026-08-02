@@ -179,7 +179,8 @@ function PostButton({ empty, onClick, label = "Post" }: { empty: boolean; onClic
       onClick={onClick}
       disabled={empty}
       animate={{ scale: empty ? 0.97 : 1, opacity: empty ? 0.55 : 1 }}
-      whileHover={empty ? undefined : { scale: 1.03 }}
+      // No whileHover: hover is the brightness step in `.cx-post:hover`, never
+      // a size change. The tap sink stays.
       whileTap={empty ? undefined : { scale: 0.94 }}
       transition={SPRINGS.snappy}
     >
@@ -874,6 +875,10 @@ export const COMPOSER_CSS = `
 .cx-cancel:hover { color:var(--ink); background:var(--surface-2); }
 .cx-post { border:0; cursor:pointer; font:inherit; font-size:14px; font-weight:700; color:var(--primary-ink); background:var(--primary);
   height:40px; padding:0 22px; border-radius:999px; box-shadow:0 6px 16px -11px var(--primary), inset 0 1px 0 color-mix(in srgb,#fff 22%, transparent); }
+/* 1.14 is the shared Button's hover step: it lands about 4.9 dL* off the fill,
+   the same visible weight as the state layer on a neutral surface. */
+.cx-post:not(:disabled):hover { filter:brightness(1.14); }
+.cx-post:not(:disabled):active { filter:none; }
 .cx-post:disabled { cursor:default; box-shadow:none; }
 .cx-post:not(:disabled):focus-visible { outline:2px solid color-mix(in srgb, var(--primary) 60%, transparent); outline-offset:2px; }
 

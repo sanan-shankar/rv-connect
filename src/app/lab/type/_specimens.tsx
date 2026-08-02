@@ -311,7 +311,7 @@ export function OpticalDemo() {
               "rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold tabular-nums transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
               k === s.k
                 ? "border-transparent bg-[#235C49] text-white hover:bg-[#1E5040]"
-                : "border-border bg-mist text-muted-foreground hover:border-leaf/30 hover:text-foreground",
+                : "state-layer border-border bg-mist text-muted-foreground hover:border-leaf/30 hover:text-foreground",
             )}
           >
             {s.label}

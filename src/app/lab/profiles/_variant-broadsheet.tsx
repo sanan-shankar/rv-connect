@@ -235,7 +235,7 @@ function ChirpBird({ profile }: { profile: MockProfile }) {
       type="button"
       onClick={() => setChirp((c) => c + 1)}
       aria-label={`${profile.name}'s bird, a ${profile.speciesName}. Tap for a chirp.`}
-      className="relative shrink-0 rounded-full p-1 outline-none transition-[background-color,transform] duration-150 hover:bg-mist focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
+      className="state-layer relative shrink-0 rounded-full p-1 outline-none transition-transform duration-150 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
     >
       <motion.span
         key={chirp}
@@ -305,7 +305,7 @@ function LeadPhoto({ profile }: { profile: MockProfile }) {
 
         <button
           type="button"
-          className="glass absolute right-[var(--space-s)] top-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12.5px] font-semibold text-foreground outline-none transition-[background-color,color,transform] duration-150 hover:bg-card hover:text-cinnamon focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-[0.97]"
+          className="glass state-layer absolute right-[var(--space-s)] top-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12.5px] font-semibold text-foreground outline-none transition-[color,transform] duration-150 hover:text-cinnamon focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-[0.97]"
         >
           <Camera className="h-3.5 w-3.5 text-cinnamon" aria-hidden />
           Change photo
@@ -395,7 +395,7 @@ function FolderTab({
         "relative shrink-0 px-5 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11px] font-bold uppercase tracking-[0.09em] outline-none transition-colors duration-150 focus-visible:shadow-[inset_0_0_0_2px_var(--color-leaf)] sm:px-7 sm:text-[13px]",
         active
           ? "z-10 -mb-px bg-card text-foreground"
-          : "z-0 bg-mist text-muted-foreground hover:bg-mist hover:text-cinnamon"
+          : "state-layer z-0 bg-mist text-muted-foreground hover:text-cinnamon"
       )}
     >
       {label}

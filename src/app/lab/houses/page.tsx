@@ -96,8 +96,10 @@ export default function HousesRoom() {
         <p>
           <b>The panel body.</b> The 22 houses used to render as a two-column wall of bordered pills; they
           are now two quiet columns of plain text rows in the canonical order, flowing down the first
-          column then the second. No idle border, no idle fill -- hover lifts, and a picked house reads
-          canopy with a small leading check. The trigger shows the answer as plain text
+          column then the second. No idle border, no idle fill: the row under the pointer takes the shared
+          state layer, a translucent ink tint that reads the same on this white panel as it does on a card,
+          where the old opaque hover fill all but vanished on white. A picked house still reads
+          canopy with a small leading check, because selection is not hover. The trigger shows the answer as plain text
           (&quot;Alamanda · Jacaranda&quot;) instead of nested pills, so a two-house year never wraps the
           row. Touch targets stay 44px minimum throughout, up from 40.
         </p>

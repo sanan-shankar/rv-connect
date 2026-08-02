@@ -121,7 +121,10 @@ export default function GroupsRethinkIndex() {
             href={`/lab/groups-rethink/${c.slug}`}
             className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
           >
-            <Card className="h-full p-5 transition-transform duration-200 group-hover:-translate-y-0.5">
+            {/* The card used to lift 2px on hover. A hover never moves a
+                control, so the state layer's tint takes its place; the arrow
+                nudge stays, since the frame around it holds still. */}
+            <Card className="state-layer h-full p-5">
               <div className="flex items-center gap-2">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-[#235C49] font-heading text-[15px] font-bold text-white">
                   {c.n}

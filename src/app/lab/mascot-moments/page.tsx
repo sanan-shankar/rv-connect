@@ -676,8 +676,10 @@ const MM_CSS = `
 .mm-lablink { display:inline-flex; align-items:center; gap:7px; margin-top:18px; font-size:12.5px; font-weight:700; color:var(--primary); text-decoration:none;
   border-radius:999px; padding:8px 15px; border:1px solid color-mix(in srgb, var(--primary) 30%, var(--border)); background:color-mix(in srgb, var(--primary) 8%, var(--surface));
   transition:transform .15s var(--ease-pop); }
-.mm-lablink:hover { transform:translateY(-1px); }
-.mm-lablink:active { transform:translateY(0) scale(.98); }
+/* Hover is a colour change, never a lift (owner rule). The tint is the state
+   layer's, painted as a background image so the leaf wash underneath survives. */
+.mm-lablink:hover { background-image:linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent), color-mix(in srgb, var(--ink) 6%, transparent)); }
+.mm-lablink:active { transform:scale(.98); background-image:linear-gradient(color-mix(in srgb, var(--ink) 11%, transparent), color-mix(in srgb, var(--ink) 11%, transparent)); }
 .mm-lablink:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 
 /* grid of cards */
@@ -747,7 +749,7 @@ const MM_CSS = `
 .mm-replay { position:absolute; bottom:10px; right:10px; z-index:4; font:inherit; font-size:11.5px; font-weight:700; color:var(--ink-soft);
   background:color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter:blur(5px); border:1px solid var(--border); border-radius:999px; padding:5px 12px; cursor:pointer;
   display:inline-flex; align-items:center; gap:5px; transition:transform .15s var(--ease-pop); }
-.mm-replay:hover { transform:translateY(-1px); color:var(--ink); }
+.mm-replay:hover { color:var(--ink); background-image:linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent), color-mix(in srgb, var(--ink) 6%, transparent)); }
 .mm-replay:active { transform:scale(.95); }
 .mm-replay:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 `;

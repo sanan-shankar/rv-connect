@@ -103,12 +103,14 @@ export function SpringPress({
 } & MotionProps) {
   const Comp = (motion as unknown as Record<string, typeof motion.button>)[as] ?? motion.button;
   return (
-    // Press is now intentional, not a hint: a clear sink on tap plus a small lift on hover so
-    // every clickable telegraphs that it is alive. Transform-only, snappy spring (ages well).
+    // Press is intentional, not a hint: a clear sink on tap. There is no
+    // whileHover any more, matching the shipped SpringPress in
+    // src/components/common/motion.tsx: hover never moves a control, it changes
+    // colour. `dl-press` (BASE_CSS) is that colour change, the state layer's
+    // tint written in plain CSS because these rooms are not styled in Tailwind.
     <Comp
-      className={className}
+      className={`dl-press${className ? ` ${className}` : ""}`}
       onClick={onClick}
-      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.93 }}
       transition={SPRINGS.snappy}
       {...rest}
@@ -351,6 +353,20 @@ export const BASE_CSS = `
 .dl-stagger > *:nth-child(8){ animation-delay:calc(var(--sgap,.05s)*7); }
 @keyframes dlrise { from { opacity:0; transform:translateY(var(--rise,10px)); } to { opacity:1; transform:none; } }
 .delight.reduce .dl-fadein, .delight.reduce .dl-stagger > * { animation:none !important; }
+
+/* Every SpringPress in these rooms carries dl-press. It is the app's state-layer
+   utility written in plain CSS, because these rooms style with CSS rather than
+   Tailwind: an ink tint at 6% on hover and 11% on press, painted as a background
+   IMAGE so it composites over whatever fill the control already has instead of
+   replacing it. It follows --ink, which the .delight.dark toggle flips, so the
+   tint stays readable on both themes. It replaced a hover scale, per the rule
+   that a hover changes colour and never moves the control.
+   Last in the sheet, and carrying a .delight-scoped twin, because the button
+   rules above set the background SHORTHAND, which resets background-image:
+   an equal-specificity rule earlier in the file would lose to every one of them. */
+.dl-press:hover, .delight .dl-press:hover { background-image:linear-gradient(color-mix(in srgb, var(--ink,#22271F) 6%, transparent), color-mix(in srgb, var(--ink,#22271F) 6%, transparent)); }
+.dl-press:active, .delight .dl-press:active { background-image:linear-gradient(color-mix(in srgb, var(--ink,#22271F) 11%, transparent), color-mix(in srgb, var(--ink,#22271F) 11%, transparent)); }
+.dl-press:disabled, .delight .dl-press:disabled { background-image:none; }
 
 @media (max-width:960px){ .dl-grid{ grid-template-columns:repeat(2,1fr);} .dl-span-3,.dl-span-2{ grid-column:span 2;} }
 @media (max-width:640px){ .dl-grid{ grid-template-columns:1fr;} .dl-span-3,.dl-span-2{ grid-column:span 1;} }

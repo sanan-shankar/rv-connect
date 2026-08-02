@@ -86,11 +86,16 @@ export function CopyEditorClient({
   const navButtonClass = (active: boolean) =>
     cn(
       "rounded-full px-3.5 py-1.5 text-left text-sm transition-transform duration-150 outline-none",
-      "hover:-translate-y-px active:translate-y-0 active:scale-[0.98]",
+      // Hover used to lift the pill 1px; a hover never moves a control, so the
+      // state layer's tint IS the hover now. It sits on the shared half of the
+      // class because it composites over whatever fill is beneath it, which
+      // means the selected canopy pill and the bare one get the same weight
+      // from the same class. The press sink stays: that is feedback for a tap.
+      "state-layer active:scale-[0.98]",
       "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1",
       active
         ? "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)]"
-        : "text-foreground hover:bg-accent"
+        : "text-foreground"
     );
 
   return (
@@ -143,7 +148,11 @@ export function CopyEditorClient({
                   type="button"
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
-                  className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 hover:-translate-y-1/2 hover:scale-110 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                  // The hover was a 10% grow (plus a restated -translate-y-1/2 to
+                  // keep it centred). A hover never resizes a control, so it is a
+                  // state-layer tint plus the ink darkening now, and the only
+                  // transform left is the press sink.
+                  className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 state-layer hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
                 >
                   <X className="size-3.5" />
                 </button>

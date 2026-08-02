@@ -193,7 +193,7 @@ export default function EverythingRoom() {
                           type="button"
                           onClick={() => setOpen((o) => ({ ...o, [f.id]: !o[f.id] }))}
                           aria-expanded={isOpen}
-                          className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[13px] font-semibold text-muted-foreground transition-[background-color,color,transform] duration-150 hover:bg-mist hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+                          className="state-layer rounded-full border border-border bg-card px-2.5 py-0.5 text-[13px] font-semibold text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
                         >
                           {isOpen ? "Hide evidence" : "Evidence"}
                         </button>
@@ -256,10 +256,12 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3 py-1 text-[14px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+        // state-layer is on the base so the canopy selected chip, the severity
+        // tints passed in as `tone` and the plain chip all hover alike.
+        "state-layer rounded-full border px-3 py-1 text-[14px] font-semibold transition-[border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
         active
           ? "border-[#235C49] bg-[#235C49] text-white"
-          : (tone ?? "border-border bg-card text-muted-foreground hover:bg-mist hover:text-foreground"),
+          : (tone ?? "border-border bg-card text-muted-foreground hover:text-foreground"),
       )}
     >
       {children}

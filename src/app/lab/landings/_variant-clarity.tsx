@@ -124,11 +124,15 @@ function PerchedBird() {
   );
 }
 
+// Both CTAs used to lift and grow on hover. Hover never moves a control, so a
+// filled CTA brightens (1.14, the shared Button's step: it matches the state
+// layer's weight so a CTA and a menu row hover by the same amount) and the
+// quiet one takes the state layer plus its leaf edge. The press sink stays.
 const PRIMARY_CTA =
-  "inline-flex items-center justify-center rounded-full bg-canopy px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_-14px_var(--color-canopy)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.015] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-0 active:scale-[0.97]";
+  "inline-flex items-center justify-center rounded-full bg-canopy px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_-14px_var(--color-canopy)] transition-[filter,transform] duration-200 ease-out hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.97]";
 
 const SECONDARY_CTA =
-  "inline-flex items-center justify-center rounded-full border border-border bg-card px-6 py-3 text-[15px] font-semibold text-foreground transition-[transform,border-color,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-leaf/45 hover:bg-leaf/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-0 active:scale-[0.97]";
+  "state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-6 py-3 text-[15px] font-semibold text-foreground transition-[transform,border-color] duration-200 ease-out hover:border-leaf/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]";
 
 const ACCENT_TEXT: Record<Accent, string> = {
   leaf: "text-leaf",
@@ -316,7 +320,7 @@ function ScrollNav() {
           </Link>
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-4.5 py-2 text-[13.5px] font-semibold text-white shadow-sm transition-transform duration-150 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-4.5 py-2 text-[13.5px] font-semibold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.97]"
           >
             {NAV.join}
           </Link>
@@ -679,7 +683,7 @@ function ClosingCta() {
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-white px-7 py-3.5 text-[15px] font-semibold text-canopy shadow-md transition-transform duration-200 hover:-translate-y-0.5 hover:scale-[1.015] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canopy active:translate-y-0 active:scale-[0.98]"
+            className="state-layer inline-flex items-center justify-center rounded-full bg-white px-7 py-3.5 text-[15px] font-semibold text-canopy shadow-md transition-transform duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canopy active:scale-[0.98]"
           >
             {FOOTER.ctaPrimary}
           </Link>
