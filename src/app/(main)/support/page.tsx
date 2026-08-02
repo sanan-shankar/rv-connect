@@ -44,23 +44,30 @@ export default function SupportPage() {
             50% { transform: rotate(2deg); }
           }
         `}</style>
-        <span
-          className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] bg-leaf/10 text-leaf"
-          aria-hidden
-        >
+        {/* Motif and title share one line (owner, 2026-08-02: "move that
+            support to the right of the icon, the same height where the icon is
+            in that line"). items-center rather than baseline-align: the motif
+            is a 48px tile, not a glyph, so it has no baseline to share, and
+            optical centring is what actually reads as "the same line". */}
+        <div className="flex items-center gap-[var(--space-s)]">
           <span
-            className="support-motif inline-flex"
-            style={{ animation: "support-sway 6s ease-in-out infinite", transformOrigin: "50% 80%" }}
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-leaf/10 text-leaf"
+            aria-hidden
           >
-            <Tree size={28} weight="duotone" />
+            <span
+              className="support-motif inline-flex"
+              style={{ animation: "support-sway 6s ease-in-out infinite", transformOrigin: "50% 80%" }}
+            >
+              <Tree size={28} weight="duotone" />
+            </span>
           </span>
-        </span>
-        {/* Same weight and size as every other page title (PageHeader's h1);
-            this one keeps its own element because it sits inside the hero,
-            under the motif, rather than at the top of the page. */}
-        <h1 className="mt-[var(--space-m)] font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
-          Keep the network in the valley alive.
-        </h1>
+          {/* Same weight and size as every other page title (PageHeader's h1);
+              this one keeps its own element because it sits beside the motif
+              rather than in the shared header block. */}
+          <h1 className="font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
+            Support
+          </h1>
+        </div>
         <p className="mt-[var(--space-s)] text-lg leading-relaxed text-muted-foreground">
           Rishi Valley runs on a small monthly bill. If it has helped you find an
           old friend or a lost batchmate, you can help keep it going. The site
@@ -119,7 +126,7 @@ export default function SupportPage() {
           Choose any species from the{" "}
           <Link
             href="/birds"
-            className="rounded-[2px] font-medium text-canopy underline decoration-canopy/40 underline-offset-2 transition-opacity duration-150 ease-out hover:decoration-canopy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            className="rounded-[2px] font-medium text-canopy underline decoration-canopy/40 underline-offset-2 transition-opacity duration-150 ease-out hover:decoration-canopy active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             full collection
           </Link>{" "}
