@@ -104,7 +104,7 @@ function DropdownMenuItem({
         // made it really stretched". Reverted to the natural row. If a touch
         // target ever needs to grow, grow the PADDING so the panel stays
         // proportional to its contents.
-        "group/dropdown-menu-item relative flex cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "group/dropdown-menu-item relative flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         // The highlight. A destructive row keeps its own red wash (a semantic
         // colour, deliberately not the neutral state layer); everything else
         // gets `state-layer`, which is the ONE hover treatment in the app.
@@ -146,7 +146,7 @@ function DropdownMenuSubTrigger({
         // data-popup-open, which is what keeps this trigger lit while its
         // submenu is showing, so the bg-accent pair that used to do that is
         // gone along with the focus: pair that never fired.
-        "state-layer flex cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-sm outline-hidden select-none data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "state-layer flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-sm outline-hidden select-none data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -198,7 +198,7 @@ function DropdownMenuCheckboxItem({
         // concentric with its panel (12px panel - 4px padding = 8.8px). At
         // rounded-md the row and the panel shared a radius and the highlight
         // read as cutting its own corner.
-        "state-layer relative flex cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "state-layer relative flex items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       checked={checked}
@@ -246,7 +246,7 @@ function DropdownMenuRadioItem({
         // concentric with its panel (12px panel - 4px padding = 8.8px). At
         // rounded-md the row and the panel shared a radius and the highlight
         // read as cutting its own corner.
-        "state-layer relative flex cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "state-layer relative flex items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
