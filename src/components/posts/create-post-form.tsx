@@ -623,8 +623,11 @@ export function CreatePostForm({
   // One shared shelf for the two icon controls, so the row reads as one hand
   // made it: 36px target (comfortable on a phone), 18px glyph, pill, and the
   // full hover / focus-visible / active set (active comes from SpringPress).
+  // These are transparent buttons on the composer's bg-card tile, which is
+  // exactly the case `hover:bg-accent` failed at (+2.06 dL* on paper, at the
+  // JND); state-layer tints whatever is underneath instead.
   const iconControl =
-    "inline-grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50";
+    "state-layer inline-grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50";
 
   // The full editor surface. Shared by the collapsible feed composer and the
   // always-open letter composer, so both read as one hand made them.
@@ -777,7 +780,14 @@ export function CreatePostForm({
                 <button
                   type="button"
                   onClick={() => removeImage(i)}
-                  className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background"
+                  aria-label="Remove image"
+                  // This was the one clickable left in the app with no hover,
+                  // no focus ring and no press. state-layer would be wrong
+                  // here: the button is already an ink-filled disc, so a
+                  // further ink tint barely moves it. It brightens instead,
+                  // which is the same move the canopy CTA makes for the same
+                  // reason (a filled brand surface lifts, it does not deepen).
+                  className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background transition-[filter,transform] duration-150 hover:brightness-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-95"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -840,7 +850,14 @@ export function CreatePostForm({
             {showMore && (
               <div className="relative">
                 <SpringPress
-                  className={cn(iconControl, more && "bg-accent text-foreground")}
+                  // Held-open state is bg-muted, matching what Button settled
+                  // on for the identical contract (aria-expanded:bg-muted).
+                  // It was bg-accent, which is +2.06 dL* on this card, i.e.
+                  // the same near-invisible fill this file rejects twice in
+                  // comments above; worse, with state-layer on top the control
+                  // then went DARKER than the card on hover, so the open state
+                  // crossed through the surface it sits on.
+                  className={cn(iconControl, more && "bg-muted text-foreground")}
                   onClick={() => setMore((m) => !m)}
                   {...({
                     type: "button",
@@ -884,7 +901,7 @@ export function CreatePostForm({
                             setPollOptions(pollOptions ? null : ["", ""]);
                             setMore(false);
                           }}
-                          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
+                          className={`state-layer flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
                             pollOptions ? "text-leaf" : "text-foreground"
                           }`}
                         >
@@ -901,7 +918,7 @@ export function CreatePostForm({
                             if (!isLetter) setPollOptions(null);
                             setMore(false);
                           }}
-                          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
+                          className={`state-layer flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
                             isLetter ? "text-leaf" : "text-foreground"
                           }`}
                         >
@@ -921,10 +938,14 @@ export function CreatePostForm({
                               aria-checked={!audienceCity}
                               onClick={() => setAudienceCity(null)}
                               className={cn(
-                                "rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
+                                // Selected stays a solid canopy fill (DESIGN-SYSTEM
+                                // rule 4: selection is the one green state, and it is
+                                // not hover). Unselected is a neutral chip, so its
+                                // hover is the shared state layer.
+                                "state-layer rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
                                 !audienceCity
                                   ? "bg-canopy text-white"
-                                  : "bg-muted text-muted-foreground hover:bg-accent"
+                                  : "bg-muted text-muted-foreground"
                               )}
                             >
                               Everyone
@@ -937,10 +958,10 @@ export function CreatePostForm({
                                 aria-checked={audienceCity === city}
                                 onClick={() => setAudienceCity(city)}
                                 className={cn(
-                                  "rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
+                                  "state-layer rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
                                   audienceCity === city
                                     ? "bg-canopy text-white"
-                                    : "bg-muted text-muted-foreground hover:bg-accent"
+                                    : "bg-muted text-muted-foreground"
                                 )}
                               >
                                 {city}
@@ -1075,7 +1096,20 @@ export function CreatePostForm({
               cross-fades in underneath the editor as the tile shrinks: one clock,
               no children popping into place. `ring-inset` keeps the focus ring
               fully inside the pill's bounds so its rounded caps are never cut off
-              by this wrapper's overflow-hidden clipping during expand/collapse. */}
+              by this wrapper's overflow-hidden clipping during expand/collapse.
+
+              Contrast, both states (the owner: "between the pill inside the
+              composer and the composer tile there's no contrast, and this one in
+              particular, when you hover over it, the contrast is even less"):
+              the pill sits on the composer's bg-card #F5F2EA tile. --secondary is
+              now #EAE7DC = -3.92 dL* against that card, so it reads at rest;
+              it used to be #F0EDE4 = -1.77 dL*, under the ~2 dL* JND. Hover was
+              `bg-accent` #FAF8F2 = +2.06 dL*, which CROSSED THROUGH the card
+              colour on the way up, so mid-hover the pill briefly matched its own
+              container. `state-layer` instead composites a translucent ink tint
+              over --secondary, so hover always darkens from wherever the pill
+              rests and can never invert. rounded-full stays: the composer's
+              inline post box is the app's one sanctioned pill-shaped input. */}
           <motion.button
             ref={tourAnchorRef}
             type="button"
@@ -1086,7 +1120,7 @@ export function CreatePostForm({
             animate={{ opacity: expanded ? 0 : 1 }}
             transition={SPRINGS.gentle}
             style={{ pointerEvents: expanded ? "none" : undefined }}
-            className="flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 active:scale-[0.99]"
+            className="state-layer flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 active:scale-[0.99]"
           >
             <span className="truncate">{collapsedPlaceholder}</span>
           </motion.button>

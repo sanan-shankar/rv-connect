@@ -233,7 +233,11 @@ export function CommentsSection({
               type="button"
               onClick={() => setReplyTo(null)}
               aria-label="Cancel reply"
-              className="-mr-0.5 ml-0.5 inline-grid size-4 place-items-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+              /* state-layer, not the hand-rolled foreground/10 this used to
+                 carry: same idea, one class, and it brings a press tint with it.
+                 The size-4 target is small, so hover:text-foreground stays as the
+                 louder half of the signal. */
+              className="state-layer -mr-0.5 ml-0.5 inline-grid size-4 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
             >
               <X className="h-3 w-3" />
             </button>
@@ -263,7 +267,12 @@ export function CommentsSection({
             }}
           />
           <SpringPress
-            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/60 disabled:opacity-40 disabled:shadow-none"
+            // hover:brightness-[1.14] is the shared canopy-CTA hover (see
+            // CANOPY_FILL in ui/button.tsx). This button is hand-rolled rather
+            // than a <Button>, so it did not inherit the fix and was a primary
+            // CTA with no hover at all: SpringPress only contributes a tap
+            // scale. Kept in lockstep with the primitive's value on purpose.
+            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/60 disabled:opacity-40 disabled:shadow-none"
             {...({
               type: "submit",
               "aria-label": "Post comment",

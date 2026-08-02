@@ -311,9 +311,17 @@ function HouseOptions({
                   className={cn(
                     // min-h-11 holds the owner's 44px touch floor; radius-sm
                     // (8.8px) is one rung inside the 12px panel per the radius
-                    // ladder. No idle border or fill - hover is the accent
-                    // lift, selection is the check + canopy text below.
-                    "flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-left text-[13.5px] transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]",
+                    // ladder. No idle border or fill - hover is the shared
+                    // state layer, selection is the check + canopy text below.
+                    //
+                    // state-layer, not hover:bg-accent: these 22 rows render on
+                    // a Float-white popover on desktop and on the sheet's own
+                    // surface on mobile. --accent is LIGHTER than white, so on
+                    // the desktop panel the old hover inverted (-2.42 dL*) and
+                    // the list read as having no hover at all. transition-colors
+                    // stays for the text's foreground -> canopy swap on pick;
+                    // the layer itself is a background-image and lands at once.
+                    "state-layer flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-left text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]",
                     selected ? "font-semibold text-canopy" : "font-medium text-foreground"
                   )}
                 >
@@ -369,7 +377,13 @@ function HouseOptions({
                   type="button"
                   aria-label={`Remove ${name}`}
                   onClick={() => onRemoveCustom(name)}
-                  className="rounded-full text-cinnamon/70 outline-none transition-colors hover:text-cinnamon focus-visible:ring-2 focus-visible:ring-ring/50"
+                  // Hover is the glyph's own colour (cinnamon/70 -> cinnamon),
+                  // not a state layer: this x is a bare 12px mark with no
+                  // padding, so a tint behind it would draw a box tighter than
+                  // the icon it sits under. active:scale-90 is the press the
+                  // rest of the kit's x buttons use (see FacetClearButton), and
+                  // transform joins the transition so it has a curve to run on.
+                  className="rounded-full text-cinnamon/70 outline-none transition-[color,transform] duration-150 hover:text-cinnamon focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
                 >
                   <X className="h-3 w-3" />
                 </button>

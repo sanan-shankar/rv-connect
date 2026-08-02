@@ -40,7 +40,10 @@ export function LetterDesk({
       <div className="mb-5 flex items-center justify-between gap-3">
         <Link
           href="/letters"
-          className="inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          /* Bare text above the sheet, so no state layer (a tint behind it would
+             invent a control where there is only a label). active:opacity-70 is
+             the press it was missing. */
+          className="inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-opacity duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
         >
           <ArrowLeft className="h-4 w-4" />
           All letters

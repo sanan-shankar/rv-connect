@@ -11,7 +11,12 @@ export function PersonName({
   return (
     <Link
       href={`/profile/${user.id}`}
-      className={`font-semibold text-foreground hover:underline focus-visible:outline-none focus-visible:underline ${className}`}
+      // No state layer: this is a name set INSIDE a line of prose, and a tint
+      // box behind it would break the line box every other name in the feed
+      // sits in. The rule is the hover. active:opacity-70 is the press it was
+      // missing, matched to the avatar it stands beside (identity-row.tsx), so
+      // tapping either half of an identity row feels like one target.
+      className={`font-semibold text-foreground transition-opacity duration-150 hover:underline focus-visible:outline-none focus-visible:underline active:opacity-70 ${className}`}
     >
       {user.name}
     </Link>

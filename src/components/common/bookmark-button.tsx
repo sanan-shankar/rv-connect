@@ -62,7 +62,11 @@ export function BookmarkButton({
       aria-label={label ?? (saved ? "Remove bookmark" : "Save")}
       whileTap={{ scale: 0.93 }}
       transition={SPRINGS.snappy}
-      className={`flex items-center rounded-full px-2.5 py-1.5 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+      // state-layer, not hover:bg-accent: same reasoning as its sibling in
+      // love-button.tsx (--accent was +2.06 dL* on the card these three action
+      // buttons share, i.e. invisible). The layer is a background-image, so it
+      // sits under the ribbon's own cinnamon fill without disturbing it.
+      className={`state-layer flex items-center rounded-full px-2.5 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
         saved ? "text-cinnamon" : "hover:text-foreground"
       } ${className}`}
     >

@@ -14,7 +14,7 @@ import type { FacetOption } from "./types";
 
 /**
  * One row of the searchable panel. Selection is a canopy check, never a
- * fill: the `--accent` wash is the hover state (FACET_ITEM_CLASS), and the
+ * fill: the hover state is the shared state layer (FACET_ITEM_CLASS), and the
  * old selected wash reused the identical swatch, leaving hovered and
  * selected rows indistinguishable.
  */

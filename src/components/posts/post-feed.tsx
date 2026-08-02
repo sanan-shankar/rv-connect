@@ -200,7 +200,12 @@ export function PostFeed({
               type="button"
               onClick={() => setFiltersOpen((o) => !o)}
               aria-expanded={filtersOpen}
-              className={`flex h-10 shrink-0 items-center gap-2 rounded-full border border-border pl-3 pr-4 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] ${
+              /* state-layer sits on the base so the pill answers a cursor in
+                 EITHER state: it tints whatever fill is already there rather
+                 than replacing it, so the active-filter canopy wash survives its
+                 own hover. Idle, the only hover used to be a text-colour shift
+                 on a filled pill, which is not much of a target. */
+              className={`state-layer flex h-10 shrink-0 items-center gap-2 rounded-full border border-border pl-3 pr-4 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] ${
                 filtersOpen || sortBy !== "recent" || timeFilter !== "all"
                   ? "bg-canopy/10 text-canopy"
                   : "bg-card text-muted-foreground hover:text-foreground"
