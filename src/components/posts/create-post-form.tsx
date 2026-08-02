@@ -811,7 +811,20 @@ export function CreatePostForm({
             pull. The Post pill keeps its own corner: its FILL is the visual
             edge and already sits at the padding line, so it must not sink. */}
         <div className="flex items-center gap-2">
-          <div className="-mb-[9px] -ml-[9px] flex shrink-0 items-center gap-1 self-end">
+          {/* Vertically CENTRED against the buttons on the right, not pinned to
+              the bottom of the card (owner, 2026-08-02: the icons sat "with
+              this weirdly big gap and almost sitting on the bottom", and should
+              instead be "aligned vertically to the middle of the buttons, so
+              the middle of the icons would be the same as the middle of the
+              buttons"). The old `self-end -mb-[9px]` chased a different goal,
+              landing the glyph INK on the card's bottom padding line, which is
+              defensible in isolation but pulled the icons away from the row
+              they belong to and opened the gap.
+              The `-ml-[9px]` stays: that is the horizontal half of the same
+              optical inset ((36px box - 18px glyph) / 2), and it is what lines
+              the glyph ink up under the text box's left edge rather than the
+              icon button's invisible bounding box. */}
+          <div className="-ml-[9px] flex shrink-0 items-center gap-1">
             <input
               ref={fileInputRef}
               type="file"
