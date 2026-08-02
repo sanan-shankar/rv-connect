@@ -166,13 +166,24 @@ Vercel dashboard until the round-6 branch is deployed to production.
 Earlier feedback that was addressed, and in a few cases changed again by a later owner decision. Listed
 so a future session does not "fix" one of these back to a state the owner deliberately moved away from.
 
-- Background warmth is `#E7E1D3` (`globals.css:87`) by owner choice. Do not lower it to `#E9E6DD` or
-  `#EBE6D7`; those were earlier steps the owner moved past.
-- The valley tree overlay is `opacity-[0.11]` (`app-shell.tsx:31`) by owner choice. Do not drop it to
-  `0.08` or `0.09`; the owner chose the fuller tree.
+- Background warmth was `#E7E1D3` by owner choice, and that held until 2026-07-30. **The shipped
+  value is now `#E4E1D5`** (`--background` in `globals.css`, changed in `c286b67` with the colour
+  protocol): the owner cooled all four neutrals by 20-25% after finding iPhone True Tone had been
+  exaggerating the yellow. What still stands from the original note is the floor - do not lower the
+  warmth to `#E9E6DD` or `#EBE6D7`, which were earlier steps the owner moved past - plus a newer
+  guard: do not cool it again without an owner ask, and check any future "too warm" report on a
+  reference display (True Tone and Night Shift off) before acting on it.
+- The valley tree overlay was `opacity-[0.11]` by owner choice. **The shipped value is now
+  `opacity-[0.09]`** (`app-shell.tsx:40`, plus `dark:opacity-[0.04]`), lowered in the same 2026-07-30
+  commit `c286b67` alongside the cooler neutrals. The surviving instruction is that the owner picked
+  the fuller tree over the faint one, so `0.09` is now the floor: do not drop it to `0.08` or below.
 - The feed ships as separate tinted tiles (PostCard `variant="card"`), a later switch away from the
   ruled sheet. (CLAUDE.md still calls it a "ruled-sheet feed"; the shipped code is tiles.)
-- Theme transition speed is moot: the app is light only (`forcedTheme="light"`) and the toggle is gone.
+- Theme transition speed was moot while the app was light only, but that ended on 2026-08-02:
+  **dark mode shipped**, `forcedTheme="light"` is gone, `.dark` is a real block in `globals.css`, and
+  the theme is read per request from the `rv-theme` cookie. The toggle did not come back as a toggle;
+  dark is entered through the multi-step settings gauntlet. See `docs/spec/DESIGN-SYSTEM.md` section
+  2 for the shipped palette and the sidebar reversal.
 - The heart is always red `#E03A33` with `transition:none`. Never let its color transition again (that
   was the black-flash bug).
 - Every 2026-06-27 punchlist P0, P1, and P2 bug is fixed: own-profile crash, feed and rail avatar
