@@ -45,7 +45,7 @@ export function FilterSheet({
               // press is the scale, and transform is what the transition is
               // for -- nothing here changes colour. Kept identical to the
               // Clear all in active-filter-chips.tsx, its desktop twin.
-              className="shrink-0 rounded-full px-1 text-sm font-semibold text-canopy underline-offset-2 outline-none transition-transform hover:underline focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
+              className="shrink-0 rounded-full px-1 text-sm font-semibold text-canopy underline-offset-2 outline-none transition-transform hover:underline active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
             >
               Clear all
             </button>

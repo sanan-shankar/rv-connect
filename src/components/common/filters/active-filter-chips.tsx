@@ -37,7 +37,7 @@ export function ActiveFilterChips({
           // snaps rather than fades, so transform is all the transition needs.
           className={cn(
             PILL_SET,
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-1.5 text-[12.5px] font-medium transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-1.5 text-[12.5px] font-medium transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           )}
         >
           <span className="truncate">{chip.label}</span>
@@ -51,7 +51,7 @@ export function ActiveFilterChips({
           // Text action: the rule is its hover, not a state layer, so it reads
           // as an escape from the chip strip rather than a 13th chip in it.
           // Nothing changes colour, so the transition is the press only.
-          className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[12.5px] font-semibold text-canopy underline-offset-2 transition-transform hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
+          className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[12.5px] font-semibold text-canopy underline-offset-2 transition-transform hover:underline active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
         >
           Clear all
         </button>
