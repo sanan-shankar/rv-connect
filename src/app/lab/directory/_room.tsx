@@ -300,13 +300,20 @@ export default function DirectoryRoom({
           concept would look broken because of the page holding it, which is
           the one thing a comparison bench must never do. The 350 pair fits
           two-up with room to spare. */}
-      <div className="space-y-8">
-        <ChromeBench label="A · Nowrap, at 696" tone="option" width={696}>
-          <ChromeNowrap {...a} members={members} count={countFor(a.filters)} />
-        </ChromeBench>
-        <ChromeBench label="B · The sentence, at 696" tone="pick" width={696}>
-          <ChromeSentence {...b} members={members} count={countFor(b.filters)} />
-        </ChromeBench>
+      {/* A 696px specimen is wider than a 390px phone, so these two get their
+          own horizontal scroller. Without it the benches made the DOCUMENT
+          752px wide at 390 (696 + 32 of well padding + 24 of page gutter);
+          globals.css clips the page rather than letting it scroll sideways,
+          so the specimen was silently cut off instead of being reachable. */}
+      <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0">
+        <div className="space-y-8">
+          <ChromeBench label="A · Nowrap, at 696" tone="option" width={696}>
+            <ChromeNowrap {...a} members={members} count={countFor(a.filters)} />
+          </ChromeBench>
+          <ChromeBench label="B · The sentence, at 696" tone="pick" width={696}>
+            <ChromeSentence {...b} members={members} count={countFor(b.filters)} />
+          </ChromeBench>
+        </div>
       </div>
       <div className="mt-8 grid gap-8 sm:grid-cols-2">
         <ChromeBench label="A · Nowrap, at 350" tone="option" width={350}>
