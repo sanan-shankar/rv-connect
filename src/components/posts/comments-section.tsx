@@ -267,12 +267,10 @@ export function CommentsSection({
             }}
           />
           <SpringPress
-            // hover:brightness-[1.14] is the shared canopy-CTA hover (see
-            // CANOPY_FILL in ui/button.tsx). This button is hand-rolled rather
-            // than a <Button>, so it did not inherit the fix and was a primary
-            // CTA with no hover at all: SpringPress only contributes a tap
-            // scale. Kept in lockstep with the primitive's value on purpose.
-            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.14] disabled:opacity-40 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+            // Same 1.08 as CANOPY_FILL in ui/button.tsx. Hand-rolled rather than a
+            // <Button>, and it had no hover at all before: SpringPress only
+            // contributes a tap scale.
+            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.08] disabled:opacity-40 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
             {...({
               type: "submit",
               "aria-label": "Post comment",

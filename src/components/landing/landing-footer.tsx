@@ -32,13 +32,9 @@ export function LandingFooter() {
         <div className="mt-9 flex flex-wrap items-end justify-center gap-3">
           <Link
             href="/signup"
-            // 1.14 / 0.88, the shared canopy-CTA hover and press (CANOPY_FILL
-            // in ui/button.tsx). This is a hand-rolled Link rather than a
-            // <Button>, so it kept the old 1.08 that measures +2.80 dL*, close
-            // enough to the JND to be part of the "it does some places but not
-            // everywhere" the owner reported. Keep both numbers in lockstep
-            // with the primitive.
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-[filter,transform] duration-200 hover:brightness-[1.14] active:scale-[0.98] active:brightness-[0.88] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+            // Same 1.08 as CANOPY_FILL in ui/button.tsx. Hand-rolled Link, not a
+            // <Button>, so keep it in lockstep by hand.
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-[filter,transform] duration-200 hover:brightness-[1.08] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           >
             Join the community
           </Link>
