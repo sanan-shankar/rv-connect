@@ -17,10 +17,12 @@ import { cn } from "@/lib/utils"
 // Measured on canopy #235C49 (L* 34.98):
 //   brightness 1.08 -> #26634F, L* 37.78, dL* +2.80  (~the 2.0 JND; too close
 //                      to invisible, which is the "not everywhere" the owner hit)
-//   brightness 1.14 -> #286953, L* 39.85, dL* +4.87  (matches state-layer's
-//                      -4.19..-4.72 band, so a CTA and a menu row hover by the
-//                      same visible amount)
-// White-on-fill contrast only moves 7.78:1 -> 6.50:1, still clear of AA.
+//   brightness 1.14 -> #286953, L* 39.85, dL* +4.87  (matched the state-layer
+//                      band, but the owner still read it as "totally gone" and
+//                      asked for "maybe 10% more": a saturated dark green needs
+//                      a bigger step than a neutral to move the same amount)
+//   brightness 1.25 -> #2C735B, L* 43.58, dL* +8.59  <- shipped
+// White-on-fill contrast moves 7.78:1 -> 5.66:1 at 1.25, still clear of AA.
 //   brightness 0.88 -> L* 30.74, dL* -4.25 vs REST (9.10:1 white)
 // The press deliberately goes BELOW the resting fill, not merely below the
 // hover. It was `active:brightness-100`, which returned the button to its exact
@@ -29,7 +31,7 @@ import { cn } from "@/lib/utils"
 // every neutral control, so a filled CTA has to sink against rest too or the
 // two registers disagree about what a press means.
 const CANOPY_FILL =
-  "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.14] active:brightness-[0.88] focus-visible:border-canopy focus-visible:ring-canopy/50"
+  "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.25] active:brightness-[0.88] focus-visible:outline-canopy"
 
 const buttonVariants = cva(
   // OWNER RULE (2026-07-25): hover NEVER moves a control. No lift, no grow.
@@ -38,7 +40,33 @@ const buttonVariants = cva(
   // control drifting under an idle cursor. Do not reintroduce
   // `hover:-translate-y-*` or `hover:scale-*` on any button, pill, chip, tab,
   // or card anywhere in the app.
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none transition-[colors,box-shadow,transform] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  // `filter` is in the transition list because the canopy CTA hovers by
+  // brightness; without it the colour change SNAPPED instead of easing, which
+  // is part of why the hover read as absent rather than subtle. The list also
+  // spells out the real colour properties: it used to say `colors`, which is
+  // not a CSS property at all (that is Tailwind's utility name, not the thing
+  // it expands to), so background-color was never actually being transitioned
+  // here either.
+  // THE FOCUS RING (owner asked for this to be reasoned about, 2026-08-02:
+  // "we have a green outline, and then a slightly lighter slightly thicker
+  // outline. I don't know if this is the convention ... worth picking the best
+  // one for our brand").
+  //
+  // It is ONE line now, and that is not only taste. What shipped was
+  // `border-ring` (a solid green edge) PLUS `ring-2 ring-ring/50` (a lighter,
+  // thicker halo): the two outlines the owner saw. The half-alpha half also
+  // FAILED WCAG 2.2 SC 2.4.11, which wants a focus indicator at >= 3:1 against
+  // what it sits on. Measured, leaf at 50% composites to 1.78:1 on the page,
+  // 1.89:1 on a card, 1.97:1 on a white dialog. Solid leaf is 3.34 / 3.91 /
+  // 4.38:1 and passes everywhere.
+  //
+  // `outline`, not `ring`: outline-offset draws a TRANSPARENT gap, so one rule
+  // is correct on the page, on a card and on a white dialog. Tailwind's
+  // ring-offset paints an OPAQUE colour, so it can only ever match one surface
+  // and would show a wrong-coloured halo on the other two. The gap matters
+  // because a green ring drawn straight onto a canopy-filled button is 1.78:1
+  // against its own fill; the transparent 2px gap is what separates them.
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none transition-[color,background-color,border-color,box-shadow,transform,filter] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
