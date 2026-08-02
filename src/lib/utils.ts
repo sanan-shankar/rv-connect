@@ -61,21 +61,12 @@ export function formatBatch(
   return `Batch of '${String(batchYear).slice(-2)}`
 }
 
-/**
- * The compact credential form, "ISC 2023": used where the batch is a badge
- * about YOU (the sidebar footer chip), not a line under someone's name (that
- * register is `formatBatch`'s "Batch of '23"). Kept beside it so the two
- * batch formats can't drift apart unseen.
- */
-export function formatBatchChip(
-  batchType?: string | null,
-  batchYear?: number | null
-): string | undefined {
-  if (batchType && batchYear) return `${batchType} ${batchYear}`
-  if (batchYear) return `Batch of ${batchYear}`
-  if (batchType) return batchType
-  return undefined
-}
+/* `formatBatchChip` lived here until 2026-08-02. It was the one place in the app
+   that rendered the credential form "ISC 2023", and it existed to serve exactly
+   one call site, the sidebar account chip. The owner asked for that chip to read
+   "Batch of '23" like every other byline in the app, so the call site moved to
+   `batchLine()` below and the function went with it rather than staying as a
+   dead export offering a second, off-house batch format. */
 
 /** One display-date format for photo/letter attribution ("22 May 2026"). */
 export function formatDisplayDate(date: Date | string): string {

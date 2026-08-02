@@ -37,7 +37,7 @@ import {
 import { motion } from "motion/react";
 import { NAV_MARKER_SPRING } from "@/components/common/motion";
 import { IdentityRow } from "@/components/common/identity-row";
-import { formatBatchChip } from "@/lib/utils";
+import { batchLine } from "@/lib/utils";
 import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
 import { Wordmark } from "./peaks-mark";
@@ -54,6 +54,11 @@ export interface SidebarUser {
   birdOverride?: string | null;
   batchType?: string | null;
   batchYear?: number | null;
+  /* Read only by `batchLine()` in the account chip, which needs it to say
+     "Teacher" / "Former teacher" for the members who have no batch year.
+     Optional so a preview harness can hand over a partial user; when it is
+     missing a teacher falls back to the generic "Member". */
+  accountType?: string | null;
 }
 
 
@@ -72,6 +77,22 @@ const NAV = [
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
+
+/**
+ * The mobile drawer's account rows (profile, settings, admin, messages, sign
+ * out). They are the same control as a NavLinks row minus the route marker, so
+ * they wear the same ink and the same hover rung, and the five of them share
+ * one string rather than five copies that can drift.
+ *
+ * They used to be `text-sidebar-foreground/80` over `hover:bg-sidebar-accent/55`
+ * -- an alpha pair that landed ~2 L* short of the nav rows sitting directly
+ * above them in the same drawer, in both themes, for no reason anyone recorded.
+ * Opaque idle ink is also the rail's standing rule (see the --sidebar-foreground-idle
+ * note in globals.css): an alpha of white over a saturated surface is what put
+ * the shipped label at 4.31:1.
+ */
+const DRAWER_ROW_CLASS =
+  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98]";
 
 function Brand({
   onNavigate,
@@ -161,11 +182,30 @@ function NavLinks({
 
 function UserMenu({ user }: { user: SidebarUser }) {
   const router = useRouter();
-  const meta = formatBatchChip(user.batchType, user.batchYear);
+  // The same line every other byline in the app shows ("Batch of '23", or
+  // "Teacher" for staff). It replaced the credential chip "ISC 2023" on
+  // 2026-08-02: the owner wants one batch format everywhere, and this corner
+  // was the only place still speaking the other one.
+  const meta = batchLine(user);
   return (
-    <div className="flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
+    /* The chip well, at 30% of the hover rung. It was `bg-white/[0.07]`, an
+       alpha tuned against the canopy rail: measured on the dark charcoal one it
+       lands +7.75 L*, which is ABOVE `--sidebar-hover` (+6.68), so the resting
+       well outranked the hover of the two controls standing in it and every
+       hover inside this chip would have sunk.
+       30% is where the rail's short budget divides best. The whole rail spans
+       only 5.49 L* (light) / 6.68 (dark) from `--sidebar` to `--sidebar-hover`,
+       and a well and a hover have to share it. Measured across the four
+       candidates: at 50% the well is a comfortable +2.78/+3.39 but the hover
+       left over is +2.71/+3.29, near the ~2 just-noticeable floor the owner
+       already rejected once. At 30% the well is +1.59/+2.00 and the hover is
+       +3.90/+4.68, which is the band the app's `state-layer` hovers land in
+       (4.19 to 4.72). A container may whisper; a hover may not. */
+    <div className="flex items-center gap-1.5 rounded-2xl bg-sidebar-hover/30 p-1.5">
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex min-w-0 flex-1 items-center rounded-xl px-1.5 py-1 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60">
+        {/* data-popup-open keeps the trigger lit for as long as its menu is
+            open, the same contract dropdown-menu.tsx gives a submenu trigger. */}
+        <DropdownMenuTrigger className="group/account flex min-w-0 flex-1 items-center rounded-xl px-1.5 py-1 text-left transition-[background-color,transform] duration-150 ease-out hover:bg-sidebar-hover data-popup-open:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98]">
           <IdentityRow
             user={{ id: user.id, name: user.name, photoUrl: user.photoUrl, birdOverride: user.birdOverride }}
             className="w-full gap-2.5"
@@ -173,7 +213,12 @@ function UserMenu({ user }: { user: SidebarUser }) {
             name={user.name}
             nameClassName="truncate text-[13px] font-semibold leading-none text-sidebar-foreground"
             meta={meta}
-            metaClassName="truncate text-[11px] font-normal normal-case leading-none tracking-normal text-sidebar-foreground-muted"
+            /* The batch line lifting muted -> idle is the trigger's SECOND
+               hover channel. The name is already full-strength ink and cannot
+               lift, so without this the whole hover rests on a background
+               change spending a third of the rail's budget. The gear beside it
+               has had two channels all along (ink lift plus the turn). */
+            metaClassName="truncate text-[11px] font-normal normal-case leading-none tracking-normal text-sidebar-foreground-muted transition-colors duration-150 group-hover/account:text-sidebar-foreground-idle"
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="top" className="w-52">
@@ -213,8 +258,12 @@ function UserMenu({ user }: { user: SidebarUser }) {
       <Link
         href="/settings"
         aria-label="Settings"
-        className="group grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground/70 transition-colors hover:bg-white/[0.07] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+        className="group grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
       >
+        {/* The gear turning is the icon's own affordance inside a control that
+            does not itself move, which is the one shape of hover motion the
+            house rule leaves open. The colour change beside it is what carries
+            the hover. */}
         <Settings className="h-[18px] w-[18px] transition-transform duration-300 ease-out group-hover:[transform:rotate(45deg)]" strokeWidth={1.9} />
       </Link>
     </div>
@@ -258,7 +307,7 @@ export function Sidebar({
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
             aria-label="Open menu"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sidebar-foreground/85 transition-colors hover:bg-white/[0.07] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
           >
             <Menu className="h-[22px] w-[22px]" strokeWidth={1.9} />
           </SheetTrigger>
@@ -272,7 +321,7 @@ export function Sidebar({
               <Brand onNavigate={() => setOpen(false)} />
               <SheetClose
                 aria-label="Close menu"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground/70 transition-colors hover:bg-white/[0.07] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
               >
                 <X className="h-5 w-5" strokeWidth={2} />
               </SheetClose>
@@ -286,7 +335,7 @@ export function Sidebar({
               <Link
                 href={`/profile/${user.id}`}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+                className={DRAWER_ROW_CLASS}
               >
                 <UserIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                 My Profile
@@ -294,7 +343,7 @@ export function Sidebar({
               <Link
                 href="/settings"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+                className={DRAWER_ROW_CLASS}
               >
                 <Settings className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                 Settings
@@ -303,7 +352,7 @@ export function Sidebar({
                 <Link
                   href="/admin"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+                  className={DRAWER_ROW_CLASS}
                 >
                   <Shield className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                   Admin
@@ -312,14 +361,14 @@ export function Sidebar({
               <Link
                 href="/messages"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+                className={DRAWER_ROW_CLASS}
               >
                 <MessageSquareText className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                 Message the admins
               </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+                className={DRAWER_ROW_CLASS}
               >
                 <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                 Sign out
@@ -333,7 +382,11 @@ export function Sidebar({
             duplicate. Every other route has no header bell of its own, so
             this stays the sole mobile notifications entry point for them. */}
         {!isActive(pathname, "/feed") && (
-          <div className="flex shrink-0 items-center text-sidebar-foreground">
+          // Idle ink, not full-strength: the bell and the hamburger are the two
+          // icon controls flanking the wordmark and they should rest at the same
+          // weight. The bell lifts to --sidebar-foreground on hover (see
+          // notification-bell.tsx), exactly as the hamburger does.
+          <div className="flex shrink-0 items-center text-sidebar-foreground-idle">
             <NotificationBell initialUnreadCount={unreadCount} />
           </div>
         )}

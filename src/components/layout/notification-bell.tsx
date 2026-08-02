@@ -157,8 +157,13 @@ export function NotificationBell({
   if (variant === "header") {
     return (
       <DropdownMenu open={open} onOpenChange={handleOpenChange}>
+        {/* `state-layer` supplies the surface half of the hover (and keeps the
+            trigger lit while the panel is open, via data-popup-open). Before it
+            the only hover here was the glyph darkening from muted to full ink,
+            which is a change you have to already be looking for on a 40px
+            circle sitting on a paper card. */}
         <DropdownMenuTrigger
-          className="bell-trigger relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-transform duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="bell-trigger state-layer relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           title="Notifications"
         >
           <motion.span
@@ -206,10 +211,14 @@ export function NotificationBell({
           3.5px ABOVE the band's centre (measured: 15.5px of band above it,
           22.5px below) while the hamburger beside it, a real 40px grid box,
           was dead centre. A fixed 40x40 grid box removes the baseline entirely
-          and matches the hamburger; hover/focus are band colours, not the warm
-          light-surface ones, since the only surface behind this is canopy. */}
+          and matches the hamburger; hover/focus are RAIL colours, never the warm
+          light-surface ones and never `state-layer`, because the rail is the one
+          surface in the app that owns its own state ladder in both themes. The
+          hover was `bg-white/[0.07]`, tuned against the canopy band: on the dark
+          charcoal rail that alpha overshoots the tuned `--sidebar-hover` rung,
+          so it uses the token now and tracks whichever theme is on. */}
       <DropdownMenuTrigger
-        className="relative grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-150 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
+        className="relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground data-popup-open:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
         title="Notifications"
       >
         <motion.span
