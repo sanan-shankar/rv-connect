@@ -27,7 +27,7 @@ export async function CollectionModule() {
     <RailCard label="From the Collection">
       <Link
         href={`/collection/${photo.id}`}
-        className="group relative block overflow-hidden rounded-[var(--radius-md)] transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]"
+        className="group relative block overflow-hidden rounded-[var(--radius-md)] transition-transform duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <div className="relative h-[150px] w-full overflow-hidden rounded-[var(--radius-md)] bg-mist">
           {/* eslint-disable-next-line @next/next/no-img-element */}
