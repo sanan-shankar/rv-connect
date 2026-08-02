@@ -143,38 +143,58 @@ function parsedYear(raw: string): number | null {
  *  buttons/chips. Nothing else.
  * ------------------------------------------------------------------ */
 
+/**
+ * One section = one CARD, with its label sitting outside and above it.
+ *
+ * Reverted on 2026-08-02 to the shape that shipped before c5d826c's "one
+ * sheet" rewrite. That rewrite dropped the per-section card and ran every
+ * group inside a single bordered container separated only by hairlines. The
+ * owner rejected the result outright: "it ruined everything ... joined all of
+ * these different elements when they were all separated and broken up. It was
+ * better when it was broken up." A settings page is a list of unrelated
+ * subjects (who you are, where you are, how you are reachable), and stacking
+ * them into one object asks the eye to find boundaries that the surface is
+ * actively hiding.
+ *
+ * The label is deliberately OUTSIDE the card, on the page: it names the card
+ * rather than being its first row, which is what lets the card start with real
+ * content instead of a heading.
+ */
 function SettingsSection({
   label,
-  first = false,
   hint,
   children,
 }: {
   label: string;
+  /** kept for call-site compatibility; spacing is uniform between cards now */
   first?: boolean;
   hint?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section>
-      <h2
-        className={cn(
-          "px-4 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground",
-          first ? "pt-4" : "pt-7"
-        )}
-      >
+      <h2 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </h2>
-      {hint && <p className="px-4 pb-1 text-[13px] leading-relaxed text-muted-foreground">{hint}</p>}
-      <div className="divide-y divide-border">{children}</div>
+      {hint && <p className="mb-2 px-1 text-[13px] leading-relaxed text-muted-foreground">{hint}</p>}
+      <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card">
+        <div className="divide-y divide-border">{children}</div>
+      </div>
     </section>
   );
 }
 
-/** One field, one row. `block` stacks the control full-width below the label
- *  (for a textarea, a repeater, a picker); otherwise the label sits in a
- *  fixed-width left column with the control DIRECTLY BESIDE it (the old
- *  sm:justify-end pushed controls to the card's far edge, leaving up to
- *  286px of dead card between a label and the field it names). */
+/** One field, one row: the label in a fixed-width left column, the control
+ *  RIGHT-ALIGNED against the card's trailing edge. `block` stacks the control
+ *  full-width below the label instead (for a textarea, a repeater, a picker).
+ *
+ *  The right alignment is `sm:justify-end`, restored 2026-08-02. It was removed
+ *  in c5d826c on the reasoning that it left dead space mid-row, and the owner
+ *  rejected that too: "it's moved a bunch of things that were right aligned to
+ *  the left. And it all looks really horrible." The dead space was the point.
+ *  Two hard edges, labels flush left and values flush right, give the eye two
+ *  columns to run down; ragged values pinned to a 168px label column give it
+ *  neither. */
 function SettingsRow({
   label,
   hint,
@@ -201,7 +221,7 @@ function SettingsRow({
         </Label>
         {hint && <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{hint}</p>}
       </div>
-      <div className={cn("min-w-0 flex-1", !block && "flex flex-wrap items-center gap-3")}>
+      <div className={cn("min-w-0 flex-1", !block && "flex flex-wrap items-center gap-3 sm:justify-end")}>
         {children}
       </div>
     </div>
@@ -419,8 +439,11 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
     // never covers the Danger zone's delete button when scrolled to the end.
     <div className={cn("space-y-6", dirty && "pb-20")}>
       <form key={resetKey} onSubmit={handleSubmit} onChange={markDirty}>
-        {/* THE sheet: the one bordered container for every profile field. */}
-        <div className="card-elevated overflow-hidden rounded-[var(--radius)] border border-border bg-card pb-4">
+        {/* Each section brings its own card (see SettingsSection). This is
+            only the rhythm between them: space-y-7 is the section gap, wider
+            than the space-y-6 the page uses between top-level blocks so a
+            section reads as its own subject rather than another row. */}
+        <div className="space-y-7">
           <SettingsSection label="You" first>
             <SettingsRow label="Your name" htmlFor="name">
               <Input id="name" name="name" defaultValue={user.name} required minLength={2} className="sm:max-w-[280px]" />
