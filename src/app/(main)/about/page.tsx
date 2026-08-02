@@ -47,9 +47,9 @@ export default function AboutPage() {
             <div>
               <h3 className="font-semibold text-foreground">Feed</h3>
               <p className="mt-1 leading-relaxed text-muted-foreground">
-                Share stories, campus memories, life updates, or photos. Use
-                tags to categorise your posts. You can also target specific
-                batches if your post is relevant to a particular group.
+                Write what you would tell an old friend, and add photos if you
+                have them. If it is only meant for one city, you can narrow who
+                sees it before you post.
               </p>
             </div>
             <div>
@@ -142,7 +142,7 @@ export default function AboutPage() {
             href="https://www.rishivalley.org/"
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-sm text-leaf font-medium hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-sm text-leaf font-medium hover:text-leaf-light active:opacity-70 transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Visit rishivalley.org
             <ExternalLink className="h-4 w-4" />

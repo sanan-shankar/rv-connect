@@ -230,7 +230,7 @@ model Post {
   kind          String    @default("post") // "post" | "letter"
   title         String?   // used by letters
   content       String
-  tag           String?
+  tag           String?   // retired 2026-08-02 (owner call: post types abandoned). Column kept for a future cleanup migration; no reader or writer remains.
   targetBatches String?
   images        String?
   groupId       String?   // null = main feed; set = posted into a group
