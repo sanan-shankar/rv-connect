@@ -28,7 +28,7 @@ export function ProfileCard({ user }: ProfileCardProps) {
     // It had no focus-visible style at all.
     <Link
       href={`/profile/${user.id}`}
-      className="group block rounded-[var(--radius)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="group block rounded-[var(--radius)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       {/* state-layer sits on the card face, which is the thing with the surface
           and the radius. Hover used to be a 1px border tint plus a name
