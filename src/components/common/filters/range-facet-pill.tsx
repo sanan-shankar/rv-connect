@@ -18,7 +18,7 @@ const DECADE_PRESETS = [
 ];
 
 const YEAR_SELECT_CLASS =
-  "h-9 rounded-[var(--radius-input)] border border-input bg-transparent px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
+  "h-9 rounded-[var(--radius-input)] border border-input bg-transparent px-2 text-sm text-foreground outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 /**
  * RangeFacetPill — the Batch year-range facet: one labelled pill that opens a
@@ -134,7 +134,7 @@ export function RangeFacetPill({
                     // vanished. The ink tint lands at -4.72 there instead.
                     // transition-transform only: the layer is a
                     // background-image, which cannot tween; the press can.
-                    className="state-layer rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
+                    className="state-layer rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                   >
                     {d.label}
                   </button>

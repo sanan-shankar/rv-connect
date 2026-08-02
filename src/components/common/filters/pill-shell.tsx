@@ -67,7 +67,25 @@ export const PILL_SET = "border-canopy/35 bg-canopy/[0.08] text-canopy hover:bg-
  *  #FAF8F2 on a Float-white panel: -2.42 dL*, i.e. INVERTED and gone ("hovering
  *  over all menus now has disappeared"). state-layer covers `data-highlighted`
  *  itself, which is how Base UI marks the keyboard-highlighted row, so both the
- *  pointer and the arrow keys light the same row the same way. */
+ *  pointer and the arrow keys light the same row the same way.
+ *
+ *  ...for the rows Base UI owns. The `focus-visible:` half below closes the one
+ *  hole that left. This class dresses TWO different kinds of row: FacetSelect's
+ *  are `Select.Item`s, which Base UI marks `data-highlighted` and which never
+ *  take DOM focus (the popup keeps it), so `state-layer` lights them for both
+ *  pointer and keyboard. FacetSearchSelect's are plain `<button>`s in a
+ *  Popover, and nothing marks those: `data-highlighted` is never set, so a row
+ *  tabbed to had `outline-none` here and NO replacement, measured 2026-08-02 at
+ *  dL* 0.00 with outline none, background-image none and box-shadow none. The
+ *  City, House and "Part of school" lists were literally unnavigable by
+ *  keyboard: focus was real and completely unpainted.
+ *
+ *  That hole is now closed in `@utility state-layer` itself (globals.css), which
+ *  paints the same tint on `:focus-visible`, so every hand-rolled row in the app
+ *  is fixed at once rather than only this kit's. Nothing extra is needed here.
+ *  It repaints the state layer rather than adding a ring because arrow keys and
+ *  the pointer should light the same row the same way, and a search panel is the
+ *  same material as a select. */
 export const FACET_ITEM_CLASS =
   "state-layer flex w-full cursor-pointer scroll-my-1 items-center rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm outline-none transition-transform duration-100 select-none active:scale-[0.99]";
 
@@ -113,7 +131,7 @@ export function FacetClearButton({ label, onClear }: { label: string; onClear: (
         e.stopPropagation();
         onClear();
       }}
-      className="grid size-6 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-transform duration-150 hover:bg-canopy/15 hover:text-canopy focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-90"
+      className="grid size-6 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-transform duration-150 hover:bg-canopy/15 hover:text-canopy active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
     >
       <X className="size-3.5" strokeWidth={2.25} />
     </button>
