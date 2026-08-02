@@ -627,7 +627,7 @@ export function CreatePostForm({
   // exactly the case `hover:bg-accent` failed at (+2.06 dL* on paper, at the
   // JND); state-layer tints whatever is underneath instead.
   const iconControl =
-    "state-layer inline-grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50";
+    "state-layer inline-grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
   // The full editor surface. Shared by the collapsible feed composer and the
   // always-open letter composer, so both read as one hand made them.
@@ -743,7 +743,7 @@ export function CreatePostForm({
               This might make a lovely{" "}
               <Link
                 href="/letters"
-                className="font-medium text-cinnamon hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:rounded-sm"
+                className="font-medium text-cinnamon hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 Letter
               </Link>
@@ -787,7 +787,7 @@ export function CreatePostForm({
                   // further ink tint barely moves it. It brightens instead,
                   // which is the same move the canopy CTA makes for the same
                   // reason (a filled brand surface lifts, it does not deepen).
-                  className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background transition-[filter,transform] duration-150 hover:brightness-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-95"
+                  className="absolute -right-1 -top-1 rounded-full bg-foreground p-0.5 text-background transition-[filter,transform] duration-150 hover:brightness-150 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -914,7 +914,7 @@ export function CreatePostForm({
                             setPollOptions(pollOptions ? null : ["", ""]);
                             setMore(false);
                           }}
-                          className={`state-layer flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
+                          className={`state-layer flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
                             pollOptions ? "text-leaf" : "text-foreground"
                           }`}
                         >
@@ -931,7 +931,7 @@ export function CreatePostForm({
                             if (!isLetter) setPollOptions(null);
                             setMore(false);
                           }}
-                          className={`state-layer flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] ${
+                          className={`state-layer flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
                             isLetter ? "text-leaf" : "text-foreground"
                           }`}
                         >
@@ -955,7 +955,7 @@ export function CreatePostForm({
                                 // rule 4: selection is the one green state, and it is
                                 // not hover). Unselected is a neutral chip, so its
                                 // hover is the shared state layer.
-                                "state-layer rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
+                                "state-layer rounded-full px-2.5 py-1 text-xs font-medium active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                                 !audienceCity
                                   ? "bg-canopy text-white"
                                   : "bg-muted text-muted-foreground"
@@ -971,7 +971,7 @@ export function CreatePostForm({
                                 aria-checked={audienceCity === city}
                                 onClick={() => setAudienceCity(city)}
                                 className={cn(
-                                  "state-layer rounded-full px-2.5 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95",
+                                  "state-layer rounded-full px-2.5 py-1 text-xs font-medium active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                                   audienceCity === city
                                     ? "bg-canopy text-white"
                                     : "bg-muted text-muted-foreground"
@@ -997,7 +997,7 @@ export function CreatePostForm({
             <button
               type="button"
               onClick={() => setMore(true)}
-              className="inline-flex min-w-0 items-center gap-1 rounded-full bg-sky/10 px-2.5 py-1 text-[11.5px] font-semibold text-sky hover:bg-sky/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+              className="inline-flex min-w-0 items-center gap-1 rounded-full bg-sky/10 px-2.5 py-1 text-[11.5px] font-semibold text-sky hover:bg-sky/15 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <MapPin className="h-3 w-3 shrink-0" />
               <span className="truncate">{audienceCity} only</span>
@@ -1013,7 +1013,12 @@ export function CreatePostForm({
                 type="button"
                 onClick={() => handleSubmit(true)}
                 disabled={!content.trim() || submitting || savingDraft}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "px-4 text-sm")}
+                // Full 40px, not size="sm" (owner, 2026-08-02: "the publish
+                // letter and save as a draft ctas can be as big as the normal
+                // cta size. Now it's kind of vertically compressed"). See the
+                // note on the Publish button below for why the letters desk
+                // sizes differently from the feed composer.
+                className={cn(buttonVariants({ variant: "outline" }), "px-4 text-sm")}
               >
                 {savingDraft ? "Saving..." : "Save as draft"}
               </button>
@@ -1021,16 +1026,24 @@ export function CreatePostForm({
 
             {/* Post sits INLINE, at the end of the same row. Same pill CTA language
                 as "New post" (shared buttonVariants, canopy fill, font-medium --
-                never bold), but a step down from the page-level CTA's 40px: 36px
-                tall with golden-ratio-generous 20px sides, so it reads as the
-                confident primary action of the composer without competing with
-                the header's own button. Still bespoke/animated (subdued until
-                there's text, springs to life) so it can't use <Button> directly. */}
+                never bold). Still bespoke/animated (subdued until there's text,
+                springs to life) so it can't use <Button> directly.
+                SIZE IS BY CONTEXT. In the FEED composer it stays 36px: the page
+                header's own "New post" CTA is 40px and right above it, so a
+                second 40px canopy pill would compete with it. On the LETTERS
+                writing desk there is no competing CTA and Publish is the whole
+                point of the page, so it takes the full 40px (owner, 2026-08-02:
+                "the publish letter and save as a draft ctas can be as big as
+                the normal cta size"). */}
             <motion.button
               type="button"
               onClick={() => handleSubmit(false)}
               disabled={!content.trim() || submitting || savingDraft}
-              className={cn(buttonVariants({ variant: "primary", size: "sm" }), "px-5 text-sm")}
+              className={cn(
+                buttonVariants({ variant: "primary", size: isLetter ? "default" : "sm" }),
+                isLetter ? "px-6" : "px-5",
+                "text-sm"
+              )}
               animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
               whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
               transition={SPRINGS.snappy}
@@ -1133,7 +1146,7 @@ export function CreatePostForm({
             animate={{ opacity: expanded ? 0 : 1 }}
             transition={SPRINGS.gentle}
             style={{ pointerEvents: expanded ? "none" : undefined }}
-            className="state-layer flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 active:scale-[0.99]"
+            className="state-layer flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:text-foreground active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inset"
           >
             <span className="truncate">{collapsedPlaceholder}</span>
           </motion.button>
