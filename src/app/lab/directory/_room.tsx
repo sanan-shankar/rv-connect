@@ -170,11 +170,53 @@ export default function DirectoryRoom({
         while the directory is untouched.
       </p>
       <p className="mt-3 max-w-[68ch] text-[16px] leading-[1.6] text-muted-foreground">
+        You described two gaps, and both are real and separately measurable. The trailing one on line
+        one is <b>275px</b> at 1440 with your two filters. The leading one on line two, between the
+        column&apos;s left edge and where Sort begins, is <b>807px</b>. That second one is 73% of the
+        column and it is what makes the second row read as belonging to a different page.
+      </p>
+      <p className="mt-3 max-w-[68ch] text-[16px] leading-[1.6] text-muted-foreground">
         One small thing the probe caught in passing: the button renders as{" "}
         <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">More filters· 1</code>, with no space
         before the dot. JSX drops the newline between the label and the{" "}
         <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">{"{count}"}</code> expression, so the
         two strings concatenate.
+      </p>
+
+      <Rule nav="One model">The filter set is written out by hand eight times</Rule>
+      <p className="max-w-[68ch] text-[17px] leading-[1.65] text-muted-foreground">
+        There is one filter concept, and it is re-listed as a literal in eight places across three
+        files: the <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">DirectoryFilters</code>{" "}
+        type, the client&apos;s own copy of it, the page&apos;s{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">searchParams</code> type, the{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">filters</code> literal, the{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">initialFilters</code> literal, the
+        Load-more literal, <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">hasFilter</code>,
+        and <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">activeChips</code>. Adding a
+        facet means editing all eight, and missing one fails silently.
+      </p>
+      <p className="mt-3 max-w-[68ch] text-[17px] leading-[1.65] text-muted-foreground">
+        It has already drifted, and the drift is the thing you complained about.{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">activeChips</code> lists five of the
+        seven, omitting <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">q</code> and{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">year</code>. For{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">q</code> that is fine: the search box
+        holds it and you can clear it there. For{" "}
+        <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">year</code> it is not.{" "}
+        <b>A batch drilldown renders as inert text</b> beside the result count, as
+        &quot;Batch of &apos;09&quot; with nothing to press. It narrows your results and it has no
+        control of its own anywhere in the interface, so the only ways out are Clear all and the back
+        arrow, both of which also destroy your search term and every other filter.
+      </p>
+      <p className="mt-3 max-w-[68ch] text-[17px] leading-[1.65] text-muted-foreground">
+        That is the actual mechanism behind &quot;it just resets everything instead of taking you back
+        to where you were&quot;. The arrow is not misbehaving. It is the only exit that exists for one of
+        the seven filters, so it was built to exit all of them.
+      </p>
+      <p className="mt-3 max-w-[68ch] text-[17px] leading-[1.65] text-muted-foreground">
+        Every concept below derives its tokens from one list, so a filter that can narrow your results
+        is a filter you can see and remove, without exception. That is a one-function change, and it is
+        most of what makes the back arrow unnecessary.
       </p>
 
       {/* ---------------------------------------------------------------- */}
