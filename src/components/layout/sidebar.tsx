@@ -182,26 +182,29 @@ function NavLinks({
 
 function UserMenu({ user }: { user: SidebarUser }) {
   const router = useRouter();
-  // The same line every other byline in the app shows ("Batch of '23", or
-  // "Teacher" for staff). It replaced the credential chip "ISC 2023" on
-  // 2026-08-02: the owner wants one batch format everywhere, and this corner
-  // was the only place still speaking the other one.
-  const meta = batchLine(user);
+  // "Batch of 2023", the same phrase as every other byline but with the year
+  // spelled out (owner, 2026-08-02: "on the bottom left subtitle say 2023
+  // instead of '23"). It replaced the credential chip "ISC 2023" earlier the
+  // same day. The elided form stays everywhere else, where the line sits in a
+  // dot-separated meta row rather than on its own.
+  const meta = batchLine(user, { fullYear: true });
   return (
-    /* The chip well, at 30% of the hover rung. It was `bg-white/[0.07]`, an
-       alpha tuned against the canopy rail: measured on the dark charcoal one it
-       lands +7.75 L*, which is ABOVE `--sidebar-hover` (+6.68), so the resting
-       well outranked the hover of the two controls standing in it and every
-       hover inside this chip would have sunk.
-       30% is where the rail's short budget divides best. The whole rail spans
-       only 5.49 L* (light) / 6.68 (dark) from `--sidebar` to `--sidebar-hover`,
-       and a well and a hover have to share it. Measured across the four
-       candidates: at 50% the well is a comfortable +2.78/+3.39 but the hover
-       left over is +2.71/+3.29, near the ~2 just-noticeable floor the owner
-       already rejected once. At 30% the well is +1.59/+2.00 and the hover is
-       +3.90/+4.68, which is the band the app's `state-layer` hovers land in
-       (4.19 to 4.72). A container may whisper; a hover may not. */
-    <div className="flex items-center gap-1.5 rounded-2xl bg-sidebar-hover/30 p-1.5">
+    /* The chip that ties the bird, the name, the batch line and the gear into
+       ONE unit (owner, 2026-08-02: without it "it look like separated elements
+       and no real order to it ... it's not clear that the profile button and
+       settings are all one unit").
+       It is a BORDER plus a whisper of fill, not fill alone, and that is the
+       whole trick. The rail has almost no lightness to spend: only 5.49 L*
+       (light) / 6.68 (dark) separates `--sidebar` from `--sidebar-hover`, and a
+       resting container and a hover both want some of it. Fill alone forces a
+       bad trade, which is how this shipped at `bg-sidebar-hover/30`: +1.59 L*,
+       under the ~2 just-noticeable floor, i.e. a container nobody could see. A
+       hairline is a SECOND CHANNEL that costs the fill budget nothing, so the
+       chip reads as one object (border at 1.40:1 against the light rail, +8.4
+       L* against the dark one) while the two controls inside it keep the full
+       +3.90/+4.68 hover the state layer lands at everywhere else.
+       A box must earn its border; a container grouping three controls does. */
+    <div className="flex items-center gap-1.5 rounded-2xl border border-sidebar-border bg-sidebar-hover/30 p-1.5">
       <DropdownMenu>
         {/* data-popup-open keeps the trigger lit for as long as its menu is
             open, the same contract dropdown-menu.tsx gives a submenu trigger. */}

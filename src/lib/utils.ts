@@ -91,16 +91,27 @@ export function formatDisplayDate(date: Date | string): string {
  * such bylines to be just the date, no filler, no dot. Pair every use of this
  * with `metaLine`/`<MetaDots>` so an empty return also drops its separator.
  */
-export function batchLine(user: {
-  id?: string
-  accountType?: string | null
-  batchType?: string | null
-  batchYear?: number | null
-}): string {
+export function batchLine(
+  user: {
+    id?: string
+    accountType?: string | null
+    batchType?: string | null
+    batchYear?: number | null
+  },
+  /**
+   * Spell the year in full ("Batch of 2023") instead of the elided form
+   * ("Batch of '23"). Used by the sidebar's own account chip (owner,
+   * 2026-08-02), where the line is about YOU and there is room for it. Bylines
+   * in the feed, the directory and comments keep the elided form: they sit in a
+   * dot-separated meta row where two extra digits per row is noise.
+   */
+  opts?: { fullYear?: boolean }
+): string {
   if (user.id === "anonymous") return ""
   if (user.accountType === "teacher") return "Teacher"
   if (user.accountType === "ex_teacher") return "Former teacher"
   if (user.batchYear == null) return "Member"
+  if (opts?.fullYear) return `Batch of ${user.batchYear}`
   return `Batch of '${String(user.batchYear).slice(-2)}`
 }
 
