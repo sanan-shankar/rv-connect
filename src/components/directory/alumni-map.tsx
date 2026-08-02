@@ -3,16 +3,24 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Maximize2, X, MapPin } from "lucide-react";
+import { Maximize2, X, MapPin, Globe } from "lucide-react";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { select } from "d3-selection";
 import { zoom as d3zoom, zoomIdentity, type ZoomTransform } from "d3-zoom";
 import { feature } from "topojson-client";
-import Supercluster from "supercluster";
 import worldData from "world-atlas/countries-110m.json";
 import type { Feature, Geometry } from "geojson";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine, cn, metaLine } from "@/lib/utils";
+import {
+  buildGroups,
+  maxUsefulZoom,
+  separatingZoom,
+  sqrtRadius,
+  type MapGroup,
+  type MarkerSizing,
+  type PinGeom,
+} from "@/lib/map-cluster";
 import {
   Sheet,
   SheetContent,
@@ -65,17 +73,25 @@ const land = feature(worldData as any, (worldData as any).objects.countries) as 
 };
 const landPaths = land.features.map((f) => pathGen(f) ?? "");
 
-// A clustered leaf, after supercluster: either a single city or a merged group.
-type Leaf =
-  | { kind: "city"; x: number; y: number; pin: CityPin }
-  | { kind: "cluster"; x: number; y: number; count: number; cities: number; clusterId: number };
-
 const MIN_Z = 1;
-// Cities are only located at city-level precision, so this stays a "close
-// enough" cap rather than street-level zoom. Bumped from 8 -> 12 (~one more
-// +/- step) so two nearby cities (e.g. Chennai and Bangalore) can pull apart
-// instead of crowding at the old ceiling.
-const MAX_Z = 12;
+
+// The MAXIMUM zoom is no longer a constant. It is derived per data set by
+// maxUsefulZoom() so that the tightest pair of real cities always comes apart:
+// New Delhi and Gurgaon sit 0.53 base units apart, which needs k ~ 100 on a
+// desktop and ~275 on a phone (where every pin claims a 44px tap disc), while
+// the old fixed ceiling was 12. That fixed 12, together with the tile zoom the
+// map handed supercluster, is exactly why the NCR super-pin never resolved.
+// See src/lib/map-cluster.ts for the whole derivation.
+
+/** One press of +/-. The zoom range now spans ~1..300 rather than 1..12, so a
+ *  1.6x step would take a dozen presses to cross it; 2x crosses it in eight
+ *  and still reads as one comfortable step. */
+const ZOOM_STEP = 2;
+
+/** Clicking a super-pin fits its members' bounds into the viewBox. 0.72 leaves
+ *  the outermost pin about a pin's width clear of the edge instead of sitting
+ *  half off it. */
+const FIT_PAD = 0.72;
 
 /**
  * How small one viewBox unit is allowed to get, in CSS pixels.
@@ -96,9 +112,6 @@ const MAX_Z = 12;
  */
 const MIN_PX_PER_UNIT = 1;
 
-/** Minimum tap target on coarse pointers (directory spec 4.1, WCAG 2.5.8). */
-const TAP_MIN_PX = 44;
-
 /** Every marker is a button: hover, focus-visible and active all read. Opacity
  *  only, per the motion rule (the group's transform is doing map work). */
 const MARKER_CLASS =
@@ -109,16 +122,13 @@ const RING_CLASS =
  *  reliably takes the touch even where nothing is painted. */
 const HIT_STYLE = { pointerEvents: "all" } as const;
 
-function sqrtRadius(count: number, max: number) {
-  // Area proportional to count, so a 200-count city is not 200x the diameter.
-  return 9 + Math.sqrt(count / Math.max(1, max)) * 22;
-}
-
 /**
  * AlumniMap - the warm SVG world map.
  *
- * One pin per city, sqrt-scaled and counted. Cities that overlap at the current
- * zoom collapse into supercluster super-pins (click a super-pin to zoom in).
+ * One pin per city, sqrt-scaled and counted. Cities whose hit discs would
+ * overlap at the current zoom collapse into a super-pin (click it to zoom to
+ * the level that splits it); the map's max zoom is derived from the data so
+ * that every super-pin CAN be split. Clustering lives in src/lib/map-cluster.ts.
  * Pan and zoom via d3-zoom on the SVG group transform. Clicking a city pin opens
  * a drilldown panel listing that city's people (IdentityRow linking
  * to profiles). Renders inline by default and full-screen on demand.
@@ -136,7 +146,8 @@ export function AlumniMap({
   /** Cluster tooltip. Anchored in MAP units (mx/my), never in stale screen
    *  coords, so it can never be left behind by a pan, a zoom or a re-render. */
   const [tip, setTip] = useState<{
-    id: number;
+    /** The group's membership-derived key, so the label dies with its pin. */
+    id: string;
     mx: number;
     my: number;
     label: string;
@@ -150,6 +161,9 @@ export function AlumniMap({
   const svgRef = useRef<SVGSVGElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const zoomBehavior = useRef<any>(null);
+  /** The live transform, readable from effects that must not re-run on zoom.
+   *  Every change comes through the zoom handler, so this cannot drift. */
+  const transformRef = useRef<ZoomTransform>(zoomIdentity);
 
   const dismissTip = useCallback(() => setTip(null), []);
 
@@ -158,59 +172,44 @@ export function AlumniMap({
   // Counter-scale for the marker layer, on top of the existing 1/k that keeps
   // pins a constant size through map zoom. 1 on desktop, ~2.6 on a phone.
   const pinBoost = Math.max(1, MIN_PX_PER_UNIT / (box.s || MIN_PX_PER_UNIT));
-  // One CSS pixel, expressed in the marker layer's own units.
-  const unitsPerPx = 1 / (pinBoost * (box.s || MIN_PX_PER_UNIT));
-  // Touch gets a transparent 44x44 hit disc behind the dot. Fine pointers keep
-  // exactly today's hit area (the halo circle), so desktop clicking is untouched.
-  const tapR = coarsePointer ? (TAP_MIN_PX / 2) * unitsPerPx : 0;
 
-  // One supercluster index over the real geographic points. Supercluster does
-  // its tiling in lng/lat space; we project each returned cluster centroid to
-  // screen coords ourselves, so this stays independent of the SVG renderer.
-  const index = useMemo(() => {
-    const sc = new Supercluster<{ pinIndex: number }, { count: number }>({
-      radius: 50,
-      maxZoom: MAX_Z + 2,
-      map: (props) => ({ count: pins[props.pinIndex].count }),
-      reduce: (acc, props) => {
-        acc.count += props.count;
-      },
-    });
-    sc.load(
-      pins.map((p, i) => ({
-        type: "Feature" as const,
-        properties: { pinIndex: i },
-        geometry: { type: "Point" as const, coordinates: [p.lng, p.lat] },
-      }))
-    );
-    return sc;
-  }, [pins]);
+  // Every pin projected once. Clustering then works entirely in THIS space --
+  // the space the map actually paints in -- rather than in web-mercator tiles.
+  const geom = useMemo<PinGeom[]>(
+    () =>
+      pins.map((p) => {
+        const xy = projection([p.lng, p.lat]);
+        // NaN marks a point the projection rejects; map-cluster drops those
+        // rather than plotting them at 0,0 in the Atlantic.
+        return { x: xy?.[0] ?? NaN, y: xy?.[1] ?? NaN, count: p.count };
+      }),
+    [pins]
+  );
 
-  // Cluster at the current zoom level: more zoom splits super-pins apart.
-  const leaves: Leaf[] = useMemo(() => {
-    const z = Math.round(Math.log2(Math.max(1, transform.k)) + 1);
-    const clusters = index.getClusters([-180, -85, 180, 85], z);
-    return clusters
-      .map((c): Leaf | null => {
-        const xy = projection(c.geometry.coordinates as [number, number]);
-        if (!xy) return null;
-        const [x, y] = xy;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const props = c.properties as any;
-        if (props.cluster) {
-          return {
-            kind: "cluster",
-            x,
-            y,
-            count: props.count as number,
-            cities: props.point_count as number,
-            clusterId: props.cluster_id as number,
-          };
-        }
-        return { kind: "city", x, y, pin: pins[props.pinIndex] };
-      })
-      .filter(Boolean) as Leaf[];
-  }, [index, transform.k, pins]);
+  // Everything the pin geometry depends on. Touch gets a 44px hit disc behind
+  // the dot; fine pointers keep exactly today's hit area (the halo circle), so
+  // desktop clicking is untouched.
+  const sizing = useMemo<MarkerSizing>(
+    () => ({
+      maxCount: max,
+      pinBoost,
+      pxPerUnit: box.s || MIN_PX_PER_UNIT,
+      coarsePointer,
+    }),
+    [max, pinBoost, box.s, coarsePointer]
+  );
+
+  // How far in this data set has to be zoomable for every super-pin to resolve.
+  const maxZoom = useMemo(() => maxUsefulZoom(geom, sizing), [geom, sizing]);
+
+  // Cluster at the current zoom: more zoom splits super-pins apart, and by the
+  // time k reaches maxZoom there is nothing left merged. `spread` only bites in
+  // the pathological case where two cities are closer than the zoom ceiling can
+  // separate, and lays those out on a fixed ring instead of clustering forever.
+  const groups = useMemo(
+    () => buildGroups(geom, transform.k, sizing, transform.k >= maxZoom * (1 - 1e-9)),
+    [geom, transform.k, sizing, maxZoom]
+  );
 
   // Measure the rendered svg so the marker layer can hold a real CSS-pixel size
   // no matter how the viewBox is letterboxed into the column. Layout effect so
@@ -245,12 +244,15 @@ export function AlumniMap({
     if (!svgRef.current) return;
     const sel = select(svgRef.current);
     const zb = d3zoom<SVGSVGElement, unknown>()
-      .scaleExtent([MIN_Z, MAX_Z])
+      // Kept in sync by the effect below: maxZoom is data-derived, so it moves
+      // when the filters, the viewport or the pointer type change.
+      .scaleExtent([MIN_Z, maxZoom])
       .translateExtent([
         [0, 0],
         [W, H],
       ])
       .on("zoom", (e) => {
+        transformRef.current = e.transform;
         setTransform(e.transform);
         // Any pan, wheel or pinch the USER drives dismisses the tooltip. d3
         // leaves sourceEvent null for programmatic transforms (our own zoom
@@ -259,12 +261,30 @@ export function AlumniMap({
       });
     zoomBehavior.current = zb;
     sel.call(zb);
+    // Carry the live view across the full-screen swap. That toggle mounts a
+    // BRAND NEW <svg>, whose d3 transform starts at identity, while React keeps
+    // painting the zoom held in state: without this the next gesture snapped the
+    // map back out to the whole world. Harmless on first mount (identity).
+    sel.call(zb.transform, transformRef.current);
     // No double-click zoom (it competes with pin clicks).
     sel.on("dblclick.zoom", null);
     return () => {
       sel.on(".zoom", null);
     };
+    // maxZoom is deliberately NOT a dep: rebuilding the behaviour would drop
+    // the in-flight gesture. The effect below keeps its extent current instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullscreen]);
+
+  // Keep the live zoom behaviour on the current data-derived ceiling.
+  useEffect(() => {
+    const zb = zoomBehavior.current;
+    if (!zb || !svgRef.current) return;
+    zb.scaleExtent([MIN_Z, maxZoom]);
+    // Rotating a phone or leaving full screen can lower the ceiling under a
+    // zoom the user already holds; pull them back down to the new one.
+    if (transform.k > maxZoom) select(svgRef.current).call(zb.scaleTo, maxZoom);
+  }, [maxZoom, transform.k]);
 
   // Escape dismisses the tooltip.
   useEffect(() => {
@@ -277,23 +297,60 @@ export function AlumniMap({
   }, [tip]);
 
   // Hard orphan guard: the tooltip only exists while the exact super-pin it
-  // describes is still on the map. Supercluster mints a fresh cluster_id per
-  // zoom level, so this alone drops the label the moment its cluster splits,
-  // is filtered away, or is rebuilt by a re-render. Derived rather than stored,
-  // so there is no window where a stale label can paint.
+  // describes is still on the map. A group's key is derived from its membership,
+  // so this alone drops the label the moment its cluster splits, is filtered
+  // away, or is rebuilt by a re-render. Derived rather than stored, so there is
+  // no window where a stale label can paint.
   const liveTip =
-    tip && leaves.some((l) => l.kind === "cluster" && l.clusterId === tip.id) ? tip : null;
+    tip && groups.some((g) => g.members.length > 1 && g.key === tip.id) ? tip : null;
 
+  /** Centre (x, y) at scale k. scaleTo + translateTo rather than a hand-built
+   *  transform so d3 runs its own constraints (scaleExtent, translateExtent):
+   *  a cluster near the edge of the world can no longer park the map off its
+   *  own canvas. */
   function zoomTo(x: number, y: number, k: number) {
-    if (!svgRef.current || !zoomBehavior.current) return;
-    const t = zoomIdentity.translate(W / 2 - x * k, H / 2 - y * k).scale(k);
-    select(svgRef.current).call(zoomBehavior.current.transform, t);
+    const zb = zoomBehavior.current;
+    if (!svgRef.current || !zb) return;
+    const sel = select(svgRef.current);
+    sel.call(zb.scaleTo, k);
+    sel.call(zb.translateTo, x, y);
   }
 
-  function onClusterClick(c: Extract<Leaf, { kind: "cluster" }>) {
-    const expansionZoom = Math.min(MAX_Z, index.getClusterExpansionZoom(c.clusterId));
-    const k = Math.min(MAX_Z, Math.pow(2, expansionZoom - MIN_Z));
-    zoomTo(c.x, c.y, Math.max(transform.k + 1, k));
+  /** One press of the +/- buttons. scaleBy holds the CENTRE of the current view
+   *  still; the old code re-centred on the map's own middle, which threw you
+   *  back out to the Atlantic every time you pressed + while reading India. */
+  function zoomStep(factor: number) {
+    const zb = zoomBehavior.current;
+    if (!svgRef.current || !zb) return;
+    select(svgRef.current).call(zb.scaleBy, factor);
+  }
+
+  function onClusterClick(g: MapGroup) {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const i of g.members) {
+      minX = Math.min(minX, geom[i].x);
+      maxX = Math.max(maxX, geom[i].x);
+      minY = Math.min(minY, geom[i].y);
+      maxY = Math.max(maxY, geom[i].y);
+    }
+    // Fit this cluster's own bounds, the usual "zoom to bounds" click: one
+    // click on the world blob lands you on India, the next on the NCR, rather
+    // than teleporting from the whole world to a 2km view of Gurgaon.
+    const fit = Math.min(W / Math.max(maxX - minX, 1e-9), H / Math.max(maxY - minY, 1e-9)) * FIT_PAD;
+    const target = Math.min(
+      maxZoom,
+      Math.max(
+        // Never less than one +/- step, so a click always visibly does
+        // something, and never deeper than the zoom that fully splits THIS
+        // cluster, so a pair of neighbours does not overshoot into empty green.
+        transform.k * ZOOM_STEP,
+        Math.min(fit, separatingZoom(geom, g.members, sizing))
+      )
+    );
+    zoomTo((minX + maxX) / 2, (minY + maxY) / 2, target);
   }
 
   const mapBody = (
@@ -331,15 +388,20 @@ export function AlumniMap({
             />
           ))}
 
-          {leaves.map((leaf, i) => {
-            if (leaf.kind === "cluster") {
-              const r = sqrtRadius(leaf.count, max) + 4;
+          {groups.map((g) => {
+            // The hit disc comes straight from the clustering maths, so what
+            // the user can tap is exactly what the no-overlap rule reasoned
+            // about. hitU is in screen units; the marker layer draws at
+            // pinBoost, hence the divide.
+            const hit = g.hitU / pinBoost;
+            if (g.members.length > 1) {
+              const r = sqrtRadius(g.count, max) + 4;
               const halo = r + 4;
-              const label = `${leaf.count} members across ${leaf.cities} cities`;
+              const label = `${g.count} members across ${g.members.length} cities`;
               return (
                 <g
-                  key={`c${leaf.clusterId}-${i}`}
-                  transform={`translate(${leaf.x},${leaf.y}) scale(${pinBoost / transform.k})`}
+                  key={g.key}
+                  transform={`translate(${g.x},${g.y}) scale(${pinBoost / transform.k})`}
                   className={MARKER_CLASS}
                   role="button"
                   tabIndex={0}
@@ -349,22 +411,22 @@ export function AlumniMap({
                   // its count is already printed inside the disc.
                   onPointerEnter={(e) =>
                     e.pointerType === "mouse" &&
-                    setTip({ id: leaf.clusterId, mx: leaf.x, my: leaf.y, label })
+                    setTip({ id: g.key, mx: g.x, my: g.y, label })
                   }
                   onPointerLeave={dismissTip}
                   onClick={() => {
                     dismissTip();
-                    onClusterClick(leaf);
+                    onClusterClick(g);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       dismissTip();
-                      onClusterClick(leaf);
+                      onClusterClick(g);
                     }
                   }}
                 >
-                  <circle r={Math.max(halo, tapR)} fill="transparent" style={HIT_STYLE} />
+                  <circle r={hit} fill="transparent" style={HIT_STYLE} />
                   <circle r={halo} fill="#3F7CA6" opacity={0.18} />
                   <circle r={r} fill="#3F7CA6" opacity={0.92} stroke="#fff" strokeWidth={1.5} />
                   <text
@@ -374,21 +436,20 @@ export function AlumniMap({
                     fontWeight={700}
                     fill="#fff"
                   >
-                    {leaf.count}
+                    {g.count}
                   </text>
                   <circle r={halo} className={RING_CLASS} fill="none" stroke="#235C49" strokeWidth={2} />
                 </g>
               );
             }
-            const r = sqrtRadius(leaf.pin.count, max);
+            const pin = pins[g.members[0]];
+            const r = sqrtRadius(pin.count, max);
             const halo = r + 3;
-            const title = `${leaf.pin.city} - ${leaf.pin.count} ${
-              leaf.pin.count === 1 ? "member" : "members"
-            }`;
+            const title = `${pin.city} - ${pin.count} ${pin.count === 1 ? "member" : "members"}`;
             return (
               <g
-                key={`p${leaf.pin.city}-${i}`}
-                transform={`translate(${leaf.x},${leaf.y}) scale(${pinBoost / transform.k})`}
+                key={g.key}
+                transform={`translate(${g.x},${g.y}) scale(${pinBoost / transform.k})`}
                 className={MARKER_CLASS}
                 role="button"
                 tabIndex={0}
@@ -398,20 +459,20 @@ export function AlumniMap({
                 // was pure duplication (owner call, 2026-07).
                 onClick={() => {
                   dismissTip();
-                  setDrill({ title, people: leaf.pin.people });
+                  setDrill({ title, people: pin.people });
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     dismissTip();
-                    setDrill({ title, people: leaf.pin.people });
+                    setDrill({ title, people: pin.people });
                   }
                 }}
               >
-                <circle r={Math.max(halo, tapR)} fill="transparent" style={HIT_STYLE} />
+                <circle r={hit} fill="transparent" style={HIT_STYLE} />
                 <circle r={halo} fill="#1F8A4C" opacity={0.18} />
                 <circle r={r} fill="#1F8A4C" opacity={0.9} stroke="#fff" strokeWidth={1.25} />
-                {leaf.pin.count >= 2 && r > 11 && (
+                {pin.count >= 2 && r > 11 && (
                   <text
                     textAnchor="middle"
                     dy="0.34em"
@@ -419,7 +480,7 @@ export function AlumniMap({
                     fontWeight={700}
                     fill="#fff"
                   >
-                    {leaf.pin.count}
+                    {pin.count}
                   </text>
                 )}
                 <circle r={halo} className={RING_CLASS} fill="none" stroke="#235C49" strokeWidth={2} />
@@ -462,19 +523,37 @@ export function AlumniMap({
         <button
           type="button"
           aria-label="Zoom in"
-          onClick={() => zoomTo(W / 2, H / 2, Math.min(MAX_Z, transform.k * 1.6))}
-          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-lg font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          onClick={() => zoomStep(ZOOM_STEP)}
+          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-lg font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           +
         </button>
         <button
           type="button"
           aria-label="Zoom out"
-          onClick={() => zoomTo(W / 2, H / 2, Math.max(MIN_Z, transform.k / 1.6))}
-          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-lg font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          onClick={() => zoomStep(1 / ZOOM_STEP)}
+          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-lg font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           &minus;
         </button>
+        {/* Back to the whole world. Earned by the new zoom range: the ceiling is
+            now whatever this data set needs to pull its tightest pair of cities
+            apart (hundreds, not 12), so walking back out on the minus button
+            alone would take ten presses. Hidden at rest, when it would say
+            nothing the map is not already showing. */}
+        {transform.k > MIN_Z + 1e-6 && (
+          <button
+            type="button"
+            aria-label="Reset the view to the whole world"
+            onClick={() => {
+              dismissTip();
+              zoomTo(W / 2, H / 2, MIN_Z);
+            }}
+            className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-sm backdrop-blur transition-transform state-layer active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <Globe className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <button
@@ -484,7 +563,7 @@ export function AlumniMap({
           setFullscreen((v) => !v);
         }}
         aria-label={fullscreen ? "Exit full screen" : "View full screen"}
-        className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/95 py-1.5 pl-2.5 pr-3 text-[12px] font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+        className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/95 py-1.5 pl-2.5 pr-3 text-[12px] font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {fullscreen ? <X className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         {fullscreen ? "Close" : "Full screen"}
@@ -504,7 +583,7 @@ export function AlumniMap({
             setFullscreen(false);
           }}
           aria-label="Exit full screen"
-          className="absolute z-30 grid h-11 w-11 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-md backdrop-blur transition-transform state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 sm:hidden"
+          className="absolute z-30 grid h-11 w-11 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-md backdrop-blur transition-transform state-layer active:scale-95 sm:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           style={{
             top: "max(0.75rem, env(safe-area-inset-top))",
             right: "max(0.75rem, env(safe-area-inset-right))",
@@ -523,7 +602,7 @@ export function AlumniMap({
               people: unmappedPeople,
             })
           }
-          className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/90 py-1 pl-2.5 pr-3 text-[12px] text-muted-foreground backdrop-blur transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/90 py-1 pl-2.5 pr-3 text-[12px] text-muted-foreground backdrop-blur transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <MapPin className="h-3 w-3" />
           {unmapped} not yet on the map
@@ -558,9 +637,24 @@ export function AlumniMap({
           document.body
         )}
 
-      {/* City drilldown: a bottom sheet, the same on every viewport. */}
+      {/* City drilldown: a side panel, the same on every viewport.
+          It rides the shared Sheet's mechanics but NOT its Float-white
+          surface. Float #FFFFFF is reserved for floating menus and dialogs
+          (DESIGN-SYSTEM section 2); this is a content region attached to the
+          map, the same kind of thing as the cards behind it, so it takes the
+          normal card treatment: bg-card, hairline border, 16px radius.
+          Owner, 2026-08-02: "when you click on a city in directory now it
+          shows it against a white background. that doesn't look good ... in
+          directory for example we want it to be on the sidebar showing who's
+          in what city."
+          rounded-l only: the right edge is pinned to the viewport, so a radius
+          there would just leak slivers of the scrim. Same convention as the
+          bottom sheets, which round their top edge alone (filter-sheet.tsx). */}
       <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto rounded-l-[var(--radius)] bg-card sm:max-w-md"
+        >
           <SheetHeader>
             <SheetTitle className="font-heading text-xl tracking-tight">
               {drill?.title}
@@ -579,7 +673,7 @@ export function AlumniMap({
                   // state-layer: these rows sit on the sheet's own surface,
                   // where the accent swap was at or below the just-noticeable
                   // threshold. The layer reads the same on every surface.
-                  className="group block rounded-[var(--radius-md)] px-2 py-2 state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  className="group block rounded-[var(--radius-md)] px-2 py-2 state-layer active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <IdentityRow
                     user={{ id: p.id, name: p.name, photoUrl: p.photoUrl, birdOverride: p.birdOverride }}

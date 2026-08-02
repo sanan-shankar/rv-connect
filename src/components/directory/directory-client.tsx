@@ -6,6 +6,7 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { AnimatePresence, motion } from "motion/react";
 import { Search, SlidersHorizontal, ArrowLeft } from "lucide-react";
 import { SPRINGS } from "@/components/common/motion";
+import { SegmentedPills } from "@/components/common/segmented-pills";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -365,7 +366,7 @@ export function DirectoryClient({
               // and must not be expressed by the same wash as hover. Swapping
               // bg-secondary for bg-accent moved this pill one ladder rung,
               // which on the tan page is under the noticeable threshold.
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <SlidersHorizontal className="size-3.5" aria-hidden />
               More filters
@@ -375,7 +376,7 @@ export function DirectoryClient({
               <button
                 type="button"
                 onClick={clearAll}
-                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40"
+                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
               >
                 Clear all
               </button>
@@ -416,7 +417,7 @@ export function DirectoryClient({
           <button
             type="button"
             onClick={() => setSheetOpen(true)}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <SlidersHorizontal className="size-3.5" aria-hidden />
             Filters
@@ -441,31 +442,21 @@ export function DirectoryClient({
 
       {/* View toggle. People (results) appears only while filtering; the map and
           batches stay available so an active filter narrows the map in place
-          instead of abandoning it for a flat grid. */}
-      <div className="mb-4 inline-flex rounded-full border border-border bg-card p-1">
-        {views.map((v) => (
-          <button
-            key={v}
-            onClick={() => setBrowseView(v)}
-            className={`relative rounded-full px-4 py-1.5 text-[13px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] ${
-              browseView === v
-                ? "text-canopy"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {browseView === v && (
-              <motion.span
-                layoutId="directoryViewThumb"
-                className="absolute inset-0 z-0 rounded-full border-[1.5px] border-canopy bg-background"
-                transition={SPRINGS.snappy}
-              />
-            )}
-            <span className="relative z-10">
-              {v === "map" ? "Map" : v === "batches" ? "Batches" : "People"}
-            </span>
-          </button>
-        ))}
-      </div>
+          instead of abandoning it for a flat grid. Canopy-filled thumb, same
+          control as the profile Writing switcher (owner, 2026-08-02): this used
+          to draw a canopy OUTLINE thumb, which is the one other place besides
+          signup that read as a different control from everywhere else. */}
+      <SegmentedPills
+        ariaLabel="Browse view"
+        layoutId="directoryView focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        segments={views.map((v) => ({
+          key: v,
+          label: v === "map" ? "Map" : v === "batches" ? "Batches" : "People",
+        }))}
+        value={browseView}
+        onChange={setBrowseView}
+        className="mb-4 bg-card"
+      />
 
       {browseView === "people" ? (
         <div>
@@ -562,7 +553,7 @@ export function DirectoryClient({
                     <button
                       key={c.city}
                       onClick={() => updateFilters("city", c.city)}
-                      className="flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-[13px] text-foreground transition-[colors,transform] state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                      className="flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-[13px] text-foreground transition-[colors,transform] state-layer active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                       <span className="font-medium">{c.city}</span>
                       <span className="text-muted-foreground">{c.count}</span>
@@ -579,7 +570,7 @@ export function DirectoryClient({
             <button
               key={year}
               onClick={() => updateFilters("year", String(year))}
-              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[colors,transform] duration-200 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[colors,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span className="font-heading text-lg font-bold tracking-tight text-foreground group-hover:text-primary">
                 &apos;{String(year).slice(-2)}
@@ -592,7 +583,7 @@ export function DirectoryClient({
           {facultyCount > 0 && (
             <button
               onClick={() => updateFilters("year", "faculty")}
-              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[colors,transform] duration-200 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[colors,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span className="font-heading text-base font-bold tracking-tight text-foreground group-hover:text-primary">
                 Faculty
