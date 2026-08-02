@@ -503,7 +503,7 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
                     // hover:bg-accent measured +2.06 dL* and read as nothing.
                     // state-layer tints instead of swapping the fill, so the
                     // canopy border hint still has something to sit against.
-                    className="rounded-full border border-border bg-card px-3 py-1.5 text-[12px] font-semibold text-foreground transition-[colors,transform] duration-150 state-layer hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+                    className="rounded-full border border-border bg-card px-3 py-1.5 text-[12px] font-semibold text-foreground transition-[colors,transform] duration-150 state-layer hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     {p}
                   </button>

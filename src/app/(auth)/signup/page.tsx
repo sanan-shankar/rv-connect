@@ -268,7 +268,7 @@ export default function SignupPage() {
         </div>
         <Link
           href="/"
-          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:left-16"
+          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white lg:left-16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
         >
           <Wordmark markClassName="text-white" textClassName="block" />
@@ -282,7 +282,7 @@ export default function SignupPage() {
       <div className="flex min-h-screen flex-col bg-background px-[var(--space-l)] py-[var(--space-l)]">
         <Link
           href="/"
-          className="inline-flex items-center gap-1 self-start rounded-sm text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="inline-flex items-center gap-1 self-start rounded-sm text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <ArrowLeft className="h-4 w-4" />
           Back

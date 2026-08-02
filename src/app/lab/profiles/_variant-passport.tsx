@@ -276,7 +276,7 @@ function ChangePhotoButton() {
   return (
     <button
       type="button"
-      className="absolute bottom-[var(--space-s)] right-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full border border-border bg-paper px-3 py-1.5 text-[12.5px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy hover:bg-canopy hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+      className="absolute bottom-[var(--space-s)] right-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full border border-border bg-paper px-3 py-1.5 text-[12.5px] font-semibold text-foreground transition-[colors,transform] duration-150 hover:border-canopy hover:bg-canopy hover:text-white active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <Camera className="h-3.5 w-3.5" aria-hidden />
       Change photo

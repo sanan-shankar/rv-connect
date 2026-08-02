@@ -49,14 +49,14 @@ export function LandingNav() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
         <Link
           href="/"
-          className="flex items-center gap-2.5 rounded-md outline-none transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-leaf/50 active:scale-[0.98]"
+          className="flex items-center gap-2.5 rounded-md outline-none transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
         >
           <Wordmark variant="light" textClassName="text-foreground" />
         </Link>
         <div className="flex items-center gap-1.5 sm:gap-3">
           <Link
             href="/login"
-            className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 active:scale-[0.98] sm:inline-flex"
+            className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:text-leaf active:scale-[0.98] sm:inline-flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             Sign in
           </Link>
@@ -64,7 +64,7 @@ export function LandingNav() {
             href="/signup"
             // 1.14 / 0.88, in lockstep with CANOPY_FILL (ui/button.tsx) and
             // the footer's Join CTA. Was 1.08 (+2.80 dL*, near the JND).
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] active:brightness-[0.88]"
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-[1.14] active:scale-[0.97] active:brightness-[0.88] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           >
             Join
           </Link>

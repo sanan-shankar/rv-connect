@@ -336,7 +336,7 @@ function PhotoPlate({ profile }: { profile: MockProfile }) {
               colour change only. */}
           <button
             type="button"
-            className="absolute bottom-[var(--space-s)] left-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors duration-150 hover:bg-[rgba(35,36,30,0.88)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.96]"
+            className="absolute bottom-[var(--space-s)] left-[var(--space-s)] inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors duration-150 hover:bg-[rgba(35,36,30,0.88)] active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             style={{ backgroundColor: "rgba(35,36,30,0.7)" }}
           >
             <Camera className="h-3.5 w-3.5" aria-hidden />
@@ -393,7 +393,7 @@ function FolderTab({
         // The ring is inset because the tab is clipped to the folder silhouette:
         // an outset ring would be cut off by the clip path and the focus state
         // would half disappear.
-        "relative shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11px] font-bold uppercase tracking-[0.09em] outline-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-inset sm:px-6 sm:text-[13px]",
+        "relative shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11px] font-bold uppercase tracking-[0.09em] outline-none transition-colors duration-150 sm:px-6 sm:text-[13px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         active
           ? "z-10 -mb-px bg-card text-foreground"
           : "state-layer z-0 bg-mist text-muted-foreground hover:text-foreground"
@@ -674,7 +674,7 @@ export default function TerraceVariant({ profile }: ProfileVariantProps) {
               <button
                 type="button"
                 onClick={() => setTab("letters")}
-                className="state-layer w-full rounded-[var(--radius-md)] border border-border bg-mist/60 p-3.5 text-left transition-[border-color,transform] duration-150 hover:border-cinnamon/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                className="state-layer w-full rounded-[var(--radius-md)] border border-border bg-mist/60 p-3.5 text-left transition-[border-color,transform] duration-150 hover:border-cinnamon/45 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <span className="block text-[15px] font-semibold leading-snug text-foreground">
                   {latestLetter.title}

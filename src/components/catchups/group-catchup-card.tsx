@@ -87,7 +87,7 @@ const ICON_MEDALLION_CINNAMON = "grid h-11 w-11 shrink-0 place-items-center roun
 // border tint on a ~180px tall surface. The layer also gives it the press state
 // it never had. The canopy border hint stays as the colour cue.
 const CARD_SHELL =
-  "card-elevated group relative flex flex-col gap-4 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-5 transition-colors duration-150 state-layer hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+  "card-elevated group relative flex flex-col gap-4 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-5 transition-colors duration-150 state-layer hover:border-canopy/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 const CTA_PILL =
   "relative inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full bg-canopy px-4 py-2 text-[13px] font-semibold text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 group-hover:brightness-[1.08]";
 

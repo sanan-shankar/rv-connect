@@ -79,7 +79,7 @@ export function LoveButton({
       // same weight in the photo viewer and the Collection, which sit on
       // different surfaces. It paints a background-IMAGE, so it composites
       // over the card instead of replacing it, and it cannot touch the heart.
-      className={`state-layer inline-flex items-center ${gap} rounded-full ${padding} text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+      className={`state-layer inline-flex items-center ${gap} rounded-full ${padding} text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
         liked ? "text-heart" : "hover:text-foreground"
       } ${className}`}
     >

@@ -204,7 +204,7 @@ export function SearchPill() {
               onClick={() => setOpen(true)}
               aria-label="Search posts"
               aria-expanded={open}
-              className="state-layer absolute inset-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="state-layer absolute inset-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
           )}
         </AnimatePresence>

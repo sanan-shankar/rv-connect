@@ -56,6 +56,7 @@ import { ProfileAuthorFeed } from "@/components/profile/profile-author-feed";
 import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { SPRINGS, EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
+import { SegmentedPills } from "@/components/common/segmented-pills";
 import type { HouseSpan } from "@/lib/house-spans";
 
 /* A faint grain so the sheet reads as paper, not a flat fill. */
@@ -280,7 +281,7 @@ export function LetterheadProfile({
                         type="button"
                         onClick={fireStamp}
                         aria-label={`Admission number ${admissionNumber}. Press to stamp the sheet.`}
-                        className="flex h-[var(--lh-colophon)] w-fit items-center gap-1.5 rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-60"
+                        className="flex h-[var(--lh-colophon)] w-fit items-center gap-1.5 rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
                         <PeaksMark size={15} />
                         <span className="text-[11px] font-bold uppercase tracking-[0.2em]">
@@ -367,7 +368,7 @@ export function LetterheadProfile({
                   ) : (
                     <p className="mt-[var(--space-s)] text-[15px] leading-[1.7] text-muted-foreground">
                       You haven&rsquo;t written an About yet.{" "}
-                      <Link href="/settings" className="font-semibold text-leaf hover:underline">
+                      <Link href="/settings" className="rounded-sm font-semibold text-leaf hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                         Add a few lines
                       </Link>{" "}
                       so people know who you are now.
@@ -433,7 +434,7 @@ function PerchedBird({ user }: { user: LetterheadProfileUser }) {
         type="button"
         onClick={() => setChirp((c) => c + 1)}
         aria-label={`${user.name}'s bird. Tap for a chirp.`}
-        className="relative block rounded-full outline-none transition-transform duration-150 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
+        className="relative block rounded-full outline-none transition-transform duration-150 active:scale-[0.95] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <motion.span
           key={chirp}
@@ -527,47 +528,15 @@ function Writing({
 
   return (
     <div className="mt-[var(--space-l)] sm:mt-[var(--space-xl)]">
-      <div
-        role="tablist"
-        aria-label="Profile sections"
-        className="inline-flex w-fit max-w-full items-center gap-1 rounded-full border border-border bg-card p-1"
+      <SegmentedPills
+        ariaLabel="Profile sections"
+        layoutId="profileWriting"
+        segments={TABS}
+        value={tab}
+        onChange={setTab}
+        className="bg-card"
         style={{ boxShadow: "0 1px 2px rgba(35,36,30,0.04), 0 10px 24px -20px rgba(35,36,30,0.5)" }}
-      >
-        {TABS.map((t) => {
-          const active = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(t.key)}
-              className={`relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] sm:px-4 ${
-                active ? "text-white" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {active && (
-                <motion.span
-                  layoutId="profileWritingThumb"
-                  aria-hidden
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={SPRINGS.snappy}
-                  className="absolute inset-0 rounded-full bg-canopy shadow-[0_5px_13px_-12px_var(--color-canopy)]"
-                />
-              )}
-              <span className="relative">{t.label}</span>
-              <span
-                className={`relative text-[11.5px] font-semibold tabular-nums ${
-                  active ? "text-white/70" : "text-muted-foreground/60"
-                }`}
-              >
-                {t.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      />
 
       {/* Nothing wraps the tiles. */}
       <div className="mt-[var(--space-m)]">

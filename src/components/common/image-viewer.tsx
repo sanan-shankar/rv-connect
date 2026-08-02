@@ -243,7 +243,7 @@ export function ImageViewer({
               <Link
                 href={current.href}
                 aria-label="Open this photo's page"
-                className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 <ArrowUpRight className="h-[18px] w-[18px]" />
               </Link>
@@ -252,7 +252,7 @@ export function ImageViewer({
               type="button"
               onClick={download}
               aria-label="Download photo"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               <Download className="h-[18px] w-[18px]" />
             </button>
@@ -260,7 +260,7 @@ export function ImageViewer({
               type="button"
               onClick={onClose}
               aria-label="Close viewer"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/12 hover:text-white active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               <X className="h-[18px] w-[18px]" />
             </button>
@@ -323,7 +323,7 @@ export function ImageViewer({
               onClick={() => step(-1)}
               aria-label="Previous photo"
               className={cn(
-                "absolute left-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-150 hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95 sm:flex",
+                "absolute left-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-150 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
                 chromeHidden && "pointer-events-none opacity-0"
               )}
             >
@@ -336,7 +336,7 @@ export function ImageViewer({
               onClick={() => step(1)}
               aria-label="Next photo"
               className={cn(
-                "absolute right-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-150 hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95 sm:flex",
+                "absolute right-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/85 transition-[background-color,opacity] duration-150 hover:bg-white/20 hover:text-white active:scale-95 sm:flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
                 chromeHidden && "pointer-events-none opacity-0"
               )}
             >
@@ -370,7 +370,7 @@ export function ImageViewer({
               onClick={() => setCaptionOpen((c) => !c)}
               aria-expanded={captionOpen}
               className={cn(
-                "ml-auto flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95",
+                "ml-auto flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-colors duration-150 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
                 captionOpen
                   ? "bg-white/90 text-ink"
                   : "bg-white/10 text-white/85 hover:bg-white/20 hover:text-white"
@@ -402,7 +402,7 @@ export function ImageViewer({
                   type="button"
                   onClick={() => setCaptionOpen(false)}
                   aria-label="Close caption"
-                  className="mx-auto mb-3 block h-1.5 w-10 rounded-full bg-white/25 transition-colors duration-150 hover:bg-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  className="mx-auto mb-3 block h-1.5 w-10 rounded-full bg-white/25 transition-colors duration-150 hover:bg-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 />
                 <p className="text-[15px] leading-[1.65] text-white/92">{current.caption}</p>
                 {(current.author || current.date) && (

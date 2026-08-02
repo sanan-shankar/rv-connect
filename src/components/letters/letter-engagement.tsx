@@ -86,7 +86,7 @@ export function LetterEngagement({
             onClick={() => setShowModeration(true)}
             aria-label="Remove letter (admin)"
             title="Remove letter (admin)"
-            className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+            className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <ShieldAlert className="h-4 w-4" />
           </button>

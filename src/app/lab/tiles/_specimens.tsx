@@ -279,7 +279,7 @@ function InsetLiveRow({
       </div>
       <button
         type="button"
-        className="shrink-0 rounded-full bg-[#235C49] px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1E5040] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+        className="shrink-0 rounded-full bg-[#235C49] px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1E5040] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
       >
         {cta}
       </button>
@@ -323,7 +323,7 @@ export function CatchupsInset() {
             <button
               key={g}
               type="button"
-              className="state-layer rounded-full border border-border bg-card px-3 py-1 text-[12px] font-semibold text-foreground transition-[border-color,transform] duration-150 hover:border-canopy/50 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+              className="state-layer rounded-full border border-border bg-card px-3 py-1 text-[12px] font-semibold text-foreground transition-[border-color,transform] duration-150 hover:border-canopy/50 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
             >
               {g}
             </button>
@@ -444,7 +444,7 @@ export function LettersRuled() {
           <a
             href="#lead"
             onClick={(e) => e.preventDefault()}
-            className="rounded-sm transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+            className="rounded-sm transition-colors duration-150 hover:text-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             {lead.title}
           </a>
@@ -472,7 +472,7 @@ export function LettersRuled() {
             href="#entry"
             onClick={(e) => e.preventDefault()}
             className={cn(
-              "rounded-sm font-heading font-bold leading-[1.22] tracking-[-0.015em] text-foreground transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+              "rounded-sm font-heading font-bold leading-[1.22] tracking-[-0.015em] text-foreground transition-colors duration-150 hover:text-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
               i === 0 ? "text-[19px]" : "text-[17px]",
             )}
           >
@@ -507,7 +507,7 @@ function ShippedCard({ title, children }: { title: string; children: ReactNode }
 }
 
 const INPUT =
-  "h-10 w-full rounded-[12px] border border-border bg-background px-3 text-[14px] text-foreground outline-none transition-colors duration-150 focus:border-leaf/60 focus-visible:ring-2 focus-visible:ring-leaf/40";
+  "h-10 w-full rounded-[12px] border border-border bg-background px-3 text-[14px] text-foreground outline-none transition-colors duration-150 focus:border-leaf/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf";
 
 export function SettingsShipped() {
   return (
@@ -530,7 +530,7 @@ export function SettingsShipped() {
                 </p>
                 <button
                   type="button"
-                  className="state-layer rounded-full border border-border bg-card px-3.5 py-1.5 text-[13px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+                  className="state-layer rounded-full border border-border bg-card px-3.5 py-1.5 text-[13px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
                 >
                   Upload photo
                 </button>
@@ -553,7 +553,7 @@ export function SettingsShipped() {
                 </p>
                 <button
                   type="button"
-                  className="state-layer shrink-0 rounded-full border border-border bg-card px-3.5 py-1.5 text-[13px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+                  className="state-layer shrink-0 rounded-full border border-border bg-card px-3.5 py-1.5 text-[13px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
                 >
                   Upload header
                 </button>
@@ -637,7 +637,7 @@ export function SettingsInset() {
           <BirdAvatar user={PEOPLE[5]} size="sm" />
           <button
             type="button"
-            className="state-layer rounded-full border border-border bg-card px-3.5 py-1.5 text-[12.5px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+            className="state-layer rounded-full border border-border bg-card px-3.5 py-1.5 text-[12.5px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             Upload
           </button>
@@ -648,7 +648,7 @@ export function SettingsInset() {
           </div>
           <button
             type="button"
-            className="state-layer rounded-full border border-border bg-card px-3.5 py-1.5 text-[12.5px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+            className="state-layer rounded-full border border-border bg-card px-3.5 py-1.5 text-[12.5px] font-semibold text-foreground transition-transform duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             Upload
           </button>
@@ -756,7 +756,7 @@ export function NScaling() {
               type="button"
               onClick={() => setN(o)}
               className={cn(
-                "rounded-full px-4 py-1.5 text-[12.5px] font-semibold tabular-nums transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+                "rounded-full px-4 py-1.5 text-[12.5px] font-semibold tabular-nums transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
                 n === o ? "bg-[#235C49] text-white" : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -1047,7 +1047,7 @@ export function Scorer() {
             className={cn(
               // state-layer on the base tints the selected canopy chip and the
               // idle one by the same amount; selection stays the canopy fill.
-              "state-layer rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-[border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+              "state-layer rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition-[border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
               k === x.k
                 ? "border-transparent bg-[#235C49] text-white"
                 : "border-border bg-card text-muted-foreground hover:text-foreground",
@@ -1070,7 +1070,7 @@ export function Scorer() {
                   type="button"
                   onClick={() => toggle(g.k)}
                   aria-pressed={pass}
-                  className="state-layer flex w-full gap-4 rounded-lg px-2 py-4 text-left transition-transform duration-150 active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+                  className="state-layer flex w-full gap-4 rounded-lg px-2 py-4 text-left transition-transform duration-150 active:scale-[0.995] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
                 >
                   <span
                     className={cn(
@@ -1144,7 +1144,7 @@ export function Scorer() {
               <button
                 type="button"
                 onClick={() => setFlips({})}
-                className="mt-3.5 rounded-full border border-current/30 px-3 py-1 text-[11.5px] font-bold uppercase tracking-[0.1em] transition-[background-color,transform] duration-150 hover:bg-current/10 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+                className="mt-3.5 rounded-full border border-current/30 px-3 py-1 text-[11.5px] font-bold uppercase tracking-[0.1em] transition-[background-color,transform] duration-150 hover:bg-current/10 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
               >
                 Back to my score
               </button>

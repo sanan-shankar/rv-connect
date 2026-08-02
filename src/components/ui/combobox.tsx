@@ -71,7 +71,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
         // hover:bg-accent that was invisible on the Float-white input group it
         // sits in); the text still darkens to foreground on top of it, and
         // active:scale-90 stays because a press MAY move, only hover may not.
-        "state-layer grid shrink-0 place-items-center rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 [&_svg]:size-3.5",
+        "state-layer grid shrink-0 place-items-center rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 hover:text-foreground active:scale-90 [&_svg]:size-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className
       )}
       {...props}

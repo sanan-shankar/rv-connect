@@ -60,7 +60,7 @@ export function IdentityRow({
           href={avatarHref}
           aria-label={avatarLabel ?? user.name ?? "Member profile"}
           className={cn(
-            "inline-flex shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70",
+            "inline-flex shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             avatarLinkClassName
           )}
         >

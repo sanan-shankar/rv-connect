@@ -111,7 +111,7 @@ export function SupportContribute() {
                   className={cn(
                     "inline-flex items-center gap-[var(--space-xxs)] rounded-full border px-[var(--space-m)] py-[var(--space-s)] text-sm font-semibold tabular-nums",
                     "transition-[transform,background-color,border-color,color] duration-150 ease-out",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
+                    "active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     // Selected keeps its sky wash (semantic). The idle chip
                     // hovered from bg-card to bg-mist, one rung and ~2 dL*,
                     // so the neutral half is the state layer now.
@@ -137,7 +137,7 @@ export function SupportContribute() {
             "group inline-flex h-12 w-full items-center justify-center gap-[var(--space-s)] rounded-full bg-sky px-[var(--space-l)] text-[15px] font-semibold text-white sm:w-auto",
             "shadow-[0_6px_16px_-12px_var(--color-sky)]",
             "transition-[transform,filter] duration-150 ease-out",
-            "hover:brightness-[1.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card active:scale-[0.98]",
+            "hover:brightness-[1.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky",
           )}
         >
           Open my UPI app

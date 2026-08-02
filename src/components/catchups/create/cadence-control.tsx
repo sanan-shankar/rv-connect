@@ -18,7 +18,7 @@
  * ------------------------------------------------------------------ */
 
 import { motion } from "motion/react";
-import { SPRINGS } from "@/components/common/motion";
+import { EASE_SEGMENT_GLIDE, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import type { Cadence } from "@/lib/catchups-types";
 
@@ -49,7 +49,7 @@ export function CadenceControl({
             aria-checked={active}
             onClick={() => onChange(opt)}
             className={cn(
-              "relative rounded-full px-4 py-1.5 text-[13px] font-semibold transition-[color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
+              "relative rounded-full px-4 py-1.5 text-[13px] font-semibold transition-[color,transform] duration-200 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               active ? "text-white" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -59,7 +59,13 @@ export function CadenceControl({
                 aria-hidden
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={SPRINGS.snappy}
+                // Not SegmentedPills: this track wraps to a second line on a
+                // narrow create-form (`flex-wrap`), which the shared component
+                // deliberately doesn't support (see its file header). Same
+                // no-bounce curve as every other segmented pill though, so
+                // this one doesn't stand out as the control that still bounces
+                // (owner, 2026-08-02).
+                transition={{ duration: SEGMENT_GLIDE_SECONDS, ease: EASE_SEGMENT_GLIDE }}
                 className="absolute inset-0 rounded-full bg-canopy shadow-[0_5px_13px_-12px_var(--color-canopy)]"
               />
             )}

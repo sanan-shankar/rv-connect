@@ -32,7 +32,7 @@ function Tile({ photo, onOpen }: { photo: PhotoData; onOpen: () => void }) {
       // Hover is the caption scrim below, so no state-layer here (a tint over
       // a photograph is noise). The press only needed an answer: opacity, not
       // a transform, because the tile must not move under the cursor.
-      className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper text-left transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-90"
+      className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper text-left transition-opacity duration-150 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -264,7 +264,7 @@ export function CollectionClient({
               <button
                 type="button"
                 onClick={clearAll}
-                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40"
+                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
               >
                 Clear all
               </button>
@@ -303,7 +303,7 @@ export function CollectionClient({
               // Same pill as the Directory's Filters button, same fix: the
               // bg-secondary to bg-accent swap was one ladder rung and read as
               // nothing, so the neutral hover is the state layer now.
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <SlidersHorizontal className="size-3.5" aria-hidden />
               Filters

@@ -35,7 +35,7 @@ export function RoundFooterTease({
       {nextLabel && <p className="text-sm text-muted-foreground">Next Round opens {nextLabel}.</p>}
       <Link
         href={`/catchups/${catchupId}`}
-        className="mt-[var(--space-xs)] inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-leaf hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+        className="mt-[var(--space-xs)] inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-leaf hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to the Catch-up

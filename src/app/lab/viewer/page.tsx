@@ -68,7 +68,7 @@ export default function ViewerRoom() {
       <header className="glass sticky top-0 z-[var(--z-elevated)] flex items-center gap-4 border-b border-border px-6 py-3">
         <Link
           href="/lab"
-          className="state-layer inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+          className="state-layer inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <PeaksMark size={16} />
           Lab
@@ -93,7 +93,7 @@ export default function ViewerRoom() {
               key={thumb}
               type="button"
               onClick={() => setOpenAt(i)}
-              className="group overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="group overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -115,7 +115,7 @@ export default function ViewerRoom() {
         <button
           type="button"
           onClick={() => setSingleOpen(true)}
-          className="group mt-4 block w-56 overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="group mt-4 block w-56 overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

@@ -46,7 +46,7 @@ function PhotoWall({ entries }: { entries: RoundEntry[] }) {
           <div className="mt-[var(--space-xs)] flex items-center justify-between gap-1">
             <Link
               href={`/profile/${entry.author.id}`}
-              className="min-w-0 truncate rounded-md text-[13px] font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+              className="min-w-0 truncate rounded-md text-[13px] font-semibold text-muted-foreground hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {entry.author.name}
             </Link>

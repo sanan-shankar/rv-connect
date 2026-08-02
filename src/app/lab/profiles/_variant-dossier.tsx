@@ -226,7 +226,7 @@ function ContactRow({ link }: { link: MockLink }) {
       // was invisible anyway, one 30% step off the mist/70 it rested on.
       whileTap={{ scale: 0.97 }}
       transition={SPRINGS.snappy}
-      className="state-layer inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground hover:border-cinnamon/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="state-layer inline-flex items-center gap-2.5 rounded-full border border-border bg-mist/70 px-4 py-2 text-[13px] font-semibold text-foreground hover:border-cinnamon/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <Icon className="h-[15px] w-[15px] text-cinnamon" aria-hidden />
       {link.label}
@@ -348,7 +348,7 @@ function FolderTab({
       transition={SPRINGS.snappy}
       style={{ clipPath: TAB_CLIP }}
       className={cn(
-        "relative min-w-[72px] shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11.5px] font-bold uppercase tracking-[0.08em] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:min-w-[92px] sm:px-5 sm:text-[13px]",
+        "relative min-w-[72px] shrink-0 px-4 pb-[var(--space-xs)] pt-[var(--space-s)] text-center text-[11.5px] font-bold uppercase tracking-[0.08em] outline-none sm:min-w-[92px] sm:px-5 sm:text-[13px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         active
           ? "z-10 -mb-px bg-card text-foreground"
           : "state-layer z-0 bg-mist text-muted-foreground hover:text-foreground"

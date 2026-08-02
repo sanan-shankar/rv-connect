@@ -101,7 +101,7 @@ export function MessageQueue({
               // sits on, which is the just-noticeable floor. state-layer is a
               // translucent tint measured at ~4.4 dL* on every surface, and it
               // brings the press tint with it (the old active:bg-mist/70).
-              className="flex w-full items-start gap-3 p-4 text-left state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="flex w-full items-start gap-3 p-4 text-left state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <BirdAvatar user={t.member} size={36} className="mt-0.5" />
               <div className="min-w-0 flex-1">
@@ -187,7 +187,7 @@ export function MessageQueue({
                     )}
                     <Link
                       href={`/profile/${t.member.id}`}
-                      className="rounded-full px-2 text-[13px] font-medium text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40"
+                      className="rounded-full px-2 text-[13px] font-medium text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                     >
                       See {t.member.name.split(" ")[0]}&apos;s profile
                     </Link>

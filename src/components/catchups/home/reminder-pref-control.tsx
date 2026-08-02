@@ -10,7 +10,7 @@ import { useState } from "react";
 import { Bell } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { FadeRise, SPRINGS } from "@/components/common/motion";
+import { EASE_SEGMENT_GLIDE, FadeRise, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { setReminderPref } from "@/app/(main)/catchups/actions";
 import type { ReminderMode } from "@/lib/catchups-types";
@@ -65,7 +65,7 @@ export function ReminderPrefControl({
                   // `color`, not `colors`: `transition-[colors,...]` emits
                   // `transition-property: colors` which matches no CSS property,
                   // so the hover tint would snap instead of easing.
-                  "relative rounded-full px-2 py-1.5 text-[12px] font-medium transition-[color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
+                  "relative rounded-full px-2 py-1.5 text-[12px] font-medium transition-[color,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   selected ? "text-canopy" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -73,7 +73,14 @@ export function ReminderPrefControl({
                   <motion.span
                     layoutId="reminderPrefThumb"
                     className="absolute inset-0 z-0 rounded-full border border-canopy bg-canopy/10"
-                    transition={SPRINGS.snappy}
+                    // Not SegmentedPills: this thumb is the canopy-tint OUTLINE
+                    // treatment (border + text-canopy), not the fill/white-text
+                    // look the shared component draws, and the owner's
+                    // 2026-08-02 note only asked to defill the *outline*
+                    // controls (directory, signup), not to fill this one too.
+                    // Same no-bounce curve regardless, so it doesn't stand out
+                    // as the control that still bounces.
+                    transition={{ duration: SEGMENT_GLIDE_SECONDS, ease: EASE_SEGMENT_GLIDE }}
                   />
                 )}
                 <span className="relative z-10">{opt.label}</span>

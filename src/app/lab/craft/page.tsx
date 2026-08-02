@@ -170,7 +170,7 @@ export default function CraftRoom() {
         <button
           type="button"
           onClick={() => setFix(on === 4 ? ALL_OFF : ALL_ON)}
-          className="rounded-full bg-[#235C49] px-4 py-1.5 text-[14px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1E5040] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+          className="rounded-full bg-[#235C49] px-4 py-1.5 text-[14px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1E5040] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
         >
           {on === 4 ? "Reset to shipped" : "Turn all four on"}
         </button>
@@ -465,7 +465,7 @@ export default function CraftRoom() {
         static files a straight loss. The byte counts are in the{" "}
         <Link
           href="/lab/type"
-          className="font-semibold text-leaf underline decoration-leaf/40 underline-offset-2 transition-colors hover:decoration-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+          className="font-semibold text-leaf underline decoration-leaf/40 underline-offset-2 transition-colors hover:decoration-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
         >
           font room
         </Link>

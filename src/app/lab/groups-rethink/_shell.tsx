@@ -156,7 +156,7 @@ function Switcher({ current }: { current: ConceptSlug | "index" }) {
         <Link
           href="/lab/groups-rethink"
           className={[
-            "state-layer rounded-full px-3 py-1 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+            "state-layer rounded-full px-3 py-1 text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
             current === "index"
               ? "bg-[#235C49] text-white"
               : "text-muted-foreground hover:text-foreground",
@@ -170,7 +170,7 @@ function Switcher({ current }: { current: ConceptSlug | "index" }) {
             key={c.slug}
             href={`/lab/groups-rethink/${c.slug}`}
             className={[
-              "state-layer rounded-full px-3 py-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+              "state-layer rounded-full px-3 py-1 text-[12px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
               current === c.slug
                 ? "bg-[#235C49] text-white"
                 : "text-muted-foreground hover:text-foreground",

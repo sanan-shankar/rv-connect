@@ -51,7 +51,7 @@ export function GroupPicker({
               // active state at all). It also replaces what the arrow's
               // hover-nudge was doing: hover never moves a control, so the
               // arrow only changes colour now.
-              className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-background/50 p-4 transition-colors duration-150 state-layer hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-background/50 p-4 transition-colors duration-150 state-layer hover:border-canopy/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <div className="min-w-0">
                 <p className="truncate text-[14.5px] font-semibold text-foreground">{g.name}</p>
@@ -75,7 +75,7 @@ export function GroupPicker({
                 <Link
                   key={g.id}
                   href={`/catchups/${g.catchupId}`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3.5 py-1.5 text-[12.5px] font-semibold text-leaf transition-colors duration-150 hover:bg-leaf/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-leaf/15"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3.5 py-1.5 text-[12.5px] font-semibold text-leaf transition-colors duration-150 hover:bg-leaf/10 active:bg-leaf/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   Open {g.name}
                 </Link>

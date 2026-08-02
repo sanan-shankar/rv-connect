@@ -29,7 +29,7 @@ export function LetterImages({
             type="button"
             onClick={() => setOpenAt(i)}
             aria-label={`View photo ${i + 1} of ${images.length} full screen`}
-            className="block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-90"
+            className="block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={img} alt="" loading="lazy" className="w-full object-cover" />

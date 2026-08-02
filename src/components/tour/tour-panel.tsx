@@ -129,7 +129,7 @@ export function TourPanel({
                 type="button"
                 onClick={onSkip}
                 // Same ghost-pill pair as the offer card's "Maybe later".
-                className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[13px] font-medium text-muted-foreground state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+                className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[13px] font-medium text-muted-foreground state-layer hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 Skip
                 <X className="h-3.5 w-3.5" aria-hidden />

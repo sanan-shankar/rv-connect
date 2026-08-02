@@ -171,7 +171,7 @@ export function PostFeed({
               setSearch("");
               router.replace(pathname);
             }}
-            className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-semibold text-canopy hover:text-canopy/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-95"
+            className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-semibold text-canopy hover:text-canopy/80 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <X weight="bold" size={12} />
             Clear
@@ -205,7 +205,7 @@ export function PostFeed({
                  than replacing it, so the active-filter canopy wash survives its
                  own hover. Idle, the only hover used to be a text-colour shift
                  on a filled pill, which is not much of a target. */
-              className={`state-layer flex h-10 shrink-0 items-center gap-2 rounded-full border border-border pl-3 pr-4 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] ${
+              className={`state-layer flex h-10 shrink-0 items-center gap-2 rounded-full border border-border pl-3 pr-4 text-sm font-medium transition-colors duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
                 filtersOpen || sortBy !== "recent" || timeFilter !== "all"
                   ? "bg-canopy/10 text-canopy"
                   : "bg-card text-muted-foreground hover:text-foreground"

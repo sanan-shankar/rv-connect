@@ -92,7 +92,7 @@ function isActive(pathname: string, href: string) {
  * the shipped label at 4.31:1.
  */
 const DRAWER_ROW_CLASS =
-  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98]";
+  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring";
 
 function Brand({
   onNavigate,
@@ -105,7 +105,7 @@ function Brand({
     <Link
       href="/feed"
       onClick={onNavigate}
-      className={`flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98] ${className}`}
+      className={`flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-[0.98] ${className} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring`}
     >
       <Wordmark
         variant="two-plane"
@@ -138,7 +138,7 @@ function NavLinks({
             href={n.href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
-            className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 ${
+            className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring ${
               active
                 ? "font-semibold text-sidebar-accent-foreground"
                 : "text-sidebar-foreground-idle hover:bg-sidebar-hover hover:text-sidebar-foreground"
@@ -208,7 +208,7 @@ function UserMenu({ user }: { user: SidebarUser }) {
       <DropdownMenu>
         {/* data-popup-open keeps the trigger lit for as long as its menu is
             open, the same contract dropdown-menu.tsx gives a submenu trigger. */}
-        <DropdownMenuTrigger className="group/account flex min-w-0 flex-1 items-center rounded-xl px-1.5 py-1 text-left transition-[background-color,transform] duration-150 ease-out hover:bg-sidebar-hover data-popup-open:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98]">
+        <DropdownMenuTrigger className="group/account flex min-w-0 flex-1 items-center rounded-xl px-1.5 py-1 text-left transition-[background-color,transform] duration-150 ease-out hover:bg-sidebar-hover data-popup-open:bg-sidebar-hover active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring">
           <IdentityRow
             user={{ id: user.id, name: user.name, photoUrl: user.photoUrl, birdOverride: user.birdOverride }}
             className="w-full gap-2.5"
@@ -261,7 +261,7 @@ function UserMenu({ user }: { user: SidebarUser }) {
       <Link
         href="/settings"
         aria-label="Settings"
-        className="group grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
+        className="group grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
       >
         {/* The gear turning is the icon's own affordance inside a control that
             does not itself move, which is the one shape of hover motion the
@@ -310,7 +310,7 @@ export function Sidebar({
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger
             aria-label="Open menu"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
           >
             <Menu className="h-[22px] w-[22px]" strokeWidth={1.9} />
           </SheetTrigger>
@@ -324,7 +324,7 @@ export function Sidebar({
               <Brand onNavigate={() => setOpen(false)} />
               <SheetClose
                 aria-label="Close menu"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
               >
                 <X className="h-5 w-5" strokeWidth={2} />
               </SheetClose>

@@ -377,7 +377,7 @@ function JoinPill({ className = "", size = "default" }: { className?: string; si
   return (
     <Link
       href="/signup"
-      className={`inline-flex items-center justify-center rounded-full bg-canopy font-semibold text-white shadow-[0_5px_13px_-8px_var(--color-canopy)] transition-[filter,transform] duration-200 ease-out hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.97] ${pad} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full bg-canopy font-semibold text-white shadow-[0_5px_13px_-8px_var(--color-canopy)] transition-[filter,transform] duration-200 ease-out hover:brightness-[1.14] active:brightness-100 active:scale-[0.97] ${pad} ${className} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy`}
     >
       {HERO.ctaPrimary}
     </Link>
@@ -389,7 +389,7 @@ function SignInPill({ className = "", size = "default" }: { className?: string; 
   return (
     <Link
       href="/login"
-      className={`state-layer inline-flex items-center justify-center rounded-full border border-border bg-card font-semibold text-foreground transition-[transform,border-color] duration-200 ease-out hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] ${pad} ${className}`}
+      className={`state-layer inline-flex items-center justify-center rounded-full border border-border bg-card font-semibold text-foreground transition-[transform,border-color] duration-200 ease-out hover:border-leaf/50 active:scale-[0.97] ${pad} ${className} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf`}
     >
       {HERO.ctaSecondary}
     </Link>
@@ -408,20 +408,20 @@ function Nav() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
         <Link
           href="/"
-          className="flex items-center gap-2.5 rounded-md outline-none transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-leaf/50 active:scale-[0.98]"
+          className="flex items-center gap-2.5 rounded-md outline-none transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
         >
           <Wordmark variant="light" textClassName="text-foreground" />
         </Link>
         <div className="flex items-center gap-1.5 sm:gap-3">
           <Link
             href="/login"
-            className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 active:scale-[0.98] sm:inline-flex"
+            className="hidden rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:text-leaf active:scale-[0.98] sm:inline-flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             {NAV.signIn}
           </Link>
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-[0_5px_13px_-8px_var(--color-canopy)] transition-[filter,transform] duration-150 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.97]"
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-[0_5px_13px_-8px_var(--color-canopy)] transition-[filter,transform] duration-150 hover:brightness-[1.14] active:brightness-100 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           >
             {NAV.join}
           </Link>

@@ -60,7 +60,7 @@ export function PollCreator({
              so it takes the shared state layer rather than the destructive wash
              the per-option X below carries. transition-colors stays for the text
              colour; the state layer itself paints on the first frame. */
-          className="state-layer rounded-full p-1 text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+          className="state-layer rounded-full p-1 text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <X className="h-4 w-4" />
         </button>
@@ -88,7 +88,7 @@ export function PollCreator({
               onClick={() => removeOption(i)}
               disabled={options.length <= MIN_OPTIONS}
               aria-label={`Remove option ${i + 1}`}
-              className="rounded-full p-1 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 disabled:pointer-events-none disabled:opacity-0"
+              className="rounded-full p-1 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-90 disabled:pointer-events-none disabled:opacity-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <X className="h-4 w-4" />
             </button>

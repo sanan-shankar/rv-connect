@@ -246,7 +246,7 @@ export default function LetterheadVariant({ profile }: ProfileVariantProps) {
                     <SpringPress
                       key={link.kind}
                       as="a"
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/50 px-3.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/50 px-3.5 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       {...({ href: link.href, target: "_blank", rel: "noreferrer noopener" } as object)}
                     >
                       {link.kind === "instagram" ? (
@@ -286,7 +286,7 @@ export default function LetterheadVariant({ profile }: ProfileVariantProps) {
                         key={t.key}
                         as="button"
                         onClick={() => setTab(t.key)}
-                        className={`relative shrink-0 px-3 py-2.5 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:px-3.5 ${
+                        className={`relative shrink-0 px-3 py-2.5 text-[13px] font-semibold sm:px-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
                           isActive ? "text-canopy" : "text-muted-foreground hover:text-foreground"
                         }`}
                         {...({ role: "tab", "aria-selected": isActive } as object)}
@@ -419,7 +419,7 @@ function EntryRow({
             <SpringPress
               as="button"
               onClick={onToggleExpand}
-              className="group block w-full rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="group block w-full rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               {...({ "aria-expanded": expanded } as object)}
             >
               <div className="flex items-start justify-between gap-3">
@@ -472,7 +472,7 @@ function EntryRow({
               <SpringPress
                 as="button"
                 onClick={() => setShowFull(true)}
-                className="mt-1 inline-block rounded-sm text-sm font-medium text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="mt-1 inline-block rounded-sm text-sm font-medium text-leaf focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 Read more
               </SpringPress>

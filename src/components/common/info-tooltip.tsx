@@ -36,7 +36,7 @@ export function InfoTooltip({
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-transform duration-150 hover:text-cinnamon focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+        className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-transform duration-150 hover:text-cinnamon active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <Info className="h-[15px] w-[15px]" aria-hidden />
       </PopoverTrigger>

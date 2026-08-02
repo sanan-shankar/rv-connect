@@ -256,7 +256,7 @@ export function HousePicker({
 // selected houses render as truncating text, so a two-house year can never
 // wrap and change the row height.
 const TRIGGER_CLASS =
-  "flex min-h-11 w-full flex-1 items-center gap-1.5 rounded-[var(--radius-input)] border border-input bg-transparent px-3 py-1.5 text-left text-[13px] outline-none transition-colors duration-150 scroll-mt-24 hover:border-ring/60 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "flex min-h-11 w-full flex-1 items-center gap-1.5 rounded-[var(--radius-input)] border border-input bg-transparent px-3 py-1.5 text-left text-[13px] outline-none transition-colors duration-150 scroll-mt-24 hover:border-ring/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 /** The panel body: the 22 houses as two quiet columns of text rows, plus the
  *  free-text "Other" escape, shared between the desktop popover and the
@@ -321,7 +321,7 @@ function HouseOptions({
                     // the list read as having no hover at all. transition-colors
                     // stays for the text's foreground -> canopy swap on pick;
                     // the layer itself is a background-image and lands at once.
-                    "state-layer flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-left text-[13.5px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]",
+                    "state-layer flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-left text-[13.5px] transition-colors duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     selected ? "font-semibold text-canopy" : "font-medium text-foreground"
                   )}
                 >
@@ -383,7 +383,7 @@ function HouseOptions({
                   // the icon it sits under. active:scale-90 is the press the
                   // rest of the kit's x buttons use (see FacetClearButton), and
                   // transform joins the transition so it has a curve to run on.
-                  className="rounded-full text-cinnamon/70 outline-none transition-[color,transform] duration-150 hover:text-cinnamon focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+                  className="rounded-full text-cinnamon/70 outline-none transition-[color,transform] duration-150 hover:text-cinnamon active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <X className="h-3 w-3" />
                 </button>

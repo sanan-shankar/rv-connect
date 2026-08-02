@@ -47,7 +47,7 @@ export function DraftsStrip({ drafts }: { drafts: DraftSummary[] }) {
                Hover is state-layer, the one neutral hover in the app. It used to
                be hover:bg-card, which is now the tile's own fill and would have
                left the rows with no hover at all. */
-            className="state-layer flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+            className="state-layer flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-left active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <PenLine className="h-3.5 w-3.5 shrink-0 text-cinnamon" aria-hidden />
             <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-foreground">
