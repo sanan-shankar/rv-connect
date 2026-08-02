@@ -71,7 +71,7 @@ function VerifiedMarkInner({
   return (
     <span
       ref={wrapRef}
-      className="relative inline-flex shrink-0 cursor-default rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="relative inline-flex shrink-0 cursor-default rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       tabIndex={0}
       role="img"
       aria-label={label}

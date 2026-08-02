@@ -193,7 +193,7 @@ export default function EverythingRoom() {
                           type="button"
                           onClick={() => setOpen((o) => ({ ...o, [f.id]: !o[f.id] }))}
                           aria-expanded={isOpen}
-                          className="state-layer rounded-full border border-border bg-card px-2.5 py-0.5 text-[13px] font-semibold text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+                          className="state-layer rounded-full border border-border bg-card px-2.5 py-0.5 text-[13px] font-semibold text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
                         >
                           {isOpen ? "Hide evidence" : "Evidence"}
                         </button>
@@ -258,7 +258,7 @@ function FilterChip({
       className={cn(
         // state-layer is on the base so the canopy selected chip, the severity
         // tints passed in as `tone` and the plain chip all hover alike.
-        "state-layer rounded-full border px-3 py-1 text-[14px] font-semibold transition-[border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+        "state-layer rounded-full border px-3 py-1 text-[14px] font-semibold transition-[border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
         active
           ? "border-[#235C49] bg-[#235C49] text-white"
           : (tone ?? "border-border bg-card text-muted-foreground hover:text-foreground"),

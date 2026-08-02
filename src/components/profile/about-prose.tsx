@@ -38,7 +38,7 @@ export function AboutProse({ text }: { text: string }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 rounded-full text-[13px] font-semibold text-canopy transition-transform duration-150 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+          className="mt-2 rounded-full text-[13px] font-semibold text-canopy transition-transform duration-150 hover:underline active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {expanded ? "Show less" : "Read more"}
         </button>

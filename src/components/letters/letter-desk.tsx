@@ -43,7 +43,7 @@ export function LetterDesk({
           /* Bare text above the sheet, so no state layer (a tint behind it would
              invent a control where there is only a label). active:opacity-70 is
              the press it was missing. */
-          className="inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-opacity duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+          className="inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-opacity duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <ArrowLeft className="h-4 w-4" />
           All letters

@@ -237,7 +237,7 @@ export function CommentsSection({
                  carry: same idea, one class, and it brings a press tint with it.
                  The size-4 target is small, so hover:text-foreground stays as the
                  louder half of the signal. */
-              className="state-layer -mr-0.5 ml-0.5 inline-grid size-4 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+              className="state-layer -mr-0.5 ml-0.5 inline-grid size-4 place-items-center rounded-full text-muted-foreground hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <X className="h-3 w-3" />
             </button>
@@ -272,7 +272,7 @@ export function CommentsSection({
             // than a <Button>, so it did not inherit the fix and was a primary
             // CTA with no hover at all: SpringPress only contributes a tap
             // scale. Kept in lockstep with the primitive's value on purpose.
-            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/60 disabled:opacity-40 disabled:shadow-none"
+            className="inline-grid size-9 shrink-0 place-items-center rounded-full bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] transition-[filter] duration-150 hover:brightness-[1.14] disabled:opacity-40 disabled:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
             {...({
               type: "submit",
               "aria-label": "Post comment",
@@ -370,7 +370,7 @@ function CommentItem({
       <Link
         href={`/profile/${comment.author.id}`}
         aria-label={comment.author.name}
-        className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <BirdAvatar
           user={{
@@ -407,7 +407,7 @@ function CommentItem({
           <span>{formatTimeAgo(new Date(comment.createdAt))}</span>
           <button
             onClick={onReply}
-            className="rounded-sm font-medium transition-opacity duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            className="rounded-sm font-medium transition-opacity duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Reply
           </button>
@@ -433,7 +433,7 @@ function CommentItem({
               onClick={onModerate}
               aria-label="Remove comment (admin)"
               title="Remove comment (admin)"
-              className="ml-auto rounded-sm font-medium text-muted-foreground/70 transition-opacity duration-150 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+              className="ml-auto rounded-sm font-medium text-muted-foreground/70 transition-opacity duration-150 hover:text-destructive active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <ShieldAlert className="h-3.5 w-3.5" />
             </button>

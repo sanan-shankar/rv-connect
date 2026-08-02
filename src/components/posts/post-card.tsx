@@ -38,7 +38,6 @@ export interface PostData {
   kind?: string;
   title?: string | null;
   content: string;
-  tag: string | null;
   images: string | null;
   groupId?: string | null;
   /** Null = everyone; otherwise the city short-name this post is limited to. */
@@ -225,7 +224,7 @@ export function PostCard({
                 measured +2.06 dL*, at the ~2 just-noticeable threshold. It also keeps the
                 trigger lit while its own menu is open, since Base UI marks an open trigger
                 data-popup-open and the state-layer selector already covers that. */}
-            <DropdownMenuTrigger className="state-layer -mr-2 rounded-md p-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95">
+            <DropdownMenuTrigger className="state-layer -mr-2 rounded-md p-1.5 text-muted-foreground hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -269,7 +268,7 @@ export function PostCard({
           /* Compact letter card: title + excerpt + read time, opens the reading view */
           <Link
             href={demo ? `#${post.id}` : `/letters/${post.id}`}
-            className="mt-3 block rounded-[var(--radius-md)] border border-border bg-paper/60 p-4 transition-colors hover:border-leaf/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="mt-3 block rounded-[var(--radius-md)] border border-border bg-paper/60 p-4 transition-colors hover:border-leaf/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
               <Feather size={13} weight="fill" />
@@ -328,7 +327,7 @@ export function PostCard({
                   /* Bare text, so its states are ink-only: no state-layer (a tint
                      behind a 2-word label reads as a stray chip). active:opacity-70
                      is the press it was missing. */
-                  className="mt-1 rounded-sm text-sm font-medium text-leaf transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+                  className="mt-1 rounded-sm text-sm font-medium text-leaf transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   Read more
                 </button>
@@ -360,7 +359,7 @@ export function PostCard({
                     type="button"
                     onClick={() => setViewerAt(i)}
                     aria-label={`View photo ${i + 1} of ${images.length} full screen`}
-                    className={`block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-90 ${
+                    className={`block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
                       images.length === 3 && i === 0 ? "col-span-2" : ""
                     }`}
                   >
@@ -410,7 +409,7 @@ export function PostCard({
             aria-label={showComments ? "Hide comments" : "Show comments"}
             whileTap={{ scale: 0.93 }}
             transition={SPRINGS.snappy}
-            className="state-layer flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="state-layer flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <ChatCircle size={18} weight="regular" />
             <span>{commentCount}</span>
@@ -466,7 +465,6 @@ export function PostCard({
           kind={post.kind}
           initialContent={post.content}
           initialTitle={post.title}
-          initialTag={post.tag}
           open={showEdit}
           onClose={() => setShowEdit(false)}
         />

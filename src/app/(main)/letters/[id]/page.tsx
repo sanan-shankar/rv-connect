@@ -110,7 +110,7 @@ export default async function LetterPage({
     <article className="mx-auto max-w-[680px]">
       <Link
         href={letter.groupId ? `/groups/${letter.groupId}` : "/letters"}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <ArrowLeft className="h-4 w-4" />
         {letter.groupId ? "Back to group" : "All letters"}
@@ -121,7 +121,7 @@ export default async function LetterPage({
           <span className="font-medium text-cinnamon">Draft, only visible to you.</span>
           <Link
             href="/letters"
-            className="rounded-sm font-semibold text-cinnamon underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="rounded-sm font-semibold text-cinnamon underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Continue editing
           </Link>

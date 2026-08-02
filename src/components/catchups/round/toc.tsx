@@ -102,7 +102,7 @@ export function RoundTocRail({ items }: { items: TocItem[] }) {
                 }}
                 href={`#${item.id}`}
                 className={cn(
-                  "block rounded-md py-1.5 pr-2 text-[13px] leading-snug hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70",
+                  "block rounded-md py-1.5 pr-2 text-[13px] leading-snug hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   i === active ? "font-semibold text-foreground" : "text-muted-foreground"
                 )}
               >
@@ -133,7 +133,7 @@ export function RoundTocChips({ items, className }: { items: TocItem[]; classNam
             key={item.id}
             href={`#${item.id}`}
             className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 text-[12.5px] font-medium whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
+              "shrink-0 rounded-full border px-3 py-1.5 text-[12.5px] font-medium whitespace-nowrap active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               i === active
                 ? "border-canopy bg-canopy text-white hover:bg-canopy/90"
                 : "border-border bg-card text-muted-foreground hover:text-foreground"

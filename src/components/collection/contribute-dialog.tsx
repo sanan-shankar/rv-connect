@@ -196,7 +196,7 @@ export function ContributeDialog({
                   setPreview(null);
                   setFile(null);
                 }}
-                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-[colors,transform] hover:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-[colors,transform] hover:bg-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 aria-label="Remove photo"
               >
                 <X className="h-4 w-4" />
@@ -208,7 +208,7 @@ export function ContributeDialog({
               // A 100px drop target whose only hover was a dashed hairline and
               // the label ink. state-layer fills the well itself and brings the
               // press state it was missing; the leaf border hint stays.
-              className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-border bg-paper/50 py-10 text-muted-foreground transition-colors state-layer hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-border bg-paper/50 py-10 text-muted-foreground transition-colors state-layer hover:border-leaf/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <ImagePlus className="h-7 w-7" />
               <span className="text-sm font-medium">Choose a photo (up to 20MB)</span>

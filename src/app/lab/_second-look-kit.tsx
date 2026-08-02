@@ -160,7 +160,7 @@ export function LabShell({
         <div className="mx-auto flex max-w-[1240px] items-baseline gap-4 px-6 py-3.5 sm:px-9">
           <Link
             href="/lab"
-            className="state-layer shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 active:scale-[0.97]"
+            className="state-layer shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             Lab
           </Link>
@@ -185,7 +185,7 @@ export function LabShell({
                     // state-layer on the base, not on the idle branch: it tints
                     // whatever is under it, so the canopy chip gets the same
                     // hover weight as the bare one. Selection stays canopy.
-                    "state-layer shrink-0 rounded-full px-3 py-1 text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+                    "state-layer shrink-0 rounded-full px-3 py-1 text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
                     active === s.id
                       ? "bg-[#235C49] text-white"
                       : "text-muted-foreground hover:text-foreground",
@@ -559,7 +559,7 @@ export function Switches<K extends string>({
             className={cn(
               // The pressed leaf wash is the state, state-layer is the hover on
               // top of it: a toggle needs both readable at once.
-              "state-layer rounded-full border px-4 py-2 text-[14px] font-semibold transition-[border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+              "state-layer rounded-full border px-4 py-2 text-[14px] font-semibold transition-[border-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
               on
                 ? "border-leaf/40 bg-leaf/14 text-leaf"
                 : "border-border bg-card text-muted-foreground hover:text-foreground",
@@ -591,7 +591,7 @@ export function Pick<K extends string>({
           type="button"
           onClick={() => onChange(it.k)}
           className={cn(
-            "rounded-full px-4 py-2 text-[14px] font-semibold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50",
+            "rounded-full px-4 py-2 text-[14px] font-semibold transition-[background-color,color,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
             value === it.k
               ? "bg-[#235C49] text-white"
               : "text-muted-foreground hover:text-foreground",

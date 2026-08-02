@@ -92,7 +92,7 @@ export function CopyEditorClient({
       // means the selected canopy pill and the bare one get the same weight
       // from the same class. The press sink stays: that is feedback for a tap.
       "state-layer active:scale-[0.98]",
-      "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1",
+      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
       active
         ? "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)]"
         : "text-foreground"
@@ -152,7 +152,7 @@ export function CopyEditorClient({
                   // keep it centred). A hover never resizes a control, so it is a
                   // state-layer tint plus the ink darkening now, and the only
                   // transform left is the press sink.
-                  className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 state-layer hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                  className="absolute top-1/2 right-2.5 -translate-y-1/2 rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 state-layer hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <X className="size-3.5" />
                 </button>

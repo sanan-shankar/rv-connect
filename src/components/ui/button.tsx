@@ -112,7 +112,7 @@ const buttonVariants = cva(
         // /10 -> /20 is -5.3 dL* plus a chroma jump, deeper than the neutral
         // layer's -4.2.
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark: focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive",
         link: "text-primary underline-offset-4 hover:underline active:scale-100",
       },
       size: {

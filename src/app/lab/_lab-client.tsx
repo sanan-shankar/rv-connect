@@ -144,7 +144,7 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
                   as="button"
                   onClick={() => setView(key)}
                   className={cn(
-                    "rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    "rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     on
                       ? "bg-canopy text-white"
                       : "text-muted-foreground hover:text-foreground"
@@ -171,7 +171,7 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search rooms"
               aria-label="Search rooms"
-              className="h-10 w-full rounded-full border border-border bg-card pl-9 pr-9 text-[14px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="h-10 w-full rounded-full border border-border bg-card pl-9 pr-9 text-[14px] text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
             {query && (
               <button
@@ -182,7 +182,7 @@ export function LabClient({ entries, editable }: { entries: LabEntry[]; editable
                 // button sits on the search input's card fill, where accent was
                 // 2 dL* off the surface and mist went the wrong way (a press
                 // that turns tan). One translucent tint does both steps.
-                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -261,7 +261,7 @@ function RoomCard({
     >
       <Link
         href={room.href}
-        className="block flex-1 rounded-[inherit] p-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="block flex-1 rounded-[inherit] p-[18px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {/* pr keeps the title clear of the archive button in the corner */}
         <h3 className="pr-9 font-heading text-[16.5px] font-bold leading-snug tracking-[-0.01em] text-foreground">
@@ -291,7 +291,7 @@ function RoomCard({
               key={child.href}
               href={child.href}
               title={child.note}
-              className="flex items-center gap-2 rounded-[var(--radius-sm)] px-[11px] py-2 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="flex items-center gap-2 rounded-[var(--radius-sm)] px-[11px] py-2 text-[12.5px] font-semibold text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <CornerDownRight className="h-3 w-3 shrink-0 text-muted-foreground/60" aria-hidden />
               <span className="truncate">{child.title}</span>
@@ -312,7 +312,7 @@ function RoomCard({
               : "Move to Archived"
             : "Sign in as an admin to archive"
         }
-        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-[color,transform] duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-[color,transform] duration-150 state-layer hover:text-foreground active:scale-95 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {isArchived ? (
           <ArchiveRestore className="h-[15px] w-[15px]" />

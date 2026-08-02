@@ -129,10 +129,10 @@ function PerchedBird() {
 // layer's weight so a CTA and a menu row hover by the same amount) and the
 // quiet one takes the state layer plus its leaf edge. The press sink stays.
 const PRIMARY_CTA =
-  "inline-flex items-center justify-center rounded-full bg-canopy px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_-14px_var(--color-canopy)] transition-[filter,transform] duration-200 ease-out hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.97]";
+  "inline-flex items-center justify-center rounded-full bg-canopy px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_-14px_var(--color-canopy)] transition-[filter,transform] duration-200 ease-out hover:brightness-[1.14] active:brightness-100 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy";
 
 const SECONDARY_CTA =
-  "state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-6 py-3 text-[15px] font-semibold text-foreground transition-[transform,border-color] duration-200 ease-out hover:border-leaf/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]";
+  "state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-6 py-3 text-[15px] font-semibold text-foreground transition-[transform,border-color] duration-200 ease-out hover:border-leaf/45 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf";
 
 const ACCENT_TEXT: Record<Accent, string> = {
   leaf: "text-leaf",
@@ -252,7 +252,7 @@ function LedgerSpine() {
               key={t.id}
               type="button"
               onClick={() => goTo(t.id)}
-              className="flex items-center justify-center rounded-sm pl-1.5 pr-1 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground/75 outline-none transition-colors duration-150 hover:text-leaf focus-visible:text-leaf focus-visible:ring-2 focus-visible:ring-leaf/40 active:scale-[0.96]"
+              className="flex items-center justify-center rounded-sm pl-1.5 pr-1 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground/75 outline-none transition-colors duration-150 hover:text-leaf focus-visible:text-leaf active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
               style={{ writingMode: "vertical-rl" }}
             >
               <span className="rotate-180">{t.label}</span>
@@ -314,13 +314,13 @@ function ScrollNav() {
         <div className="flex items-center gap-2">
           <Link
             href="/login"
-            className="hidden rounded-full px-3.5 py-2 text-[13.5px] font-semibold text-foreground transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 active:scale-[0.98] sm:inline-flex"
+            className="hidden rounded-full px-3.5 py-2 text-[13.5px] font-semibold text-foreground transition-colors duration-150 hover:text-leaf active:scale-[0.98] sm:inline-flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             {NAV.signIn}
           </Link>
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-4.5 py-2 text-[13.5px] font-semibold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.97]"
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-4.5 py-2 text-[13.5px] font-semibold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-[1.14] active:brightness-100 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           >
             {NAV.join}
           </Link>
@@ -683,13 +683,13 @@ function ClosingCta() {
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/signup"
-            className="state-layer inline-flex items-center justify-center rounded-full bg-white px-7 py-3.5 text-[15px] font-semibold text-canopy shadow-md transition-transform duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canopy active:scale-[0.98]"
+            className="state-layer inline-flex items-center justify-center rounded-full bg-white px-7 py-3.5 text-[15px] font-semibold text-canopy shadow-md transition-transform duration-200 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             {FOOTER.ctaPrimary}
           </Link>
           <Link
             href="/login"
-            className="inline-flex items-center justify-center rounded-full border border-white/50 bg-white/10 px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canopy active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-full border border-white/50 bg-white/10 px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             {FOOTER.ctaSecondary}
           </Link>

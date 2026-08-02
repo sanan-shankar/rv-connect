@@ -159,7 +159,7 @@ export function OnboardingFlow({
                   disabled={state === "upcoming"}
                   onClick={() => state !== "upcoming" && setStep(id)}
                   className={cn(
-                    "h-2 rounded-full transition-[width,background-color,opacity] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    "h-2 rounded-full transition-[width,background-color,opacity] duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     state === "current" && "w-6 bg-canopy",
                     state === "done" && "w-2 cursor-pointer bg-canopy/45 hover:bg-canopy/70",
                     state === "upcoming" && "w-2 cursor-default bg-border"
@@ -173,7 +173,7 @@ export function OnboardingFlow({
             onClick={finishLater}
             // Bare text, so no state layer (a tint behind two words reads as a
             // stray chip). It was missing the press answer, hence the opacity.
-            className="shrink-0 rounded-sm text-[13px] font-medium text-muted-foreground transition-[colors,opacity] duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            className="shrink-0 rounded-sm text-[13px] font-medium text-muted-foreground transition-[colors,opacity] duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Finish later
           </button>

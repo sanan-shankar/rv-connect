@@ -51,6 +51,33 @@ export const AUTH_SLIDE_SECONDS = 0.9;
    cinnamon edge settle rather than snap dead. Shared so any future edge-marker reads the same. */
 export const NAV_MARKER_SPRING = { type: "spring", stiffness: 480, damping: 38, mass: 0.9 } as const;
 
+/* A short, small-control glide: starts slow, accelerates through the middle, decelerates to a
+   dead stop, ZERO overshoot. Owner (2026-08-02): the segmented-pill thumbs (profile's
+   All/Posts/Letters/Saved, directory's Map/Batches/People, the signup Alumnus/Teacher toggle)
+   all rode `SPRINGS.snappy` (stiffness 420, damping 30 -> damping ratio 30/(2*sqrt(420)) = 0.73),
+   which overshoots by ~3.4% of the travel and springs back; on a ~90px pill hop that reads as
+   the visible "bounce" he flagged.
+   Neither existing tween curve fits. `EASE_OUT_SMOOTH` starts at FULL speed by its own comment's
+   admission, so a thumb using it would still read as a snap, not a "start slow" glide.
+   `EASE_IN_OUT_SCENE` IS shaped start-slow/end-slow, but its own comment scopes it to
+   viewport-scale scene changes carried over ~0.9s -- its wide, near-equal ramp reads as sluggish
+   on a ~150px control answering a single click, where the first frames still need to feel like
+   an immediate response to the tap.
+   This curve keeps the same ease-in-out shape -- both y-control-points sit exactly at 0 and 1,
+   so the curve never leaves the 0..1 band and mathematically cannot overshoot -- but weights the
+   ramp toward a short, decisive ease-in (x1 = 0.4) and a longer ease-out (x2 = 0.2), so the thumb
+   still answers the tap promptly, then settles into the new pill without any spring wobble. */
+export const EASE_SEGMENT_GLIDE = [0.4, 0, 0.2, 1] as const;
+
+/* Locked to the curve above (Motion takes `ease` and `duration` as separate transition props,
+   so nothing else enforces they travel together) so every segmented-pill call site -- profile,
+   directory, signup, the Catch-ups cadence controls -- glides at the same speed and none of them
+   can drift out of step with a locally-typed number. ~220ms: close to how long `SPRINGS.snappy`
+   took to settle including its bounce-back (~267ms, from the damping ratio above: a 2%-settling
+   time of roughly 4 / (damping ratio * natural frequency)), so removing the overshoot does not
+   also make the thumb feel slower to arrive. */
+export const SEGMENT_GLIDE_SECONDS = 0.22;
+
 /* ------------------------------------------------------------------ *
  *  useMotionGovernor — the ONE place that decides whether ambient/
  *  signature motion runs. Per the design system (sec. 7), animations

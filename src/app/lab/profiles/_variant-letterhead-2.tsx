@@ -204,14 +204,13 @@ function sparseOf(p: MockProfile): MockProfile {
 }
 
 /** Mock post -> the shipped card's payload. Everything the mock has no column
- *  for (tags, images, polls, city scope) is honestly null rather than faked. */
+ *  for (images, polls, city scope) is honestly null rather than faked. */
 function toPostData(post: MockPost, author: MockProfile): PostData {
   return {
     id: post.id,
     kind: post.kind,
     title: post.title ?? null,
     content: post.content,
-    tag: null,
     images: null,
     cityScope: null,
     createdAt: post.createdAt,
@@ -323,7 +322,7 @@ function ToggleGroup({
             as="button"
             onClick={() => onChange(o.key)}
             aria-pressed={value === o.key}
-            className={`rounded-full border px-3 py-1 text-[11.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+            className={`rounded-full border px-3 py-1 text-[11.5px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
               value === o.key
                 ? "border-transparent bg-canopy text-white"
                 : "border-border bg-card text-muted-foreground hover:text-foreground"
@@ -493,7 +492,7 @@ function Letterhead({ profile }: { profile: MockProfile }) {
                         data-lh2="colophon"
                         onClick={fireStamp}
                         aria-label={`Admission number ${profile.admissionNumber}. Press to stamp the sheet.`}
-                        className="flex h-[var(--lh2-colophon)] w-fit items-center gap-1.5 rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-60"
+                        className="flex h-[var(--lh2-colophon)] w-fit items-center gap-1.5 rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
                         <PeaksMark size={15} />
                         <span className="text-[11px] font-bold uppercase tracking-[0.2em]">
@@ -634,7 +633,7 @@ function PerchedBird({ profile }: { profile: MockProfile }) {
         type="button"
         onClick={() => setChirp((c) => c + 1)}
         aria-label={`${profile.name}'s bird. Tap for a chirp.`}
-        className="relative block rounded-full outline-none transition-transform duration-150 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.95]"
+        className="relative block rounded-full outline-none transition-transform duration-150 active:scale-[0.95] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <motion.span
           key={chirp}
@@ -735,7 +734,7 @@ function WritingSwitch<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(o.key)}
-            className={`relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] sm:px-4 ${
+            className={`relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-colors duration-200 active:scale-[0.97] sm:px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
               active ? "text-white" : "text-muted-foreground hover:text-foreground"
             }`}
           >

@@ -119,7 +119,7 @@ export default function GroupsRethinkIndex() {
           <Link
             key={c.slug}
             href={`/lab/groups-rethink/${c.slug}`}
-            className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50"
+            className="group rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             {/* The card used to lift 2px on hover. A hover never moves a
                 control, so the state layer's tint takes its place; the arrow

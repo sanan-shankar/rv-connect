@@ -107,13 +107,13 @@ const MOBILE_CROP_POSITION: Record<string, string> = {
 // (1.14, the shared Button's step), and the neutral and white pills take the
 // state layer, which is the one tint that stays visible on both.
 const CTA_CANOPY =
-  "inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-[0_10px_24px_-14px_var(--color-canopy)] transition-[filter,transform] duration-200 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.98]";
+  "inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-[0_10px_24px_-14px_var(--color-canopy)] transition-[filter,transform] duration-200 hover:brightness-[1.14] active:brightness-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy";
 const CTA_GHOST_LIGHT =
-  "state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-8 py-3.5 font-semibold text-foreground transition-[transform,border-color] duration-200 hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]";
+  "state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-8 py-3.5 font-semibold text-foreground transition-[transform,border-color] duration-200 hover:border-leaf/50 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf";
 const CTA_WHITE_ON_PHOTO =
-  "state-layer inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-transform duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30";
+  "state-layer inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-transform duration-200 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 const CTA_GHOST_ON_PHOTO =
-  "inline-flex items-center justify-center rounded-full border border-white/55 bg-white/10 px-6 py-2.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30";
+  "inline-flex items-center justify-center rounded-full border border-white/55 bg-white/10 px-6 py-2.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
 /* ------------------------------------------------------------------ *
  *  Postmark — a cancellation-stamp SVG: dashed outer ring, a plain
@@ -235,7 +235,7 @@ function Hero() {
       <div className="relative z-10 flex items-center justify-between px-6 pt-6 lg:px-14 lg:pt-8">
         <Link
           href="/"
-          className="rounded-md outline-none transition-[opacity,transform] duration-150 hover:opacity-85 focus-visible:ring-2 focus-visible:ring-white/50 active:scale-[0.98]"
+          className="rounded-md outline-none transition-[opacity,transform] duration-150 hover:opacity-85 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           style={{ filter: "drop-shadow(0 1px 6px rgba(20,14,8,0.55))" }}
         >
           <Wordmark markClassName="text-white" textClassName="text-white" />

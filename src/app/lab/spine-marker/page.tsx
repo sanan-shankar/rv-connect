@@ -65,7 +65,7 @@ type RowProps = {
 };
 
 const ROW_BASE =
-  "relative flex w-full items-center gap-3 py-2.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98]";
+  "relative flex w-full items-center gap-3 py-2.5 text-[14px] font-medium transition-colors active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring";
 
 /* ---- A · Flush tab ---------------------------------------------------- */
 function FlushRow({ item, isActive, isHoverDemo, onClick, ns }: RowProps) {
@@ -331,7 +331,7 @@ export default function SpineMarkerRoom() {
         <div className="mx-auto max-w-[1400px] px-6 py-5 sm:px-9">
           <Link
             href="/lab"
-            className="state-layer inline-flex shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 active:scale-[0.97]"
+            className="state-layer inline-flex shrink-0 rounded-full border border-border bg-card px-3 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             Lab
           </Link>

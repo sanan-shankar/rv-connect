@@ -226,6 +226,13 @@ export const REGISTRY: LabEntry[] = [
     note: "Five live type pairings measured off the actual font binaries, arguing Libre Baskerville is a body face currently doing display work.",
   },
   {
+    href: "/lab/directory",
+    title: "The directory, reconsidered",
+    group: "Second look",
+    status: "active",
+    note: "The filter bar cannot hold its shape: a flex-wrap row with an ml-auto group grows from 40px to 142px as you set filters, and leaves 275px of void mid-line. Four live chrome concepts, five maps judged on how many objects they put on screen at 2400 members, and the finding that the Profession facet matches 0 of 21 members.",
+  },
+  {
     href: "/lab/spine-marker",
     title: "One unit, five ways",
     group: "Second look",

@@ -55,7 +55,7 @@ export function ConsolePublished({
             </h2>
             <Link
               href={`/catchups/round/${edition.id}`}
-              className="inline-flex items-center gap-1 rounded-full text-sm font-semibold text-canopy transition-colors duration-150 hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+              className="inline-flex items-center gap-1 rounded-full text-sm font-semibold text-canopy transition-colors duration-150 hover:text-leaf active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Open it on its own page
               <ArrowRight className="h-3.5 w-3.5" />

@@ -219,7 +219,7 @@ function LetterCard({
           as="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
-          className="inline-flex items-center gap-1 rounded-full text-[13px] font-semibold text-canopy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="inline-flex items-center gap-1 rounded-full text-[13px] font-semibold text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {expanded ? "Show less" : "Read the full letter"}
           <ArrowRight className={cn("h-3.5 w-3.5 transition-transform duration-200 ease-out", expanded && "rotate-90")} />
@@ -291,7 +291,7 @@ export default function FieldGuideVariant({ profile }: ProfileVariantProps) {
               onClick={() => setViewingAsOwner(opt.key)}
               aria-pressed={viewingAsOwner === opt.key}
               className={cn(
-                "rounded-full px-3 py-1.5 text-[11.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                "rounded-full px-3 py-1.5 text-[11.5px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 viewingAsOwner === opt.key ? "bg-canopy text-white" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -382,7 +382,7 @@ export default function FieldGuideVariant({ profile }: ProfileVariantProps) {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="state-layer inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-[color,transform] duration-150 ease-out hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+                    className="state-layer inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     {link.kind === "instagram" ? (
                       <Instagram className="h-3.5 w-3.5" />
@@ -495,7 +495,7 @@ export default function FieldGuideVariant({ profile }: ProfileVariantProps) {
               aria-pressed={isActive}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                "relative -mb-px border-b-2 pb-3 text-[13.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                "relative -mb-px border-b-2 pb-3 text-[13.5px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 isActive ? "border-leaf text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >

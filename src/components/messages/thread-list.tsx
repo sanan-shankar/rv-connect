@@ -41,7 +41,7 @@ export function ThreadList({ threads }: { threads: ThreadListRow[] }) {
               // card, which is the "most subtle highlight" register. The border
               // hint stays (it is the canopy cue), and state-layer gives the
               // surface itself something to say.
-              className="card-elevated group flex items-start gap-3.5 rounded-[var(--radius)] border border-border bg-card p-4 transition-[colors,transform] duration-150 ease-out state-layer hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.995]"
+              className="card-elevated group flex items-start gap-3.5 rounded-[var(--radius)] border border-border bg-card p-4 transition-[colors,transform] duration-150 ease-out state-layer hover:border-canopy/40 active:scale-[0.995] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span
                 aria-hidden

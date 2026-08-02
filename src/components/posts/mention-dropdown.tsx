@@ -75,7 +75,7 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
                only state this row had, and on a card-coloured panel it sat at
                the just-noticeable threshold. The focus ring is inset because the
                row runs edge to edge inside a panel that clips it. */
-            className="state-layer w-full px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+            className="state-layer w-full px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inset"
           >
             <IdentityRow
               user={{

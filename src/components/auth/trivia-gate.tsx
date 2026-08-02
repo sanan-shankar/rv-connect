@@ -89,7 +89,7 @@ export function TriviaGate({
         Already have an account?{" "}
         <a
           href="/login"
-          className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="rounded-sm text-leaf underline hover:text-leaf-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           Sign in
         </a>

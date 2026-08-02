@@ -208,7 +208,7 @@ export default async function ProfilePage({
           <Link
             key={`${ph.postId}-${i}`}
             href={`/feed#${ph.postId}`}
-            className="group block overflow-hidden rounded-2xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="group block overflow-hidden rounded-2xl border border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

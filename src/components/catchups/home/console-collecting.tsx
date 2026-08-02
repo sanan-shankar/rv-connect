@@ -147,7 +147,7 @@ function SubmissionPanel({
                 aria-pressed={showAsker === opt.value}
                 onClick={() => setShowAsker(opt.value)}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]",
+                  "rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   showAsker === opt.value
                     ? "bg-canopy text-white"
                     : "text-muted-foreground hover:text-foreground"
@@ -282,7 +282,7 @@ function QuestionsList({
                           // hover; bg-accent was only +2.06 dL* over this tile,
                           // at the just-noticeable threshold. transition-colors
                           // stays for the text colour, which still animates.
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:opacity-30"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground active:scale-95 disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                           <ArrowUp className="h-3.5 w-3.5" />
                         </button>
@@ -291,7 +291,7 @@ function QuestionsList({
                           aria-label="Move down"
                           disabled={i === accepted.length - 1}
                           onClick={() => handleMove(i, 1)}
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 disabled:opacity-30"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground active:scale-95 disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                           <ArrowDown className="h-3.5 w-3.5" />
                         </button>
@@ -299,7 +299,7 @@ function QuestionsList({
                           type="button"
                           aria-label="Remove question"
                           onClick={() => handleRemove(p.id)}
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -334,7 +334,7 @@ function QuestionsList({
                           type="button"
                           aria-label="Add to the round"
                           onClick={() => handleAccept(p.id)}
-                          className="rounded-md p-1.5 text-leaf transition-colors duration-150 hover:bg-leaf/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                          className="rounded-md p-1.5 text-leaf transition-colors duration-150 hover:bg-leaf/10 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                           <Check className="h-3.5 w-3.5" />
                         </button>
@@ -342,7 +342,7 @@ function QuestionsList({
                           type="button"
                           aria-label="Remove question"
                           onClick={() => handleRemove(p.id)}
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>

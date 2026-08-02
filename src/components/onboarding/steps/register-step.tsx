@@ -91,7 +91,7 @@ export function RegisterStep({
                 type="button"
                 onClick={() => setMulti(true)}
                 // Bare text link: ink-only hover, plus the press it was missing.
-                className="inline-flex items-center gap-1 rounded-sm text-[13px] font-medium text-canopy transition-[colors,opacity] duration-150 hover:text-canopy/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+                className="inline-flex items-center gap-1 rounded-sm text-[13px] font-medium text-canopy transition-[colors,opacity] duration-150 hover:text-canopy/80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add another city

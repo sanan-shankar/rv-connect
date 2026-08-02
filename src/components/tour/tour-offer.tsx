@@ -95,7 +95,7 @@ export function TourOffer({ onStart, onMaybeLater }: { onStart: () => void; onMa
             // the same pair the ghost variant now uses: state-layer for the
             // surface, hover:text-foreground for the ink. On its own the ink
             // change was the whole hover on a 44px-tall target.
-            className="flex h-11 items-center rounded-full px-4 text-[14px] font-medium text-muted-foreground state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            className="flex h-11 items-center rounded-full px-4 text-[14px] font-medium text-muted-foreground state-layer hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Maybe later
           </button>

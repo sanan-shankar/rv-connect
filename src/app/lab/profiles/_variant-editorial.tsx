@@ -76,7 +76,7 @@ function LinkChip({ link }: { link: MockLink }) {
       href={link.href}
       target="_blank"
       rel="noreferrer"
-      className="state-layer inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-[border-color,color,transform] duration-150 hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]"
+      className="state-layer inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-[border-color,color,transform] duration-150 hover:border-leaf/50 hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <Icon className="h-3.5 w-3.5 text-cinnamon" aria-hidden />
       {link.handle}
@@ -136,7 +136,7 @@ function ArticleRow({ post }: { post: MockPost }) {
               <button
                 type="button"
                 onClick={() => {}}
-                className="relative mt-1.5 block text-left font-heading text-[19px] font-bold leading-[1.25] tracking-tight text-foreground transition-transform duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:text-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:rounded-sm active:scale-[0.99] sm:text-[20px]"
+                className="relative mt-1.5 block text-left font-heading text-[19px] font-bold leading-[1.25] tracking-tight text-foreground transition-transform duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:text-leaf focus-visible:rounded-sm active:scale-[0.99] sm:text-[20px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 {post.title}
               </button>

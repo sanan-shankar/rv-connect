@@ -66,7 +66,7 @@ export function BookmarkButton({
       // love-button.tsx (--accent was +2.06 dL* on the card these three action
       // buttons share, i.e. invisible). The layer is a background-image, so it
       // sits under the ribbon's own cinnamon fill without disturbing it.
-      className={`state-layer flex items-center rounded-full px-2.5 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+      className={`state-layer flex items-center rounded-full px-2.5 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
         saved ? "text-cinnamon" : "hover:text-foreground"
       } ${className}`}
     >

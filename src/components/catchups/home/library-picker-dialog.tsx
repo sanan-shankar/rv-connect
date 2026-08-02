@@ -71,7 +71,7 @@ export function LibraryPickerDialog({
                     // the panel and the highlight disappeared. The layer is a
                     // translucent ink tint, so it reads the same here as on a
                     // card, and it carries the :active press too.
-                    className="block w-full rounded-[var(--radius-md)] px-3 py-2 text-left text-[13.5px] leading-snug text-foreground state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    className="block w-full rounded-[var(--radius-md)] px-3 py-2 text-left text-[13.5px] leading-snug text-foreground state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     {text}
                   </button>

@@ -67,9 +67,9 @@ const ACCENT_DOT: Record<Accent, string> = {
   cinnamon: "bg-cinnamon",
 };
 const ACCENT_RING: Record<Accent, string> = {
-  leaf: "focus-visible:ring-leaf/45",
-  blue: "focus-visible:ring-sky/45",
-  cinnamon: "focus-visible:ring-cinnamon/45",
+  leaf: "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf",
+  blue: "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky",
+  cinnamon: "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cinnamon",
 };
 
 const VOUCHED = [
@@ -506,20 +506,20 @@ export default function EditorialVariant() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-10">
           <Link
             href="/"
-            className="state-layer rounded-md outline-none transition-transform duration-150 focus-visible:ring-2 focus-visible:ring-canopy/45 active:scale-[0.98]"
+            className="state-layer rounded-md outline-none transition-transform duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           >
             <Wordmark variant="light" textClassName="text-foreground" />
           </Link>
           <nav className="flex items-center gap-2 sm:gap-3" aria-label="Primary">
             <Link
               href="/login"
-              className="rounded-full px-3 py-2 text-[14px] font-semibold text-foreground outline-none transition-colors duration-150 hover:text-canopy focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-[0.98]"
+              className="rounded-full px-3 py-2 text-[14px] font-semibold text-foreground outline-none transition-colors duration-150 hover:text-canopy active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
             >
               {NAV.signIn}
             </Link>
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-[14px] font-semibold text-white shadow-sm outline-none transition-[filter,transform] duration-150 hover:brightness-[1.14] focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.97]"
+              className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-[14px] font-semibold text-white shadow-sm outline-none transition-[filter,transform] duration-150 hover:brightness-[1.14] active:brightness-100 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
             >
               {NAV.join}
             </Link>
@@ -553,13 +553,13 @@ export default function EditorialVariant() {
               <div className="relative z-10 mt-9 flex flex-wrap items-center gap-3">
                 <Link
                   href="/signup"
-                  className="inline-flex items-center justify-center rounded-full bg-canopy px-7 py-3 text-[15px] font-semibold text-white shadow-sm outline-none transition-[filter,transform] duration-200 hover:brightness-[1.14] focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.98]"
+                  className="inline-flex items-center justify-center rounded-full bg-canopy px-7 py-3 text-[15px] font-semibold text-white shadow-sm outline-none transition-[filter,transform] duration-200 hover:brightness-[1.14] active:brightness-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                 >
                   {HERO.ctaPrimary}
                 </Link>
                 <Link
                   href="/login"
-                  className="state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-7 py-3 text-[15px] font-semibold text-foreground outline-none transition-[transform,border-color] duration-200 hover:border-canopy/50 focus-visible:ring-2 focus-visible:ring-canopy/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+                  className="state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-7 py-3 text-[15px] font-semibold text-foreground outline-none transition-[transform,border-color] duration-200 hover:border-canopy/50 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                 >
                   {HERO.ctaSecondary}
                 </Link>
@@ -568,7 +568,7 @@ export default function EditorialVariant() {
               <a
                 href="#contents"
                 onClick={jumpTo("contents")}
-                className="group relative z-10 mt-11 inline-flex items-center gap-3 rounded-sm text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground outline-none transition-colors duration-150 hover:text-canopy focus-visible:ring-2 focus-visible:ring-canopy/40"
+                className="group relative z-10 mt-11 inline-flex items-center gap-3 rounded-sm text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground outline-none transition-colors duration-150 hover:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
               >
                 <span aria-hidden className="rv-ed-cue h-6 w-px bg-current" />
                 {HERO.scrollCue}
@@ -728,13 +728,13 @@ export default function EditorialVariant() {
                 <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                   <Link
                     href="/signup"
-                    className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm outline-none transition-[filter,transform] duration-200 hover:brightness-[1.14] focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:brightness-100 active:scale-[0.98]"
+                    className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm outline-none transition-[filter,transform] duration-200 hover:brightness-[1.14] active:brightness-100 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                   >
                     {FOOTER.ctaPrimary}
                   </Link>
                   <Link
                     href="/login"
-                    className="state-layer inline-flex items-center justify-center rounded-full border border-border bg-mist px-8 py-3.5 font-semibold text-foreground outline-none transition-[transform,border-color] duration-200 hover:border-canopy/50 focus-visible:ring-2 focus-visible:ring-canopy/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+                    className="state-layer inline-flex items-center justify-center rounded-full border border-border bg-mist px-8 py-3.5 font-semibold text-foreground outline-none transition-[transform,border-color] duration-200 hover:border-canopy/50 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                   >
                     {FOOTER.ctaSecondary}
                   </Link>

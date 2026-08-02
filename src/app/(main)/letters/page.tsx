@@ -127,7 +127,7 @@ export default async function LettersPage() {
                 // usual `transition-[colors,...]`, because transition-property
                 // takes real property names and "colors" is an ident that
                 // matches nothing, which would leave the edge snapping.
-                className="card-elevated group block rounded-[var(--radius)] border border-border bg-card p-5 transition-[border-color,transform] duration-200 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.995]"
+                className="card-elevated group block rounded-[var(--radius)] border border-border bg-card p-5 transition-[border-color,transform] duration-200 hover:border-canopy/40 active:scale-[0.995] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
                   <Feather className="h-3.5 w-3.5" />

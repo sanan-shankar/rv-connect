@@ -39,7 +39,7 @@ export function ArchiveShelf({ rows }: { rows: HomeArchiveRow[]; groupName?: str
             <Link
               key={row.editionId}
               href={`/catchups/round/${row.editionId}`}
-              className="block rounded-[var(--radius-md)] border border-border/70 bg-background/40 p-3 transition-colors duration-150 hover:border-cinnamon/40 hover:bg-cinnamon/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-cinnamon/[0.1]"
+              className="block rounded-[var(--radius-md)] border border-border/70 bg-background/40 p-3 transition-colors duration-150 hover:border-cinnamon/40 hover:bg-cinnamon/[0.06] active:bg-cinnamon/[0.1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <div className="flex items-baseline justify-between gap-3">
                 <p className="font-heading text-sm font-bold tracking-[-0.01em] text-foreground">

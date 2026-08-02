@@ -88,7 +88,7 @@ export function ProgressRail({
                 // card, where accent was +2.06 dL* (the just-noticeable floor).
                 // The layer is translucent, so it also reads on the ACTIVE row,
                 // which already carries its own opaque fill.
-                "flex items-start gap-2.5 rounded-[var(--radius-md)] px-3 py-2.5 text-left text-[13px] leading-snug state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                "flex items-start gap-2.5 rounded-[var(--radius-md)] px-3 py-2.5 text-left text-[13px] leading-snug state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 active ? "bg-secondary text-foreground" : "text-muted-foreground"
               )}
               {...({ type: "button", "aria-current": active ? "step" : undefined } as object)}

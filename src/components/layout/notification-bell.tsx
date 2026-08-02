@@ -163,7 +163,7 @@ export function NotificationBell({
             which is a change you have to already be looking for on a 40px
             circle sitting on a paper card. */}
         <DropdownMenuTrigger
-          className="bell-trigger state-layer relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="bell-trigger state-layer relative grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_2px_rgba(30,28,22,0.04)] transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           title="Notifications"
         >
           <motion.span
@@ -218,7 +218,7 @@ export function NotificationBell({
           charcoal rail that alpha overshoots the tuned `--sidebar-hover` rung,
           so it uses the token now and tracks whichever theme is on. */}
       <DropdownMenuTrigger
-        className="relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground data-popup-open:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-95"
+        className="relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground data-popup-open:bg-sidebar-hover active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
         title="Notifications"
       >
         <motion.span
@@ -275,7 +275,7 @@ function NotificationPanel({
         {unreadCount > 0 && (
           <button
             onClick={onMarkAllRead}
-            className="flex items-center gap-1 rounded-sm text-xs text-leaf hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70 transition-opacity duration-150"
+            className="flex items-center gap-1 rounded-sm text-xs text-leaf hover:text-leaf-light active:opacity-70 transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Check className="h-3 w-3" />
             Mark all read

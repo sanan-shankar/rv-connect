@@ -145,7 +145,7 @@ export function PeoplePicker({
                 // wash: canopy is the app's SELECTION green (design system
                 // rule 4), and a search result under the cursor is not a
                 // selected one. The canopy border hint stays.
-                className="flex w-full items-center gap-[var(--space-s)] rounded-[var(--radius-md)] border border-transparent px-2.5 py-2 text-left transition-colors duration-150 state-layer hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                className="flex w-full items-center gap-[var(--space-s)] rounded-[var(--radius-md)] border border-transparent px-2.5 py-2 text-left transition-colors duration-150 state-layer hover:border-canopy/40 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <BirdAvatar
                   user={{
@@ -205,7 +205,7 @@ export function PeoplePicker({
                   type="button"
                   aria-label={`Remove ${person.name}`}
                   onClick={() => remove(person.id)}
-                  className="grid size-5 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-colors duration-150 hover:bg-canopy/20 hover:text-canopy focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-90"
+                  className="grid size-5 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-colors duration-150 hover:bg-canopy/20 hover:text-canopy active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                 >
                   <X className="size-3" strokeWidth={2.5} />
                 </button>

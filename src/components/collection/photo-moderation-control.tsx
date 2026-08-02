@@ -24,7 +24,7 @@ export function PhotoModerationControl({ photoId }: { photoId: string }) {
         onClick={() => setOpen(true)}
         aria-label="Remove photo (admin)"
         title="Remove photo (admin)"
-        className="grid size-9 shrink-0 place-items-center rounded-full border border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+        className="grid size-9 shrink-0 place-items-center rounded-full border border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <ShieldAlert className="h-4 w-4" />
       </button>

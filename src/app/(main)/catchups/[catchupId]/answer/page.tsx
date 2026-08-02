@@ -229,7 +229,7 @@ export default async function CatchupAnswerPage({
       <div>
         <Link
           href={`/catchups/${catchup.id}`}
-          className="mb-3 inline-flex items-center gap-1.5 rounded-sm text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="mb-3 inline-flex items-center gap-1.5 rounded-sm text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {surfaceTitle(catchup.title, catchup.group.name)}

@@ -10,6 +10,7 @@ import { YearInput } from "@/components/common/year-input";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
+import { SegmentedPills } from "@/components/common/segmented-pills";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { registerUser } from "./actions";
 
@@ -95,7 +96,7 @@ function InfoTip({ label, children }: { label: string; children: React.ReactNode
           if (e.currentTarget.matches(":focus-visible")) setOpen(true);
         }}
         onBlur={() => setOpen(false)}
-        className="grid h-4 w-4 shrink-0 place-items-center rounded-full text-muted-foreground/70 hover:text-canopy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="grid h-4 w-4 shrink-0 place-items-center rounded-full text-muted-foreground/70 hover:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <Info className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
@@ -307,7 +308,7 @@ export function SignupForm({
             type="button"
             onClick={() => setShowPw((s) => !s)}
             aria-label={showPw ? "Hide password" : "Show password"}
-            className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           </button>
@@ -362,33 +363,20 @@ export function SignupForm({
       <div className="space-y-2">
         <Label>I am a...</Label>
         <div className="flex items-center gap-2">
-          <div className="grid flex-1 grid-cols-2 gap-1.5 rounded-full border border-border bg-paper p-1">
-            {ACCOUNT_TYPES.map((t) => {
-              const selected = accountType === t.value;
-              return (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setAccountType(t.value)}
-                  aria-pressed={selected}
-                  className={`relative rounded-full px-2 py-1.5 text-[13px] font-medium transition-colors transition-transform duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-                    selected
-                      ? "text-canopy"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {selected && (
-                    <motion.span
-                      layoutId="signupAccountThumb"
-                      className="absolute inset-0 z-0 rounded-full border border-canopy bg-canopy/10"
-                      transition={SPRINGS.snappy}
-                    />
-                  )}
-                  <span className="relative z-10">{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Canopy-filled thumb, same control as the profile Writing switcher
+              (owner, 2026-08-02): this used to draw a canopy OUTLINE thumb, the
+              odd one out next to profile's fill. `fill` keeps it stretching to
+              half of this row (`flex-1`) beside the InfoTip, as before. */}
+          <SegmentedPills
+            ariaLabel="I am a..."
+            layoutId="signupAccountType"
+            role="radiogroup"
+            fill
+            segments={ACCOUNT_TYPES.map((t) => ({ key: t.value, label: t.label }))}
+            value={accountType}
+            onChange={setAccountType}
+            className="flex-1 bg-paper"
+          />
           <InfoTip label="What if I used to teach?">
             Taught at Rishi Valley at any point? Choose Teacher, it includes
             teachers who have since moved on too.

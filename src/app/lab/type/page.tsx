@@ -723,7 +723,7 @@ export default function TypeRoom() {
           Related:{" "}
           <Link
             href="/lab/craft"
-            className="rounded-sm font-semibold text-leaf underline decoration-leaf/40 underline-offset-2 transition-colors hover:decoration-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/50 active:text-leaf/70"
+            className="rounded-sm font-semibold text-leaf underline decoration-leaf/40 underline-offset-2 transition-colors hover:decoration-leaf active:text-leaf/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             the craft room
           </Link>{" "}

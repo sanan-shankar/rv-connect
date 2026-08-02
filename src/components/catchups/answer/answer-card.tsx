@@ -142,7 +142,7 @@ export function AnswerCard({
                 flushBody();
                 onAdvance();
               }}
-              className="rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+              className="rounded-sm text-sm font-medium text-muted-foreground hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Skip for now
             </button>

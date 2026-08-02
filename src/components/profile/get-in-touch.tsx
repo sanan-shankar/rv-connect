@@ -110,7 +110,7 @@ export function GetInTouch({
                   href={m.href}
                   target={m.external ? "_blank" : undefined}
                   rel={m.external ? "noopener noreferrer" : undefined}
-                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border bg-card px-3.5 py-3 transition-colors duration-150 hover:border-leaf/40 hover:bg-leaf/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border bg-card px-3.5 py-3 transition-colors duration-150 hover:border-leaf/40 hover:bg-leaf/5 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <Icon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
                   <span className="min-w-0">

@@ -21,7 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { SPRINGS } from "@/components/common/motion";
+import { EASE_SEGMENT_GLIDE, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { endCatchup, pauseCatchup, resumeCatchup, updateCatchupCadence } from "@/app/(main)/catchups/actions";
 import type { Cadence, CatchupStatus } from "@/lib/catchups-types";
@@ -115,7 +115,7 @@ export function KeeperSettingsDialog({
                   disabled={catchupStatus === "ended"}
                   onClick={() => handleCadence(opt.value)}
                   className={cn(
-                    "relative rounded-full px-2 py-1.5 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50",
+                    "relative rounded-full px-2 py-1.5 text-[12.5px] font-medium transition-colors duration-150 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     selected ? "text-canopy" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -123,7 +123,11 @@ export function KeeperSettingsDialog({
                     <motion.span
                       layoutId="catchupCadenceThumb"
                       className="absolute inset-0 z-0 rounded-full border border-canopy bg-canopy/10"
-                      transition={SPRINGS.snappy}
+                      // Not SegmentedPills: same canopy-tint OUTLINE treatment as
+                      // reminder-pref-control.tsx, not the fill look the shared
+                      // component draws, and out of the owner's 2026-08-02 scope.
+                      // Same no-bounce curve regardless.
+                      transition={{ duration: SEGMENT_GLIDE_SECONDS, ease: EASE_SEGMENT_GLIDE }}
                     />
                   )}
                   <span className="relative z-10">{opt.label}</span>

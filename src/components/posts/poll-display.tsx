@@ -128,7 +128,7 @@ export function PollDisplay({
               key={option.id}
               onClick={() => handleVote(option.id)}
               disabled={submitting}
-              className="w-full rounded-lg border border-border px-4 py-2.5 text-left text-sm font-medium text-foreground transition-colors duration-150 hover:border-leaf hover:bg-leaf/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98]"
+              className="w-full rounded-lg border border-border px-4 py-2.5 text-left text-sm font-medium text-foreground transition-colors duration-150 hover:border-leaf hover:bg-leaf/5 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {option.text}
             </button>
@@ -148,7 +148,7 @@ export function PollDisplay({
             onClick={() => handleVote(option.id)}
             disabled={submitting}
             aria-pressed={isSelected}
-            className="relative w-full overflow-hidden rounded-lg border border-border px-4 py-2.5 text-left transition-colors duration-150 hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] disabled:pointer-events-none"
+            className="relative w-full overflow-hidden rounded-lg border border-border px-4 py-2.5 text-left transition-colors duration-150 hover:border-leaf/50 active:scale-[0.98] disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {/* Fill bar: a full-width block scaled in on the X axis from a left origin.
                 Only transform animates, never width or any layout property. The picked

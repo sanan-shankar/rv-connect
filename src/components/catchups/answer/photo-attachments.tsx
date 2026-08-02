@@ -97,7 +97,7 @@ export function PhotoAttachments({
             <SpringPress
               as="button"
               onClick={() => onChange(images.filter((_, idx) => idx !== i))}
-              className="absolute right-1.5 top-1.5 inline-grid h-6 w-6 place-items-center rounded-full bg-foreground/70 text-background opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+              className="absolute right-1.5 top-1.5 inline-grid h-6 w-6 place-items-center rounded-full bg-foreground/70 text-background opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               {...({ type: "button", "aria-label": "Remove photo" } as object)}
             >
               <X className="h-3.5 w-3.5" />
@@ -109,7 +109,7 @@ export function PhotoAttachments({
             as="button"
             onClick={() => inputRef.current?.click()}
             className={cn(
-              "inline-flex flex-col items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-dashed border-border text-muted-foreground hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-default disabled:opacity-50",
+              "inline-flex flex-col items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-dashed border-border text-muted-foreground hover:border-leaf/50 hover:text-foreground disabled:cursor-default disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               plateSize
             )}
             {...({ type: "button", disabled: uploading, "aria-label": "Add a photo" } as object)}

@@ -232,7 +232,7 @@ function PinnedCard({
       whileTap={{ scale: 0.985, y: -2 }}
       transition={SPRINGS.snappy}
       style={{ ...paperBg, ...style }}
-      className={`group relative rounded-[3px] border border-black/[0.06] outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 ${className}`}
+      className={`group relative rounded-[3px] border border-black/[0.06] outline-none ${className} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy`}
     >
       {/* curled corner */}
       <span
@@ -279,7 +279,7 @@ function Polaroid({
       whileTap={{ scale: 0.99 }}
       transition={SPRINGS.snappy}
       tabIndex={0}
-      className="group relative w-full max-w-[420px] rounded-[4px] bg-[#FCFAF3] p-[10px] pb-[30px] shadow-[0_2px_3px_rgba(35,24,12,0.12),0_22px_38px_-24px_rgba(35,24,12,0.55)] outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 sm:p-3 sm:pb-9"
+      className="group relative w-full max-w-[420px] rounded-[4px] bg-[#FCFAF3] p-[10px] pb-[30px] shadow-[0_2px_3px_rgba(35,24,12,0.12),0_22px_38px_-24px_rgba(35,24,12,0.55)] outline-none sm:p-3 sm:pb-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
     >
       <Pin color={pinColor} size={17} className="-top-[10px] left-1/2 -translate-x-1/2" />
       <Tape color={pinColor} rotate={-10} width={44} className="-right-2.5 -top-2.5" />
@@ -336,8 +336,8 @@ function TackedButton({
         href={href}
         className={`inline-flex items-center justify-center rounded-[3px] px-7 py-3.5 text-[15px] font-bold outline-none transition-[box-shadow,background-color] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#DCC9A3] ${
           primary
-            ? "bg-canopy text-white shadow-[0_1px_1px_rgba(255,255,255,0.15)_inset,0_16px_28px_-16px_rgba(35,92,73,0.75)] hover:bg-canopy/95 focus-visible:ring-canopy/60"
-            : "border-2 border-[#3F7CA6]/70 bg-[#FBF7EC] text-[#2A4E63] shadow-[0_10px_20px_-14px_rgba(35,24,12,0.5)] hover:bg-float focus-visible:ring-sky/50"
+            ? "bg-canopy text-white shadow-[0_1px_1px_rgba(255,255,255,0.15)_inset,0_16px_28px_-16px_rgba(35,92,73,0.75)] hover:bg-canopy/95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+            : "border-2 border-[#3F7CA6]/70 bg-[#FBF7EC] text-[#2A4E63] shadow-[0_10px_20px_-14px_rgba(35,24,12,0.5)] hover:bg-float focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky"
         }`}
       >
         {children}
@@ -391,7 +391,7 @@ function BatchTag({
       whileFocus={{ rotate: rotate * 0.35, y: -3, scale: 1.08 }}
       transition={SPRINGS.snappy}
       tabIndex={0}
-      className={`group absolute z-20 flex h-[32px] w-[54px] cursor-default items-center justify-center rounded-[3px] border border-black/10 text-center outline-none shadow-[0_8px_16px_-10px_rgba(35,24,12,0.6)] focus-visible:ring-2 focus-visible:ring-canopy/50 ${className}`}
+      className={`group absolute z-20 flex h-[32px] w-[54px] cursor-default items-center justify-center rounded-[3px] border border-black/10 text-center outline-none shadow-[0_8px_16px_-10px_rgba(35,24,12,0.6)] ${className} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy`}
       style={{ backgroundColor: "#EADFC4" }}
     >
       <span aria-hidden className="absolute left-1.5 top-1/2 h-[6px] w-[6px] -translate-y-1/2 rounded-full bg-[#D3B98C]" />
@@ -502,21 +502,21 @@ function BoardNav() {
       >
         <Link
           href="/lab"
-          className="rounded-md outline-none transition-transform duration-150 hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-canopy/60 active:translate-y-0"
+          className="rounded-md outline-none transition-transform duration-150 hover:-translate-y-px active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
         >
           <Wordmark size={22} fontSize={17} variant="light" textClassName="text-[#241E14]" />
         </Link>
         <nav className="flex items-center gap-2 sm:gap-3" aria-label="Primary">
           <Link
             href="/login"
-            className="hidden rounded-full px-4 py-2 text-[14px] font-bold text-[#2F2A1C] outline-none transition-[color,transform] duration-150 hover:text-canopy focus-visible:ring-2 focus-visible:ring-canopy/50 active:scale-[0.97] sm:inline-flex"
+            className="hidden rounded-full px-4 py-2 text-[14px] font-bold text-[#2F2A1C] outline-none transition-[color,transform] duration-150 hover:text-canopy active:scale-[0.97] sm:inline-flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           >
             {NAV.signIn}
           </Link>
           <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }} transition={SPRINGS.snappy}>
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-[14px] font-bold text-white shadow-[0_1px_1px_rgba(255,255,255,0.2)_inset,0_10px_22px_-10px_rgba(35,92,73,0.85)] outline-none transition-colors duration-150 hover:bg-canopy/95 focus-visible:ring-2 focus-visible:ring-canopy/60 focus-visible:ring-offset-2"
+              className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-[14px] font-bold text-white shadow-[0_1px_1px_rgba(255,255,255,0.2)_inset,0_10px_22px_-10px_rgba(35,92,73,0.85)] outline-none transition-colors duration-150 hover:bg-canopy/95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
             >
               {NAV.join}
             </Link>
@@ -576,7 +576,7 @@ function Hero() {
           whileHover={{ rotate: 1.2, y: -6 }}
           transition={SPRINGS.gentle}
           tabIndex={0}
-          className="group relative mx-auto w-full max-w-[380px] rounded-[4px] bg-[#FCFAF3] p-3 pb-9 outline-none shadow-[0_2px_4px_rgba(35,24,12,0.14),0_30px_50px_-26px_rgba(35,24,12,0.6)] focus-visible:ring-2 focus-visible:ring-canopy/50 sm:p-3.5 sm:pb-11"
+          className="group relative mx-auto w-full max-w-[380px] rounded-[4px] bg-[#FCFAF3] p-3 pb-9 outline-none shadow-[0_2px_4px_rgba(35,24,12,0.14),0_30px_50px_-26px_rgba(35,24,12,0.6)] sm:p-3.5 sm:pb-11 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
         >
           <Pin color="#3F7CA6" size={19} className="-top-[11px] left-1/2 -translate-x-1/2" />
           <BatchTag label="'11" color="#C2622F" rotate={9} className="hidden sm:flex -bottom-3 -left-3" />
@@ -650,7 +650,7 @@ function EnvelopeArt({ alt, shotKey }: { alt: string; shotKey: keyof typeof SHOT
         whileFocus={{ rotate: -0.6, y: -8 }}
         transition={SPRINGS.snappy}
         tabIndex={0}
-        className="group relative w-full max-w-[380px] outline-none focus-visible:ring-2 focus-visible:ring-cinnamon/50"
+        className="group relative w-full max-w-[380px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cinnamon"
       >
         {/* the letter, peeking up out of the envelope */}
         <div className="relative z-0 -mb-14 w-full rounded-t-[3px] bg-[#FCFAF3] px-6 pb-16 pt-6 shadow-[0_-2px_6px_-4px_rgba(35,24,12,0.2)]">
@@ -713,7 +713,7 @@ function TrustBand() {
           whileHover={{ rotate: -2, scale: 1.04 }}
           transition={SPRINGS.snappy}
           tabIndex={0}
-          className="relative mx-auto flex h-[168px] w-[168px] shrink-0 flex-col items-center justify-center rounded-full border-[3px] border-dashed border-canopy/60 bg-[#FBF7EC] px-4 text-center shadow-[0_18px_30px_-18px_rgba(35,24,12,0.5)] outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 sm:h-[188px] sm:w-[188px]"
+          className="relative mx-auto flex h-[168px] w-[168px] shrink-0 flex-col items-center justify-center rounded-full border-[3px] border-dashed border-canopy/60 bg-[#FBF7EC] px-4 text-center shadow-[0_18px_30px_-18px_rgba(35,24,12,0.5)] outline-none sm:h-[188px] sm:w-[188px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
         >
           <span className="font-heading text-[26px] font-bold leading-none text-canopy sm:text-[30px]">10</span>
           <span className="mt-1.5 text-[11px] font-bold uppercase leading-[1.4] tracking-[0.1em] text-[#3B5648]">
@@ -754,14 +754,14 @@ function ClosingCta() {
             <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.96 }} transition={SPRINGS.snappy}>
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center rounded-full bg-float px-7 py-3.5 text-[15px] font-bold text-canopy shadow-[0_16px_28px_-16px_rgba(0,0,0,0.5)] outline-none transition-colors duration-150 hover:bg-[#F6F2E8] focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1E4E3D] active:scale-[0.97]"
+                className="inline-flex items-center justify-center rounded-full bg-float px-7 py-3.5 text-[15px] font-bold text-canopy shadow-[0_16px_28px_-16px_rgba(0,0,0,0.5)] outline-none transition-colors duration-150 hover:bg-[#F6F2E8] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 {FOOTER.ctaPrimary}
               </Link>
             </motion.div>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center rounded-full border-2 border-white/50 px-7 py-3.5 text-[15px] font-bold text-white outline-none transition-[background-color,transform] duration-150 hover:-translate-y-0.5 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1E4E3D] active:translate-y-0 active:scale-[0.97]"
+              className="inline-flex items-center justify-center rounded-full border-2 border-white/50 px-7 py-3.5 text-[15px] font-bold text-white outline-none transition-[background-color,transform] duration-150 hover:-translate-y-0.5 hover:bg-white/10 active:translate-y-0 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               {FOOTER.ctaSecondary}
             </Link>

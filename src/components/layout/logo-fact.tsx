@@ -99,7 +99,7 @@ export function LogoFact({
         onClick={onNavigate}
         aria-label="Rishi Valley, home"
         aria-describedby={reveal ? "logo-fact-card" : undefined}
-        className="flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 active:scale-[0.98]"
+        className="flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
       >
         <Wordmark
           variant="two-plane"

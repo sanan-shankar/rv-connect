@@ -47,7 +47,7 @@ export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {
               // headline the reader is aiming at. No negative margin, so the
               // tint band stays inside the card's text column and the
               // between-row hairlines above keep their exact width.
-              className="block rounded-md py-3 state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="block rounded-md py-3 state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[13px] font-semibold text-foreground">

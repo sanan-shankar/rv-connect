@@ -300,7 +300,7 @@ export function LocationPicker(props: LocationPickerProps) {
                 <SpringPress
                   as="button"
                   onClick={() => removeChip(index)}
-                  className="grid size-5 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-colors duration-150 hover:bg-canopy/20 hover:text-canopy focus-visible:ring-2 focus-visible:ring-canopy/40 active:bg-canopy/30"
+                  className="grid size-5 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-colors duration-150 hover:bg-canopy/20 hover:text-canopy active:bg-canopy/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
                   {...({ type: "button", "aria-label": `Remove ${place.label}` } as object)}
                 >
                   <XIcon className="size-3" strokeWidth={2.5} />
@@ -342,7 +342,7 @@ export function LocationPicker(props: LocationPickerProps) {
               // settings, a Float panel in a dialog). --accent could not serve
               // both -- it read +2.06 dL* on one and inverted to -2.42 on the
               // other. The ink tint composites over whichever it lands on.
-              className="state-layer grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+              className="state-layer grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               {...({ type: "button", "aria-label": "Clear city" } as object)}
             >
               <XIcon className="size-3.5" />

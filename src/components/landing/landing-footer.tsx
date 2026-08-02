@@ -38,7 +38,7 @@ export function LandingFooter() {
             // enough to the JND to be part of the "it does some places but not
             // everywhere" the owner reported. Keep both numbers in lockstep
             // with the primitive.
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-[filter,transform] duration-200 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] active:brightness-[0.88]"
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-[filter,transform] duration-200 hover:brightness-[1.14] active:scale-[0.98] active:brightness-[0.88] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
           >
             Join the community
           </Link>
@@ -49,7 +49,7 @@ export function LandingFooter() {
             // nothing happening to the button itself, which is the weakest CTA
             // hover on the public page. The leaf border stays as a second
             // channel on top.
-            className="state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-8 py-3.5 font-semibold text-foreground transition-[transform,border-color] duration-200 hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+            className="state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-8 py-3.5 font-semibold text-foreground transition-[transform,border-color] duration-200 hover:border-leaf/50 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
           >
             Sign in
           </Link>

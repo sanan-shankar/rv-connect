@@ -384,7 +384,7 @@ export default function LoginPage() {
             stays put across the sign-in handoff). */}
         <Link
           href="/"
-          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:left-16"
+          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white lg:left-16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
         >
           <Wordmark markClassName="text-white" textClassName="block" />
@@ -401,7 +401,7 @@ export default function LoginPage() {
       <div className="flex min-h-screen flex-col bg-background px-[var(--space-l)] py-[var(--space-l)]">
         <Link
           href="/"
-          className="inline-flex items-center gap-1 self-start rounded-sm text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="inline-flex items-center gap-1 self-start rounded-sm text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -484,7 +484,7 @@ export default function LoginPage() {
                     // state-layer gives the reveal button the fill it never had:
                     // an ink darkening alone is easy to miss on a 32px target,
                     // and the same class carries the press state.
-                    className="state-layer absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+                    className="state-layer absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
@@ -506,7 +506,7 @@ export default function LoginPage() {
             New here?{" "}
             <Link
               href="/signup"
-              className="rounded-sm font-medium text-leaf hover:text-leaf-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="rounded-sm font-medium text-leaf hover:text-leaf-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Join
             </Link>
