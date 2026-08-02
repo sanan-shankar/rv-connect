@@ -16,7 +16,7 @@ const ANY = "__any__";
  */
 function FacetOptionRow({ value, label }: { value: string; label: string }) {
   return (
-    <SelectPrimitive.Item value={value} className={cn(FACET_ITEM_CLASS, "cursor-default gap-2")}>
+    <SelectPrimitive.Item value={value} className={cn(FACET_ITEM_CLASS, "gap-2")}>
       <SelectPrimitive.ItemText className="min-w-0 flex-1 truncate">{label}</SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator className="ml-auto shrink-0">
         <Check className="size-4 text-canopy" aria-hidden />

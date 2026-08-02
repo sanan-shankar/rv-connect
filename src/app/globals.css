@@ -419,6 +419,35 @@
     -webkit-appearance: none;
     margin: 0;
   }
+  /* ONE cursor rule for the whole app (owner, 2026-08-02: "I don't know why
+     we're doing it only sometimes and not all the time. That's weird").
+     It was only sometimes because two conventions were fighting. A native macOS
+     menu does NOT use a pointing hand, so shadcn/Base UI ship their rows with
+     `cursor-default`, while ordinary web links and a handful of hand-rolled
+     controls used `cursor-pointer`. Both are defensible; having both is not.
+     This is a website, so the web convention wins: if it acts when you click
+     it, it says so. Stated by ROLE rather than by class, so a control cannot
+     opt out by being built out of a div, which is exactly how the menu rows,
+     select options and tabs went missing (Base UI renders all of them as divs).
+     Any `cursor-default` left in a component would beat this, since utilities
+     outrank the base layer, so there are none left in src/. */
+  button:not(:disabled),
+  select:not(:disabled),
+  summary,
+  a[href],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"],
+  [role="tab"],
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  [role="combobox"] {
+    cursor: pointer;
+  }
   h1, h2, h3, h4 {
     @apply font-heading tracking-tight;
   }
