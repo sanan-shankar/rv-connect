@@ -108,9 +108,8 @@ export const postSchema = z.object({
   content: z.string().min(1, "Post cannot be empty").max(20000),
   kind: z.enum(["post", "letter"]).optional(),
   title: z.string().max(160).optional(),
-  tag: z
-    .enum(["campus-memory", "life-update", "looking-for-connections", "photo", "general"])
-    .optional(),
+  // No `tag`: post types were abandoned 2026-08-02 (owner call). The Post.tag
+  // column survives for a future cleanup migration and has no reader or writer.
   targetBatches: z.string().optional(),
   groupId: z.string().optional(),
   images: z.string().optional(),

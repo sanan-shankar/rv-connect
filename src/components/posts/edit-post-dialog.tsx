@@ -12,14 +12,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { editPost } from "@/app/(main)/feed/actions";
 
-const TAGS = [
-  { value: "campus-memory", label: "Campus Memory" },
-  { value: "life-update", label: "Life Update" },
-  { value: "looking-for-connections", label: "Looking for Connections" },
-  { value: "photo", label: "Photo" },
-  { value: "general", label: "General" },
-];
-
 /* The QUICK edit: a short interaction for a published post or letter's text.
  * Drafts are letters mid-write and go to the whole-page desk at
  * /letters/[id]/edit instead (owner, 2026-07-30: the dialog register is for
@@ -29,7 +21,6 @@ export function EditPostDialog({
   kind = "post",
   initialContent,
   initialTitle,
-  initialTag,
   open,
   onClose,
 }: {
@@ -37,24 +28,18 @@ export function EditPostDialog({
   kind?: string;
   initialContent: string;
   initialTitle?: string | null;
-  initialTag: string | null;
   open: boolean;
   onClose: () => void;
 }) {
   const isLetter = kind === "letter";
   const [content, setContent] = useState(initialContent);
   const [title, setTitle] = useState(initialTitle ?? "");
-  const [tag, setTag] = useState(initialTag);
   const [submitting, setSubmitting] = useState(false);
 
   function buildFormData() {
     const formData = new FormData();
     formData.set("content", content);
-    if (isLetter) {
-      if (title.trim()) formData.set("title", title.trim());
-    } else if (tag) {
-      formData.set("tag", tag);
-    }
+    if (isLetter && title.trim()) formData.set("title", title.trim());
     return formData;
   }
 
@@ -99,35 +84,6 @@ export function EditPostDialog({
             maxLength={isLetter ? 20000 : 5000}
             rows={isLetter ? 10 : 5}
           />
-
-          {!isLetter && (
-            <div className="flex flex-wrap gap-2">
-              {TAGS.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setTag(tag === t.value ? null : t.value)}
-                  /* state-layer on the base, so BOTH states hover: it tints
-                     whatever fill is under it instead of replacing it, which is
-                     what a selected chip needs (it still has to answer a cursor
-                     without giving up its selection colour). It also fixes the
-                     unselected chip, whose hover:bg-accent #FAF8F2 was lighter
-                     than its own bg-card #F5F2EA and pulled it TOWARDS this
-                     dialog's white, i.e. hovering erased the chip. */
-                  className={`state-layer rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 ${
-                    tag === t.value
-                      ? /* The one sanctioned green selection wash (protocol
-                           colour rule 4); the old ring-2 double-outline cut
-                           against the pill's own edge. */
-                        "border-canopy/35 bg-canopy/[0.08] text-canopy"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          )}
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose} disabled={submitting}>

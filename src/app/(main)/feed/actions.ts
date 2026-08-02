@@ -55,7 +55,6 @@ export async function createPost(formData: FormData) {
     content: formData.get("content") as string,
     kind: (formData.get("kind") as string) || undefined,
     title: (formData.get("title") as string) || undefined,
-    tag: (formData.get("tag") as string) || undefined,
     targetBatches: (formData.get("targetBatches") as string) || undefined,
     groupId: (formData.get("groupId") as string) || undefined,
     images: (formData.get("images") as string) || undefined,
@@ -81,7 +80,7 @@ export async function createPost(formData: FormData) {
   // listed (an own UserPlace), matched case-insensitively; anything else is
   // silently ignored rather than trusted, so a tampered form field can't scope
   // a post to an arbitrary city. Group posts never get a cityScope, same as
-  // tag/targetBatches above.
+  // targetBatches above.
   let cityScope: string | null = null;
   if (!groupId && parsed.data.cityScope) {
     const ownPlace = await prisma.userPlace.findFirst({
@@ -104,7 +103,6 @@ export async function createPost(formData: FormData) {
       kind: parsed.data.kind || "post",
       title: parsed.data.kind === "letter" ? parsed.data.title || null : null,
       content: parsed.data.content,
-      tag: groupId ? null : parsed.data.tag || null,
       targetBatches: groupId ? null : parsed.data.targetBatches || null,
       groupId,
       images: parsed.data.images || null,
@@ -307,7 +305,6 @@ export async function editPost(postId: string, formData: FormData) {
   if (post.authorId !== session.user.id) return { error: "Not authorized" };
 
   const content = formData.get("content") as string;
-  const tag = formData.get("tag") as string;
   const title = formData.get("title") as string;
   const isLetter = post.kind === "letter";
   const cap = isLetter ? 20000 : 5000;
@@ -340,8 +337,8 @@ export async function editPost(postId: string, formData: FormData) {
     where: { id: postId },
     data: {
       content,
-      // Tags are post-only; a letter keeps its title and ignores tags.
-      ...(isLetter ? { title: title?.trim() || null } : { tag: tag || null }),
+      // A title belongs to a letter only; a plain post has nothing else here.
+      ...(isLetter ? { title: title?.trim() || null } : {}),
       ...imagesUpdate,
     },
   });
@@ -580,7 +577,6 @@ export async function loadPosts(opts?: {
   groupId?: string; // set => load this group's feed; unset => main feed
   authorId?: string; // set => only this author's posts (profile Posts tab)
   kind?: "post" | "letter";
-  tag?: string;
   search?: string;
   sortBy?: "recent" | "liked" | "commented";
   timeFilter?: "all" | "today" | "week" | "month" | "year";
@@ -634,7 +630,6 @@ export async function loadPosts(opts?: {
     // in the "Your drafts" strip on /letters.
     ...PUBLISHED_ONLY,
     ...(opts?.authorId ? { authorId: opts.authorId } : {}),
-    ...(opts?.tag ? { tag: opts.tag } : {}),
     ...(opts?.kind ? { kind: opts.kind } : {}),
     ...(andConditions.length ? { AND: andConditions } : {}),
     ...(timeDate ? { createdAt: { gte: timeDate } } : {}),
@@ -719,7 +714,6 @@ export async function loadPosts(opts?: {
       kind: p.kind,
       title: p.title,
       content: p.content,
-      tag: p.tag,
       images: p.images,
       groupId: p.groupId,
       cityScope: p.cityScope,
@@ -822,7 +816,6 @@ export async function loadSavedPosts() {
       kind: p.kind,
       title: p.title,
       content: p.content,
-      tag: p.tag,
       images: p.images,
       groupId: p.groupId,
       cityScope: p.cityScope,
