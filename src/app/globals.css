@@ -347,6 +347,15 @@
      opposite direction. Deliberately NOT keyed off --shadow-ink, which is
      0 0 0 here for depth and would make every hover invisible. */
   --state-ink: 255 255 255;
+  /* Dark also gets its own ALPHA, slightly under light's 0.06. The same alpha
+     does not buy the same perceptual step in both directions: measured across
+     83 real dropdown rows, light landed at -4.45 to -4.58 dL* (inside the
+     4.2-4.7 band) while dark ran +4.60 to +4.89, with most rows over the
+     ceiling, because a white tint moves a near-black surface further than an
+     ink tint moves a near-white one. 0.055 brings dark back into the same band
+     so a hover feels identical in either theme rather than merely present. */
+  --state-hover: rgb(var(--state-ink) / 0.055);
+  --state-press: rgb(var(--state-ink) / 0.10);
 
   /* The charcoal rail (see the header note). The rail is the one surface in
      the app that sits BELOW the page rather than above it, which is what
@@ -495,6 +504,22 @@
   &[data-highlighted],
   &[data-open],
   &[data-popup-open] {
+    background-image: linear-gradient(var(--state-hover), var(--state-hover));
+  }
+  /* Keyboard focus lights the row exactly the way the pointer does.
+     Base UI's own rows (Select.Item, Menu.Item) are covered by
+     `data-highlighted` above, but a hand-rolled row is not: the facet kit's
+     search panels are plain <button>s in a Popover, and nothing marks those.
+     Measured 2026-08-02, a row tabbed to in the City / House / "Part of school"
+     lists came back with outline none, background-image none, box-shadow none,
+     dL* 0.00. Focus was real and completely unpainted, so those lists were not
+     keyboard navigable at all.
+     It repaints the state layer rather than adding a ring because arrow keys
+     and the pointer should light the same row the same way. Controls that want
+     a visible OUTLINE on focus (buttons, inputs) get one from their own
+     primitive; this is for rows inside a panel, where an outline would cut
+     across the panel's padding. */
+  &:focus-visible {
     background-image: linear-gradient(var(--state-hover), var(--state-hover));
   }
   /* Pointer hover, gated on the device actually having a hovering pointer.
