@@ -45,7 +45,11 @@ export function ShareButton({
       aria-label={label}
       whileTap={{ scale: 0.93 }}
       transition={SPRINGS.snappy}
-      className={`flex items-center rounded-full px-2.5 py-1.5 text-sm hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${className}`}
+      // state-layer, not hover:bg-accent: the third of the three action buttons
+      // that share a post card's footer, so it takes the same hover as the other
+      // two (see love-button.tsx for the -4.50 vs +2.06 dL* measurement). The
+      // icon still lifts from muted to full ink on top of it.
+      className={`state-layer flex items-center rounded-full px-2.5 py-1.5 text-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${className}`}
     >
       <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
         {/* Clean crossfade to a check, no spring overshoot (that read as a forced wiggle). */}

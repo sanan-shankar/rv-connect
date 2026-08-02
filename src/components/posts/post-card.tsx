@@ -220,8 +220,12 @@ export function PostCard({
             {/* -mr-2 pulls the trigger's own padding plus the glyph's internal inset
                 (MoreHorizontal's dots don't reach its viewBox edges) outward, so the DOTS
                 ink lands flush on the card's right line (photo edge / share glyph) instead
-                of sitting ~9px inside it. Hit area is unchanged, just shifted into the gutter. */}
-            <DropdownMenuTrigger className="-mr-2 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95">
+                of sitting ~9px inside it. Hit area is unchanged, just shifted into the gutter.
+                state-layer, not hover:bg-accent: on this bg-card header the accent fill
+                measured +2.06 dL*, at the ~2 just-noticeable threshold. It also keeps the
+                trigger lit while its own menu is open, since Base UI marks an open trigger
+                data-popup-open and the state-layer selector already covers that. */}
+            <DropdownMenuTrigger className="state-layer -mr-2 rounded-md p-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95">
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -321,7 +325,10 @@ export function PostCard({
               {isLongText && !expanded && (
                 <button
                   onClick={() => setExpanded(true)}
-                  className="mt-1 rounded-sm text-sm font-medium text-leaf hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  /* Bare text, so its states are ink-only: no state-layer (a tint
+                     behind a 2-word label reads as a stray chip). active:opacity-70
+                     is the press it was missing. */
+                  className="mt-1 rounded-sm text-sm font-medium text-leaf transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
                 >
                   Read more
                 </button>
@@ -403,7 +410,7 @@ export function PostCard({
             aria-label={showComments ? "Hide comments" : "Show comments"}
             whileTap={{ scale: 0.93 }}
             transition={SPRINGS.snappy}
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="state-layer flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <ChatCircle size={18} weight="regular" />
             <span>{commentCount}</span>

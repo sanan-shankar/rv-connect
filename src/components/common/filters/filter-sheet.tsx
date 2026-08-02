@@ -39,7 +39,13 @@ export function FilterSheet({
             <button
               type="button"
               onClick={onClearAll}
-              className="shrink-0 rounded-full px-1 text-sm font-semibold text-canopy underline-offset-2 outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-canopy/40"
+              // A text action, not a filled control, so its hover is the rule
+              // rather than a state layer: a tint behind px-1 of text would
+              // read as a stray swatch next to the solid Show button. The
+              // press is the scale, and transform is what the transition is
+              // for -- nothing here changes colour. Kept identical to the
+              // Clear all in active-filter-chips.tsx, its desktop twin.
+              className="shrink-0 rounded-full px-1 text-sm font-semibold text-canopy underline-offset-2 outline-none transition-transform hover:underline focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
             >
               Clear all
             </button>

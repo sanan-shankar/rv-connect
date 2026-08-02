@@ -127,7 +127,14 @@ export function RangeFacetPill({
                     // Canopy focus ring: --ring (leaf) is the INPUT ring
                     // only; these presets are buttons (globals.css token
                     // note), unlike the year <select>s above which keep it.
-                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-[colors,transform] hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
+                    //
+                    // state-layer, not hover:bg-accent: these chips render on
+                    // the FacetPanel, which is Float white, and --accent on
+                    // white measured -2.42 dL* -- the hover inverted and
+                    // vanished. The ink tint lands at -4.72 there instead.
+                    // transition-transform only: the layer is a
+                    // background-image, which cannot tween; the press can.
+                    className="state-layer rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-foreground transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/40 active:scale-95"
                   >
                     {d.label}
                   </button>

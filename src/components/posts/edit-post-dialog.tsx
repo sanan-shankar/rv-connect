@@ -107,13 +107,20 @@ export function EditPostDialog({
                   key={t.value}
                   type="button"
                   onClick={() => setTag(tag === t.value ? null : t.value)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 ${
+                  /* state-layer on the base, so BOTH states hover: it tints
+                     whatever fill is under it instead of replacing it, which is
+                     what a selected chip needs (it still has to answer a cursor
+                     without giving up its selection colour). It also fixes the
+                     unselected chip, whose hover:bg-accent #FAF8F2 was lighter
+                     than its own bg-card #F5F2EA and pulled it TOWARDS this
+                     dialog's white, i.e. hovering erased the chip. */
+                  className={`state-layer rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 ${
                     tag === t.value
                       ? /* The one sanctioned green selection wash (protocol
                            colour rule 4); the old ring-2 double-outline cut
                            against the pill's own edge. */
                         "border-canopy/35 bg-canopy/[0.08] text-canopy"
-                      : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {t.label}

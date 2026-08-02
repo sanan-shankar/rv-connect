@@ -71,7 +71,11 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
               e.preventDefault(); // Prevent textarea blur
               onSelect(user);
             }}
-            className="w-full px-3 py-2 text-left hover:bg-accent"
+            /* state-layer carries hover AND press here; hover:bg-accent was the
+               only state this row had, and on a card-coloured panel it sat at
+               the just-noticeable threshold. The focus ring is inset because the
+               row runs edge to edge inside a panel that clips it. */
+            className="state-layer w-full px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
           >
             <IdentityRow
               user={{

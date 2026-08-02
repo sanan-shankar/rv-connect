@@ -201,6 +201,13 @@ export function ImageViewer({
   }
 
   const hasCaption = Boolean(current?.caption?.trim());
+  /* Every control below hovers with a white wash (white/12 -> white/20), NOT the
+     app's shared `state-layer`. That is deliberate and should stay: the state
+     layer paints an INK tint, which is correct on every warm surface in the app
+     and useless here, because this chrome floats on BACKDROP (rgba(24,25,20,.94))
+     where a darker tint has nothing left to darken. This is the one region whose
+     surface does not follow the theme, so it is the one region with its own
+     hover. */
   const chromeClass = cn(
     "absolute inset-x-0 z-10 flex items-center gap-2 px-4 py-3 sm:px-6 sm:py-4 transition-opacity duration-200",
     chromeHidden ? "pointer-events-none opacity-0" : "opacity-100"

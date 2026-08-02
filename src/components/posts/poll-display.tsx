@@ -135,12 +135,20 @@ export function PollDisplay({
           );
         }
 
-        // Results mode: percentage bars that grow from zero
+        // Results mode: percentage bars that grow from zero. Still a real
+        // control (clicking one changes your vote), so it is a <button> and not
+        // the clickable <div> it used to be: as a div it could not be tabbed to,
+        // could not be triggered by Enter or Space, and announced as nothing.
+        // Its states now match the voting-mode button above it, minus the leaf
+        // fill wash, which would sit on top of the leaf result bar.
         return (
-          <div
+          <button
             key={option.id}
+            type="button"
             onClick={() => handleVote(option.id)}
-            className="relative cursor-pointer overflow-hidden rounded-lg border border-border px-4 py-2.5 transition-colors hover:border-leaf/50"
+            disabled={submitting}
+            aria-pressed={isSelected}
+            className="relative w-full overflow-hidden rounded-lg border border-border px-4 py-2.5 text-left transition-colors duration-150 hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] disabled:pointer-events-none"
           >
             {/* Fill bar: a full-width block scaled in on the X axis from a left origin.
                 Only transform animates, never width or any layout property. The picked
@@ -172,7 +180,7 @@ export function PollDisplay({
                 <CountUp value={pct} delay={delay} />
               </span>
             </div>
-          </div>
+          </button>
         );
       })}
       <p className="text-xs text-muted-foreground">

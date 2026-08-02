@@ -337,7 +337,12 @@ export function LocationPicker(props: LocationPickerProps) {
             <SpringPress
               as="button"
               onClick={clearSingle}
-              className="grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+              // state-layer, not hover:bg-accent: this x sits INSIDE the search
+              // input group, whose own surface differs by form (a card in
+              // settings, a Float panel in a dialog). --accent could not serve
+              // both -- it read +2.06 dL* on one and inverted to -2.42 on the
+              // other. The ink tint composites over whichever it lands on.
+              className="state-layer grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
               {...({ type: "button", "aria-label": "Clear city" } as object)}
             >
               <XIcon className="size-3.5" />
