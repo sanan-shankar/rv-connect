@@ -186,7 +186,12 @@ export function SearchPill() {
         {/* Resting affordance: a real focusable button overlaying the closed
             pill so the control stays keyboard-operable (Tab + Enter / Space)
             and announces its expanded state. It fades away as the bar opens so
-            it never sits over the live input or steals its clicks. */}
+            it never sits over the live input or steals its clicks.
+            It also carries the hover: `state-layer` here rather than on the
+            form, because the form is the same element in both states and an
+            open search box must not tint when the pointer crosses it. The
+            button is transparent, so the tint composites over the pill's own
+            bg-card underneath and clips to the shared rounded-full. */}
         <AnimatePresence>
           {!open && (
             <motion.button
@@ -199,7 +204,7 @@ export function SearchPill() {
               onClick={() => setOpen(true)}
               aria-label="Search posts"
               aria-expanded={open}
-              className="absolute inset-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="state-layer absolute inset-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
           )}
         </AnimatePresence>
