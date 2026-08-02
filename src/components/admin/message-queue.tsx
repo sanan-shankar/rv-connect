@@ -97,7 +97,11 @@ export function MessageQueue({
               type="button"
               onClick={() => handleToggle(t)}
               aria-expanded={open}
-              className="flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-mist/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-mist/70"
+              // hover:bg-mist/50 put ~2 dL* between this row and the card it
+              // sits on, which is the just-noticeable floor. state-layer is a
+              // translucent tint measured at ~4.4 dL* on every surface, and it
+              // brings the press tint with it (the old active:bg-mist/70).
+              className="flex w-full items-start gap-3 p-4 text-left state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <BirdAvatar user={t.member} size={36} className="mt-0.5" />
               <div className="min-w-0 flex-1">

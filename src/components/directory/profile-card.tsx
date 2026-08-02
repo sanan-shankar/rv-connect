@@ -23,8 +23,18 @@ interface ProfileCardProps {
 
 export function ProfileCard({ user }: ProfileCardProps) {
   return (
-    <Link href={`/profile/${user.id}`} className="group block">
-      <div className="card-elevated flex h-full flex-col items-center rounded-[var(--radius)] border border-border bg-card p-5 text-center transition-colors duration-200 group-hover:border-canopy/40">
+    // The ring goes on the Link (the focusable node) at the card's own radius,
+    // so keyboard focus outlines the card and not a shrink-wrapped inline box.
+    // It had no focus-visible style at all.
+    <Link
+      href={`/profile/${user.id}`}
+      className="group block rounded-[var(--radius)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+    >
+      {/* state-layer sits on the card face, which is the thing with the surface
+          and the radius. Hover used to be a 1px border tint plus a name
+          underline, and there was no press state at all; the layer carries
+          both. */}
+      <div className="card-elevated flex h-full flex-col items-center rounded-[var(--radius)] border border-border bg-card p-5 text-center transition-colors duration-200 state-layer group-hover:border-canopy/40">
         <BirdAvatar
           user={{ id: user.id, name: user.name, photoUrl: user.photoUrl, birdOverride: user.birdOverride }}
           size="md"

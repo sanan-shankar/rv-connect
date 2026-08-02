@@ -455,11 +455,15 @@ export function AlumniMap({
           fullscreen ? "top-16 sm:top-3" : "top-3"
         )}
       >
+        {/* state-layer on all four map chrome controls. They used to hover from
+            bg-card/95 to bg-card, a 5% opacity step over the map that measured
+            near zero, and `transition-transform` never carried a colour anyway.
+            The layer tints whatever the map paints behind the blur. */}
         <button
           type="button"
           aria-label="Zoom in"
           onClick={() => zoomTo(W / 2, H / 2, Math.min(MAX_Z, transform.k * 1.6))}
-          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-lg font-semibold text-foreground shadow-sm backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-lg font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
         >
           +
         </button>
@@ -467,7 +471,7 @@ export function AlumniMap({
           type="button"
           aria-label="Zoom out"
           onClick={() => zoomTo(W / 2, H / 2, Math.max(MIN_Z, transform.k / 1.6))}
-          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-lg font-semibold text-foreground shadow-sm backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+          className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-lg font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
         >
           &minus;
         </button>
@@ -480,7 +484,7 @@ export function AlumniMap({
           setFullscreen((v) => !v);
         }}
         aria-label={fullscreen ? "Exit full screen" : "View full screen"}
-        className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/95 py-1.5 pl-2.5 pr-3 text-[12px] font-semibold text-foreground shadow-sm backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
+        className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-border bg-card/95 py-1.5 pl-2.5 pr-3 text-[12px] font-semibold text-foreground shadow-sm backdrop-blur transition-transform state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
       >
         {fullscreen ? <X className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         {fullscreen ? "Close" : "Full screen"}
@@ -500,7 +504,7 @@ export function AlumniMap({
             setFullscreen(false);
           }}
           aria-label="Exit full screen"
-          className="absolute z-30 grid h-11 w-11 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-md backdrop-blur transition-transform hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 sm:hidden"
+          className="absolute z-30 grid h-11 w-11 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-md backdrop-blur transition-transform state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95 sm:hidden"
           style={{
             top: "max(0.75rem, env(safe-area-inset-top))",
             right: "max(0.75rem, env(safe-area-inset-right))",
@@ -572,7 +576,10 @@ export function AlumniMap({
                 <Link
                   key={p.id}
                   href={`/profile/${p.id}`}
-                  className="group block rounded-[var(--radius-md)] px-2 py-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                  // state-layer: these rows sit on the sheet's own surface,
+                  // where the accent swap was at or below the just-noticeable
+                  // threshold. The layer reads the same on every surface.
+                  className="group block rounded-[var(--radius-md)] px-2 py-2 state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
                 >
                   <IdentityRow
                     user={{ id: p.id, name: p.name, photoUrl: p.photoUrl, birdOverride: p.birdOverride }}

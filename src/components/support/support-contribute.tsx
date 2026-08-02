@@ -112,9 +112,12 @@ export function SupportContribute() {
                     "inline-flex items-center gap-[var(--space-xxs)] rounded-full border px-[var(--space-m)] py-[var(--space-s)] text-sm font-semibold tabular-nums",
                     "transition-[transform,background-color,border-color,color] duration-150 ease-out",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97]",
+                    // Selected keeps its sky wash (semantic). The idle chip
+                    // hovered from bg-card to bg-mist, one rung and ~2 dL*,
+                    // so the neutral half is the state layer now.
                     on
                       ? "border-sky/40 bg-sky/12 text-sky"
-                      : "border-border bg-card text-muted-foreground hover:bg-mist hover:text-foreground",
+                      : "border-border bg-card text-muted-foreground state-layer hover:text-foreground",
                   )}
                 >
                   {s.label}

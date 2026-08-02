@@ -91,7 +91,11 @@ export function TourOffer({ onStart, onMaybeLater }: { onStart: () => void; onMa
           <button
             type="button"
             onClick={onMaybeLater}
-            className="flex h-11 items-center rounded-full px-4 text-[14px] font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+            // A hand-rolled ghost pill sitting next to a real one, so it takes
+            // the same pair the ghost variant now uses: state-layer for the
+            // surface, hover:text-foreground for the ink. On its own the ink
+            // change was the whole hover on a 44px-tall target.
+            className="flex h-11 items-center rounded-full px-4 text-[14px] font-medium text-muted-foreground state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
           >
             Maybe later
           </button>

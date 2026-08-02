@@ -141,7 +141,11 @@ export function PeoplePicker({
               <button
                 type="button"
                 onClick={() => add(person)}
-                className="flex w-full items-center gap-[var(--space-s)] rounded-[var(--radius-md)] border border-transparent px-2.5 py-2 text-left transition-colors duration-150 hover:border-canopy/40 hover:bg-canopy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
+                // Neutral row, so the fill is state-layer and not a canopy
+                // wash: canopy is the app's SELECTION green (design system
+                // rule 4), and a search result under the cursor is not a
+                // selected one. The canopy border hint stays.
+                className="flex w-full items-center gap-[var(--space-s)] rounded-[var(--radius-md)] border border-transparent px-2.5 py-2 text-left transition-colors duration-150 state-layer hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]"
               >
                 <BirdAvatar
                   user={{

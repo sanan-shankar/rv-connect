@@ -66,7 +66,12 @@ export function LibraryPickerDialog({
                     key={text}
                     type="button"
                     onClick={() => pick(text, set.id)}
-                    className="block w-full rounded-[var(--radius-md)] px-3 py-2 text-left text-[13.5px] leading-snug text-foreground transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-muted/70"
+                    // state-layer, not hover:bg-accent: this list sits on the
+                    // dialog's Float white, where accent measures DARKER than
+                    // the panel and the highlight disappeared. The layer is a
+                    // translucent ink tint, so it reads the same here as on a
+                    // card, and it carries the :active press too.
+                    className="block w-full rounded-[var(--radius-md)] px-3 py-2 text-left text-[13.5px] leading-snug text-foreground state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                   >
                     {text}
                   </button>

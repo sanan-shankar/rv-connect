@@ -43,7 +43,11 @@ export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {
             <Link
               key={item.editionId}
               href={`/catchups/round/${item.editionId}`}
-              className="block py-3 transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+              // state-layer, not hover:opacity-80: fading the row dimmed the
+              // headline the reader is aiming at. No negative margin, so the
+              // tint band stays inside the card's text column and the
+              // between-row hairlines above keep their exact width.
+              className="block rounded-md py-3 state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[13px] font-semibold text-foreground">
