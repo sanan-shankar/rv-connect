@@ -7,31 +7,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 // Canopy is the ONE fill for every CTA/button (docs/spec/DESIGN-SYSTEM.md sec 2).
-// Its focus ring is canopy-based too, never the leaf `--ring` token, so a
-// canopy button never wears a mismatched leaf halo. Inputs keep the leaf ring.
+// Its focus outline is canopy-based, never the leaf --ring token, so a green
+// button never wears a mismatched leaf halo. Inputs keep the leaf ring.
 //
-// The filled CTA is the one control that does NOT take `state-layer`: the state
-// layer is an ink tint, and tinting a dark green with more ink SINKS it, while
-// a hover has to read as lit. So this variant keeps a brightness change, sized
-// to land in the same perceptual register as the state layer everywhere else.
-// Measured on canopy #235C49 (L* 34.98):
-//   brightness 1.08 -> #26634F, L* 37.78, dL* +2.80  (~the 2.0 JND; too close
-//                      to invisible, which is the "not everywhere" the owner hit)
-//   brightness 1.14 -> #286953, L* 39.85, dL* +4.87  (matched the state-layer
-//                      band, but the owner still read it as "totally gone" and
-//                      asked for "maybe 10% more": a saturated dark green needs
-//                      a bigger step than a neutral to move the same amount)
-//   brightness 1.25 -> #2C735B, L* 43.58, dL* +8.59  <- shipped
-// White-on-fill contrast moves 7.78:1 -> 5.66:1 at 1.25, still clear of AA.
-//   brightness 0.88 -> L* 30.74, dL* -4.25 vs REST (9.10:1 white)
-// The press deliberately goes BELOW the resting fill, not merely below the
-// hover. It was `active:brightness-100`, which returned the button to its exact
-// idle colour, so a pressed CTA and an untouched one were the same green and
-// only the scale sink told them apart. --state-press is ~8 dL* under REST for
-// every neutral control, so a filled CTA has to sink against rest too or the
-// two registers disagree about what a press means.
+// The filled CTA is the one control that does NOT take `state-layer`: an ink
+// tint on a dark green SINKS it, and a hover has to read as lit. So it keeps a
+// small brightness lift.
+//
+// 1.08, and deliberately not more. A stronger step was tried on 2026-08-02 and
+// rejected by the owner as "too big". `filter` is also kept OUT of the
+// transition list below: that list eases on a spring curve whose overshoot made
+// the brightness animate past its target and back, so the colour appeared to
+// change twice on a single hover.
 const CANOPY_FILL =
-  "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.25] active:brightness-[0.88] focus-visible:outline-canopy"
+  "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.08] focus-visible:outline-canopy"
 
 const buttonVariants = cva(
   // OWNER RULE (2026-07-25): hover NEVER moves a control. No lift, no grow.
@@ -66,7 +55,7 @@ const buttonVariants = cva(
   // and would show a wrong-coloured halo on the other two. The gap matters
   // because a green ring drawn straight onto a canopy-filled button is 1.78:1
   // against its own fill; the transparent 2px gap is what separates them.
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none transition-[color,background-color,border-color,box-shadow,transform,filter] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
