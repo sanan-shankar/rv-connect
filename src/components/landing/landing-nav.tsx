@@ -62,7 +62,9 @@ export function LandingNav() {
           </Link>
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-[1.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
+            // 1.14 / 0.88, in lockstep with CANOPY_FILL (ui/button.tsx) and
+            // the footer's Join CTA. Was 1.08 (+2.80 dL*, near the JND).
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-5 py-2 text-sm font-semibold text-white shadow-sm transition-[filter,transform] duration-150 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] active:brightness-[0.88]"
           >
             Join
           </Link>
