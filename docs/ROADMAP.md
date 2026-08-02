@@ -16,7 +16,7 @@ This is the single, contradiction-free build plan synthesized from all area spec
 - **Directory default landing is a dual-mode browse surface with Map as the default tab** (Map | Batches), never an alphabetical list. The world map is the distinctive draw and has no alphabetical bias.
 
 ### Scope and platform
-- **Dark mode is parked for MVP. Ship light-only.** Remove the toggle, set `forcedTheme="light"`, keep `.dark` scaffolding unshipped. Light mode is the brand's character.
+- **Dark mode is parked for MVP. Ship light-only.** Remove the toggle, set `forcedTheme="light"`, keep `.dark` scaffolding unshipped. Light mode is the brand's character. **(Superseded 2026-08-02: dark mode shipped behind the settings gauntlet. `forcedTheme` is gone, `.dark` is a real token block, and the theme comes from the `rv-theme` cookie. Light is still the default and the brand's character. See `docs/spec/DESIGN-SYSTEM.md` section 2, including the owner's reversal on the dark sidebar.)**
 - **Deploy to Vercel.** Kills cold starts for an infrequently-checked site and matches the rest of the Next.js tooling.
 - **Database is Supabase Postgres, region `ap-south-1` (Mumbai), for both production and local dev.** Runtime connects via the transaction pooler (`DATABASE_URL`, pgbouncer); the Prisma CLI uses the session pooler (`DIRECT_URL`). Keep the Prisma singleton with the `pg` adapter.
 - **Image storage is Cloudflare R2** (S3-compatible, zero egress). All image bytes flow through the `put`/`del` shim in `src/lib/storage.ts` (R2 in prod, local filesystem in dev).

@@ -1,6 +1,7 @@
 # Rishi Valley — Design System & Brand
 
-**Status:** Canonical for brand + design language, as of 2026-07-02. The live token source is
+**Status:** Canonical for brand + design language, as of 2026-07-02, last revised 2026-08-02 (the
+state layer replacing the `--accent` hover, menu row height, and dark mode shipping). The live token source is
 `src/app/globals.css`; this doc is the human-readable rulebook that explains what the tokens mean and
 how to use them. The former `docs/spec/color.md` is folded into Appendix B below (no information lost).
 
@@ -47,27 +48,39 @@ Live values in `globals.css`. Surfaces are **never pure white** (`#FFFFFF` is re
 | Ink | `#23241E` | Warm near-black text. |
 | Background | `#E4E1D5` | Page base. |
 | Mist | `#ECE8DD` | Recessed wells only (== `--muted`). |
-| Secondary | `#F0EDE4` | Quiet filled controls (`--secondary`). |
-| Accent | `#FAF8F2` | The hover lift (`--accent`). |
+| Secondary | `#EAE7DC` | Quiet filled controls (`--secondary`). Deepened from `#F0EDE4` on 2026-08-02: at the old value the composer's trigger pill measured dL* -1.77 against the paper card it sits on, under the ~2 just-noticeable threshold, so the owner saw "no contrast" between the pill and the tile. `#EAE7DC` is -3.92 on paper and still +2.14 on the page, so one token reads as a filled control in both places. |
+| Accent | `#FAF8F2` | The opaque surface rung just under Float. **Not the hover token** (see rule 2). |
+| State tint | `rgb(30 28 22 / .06)` hover, `/ .11` press | `--state-hover` / `--state-press`: the one hover and press treatment, applied through the `state-layer` utility. `--state-ink` flips to white in `.dark`. |
 | Border | `#DFD8CB` | Hairlines / input borders. |
 
 ### The surface ladder (colour protocol, 2026-07-30)
 
-The neutrals are a single ladder, bottom to top, each rung ~5 RGB steps lighter:
+The opaque neutrals are a single ladder, bottom to top:
 
 ```
-background #E4E1D5  <  mist #ECE8DD  <  secondary #F0EDE4  <  paper #F5F2EA  <  accent #FAF8F2  <  float #FFFFFF
-   page          recessed wells      quiet filled controls   cards/content        hover lift        menus/dialogs
+background #E4E1D5  <  secondary #EAE7DC  <  mist #ECE8DD  <  paper #F5F2EA  <  accent #FAF8F2  <  float #FFFFFF
+   page        quiet filled controls    recessed wells     cards/content     top opaque rung     menus/dialogs
 ```
+
+Secondary and mist swapped places when secondary was deepened on 2026-08-02, and they now sit 0.43
+dL* apart, which is not a visible step. Treat them as one register split by ROLE, not by lightness:
+secondary is something you press, mist is something you read into. The ladder's real span is page →
+paper → accent → float.
+
+Hover and press are NOT on this ladder. They are a layer laid over whatever rung a control sits on;
+see rule 2.
 
 Why a ladder: the pre-protocol palette had FOUR token names resolving to one hex
 (`--secondary` = `--muted` = `--accent` = mist `#EEE8DA`), so idle chips, hover states and
-recessed wells all converged on one ochre and hovers went *darker* into tan. Roughly 300 of
+recessed wells all converged on one ochre and a hover turned a control into the same tan as the
+well beside it. (The fault there was the CONVERGENCE, not the direction. A hover is allowed to
+deepen a surface, and since 2026-08-02 it always does on light; what it may never do is land on
+another named surface's colour.) Roughly 300 of
 430 production background usages were the warm-tan family. That convergence, plus the photo
 wash, is what read as "everything brown". The owner's calibration (revised 2026-07-30, after
 finding iPhone True Tone had been exaggerating the yellow): all-white is a 0 (corporate,
 characterless), the old state a 10; the right zone is **5-9** and the app sits at ~7. Warmth
-IS the identity - the cure for drab is CONTRAST (hover lifts, white floats, rationed wells),
+IS the identity - the cure for drab is CONTRAST (a hover you can actually see, white floats, rationed wells),
 not further de-warming. Do not cool these tokens again without an owner ask; verify any
 future "too warm/too cool" report against a reference display first (True Tone / Night
 Shift off).
@@ -77,9 +90,33 @@ Shift off).
 1. **Warmth lives at the bottom.** The page base and the valley-photo wash carry the boutique
    warmth. Surfaces get *cooler and lighter as they rise*. A floating surface (menu, dialog,
    popover) is Float white - that contrast is deliberate relief, not a bug.
-2. **Hover lifts, never sinks.** Interactive hover/highlight is `--accent` (a rung *above*
-   paper). Never `hover:bg-muted`, never `hover:bg-secondary/70`, never any tint darker than
-   the resting surface. (Press/active may sink - that is feedback for an action.)
+2. **Hover and press are a STATE LAYER, not a rung of this ladder** (rewritten 2026-08-02).
+   Interactive hover and press are a translucent ink tint composited over whatever surface the
+   control already sits on - `--state-hover` / `--state-press`, applied through the `state-layer`
+   utility - never a swap to a different opaque token.
+
+   This rule used to say the opposite ("hover lifts, never sinks; hover is `--accent`"), and that
+   is the rule that broke every menu in the app. One opaque hex cannot serve as hover across
+   surfaces that span ~10 dL*. Measured against the shipped values, `--accent #FAF8F2` landed at
+   +8.12 on the page, +5.55 on mist, +3.83 on secondary, +2.06 on a paper card, and **-2.42 on
+   Float white**. On Float there is no rung above, so the hover INVERTED and vanished ("hovering
+   over all menus now has disappeared"), and on a card it sat right at the ~2 just-noticeable
+   threshold ("the most subtle highlight I've ever seen in my life"). Both are the owner's words,
+   2026-08-02, and both are that table rather than a slip in one component.
+
+   A translucent tint composites over its own backdrop, so ONE token lands between -4.19 dL*
+   (page) and -4.72 dL* (float): a spread of 0.53 instead of 10.5, and it cannot invert.
+   **Direction is no longer the rule. CONSTANT PERCEPTUAL WEIGHT is.** On light the layer deepens
+   the surface; on dark `--state-ink` flips to white and it lifts (+5.19 to +6.27 dL*), because an
+   ink tint on charcoal is no change at all. Press is the same tint at roughly double strength
+   (~-8 dL*), so a press always reads deeper than the hover it came from.
+
+   Banned: `hover:bg-accent`, `hover:bg-muted`, `hover:bg-secondary/70`, or any other opaque-token
+   hover swap. The one exception is a SEMANTIC wash (the red on a destructive menu row), which
+   carries meaning rather than weight. Two known limits of the utility, both deliberate: an
+   element that already paints a gradient needs a bespoke hover (`state-layer` uses
+   `background-image` and would clobber it), and the change lands on the first frame rather than
+   fading, which is how a native menu highlights.
 3. **One well per card.** At most one mist/`--muted` recessed region inside any card, and
    never two mist surfaces adjacent (nested or side by side). Everything else sits directly
    on the card's paper; if it needs an edge, it earns a border, not a fill.
@@ -114,12 +151,32 @@ Shift off).
 
 ### Dark mode
 
-- Being rebuilt from scratch (owner, 2026-07-30). The old `.dark` scaffold was **deleted** —
-  "pretty garbage", never build on it. Constraints for the rebuild: warm charcoal, never pure
-  black; the Canopy sidebar does **not** change; the heart stays `#E03A33`; accents get
-  *brighter* on dark, not dimmer. Ships behind a deliberately funny multi-step confirmation
-  flow in settings (easy to turn OFF, theatrically hard to turn on), with a payoff transition.
-  Until then `forcedTheme="light"`.
+**Shipped 2026-08-02.** `.dark` is a real token block in `globals.css`, written from a blank sheet
+on 2026-07-30 (the old scaffold was deleted on owner instruction, "pretty garbage", and nothing
+descends from it). It sits behind the deliberately funny multi-step confirmation flow in settings
+(easy to turn OFF, theatrically hard to turn on) with a payoff transition. The per-request theme
+comes from the `rv-theme` cookie, mirrored from `User.theme`, so SSR paints the member's choice with
+no flash; `enableSystem` stays off, because dark is only ever entered through that settings flow.
+**`forcedTheme="light"` is gone.** Do not reintroduce it, and do not treat "the app is light only" as
+current anywhere.
+
+The constraints held: warm charcoal, never pure black (page `#1C2420`, every neutral keeping a
+G >= R > B cast); the heart and destructive red stay `#E03A33` in every theme; accents that render as
+small text get brighter, so leaf lifts to `#3FD16A` and sky to `#5FA6D6`, while canopy, cinnamon and
+the primary CTA fill are byte-identical to light. The surface ladder holds in an inverted register:
+rungs get lighter as surfaces rise, and "float" becomes the lightest charcoal in the room (`#333D37`)
+because pure white is impossible here.
+
+**Owner reversal, 2026-08-02: the sidebar DOES change in dark.** Verbatim: "initially I said I didn't
+want the sidebar to be affected during dark mode. that was a wrong decision. sidebar should be dark
+but I'd like to keep the green colour somewhere there." The dark sidebar is a charcoal rail
+(`--sidebar #141B18`) at dL* -4.33 BELOW the page, which makes it the one surface in the app that
+sits under the page rather than above it; that is what keeps a flush rail reading as its own plane
+once everything is dark. Canopy `#235C49` survives as the ACTIVE ROW, unchanged from light mode:
+white on it is 7.78:1, it sits dL* 26 above the rail so it reads as genuinely lit, and it introduces
+no new hex. The green that used to BE the sidebar now marks your place in it. The cinnamon left edge
+is kept in both themes. Anyone who finds an older note saying the sidebar stays Canopy in dark is
+reading the decision the owner reversed; do not restore it.
 
 ### Feature label accents
 
@@ -176,10 +233,21 @@ One ladder, three rungs down from the card, everything derived from `--radius: 1
 select, combobox and context menu in the app — Directory and Collection filters included —
 is the same object:
 
-- **Surface:** Float `#FFFFFF`, `--radius-md` 12px panel, 4px inner padding, the layered
-  ink-tinted shadow (`.card-elevated` register), hairline border.
-- **Rows:** highlight = `--accent` lift (never a tan sink, never a green wash), radius 8px
-  (concentric: 12 − 4), full-width, 36–40px tall.
+- **Surface:** Float, via `--popover` (`#FFFFFF` on light, the lightest charcoal `#333D37` on dark),
+  `--radius-md` 12px panel, 4px inner padding, the layered ink-tinted shadow (`.card-elevated`
+  register), hairline border.
+- **Rows:** highlight = the `state-layer` tint (never an opaque-token swap, never a green wash),
+  radius 8px (concentric: 12 − 4), full-width, and their NATURAL height, ~28px (`py-1` on a 20px
+  line box). The `min-h-9` floor that this spec used to mandate as "36-40px tall" is reverted
+  (2026-08-02): it made the sidebar account menu 40px taller than the contents it holds, and the
+  owner's verdict was "before it was nicely sized ... the last few updates have made it really
+  stretched". A menu is sized by what is in it. If a touch target ever has to grow, grow the
+  PADDING so the panel stays proportional; never put a floor on the row.
+- **How the highlight is applied:** Base UI marks the highlighted row with `data-highlighted` and
+  keeps DOM focus on the popup, so it never moves focus onto a row. The inherited shadcn/Radix
+  idiom `focus:bg-*` therefore matches nothing on these rows and lit up for nobody. `state-layer`
+  keys off `:hover`, `[data-highlighted]`, `[data-open]` and `[data-popup-open]` for exactly this
+  reason. Never write a `focus:bg-*` highlight on a menu row.
 - **Placement:** opens BELOW its trigger, aligned to the trigger's leading edge, 6px offset,
   flipping only when the viewport forces it. Never centred-under-nothing, never a different
   edge on a different page.
@@ -326,7 +394,7 @@ bird-watching (hoopoe = founder's favourite bird; parakeets), rocky scrub-valley
 hand-loom textiles, contemplative minimalism, study under trees, houses (e.g. "Krishna").
 Aesthetic target: boutique, intimate, naturalist field-journal, NOT Instagram-for-the-masses.
 
-## Appendix B: Avatar palette + parked dark mode
+## Appendix B: Avatar palette + the dark palette
 
 **Avatar / disc palette** (10 colours, assigned deterministically by hash; all ~AA against white glyphs):
 Leaf `#2E9E54`, Office blue `#3F7CA6`, Teal `#1F9C8E`, Coral `#E14B3C`, Cinnamon `#C2622F`,
@@ -335,9 +403,16 @@ Marigold `#C79318`, Plum `#8A5BB0`, Indigo `#5566C4`, Rose `#C7508A`, Forest sla
 **Heart:** the shared `LoveButton` hardcodes `#E03A33` with `transition: none` so it never flashes
 black on the fill-weight swap (the old bug, now fixed by extraction).
 
-**Dark mode working palette** (rebuild in progress; the rule is warm charcoal, never pure black, and
-accents get *brighter* on dark, not dimmer): page `#1C2420`, elevated `#262E29`, recessed `#222A26`,
-border `#34403A`, ink `#E8EDE6`, office blue `#5FA6D6`, leaf `#3FD16A`.
-Owner overrides (2026-07-30, these win over any older note): the **sidebar does not change** in dark
-(stays Canopy `#235C49`, not the once-parked `#16332A`), and the **heart stays `#E03A33`** in every
-theme (the `#FF5B4D` bright variant is rejected — brand colours do not shift).
+**Dark mode palette** (shipped 2026-08-02; the `.dark` block in `globals.css` is the live source and
+wins over anything transcribed here). Page `#1C2420`, card `#262E29`, recessed `#212925`, float
+`#333D37`, border `#34403A`, ink `#E8EDE6`, sky `#5FA6D6`, leaf `#3FD16A`. The rule behind the values:
+warm charcoal, never pure black, and accents get *brighter* on dark, not dimmer.
+
+Two owner calls to keep straight, because one of them supersedes the other:
+
+- **The heart stays `#E03A33`** in every theme (2026-07-30). The `#FF5B4D` bright variant is
+  rejected; brand colours do not shift.
+- **The sidebar DOES go dark** (2026-08-02). This REVERSES the 2026-07-30 note that said the sidebar
+  does not change in dark, in the owner's own words: "that was a wrong decision." The shipped rail is
+  `#141B18` with Canopy `#235C49` as the active row; the once-parked `#16332A` was never the answer
+  either. Section 2's Dark mode block carries the reasoning and the contrast numbers.
