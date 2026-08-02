@@ -94,10 +94,29 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        // Menu-material row: 36px minimum (min-h-9), radius --radius-sm
-        // (8.8px, concentric with the 12px panel through its 4px inset),
-        // highlight = the --accent hover lift.
-        "group/dropdown-menu-item relative flex min-h-9 cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-inset:pl-7 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:text-destructive",
+        // Menu-material row: radius --radius-sm (8.8px, concentric with the
+        // 12px panel through its 4px inset).
+        //
+        // NO min-height. It carried `min-h-9` between 74feaa2 and 2026-08-02,
+        // which took every row from 28px (py-1 on a 20px line box) to 36px and
+        // made the sidebar account menu 40px taller than the content in it:
+        // the owner's "before it was nicely sized ... the last few updates have
+        // made it really stretched". Reverted to the natural row. If a touch
+        // target ever needs to grow, grow the PADDING so the panel stays
+        // proportional to its contents.
+        "group/dropdown-menu-item relative flex cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // The highlight. A destructive row keeps its own red wash (a semantic
+        // colour, deliberately not the neutral state layer); everything else
+        // gets `state-layer`, which is the ONE hover treatment in the app.
+        // What was here before was `focus:bg-accent`, inherited from shadcn's
+        // Radix build where the library moves DOM focus onto the highlighted
+        // row. Base UI does not: it marks rows with `data-highlighted` and
+        // leaves focus on the popup, so the `focus:` half never matched, and
+        // the `bg-accent` half was invisible on a white panel anyway
+        // (-2.42 dL*). Two independent reasons the same hover did nothing.
+        variant === "destructive"
+          ? "text-destructive hover:bg-destructive/10 data-highlighted:bg-destructive/10 dark:hover:bg-destructive/20 dark:data-highlighted:bg-destructive/20 *:[svg]:text-destructive"
+          : "state-layer",
         className
       )}
       {...props}
@@ -122,7 +141,12 @@ function DropdownMenuSubTrigger({
       data-slot="dropdown-menu-sub-trigger"
       data-inset={inset}
       className={cn(
-        "flex min-h-9 cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-inset:pl-7 data-popup-open:bg-accent data-popup-open:text-accent-foreground data-open:bg-accent data-open:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // Same row spec as DropdownMenuItem: no min-height, state-layer for
+        // the highlight. state-layer already covers data-open /
+        // data-popup-open, which is what keeps this trigger lit while its
+        // submenu is showing, so the bg-accent pair that used to do that is
+        // gone along with the focus: pair that never fired.
+        "state-layer flex cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-sm outline-hidden select-none data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -170,7 +194,11 @@ function DropdownMenuCheckboxItem({
       data-slot="dropdown-menu-checkbox-item"
       data-inset={inset}
       className={cn(
-        "relative flex cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // rounded-[var(--radius-sm)], not rounded-md: a row highlight is
+        // concentric with its panel (12px panel - 4px padding = 8.8px). At
+        // rounded-md the row and the panel shared a radius and the highlight
+        // read as cutting its own corner.
+        "state-layer relative flex cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       checked={checked}
@@ -214,7 +242,11 @@ function DropdownMenuRadioItem({
       data-slot="dropdown-menu-radio-item"
       data-inset={inset}
       className={cn(
-        "relative flex cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // rounded-[var(--radius-sm)], not rounded-md: a row highlight is
+        // concentric with its panel (12px panel - 4px padding = 8.8px). At
+        // rounded-md the row and the panel shared a radius and the highlight
+        // read as cutting its own corner.
+        "state-layer relative flex cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -253,7 +285,10 @@ function DropdownMenuShortcut({
     <span
       data-slot="dropdown-menu-shortcut"
       className={cn(
-        "ml-auto text-xs tracking-widest text-muted-foreground group-focus/dropdown-menu-item:text-accent-foreground",
+        // group-data-highlighted, not group-focus: the row it keys off is
+        // marked by Base UI with data-highlighted and never receives DOM
+        // focus, so the focus variant here could not match either.
+        "ml-auto text-xs tracking-widest text-muted-foreground group-data-highlighted/dropdown-menu-item:text-foreground",
         className
       )}
       {...props}

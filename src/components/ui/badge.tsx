@@ -9,15 +9,19 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
+        // `[a]:` on the hovers, not a bare hover: a badge is a label by default
+        // and only a hover target when it is rendered as a link. The neutral
+        // ones take `state-layer` (scoped the same way) instead of the old
+        // --accent fill, which was invisible against bg-secondary and inverted
+        // on a Float-white panel; the two that already hover through a semantic
+        // colour keep it.
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        secondary:
-          "bg-secondary text-secondary-foreground [a]:hover:bg-accent",
+        secondary: "bg-secondary text-secondary-foreground [a]:state-layer",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         outline:
-          "border-border text-foreground [a]:hover:bg-accent [a]:hover:text-muted-foreground",
-        ghost:
-          "hover:bg-accent hover:text-muted-foreground dark:hover:bg-accent",
+          "border-border text-foreground [a]:state-layer [a]:hover:text-muted-foreground",
+        ghost: "[a]:state-layer [a]:hover:text-muted-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
     },

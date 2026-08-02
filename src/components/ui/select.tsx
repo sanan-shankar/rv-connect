@@ -42,7 +42,15 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-fit items-center justify-between gap-1.5 rounded-[var(--radius-input)] border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-input),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // `state-layer` is the trigger's hover, press AND open state in one
+        // class: it keys off :hover, :active and data-popup-open, and Base UI's
+        // SelectTrigger sets data-popup-open while its listbox is open
+        // (SelectTriggerDataAttributes.popupOpen). Before this the light theme
+        // had NO hover at all here, only a `dark:hover:bg-input/50` that the
+        // app never reaches while forcedTheme="light" is on. That dark override
+        // is gone too: .dark flips --state-ink to white, so one class covers
+        // both themes.
+        "state-layer flex w-fit items-center justify-between gap-1.5 rounded-[var(--radius-input)] border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-input),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -136,9 +144,25 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        // Menu-material row: 36px minimum, --radius-sm (8.8px, concentric
-        // with the 12px panel via its 4px inset), --accent highlight lift.
-        "relative flex min-h-9 w-full cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        // Menu-material row: --radius-sm (8.8px, concentric with the 12px panel
+        // via its 4px inset).
+        //
+        // NO min-height. `min-h-9` arrived here in 74feaa2 and took the row from
+        // its natural 28px (py-1 on a 20px line box) to 36px, the "really
+        // stretched" menus the owner asked to have back at the previous size.
+        // Removed from DropdownMenuItem the same day; removed here so the two
+        // halves of the one menu material stay the same height. If a touch
+        // target ever needs to grow, grow the PADDING.
+        //
+        // The highlight is `state-layer`, matching DropdownMenuItem. What was
+        // here was `focus:bg-accent`, shadcn's Radix idiom, and it was dead
+        // twice over: Base UI marks the pointed-at row with `data-highlighted`
+        // (SelectItemDataAttributes.highlighted, read from the installed types)
+        // and keeps DOM focus on the popup, so `focus:` matched nothing; and
+        // --accent on this Float-white panel measured -2.42 dL*, i.e. inverted
+        // and invisible. The `not-data-[variant=destructive]:` clause went with
+        // it: a select item has no `variant`, that was copied from the menu.
+        "state-layer relative flex w-full cursor-default items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-8 pl-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
       )}
       {...props}

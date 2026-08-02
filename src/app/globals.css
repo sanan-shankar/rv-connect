@@ -117,15 +117,40 @@
   --popover-foreground: #23241E;
   --primary: #1F8A4C;
   --primary-foreground: #FFFFFF;
-  /* Quiet filled controls (composer trigger pill, filter pills at rest). One
-     rung under paper so the fill reads without a border, but no longer the
-     same hex as the wells. Text is ink: the old #1A6B3C dark-green text on
-     tan was the "weird green background, darker green text" the owner killed. */
-  --secondary: #F0EDE4;
+  /* Quiet filled controls (composer trigger pill, filter pills at rest).
+     Deepened from #F0EDE4 on 2026-08-02: at that value the composer's trigger
+     pill sat at dL* -1.77 against the paper card it lives on, i.e. under the
+     ~2 just-noticeable threshold for a large flat area, which is the owner's
+     "between the pill inside the composer and the composer tile there's no
+     contrast". #EAE7DC measures dL* -3.92 on paper and still +2.14 on the
+     page, so the same token reads as a filled control in both places.
+     Text is ink: the old #1A6B3C dark-green text on tan was the "weird green
+     background, darker green text" the owner killed. */
+  --secondary: #EAE7DC;
   --secondary-foreground: #23241E;
-  /* Recessed wells (== mist). ONE per card, never two adjacent. */
+  /* Recessed wells (== mist). ONE per card, never two adjacent.
+     NOTE (2026-08-02): mist and --secondary now sit at effectively the same
+     lightness (0.43 dL* apart) rather than on separate rungs. That is not an
+     oversight, it is the range running out: the whole neutral band between the
+     page (L* 89.5) and paper (L* 95.5) is only 6 dL* wide, and --secondary had
+     to be deepened into it to make the composer pill visible at all. Moving
+     mist down to restore the ordering would collapse it into the page instead,
+     and mist is also used as a full-bleed band ON the page (the landing), where
+     that would erase it. So the two are one rung told apart by ROLE, not by
+     value: mist is a region cut into a surface, secondary is a control you
+     press. Rule 3 already forbids them being adjacent, which is what kept this
+     from mattering. Do not "fix" the ordering without re-checking the landing
+     band and the composer pill together. */
   --muted: #ECE8DD;
-  --muted-foreground: #6E7268;
+  /* Deepened from #6E7268 on 2026-08-02: that value failed WCAG AA on every
+     light surface it is actually painted on (3.75:1 on the page, 3.97:1 on
+     --secondary, 4.40:1 on a card) at the 11-14px sizes it is used at, where
+     the large-text 3:1 exemption does not apply. It is the app's default meta
+     ink with ~330 call sites, so this was the single widest-reaching contrast
+     failure in the light theme. #5F6359 clears AA on all of them (4.69 page,
+     4.97 secondary, 5.50 card) and still sits ~27 L* above --foreground, so
+     the meta/body hierarchy is unchanged. */
+  --muted-foreground: #5F6359;
   /* The hover token. A hover LIFTS the surface toward light (paper mixed up
      toward white, stopping short of pure #FFFFFF, which stays reserved for
      floating modals). It must never sink a control into tan. */
@@ -150,7 +175,12 @@
   --sidebar-primary-foreground: #08120D;
   --sidebar-accent: #2E6A55;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #2A5C49;
+  /* Darkened from #2A5C49 on 2026-08-02: that was 0.27 dL* off the rail it is
+     drawn on (1.01:1), so the mobile drawer's divider between the nav list and
+     the account chip was not being rendered in any meaningful sense. #194436
+     sits 9.4 dL* below the rail at 1.40:1, which is what a hairline on a
+     saturated surface needs. Dark mode already had a real value. */
+  --sidebar-border: #194436;
   --sidebar-ring: #34C759;
   /* Opaque idle ink: shipped composited to #AFC6BD at 4.31:1, under AA.
      #D3E2D9 is 5.80:1 and still two steps below the active row's white. */
@@ -190,14 +220,59 @@
      several alphas; a future .dark block flips just this triple to re-tint
      every elevated surface at once. */
   --shadow-ink: 30 28 22;
+
+  /* ---- The interactive state ladder (2026-08-02) ------------------------
+     Hover and press are a TINT LAID OVER whatever surface the control already
+     sits on. They are NOT a rung of the surface ladder above, and that
+     distinction is the whole point.
+
+     The old system used --accent (#FAF8F2) as the single hover fill. One
+     opaque hex cannot do that job, because the surfaces it has to work on
+     span ~10 dL* from the page to a white menu. Measured against the shipped
+     values, --accent landed at:
+
+         page  +8.12   mist  +5.55   secondary  +3.83
+         card  +2.06   float  -2.42
+
+     so on a paper card it sat right at the ~2 just-noticeable threshold
+     ("the most subtle highlight I've ever seen in my life") and on a Float
+     menu it INVERTED and disappeared entirely ("hovering over all menus now
+     has disappeared"). Both are the owner's words, 2026-08-02, and both are
+     that table rather than an implementation slip.
+
+     A translucent ink tint composites over its own backdrop, so ONE token
+     lands at dL* -4.19 (page) to -4.72 (float): a spread of 0.53 instead of
+     10.5, and it can never invert. Press is the same tint at roughly double
+     strength (~-8), so a press always reads as deeper than the hover it
+     came from.
+
+     --state-ink is a bare channel triple so the alphas below can be tuned in
+     one place; .dark flips it to white, because on charcoal a hover has to
+     LIFT and an ink tint would vanish into the surface. Applied through the
+     `state-layer` utility, never by hand. */
+  --state-ink: 30 28 22;
+  --state-hover: rgb(var(--state-ink) / 0.06);
+  --state-press: rgb(var(--state-ink) / 0.11);
 }
 
 /* Dark mode: the valley after dark. Written from a blank sheet on
    2026-07-30 (the old cool blue-black scaffold was deleted on owner
-   instruction and nothing here descends from it). Three fixed constraints:
-   warm charcoal, never pure black; the Canopy sidebar does NOT change (the
-   --sidebar* family is deliberately absent from this block); the heart and
-   destructive red stay #E03A33 in every theme.
+   instruction and nothing here descends from it). Two fixed constraints:
+   warm charcoal, never pure black; the heart and destructive red stay
+   #E03A33 in every theme.
+
+   THE SIDEBAR NOW CHANGES (owner, 2026-08-02, reversing the 2026-07-30
+   call in their own words: "initially I said I didn't want the sidebar to
+   be affected during dark mode. that was a wrong decision. sidebar should
+   be dark but I'd like to keep the green colour somewhere there"). Of the
+   three directions put to them, they chose the charcoal rail with a green
+   marker: the rail itself goes near-black (#141B18, dL* -4.33 BELOW the
+   page, so the rail recedes and the content leads) and the brand green
+   survives as the ACTIVE ROW. That active fill is Canopy #235C49 itself,
+   unchanged from light mode: white on it measures 7.78:1, it sits dL* 26
+   above the rail so it reads as genuinely lit, and reusing it introduces no
+   new hex. The green that used to BE the sidebar now marks your place in
+   it. The cinnamon left edge is kept in both themes.
 
    The surface ladder holds in the dark, same rule, inverted register:
    background < mist < secondary < card < accent < float, each rung a few
@@ -224,7 +299,13 @@
   --popover-foreground: #E8EDE6;
   --primary: #1F8A4C;
   --primary-foreground: #FFFFFF;
-  --secondary: #242D28;
+  /* Deepened from #242D28 on 2026-08-02. Dark had quietly reproduced the exact
+     defect the light theme was being fixed for: at #242D28 a bg-secondary
+     control sat 0.55 dL* from the --card it renders on, so the composer's
+     trigger pill, secondary buttons and secondary badges were all invisible on
+     a card in dark mode. #1F2723 buys -3.28 dL* against the card, matching the
+     -3.92 the light pill got. */
+  --secondary: #1F2723;
   --secondary-foreground: #E8EDE6;
   --muted: #212925;
   --muted-foreground: #9AA69E;
@@ -232,8 +313,15 @@
   --accent: #2F3933;
   --accent-foreground: #E8EDE6;
   --destructive: #E03A33;
-  --border: #34403A;
-  --input: #34403A;
+  /* Lightened from #34403A on 2026-08-02: at that value the border sat 1.18
+     dL* from --popover, so every separator inside a dark menu vanished,
+     including the one in the sidebar account menu that is the only thing
+     setting "Sign out" apart from the navigation items above it. The dark
+     ladder puts --popover at the TOP (it is the float rung), so a hairline
+     drawn on it has to be lighter still: #3E4B44 is +5.88 dL* over the popover
+     and remains a legible +12.54 over a card. */
+  --border: #3E4B44;
+  --input: #3E4B44;
   --ring: #3FD16A;
   --chart-1: #3FD16A;
   --chart-2: #5FA6D6;
@@ -251,6 +339,35 @@
   /* True black tint: on charcoal, an ink-brown shadow reads as mud; a black
      one reads as depth. */
   --shadow-ink: 0 0 0;
+
+  /* The state layer flips to white here. An ink tint on charcoal is almost
+     no change at all (the surface is already near the tint), so on dark a
+     hover has to LIFT. White at the same alphas measures +5.19 to +6.27 dL*
+     across the dark surfaces, matching the light theme's weight in the
+     opposite direction. Deliberately NOT keyed off --shadow-ink, which is
+     0 0 0 here for depth and would make every hover invisible. */
+  --state-ink: 255 255 255;
+
+  /* The charcoal rail (see the header note). The rail is the one surface in
+     the app that sits BELOW the page rather than above it, which is what
+     makes a flush sidebar still read as a distinct plane once everything is
+     dark. Idle ink clears AA comfortably at 10.65:1 and the footer/meta rung
+     at 6.44:1, both far above the 4.31:1 the light sidebar shipped with
+     before the 2026-07-30 contrast pass. */
+  --sidebar: #141B18;
+  --sidebar-foreground: #E4EAE6;
+  --sidebar-foreground-idle: #C3CCC7;
+  --sidebar-foreground-muted: #93A099;
+  /* Hover and active are their own rungs, same rule as light mode: hover is
+     a plain lift off the rail, active is the brand green. */
+  --sidebar-hover: #202926;
+  --sidebar-active: #235C49;
+  --sidebar-accent: #202926;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #232D28;
+  --sidebar-primary: #1F8A4C;
+  --sidebar-primary-foreground: #08120D;
+  --sidebar-ring: #3FD16A;
 }
 
 /*
@@ -309,6 +426,67 @@
      bookmark) must play regardless of the OS reduce-motion setting, per the
      owner. So we do NOT globally kill transitions/animations here. Any future
      LARGE ambient motion (e.g. drifting landing birds) should guard itself. */
+}
+
+/* ------------------------------------------------------------------ *
+ *  state-layer: THE hover/press treatment for every clickable surface.
+ *
+ *  Put this on anything pressable that does not carry its own bespoke
+ *  colour change: menu rows, list rows, icon buttons, ghost/outline
+ *  buttons, nav rows, tiles. It replaces `hover:bg-accent` (invisible on
+ *  a white menu, at the JND on a card) and `hover:bg-mist` (the opposite
+ *  convention that grew up beside it). See the --state-ink block in :root
+ *  for the measurements that forced this.
+ *
+ *  It paints a translucent tint as a background-IMAGE, which composites
+ *  over the element's own background-color rather than replacing it. That
+ *  is what lets one class sit on a transparent menu row, a tan page tile
+ *  and a canopy-filled button and land at the same perceptual weight on
+ *  all three. It is clipped to the element's border-radius for free.
+ *
+ *  Selector list, not just :hover, because a menu row is highlighted by
+ *  the library rather than by CSS: Base UI drives its own rows with
+ *  `data-highlighted` (MenuItemDataAttributes.highlighted) and keeps DOM
+ *  focus on the popup, which is why the inherited shadcn/Radix idiom
+ *  `focus:bg-accent` on those rows lit up for nobody. `data-open` /
+ *  `data-popup-open` keep a submenu trigger lit while its child is open.
+ *
+ *  Two known limits, both deliberate:
+ *  - An element that already uses background-image (a gradient) must keep
+ *    a bespoke hover; this class would clobber it.
+ *  - background-image is not transitionable, so the change lands on the
+ *    first frame instead of over 120ms. That matches how a native menu
+ *    highlights, and it is the same reasoning as the heart's
+ *    `transition: none` (see the base layer note): a state you are
+ *    pointing at should already be true, not fading in.
+ * ------------------------------------------------------------------ */
+@utility state-layer {
+  /* Library-driven states. These fire on any input type, including touch and
+     keyboard, so they are deliberately NOT behind the pointer query below. */
+  &[data-highlighted],
+  &[data-open],
+  &[data-popup-open] {
+    background-image: linear-gradient(var(--state-hover), var(--state-hover));
+  }
+  /* Pointer hover, gated on the device actually having a hovering pointer.
+     Tailwind compiles its own `hover:` variant inside this same query; the
+     first version of this utility did not, which meant that on a phone the
+     tint LATCHED on the last thing you tapped and stayed there until you
+     tapped something else. Every `hover:bg-*` this replaced was guarded, so
+     dropping the guard would have been a mobile regression introduced by the
+     fix itself, across every call site. */
+  @media (hover: hover) {
+    &:hover {
+      background-image: linear-gradient(var(--state-hover), var(--state-hover));
+    }
+  }
+  &:active {
+    background-image: linear-gradient(var(--state-press), var(--state-press));
+  }
+  &:disabled,
+  &[data-disabled] {
+    background-image: none;
+  }
 }
 
 @layer components {
