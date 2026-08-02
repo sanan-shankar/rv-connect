@@ -67,7 +67,11 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
       className={cn(
-        "grid shrink-0 place-items-center rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 [&_svg]:size-3.5",
+        // `state-layer` for the neutral hover/press tint (it replaces a
+        // hover:bg-accent that was invisible on the Float-white input group it
+        // sits in); the text still darkens to foreground on top of it, and
+        // active:scale-90 stays because a press MAY move, only hover may not.
+        "state-layer grid shrink-0 place-items-center rounded-full p-1 text-muted-foreground outline-none transition-transform duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90 [&_svg]:size-3.5",
         className
       )}
       {...props}
@@ -129,16 +133,26 @@ function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
   )
 }
 
-// Menu-material row: 36px minimum, --radius-sm (8.8px) -- one rung under the
-// 12px panel and concentric with it through the 4px inset, so the highlight
-// can never read as cutting the panel corner. Highlight is the --accent
-// hover lift, matching every other menu row in the app.
+// Menu-material row: --radius-sm (8.8px) -- one rung under the 12px panel and
+// concentric with it through the 4px inset, so the highlight can never read as
+// cutting the panel corner.
+//
+// NO min-height. `min-h-9` arrived in 74feaa2 and, on top of px-3 py-2, forced
+// a one-line result past its natural height; that is the same stretch the owner
+// called out in the menus. The row's own padding sets its size, so a two-line
+// result (label + sublabel, the location picker's shape) still grows honestly.
+//
+// Highlight is `state-layer`, the one hover treatment. It replaces
+// `data-highlighted:bg-accent`, which pointed at the right attribute (Base UI
+// marks the pointed-at row with data-highlighted -- confirmed against the
+// installed ComboboxItem data attributes) but painted --accent, and --accent on
+// this Float-white panel measures -2.42 dL*: inverted, invisible.
 function ComboboxItem({ className, ...props }: ComboboxPrimitive.Item.Props) {
   return (
     <ComboboxPrimitive.Item
       data-slot="combobox-item"
       className={cn(
-        "flex min-h-9 cursor-pointer scroll-my-1 flex-col justify-center gap-0.5 rounded-[var(--radius-sm)] px-3 py-2 outline-none transition-transform duration-100 select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground active:scale-[0.99] data-disabled:pointer-events-none data-disabled:opacity-50",
+        "state-layer flex cursor-pointer scroll-my-1 flex-col justify-center gap-0.5 rounded-[var(--radius-sm)] px-3 py-2 outline-none transition-transform duration-100 select-none active:scale-[0.99] data-disabled:pointer-events-none data-disabled:opacity-50",
         className
       )}
       {...props}

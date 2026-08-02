@@ -9,8 +9,27 @@ import { cn } from "@/lib/utils"
 // Canopy is the ONE fill for every CTA/button (docs/spec/DESIGN-SYSTEM.md sec 2).
 // Its focus ring is canopy-based too, never the leaf `--ring` token, so a
 // canopy button never wears a mismatched leaf halo. Inputs keep the leaf ring.
+//
+// The filled CTA is the one control that does NOT take `state-layer`: the state
+// layer is an ink tint, and tinting a dark green with more ink SINKS it, while
+// a hover has to read as lit. So this variant keeps a brightness change, sized
+// to land in the same perceptual register as the state layer everywhere else.
+// Measured on canopy #235C49 (L* 34.98):
+//   brightness 1.08 -> #26634F, L* 37.78, dL* +2.80  (~the 2.0 JND; too close
+//                      to invisible, which is the "not everywhere" the owner hit)
+//   brightness 1.14 -> #286953, L* 39.85, dL* +4.87  (matches state-layer's
+//                      -4.19..-4.72 band, so a CTA and a menu row hover by the
+//                      same visible amount)
+// White-on-fill contrast only moves 7.78:1 -> 6.50:1, still clear of AA.
+//   brightness 0.88 -> L* 30.74, dL* -4.25 vs REST (9.10:1 white)
+// The press deliberately goes BELOW the resting fill, not merely below the
+// hover. It was `active:brightness-100`, which returned the button to its exact
+// idle colour, so a pressed CTA and an untouched one were the same green and
+// only the scale sink told them apart. --state-press is ~8 dL* under REST for
+// every neutral control, so a filled CTA has to sink against rest too or the
+// two registers disagree about what a press means.
 const CANOPY_FILL =
-  "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.08] focus-visible:border-canopy focus-visible:ring-canopy/50"
+  "bg-canopy text-white shadow-[0_5px_13px_-12px_var(--color-canopy)] hover:brightness-[1.14] active:brightness-[0.88] focus-visible:border-canopy focus-visible:ring-canopy/50"
 
 const buttonVariants = cva(
   // OWNER RULE (2026-07-25): hover NEVER moves a control. No lift, no grow.
@@ -33,15 +52,37 @@ const buttonVariants = cva(
         // identically to "primary". Do not add new "leaf" call sites; use
         // "primary" everywhere else.
         leaf: CANOPY_FILL,
+        // The three neutral variants all hover through `state-layer` (globals.css).
+        // They used to hover to --accent #FAF8F2, an OPAQUE hex, which cannot be
+        // one hover across surfaces that span ~10 dL*: it measured +8.12 dL* on
+        // the page, +2.06 on a paper card and -2.42 on a white dialog, where it
+        // inverted and vanished. That is why an outline "Cancel" inside a dialog
+        // and a ghost icon button on a card both looked dead. The state layer is
+        // a translucent tint composited over whatever surface is underneath, so
+        // it lands at -4.19..-4.72 dL* on every one of them. It also carries the
+        // :active press, so these variants get colour feedback on click and not
+        // only the base scale sink. The dark: hover overrides are gone with it:
+        // .dark flips --state-ink to white, so one class covers both themes.
         outline:
           /* bg-transparent, not bg-background: on the tan page they render
              identically, but on the white dialog material a bg-background
              Cancel read as a filled tan pill instead of an outline. */
-          "border-border bg-transparent hover:bg-accent hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-accent aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "state-layer border-border bg-transparent hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30",
+        // aria-expanded is deliberately NOT folded into the state layer here or
+        // on ghost: our expanding triggers (post-feed filters, directory "More
+        // filters", the search pill) set the ARIA attribute by hand and are not
+        // Base UI popup triggers, so they never get the data-open/data-popup-open
+        // the state layer keys off. A held-open control stays a background-COLOUR
+        // change, which then composites with the hover tint rather than fighting
+        // it. `secondary` carried the same pair restating its own resting fill,
+        // which painted nothing; dropped.
+        secondary: "state-layer bg-secondary text-secondary-foreground",
         ghost:
-          "hover:bg-accent hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-accent",
+          "state-layer hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
+        // Destructive keeps its own red wash: a semantic colour, deliberately
+        // not the neutral state layer. Verified visible on a paper card, where
+        // /10 -> /20 is -5.3 dL* plus a chroma jump, deeper than the neutral
+        // layer's -4.2.
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline active:scale-100",
