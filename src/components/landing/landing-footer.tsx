@@ -32,13 +32,24 @@ export function LandingFooter() {
         <div className="mt-9 flex flex-wrap items-end justify-center gap-3">
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-[filter,transform] duration-200 hover:brightness-[1.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+            // 1.14 / 0.88, the shared canopy-CTA hover and press (CANOPY_FILL
+            // in ui/button.tsx). This is a hand-rolled Link rather than a
+            // <Button>, so it kept the old 1.08 that measures +2.80 dL*, close
+            // enough to the JND to be part of the "it does some places but not
+            // everywhere" the owner reported. Keep both numbers in lockstep
+            // with the primitive.
+            className="inline-flex items-center justify-center rounded-full bg-canopy px-8 py-3.5 font-semibold text-white shadow-sm transition-[filter,transform] duration-200 hover:brightness-[1.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] active:brightness-[0.88]"
           >
             Join the community
           </Link>
           <Link
             href="/login"
-            className="inline-flex items-center justify-center rounded-full border border-border bg-card px-8 py-3.5 font-semibold text-foreground transition-[transform,background-color,border-color] duration-200 hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
+            // state-layer supplies the body change. Its only hover used to be
+            // hover:border-leaf/50, a hairline colour move on a 1px edge with
+            // nothing happening to the button itself, which is the weakest CTA
+            // hover on the public page. The leaf border stays as a second
+            // channel on top.
+            className="state-layer inline-flex items-center justify-center rounded-full border border-border bg-card px-8 py-3.5 font-semibold text-foreground transition-[transform,border-color] duration-200 hover:border-leaf/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]"
           >
             Sign in
           </Link>
