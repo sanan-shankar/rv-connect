@@ -49,7 +49,10 @@ export async function LettersModule() {
     <RailCard label="This week in Letters">
       <Link
         href={`/letters/${letter.id}`}
-        className="-m-1 block rounded-md p-1 transition-opacity duration-150 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:opacity-70"
+        // The -m-1/p-1 pair exists to give this block a highlight box, so the
+        // hover is now the state layer inside it rather than hover:opacity-80,
+        // which dimmed the headline and excerpt instead of lighting the row.
+        className="-m-1 block rounded-md p-1 state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         <span className="inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-cinnamon">
           <Feather size={13} weight="fill" />

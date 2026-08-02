@@ -256,7 +256,10 @@ export function DarkGauntlet({ word }: { word: string }) {
               type="button"
               aria-label="Turn on dark mode"
               onClick={() => setNightfall(true)}
-              className="group relative mx-auto block h-12 w-[92px] rounded-full border border-border bg-secondary transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              // The track keeps its bg-secondary rest fill; state-layer tints
+              // it on hover. hover:bg-accent used to swap secondary for accent,
+              // a 1-rung move the eye could not find on this dim page.
+              className="group relative mx-auto block h-12 w-[92px] rounded-full border border-border bg-secondary state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <motion.span
                 className="absolute left-1 top-1 grid h-10 w-10 place-items-center rounded-full bg-canopy text-white shadow-[0_1px_2px_rgba(30,28,22,0.2)]"
@@ -466,7 +469,10 @@ function HoopoeTrial({
             if (e.key === " " || e.key === "Enter") endHold();
           }}
           disabled={passed}
-          className="relative z-10 h-16 w-16 rounded-full border border-canopy/40 bg-card text-[12px] font-bold uppercase tracking-[0.08em] text-canopy transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] disabled:opacity-60"
+          // state-layer, not hover:bg-accent: this button sits on bg-card and
+          // the accent swap was +2.06 dL*, invisible on the one control the
+          // whole step asks you to find.
+          className="relative z-10 h-16 w-16 rounded-full border border-canopy/40 bg-card text-[12px] font-bold uppercase tracking-[0.08em] text-canopy state-layer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] disabled:opacity-60"
         >
           {passed ? "Held" : "Hold"}
         </button>

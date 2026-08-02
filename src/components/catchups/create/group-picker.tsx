@@ -47,7 +47,11 @@ export function GroupPicker({
             <Link
               key={g.id}
               href={`/catchups/new?group=${g.id}`}
-              className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-background/50 p-4 transition-colors duration-150 hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              // state-layer carries the row's hover AND its press (it had no
+              // active state at all). It also replaces what the arrow's
+              // hover-nudge was doing: hover never moves a control, so the
+              // arrow only changes colour now.
+              className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border bg-background/50 p-4 transition-colors duration-150 state-layer hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <div className="min-w-0">
                 <p className="truncate text-[14.5px] font-semibold text-foreground">{g.name}</p>
@@ -56,7 +60,7 @@ export function GroupPicker({
                   {g.memberCount} {g.memberCount === 1 ? "member" : "members"}
                 </p>
               </div>
-              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-canopy" aria-hidden />
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors duration-150 group-hover:text-canopy" aria-hidden />
             </Link>
           ))}
         </div>

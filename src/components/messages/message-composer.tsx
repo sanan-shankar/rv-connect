@@ -158,7 +158,9 @@ export function MessageComposer({
                 type="button"
                 onClick={() => setImageUrl(null)}
                 aria-label="Remove this screenshot"
-                className="absolute -right-2 -top-2 grid size-6 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_3px_rgba(30,28,22,0.12)] transition-[colors,transform] duration-150 hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
+                // state-layer replaces hover:bg-mist: mist over this card was
+              // about 2 dL*, the just-noticeable floor, on a 24px control.
+              className="absolute -right-2 -top-2 grid size-6 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_3px_rgba(30,28,22,0.12)] transition-[colors,transform] duration-150 state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-90"
               >
                 <X className="size-3.5" strokeWidth={2.2} />
               </button>
@@ -179,10 +181,15 @@ export function MessageComposer({
                     aria-pressed={active}
                     whileTap={{ scale: 0.94 }}
                     transition={SPRINGS.snappy}
+                    // Selected stays canopy (the app's one selection green).
+                    // The idle chip keeps its mist rest fill and gets the state
+                    // layer on top; hover:bg-border/70 used to REPLACE the fill
+                    // with the hairline colour, which read as a different chip
+                    // rather than the same chip under the cursor.
                     className={`rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
                       active
                         ? "bg-canopy text-white"
-                        : "bg-mist text-muted-foreground hover:bg-border/70 hover:text-foreground"
+                        : "bg-mist text-muted-foreground state-layer hover:text-foreground"
                     }`}
                   >
                     {kindLabel(k)}
@@ -206,7 +213,7 @@ export function MessageComposer({
             disabled={busy}
             whileTap={{ scale: 0.94 }}
             transition={SPRINGS.snappy}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-mist hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition-colors state-layer hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
           >
             <ImagePlus className="size-3.5" strokeWidth={1.9} />
             {uploading ? "Adding..." : imageUrl ? "Swap screenshot" : "Screenshot"}

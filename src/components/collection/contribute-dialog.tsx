@@ -205,7 +205,10 @@ export function ContributeDialog({
           ) : (
             <button
               onClick={() => fileRef.current?.click()}
-              className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-border bg-paper/50 py-10 text-muted-foreground transition-colors hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              // A 100px drop target whose only hover was a dashed hairline and
+              // the label ink. state-layer fills the well itself and brings the
+              // press state it was missing; the leaf border hint stays.
+              className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-border bg-paper/50 py-10 text-muted-foreground transition-colors state-layer hover:border-leaf/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <ImagePlus className="h-7 w-7" />
               <span className="text-sm font-medium">Choose a photo (up to 20MB)</span>

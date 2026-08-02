@@ -37,7 +37,11 @@ export function ThreadList({ threads }: { threads: ThreadListRow[] }) {
           <li key={t.id}>
             <Link
               href={`/messages/${t.id}`}
-              className="card-elevated group flex items-start gap-3.5 rounded-[var(--radius)] border border-border bg-card p-4 transition-[colors,transform] duration-150 ease-out hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.995]"
+              // The row's only hover used to be a 1px border tint on a 90px
+              // card, which is the "most subtle highlight" register. The border
+              // hint stays (it is the canopy cue), and state-layer gives the
+              // surface itself something to say.
+              className="card-elevated group flex items-start gap-3.5 rounded-[var(--radius)] border border-border bg-card p-4 transition-[colors,transform] duration-150 ease-out state-layer hover:border-canopy/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.995]"
             >
               <span
                 aria-hidden

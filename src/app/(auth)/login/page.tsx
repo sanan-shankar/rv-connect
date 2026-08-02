@@ -481,7 +481,10 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPw((s) => !s)}
                     aria-label={showPw ? "Hide password" : "Show password"}
-                    className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    // state-layer gives the reveal button the fill it never had:
+                    // an ink darkening alone is easy to miss on a 32px target,
+                    // and the same class carries the press state.
+                    className="state-layer absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-95"
                   >
                     {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>

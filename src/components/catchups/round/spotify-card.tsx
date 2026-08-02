@@ -65,7 +65,10 @@ export function SpotifyCard({ song }: { song: CatchupSongView }) {
       href={song.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${ROW_CLASS} hover:border-leaf/40 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]`}
+      // state-layer replaces `hover:bg-background`, which only pushed this row
+      // from a 60% tan wash to a 100% one (~2.5 dL*, right at the noticeable
+      // floor) and sank toward the page colour instead of reading as a state.
+      className={`${ROW_CLASS} state-layer hover:border-leaf/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99]`}
     >
       <SongBody song={song} />
     </a>
