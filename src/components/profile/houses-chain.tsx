@@ -71,6 +71,17 @@ const MIN_DROP_OVERLAP = 16;
    leaves from under the pill's straight body rather than off its cap. */
 const CAP_INSET = 12;
 
+/* Air between a turn and each pill it joins (owner, 2026-08-03: "don't have
+   the arrows in the chain touch the houses ... the ones that go onto the next
+   line touch both the start house and the end house"). They did: a turn ran
+   from exactly the bottom edge of one pill to exactly the top edge of the
+   next, so both ends were flush against ink.
+   The in-row arrows have carried this air all along, about 7px, from GAP
+   plus the arrow glyph's own inset; a turn works in a 20px channel rather
+   than a 30px slot, so it takes 4px at each end. That leaves 12px of drawn
+   line, which is enough for the shaft to read behind its head. */
+const TURN_LEAD = 4;
+
 const STROKE = { stroke: "currentColor", strokeWidth: 1.25, strokeLinecap: "round" as const };
 
 /* Straight arrows are SVG rather than the "→" glyph so they share one stroke
@@ -366,9 +377,10 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
     const bL = nextBackwards ? rowWs[r + 1] - firstW : 0;
     const bR = nextBackwards ? rowWs[r + 1] : firstW;
 
-    const y1 = r * (pillH + ROW_GAP) + pillH; // bottom of row r
-    const y2 = (r + 1) * (pillH + ROW_GAP); // top of row r+1
-    const yc = y2 + pillH / 2; // vertical middle of row r+1
+    // Both ends stand off by TURN_LEAD so no turn ever touches a pill.
+    const y1 = r * (pillH + ROW_GAP) + pillH + TURN_LEAD; // below row r
+    const y2 = (r + 1) * (pillH + ROW_GAP) - TURN_LEAD; // above row r+1
+    const yc = (r + 1) * (pillH + ROW_GAP) + pillH / 2; // middle of row r+1
 
     const lo = Math.max(aL, bL);
     const hi = Math.min(aR, bR);
@@ -385,7 +397,9 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
     const dir = bR <= aL ? -1 : 1;
     // The vertical leg goes just inside a's edge that FACES b.
     const vx = dir < 0 ? aL + CAP_INSET : aR - CAP_INSET;
-    const tx = dir < 0 ? bR : bL;
+    // Stop short of b's facing side by the same lead, on whichever side the
+    // approach is coming from.
+    const tx = (dir < 0 ? bR : bL) - dir * TURN_LEAD;
     // Sweep 1 turns clockwise on screen (leftward), 0 counter-clockwise.
     const sweep = dir < 0 ? 1 : 0;
     return {
