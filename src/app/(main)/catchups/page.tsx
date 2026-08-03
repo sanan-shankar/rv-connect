@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/layout/page-header";
 import { RAIL_GRID, RAIL_ASIDE } from "@/components/layout/rail-grid";
 import { Button } from "@/components/ui/button";
 import { AlmostReady } from "@/components/catchups/almost-ready";
-import { ExplainerBand } from "@/components/catchups/index/explainer-band";
 import { YourCatchupsCard, type IndexCardView } from "@/components/catchups/index/your-catchups-card";
 import { FreshOffThePress, type FreshRoundItem } from "@/components/catchups/index/fresh-off-the-press";
 import { GroupFirstGuidance } from "@/components/catchups/index/group-first-guidance";
@@ -240,10 +239,6 @@ export default async function CatchupsPage() {
     );
   }
 
-  // Compact once the viewer has any Catch-up; the full 3-disc band is the
-  // newcomer treatment and keeps its own full-width row below.
-  const anyCatchup = data.cards.some((c) => c.catchupId !== null);
-
   return (
     <div>
       {/* The header sits inside the same rail grid as the body, alone in
@@ -260,42 +255,16 @@ export default async function CatchupsPage() {
           <PageHeader
             title="Catch-ups"
             actions={
-              <>
-                {anyCatchup && (
-                  /* Ask/Answer/Read rides in the header beside the CTA
-                     (owner, 2026-07-30: "beside the catch up section, not
-                     below it"), but only from 1280px up: the 1280 gate and
-                     its fallback row below stay in lockstep with
-                     HEADER_PILL_QUERY in explainer-band.tsx, where the
-                     collision math is argued. */
-                  <div className="hidden min-[1280px]:block">
-                    <ExplainerBand compact anchorWhen="wide" />
-                  </div>
-                )}
-                <Link href="/catchups/new" className="inline-flex">
-                  <Button variant="primary">
-                    <Plus className="h-4 w-4" />
-                    Start a Catch-up
-                  </Button>
-                </Link>
-              </>
+              <Link href="/catchups/new" className="inline-flex">
+                <Button variant="primary">
+                  <Plus className="h-4 w-4" />
+                  Start a Catch-up
+                </Button>
+              </Link>
             }
           />
         </div>
       </div>
-
-      {anyCatchup ? (
-        /* Below 1280 the pill cannot fit in the header row, so it falls back
-           to its own row here. One of the two instances is always visible,
-           so the tour's spotlight target exists at every width. */
-        <div className="mb-[var(--space-l)] min-[1280px]:hidden">
-          <ExplainerBand compact anchorWhen="narrow" />
-        </div>
-      ) : (
-        <div className="mb-[var(--space-l)]">
-          <ExplainerBand />
-        </div>
-      )}
 
       {!data.hasGroups ? (
         <GroupFirstGuidance />
