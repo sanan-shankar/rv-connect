@@ -6,16 +6,13 @@
  *  Collection.
  *
  *  The shape of it: the photo owns the screen on a warm near-black
- *  wash. Moving forward or back advances the film one frame: the
- *  incoming photo drifts in from the side you are heading toward while
- *  the outgoing one slips the opposite way and fades out faster than
- *  the newcomer fades in (so the cross never dips to a see-through
- *  midpoint). No scale anywhere in the step -- equal-size frames read
- *  as one photograph replacing another; any size mismatch reads as a
- *  zoom-and-settle, which is the exact bounce the owner rejected
- *  (2026-07-30). The two neighbouring images are pre-decoded the
- *  moment a frame settles, off the main path, so the step never waits
- *  on the network.
+ *  wash. Moving forward or back cross-dissolves one frame into the
+ *  next. No x drift, no scale, no spring anywhere in the step (owner,
+ *  2026-08-03: "don't do that slide transition ... just have a simple
+ *  delightful cross dissolve with[out] any bouncing or other jarring
+ *  motion"). The two neighbouring images are pre-decoded the moment a
+ *  frame settles, off the main path, so the step never waits on the
+ *  network.
  *
  *  Chrome stays out of the photo's way: a counter and the actions sit
  *  in slim bars top and bottom, and a tap on the photo puts them away
@@ -33,7 +30,7 @@ import { AlignLeft, ArrowUpRight, ChevronLeft, ChevronRight, Download, X } from 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
-import { SPRINGS, EASE_OUT_SMOOTH, EASE_IN_OUT_SCENE } from "@/components/common/motion";
+import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn, metaLine } from "@/lib/utils";
 
 export interface ViewerImage {
@@ -53,37 +50,38 @@ export interface ViewerImage {
 
 const BACKDROP = "rgba(24, 25, 20, 0.94)"; // warm ink, never pure black
 
-/* The step: one frame of film advancing. The incoming photo drifts in from
- * the side you are heading toward (+x when stepping forward) and the
- * outgoing one slips the opposite way, so forward and back read
- * differently and a step between two similar valley photographs still
- * visibly HAPPENS. Distances are a whisper (28px in, 18px out, on a
- * viewport-scale move) because the drift is a cue, not a slide. The x legs
- * ride EASE_IN_OUT_SCENE -- the documented curve for viewport-scale travel
- * (DESIGN-SYSTEM sec. 7); an out-only curve here reads as a lurch. The
- * opacity legs are asymmetric on purpose: 140ms out vs 200ms in keeps the
- * cross from dipping to a half-transparent midpoint where the backdrop
- * shows through both frames. No scale anywhere -- see the header comment. */
-const STEP_X_IN = 28;
-const STEP_X_OUT = 18;
+/* The step: a straight cross dissolve, opacity and nothing else.
+ *
+ * The two legs are deliberately opposite curves, and that pairing is the
+ * whole trick. Both frames are mounted at once (AnimatePresence mode="sync")
+ * over BACKDROP, so what the eye actually sees of the backdrop through the
+ * cross is (1 - outgoing) * (1 - incoming). Run both legs linear and that
+ * product peaks at 0.25 halfway: a visible quarter-strength flash of empty
+ * backdrop between two photographs. The previous version was worse than
+ * linear, because it faded the OUTGOING frame faster than the incoming one
+ * (140ms against 200ms) while its comment claimed the opposite.
+ *
+ * So: the incoming frame rises on EASE_OUT_SMOOTH (fast off the mark, ~0.85
+ * opaque by the midpoint) and the outgoing one falls on "easeIn" (holds near
+ * full early, ~0.88 at the midpoint). Their product at the midpoint is about
+ * 0.02, so the backdrop never meaningfully shows and the dissolve reads as
+ * one photograph becoming another. Equal 220ms durations keep it symmetric,
+ * so forward and back feel identical.
+ *
+ * "easeIn" is passed as Motion's named curve rather than a hand-typed
+ * cubic-bezier (banned: DESIGN-SYSTEM sec. 7, and eslint.config.mjs warns).
+ * motion.tsx has no ease-IN twin to import; if one is ever added, use it. */
+const STEP_SECONDS = 0.22;
 const FRAME_VARIANTS = {
-  enter: (dir: 1 | -1) => ({ x: dir * STEP_X_IN, opacity: 0 }),
+  enter: { opacity: 0 },
   center: {
-    x: 0,
     opacity: 1,
-    transition: {
-      x: { duration: 0.26, ease: EASE_IN_OUT_SCENE },
-      opacity: { duration: 0.2, ease: EASE_OUT_SMOOTH },
-    },
+    transition: { duration: STEP_SECONDS, ease: EASE_OUT_SMOOTH },
   },
-  exit: (dir: 1 | -1) => ({
-    x: dir * -STEP_X_OUT,
+  exit: {
     opacity: 0,
-    transition: {
-      x: { duration: 0.26, ease: EASE_IN_OUT_SCENE },
-      opacity: { duration: 0.14, ease: EASE_OUT_SMOOTH },
-    },
-  }),
+    transition: { duration: STEP_SECONDS, ease: "easeIn" as const },
+  },
 };
 
 function basename(src: string): string {
@@ -109,9 +107,6 @@ export function ImageViewer({
   const [index, setIndex] = useState(initialIndex);
   const [chromeHidden, setChromeHidden] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
-  /* Which way the last step went; feeds the frame variants (via `custom`)
-     so the drift matches the direction of travel. */
-  const [stepDir, setStepDir] = useState<1 | -1>(1);
   const stageRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
 
@@ -125,7 +120,6 @@ export function ImageViewer({
         if (next < 0 || next >= count) return i;
         return next;
       });
-      setStepDir(dir);
       setCaptionOpen(false);
     },
     [count]
@@ -268,15 +262,14 @@ export function ImageViewer({
         </div>
 
         {/* STAGE. The step animation lives on the keyed frame (FRAME_VARIANTS,
-            top of file); sync mode keeps both frames mounted through the cross.
-            The swipe gesture lives on a stable wrapper, not the keyed frame:
-            drag and an animated `x` on the same node fight over one
-            MotionValue, and a keyed frame that exits mid-swipe would carry its
-            drag offset and momentum snap-back into the exit -- the second,
-            mobile-only bounce the owner reported. Here the wrapper rubber-bands
-            under the finger and springs home while the frames inside advance
-            independently. The desktop arrows sit outside the wrapper so they
-            never move with a drag. */}
+            top of file); sync mode keeps both frames mounted through the cross,
+            which is what makes it a true dissolve rather than a hard cut.
+            The swipe gesture lives on a stable wrapper, not the keyed frame: a
+            keyed frame that exits mid-swipe would carry its drag offset into
+            the exit, which is the mobile-only bounce the owner reported. Here
+            the wrapper follows the finger and returns to rest while the frames
+            inside dissolve independently. The desktop arrows sit outside the
+            wrapper so they never move with a drag. */}
         <div
           ref={stageRef}
           tabIndex={-1}
@@ -288,15 +281,19 @@ export function ImageViewer({
             drag={count > 1 ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.14}
+            /* Release returns to rest with NO overshoot. Motion's default
+               drag-release spring rebounds past 0 and back, which is exactly
+               the "bouncing" the owner rejected; damping this high is
+               critically damped, so the photo settles and stops. */
+            dragTransition={{ bounceStiffness: 600, bounceDamping: 60 }}
             onDragEnd={(_, info) => {
               if (info.offset.x < -70 || info.velocity.x < -420) step(1);
               else if (info.offset.x > 70 || info.velocity.x > 420) step(-1);
             }}
           >
-            <AnimatePresence mode="sync" initial={false} custom={stepDir}>
+            <AnimatePresence mode="sync" initial={false}>
               <motion.div
                 key={index}
-                custom={stepDir}
                 variants={FRAME_VARIANTS}
                 initial="enter"
                 animate="center"
