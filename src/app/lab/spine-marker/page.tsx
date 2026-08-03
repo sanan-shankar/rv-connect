@@ -1,7 +1,7 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  Five treatments for the sidebar's active-row marker, side by side.
+ *  Six treatments for the sidebar's active-row marker, side by side.
  *
  *  Not linked from anywhere (including _kit.tsx's ROOMS registry) on
  *  purpose. Visit directly at /lab/spine-marker.
@@ -54,7 +54,7 @@ const INITIAL_ACTIVE = "Directory";
 /** Shown permanently in its hover look, since a static screenshot can't hover a cursor. */
 const HOVER_DEMO = "Letters";
 
-type Variant = "flush" | "inset" | "underline" | "notch" | "fill";
+type Variant = "flush" | "inset" | "underline" | "notch" | "fill" | "curve";
 
 type RowProps = {
   item: { label: string; icon: LucideIcon };
@@ -244,12 +244,76 @@ function FillRow({ item, isActive, isHoverDemo, onClick, ns }: RowProps) {
   );
 }
 
+/* ---- F · Cinnamon C -------------------------------------------------------
+ *
+ *  The owner's own version (2026-08-03): "the cinnamon marker is in the same
+ *  position except it's as tall as the marker pill. Then have it reach till
+ *  the pill and have it flush with the pill and then fill it in. So the
+ *  cinnamon would be this C shaped kinda thing with a curved right side and a
+ *  flat left side. The top and bottom would also be flat."
+ *
+ *  Against the shipped marker (a 3px bar inset 6px top and bottom, floating
+ *  8px clear of the pill) this is: full row height, no inset, no gap, solid.
+ *
+ *  HOW THE CURVE IS DRAWN, which is the only interesting part: it is not
+ *  drawn. The cinnamon is a plain rectangle running from 8px left of the row
+ *  to `CAP` px INSIDE it, and the pill is painted on top. The pill's own
+ *  rounded left cap is what eats the rectangle's right edge, leaving cinnamon
+ *  visible in the two corner notches and nowhere else. That reads as one
+ *  shape with a flat left, a flat top, a flat bottom and a concave right: the
+ *  C. Doing it this way means the curve is BY CONSTRUCTION the pill's curve,
+ *  so the two can never disagree by a pixel or drift if the radius changes,
+ *  and it costs no SVG and no measurement.
+ *
+ *  CAP is the row's corner radius (rounded-xl == --radius-xl == 20.8px). At a
+ *  ~42px row that is nearly a half circle, so the C reads as a deep crescent
+ *  rather than a nick. */
+const CAP = 21;
+function CurveRow({ item, isActive, isHoverDemo, onClick, ns }: RowProps) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        ROW_BASE,
+        "rounded-xl px-3",
+        isActive
+          ? "font-semibold text-sidebar-accent-foreground"
+          : "text-sidebar-foreground-idle hover:bg-sidebar-hover hover:text-sidebar-foreground",
+        isHoverDemo && "bg-sidebar-hover text-sidebar-foreground"
+      )}
+    >
+      {isActive && (
+        <motion.span
+          layoutId={`${ns}-marker`}
+          initial={false}
+          className="absolute inset-0 z-0"
+          transition={NAV_MARKER_SPRING}
+        >
+          {/* The slab. Square corners on its own left, top and bottom. */}
+          <span
+            className="absolute inset-y-0 bg-cinnamon"
+            style={{ left: -8, width: 8 + CAP }}
+          />
+          {/* The pill, painted over it. Its cap carves the concave right. */}
+          <span className="absolute inset-0 rounded-xl bg-sidebar-active" />
+        </motion.span>
+      )}
+      <Icon className="relative z-[1] h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+      <span className="relative z-[1]">{item.label}</span>
+    </button>
+  );
+}
+
 const ROW_COMPONENT: Record<Variant, (props: RowProps) => React.JSX.Element> = {
   flush: FlushRow,
   inset: InsetRow,
   underline: UnderlineRow,
   notch: NotchRow,
   fill: FillRow,
+  curve: CurveRow,
 };
 
 /* Flush + fill both run the row to the sidebar's true left edge, so their
@@ -336,7 +400,7 @@ export default function SpineMarkerRoom() {
             Lab
           </Link>
           <h1 className="mt-3 font-heading text-[clamp(1.8rem,3.4vw,2.4rem)] font-bold leading-[1.1] tracking-[-0.03em]">
-            One unit, five ways
+            One unit, six ways
           </h1>
           <p className="mt-3 max-w-[70ch] text-[16px] leading-[1.6] text-muted-foreground">
             The shipped active row is two shapes that happen to sit next to each other: a rounded
@@ -379,6 +443,12 @@ export default function SpineMarkerRoom() {
             ns="fill"
             title="E · Cinnamon fill"
             blurb="No green on the active row at all: a faint cinnamon wash, an opaque cinnamon rail flush to the edge, and cinnamon-tinted text carry the whole state."
+          />
+          <DemoSidebar
+            variant="curve"
+            ns="curve"
+            title="F · Cinnamon C"
+            blurb="The owner's own: the bar grows to the pill's full height, closes the 8px gap, and fills solid. Its right edge is the pill's own cap carving into it, so the two are one shape by construction."
           />
         </div>
       </main>
