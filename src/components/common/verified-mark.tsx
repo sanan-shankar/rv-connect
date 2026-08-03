@@ -89,17 +89,12 @@ function VerifiedMarkInner({
       <span
         ref={tipRef}
         className={cn(
-          /* Owner: "the letters are squashed together" at desktop size. The label was nested
-             inside headings (profile h1, directory h3) that carry font-heading + a large
-             negative tracking-tight for THEIR big display size; letter-spacing is inherited as
-             an absolute px value, not recomputed for this tiny child, so the label was silently
-             inheriting up to -1px of tracking on top of an 11px serif face, on the desktop
-             profile header where the h1 is 40px (-0.025em x 40px = -1px). That is what read as
-             squashed. font-heading is now set explicitly (the owner likes the serif, so keep it
-             deliberate rather than an accident of inheritance) and tracking is reset and opened
-             up rather than left to inherit; text also grew 11px -> 12.5px, since a serif this
-             small needs a touch more size to stay quiet AND legible at once. */
-          "pointer-events-none absolute top-1/2 z-30 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1 font-heading text-[11.5px] font-normal tracking-[0.02em] text-background transition-opacity duration-150",
+          /* This sits inside everything from a 14.5px directory h3 to a 40px
+             profile h1, so it must own every type metric. Inheriting the
+             parent's unitless line-height made the same pill 22.38px tall in
+             the directory and 20.06px on a profile. The calibrated nudge below
+             optically centres Libre Baskerville's ink inside its line box. */
+          "pointer-events-none absolute top-1/2 z-30 inline-flex items-center -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-[var(--space-m)] py-[var(--space-xs)] font-heading text-[0.6875rem] leading-[1.25] font-normal tracking-[0.02em] text-background transition-opacity duration-150",
           side === "right" ? "left-full ml-2" : "right-full mr-2",
           open ? "opacity-100" : "opacity-0"
         )}
@@ -108,7 +103,7 @@ function VerifiedMarkInner({
             "0 1px 2px rgba(35,36,30,0.24), 0 8px 20px -12px rgba(35,36,30,0.65)",
         }}
       >
-        {label}
+        <span className="translate-y-px">{label}</span>
       </span>
     </span>
   );

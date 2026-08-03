@@ -7,9 +7,9 @@
  *
  *  V1 decision (docs/planning/round6-specs/walkthrough.md sec 7):
  *  localStorage only, no User column. Key `rv:tour:<userId>`, value
- *  "completed" or "dismissed". Losing this flag just re-offers a nicety
- *  on a fresh browser; it never loses real data. The About page's
- *  "Take the tour again" is the permanent, always-available way back in
+ *  "completed" or "dismissed". Losing this flag never loses real data; it
+ *  only matters if the dormant automatic offer is explicitly re-enabled.
+ *  The owner Admin page's "hoopoe tour" action remains a manual way back in
  *  regardless of this flag (see tour-provider.tsx's `start()`).
  * ------------------------------------------------------------------ */
 
@@ -41,7 +41,7 @@ export function readTourState(userId: string): TourLocalState | null {
   return v === "completed" || v === "dismissed" ? v : null;
 }
 
-/** completed OR dismissed — either way, the auto-offer should never fire again. */
+/** completed OR dismissed — either way, an enabled auto-offer should not fire again. */
 export function hasSettledTour(userId: string): boolean {
   return readTourState(userId) !== null;
 }
