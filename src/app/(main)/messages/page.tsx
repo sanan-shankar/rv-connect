@@ -61,7 +61,7 @@ export default async function MessagesPage() {
   return (
     <div>
       <PageHeader
-        title="You and the admins"
+        title="Reach out"
         subtitle="Something broken, an idea, a question. Write a line and someone will read it."
       />
 

@@ -93,7 +93,7 @@ function accountNav(userId: string, isAdmin: boolean) {
     { href: `/profile/${userId}`, label: "My profile", icon: UserIcon },
     { href: "/settings", label: "Settings", icon: Settings },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
-    { href: "/messages", label: "Message the admins", icon: MessageSquareText },
+    { href: "/messages", label: "Reach out", icon: MessageSquareText },
   ];
 }
 
@@ -539,7 +539,7 @@ export function Sidebar({
                 className={DRAWER_ROW_CLASS}
               >
                 <MessageSquareText className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-                Message the admins
+                Reach out
               </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}

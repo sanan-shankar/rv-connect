@@ -72,7 +72,7 @@ const measure = (page) =>
     const aside = document.querySelector("aside");
     const bird = aside?.querySelector(".hoopoe-mascot");
     const root = bird?.querySelector("[data-part=root]");
-    const ACCOUNT = ["My profile", "Settings", "Admin", "Message the admins", "Sign out"];
+    const ACCOUNT = ["My profile", "Settings", "Admin", "Reach out", "Sign out"];
     const tops = [...(aside?.querySelectorAll("a[href], button") ?? [])]
       .filter((el) => ACCOUNT.some((a) => el.textContent.trim().startsWith(a)))
       .map((el) => Math.round(el.getBoundingClientRect().top));
