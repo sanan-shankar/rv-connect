@@ -49,12 +49,17 @@ export function FilterButton({
       onClick={onClick}
       aria-expanded={open}
       className={cn(
-        // Matches the facet pills' idle shell exactly (PILL_BASE + PILL_IDLE),
-        // written out rather than imported because this is a plain button with
-        // no facet trigger inside it to hang the focus ring off.
-        // The OPEN state stays canopy via aria-expanded: selection is the app's
-        // one green state, and hover must not borrow it (see pill-shell.tsx).
-        "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 state-layer active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        /* bg-card, NOT the facet pills' bg-secondary (owner, 2026-08-03: "why
+           is the filters button a different colour?"). It was a rung off its
+           neighbours: --secondary is #F0EDE4 while the search box beside it
+           and the view toggle under it are both --card #F5F2EA, so one row
+           carried two surfaces five RGB steps apart. The facet pills keep
+           --secondary, because they live on the Float-white panel where that
+           rung is the right one; this button lives on the page, among page
+           chrome, and takes the page chrome's surface.
+           The OPEN state stays canopy via aria-expanded: selection is the
+           app's one green state, and hover must not borrow it (pill-shell). */
+        "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-4 text-[13px] font-medium text-foreground transition-transform duration-150 state-layer active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className
       )}
     >
