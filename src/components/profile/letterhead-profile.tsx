@@ -44,6 +44,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
@@ -258,13 +259,36 @@ export function LetterheadProfile({
                 <div className="flex items-start gap-[var(--space-m)]">
                   {hasPhoto && (
                     <span
-                      className="block shrink-0 overflow-hidden rounded-full border border-border/60 bg-mist"
+                      className="relative block shrink-0 overflow-hidden rounded-full border border-border/60 bg-mist"
                       style={{ width: circle, height: circle }}
                       role="img"
                       aria-label={user.name}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={user.photoUrl ?? ""} alt="" className="h-full w-full object-cover" />
+                      {/* The one photograph the page is about, so it is the one
+                          image here allowed to be `priority`: it is the LCP
+                          candidate on a profile and it must not arrive after
+                          the name beside it (owner, 2026-08-03). It was a raw
+                          <img> pointed at the R2 original, which is stored at
+                          up to 1920px.
+                          `fill` rather than width/height because `circle` is a
+                          CSS length, not a number: it is either a measured px
+                          string or `var(--lh-head)` before the ResizeObserver
+                          reports (see the lockup comment above), and neither
+                          form is something next/image can size from. The
+                          parent already carries the exact box, so filling it is
+                          the honest fit; it gains `relative` for that.
+                          sizes 128px covers the real range, roughly 68px for a
+                          one-line name up to ~115px when a long one wraps, and
+                          still lets Next serve the 256 bucket to a 2x screen
+                          rather than the full original. */}
+                      <Image
+                        src={user.photoUrl ?? ""}
+                        alt=""
+                        fill
+                        sizes="128px"
+                        priority
+                        className="object-cover"
+                      />
                     </span>
                   )}
 
