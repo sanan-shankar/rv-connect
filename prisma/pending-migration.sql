@@ -176,6 +176,14 @@ DO $$ BEGIN
     FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- SECTION 3: DONE, nothing to run. -------------------------------------------
+-- Checked against information_schema on 2026-08-03: all six tables listed
+-- below were already gone, so this section is history. `migrate diff` is now
+-- down to the three lower() expression indexes on Place/UserPlace, which is
+-- the permanent documented false positive. See the Settled section of
+-- docs/planning/bugs.md. Left in place, still commented out, as the record of
+-- what the drop was meant to be.
+--
 -- SECTION 3 (optional, DESTRUCTIVE): drop the dead tables ---------------------
 -- Leftovers from the old reverted Catch-ups build: CatchupIssue/CatchupQuestion
 -- (the two originally flagged) PLUS Catchup/CatchupPref/CatchupAnswer/
