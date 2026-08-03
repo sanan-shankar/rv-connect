@@ -3,9 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { AnimatePresence, motion } from "motion/react";
-import { Search, SlidersHorizontal, ArrowLeft } from "lucide-react";
-import { SPRINGS } from "@/components/common/motion";
+import { Search, ArrowLeft } from "lucide-react";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,10 +12,11 @@ import {
   FacetSearchSelect,
   RangeFacetPill,
   SortPill,
-  ActiveFilterChips,
-  ResultCount,
   FilterSheet,
-  type ActiveChip,
+  FilterButton,
+  FilterPopover,
+  SentenceLine,
+  type SentenceToken,
 } from "@/components/common/filters";
 import {
   PROFESSION_OPTIONS,
@@ -100,9 +99,11 @@ export function DirectoryClient({
   const searchParams = useSearchParams();
   const tourAnchorRef = useTourAnchor<HTMLDivElement>("directory-search");
   const [query, setQuery] = useState(initialFilters.q);
-  const [moreFiltersOpen, setMoreFiltersOpen] = useState(
-    !!(initialFilters.house || initialFilters.type)
-  );
+  /* One panel, two presentations: `panelOpen` is the desktop popover,
+     `sheetOpen` the mobile bottom sheet. Separate flags rather than one,
+     because both can be mounted at once across a resize and closing one
+     must not close the other out from under it. */
+  const [panelOpen, setPanelOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   // When filtering, default to the People (grid) view so results are visible;
   // otherwise the zero-typing browse opens on the Map.
@@ -203,53 +204,75 @@ export function DirectoryClient({
   const sortOptions = directorySortOptions(hasQuery);
   const sortValue = initialFilters.sort || directoryDefaultSort(hasQuery);
 
-  const secondaryCount =
-    (initialFilters.house ? 1 : 0) +
-    (initialFilters.type ? 1 : 0);
-
-  const activeChips: ActiveChip[] = [];
+  /* The sentence's tokens. BARE values, not the kit's "Label: Value" chip
+     form: inside a sentence the facet's name is implied by its value, and
+     "12 results, City: Chennai" reads like a database row rather than a
+     line of English. Order is the order someone would say them. */
+  const sentenceTokens: SentenceToken[] = [];
   if (initialFilters.profession) {
-    activeChips.push({
+    sentenceTokens.push({
       key: "profession",
-      label: `Profession: ${initialFilters.profession}`,
+      label: initialFilters.profession,
       onClear: () => updateFilters("profession", ""),
     });
   }
   if (initialFilters.city) {
-    activeChips.push({
+    sentenceTokens.push({
       key: "city",
-      label: `City: ${initialFilters.city}`,
+      label: initialFilters.city,
       onClear: () => updateFilters("city", ""),
     });
   }
   if (initialFilters.yearFrom || initialFilters.yearTo) {
-    activeChips.push({
+    sentenceTokens.push({
       key: "batch",
       label: batchRangeText(initialFilters.yearFrom, initialFilters.yearTo),
       onClear: () => updateBatchRange({ from: "", to: "" }),
     });
   }
   if (initialFilters.house) {
-    activeChips.push({
+    sentenceTokens.push({
       key: "house",
-      label: `House: ${initialFilters.house}`,
+      label: initialFilters.house,
       onClear: () => updateFilters("house", ""),
     });
   }
   if (initialFilters.type) {
     const typeOption = TYPE_OPTIONS.find((o) => o.value === initialFilters.type);
-    activeChips.push({
+    sentenceTokens.push({
       key: "type",
-      label: `Type: ${typeOption?.label ?? initialFilters.type}`,
+      label: typeOption?.label ?? initialFilters.type,
       onClear: () => updateFilters("type", ""),
     });
   }
+  if (initialFilters.year) {
+    sentenceTokens.push({
+      key: "year",
+      label: yearLabel,
+      onClear: () => updateFilters("year", ""),
+    });
+  }
+
+  /* What the Filters button tallies: the facets it actually opens. The free
+     text search and the batch-tile year are set elsewhere (the search box, a
+     Batches tile), so counting them here would blame the button for state it
+     does not own. */
+  const activeFacetCount =
+    (initialFilters.profession ? 1 : 0) +
+    (initialFilters.city ? 1 : 0) +
+    (initialFilters.yearFrom || initialFilters.yearTo ? 1 : 0) +
+    (initialFilters.house ? 1 : 0) +
+    (initialFilters.type ? 1 : 0);
 
   // People (results) only appears while a filter is active; the map and batches
   // are always reachable so filtering narrows the map rather than replacing it.
   const views: ("map" | "batches" | "people")[] = hasFilter
     ? ["people", "map", "batches"]
     : ["map", "batches"];
+  const viewSegments = views.map((v) => ({
+    key: v,
+    label: v === "map" ? "Map" : v === "batches" ? "Batches" : "People",
+  }));
 
   // Shared between the desktop rail and the mobile FilterSheet (which stacks
   // every facet full-width) so neither rewrites the same six facet configs.
@@ -344,89 +367,91 @@ export function DirectoryClient({
 
   return (
     <div>
-      {/* Tier 1: search + always-visible facets. */}
-      <div ref={tourAnchorRef} data-tour="directory-search" className="mb-6 space-y-3">
-        {/* Desktop (>=1024px): one row -- back (if applicable), a shorter
-            fixed-width search box, then Profession/City/Batch, then Sort +
-            More filters + Clear all pinned right. The pills themselves
-            double as the active-filter chips (Label: Value + x), so there's
-            no separate chip row here. */}
-        <div className="hidden flex-wrap items-center gap-2.5 lg:flex">
+      {/* THE CHROME: two rows, and it cannot grow a third.
+          Row one is search + Filters + Sort, a fixed 40px forever. Row two is
+          the sentence line, which the page already owed for the result count,
+          now also carrying the applied filters as removable tokens and the
+          view toggle on its right.
+
+          Adding a filter therefore costs ZERO vertical pixels. That is the
+          whole point (owner, 2026-08-03: "use sentence for filter"; Concept B
+          in /lab/directory). What this replaced showed one filter in three
+          places at once: a facet pill on the toolbar, a chip in the mobile
+          strip, and a tally on the More-filters button, and opening that
+          disclosure pushed the entire page down. */}
+      <div ref={tourAnchorRef} data-tour="directory-search" className="mb-4 space-y-2.5">
+        <div className="flex flex-nowrap items-center gap-2">
           {renderBackButton()}
-          {renderSearchBox("relative w-[320px] shrink-0 xl:w-[380px]")}
-          {renderPrimaryFacets(false)}
-          <div className="ml-auto flex items-center gap-2.5">
-            <SortPill value={sortValue} onChange={(v) => updateFilters("sort", v)} options={sortOptions} />
-            <button
-              type="button"
-              onClick={() => setMoreFiltersOpen((v) => !v)}
-              aria-expanded={moreFiltersOpen}
-              // state-layer for the neutral hover; the OPEN state stays canopy
-              // (aria-expanded), because selection is the app's one green state
-              // and must not be expressed by the same wash as hover. Swapping
-              // bg-secondary for bg-accent moved this pill one ladder rung,
-              // which on the tan page is under the noticeable threshold.
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer active:scale-[0.97] aria-expanded:border-canopy/35 aria-expanded:bg-canopy/[0.08] aria-expanded:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          {renderSearchBox("relative min-w-0 flex-1")}
+          {/* Desktop: the facets live in a popover on this button. Mobile: the
+              same facets, in the kit's existing bottom sheet (it carries its
+              own "Show N" footer, which is the right ending for a full-screen
+              surface and wrong for a small anchored panel). */}
+          <div className="hidden lg:block">
+            <FilterPopover
+              open={panelOpen}
+              onOpenChange={setPanelOpen}
+              hasActive={hasFilter}
+              onClearAll={clearAll}
+              trigger={<FilterButton count={activeFacetCount} onClick={() => setPanelOpen((v) => !v)} />}
             >
-              <SlidersHorizontal className="size-3.5" aria-hidden />
-              More filters
-              {secondaryCount > 0 && <span className="opacity-80">· {secondaryCount}</span>}
-            </button>
-            {hasFilter && (
-              <button
-                type="button"
-                onClick={clearAll}
-                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold text-canopy underline-offset-2 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-              >
-                Clear all
-              </button>
-            )}
+              {renderPrimaryFacets(true)}
+              {renderSecondaryFacets(true)}
+            </FilterPopover>
           </div>
-        </div>
-
-        <AnimatePresence initial={false}>
-          {moreFiltersOpen && (
-            <motion.div
-              key="more-filters"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={SPRINGS.gentle}
-              className="hidden flex-wrap items-center gap-2.5 lg:flex"
-            >
-              {renderSecondaryFacets(false)}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Mobile (<1024px): back (if applicable) + full-width search, then
-            Sort + Filters(N) button; a horizontally scrollable chip strip
-            mirrors whatever is set since the pills themselves live in the
-            sheet on this breakpoint. */}
-        <div className="flex gap-2 lg:hidden">
-          {renderBackButton()}
-          {renderSearchBox("relative flex-1")}
-        </div>
-        <div className="flex items-center gap-2.5 lg:hidden">
+          <FilterButton
+            count={activeFacetCount}
+            onClick={() => setSheetOpen(true)}
+            className="lg:hidden"
+          />
           <SortPill
             value={sortValue}
             onChange={(v) => updateFilters("sort", v)}
             options={sortOptions}
-            className="flex-1"
+            className="hidden sm:inline-flex"
           />
-          <button
-            type="button"
-            onClick={() => setSheetOpen(true)}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <SlidersHorizontal className="size-3.5" aria-hidden />
-            Filters
-            {activeChips.length > 0 && <span className="opacity-80">· {activeChips.length}</span>}
-          </button>
         </div>
-        {activeChips.length > 0 && (
-          <ActiveFilterChips chips={activeChips} onClearAll={clearAll} className="lg:hidden" />
-        )}
+
+        {/* Below sm the sentence cannot hold a count, tokens AND a three-way
+            toggle side by side, so the toggle takes its own full-width row.
+            It is one more row, but it still does not GROW: the sentence is
+            present at every filter count, holding just the count when nothing
+            is set. The property that matters survives the breakpoint. */}
+        <div className="sm:hidden">
+          <SegmentedPills
+            ariaLabel="Browse view"
+            layoutId="directoryViewNarrow"
+            segments={viewSegments}
+            value={browseView}
+            onChange={setBrowseView}
+            className="w-full bg-card"
+          />
+        </div>
+        <SentenceLine
+          count={resultCount}
+          singular={hasFilter ? "result" : "person"}
+          plural={hasFilter ? "results" : "people"}
+          tokens={sentenceTokens}
+          onClearAll={clearAll}
+          onOpenPanel={() => (window.innerWidth >= 1024 ? setPanelOpen(true) : setSheetOpen(true))}
+          max={2}
+          right={
+            <div className="hidden sm:block">
+              {/* Canopy-filled thumb, same control as the profile Writing
+                  switcher (owner, 2026-08-02). People appears only while
+                  filtering; map and batches stay reachable so a filter narrows
+                  the map in place instead of abandoning it for a flat grid. */}
+              <SegmentedPills
+                ariaLabel="Browse view"
+                layoutId="directoryView"
+                segments={viewSegments}
+                value={browseView}
+                onChange={setBrowseView}
+                className="bg-card"
+              />
+            </div>
+          }
+        />
       </div>
 
       <FilterSheet
@@ -438,42 +463,25 @@ export function DirectoryClient({
       >
         {renderPrimaryFacets(true)}
         {renderSecondaryFacets(true)}
+        {/* Sort rides in the sheet too below sm, where it is pulled off the
+            top row for space. Above that it is already on the toolbar, so
+            showing it here as well would be the same duplication this whole
+            change removes. */}
+        <div className="sm:hidden">
+          <SortPill
+            value={sortValue}
+            onChange={(v) => updateFilters("sort", v)}
+            options={sortOptions}
+            className="w-full"
+          />
+        </div>
       </FilterSheet>
-
-      {/* View toggle. People (results) appears only while filtering; the map and
-          batches stay available so an active filter narrows the map in place
-          instead of abandoning it for a flat grid. Canopy-filled thumb, same
-          control as the profile Writing switcher (owner, 2026-08-02): this used
-          to draw a canopy OUTLINE thumb, which is the one other place besides
-          signup that read as a different control from everywhere else. */}
-      <SegmentedPills
-        ariaLabel="Browse view"
-        layoutId="directoryView focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        segments={views.map((v) => ({
-          key: v,
-          label: v === "map" ? "Map" : v === "batches" ? "Batches" : "People",
-        }))}
-        value={browseView}
-        onChange={setBrowseView}
-        className="mb-4 bg-card"
-      />
 
       {browseView === "people" ? (
         <div>
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
-              {yearLabel && <span className="font-medium text-foreground">{yearLabel}</span>}
-              <ResultCount
-                count={resultCount}
-                singular={hasFilter ? "result" : "person"}
-                plural={hasFilter ? "results" : "people"}
-                className=""
-              />
-              {resultCount > results.length && (
-                <span className="text-muted-foreground/80">· showing {results.length}</span>
-              )}
-            </div>
-          </div>
+          {yearLabel && (
+            <div className="mb-3 text-sm font-medium text-foreground">{yearLabel}</div>
+          )}
 
           {results.length === 0 ? (
             <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
@@ -486,10 +494,14 @@ export function DirectoryClient({
               <p className="mt-2 text-sm text-muted-foreground">
                 Try removing a filter or clearing your search.
               </p>
-              {activeChips.length > 0 && (
-                <div className="mt-4 flex flex-wrap justify-center">
-                  <ActiveFilterChips chips={activeChips} onClearAll={clearAll} className="justify-center" />
-                </div>
+              {/* Just the escape hatch. This used to reprint every active
+                  filter as chips, which was the third copy of the same state
+                  on one screen; the sentence line directly above already lists
+                  them, each removable. */}
+              {hasFilter && (
+                <Button variant="outline" className="mt-4 rounded-full" onClick={clearAll}>
+                  Clear all
+                </Button>
               )}
             </div>
           ) : (
