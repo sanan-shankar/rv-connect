@@ -75,6 +75,44 @@ const PAPER_GRAIN =
  * photo circle and the action pill both have to agree with the name's type,
  * so both are calc()ed off these instead of carrying magic numbers.
  */
+/* ------------------------------------------------------------------ *
+ *  THE COLOPHON: the mark and the admission number, as one lockup.
+ *
+ *  The number is BIGGER than it was (owner, 2026-08-02: "kind of really
+ *  tiny when it doesn't have to be"), but it is NOT sat on the hills'
+ *  ground line. A later pass moved the row to `items-end` and dropped
+ *  the digits until their baseline met the silhouette's lowest ink; the
+ *  owner rejected that outright (2026-08-03): "the admission number is
+ *  now bottom aligned to the logo. I don't want that ... maybe something
+ *  like the Rishi Valley in the sidebar with the logo, it's not bottom
+ *  aligned, it's a bit above that ... let's revert that decision."
+ *
+ *  So this matches the reference he named. The app's own Wordmark
+ *  (peaks-mark.tsx) centres its two boxes and then nudges the text down
+ *  a couple of px, because a text box carries ascender and descender air
+ *  that centring alone leaves looking high. Same device here, same
+ *  reason: `items-center` plus a small paint-only drop. The number ends
+ *  up optically centred on the mark and a little above its base, which
+ *  is the state the owner remembers and asked for back.
+ *
+ *  Sizes are the ones from that same review and are kept: the mark at 16
+ *  (== the row height) and the numerals on 13px, the app's small-UI rung
+ *  (every segmented pill label, every filter chip), with tracking at
+ *  0.16em so the sheet carries ONE caps tracking value rather than two.
+ * ------------------------------------------------------------------ */
+const COLOPHON = {
+  /** px. Equal to `--lh-colophon`, so the mark fills the row exactly. */
+  markSize: 16,
+  /**
+   * px, downward, paint-only so it can never reflow the row. The Wordmark
+   * uses 2px against Libre Baskerville at 18px; these are Source Sans 3
+   * caps at 13px, whose cap height sits differently in the box, so this is
+   * measured rather than copied. See scripts/qa/colophon-probe.mjs, which
+   * reports the gap from the digits' visual centre to the mark's.
+   */
+  numberNudge: 1,
+} as const;
+
 const IDENTITY_VARS = {
   "--lh-colophon": "1rem", // the colophon row's fixed height: 16px
   "--lh-gap": "0.5rem", // colophon -> name: 8px
@@ -160,7 +198,9 @@ export function LetterheadProfile({
   /* About shows for a stranger only when there is something to read. On your
      own profile the empty state is a prompt, which is worth the space. */
   const showAbout = Boolean(aboutText) || isOwnProfile;
-  const hasBody = showAbout || houseSpans.length > 0;
+  /* `hasBody` used to gate the engraved rule under the facts. The rule is
+     deleted (see the note at the end of the masthead), and nothing else needs
+     to know whether a body follows, so it went with it. */
 
   /* The stamp: pressed on demand, held a moment, faded away. */
   const [stamp, setStamp] = useState(0);
@@ -307,8 +347,11 @@ export function LetterheadProfile({
                         aria-label={`Admission number ${admissionNumber}. Press to stamp the sheet.`}
                         className="flex h-[var(--lh-colophon)] w-fit items-center gap-1.5 rounded-sm text-cinnamon transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
-                        <PeaksMark size={15} />
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em]">
+                        <PeaksMark size={COLOPHON.markSize} />
+                        <span
+                          className="text-[13px] font-bold uppercase leading-none tracking-[0.16em]"
+                          style={{ transform: `translateY(${COLOPHON.numberNudge}px)` }}
+                        >
                           {admissionNumber}
                         </span>
                       </button>
@@ -317,7 +360,7 @@ export function LetterheadProfile({
                         aria-hidden
                         className="flex h-[var(--lh-colophon)] w-fit items-center text-cinnamon"
                       >
-                        <PeaksMark size={15} />
+                        <PeaksMark size={COLOPHON.markSize} />
                       </span>
                     )}
 
@@ -360,33 +403,45 @@ export function LetterheadProfile({
                       <dt className="text-[11px] font-bold uppercase tracking-[0.16em] text-canopy">
                         {f.label}
                       </dt>
-                      <dd className="mt-[var(--space-xs)] text-[17px] font-semibold leading-[1.35] text-foreground">
+                      {/* 15px, not 17. Owner (2026-08-02): "the font size for
+                          that seems weirdly bigger than everywhere else in the
+                          app ... we should try to standardize that." 15px is
+                          the single most used rung in the product (every feed
+                          post body, every letter body, the directory's person
+                          name); 17px is almost entirely long-form reading
+                          measures, and a fact is a datum, not a reading
+                          measure. Semibold stays, which is where the emphasis
+                          was actually coming from. */}
+                      <dd className="mt-[var(--space-xs)] text-[15px] font-semibold leading-[1.35] text-foreground">
                         {f.value}
                       </dd>
                     </div>
                   ))}
                 </dl>
               )}
-
-              {/* Equal air above and below, and only when it has two things to
-                  sit between. A divider that divides nothing is just a line. */}
-              {hasBody && (
-                <div
-                  aria-hidden
-                  className="mt-[var(--space-l)] h-[3px] w-full rounded-full"
-                  style={{
-                    boxShadow: "inset 0 1px 0 rgba(0,0,0,0.14), inset 0 -1px 0 rgba(255,255,255,0.55)",
-                  }}
-                />
-              )}
+              {/* The engraved rule that used to sit here is DELETED (owner
+                  handed the call over, 2026-08-02).
+                  What it did: separate the masthead from the body.
+                  Why it no longer has to: the body now opens with a canopy caps
+                  label ("About", "Houses") after a full block gap. That label is
+                  a colour change, a case change, a weight change and a size
+                  change at once; a 3px groove cannot add to a boundary that
+                  emphatic, only restate it. A box must earn its border, and a
+                  band whose whole job is already done by the thing under it has
+                  not earned one. Deleting it also buys back 29px of sheet
+                  height on every profile. */}
             </FadeRise>
 
             {showAbout && (
               <FadeRise delay={0.06}>
                 <section className="mt-[var(--space-l)]">
                   <SectionLabel>About</SectionLabel>
+                  {/* The written About is 15px/1.7, byte-for-byte the feed
+                      PostCard's body style, because it is the same kind of
+                      text. At 17 the sheet held the one paragraph in the app
+                      set larger than a post. */}
                   {aboutText ? (
-                    <p className="mt-[var(--space-s)] whitespace-pre-wrap text-[17px] leading-[1.7] text-foreground">
+                    <p className="mt-[var(--space-s)] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
                       {aboutText}
                     </p>
                   ) : (

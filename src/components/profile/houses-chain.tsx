@@ -52,10 +52,14 @@ function yearRange(span: HouseSpan): string {
 const GAP = 6; // flex gap-1.5, between a pill and an arrow
 const ARROW_W = 18;
 const ARROW_SLOT = ARROW_W + 2 * GAP;
-const GUTTER = 30;
-const ARC_RX = 14;
-const LEAD = 6; // air between a pill's edge and the line entering/leaving it
-const ROW_GAP = 14;
+/* The channel between two rows, which is the whole vertical distance the
+   turn has to curve in. It was 14px when the turn was a bracket that did
+   its travelling out in a side gutter; a curve does its travelling HERE, and
+   at 14px the S was so flat it read as a diagonal scratch. 26px lets the
+   curve leave and arrive visibly vertical (see the control points on
+   `turns`) without opening a band of white that breaks the block into
+   separate lines. GUTTER, ARC_RX and LEAD went with the bracket. */
+const ROW_GAP = 26;
 
 const STROKE = { stroke: "currentColor", strokeWidth: 1.25, strokeLinecap: "round" as const };
 
@@ -94,22 +98,97 @@ function Pill({ span }: { span: HouseSpan }) {
 const PILL_CLASS = "inline-flex items-baseline gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1";
 
 /** Greedy row packing over the measured pill widths. */
-function packRows(widths: number[], maxW: number): number[][] {
-  const rows: number[][] = [];
-  let cur: number[] = [];
-  let curW = 0;
-  widths.forEach((w, i) => {
-    const add = cur.length === 0 ? w : ARROW_SLOT + w;
-    if (cur.length > 0 && curW + add > maxW) {
-      rows.push(cur);
-      cur = [i];
-      curW = w;
-    } else {
-      cur.push(i);
-      curW += add;
+/* ------------------------------------------------------------------ *
+ *  LINE BREAKING: minimum raggedness, not greedy packing.
+ *
+ *  Greedy packing (fill a row until the next pill overflows, then break)
+ *  put the owner's nine houses at 4 + 4 + 1: a third row holding one
+ *  pill beside acres of nothing. This is a Knuth-Plass style dynamic
+ *  program over the measured pill widths that minimises the SUM OF
+ *  SQUARED SLACK across every row, and the same nine come out 5 + 4.
+ *
+ *  Two properties fall out of that one cost expression:
+ *   - It prefers fewer rows. Adding a row always adds total slack, and
+ *     squaring punishes that harder than it punishes an uneven split of
+ *     the rows already there.
+ *   - Given a row count, it makes the rows EQUAL, because for a fixed
+ *     row count the total slack is fixed and a sum of squares over a
+ *     fixed sum is smallest when every term matches.
+ *
+ *  The LAST row is charged like every other one, which is where this
+ *  departs from Knuth-Plass proper. A short last line is how a paragraph
+ *  is supposed to end; a chain is not a paragraph, and a short last row
+ *  is exactly the "4 + 4 + 1" being fixed.
+ *
+ *  O(n^2) states over the number of house spans in one career, so a
+ *  dozen at the outside.
+ * ------------------------------------------------------------------ */
+function balanceRows(widths: number[], band: number): number[][] {
+  const n = widths.length;
+  const prefix = [0];
+  for (let i = 0; i < n; i++) prefix.push(prefix[i] + widths[i]);
+  /** A row's drawn width: its pills plus one arrow slot per join. */
+  const rowW = (from: number, to: number) =>
+    prefix[to + 1] - prefix[from] + (to - from) * ARROW_SLOT;
+
+  const cost = new Map<number, number>();
+  const nextEnd = new Map<number, number>();
+  const key = (from: number, to: number) => from * n + to;
+
+  function solve(from: number, to: number): number {
+    const k = key(from, to);
+    const memo = cost.get(k);
+    if (memo !== undefined) return memo;
+
+    const slack = Math.max(0, band - rowW(from, to));
+    let total = slack * slack;
+
+    if (to < n - 1) {
+      let best = Infinity;
+      let bestEnd = to + 1;
+      for (let end = to + 1; end < n; end++) {
+        /* A row of two or more pills that does not fit is not a row. A
+           single pill wider than the band still has to go somewhere, so
+           it is always allowed: that lone-pill continuation is what
+           guarantees the search always finds SOME legal packing. */
+        if (end > to + 1 && rowW(to + 1, end) > band) break;
+        const c = solve(to + 1, end);
+        if (c < best) {
+          best = c;
+          bestEnd = end;
+        }
+      }
+      total += best;
+      nextEnd.set(k, bestEnd);
     }
-  });
-  if (cur.length > 0) rows.push(cur);
+
+    cost.set(k, total);
+    return total;
+  }
+
+  let bestFirst = 0;
+  let bestCost = Infinity;
+  for (let to = 0; to < n; to++) {
+    if (to > 0 && rowW(0, to) > band) break;
+    const c = solve(0, to);
+    if (c < bestCost) {
+      bestCost = c;
+      bestFirst = to;
+    }
+  }
+
+  const rows: number[][] = [];
+  let from = 0;
+  let to = bestFirst;
+  for (;;) {
+    const row: number[] = [];
+    for (let i = from; i <= to; i++) row.push(i);
+    rows.push(row);
+    if (to >= n - 1) break;
+    const end = nextEnd.get(key(from, to)) ?? n - 1;
+    from = to + 1;
+    to = Math.max(end, from);
+  }
   return rows;
 }
 
@@ -223,52 +302,57 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
     );
   }
 
-  /* Serpentine. Rows are packed into the band beside the arc gutters; forward
-     rows hug the band's left edge, backward rows hug its right, and the arcs
-     live in the gutters. The LEFT gutter exists only when a left-side turn
-     will actually be drawn (three or more rows): at two rows the pills stay
-     flush on the container's left edge, on the same line as everything above
-     them. Packing and gutter-need depend on each other, so pack optimistically
-     first and fall back to the narrower band if a third row appears. */
-  let leftInset = 0;
-  let rowsIdx = packRows(widths, Math.max(containerW - GUTTER, 120));
-  if (rowsIdx.length > 2) {
-    leftInset = GUTTER;
-    rowsIdx = packRows(widths, Math.max(containerW - 2 * GUTTER, 120));
-  }
+  /* Serpentine, with EVERY ROW FLUSH LEFT (owner, 2026-08-03).
+     The chain used to right-align its backward rows against a 30px arc
+     gutter, so at the widest sheet the second row started ~58px in from the
+     first: "you see that the second row is not left aligned ... force the
+     second row to be left aligned". Now every row starts at x = 0 and only
+     its READING DIRECTION alternates, which is the boustrophedon the owner
+     already accepted. The gutters go with the right-alignment they existed
+     to serve, so the block also stops reserving 30-60px it no longer draws
+     into. */
+  const rowsIdx = balanceRows(widths, Math.max(containerW, 120));
   const rowWs = rowsIdx.map(
     (row) => row.reduce((a, i) => a + widths[i], 0) + (row.length - 1) * ARROW_SLOT
   );
   const totalH = rowsIdx.length * pillH + (rowsIdx.length - 1) * ROW_GAP;
-  const centerY = (r: number) => r * (pillH + ROW_GAP) + pillH / 2;
 
-  const arcs = rowsIdx.slice(0, -1).map((_, r) => {
+  /* The turn, as a curve rather than a bracket (owner: "draw a more curved
+     kind of arrow so that it connects ... let it not be straight lines, let
+     it curve nicely, and let it be an arrow").
+
+     Once both rows are flush left the two pills a turn joins are no longer
+     at the same x, so a fixed vertical drop cannot reach and the old
+     out-to-the-gutter-and-back bracket is 180px of ink to travel 60. A cubic
+     Bezier with VERTICAL tangents at both ends leaves the bottom of the pill
+     going down, sweeps across, and arrives at the top of the next pill still
+     going down, so the arrowhead reads as pointing INTO that pill no matter
+     how far sideways the curve travelled.
+
+     It attaches at pill CENTRES, not edges: a curve leaving the corner of a
+     rounded cap has to start on the curve of the cap, which reads as a
+     snag. Leaving from under the middle of the pill reads as the line
+     passing behind it. */
+  const turns = rowsIdx.slice(0, -1).map((row, r) => {
+    const next = rowsIdx[r + 1];
     const backwards = r % 2 === 1;
-    const y1 = centerY(r);
-    const y2 = centerY(r + 1);
-    const ry = (y2 - y1) / 2;
-    if (!backwards) {
-      // Right-side turn: leave the end of row r, swing through the right
-      // gutter, come back pointing left at row r+1's first (rightmost) pill.
-      const startX = leftInset + rowWs[r] + LEAD;
-      const bulgeX = containerW - ARC_RX - 1;
-      const endX = containerW - GUTTER + LEAD - 1;
-      return {
-        key: `arc-${r}`,
-        d: `M ${startX} ${y1} H ${bulgeX} A ${ARC_RX} ${ry} 0 0 1 ${bulgeX} ${y2} H ${endX}`,
-        head: `M ${endX + 4.5} ${y2 - 3.5} L ${endX} ${y2} L ${endX + 4.5} ${y2 + 3.5}`,
-      };
-    }
-    // Left-side turn, mirrored: row r is right-aligned so its last pill sits
-    // leftmost; the arc leaves it leftward and returns pointing right at row
-    // r+1's first (leftmost) pill.
-    const startX = containerW - GUTTER - rowWs[r] - LEAD;
-    const bulgeX = ARC_RX + 1;
-    const endX = leftInset - LEAD + 1;
+    // A forward row draws its LAST span rightmost; a backward row draws it
+    // leftmost. The next row's FIRST span mirrors that, because it reads the
+    // other way. So both ends of a turn always sit on the same side.
+    const lastW = widths[row[row.length - 1]];
+    const firstW = widths[next[0]];
+    const exitX = backwards ? lastW / 2 : rowWs[r] - lastW / 2;
+    const entryX = backwards ? firstW / 2 : rowWs[r + 1] - firstW / 2;
+    const y1 = r * (pillH + ROW_GAP) + pillH; // bottom of row r
+    const y2 = (r + 1) * (pillH + ROW_GAP); // top of row r+1
+    // Control points sit two thirds of the channel from each end, so the
+    // curve leaves and arrives visibly vertical before it commits sideways.
+    const c = (y2 - y1) * 0.66;
     return {
-      key: `arc-${r}`,
-      d: `M ${startX} ${y1} H ${bulgeX} A ${ARC_RX} ${ry} 0 0 0 ${bulgeX} ${y2} H ${endX}`,
-      head: `M ${endX - 4.5} ${y2 - 3.5} L ${endX} ${y2} L ${endX - 4.5} ${y2 + 3.5}`,
+      key: `turn-${r}`,
+      d: `M ${exitX} ${y1} C ${exitX} ${y1 + c}, ${entryX} ${y2 - c}, ${entryX} ${y2}`,
+      // Arrowhead on the arrival, pointing down into the pill below it.
+      head: `M ${entryX - 3.5} ${y2 - 4.5} L ${entryX} ${y2} L ${entryX + 3.5} ${y2 - 4.5}`,
     };
   });
 
@@ -283,12 +367,14 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
           return (
             <div
               key={r}
-              className={cn("absolute flex items-center", backwards ? "justify-end" : "justify-start")}
+              // Always justify-start, always left: 0. Only `ordered` below
+              // knows about direction now.
+              className="absolute flex items-center justify-start"
               style={{
                 gap: GAP,
                 top: r * (pillH + ROW_GAP),
-                left: leftInset,
-                right: GUTTER,
+                left: 0,
+                right: 0,
                 height: pillH,
               }}
             >
@@ -314,8 +400,8 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
           );
         })}
 
-        {/* The turning arcs, one per row junction, drawn over the whole band
-            in real pixel coordinates so each one meets its rows exactly. */}
+        {/* The turns, one per row junction, drawn over the whole band in real
+            pixel coordinates so each one meets its rows exactly. */}
         <svg
           className="pointer-events-none absolute inset-0 text-muted-foreground/50"
           width={containerW}
@@ -324,15 +410,15 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
           fill="none"
           aria-hidden
         >
-          {arcs.map((arc, i) => (
+          {turns.map((turn, i) => (
             <motion.g
-              key={arc.key}
+              key={turn.key}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.2 + 0.08 * i }}
             >
-              <path d={arc.d} {...STROKE} />
-              <path d={arc.head} {...STROKE} strokeLinejoin="round" />
+              <path d={turn.d} {...STROKE} />
+              <path d={turn.head} {...STROKE} strokeLinejoin="round" />
             </motion.g>
           ))}
         </svg>
