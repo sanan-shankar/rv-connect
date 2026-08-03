@@ -234,10 +234,10 @@ export const REGISTRY: LabEntry[] = [
   },
   {
     href: "/lab/spine-marker",
-    title: "One unit, five ways",
+    title: "One unit, six ways",
     group: "Second look",
     status: "active",
-    note: "Five fused treatments for the sidebar's active-row marker, answering the owner's 2026-07-30 complaint that the pill and its cinnamon bar read as two unrelated shapes. Not linked from the old second-look index on purpose; visit directly.",
+    note: "Six fused treatments for the sidebar's active-row marker, answering the owner's 2026-07-30 complaint that the pill and its cinnamon bar read as two unrelated shapes. F is the owner's own (2026-08-03): the bar grown to full pill height, flush, filled, its concave right edge carved by the pill's own cap. Visit directly.",
   },
 
   /* ---------------------------------------------------------------- *
@@ -248,7 +248,7 @@ export const REGISTRY: LabEntry[] = [
     title: "Profile page concepts",
     group: "Profiles",
     status: "active",
-    note: "Eight directions for the profile redesign (letterhead, letterhead II, field guide, editorial, dossier, broadsheet, passport, terrace) reviewed against one realistic mock alumnus; append ?v=<key> to deep-link a concept.",
+    note: "Nine directions for the profile redesign (letterhead, letterhead II, letterhead III, field guide, editorial, dossier, broadsheet, passport, terrace) reviewed against one realistic mock alumnus; append ?v=<key> to deep-link a concept. Letterhead III is the current one: the shipped sheet plus the 2026-08-02 tweaks (occupation as a fourth fact, facts on the app's 15px body rung, a bigger colophon number, a stamp that finds the sheet's whitespace, no engraved rule) and a ?chain=<key> switcher over the six house-chain treatments.",
   },
 
   /* ---------------------------------------------------------------- *
