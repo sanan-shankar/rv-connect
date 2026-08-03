@@ -76,18 +76,6 @@ server-side `toLocaleDateString` without an explicit timeZone can show a date on
 UTC/IST midnight boundary (e.g. the letters index).
 - Size: investigation.
 
-### 7. Demo data in the shared DB (owner decision)
-5 seed users (`*@demo.valley.test`) and the `[Demo]` groups (one literally named "[Demo] Roundup",
-a rejected term) still live in the production database. Purge or keep before launch; the
-map/directory demos currently lean on them. The Catch-ups build added a second, separate demo seed
-(`scripts/dev/seed-catchup.mjs`, more `*@demo.valley.test` users plus `[Demo] Collecting` / `[Demo]
-Answering` / `[Demo] Roundup` groups) and a smoke-test script (`scripts/qa/catchups-smoke.mjs`) that
-ran repeatedly overnight on 2026-07-05/06; both clean up after themselves and the smoke test does
-before/after row-count verification on every table it touches, so no leftover QA rows were left in
-the DB from tonight's session. The original 5 demo users (and whichever `[Demo]` groups the owner
-wants kept for the map/directory demo) are the only demo data still there by design.
-- Size: owner decision, then small cleanup.
-
 ### 9. Hoopoe flight is hero-only on the landing page (deliberate scope)
 Only the hero "Sign in" / "Join the community" buttons launch the fly-and-perch (the photo-slide
 transition only exists from the hero); the sticky nav and closing-band CTAs still navigate plainly.
@@ -99,15 +87,6 @@ mascot flight layer (`src/components/mascot/mascot-flight.ts`) is reusable from 
 launchFlight/reportPerch if the owner wants more landing-page flights.
 - Size: small.
 
-### 11. Legacy Catch-ups tables still live; `prisma db push` still unusable
-The old, reverted Catch-ups build left six physical tables behind with columns that don't match the
-current schema: `Catchup`, `CatchupPref`, `CatchupAnswer`, `CatchupAnswerLove`, `CatchupIssue`,
-`CatchupQuestion`. The new Catch-ups feature deliberately used different table names
-(`CatchupSeries`, `CatchupReminderPref`, etc., mapped via `@@map` in `schema.prisma`) specifically to
-avoid colliding with these. Section 3 of `prisma/pending-migration.sql` has the `DROP TABLE`
-statements for all six, commented out and optional. Until the owner runs it, `prisma db push`
-remains unusable on this database; schema changes keep going through raw additive SQL.
-- Size: owner decision, then small cleanup (unblocks `prisma db push` for good).
 
 ### 12. Owner decision pending on the landing preview-only redesign
 Landing is still preview-only, judged by a purpose-fit review, but the pick isn't final until the
@@ -229,6 +208,24 @@ so a future session does not "fix" one of these back to a state the owner delibe
 - Feed search now actually searches the feed (`c710782`): the sidebar search box used to silently
   jump to directory people-search from every surface; it is now scoped to the surface you're
   searching from.
+- The six legacy Catch-ups tables are gone (closed the old Open #11, 2026-08-03). A check against
+  `information_schema` found `Catchup`, `CatchupPref`, `CatchupAnswer`, `CatchupAnswerLove`,
+  `CatchupIssue` and `CatchupQuestion` already dropped; only the six live tables remain
+  (`CatchupSeries`, `CatchupEdition`, `CatchupPrompt`, `CatchupEntry`, `CatchupEntryLove`,
+  `CatchupReminderPref`). `prisma/migrations-manual/2026-08-03-demo-purge-and-drift.sql` then
+  settled the one real remaining drift (`LabRoomState.updatedAt` was `timestamptz(6)`, now
+  `timestamp(3)`). `migrate diff` is now down to the three `lower()` expression indexes on
+  `Place`/`UserPlace` and nothing else. That last one is the PERMANENT false positive: `db push`
+  would replace those with plain column indexes and silently slow directory search, so it still must
+  never be run unattended. The `@@map` on Catchup/CatchupPref is now only load-bearing for the
+  physical table names, not for collision avoidance.
+- The `[Demo]` groups are deleted (closed the old Open #7, 2026-08-03, owner: "delete the demo
+  groups"). Three rows went: `[Demo] Answering`, `[Demo] Catch-up`, `[Demo] Collecting`, cascading
+  through 2 Catch-up series, 2 editions, 7 prompts, 4 entries and 3 memberships. No `[Demo] Roundup`
+  survived to be deleted. The six real groups (`Batch of 1972/2020/2021/2023/2024`, `Testing
+  Newsletter`) and all 15 posts / 21 users were verified untouched before and after. The 5
+  `*@demo.valley.test` seed USERS were deliberately left in place: the owner asked for the groups
+  only, and the map/directory demos still lean on those users.
 - Dropdown/select popover alignment fixed at the shared primitive, round 6 (`ac4a90b`, `f5e65ca`):
   offset, width, corner radius, and the hover-highlight inset now match the trigger everywhere
   (report-post reason select, collection/directory facet selects), including when a popover opens
