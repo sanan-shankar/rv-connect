@@ -152,7 +152,13 @@ export function AlumniMap({
     my: number;
     label: string;
   } | null>(null);
-  const [drill, setDrill] = useState<{ title: string; people: PinPerson[] } | null>(null);
+  /* The place and its headcount are kept APART rather than pre-joined into one
+     string. The panel sets them at two different weights either side of a
+     middle dot (owner, 2026-08-03: "maybe a middle dot instead of hyphen"),
+     which a baked "London - 3 members" cannot be split back into. */
+  const [drill, setDrill] = useState<
+    { title: string; count: number | null; people: PinPerson[] } | null
+  >(null);
   const [fullscreen, setFullscreen] = useState(false);
   /** Live geometry of the rendered <svg>: its CSS box plus `s`, the CSS px that
    *  one viewBox unit currently occupies. See MIN_PX_PER_UNIT. */
@@ -459,13 +465,13 @@ export function AlumniMap({
                 // was pure duplication (owner call, 2026-07).
                 onClick={() => {
                   dismissTip();
-                  setDrill({ title, people: pin.people });
+                  setDrill({ title: pin.city, count: pin.count, people: pin.people });
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     dismissTip();
-                    setDrill({ title, people: pin.people });
+                    setDrill({ title: pin.city, count: pin.count, people: pin.people });
                   }
                 }}
               >
@@ -598,7 +604,8 @@ export function AlumniMap({
           type="button"
           onClick={() =>
             setDrill({
-              title: `${unmapped} ${unmapped === 1 ? "person" : "people"} not yet on the map`,
+              title: "Not yet on the map",
+              count: unmapped,
               people: unmappedPeople,
             })
           }
@@ -653,16 +660,47 @@ export function AlumniMap({
       <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
         <SheetContent
           side="right"
-          className="w-full overflow-y-auto rounded-l-[var(--radius)] bg-card sm:max-w-md"
+          /* bg-background, not bg-card (owner, 2026-08-03: "a little warmer ...
+             it's a bit too white"). Card is `--paper` #F5F2EA, the second
+             lightest rung on the surface ladder, and with the scrim dimming
+             everything behind it that rung reads as white. `--background`
+             #E4E1D5 is the warmest surface the system has (warm cast R-B of 15
+             against paper's 11) and is a real SURFACE token rather than a
+             borrowed control one: `--mist` is spoken for as recessed wells and
+             `--secondary` as quiet filled controls, so neither should become a
+             panel. The separation from the dimmed page behind is carried by the
+             hairline and the layered shadow, which is what they are for. */
+          className="w-full overflow-y-auto rounded-l-[var(--radius)] bg-background sm:max-w-md"
         >
-          <SheetHeader>
+          {/* pb-1: the header's own p-4 plus the list's old mt-2 plus a row's
+              py-2 stacked up to ~32px of structural air under the title, on top
+              of the tall heading line box, which is the "weirdly big" gap the
+              owner measured between the location and the first name. */}
+          <SheetHeader className="pb-1">
             <SheetTitle className="font-heading text-xl tracking-tight">
               {drill?.title}
+              {drill?.count != null && (
+                <>
+                  {/* The shared middle dot, replacing the hyphen. The count is
+                      dropped to body size and muted ink in the same line: it is
+                      a fact ABOUT the place, so it should not carry the same
+                      weight as the place's name. */}
+                  <span aria-hidden className="dotsep mx-1.5">
+                    ·
+                  </span>
+                  <span className="text-[15px] font-normal tracking-normal text-muted-foreground">
+                    {drill.count} {drill.count === 1 ? "member" : "members"}
+                  </span>
+                </>
+              )}
             </SheetTitle>
           </SheetHeader>
-          <div className="mt-2 space-y-1 px-4 pb-8">
+          {/* px-2 rather than px-4: each row carries its own px-2 for the hover
+              state layer, so at px-4 the avatars started 24px in while the
+              title started at 16px. Now both edges land on 16px. */}
+          <div className="space-y-0.5 px-2 pb-8">
             {drill?.people.length === 0 ? (
-              <p className="px-1 py-6 text-sm text-muted-foreground">
+              <p className="px-2 py-6 text-sm text-muted-foreground">
                 No one to show here yet.
               </p>
             ) : (
