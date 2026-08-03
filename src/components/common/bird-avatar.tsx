@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getInitials } from "@/lib/utils";
 import {
   birdFor,
@@ -644,8 +645,31 @@ export function BirdAvatar({
         aria-label={user.name ?? "Member"}
         role="img"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={user.photoUrl} alt="" className="h-full w-full object-cover" />
+        {/* Owner, 2026-08-03: profile pictures arrived after the rest of the
+            page. Two separate causes, both fixed here.
+            1. This was a raw <img> straight at the R2 original. Avatars are
+               stored at up to 1920px (api/upload/route.ts resizes to that),
+               so a real one measured 45.9KB to fill a 30px hole: ~20x the
+               bytes needed. Routing through next/image with an explicit
+               width/height makes Next serve a bucket-sized WebP (~2-4KB) and
+               emit a 1x/2x srcset. `sizes` is deliberately NOT set: for a
+               fixed-size image that would switch Next to `w` descriptors and
+               hand the choice back to the viewport, which is wrong for a box
+               whose size we already know exactly.
+            2. next/image is lazy BY DEFAULT, which would have made the very
+               symptom worse. A member's face is identity, it is tiny once
+               optimised, and it is usually above the fold, so it loads
+               eagerly. fetchPriority stays auto on purpose: marking a whole
+               feed of avatars "high" just makes them compete with each
+               other and with the LCP image. */}
+        <Image
+          src={user.photoUrl}
+          alt=""
+          width={px}
+          height={px}
+          loading="eager"
+          className="h-full w-full object-cover"
+        />
       </span>
     );
   }
