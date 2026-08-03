@@ -155,7 +155,7 @@ async function waitForBird(page, capMs = 160_000) {
   return { present: false, waitedMs: Date.now() - t0 };
 }
 
-async function trial({ name, path, delayMs, act }) {
+async function trial({ name, path, delayMs, act, expect }) {
   const page = await authed(path);
   const arrived = await waitForBird(page);
   if (!arrived.present) {
@@ -223,12 +223,17 @@ async function trial({ name, path, delayMs, act }) {
   if (reached === 0) result = "INVALID";
   else if (after.present) result = "STUCK";
   else if (minX !== null && minX < -100) result = "flew";
-  else if (frames <= 3) result = "popped";
+  // A fade leaves the rig in place and removes it fast; a deadline CUT leaves
+  // it in place for seconds first. The gap between FADE_MS (220) and
+  // EXIT_DEADLINE_MS (5000) is what makes these two distinguishable at all.
+  else if (goneAtMs === null || goneAtMs < 1500) result = "fade";
   else result = "CUT";
   if (result === "STUCK") await page.screenshot({ path: join(OUT, `hoopoe-stuck-${name}.png`) });
   await page.close();
   return {
     name,
+    expect,
+    ok: result === expect,
     result,
     waitedMs: arrived.waitedMs,
     visibility: after.visibility,
@@ -257,24 +262,46 @@ const pressAccountPill = async (page) => {
   await btn.click();
 };
 
+/* `expect` is what the component is SUPPOSED to do, so the harness reports
+   against intent rather than against "is it gone". A bird interrupted while
+   still flying in deliberately fades (runWake's midEntrance branch) instead
+   of attempting a second flight from an origin it cannot know, so "fade" is a
+   pass there and "flew" would be the surprise. */
 const ALL_TRIALS = [
-  // activity landing mid fly-in (phase "entering")
-  { name: "move-at-1200ms", path: "/feed", delayMs: 1200, act: moveMouse },
-  // activity landing while the sleep chord is still settling (phase "asleep")
-  { name: "move-at-3200ms", path: "/feed", delayMs: 3200, act: moveMouse },
-  // fully settled: the control, and the other activity kinds
-  { name: "move-settled", path: "/feed", delayMs: 8000, act: moveMouse },
-  { name: "key-settled", path: "/feed", delayMs: 8000, act: typeKey },
-  // the owner's exact case: press the account pill, rows expand into the perch
-  { name: "pill-settled", path: "/feed", delayMs: 8000, act: pressAccountPill },
+  // The owner's real path: the bird has settled, they come back and do
+  // something. All three activity kinds must produce a real flight.
+  { name: "settled-mouse", path: "/feed", delayMs: 8000, act: moveMouse, expect: "flew" },
+  { name: "settled-wheel", path: "/feed", delayMs: 8000, act: scrollWheel, expect: "flew" },
+  { name: "settled-key", path: "/feed", delayMs: 8000, act: typeKey, expect: "flew" },
+  { name: "settled-pill", path: "/feed", delayMs: 8000, act: pressAccountPill, expect: "flew" },
+  // Interrupted mid-entrance: fades, by design.
+  { name: "entering-1200", path: "/feed", delayMs: 1200, act: moveMouse, expect: "fade" },
 ];
-/* Concurrency is capped because the trial pages share one dev server: at
-   eleven the navigations time out and the rAF traces come back distorted,
-   which is a measurement problem masquerading as a product one. */
-const TRIALS = ALL_TRIALS.slice(0, Number(process.env.N || ALL_TRIALS.length));
+const ONLY = (process.env.ONLY || "").split(",").filter(Boolean);
+const TRIALS = ONLY.length
+  ? ALL_TRIALS.filter((t) => ONLY.includes(t.name))
+  : ALL_TRIALS.slice(0, Number(process.env.N || ALL_TRIALS.length));
 
-console.log(`running ${TRIALS.length} trials concurrently (one ~2min idle wait)\n`);
-const results = await Promise.all(TRIALS.map(trial));
+/* SERIAL=1 runs one trial at a time. Slower (each pays its own 90-120s idle
+   window) but it is the only mode whose numbers are trustworthy: several trial
+   pages against one dev server starve rAF and stretch every CDP round trip,
+   which has already produced three different wrong verdicts in this file's
+   history. Use concurrent mode to sweep, serial mode to conclude. */
+const SERIAL = process.env.SERIAL === "1";
+console.log(
+  `running ${TRIALS.length} trials ${SERIAL ? "serially" : "concurrently"}\n`
+);
+let results;
+if (SERIAL) {
+  results = [];
+  for (const t of TRIALS) {
+    const r = await trial(t);
+    console.log(`  ...${r.name}: ${r.result} (want ${r.expect})`);
+    results.push(r);
+  }
+} else {
+  results = await Promise.all(TRIALS.map(trial));
+}
 
 let stuck = 0;
 let invalid = 0;
@@ -284,11 +311,12 @@ for (const r of results) {
   if (r.result === "CUT" || r.result === "popped") cut++;
   if (r.result === "INVALID") invalid++;
   console.log(
-    `${r.result.padEnd(7)} ${r.name.padEnd(16)} vis=${r.visibility} ` +
+    `${r.ok ? "PASS" : "FAIL"}  ${r.result.padEnd(6)} (want ${String(r.expect).padEnd(4)}) ${r.name.padEnd(14)} vis=${r.visibility} ` +
       `minX=${r.minX} lastX=${r.lastX} frames=${r.frames} goneAt=${r.goneAtMs}ms ` +
       `fired=${JSON.stringify(r.fired)}`
   );
 }
-console.log(`\nSTUCK ${stuck}  CUT ${cut}  / ${results.length}   (invalid: ${invalid})`);
+const failed = results.filter((r) => !r.ok).length;
+console.log(`\n${results.length - failed} / ${results.length} as intended  (stuck ${stuck}, cut ${cut}, invalid ${invalid})`);
 
 await browser.close();

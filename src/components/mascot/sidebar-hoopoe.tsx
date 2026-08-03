@@ -229,20 +229,22 @@ export function SidebarHoopoe() {
       // doesn't. Reads as being startled off the perch, which is what happened.
       api.stop();
 
-      const flew = await Promise.race([
-        api.flyTo({ x: EXIT_X, y }).then(() => true),
-        new Promise<boolean>((resolve) =>
-          setTimeout(() => resolve(false), EXIT_DEADLINE_MS)
-        ),
-      ]);
+      const flew =
+        !midEntrance &&
+        (await Promise.race([
+          api.flyTo({ x: EXIT_X, y }).then(() => true),
+          new Promise<boolean>((resolve) =>
+            setTimeout(() => resolve(false), EXIT_DEADLINE_MS)
+          ),
+        ]));
 
-      // The deadline is a backstop for a flight that never resolved, and it
-      // must not look like the bird was deleted (owner, 2026-08-03: "it was
-      // about to fly away when it suddenly just cut and was basically deleted"
-      // -- that was an earlier deadline set BELOW the real exit duration, so
-      // it fired on healthy exits). Fading the wrapper is deliberately not the
-      // puppet's job: it is plain opacity on a plain div, so it still works
-      // when the rig itself is the thing that is wedged.
+      // Either the deadline won or we never flew at all. Either way the bird
+      // must LEAVE rather than be deleted out from under the viewer (owner,
+      // 2026-08-03: "it was about to fly away when it suddenly just cut and
+      // was basically deleted" -- that was an earlier deadline set BELOW the
+      // real exit duration, so it fired on perfectly healthy exits). Fading
+      // the wrapper is deliberately not the puppet's job: it is plain opacity
+      // on a plain div, so it still works when the rig is the wedged thing.
       if (!flew) {
         setLeaving(true);
         await new Promise((resolve) => setTimeout(resolve, FADE_MS));
