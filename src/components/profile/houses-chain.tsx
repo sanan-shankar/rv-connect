@@ -52,14 +52,24 @@ function yearRange(span: HouseSpan): string {
 const GAP = 6; // flex gap-1.5, between a pill and an arrow
 const ARROW_W = 18;
 const ARROW_SLOT = ARROW_W + 2 * GAP;
-/* The channel between two rows, which is the whole vertical distance the
-   turn has to curve in. It was 14px when the turn was a bracket that did
-   its travelling out in a side gutter; a curve does its travelling HERE, and
-   at 14px the S was so flat it read as a diagonal scratch. 26px lets the
-   curve leave and arrive visibly vertical (see the control points on
-   `turns`) without opening a band of white that breaks the block into
-   separate lines. GUTTER, ARC_RX and LEAD went with the bracket. */
-const ROW_GAP = 26;
+/* The channel between two rows. 26px when the turn was an S-curve that needed
+   room to leave and arrive vertically; the turn is now at most a single
+   quarter bend, which needs far less, and the owner called 26 "a tad much"
+   (2026-08-03). 20px. GUTTER, ARC_RX and LEAD went with the old bracket. */
+const ROW_GAP = 20;
+
+/* The radius of the ONE bend a turn is allowed. Owner: "I wanted just one 90
+   degree curve max." */
+const TURN_R = 10;
+
+/* How much horizontal overlap two pills need before the turn between them is
+   drawn as a plain vertical drop. Below this the drop would meet a pill on
+   the very edge of its rounded cap, which reads as missing it. */
+const MIN_DROP_OVERLAP = 16;
+
+/* How far inside a pill's edge the vertical leg of an elbow sits, so it
+   leaves from under the pill's straight body rather than off its cap. */
+const CAP_INSET = 12;
 
 const STROKE = { stroke: "currentColor", strokeWidth: 1.25, strokeLinecap: "round" as const };
 
@@ -317,42 +327,71 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
   );
   const totalH = rowsIdx.length * pillH + (rowsIdx.length - 1) * ROW_GAP;
 
-  /* The turn, as a curve rather than a bracket (owner: "draw a more curved
-     kind of arrow so that it connects ... let it not be straight lines, let
-     it curve nicely, and let it be an arrow").
+  /* The turn. ONE 90 degree bend at most (owner, 2026-08-03: "the arrow
+     connecting the second line is not good, I wanted just one 90 degree curve
+     max"). The S-curve it replaces had two bends by definition, and on a wide
+     sheet it swept a long way sideways to do it.
 
-     Once both rows are flush left the two pills a turn joins are no longer
-     at the same x, so a fixed vertical drop cannot reach and the old
-     out-to-the-gutter-and-back bracket is 180px of ink to travel 60. A cubic
-     Bezier with VERTICAL tangents at both ends leaves the bottom of the pill
-     going down, sweeps across, and arrives at the top of the next pill still
-     going down, so the arrowhead reads as pointing INTO that pill no matter
-     how far sideways the curve travelled.
+     A turn joins the last pill of row r to the first pill of row r+1. Those
+     two are always on the SAME side of the block: a forward row draws its
+     last span rightmost, and the backward row under it draws its first span
+     rightmost too, because it reads the other way. So there are exactly two
+     cases, decided by whether the pair overlaps horizontally:
 
-     It attaches at pill CENTRES, not edges: a curve leaving the corner of a
-     rounded cap has to start on the curve of the cap, which reads as a
-     snag. Leaving from under the middle of the pill reads as the line
-     passing behind it. */
+       OVERLAP (the common case, and what minimum-raggedness rows mostly give
+       you): a plain vertical drop through the shared column, arrowhead down
+       into the pill's top. Zero bends.
+
+       NO OVERLAP: one rounded quarter bend. The leg leaves the bottom of
+       pill a just inside its facing edge, drops to the vertical middle of row
+       r+1, turns once, and runs horizontally into the SIDE of pill b, so the
+       arrowhead points along the row the way the in-row arrows do. The
+       vertical leg is deliberately placed inside a and outside b, so it can
+       never cut through either pill on its way past. */
   const turns = rowsIdx.slice(0, -1).map((row, r) => {
     const next = rowsIdx[r + 1];
     const backwards = r % 2 === 1;
-    // A forward row draws its LAST span rightmost; a backward row draws it
-    // leftmost. The next row's FIRST span mirrors that, because it reads the
-    // other way. So both ends of a turn always sit on the same side.
+    // Rows alternate, so the row BELOW always reads the other way. Both pills
+    // still end up on the same side of the block, but each one's drawn extent
+    // has to come from its OWN row's direction.
+    const nextBackwards = !backwards;
     const lastW = widths[row[row.length - 1]];
     const firstW = widths[next[0]];
-    const exitX = backwards ? lastW / 2 : rowWs[r] - lastW / 2;
-    const entryX = backwards ? firstW / 2 : rowWs[r + 1] - firstW / 2;
+    /* Drawn extents of the two pills the turn joins. A row draws its spans in
+       chronological order when forward and reversed when backward, so row r's
+       LAST span is rightmost when forward and leftmost when backward, and row
+       r+1's FIRST span is leftmost when forward and rightmost when backward. */
+    const aL = backwards ? 0 : rowWs[r] - lastW;
+    const aR = backwards ? lastW : rowWs[r];
+    const bL = nextBackwards ? rowWs[r + 1] - firstW : 0;
+    const bR = nextBackwards ? rowWs[r + 1] : firstW;
+
     const y1 = r * (pillH + ROW_GAP) + pillH; // bottom of row r
     const y2 = (r + 1) * (pillH + ROW_GAP); // top of row r+1
-    // Control points sit two thirds of the channel from each end, so the
-    // curve leaves and arrives visibly vertical before it commits sideways.
-    const c = (y2 - y1) * 0.66;
+    const yc = y2 + pillH / 2; // vertical middle of row r+1
+
+    const lo = Math.max(aL, bL);
+    const hi = Math.min(aR, bR);
+    if (hi - lo >= MIN_DROP_OVERLAP) {
+      const x = (lo + hi) / 2;
+      return {
+        key: `turn-${r}`,
+        d: `M ${x} ${y1} L ${x} ${y2}`,
+        head: `M ${x - 3.5} ${y2 - 4.5} L ${x} ${y2} L ${x + 3.5} ${y2 - 4.5}`,
+      };
+    }
+
+    // b sits clear of a: -1 means it is further left, +1 further right.
+    const dir = bR <= aL ? -1 : 1;
+    // The vertical leg goes just inside a's edge that FACES b.
+    const vx = dir < 0 ? aL + CAP_INSET : aR - CAP_INSET;
+    const tx = dir < 0 ? bR : bL;
+    // Sweep 1 turns clockwise on screen (leftward), 0 counter-clockwise.
+    const sweep = dir < 0 ? 1 : 0;
     return {
       key: `turn-${r}`,
-      d: `M ${exitX} ${y1} C ${exitX} ${y1 + c}, ${entryX} ${y2 - c}, ${entryX} ${y2}`,
-      // Arrowhead on the arrival, pointing down into the pill below it.
-      head: `M ${entryX - 3.5} ${y2 - 4.5} L ${entryX} ${y2} L ${entryX + 3.5} ${y2 - 4.5}`,
+      d: `M ${vx} ${y1} L ${vx} ${yc - TURN_R} A ${TURN_R} ${TURN_R} 0 0 ${sweep} ${vx + dir * TURN_R} ${yc} L ${tx} ${yc}`,
+      head: `M ${tx - dir * 4.5} ${yc - 3.5} L ${tx} ${yc} L ${tx - dir * 4.5} ${yc + 3.5}`,
     };
   });
 
