@@ -18,7 +18,6 @@ import {
   MessageSquareText,
   Menu,
   X,
-  ChevronUp,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -137,14 +136,56 @@ function Brand({
   );
 }
 
+/* The account rows animate through VARIANTS rather than per-child delays.
+   That is what buys the collapse: a delay only fires on enter, so the old
+   version unfurled beautifully and then vanished (owner, 2026-08-03: "the
+   expanding is perfect but there's no compression animation, it just
+   disappears"). Variants are a named state the whole subtree can be driven
+   INTO, so the same ladder runs backwards on the way out.
+
+   Opening runs bottom row first (staggerDirection -1), so the set unfurls
+   upward out of the pill it came from. Closing runs top row first, so it
+   folds back down into it. Inside a row the icon leads and the label follows,
+   which is the "the icons come there and then the text comes there" the owner
+   asked for; on the way out they leave together, because a label outliving
+   its own icon reads as a glitch rather than a flourish. */
+const ACCOUNT_LIST = {
+  open: { transition: { staggerChildren: 0.035, staggerDirection: -1 } },
+  closed: { transition: { staggerChildren: 0.03, staggerDirection: 1 } },
+};
+const ACCOUNT_ROW = {
+  open: { transition: { staggerChildren: 0.05 } },
+  /* Faster than the open (140ms against a spring): a menu should get out of
+     the way quicker than it arrives. */
+  closed: { transition: { staggerChildren: 0 } },
+};
+const ACCOUNT_INK = {
+  open: { opacity: 1, y: 0, transition: SPRINGS.snappy },
+  closed: { opacity: 0, y: 8, transition: { duration: 0.14, ease: "easeIn" as const } },
+};
+
+/* The route marker fades with the section it is inside (owner, 2026-08-03:
+   "when you open it, it nicely animates but the marker just suddenly appears
+   ... when you expand or compress, it suddenly appears and disappears").
+   It could not do otherwise before: `initial={false}` exists so the marker is
+   painted in place for the current route instead of flying in on every page
+   load, and that same flag also suppressed any entrance when the account rows
+   mounted. Driving it from the section's open/closed state instead gives it an
+   entrance HERE without giving it one on a cold page load, because a main-nav
+   row still passes initial={false}.
+   Opacity only. The layoutId glide between rows is untouched, so moving from
+   Settings to My profile still slides rather than cross-fades. */
+const ACCOUNT_MARKER = {
+  open: { opacity: 1, transition: { duration: 0.18, ease: "easeOut" as const } },
+  closed: { opacity: 0, transition: { duration: 0.12, ease: "easeIn" as const } },
+};
+
 /**
  * One sidebar row. Shared by the main nav and the account rows so the two can
  * never drift, and so both can carry the same route marker.
  *
- * `entry` staggers the row in when it is revealed rather than always present
- * (the account rows). The icon leads and the label follows a beat later, which
- * is the "the icons come there and then the text comes there" the owner asked
- * for. Both legs are transform + opacity only.
+ * `staggered` opts the row into the variant ladder above. The main nav is
+ * always present, so it renders its icon and label as plain spans.
  */
 function NavRow({
   href,
@@ -153,7 +194,7 @@ function NavRow({
   active,
   markerId,
   onNavigate,
-  entry,
+  staggered,
 }: {
   href: string;
   label: string;
@@ -161,9 +202,9 @@ function NavRow({
   active: boolean;
   markerId: string;
   onNavigate?: () => void;
-  entry?: number;
+  staggered?: boolean;
 }) {
-  const staggered = entry !== undefined;
+  const Row = staggered ? motion.div : "div";
   return (
     <Link
       href={href}
@@ -189,34 +230,39 @@ function NavRow({
               glides all the way down out of the nav and onto them. */}
           <motion.span
             layoutId={`${markerId}-pill`}
-            initial={false}
             className="absolute inset-0 z-0 rounded-xl bg-sidebar-active"
+            {...(staggered
+              ? { variants: ACCOUNT_MARKER, layout: true }
+              : { initial: false as const })}
             transition={NAV_MARKER_SPRING}
           />
           <motion.span
             layoutId={`${markerId}-bar`}
-            initial={false}
             className="absolute left-[-8px] top-1.5 bottom-1.5 z-[1] w-[3px] rounded-sm bg-cinnamon"
+            {...(staggered
+              ? { variants: ACCOUNT_MARKER, layout: true }
+              : { initial: false as const })}
             transition={NAV_MARKER_SPRING}
           />
         </>
       )}
-      <motion.span
-        className="relative z-[2] flex shrink-0"
-        initial={staggered ? { opacity: 0, y: 6 } : false}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...SPRINGS.snappy, delay: entry ?? 0 }}
+      <Row
+        className="relative z-[2] flex min-w-0 flex-1 items-center gap-3"
+        {...(staggered ? { variants: ACCOUNT_ROW } : {})}
       >
-        <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-      </motion.span>
-      <motion.span
-        className="relative z-[2] truncate"
-        initial={staggered ? { opacity: 0, y: 6 } : false}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...SPRINGS.snappy, delay: (entry ?? 0) + 0.05 }}
-      >
-        {label}
-      </motion.span>
+        <motion.span
+          className="flex shrink-0"
+          {...(staggered ? { variants: ACCOUNT_INK } : {})}
+        >
+          <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+        </motion.span>
+        <motion.span
+          className="truncate"
+          {...(staggered ? { variants: ACCOUNT_INK } : {})}
+        >
+          {label}
+        </motion.span>
+      </Row>
     </Link>
   );
 }
@@ -298,9 +344,12 @@ function AccountSection({
           <motion.div
             key="account-rows"
             className="flex flex-col gap-0.5"
-            exit={{ opacity: 0, transition: { duration: 0.12 } }}
+            variants={ACCOUNT_LIST}
+            initial="closed"
+            animate="open"
+            exit="closed"
           >
-            {rows.map((r, i) => (
+            {rows.map((r) => (
               <NavRow
                 key={r.href}
                 href={r.href}
@@ -309,17 +358,13 @@ function AccountSection({
                 active={isActive(pathname, r.href)}
                 markerId={markerId}
                 onNavigate={onNavigate}
-                /* Bottom row first: the set unfurls upward out of the pill it
-                   came from, rather than raining down onto it. */
-                entry={0.03 * (rows.length - 1 - i)}
+                staggered
               />
             ))}
             <motion.button
               type="button"
               onClick={() => signOut({ callbackUrl: "/" })}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...SPRINGS.snappy, delay: 0.03 * rows.length }}
+              variants={ACCOUNT_INK}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-sidebar-foreground-idle transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
             >
               <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
@@ -376,14 +421,9 @@ function UserMenu({
                has had two channels all along (ink lift plus the turn). */
             metaClassName="truncate text-[11px] font-normal normal-case leading-none tracking-normal text-sidebar-foreground-muted transition-colors duration-150 group-hover/account:text-sidebar-foreground-idle"
           />
-        {/* The caret is the only thing that says "this opens". It rotates
-            rather than swapping glyph, so the control never changes size. */}
-        <ChevronUp
-          className="ml-1 h-4 w-4 shrink-0 text-sidebar-foreground-muted transition-transform duration-200 ease-out group-hover/account:text-sidebar-foreground-idle"
-          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
-          strokeWidth={2}
-          aria-hidden
-        />
+        {/* No caret (owner, 2026-08-03: "remove the arrow, it's fine if
+            there's no direction to expand it, they'll figure it out"). The
+            pill's own lit state via aria-expanded is what says it is open. */}
       </button>
       <Link
         href="/settings"
