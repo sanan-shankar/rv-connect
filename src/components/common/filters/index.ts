@@ -8,3 +8,5 @@ export * from "./range-facet-pill";
 export * from "./active-filter-chips";
 export * from "./result-count";
 export * from "./filter-sheet";
+export * from "./filter-popover";
+export * from "./sentence-line";
