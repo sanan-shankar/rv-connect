@@ -12,14 +12,15 @@
  *  reporter pattern the cross-page mascot flight bus uses). Persists
  *  terminal state (completed/dismissed) via tour-local.ts.
  *
- *  `useTour().start()` is exposed for the About page's "Take the tour
- *  again", which deliberately ignores any settled state (see tour-local's
- *  doc comment) — it is the permanent, always-available way back in.
+ *  `useTour().start()` is exposed for the owner Admin page's "hoopoe tour"
+ *  action. It deliberately ignores any settled state (see tour-local's doc
+ *  comment), so a manual run is always available to the owner.
  * ------------------------------------------------------------------ */
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { hasSeenOnboarding } from "@/lib/onboarding-local";
+import { shouldAutoOfferTour } from "@/lib/tour-auto-offer";
 import { hasSettledTour, markTourCompleted, markTourDismissed } from "@/lib/tour-local";
 import { awaitSpotlight, clearSpotlight } from "./tour-anchors";
 import { ENABLED_TOUR_STOPS } from "./tour-steps";
@@ -32,6 +33,12 @@ type Phase = "idle" | "offering" | "running";
 interface TourContextValue {
   /** Begin the tour from Stop 1, regardless of any stored completed/dismissed state. */
   start: () => void;
+}
+
+interface TourProviderProps {
+  userId: string;
+  children: React.ReactNode;
+  autoOffer?: boolean;
 }
 
 const TourContext = createContext<TourContextValue | null>(null);
@@ -92,7 +99,7 @@ function scrollTargetIntoView(el: HTMLElement, panelTop: number) {
   window.scrollBy({ top: targetCenter - desiredCenter, left: 0, behavior: "auto" });
 }
 
-export function TourProvider({ userId, children }: { userId: string; children: React.ReactNode }) {
+export function TourProvider({ userId, children, autoOffer = false }: TourProviderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const pathnameRef = useRef(pathname);
@@ -108,13 +115,22 @@ export function TourProvider({ userId, children }: { userId: string; children: R
 
   const stops = ENABLED_TOUR_STOPS;
 
-  // Offer on first arrival at /feed: only while nothing has been decided yet.
+  // Dormant by default. When explicitly opted in, offer on the first /feed
+  // arrival only while nothing has been decided yet.
   useEffect(() => {
-    if (pathname !== "/feed" || phase !== "idle") return;
-    if (!hasSeenOnboarding(userId) || hasSettledTour(userId)) return;
+    if (
+      !shouldAutoOfferTour({
+        autoOffer,
+        pathname,
+        phase,
+        hasSeenOnboarding: () => hasSeenOnboarding(userId),
+        hasSettledTour: () => hasSettledTour(userId),
+      })
+    )
+      return;
     const t = setTimeout(() => setPhase("offering"), OFFER_ARM_DELAY_MS);
     return () => clearTimeout(t);
-  }, [pathname, phase, userId]);
+  }, [autoOffer, pathname, phase, userId]);
 
   const runStop = useCallback(
     async (i: number) => {

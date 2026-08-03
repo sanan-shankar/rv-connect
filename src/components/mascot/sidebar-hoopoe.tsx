@@ -4,8 +4,8 @@
  *  SidebarHoopoe — the "idle-rest" moment: if nobody has touched the
  *  page in a while, the resident hoopoe glides in and settles, eyes
  *  closed, on top of the sidebar's bottom-left profile entry. The very
- *  first interaction wakes it (eyes open, a small startle-stretch) and
- *  it flies off to the LEFT, out of the viewport.
+ *  first interaction startles it off the perch and it flies away to the
+ *  LEFT, out of the viewport.
  *
  *  Desktop sidebar only (the mount point in sidebar.tsx only exists next
  *  to the desktop `UserMenu`; mobile has no equivalent row). Gated by its
@@ -17,22 +17,25 @@
  *  `setTimeout`, reset on every activity event. No polling loop, no
  *  interval — the browser's own event queue is the "poll".
  *
- *  The exit is the part that has to be defensive, and it is worth knowing
- *  why before touching it (owner, 2026-08-03: "it works like 60% of the
- *  time ... the hoopoe just stays there and doesn't fly away"). Every step
- *  of it is awaited on the puppet's controller, and a motion v12 animation
- *  that gets superseded never resolves its `.finished`, so any step can
- *  simply never return. So: the whole exit races EXIT_DEADLINE_MS and the
- *  teardown runs either way, which is what makes "waking" an escapable
- *  state rather than a permanent one. `scripts/qa/sidebar-hoopoe-probe.mjs`
- *  measures it (6 of 11 runs stuck before, 0 of 33 after).
+ *  THE EXIT is the part that has to be defensive, and it is worth reading
+ *  runWake's comments before touching it (owner, 2026-08-03: "it works like
+ *  60% of the time ... the hoopoe just stays there and doesn't fly away").
+ *  Every step of it is awaited on the puppet's controller, and a motion v12
+ *  animation that gets superseded never resolves its `.finished`, so a step
+ *  can simply never return. Three things together make the departure sure:
+ *  `stop()` clears the queue so the flight cannot be trapped behind a hung
+ *  entrance or sleep; the flight races EXIT_DEADLINE_MS, sized ABOVE the
+ *  measured flight rather than estimated from the animation constants; and
+ *  when that deadline does win, the wrapper fades on plain CSS opacity
+ *  instead of the bird being unmounted mid-air. Measure any change to this
+ *  with `scripts/qa/sidebar-hoopoe-probe.mjs`, which reports the flight's
+ *  frame-by-frame x trace and so can tell a real departure apart from a
+ *  teardown that merely left the DOM in the same state.
  *
  *  It also has to stay out of the way of the in-rail account menu, whose
- *  rows expand into the exact strip of rail the bird perches in: it does
- *  not arrive while that menu is open, and a press on the account pill
- *  startles it off immediately instead of playing the full wake first.
- *  See `accountMenuOpen()` below for why neither re-anchoring nor
- *  restacking can solve that instead.
+ *  rows expand into the exact strip of rail the bird perches in, so it does
+ *  not arrive while that menu is open. See `accountMenuOpen()` below for why
+ *  neither re-anchoring nor restacking can solve that instead.
  *
  *  One-hoopoe rule: `anotherHoopoeOnScreen()` (moments/one-hoopoe-guard.ts)
  *  is the shared guard every moment checks before showing its own bird —
@@ -68,28 +71,32 @@ const RIG_SIZE = 60;
 // finishes; `html { overflow-x: clip }` (globals.css) keeps it from ever
 // creating a horizontal scrollbar as it passes the edge.
 const EXIT_X = -200;
-// How long the whole exit (wake + flight) is allowed to take before we stop
-// waiting on the puppet and tear it down anyway.
+// How long the exit flight is allowed to take before we stop waiting on the
+// puppet and take the bird away ourselves.
 //
-// THIS IS THE FIX for "it just stays there and doesn't fly away" (owner,
-// 2026-08-03). Every await in `runWake` goes through the mascot controller,
-// and motion v12 never resolves `.finished` for an animation that was stopped
-// or SUPERSEDED by another write to the same property (the same gotcha the
-// controller's own abort token exists for -- hoopoe.tsx:225-227 -- and that
-// arcAndLand already dodges by hand for the landing legs, hoopoe.tsx:676-679).
-// So any one of those awaits can simply never settle. It used to pin the phase
-// at "waking" forever, and "waking" was the one state nothing could leave, so
-// the bird sat on the rail until a page reload. Measured at 6 of 11 runs by
-// scripts/qa/sidebar-hoopoe-probe.mjs, including one where the flight had
-// visibly finished (ink at x=-202, fully off-screen) and only the promise was
-// stuck. Racing the chain against this deadline makes a hang cosmetic at
-// worst: the bird leaves without its exit animation instead of never leaving.
+// Every step of the exit is awaited on the mascot controller, and motion v12
+// never resolves `.finished` for an animation that was stopped or SUPERSEDED
+// by another write to the same property (the gotcha the controller's own abort
+// token exists for, hoopoe.tsx:225-227, and that arcAndLand dodges by hand for
+// the landing legs, hoopoe.tsx:676-679). So a step can simply never return,
+// which used to pin the phase at "waking" -- the one state nothing could leave
+// -- and the bird sat on the rail until a reload.
 //
-// 2600ms is the longest legitimate exit plus headroom: wake() is a 500ms
-// stretch, a gentle chord settle and two 200ms blinks (~1.1s), and flyTo's
-// arc is capped at 1.9s by `clamp(0.95 + dist/150, 1.0, 1.9)` but runs ~1.0s
-// over the short hop off the rail.
-const EXIT_DEADLINE_MS = 2_600;
+// SIZE THIS ABOVE THE REAL FLIGHT, and measure it, do not estimate it. The
+// first attempt at this guessed 2600ms from the animation constants and was
+// less than half the truth, so it fired on perfectly healthy exits and the
+// bird vanished mid-departure (owner: "it suddenly just cut and was basically
+// deleted"). The flight is measured at ~2.5s once `stop()` clears the queue
+// (`scripts/qa/sidebar-hoopoe-probe.mjs` reports minX and the frame trace);
+// 5000ms leaves room for a slow machine without letting a genuine hang sit
+// there for long.
+const EXIT_DEADLINE_MS = 5_000;
+// The backstop fade, when the deadline wins. Long enough to read as leaving,
+// short enough that nobody waits on it. Must stay just above the wrapper's
+// `duration-200` (a literal class, because Tailwind cannot extract an
+// interpolated one), so the element is only unmounted after the fade has
+// actually finished painting.
+const FADE_MS = 220;
 
 type Phase = "waiting" | "entering" | "asleep" | "waking";
 
@@ -132,6 +139,9 @@ function accountMenuOpen(): boolean {
 export function SidebarHoopoe() {
   const [desktop, setDesktop] = useState(false);
   const [mounted, setMounted] = useState(false);
+  /* Set only when the exit deadline wins: fades the wrapper instead of
+     unmounting it from under the viewer. See runWake. */
+  const [leaving, setLeaving] = useState(false);
 
   const phaseRef = useRef<Phase>("waiting");
   const apiRef = useRef<HoopoeApi | null>(null);
@@ -184,51 +194,74 @@ export function SidebarHoopoe() {
       setMounted(true);
     }
 
-    async function runWake(api: HoopoeApi, startled = false) {
-      const wasAsleep = phaseRef.current === "asleep" && !startled;
+    async function runWake(api: HoopoeApi) {
+      // Interrupted BEFORE it ever landed, i.e. still flying in. Do not try to
+      // fly it out again: `flyTo` starts its arc from `rootX/rootY`, which the
+      // entrance only writes at touchdown, so a second flight begins from the
+      // off-canvas point the first one started at -- the bird teleports up and
+      // then leaves (traced: "arc from 0 -174.8"). It is also the one path
+      // where flyCore was seen to wedge with none of its nine takeoff
+      // animations resolving, not even a 100ms opacity tween. It is already
+      // mid-air and only ~60px tall, so fading is both honest and cheaper than
+      // a second flight from a position we do not actually know.
+      const midEntrance = phaseRef.current === "entering";
       phaseRef.current = "waking";
-      // Measured BEFORE the wake, not after it. The press that wakes the bird
-      // is usually the account pill, which expands the rows upward and moves
-      // this wrapper with them; a rect read after that shift aimed the exit at
-      // where the perch had moved to rather than where the bird actually is.
+      // Measured BEFORE anything else. If the press was on the account pill,
+      // the rows expand upward and move this wrapper with them; a rect read
+      // after that shift aims the exit at where the perch moved to rather than
+      // at where the bird actually is.
       const r = wrapRef.current?.getBoundingClientRect();
       const y = r ? r.top + r.height / 2 : 0;
-      await Promise.race([
-        (async () => {
-          if (wasAsleep) await api.wake();
-          await api.flyTo({ x: EXIT_X, y });
-        })(),
-        new Promise<void>((resolve) => setTimeout(resolve, EXIT_DEADLINE_MS)),
+
+      // Clear the puppet's queue and abort whatever it is mid-way through
+      // BEFORE asking for the flight. The controller runs one step at a time,
+      // so an exit enqueued behind an entrance or a sleep chord cannot start
+      // until that finishes -- and if that step is one of the ones that never
+      // resolves, the flight is never even reached. `stop()` also commits the
+      // current pose rather than snapping it back, so the bird simply takes
+      // off from wherever it had got to.
+      //
+      // The cost is the wake stretch: stop() clears the asleep flag, so wake()
+      // would no-op, and the bird leaves with its eyes still shut. That is a
+      // deliberate trade. The stretch was the single largest hang surface AND
+      // it doubled the exit (4.6s measured with it, ~2.5s without), and a bird
+      // that reliably leaves beats a bird that yawns first and sometimes
+      // doesn't. Reads as being startled off the perch, which is what happened.
+      api.stop();
+
+      const flew = await Promise.race([
+        api.flyTo({ x: EXIT_X, y }).then(() => true),
+        new Promise<boolean>((resolve) =>
+          setTimeout(() => resolve(false), EXIT_DEADLINE_MS)
+        ),
       ]);
-      // Reached on both branches, so the teardown happens whether the flight
-      // finished or the deadline won. Unmounting is what actually removes the
-      // bird; the rig's own unmount cleanup stops anything still live.
+
+      // The deadline is a backstop for a flight that never resolved, and it
+      // must not look like the bird was deleted (owner, 2026-08-03: "it was
+      // about to fly away when it suddenly just cut and was basically deleted"
+      // -- that was an earlier deadline set BELOW the real exit duration, so
+      // it fired on healthy exits). Fading the wrapper is deliberately not the
+      // puppet's job: it is plain opacity on a plain div, so it still works
+      // when the rig itself is the thing that is wedged.
+      if (!flew) {
+        setLeaving(true);
+        await new Promise((resolve) => setTimeout(resolve, FADE_MS));
+      }
       phaseRef.current = "waiting";
       apiRef.current = null;
+      setLeaving(false);
       setMounted(false);
       armIdle();
     }
 
-    function handleActivity(e: Event) {
+    function handleActivity() {
       const phase = phaseRef.current;
       if (phase === "waiting") {
         armIdle();
         return;
       }
       if ((phase === "entering" || phase === "asleep") && apiRef.current) {
-        // A press on the account pill is the one activity that does not just
-        // wake the bird, it takes its perch: the rows open into exactly the
-        // 62px it is standing in, so the usual leisurely exit (a 500ms stretch,
-        // a chord settle and two blinks before it even takes off) leaves it
-        // sitting on "My profile" for ~2.2s. Startled, it skips the stretch and
-        // just goes, which halves that and reads as being displaced rather than
-        // as ignoring you. `closest` on the pressed node, not a check of the
-        // menu's own state, because pointerdown lands BEFORE React flips it.
-        const target = e.target;
-        const startled =
-          target instanceof Element &&
-          target.closest('aside button[aria-expanded]') !== null;
-        void runWake(apiRef.current, startled);
+        void runWake(apiRef.current);
       }
       // "waking": already on its way out, and the exit deadline guarantees it
       // finishes, so there is nothing further to do.
@@ -286,7 +319,9 @@ export function SidebarHoopoe() {
     <div
       ref={wrapRef}
       aria-hidden
-      className="pointer-events-none absolute -top-[62px] left-0 z-10"
+      className={`pointer-events-none absolute -top-[62px] left-0 z-10 transition-opacity duration-200 ${
+        leaving ? "opacity-0" : "opacity-100"
+      }`}
     >
       <Hoopoe size={RIG_SIZE} onReady={handleReady} />
     </div>

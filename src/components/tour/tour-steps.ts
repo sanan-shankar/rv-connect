@@ -49,7 +49,7 @@ export const TOUR_FINISH: TourCardCopy = {
   title: "That is the tour",
   body: [
     "That is everything for now. Have a wander, and add something whenever you feel like it. There is no rush.",
-    'If you ever want this again, it is on the About page, under "How to use it."',
+    'If you ever want this again, use "hoopoe tour" in the Admin panel.',
   ],
 };
 

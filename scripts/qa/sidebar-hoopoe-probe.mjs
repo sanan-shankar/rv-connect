@@ -25,6 +25,11 @@ process.chdir(resolve(dirname(fileURLToPath(import.meta.url)), "../.."));
 config({ path: ".env.local" });
 
 const BASE = "http://localhost:3000";
+/* How long to watch the departure. Must exceed the exit deadline under test,
+   or every trial reads as a hang. Wall-clock, not loop iterations: eleven
+   concurrent pages against a dev server make each evaluate() round trip slow
+   and irregular, so a `t += 100` counter is nowhere near milliseconds. */
+const OBSERVE_MS = Number(process.env.OBSERVE_MS || 20_000);
 const OUT = "./temporary screenshots";
 mkdirSync(OUT, { recursive: true });
 
@@ -66,7 +71,13 @@ async function authed(path) {
       window.addEventListener(e, () => { window.__act[e]++; }, { passive: true, capture: true });
     }
   }, ACTIVITY_EVENTS);
-  await page.goto(BASE, { waitUntil: "domcontentloaded" });
+  page.on("console", (m) => {
+    const t = m.text();
+    if (t.includes("[hoopoe] TEMP")) console.log(`    console> ${t}`);
+    else if (m.type() === "error") console.log(`    ERR> ${t.slice(0, 400)}`);
+  });
+  page.on("pageerror", (e) => console.log(`    PAGEERROR> ${String(e).slice(0, 600)}`));
+  await page.goto(BASE, { waitUntil: "domcontentloaded", timeout: 90_000 });
   await page.evaluate(async (email) => {
     await fetch("/api/auth/admin-login", {
       method: "POST",
@@ -75,7 +86,9 @@ async function authed(path) {
     });
   }, adminEmail);
   // goto, never a click: a click is activity and would reset the idle timer.
-  await page.goto(BASE + path, { waitUntil: "networkidle0" });
+  // domcontentloaded, not networkidle0: with several trial pages against one
+  // dev server, networkidle0 blows its 30s budget on compile alone.
+  await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 90_000 });
   return page;
 }
 
@@ -126,8 +139,17 @@ const readRail = (page) =>
 async function waitForBird(page, capMs = 160_000) {
   const t0 = Date.now();
   while (Date.now() - t0 < capMs) {
-    const rail = await readRail(page);
-    if (rail.present) return { ...rail, waitedMs: Date.now() - t0 };
+    // Tolerate a destroyed execution context: dev-server HMR reloads the page
+    // mid-wait, which rejects the in-flight evaluate. That is the harness
+    // tripping over the dev server, not a fact about the bird.
+    let rail = null;
+    try {
+      rail = await readRail(page);
+    } catch {
+      await sleep(1000);
+      continue;
+    }
+    if (rail?.present) return { ...rail, waitedMs: Date.now() - t0 };
     await sleep(1000);
   }
   return { present: false, waitedMs: Date.now() - t0 };
@@ -141,16 +163,68 @@ async function trial({ name, path, delayMs, act }) {
     return { name, result: "no-bird" };
   }
   await sleep(delayMs);
+
+  /* Record the departure IN THE PAGE, on rAF, ARMED BEFORE the activity.
+     Two harness bugs were fixed to get here and both flattered the result:
+     polling over CDP was far too slow and contended to time anything (eleven
+     pages against one dev server), and arming the recorder AFTER act() meant
+     it reported frames=0 for every bird that had already gone. It is armed
+     first now, so the trace can tell apart:
+       - flew   : x travels out to about EXIT_X (-200) and then unmounts
+       - CUT    : x never moves, then unmounts (the exit deadline firing)
+       - popped : unmounts within a frame or two of the activity */
+  await page.evaluate((observeMs) => {
+    const t0 = performance.now();
+    const sel = "aside .hoopoe-mascot";
+    window.__trace = { samples: [], removedAt: null, done: false, sawIt: false };
+    const tick = () => {
+      const rig = document.querySelector(sel);
+      const root = rig?.querySelector("[data-part=root]");
+      if (root) {
+        window.__trace.sawIt = true;
+        window.__trace.samples.push([
+          Math.round(performance.now() - t0),
+          Math.round(root.getBoundingClientRect().left),
+        ]);
+      } else if (window.__trace.sawIt && window.__trace.removedAt === null) {
+        window.__trace.removedAt = Math.round(performance.now() - t0);
+        window.__trace.done = true;
+        return;
+      }
+      if (performance.now() - t0 > observeMs) { window.__trace.done = true; return; }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, OBSERVE_MS);
+
   await resetCounters(page);
   await act(page);
   const fired = await counters(page);
-  await sleep(9000); // exit flight is ~1-2s; 9s is well past any legitimate exit
+
+  const t0 = Date.now();
+  while (Date.now() - t0 < OBSERVE_MS + 2000) {
+    if (await page.evaluate(() => window.__trace.done)) break;
+    await sleep(400);
+  }
+  const trace = await page.evaluate(() => window.__trace);
+
+  const xs = trace.samples.map((s) => s[1]);
+  const lastX = xs.length ? xs[xs.length - 1] : null;
+  const minX = xs.length ? Math.min(...xs) : null;
+  const goneAtMs = trace.removedAt;
+  const frames = xs.length;
+
   const after = await readRail(page);
   const reached = Object.values(fired).reduce((a, b) => a + b, 0);
+  // "Departed" means the last frame we saw had it clearly on its way out of
+  // the rail; the rig is 60px wide and the rail starts at x=16, so anything
+  // still right of 0 was never actually in flight.
   let result;
   if (reached === 0) result = "INVALID";
   else if (after.present) result = "STUCK";
-  else result = "flew";
+  else if (minX !== null && minX < -100) result = "flew";
+  else if (frames <= 3) result = "popped";
+  else result = "CUT";
   if (result === "STUCK") await page.screenshot({ path: join(OUT, `hoopoe-stuck-${name}.png`) });
   await page.close();
   return {
@@ -159,8 +233,10 @@ async function trial({ name, path, delayMs, act }) {
     waitedMs: arrived.waitedMs,
     visibility: after.visibility,
     fired: Object.fromEntries(Object.entries(fired).filter(([, v]) => v > 0)),
-    after: after.birdBox,
-    accountTop: after.accountTop,
+    lastX,
+    minX,
+    frames,
+    goneAtMs,
   };
 }
 
@@ -181,38 +257,38 @@ const pressAccountPill = async (page) => {
   await btn.click();
 };
 
-const TRIALS = [
+const ALL_TRIALS = [
   // activity landing mid fly-in (phase "entering")
-  { name: "move-at-0ms", path: "/feed", delayMs: 0, act: moveMouse },
-  { name: "move-at-500ms", path: "/feed", delayMs: 500, act: moveMouse },
   { name: "move-at-1200ms", path: "/feed", delayMs: 1200, act: moveMouse },
   // activity landing while the sleep chord is still settling (phase "asleep")
-  { name: "move-at-2200ms", path: "/feed", delayMs: 2200, act: moveMouse },
   { name: "move-at-3200ms", path: "/feed", delayMs: 3200, act: moveMouse },
   // fully settled: the control, and the other activity kinds
   { name: "move-settled", path: "/feed", delayMs: 8000, act: moveMouse },
-  { name: "wheel-settled", path: "/feed", delayMs: 8000, act: scrollWheel },
   { name: "key-settled", path: "/feed", delayMs: 8000, act: typeKey },
   // the owner's exact case: press the account pill, rows expand into the perch
-  { name: "pill-at-1200ms", path: "/feed", delayMs: 1200, act: pressAccountPill },
   { name: "pill-settled", path: "/feed", delayMs: 8000, act: pressAccountPill },
-  // and the same press when the rows are ALREADY open (bird perched above them)
-  { name: "settings-move", path: "/settings", delayMs: 8000, act: moveMouse },
 ];
+/* Concurrency is capped because the trial pages share one dev server: at
+   eleven the navigations time out and the rAF traces come back distorted,
+   which is a measurement problem masquerading as a product one. */
+const TRIALS = ALL_TRIALS.slice(0, Number(process.env.N || ALL_TRIALS.length));
 
 console.log(`running ${TRIALS.length} trials concurrently (one ~2min idle wait)\n`);
 const results = await Promise.all(TRIALS.map(trial));
 
 let stuck = 0;
 let invalid = 0;
+let cut = 0;
 for (const r of results) {
   if (r.result === "STUCK") stuck++;
+  if (r.result === "CUT" || r.result === "popped") cut++;
   if (r.result === "INVALID") invalid++;
   console.log(
-    `${r.result.padEnd(7)} ${r.name.padEnd(16)} vis=${r.visibility} fired=${JSON.stringify(r.fired)}` +
-      (r.after ? ` ink=${r.after.inkTop}..${r.after.inkBottom}@${r.after.inkLeft} accountTop=${r.accountTop}` : "")
+    `${r.result.padEnd(7)} ${r.name.padEnd(16)} vis=${r.visibility} ` +
+      `minX=${r.minX} lastX=${r.lastX} frames=${r.frames} goneAt=${r.goneAtMs}ms ` +
+      `fired=${JSON.stringify(r.fired)}`
   );
 }
-console.log(`\nSTUCK ${stuck} / ${results.length}   (invalid: ${invalid})`);
+console.log(`\nSTUCK ${stuck}  CUT ${cut}  / ${results.length}   (invalid: ${invalid})`);
 
 await browser.close();

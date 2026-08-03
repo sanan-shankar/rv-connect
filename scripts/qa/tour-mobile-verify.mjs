@@ -3,12 +3,17 @@ import { existsSync, mkdirSync, readdirSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
+import {
+  assertSameOriginAfterNavigation,
+  cookieDomainForBaseUrl,
+  requireLoopbackBaseUrl,
+} from './local-base-url.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
 config({ path: '.env.local' });
 
-const baseUrl = process.argv[2] || 'http://localhost:3000';
+const baseUrl = requireLoopbackBaseUrl(process.argv[2] || 'http://localhost:3000');
 const adminEmail = process.env.ADMIN_EMAIL;
 if (!adminEmail) {
   console.error('Error: ADMIN_EMAIL not found in .env.local');
@@ -53,19 +58,43 @@ page.setDefaultNavigationTimeout(60000);
 
 // Auth (once; session cookie persists across attempts)
 await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-const authResult = await page.evaluate(async (email) => {
-  const res = await fetch('/api/auth/admin-login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  });
-  return { ok: res.ok, status: res.status, data: await res.json() };
-}, adminEmail);
-if (!authResult.ok) {
-  console.error('Auth failed', authResult);
+assertSameOriginAfterNavigation(baseUrl, page.url());
+
+// Authenticate from Node rather than the page's main world, so ADMIN_EMAIL is
+// never serialized into app-controlled JavaScript. Copy only the resulting
+// HttpOnly session cookie into the browser context.
+const authResponse = await fetch(`${baseUrl}/api/auth/admin-login`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: adminEmail }),
+  redirect: 'error',
+});
+const authData = await authResponse.json();
+if (!authResponse.ok) {
+  console.error('Auth failed', { status: authResponse.status, data: authData });
   await browser.close();
   process.exit(1);
 }
+
+const sessionCookie = authResponse.headers
+  .getSetCookie()
+  .find((raw) => /^(?:__Secure-)?authjs\.session-token=/.test(raw));
+if (!sessionCookie) {
+  console.error('Auth failed: session cookie missing');
+  await browser.close();
+  process.exit(1);
+}
+const cookiePair = sessionCookie.slice(0, sessionCookie.indexOf(';'));
+const separator = cookiePair.indexOf('=');
+await page.browserContext().setCookie({
+  name: cookiePair.slice(0, separator),
+  value: cookiePair.slice(separator + 1),
+  domain: cookieDomainForBaseUrl(baseUrl),
+  path: '/',
+  httpOnly: true,
+  secure: baseUrl.startsWith('https://'),
+  sameSite: 'Lax',
+});
 console.log('Authenticated.');
 
 page.on('pageerror', (err) => console.error('PAGEERROR:', err.message));
@@ -126,9 +155,9 @@ let finalFindings = null;
 for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   console.log(`\n=== Attempt ${attempt}/${MAX_ATTEMPTS} ===`);
   try {
-    await page.goto(`${baseUrl}/about`, { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.goto(`${baseUrl}/admin`, { waitUntil: 'networkidle2', timeout: 60000 });
   } catch (e) {
-    console.error('about nav warning:', e.message);
+    console.error('admin nav warning:', e.message);
     await sleep(2000);
   }
   await sleep(1000);
@@ -136,7 +165,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   const clicked = await waitForCondition(async () => {
     return page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button'));
-      const btn = btns.find((b) => b.textContent?.trim() === 'Take the tour again');
+      const btn = btns.find((b) => b.textContent?.trim() === 'hoopoe tour');
       if (!btn) return false;
       btn.click();
       return true;
@@ -144,7 +173,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   }, 15000, 500);
 
   if (!clicked) {
-    console.error('Could not find "Take the tour again" button; retrying.');
+    console.error('Could not find "hoopoe tour" button; retrying.');
     continue;
   }
 

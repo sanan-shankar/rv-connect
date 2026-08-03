@@ -10,6 +10,7 @@ import { ReportManagement } from "@/components/admin/report-management";
 import { PhotoQueue } from "@/components/admin/photo-queue";
 import { VerificationQueue } from "@/components/admin/verification-queue";
 import { MessageQueue } from "@/components/admin/message-queue";
+import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 
 export const metadata: Metadata = {
@@ -28,6 +29,8 @@ export default async function AdminPage({
     redirect("/feed");
   }
 
+  const ownerEmail = process.env.ADMIN_EMAIL;
+  const showTour = Boolean(ownerEmail) && session.user.email === ownerEmail;
   const { thread: openThreadId } = await searchParams;
 
   const now = new Date();
@@ -138,7 +141,10 @@ export default async function AdminPage({
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Admin Panel" />
+      <PageHeader
+        title="Admin Panel"
+        actions={showTour ? <TakeTourAgainButton /> : undefined}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
