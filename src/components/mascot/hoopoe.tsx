@@ -1001,12 +1001,22 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     ]);
     await applyChord(EXPRESSIONS.content, { spring: SPRINGS.gentle });
     asleepRef.current = false;
-    damper.resume(); // idle breathe/blink/sparkle/flick pick back up
     // a soft double-blink as the eyes flutter open (inlined, not the queued blinkOnce()
     // verb: calling another enqueue()'d verb from inside a step that is itself running
     // as part of the queue would deadlock the single pump — see react()'s note below).
     await A(PARTS.eyeBlink, { scaleY: [1, 0.05, 1] }, { duration: 0.2, ease: "easeInOut" }).finished;
     await A(PARTS.eyeBlink, { scaleY: [1, 0.05, 1] }, { duration: 0.2, ease: "easeInOut" }).finished;
+    // Resumed AFTER the blinks, not before them (moved 2026-08-03). The ambient
+    // idle blink writes the SAME `scaleY` on the SAME PARTS.eyeBlink selector,
+    // and it is gated only on `damper.active` (see the idle effect below), so
+    // resuming first re-armed it right on top of the ~400ms of blinks this
+    // function then awaited. A superseded animation's `.finished` never
+    // resolves in motion v12 (the abort-token note at the top of this file),
+    // so one unlucky ambient blink hung wake() forever — and with it every
+    // caller awaiting it, the sidebar's idle bird being the one that showed.
+    // Nothing is lost by holding the damper 400ms longer: the bird is mid-wake,
+    // which is precisely when the ambient loop should still be out of the way.
+    damper.resume(); // idle breathe/blink/sparkle/flick pick back up
   }
   const wakeVerb = () => enqueue(() => wakeRaw());
 
