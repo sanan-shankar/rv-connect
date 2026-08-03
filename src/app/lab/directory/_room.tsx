@@ -22,7 +22,7 @@ import {
 } from "./_data";
 import {
   ChromeBench, ChromeContent, ChromeNowrap, ChromeSentence, ChromeTyped,
-  SortControl, STRESS, type Mode, type StressKey,
+  SortControl, STRESS, useIsNarrow, type Mode, type StressKey,
 } from "./_chrome";
 import { MapCircles, MapTiers, MapLabels, MapGazetteer, MapChoropleth, ObjectCount } from "./_maps";
 import { Measured, ResultGrid } from "./_people";
@@ -97,6 +97,11 @@ export default function DirectoryRoom({
   // The people section always shows the same twelve so the density figures
   // compare like with like.
   const sample = useMemo(() => sortMembers(members, "newest").slice(0, 12), [members]);
+
+  // The four headline benches are full-width, so they must follow the real
+  // viewport. The width-simulated benches further down pass `narrow` by hand
+  // instead, because a fixed-width container cannot answer a media query.
+  const isNarrow = useIsNarrow();
 
   const [mapSort, setMapSort] = useState<SortKey>("newest");
   const [pickedCity, setPickedCity] = useState<string | null>(null);
@@ -257,7 +262,7 @@ export default function DirectoryRoom({
           tone="option"
           note="the smallest possible repair, here to be beaten"
         >
-          <ChromeNowrap {...a} members={members} count={countFor(a.filters)} />
+          <ChromeNowrap {...a} members={members} count={countFor(a.filters)} narrow={isNarrow} />
         </ChromeBench>
 
         <ChromeBench
@@ -265,7 +270,7 @@ export default function DirectoryRoom({
           tone="pick"
           note="filters cost zero rows, because the count line was always there"
         >
-          <ChromeSentence {...b} members={members} count={countFor(b.filters)} />
+          <ChromeSentence {...b} members={members} count={countFor(b.filters)} narrow={isNarrow} />
         </ChromeBench>
 
         <ChromeBench
@@ -273,7 +278,7 @@ export default function DirectoryRoom({
           tone="option"
           note="no filter control at all; you narrow by touching what you can see"
         >
-          <ChromeContent {...c} members={members} count={countFor(c.filters)} />
+          <ChromeContent {...c} members={members} count={countFor(c.filters)} narrow={isNarrow} />
         </ChromeBench>
 
         <ChromeBench
@@ -281,7 +286,7 @@ export default function DirectoryRoom({
           tone="option"
           note='a layer on top of B. Try "ben", "tech", "2009", "lon"'
         >
-          <ChromeTyped {...d} members={members} count={countFor(d.filters)} />
+          <ChromeTyped {...d} members={members} count={countFor(d.filters)} narrow={isNarrow} />
         </ChromeBench>
       </div>
 
@@ -315,13 +320,20 @@ export default function DirectoryRoom({
           </ChromeBench>
         </div>
       </div>
-      <div className="mt-8 grid gap-8 sm:grid-cols-2">
-        <ChromeBench label="A · Nowrap, at 350" tone="option" width={350}>
-          <ChromeNowrap {...a} members={members} count={countFor(a.filters)} narrow />
-        </ChromeBench>
-        <ChromeBench label="B · The sentence, at 350" tone="pick" width={350}>
-          <ChromeSentence {...b} members={members} count={countFor(b.filters)} narrow />
-        </ChromeBench>
+      {/* Same scroller for the 350 pair. A 350px specimen plus 32px of well
+          padding is 382, and the room's own column at a 390 phone is 342, so
+          these overflowed by 40px and were clipped. Reducing the simulated
+          width to fit would have been the wrong fix: 350 is the honest phone
+          column and the number is the point. */}
+      <div className="-mx-6 mt-8 overflow-x-auto px-6 sm:mx-0 sm:px-0">
+        <div className="grid gap-8 sm:grid-cols-2">
+          <ChromeBench label="A · Nowrap, at 350" tone="option" width={350}>
+            <ChromeNowrap {...a} members={members} count={countFor(a.filters)} narrow />
+          </ChromeBench>
+          <ChromeBench label="B · The sentence, at 350" tone="pick" width={350}>
+            <ChromeSentence {...b} members={members} count={countFor(b.filters)} narrow />
+          </ChromeBench>
+        </div>
       </div>
 
       <div className="mt-10">
@@ -427,10 +439,44 @@ export default function DirectoryRoom({
         </Measured>
       </div>
       <p className="mt-4 max-w-[68ch] text-[16px] leading-[1.6] text-muted-foreground">
-        The shipped card puts a 64px avatar above centred text; the avatar is a profile-header size doing
-        list work, and centring guarantees the name, the batch and the city all start at a different x,
-        so a column of them cannot be scanned. Every alternative moves the bird left and the text beside
-        it, which is what you asked for and also what makes a vertical scan possible.
+        The shipped card puts a 64px avatar above centred text. The avatar is a profile-header size doing
+        list work, and centring guarantees that the name, the batch and the city each start at a
+        different x, so a column of them cannot be scanned down. Every alternative moves the bird left
+        and the text beside it, which is what you asked for and is also what makes a vertical scan
+        possible at all.
+      </p>
+      <p className="mt-3 max-w-[68ch] text-[16px] leading-[1.6] text-muted-foreground">
+        The density numbers, though, did not say what I expected, and they change the answer. Flipping
+        between the four and reading what each one prints:
+      </p>
+      <div className="mt-5">
+        <Ledger
+          cols={["", "At 1440", "At 390", "Per 1000px, 1440", "Per 1000px, 390"]}
+          firstCol="26%"
+          rows={[
+            { k: "Shipped card", v: ["65px each", "198px each", "15", "5"], bad: [1, 3] },
+            { k: "Compact card", v: ["25px each", "75px each", "41", "13"], good: [0, 2] },
+            { k: "Row, no box", v: ["56px each", "56px each", "18", "18"], good: [3] },
+            { k: "Ruled list", v: ["61px each", "61px each", "16", "16"] },
+          ]}
+        />
+      </div>
+      <p className="mt-5 max-w-[68ch] text-[16px] leading-[1.6] text-muted-foreground">
+        I went in assuming the row list would win and it does not, on desktop. The <b>compact card</b> is
+        2.7 times denser than the shipped card and 2.3 times denser than the row, for one reason: it
+        keeps the three-up grid, and a single-column list throws away two thirds of a 1112px column no
+        matter how short its rows are. Density on a wide screen is a horizontal problem, not a vertical
+        one.
+      </p>
+      <p className="mt-3 max-w-[68ch] text-[16px] leading-[1.6] text-muted-foreground">
+        On a phone it inverts, and the shipped card collapses: one column, 198px per person, so twelve
+        people is 2,376px of scrolling. The <b>row</b> wins there at 56px, and it is the only one of the
+        four whose cost does not change with width at all.
+      </p>
+      <p className="mt-3 max-w-[68ch] text-[16px] leading-[1.6] text-muted-foreground">
+        So the answer is both: <b>compact card in the grid on desktop, row on a phone.</b> They are the
+        same lockup, bird left and text beside it, with and without a box around it, which makes them one
+        component and a breakpoint rather than two components.
       </p>
       </div>
 
@@ -548,9 +594,10 @@ export default function DirectoryRoom({
         <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">where.workplace = &quot;Technology&quot;</code>,
         an exact match against a fourteen-item list. But{" "}
         <code className="rounded bg-mist px-1.5 py-0.5 text-[15px]">workplace</code> is labelled{" "}
-        <b>Industry</b> in the old onboarding, <b>Organisation</b> in the current one, and <b>Where</b> in
-        settings, with the placeholder &quot;e.g. Tata Consultancy Services&quot;. Two of those three
-        write free text. So the column holds company names, and the filter is looking for industries.
+        <b>Industry</b> in the old onboarding, <b>Organisation</b> in the current one, and{" "}
+        <b>Where</b> in settings, with the placeholder &quot;e.g. Tata Consultancy Services&quot;. Two of
+        those three write free text. So the column holds company names, and the filter is looking for
+        industries.
       </p>
       <TaggingDemo />
 
@@ -604,8 +651,17 @@ export default function DirectoryRoom({
           reach for if you decide the map must stay disc-based.
         </p>
         <p>
+          <b>People: compact card on desktop, row on a phone.</b> One lockup, bird left, boxed above
+          640px and unboxed below it. That is 41 people per 1000px against the shipped card&apos;s 15,
+          and on a phone it is 56px per person against 198. I expected the row list to win outright and
+          the measurement says otherwise on a wide screen, because density there is a horizontal
+          problem.
+        </p>
+        <p>
           <b>Delete outright:</b> the House facet, the Top cities strip in its current form, Name A-Z and
-          Name Z-A, and the back arrow. The arrow has no job once views stop being places.
+          Name Z-A, and the back arrow. The arrow has no job once views stop being places. Also fix the
+          one-function cause underneath all of it: derive the active-filter tokens from a single filter
+          list, so a batch drilldown stops being the one filter with no control of its own.
         </p>
         <p>
           <b>Before any of this ships,</b> the profession column needs the tagging pass, or the facet
@@ -619,7 +675,7 @@ export default function DirectoryRoom({
         </p>
       </Verdict>
 
-      {/* A quiet appendix so the batch data is not a claim without a specimen. */}
+      {/* A short appendix so the batch data is not a claim without a specimen. */}
       <Rule nav="Appendix">Appendix: the batch grid at scale</Rule>
       <p className="mb-4 max-w-[68ch] text-[16px] leading-[1.6] text-muted-foreground">
         {batches.length} year tiles at {members.length} members. The long tail of one-person years is

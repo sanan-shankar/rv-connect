@@ -1,7 +1,7 @@
 "use client";
 
 /* ------------------------------------------------------------------ *
- *  Profile page concepts — five directions for the profile redesign,
+ *  Profile page concepts: nine directions for the profile redesign,
  *  reviewed side by side against one realistic mock alumnus (see
  *  ./_data.ts). This file is the harness only: the sticky top bar and
  *  the tab-to-variant wiring. Each concept's actual layout lives in its
@@ -11,8 +11,12 @@
  *  Deep links for screenshot agents: append ?v=<key> to load a concept
  *  directly, e.g.
  *    http://localhost:3000/lab/profiles?v=field-guide
- *  Valid keys: letterhead | letterhead-2 | field-guide | editorial | dossier
- *  | broadsheet | passport | terrace.
+ *  Valid keys: letterhead | letterhead-2 | letterhead-3 | field-guide |
+ *  editorial | dossier | broadsheet | passport | terrace.
+ *  Letterhead III takes two more of its own: ?chain=<key> picks which of
+ *  the six house-chain treatments the Houses section draws (serpentine |
+ *  stepped | route | rail | stave | zigzag), and ?sample=sparse /
+ *  ?avatar=photo deep-link its other states.
  *  Omitting ?v=, or passing an unknown key, falls back to the first tab
  *  (letterhead). Clicking a tab in the browser rewrites ?v= to match, so
  *  the address bar always reflects what's on screen and can be copied
@@ -28,6 +32,7 @@ import { SpringPress } from "@/components/common/motion";
 import { PROFILE } from "./_data";
 import LetterheadVariant from "./_variant-letterhead";
 import LetterheadTwoVariant from "./_variant-letterhead-2";
+import LetterheadThreeVariant from "./_variant-letterhead-3";
 import FieldGuideVariant from "./_variant-field-guide";
 import EditorialVariant from "./_variant-editorial";
 import DossierVariant from "./_variant-dossier";
@@ -38,6 +43,7 @@ import TerraceVariant from "./_variant-terrace";
 const CONCEPTS = [
   { key: "letterhead", label: "Letterhead", Component: LetterheadVariant },
   { key: "letterhead-2", label: "Letterhead II", Component: LetterheadTwoVariant },
+  { key: "letterhead-3", label: "Letterhead III", Component: LetterheadThreeVariant },
   { key: "field-guide", label: "Field guide", Component: FieldGuideVariant },
   { key: "editorial", label: "Editorial", Component: EditorialVariant },
   { key: "dossier", label: "Dossier", Component: DossierVariant },
@@ -136,7 +142,7 @@ function ProfileConceptsHarness() {
 
 export default function ProfileConceptsPage() {
   // useSearchParams needs a Suspense boundary (Next.js app-router requirement
-  // for client components) — see node_modules/next/dist/docs/01-app/03-api-
+  // for client components), see node_modules/next/dist/docs/01-app/03-api-
   // reference/04-functions/use-search-params.md.
   return (
     <Suspense fallback={<div className="min-h-screen bg-background" />}>

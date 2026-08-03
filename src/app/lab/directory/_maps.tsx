@@ -306,6 +306,20 @@ export function MapCircles({
   );
 }
 
+/* --- label placement helpers, shared by M2 and M3 -------------------- */
+
+/** Approximate rendered width of a label. A canvas measureText would be
+ *  exact, but it costs a context per frame and the error here is under a
+ *  character's width at these sizes, which the 2px padding absorbs. */
+function labelWidth(text: string, count: number, fontSize: number) {
+  return (text.length * 0.52 + String(count).length * 0.6 + 1.6) * fontSize;
+}
+
+type Box = { x0: number; y0: number; x1: number; y1: number };
+function hits(a: Box, b: Box) {
+  return !(a.x1 < b.x0 || a.x0 > b.x1 || a.y1 < b.y0 || a.y0 > b.y1);
+}
+
 /* ================================================================== *
  *  M2 - Semantic tiers.
  *
@@ -364,6 +378,68 @@ export function MapTiers({
         });
         const placed = separate(raw, 3, 2 / t.k);
 
+        /* Which nodes get a name. Biggest first, so when two collide the
+           larger place keeps its label, and the box is the one actually drawn
+           below the disc (centred, at r + 11). `hits` and the 3-unit pad are
+           shared with concept 3 so the two maps resolve collisions the same
+           way rather than each inventing a rule. */
+        const fs = 10 / t.k;
+        const pad = 3 / t.k;
+
+        /* Seed the occupied set with every DISC, not only with already-placed
+           labels. Label-versus-label alone was not enough: "United Arab
+           Emirates" is a long name under a small disc sitting beside India's
+           very large one, so its box cleared every other label and still ran
+           straight underneath a circle. A disc is ink too. Each node's own
+           disc is excluded, because its label is placed below that disc by
+           construction and would otherwise always self-collide. */
+        const discs: Box[] = placed.map((p) => ({
+          x0: p.x - p.r, y0: p.y - p.r, x1: p.x + p.r, y1: p.y + p.r,
+        }));
+
+        /* Four candidate positions per label, below first, then above, then
+           right, then left. Below-only was the version before this one and it
+           over-suppressed badly: India is the largest node on the map and lost
+           its name outright, because its single candidate sat on Sri Lanka's
+           disc. Losing the biggest label is a worse failure than the collision
+           the rule was added to prevent, and one fallback position recovers it.
+           Placement is stored per node so the text can be drawn where it was
+           actually solved for. */
+        const taken: Box[] = [];
+        const labelled = new Map<number, { x: number; y: number; anchor: "middle" | "start" | "end" }>();
+        const half = fs * 0.75;
+        for (const i of placed
+          .map((_, idx) => idx)
+          .sort((x, y) => placed[y].count - placed[x].count)) {
+          const p = placed[i];
+          const w = labelWidth(p.city, p.count, fs);
+          const gap = 4 / t.k;
+          // `as const` on the anchors, or the array literal widens them to
+          // `string` and the mapped result stops matching Box's union.
+          const cands: { box: Box; x: number; y: number; anchor: "middle" | "start" | "end" }[] = ([
+            { x: p.x, y: p.y + p.r + 11 / t.k, anchor: "middle" },
+            { x: p.x, y: p.y - p.r - 7 / t.k, anchor: "middle" },
+            { x: p.x + p.r + gap, y: p.y, anchor: "start" },
+            { x: p.x - p.r - gap, y: p.y, anchor: "end" },
+          ] as const).map((c) => ({
+            ...c,
+            box: {
+              x0: (c.anchor === "start" ? c.x : c.anchor === "end" ? c.x - w : c.x - w / 2) - pad,
+              y0: c.y - half - pad / 2,
+              x1: (c.anchor === "start" ? c.x + w : c.anchor === "end" ? c.x : c.x + w / 2) + pad,
+              y1: c.y + half + pad / 2,
+            },
+          }));
+          const hit = cands.find(
+            (c) =>
+              !taken.some((b) => hits(c.box, b)) &&
+              !discs.some((b, j) => j !== i && hits(c.box, b))
+          );
+          if (!hit) continue;
+          taken.push(hit.box);
+          labelled.set(i, { x: hit.x, y: hit.y, anchor: hit.anchor });
+        }
+
         return (
           <g>
             {placed.map((p, i) => {
@@ -385,19 +461,41 @@ export function MapTiers({
                     r={p.r + 4.5 / t.k} fill="none" stroke="#235C49" strokeWidth={2 / t.k}
                     className="opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
                   />
-                  {/* Name plus count, always, because at every tier there
-                      are few enough objects that all of them can be named.
-                      That is the payoff of bounding the count: labels stop
-                      being a luxury. */}
-                  <g transform={`translate(0, ${p.r + 11 / t.k})`}>
-                    <text
-                      textAnchor="middle" fontSize={10 / t.k} fontWeight={700} fill="#23241E"
-                      stroke="#ECE8DD" strokeWidth={2.6 / t.k} paintOrder="stroke"
-                    >
-                      {p.city}
-                      <tspan fill="#6E7268" fontWeight={600}>{"  "}{p.count}</tspan>
-                    </text>
-                  </g>
+                  {/* Name plus count, but only where it FITS. The first
+                      version labelled every node unconditionally, on the
+                      theory that bounding the object count also bounds the
+                      labels. It does not: at the country tier the European
+                      nodes sit within a few projected pixels of each other,
+                      so Netherlands, Sweden, United Kingdom, Germany and
+                      France drew straight through one another. Bounding the
+                      number of OBJECTS says nothing about how far apart they
+                      are, so this runs the same collision solver concept 3
+                      uses, and a node that cannot be labelled keeps its
+                      disc and its count-in-tooltip instead. */}
+                  {(() => {
+                    const lab = labelled.get(i);
+                    if (!lab) return null;
+                    // Drawn at the position the solver actually chose, in the
+                    // group's own local space (the <g> is already translated
+                    // to the node).
+                    return (
+                      <text
+                        x={lab.x - p.x}
+                        y={lab.y - p.y}
+                        dy="0.34em"
+                        textAnchor={lab.anchor}
+                        fontSize={fs}
+                        fontWeight={700}
+                        fill="#23241E"
+                        stroke="#ECE8DD"
+                        strokeWidth={2.6 / t.k}
+                        paintOrder="stroke"
+                      >
+                        {p.city}
+                        <tspan fill="#6E7268" fontWeight={600}>{"  "}{p.count}</tspan>
+                      </text>
+                    );
+                  })()}
                 </g>
               );
             })}
@@ -431,18 +529,6 @@ function ReportCount({ value, onChange }: { value: number; onChange: (n: number)
     onChange(value);
   }, [value, onChange]);
   return null;
-}
-
-/** Approximate rendered width of a label. A canvas measureText would be
- *  exact, but it costs a context per frame and the error here is under a
- *  character's width at these sizes, which the 2px padding absorbs. */
-function labelWidth(text: string, count: number, fontSize: number) {
-  return (text.length * 0.52 + String(count).length * 0.6 + 1.6) * fontSize;
-}
-
-type Box = { x0: number; y0: number; x1: number; y1: number };
-function hits(a: Box, b: Box) {
-  return !(a.x1 < b.x0 || a.x0 > b.x1 || a.y1 < b.y0 || a.y0 > b.y1);
 }
 
 export function MapLabels({
@@ -676,7 +762,7 @@ export function MapGazetteer({
                   className="state-layer flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left outline-none transition-transform duration-100 active:scale-[0.99] focus-visible:[background-image:linear-gradient(var(--state-hover),var(--state-hover))]"
                 >
                   <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground">{p.city}</span>
-                  {/* A bar, not just a number: the ranked list is a chart
+                  {/* A bar beside the number: the ranked list is a chart
                       already, and drawing the proportion costs one div. */}
                   <span className="h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-mist">
                     <span

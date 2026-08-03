@@ -12,7 +12,7 @@
  *  the same thing it means there.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 import {
   Choice,
@@ -366,16 +366,21 @@ export function SentenceLine({
             +{hidden} more
           </button>
         )}
-        {all.length > 0 && (
-          <button
-            type="button"
-            onClick={onClearAll}
-            className="shrink-0 rounded-full px-1.5 py-1 text-[12.5px] font-medium text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-          >
-            Clear
-          </button>
-        )}
       </div>
+      {/* Clear lives OUTSIDE the overflowing token region, in its own shrink-0
+          slot. Inside it, the tokens come first in source order and are
+          themselves shrink-0, so Clear was the thing the overflow ate: at 350px
+          with two filters set it rendered as "Clea". The control that undoes
+          everything is the last thing that should be allowed to get clipped. */}
+      {all.length > 0 && (
+        <button
+          type="button"
+          onClick={onClearAll}
+          className="shrink-0 rounded-full px-1.5 py-1 text-[12.5px] font-medium text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+        >
+          Clear
+        </button>
+      )}
       {right && <div className="shrink-0">{right}</div>}
     </div>
   );
@@ -396,7 +401,7 @@ export function SentenceLine({
  * ------------------------------------------------------------------ */
 
 export function ChromeNowrap({
-  filters, set, onClearAll, members, count, mode, setMode, sort, setSort,
+  filters, set, onClearAll, members, count, mode, setMode, sort, setSort, narrow,
 }: ChromeProps) {
   const [open, setOpen] = useState(false);
   const n = activeCount(filters);
@@ -417,11 +422,11 @@ export function ChromeNowrap({
         />
         <PopWrap>
           <FilterButton count={n} open={open} onClick={() => setOpen((v) => !v)} compact />
-          <Pop open={open} onClose={() => setOpen(false)} align="end" width={380}>
+          <Pop open={open} onClose={() => setOpen(false)} align="end" width={narrow ? 320 : 380}>
             <FilterPanel filters={filters} set={set} members={members} onClearAll={onClearAll} />
           </Pop>
         </PopWrap>
-        <SortControl value={sort} onChange={setSort} />
+        <SortControl value={sort} onChange={setSort} compact={narrow} />
       </div>
       <div className="flex items-center justify-between">
         <span className="text-[13.5px] text-muted-foreground">
@@ -525,7 +530,7 @@ export function ChromeSentence({
             set={set}
             onClearAll={onClearAll}
             onOpenPanel={() => setOpen(true)}
-            max={2}
+            max={1}
           />
         </>
       ) : (
@@ -761,6 +766,33 @@ export function ChromeTyped({
         right={<ModeToggle items={MODES} value={mode} onChange={setMode} />}
       />
     </div>
+  );
+}
+
+/* --- the viewport hook ----------------------------------------------- *
+ *
+ *  `useSyncExternalStore`, not `useState` plus an effect. The effect version
+ *  is what most codebases write and it is wrong twice here: it trips
+ *  `react-hooks/set-state-in-effect`, and it paints one frame of the desktop
+ *  layout on a phone before correcting, which on this page means four
+ *  concepts visibly reflowing on load. `useSyncExternalStore` takes a server
+ *  snapshot as its third argument, so the server renders the desktop branch
+ *  deliberately and the client agrees on the first paint.
+ * ------------------------------------------------------------------ */
+
+const NARROW_QUERY = "(max-width: 639px)";
+
+function subscribeNarrow(cb: () => void) {
+  const mq = window.matchMedia(NARROW_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
+export function useIsNarrow(): boolean {
+  return useSyncExternalStore(
+    subscribeNarrow,
+    () => window.matchMedia(NARROW_QUERY).matches,
+    () => false
   );
 }
 
