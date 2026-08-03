@@ -367,6 +367,28 @@ export function MascotFlightLayer() {
       // the graceful-degradation path (storage disabled, or a page that never
       // mounted).
       const aligned = getLatestPerch() != null;
+      if (aligned) {
+        /* Owner, 2026-08-03: "the shadow is momentarily darkened while
+           swapping". It was, and the overlap below is exactly why.
+           Stacking two identical birds is invisible only where the sprite is
+           OPAQUE. The ground shadow is not: it is a lone ellipse at
+           opacity 0.18 drawn on transparency (hoopoe.tsx, data-part=shadow),
+           so two of them composite to 1 - (1 - 0.18)^2 = 0.33, an 82% darker
+           shadow for precisely the frames both birds are painted. Nothing
+           else in the rig doubles, because every other translucent mark sits
+           on top of the opaque body and so is already flattened into it.
+           The destination bird brings its own identical shadow at the same
+           rect, so the fix is simply to let it own it: drop the flyer's
+           before the reveal rather than after, so no painted frame ever
+           carries two. Written straight to the node instead of through the
+           controller because the rig is at rest here (api.perch() has
+           already resolved), so there is no animation left to fight. */
+        boxRef.current
+          ?.querySelectorAll<SVGElement>('[data-part="shadow"]')
+          .forEach((el) => {
+            el.style.opacity = "0";
+          });
+      }
       signalHandoff();
       if (aligned) {
         // two rAFs, not a ms-timer: the overlap is frame-granular by nature
