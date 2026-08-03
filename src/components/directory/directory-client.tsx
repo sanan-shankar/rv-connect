@@ -11,7 +11,6 @@ import {
   FacetSelect,
   FacetSearchSelect,
   RangeFacetPill,
-  SortPill,
   FilterSheet,
   FilterButton,
   FilterPopover,
@@ -22,8 +21,6 @@ import {
   PROFESSION_OPTIONS,
   HOUSE_OPTIONS,
   TYPE_OPTIONS,
-  directorySortOptions,
-  directoryDefaultSort,
 } from "@/lib/directory-facets";
 import { ProfileCard } from "./profile-card";
 import { AlumniMap, type CityPin, type PinPerson } from "./alumni-map";
@@ -196,13 +193,12 @@ export function DirectoryClient({
         ? `Batch of '${initialFilters.year.slice(-2)}`
         : "";
 
-  // Top five cities, derived from the same pins the map plots.
-  const topCities = [...cityPins].sort((a, b) => b.count - a.count).slice(0, 5);
-
   const cityOptions = useMemo(() => cities.map((c) => ({ value: c, label: c })), [cities]);
-  const hasQuery = !!initialFilters.q;
-  const sortOptions = directorySortOptions(hasQuery);
-  const sortValue = initialFilters.sort || directoryDefaultSort(hasQuery);
+  /* Sorting is gone from the chrome entirely (owner, 2026-08-03: "I think we
+     just remove sorting, I don't see anyone gonna use it"). The `sort` param
+     is still read from the URL and still forwarded to the server below, so an
+     old bookmark keeps working and the server keeps its default ordering; only
+     the control that nobody was going to touch is removed. */
 
   /* The sentence's tokens. BARE values, not the kit's "Label: Value" chip
      form: inside a sentence the facet's name is implied by its value, and
@@ -278,8 +274,10 @@ export function DirectoryClient({
   // every facet full-width) so neither rewrites the same six facet configs.
   // Primary = the facets that stay visible on the desktop toolbar row
   // (Profession, City, Batch); secondary stays behind "More filters".
-  function renderPrimaryFacets(fullWidth: boolean) {
-    const className = fullWidth ? "w-full" : undefined;
+  function renderPrimaryFacets(fullWidth: boolean, compact = false) {
+    // h-9 in the desktop popover, h-10 (the full touch target) in the mobile
+    // sheet. twMerge lets the later height win over PILL_BASE's h-10.
+    const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
     return (
       <>
         <FacetSelect
@@ -311,8 +309,8 @@ export function DirectoryClient({
     );
   }
 
-  function renderSecondaryFacets(fullWidth: boolean) {
-    const className = fullWidth ? "w-full" : undefined;
+  function renderSecondaryFacets(fullWidth: boolean, compact = false) {
+    const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
     return (
       <>
         <FacetSearchSelect
@@ -391,24 +389,18 @@ export function DirectoryClient({
             <FilterPopover
               open={panelOpen}
               onOpenChange={setPanelOpen}
-              hasActive={hasFilter}
-              onClearAll={clearAll}
               trigger={<FilterButton count={activeFacetCount} onClick={() => setPanelOpen((v) => !v)} />}
             >
-              {renderPrimaryFacets(true)}
-              {renderSecondaryFacets(true)}
+              {/* `compact` shrinks the facets to h-9 in the panel; the sheet on
+                  mobile keeps them at the full h-10 touch target. */}
+              {renderPrimaryFacets(true, true)}
+              {renderSecondaryFacets(true, true)}
             </FilterPopover>
           </div>
           <FilterButton
             count={activeFacetCount}
             onClick={() => setSheetOpen(true)}
             className="lg:hidden"
-          />
-          <SortPill
-            value={sortValue}
-            onChange={(v) => updateFilters("sort", v)}
-            options={sortOptions}
-            className="hidden sm:inline-flex"
           />
         </div>
 
@@ -468,12 +460,6 @@ export function DirectoryClient({
             showing it here as well would be the same duplication this whole
             change removes. */}
         <div className="sm:hidden">
-          <SortPill
-            value={sortValue}
-            onChange={(v) => updateFilters("sort", v)}
-            options={sortOptions}
-            className="w-full"
-          />
         </div>
       </FilterSheet>
 
@@ -506,9 +492,13 @@ export function DirectoryClient({
             </div>
           ) : (
             <>
+              {/* No gap below sm: there the cards are borderless rows, and a
+                  16px gutter between rows in a plain series reads as things
+                  drifting apart. From sm up they are boxed cards in a grid and
+                  need the gutter back. */}
               <div
                 ref={gridRef}
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                className="grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3"
               >
                 {results.map((user) => (
                   <ProfileCard key={user.id} user={user} />
@@ -549,32 +539,16 @@ export function DirectoryClient({
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            <AlumniMap
-              pins={cityPins}
-              unmapped={unmappedCount}
-              unmappedPeople={unmappedPeople}
-            />
-            {topCities.length > 0 && (
-              <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-4">
-                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  Top cities
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {topCities.map((c) => (
-                    <button
-                      key={c.city}
-                      onClick={() => updateFilters("city", c.city)}
-                      className="flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-[13px] text-foreground transition-[colors,transform] state-layer active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    >
-                      <span className="font-medium">{c.city}</span>
-                      <span className="text-muted-foreground">{c.count}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          /* Just the map. The "Top cities" card that used to sit under it is
+             gone (owner, 2026-08-03), and its wrapper went with it: a
+             space-y-4 stack separating one child from nothing is not a
+             layout. The cities it listed are the five biggest pins, which is
+             what the map is already showing, at their real positions. */
+          <AlumniMap
+            pins={cityPins}
+            unmapped={unmappedCount}
+            unmappedPeople={unmappedPeople}
+          />
         )
       ) : (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">

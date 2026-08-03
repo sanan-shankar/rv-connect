@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Maximize2, X, MapPin, Globe } from "lucide-react";
@@ -143,15 +143,6 @@ export function AlumniMap({
   unmappedPeople?: PinPerson[];
 }) {
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
-  /** Cluster tooltip. Anchored in MAP units (mx/my), never in stale screen
-   *  coords, so it can never be left behind by a pan, a zoom or a re-render. */
-  const [tip, setTip] = useState<{
-    /** The group's membership-derived key, so the label dies with its pin. */
-    id: string;
-    mx: number;
-    my: number;
-    label: string;
-  } | null>(null);
   /* The place and its headcount are kept APART rather than pre-joined into one
      string. The panel sets them at two different weights either side of a
      middle dot (owner, 2026-08-03: "maybe a middle dot instead of hyphen"),
@@ -170,8 +161,6 @@ export function AlumniMap({
   /** The live transform, readable from effects that must not re-run on zoom.
    *  Every change comes through the zoom handler, so this cannot drift. */
   const transformRef = useRef<ZoomTransform>(zoomIdentity);
-
-  const dismissTip = useCallback(() => setTip(null), []);
 
   const max = Math.max(1, ...pins.map((p) => p.count));
 
@@ -263,7 +252,6 @@ export function AlumniMap({
         // Any pan, wheel or pinch the USER drives dismisses the tooltip. d3
         // leaves sourceEvent null for programmatic transforms (our own zoom
         // buttons and cluster zoom), so those do not fight the pointer.
-        if (e.sourceEvent) setTip(null);
       });
     zoomBehavior.current = zb;
     sel.call(zb);
@@ -292,23 +280,7 @@ export function AlumniMap({
     if (transform.k > maxZoom) select(svgRef.current).call(zb.scaleTo, maxZoom);
   }, [maxZoom, transform.k]);
 
-  // Escape dismisses the tooltip.
-  useEffect(() => {
-    if (!tip) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setTip(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [tip]);
 
-  // Hard orphan guard: the tooltip only exists while the exact super-pin it
-  // describes is still on the map. A group's key is derived from its membership,
-  // so this alone drops the label the moment its cluster splits, is filtered
-  // away, or is rebuilt by a re-render. Derived rather than stored, so there is
-  // no window where a stale label can paint.
-  const liveTip =
-    tip && groups.some((g) => g.members.length > 1 && g.key === tip.id) ? tip : null;
 
   /** Centre (x, y) at scale k. scaleTo + translateTo rather than a hand-built
    *  transform so d3 runs its own constraints (scaleExtent, translateExtent):
@@ -377,11 +349,7 @@ export function AlumniMap({
         // and they are real buttons.
         role="group"
         aria-label="World map of where members live"
-        // Pressing anywhere on the map dismisses the tooltip. Markers set theirs
         // on click, which runs after pointerdown, so tapping one still works.
-        onPointerDown={dismissTip}
-        onPointerLeave={dismissTip}
-        onPointerCancel={dismissTip}
       >
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           {landPaths.map((d, i) => (
@@ -403,7 +371,15 @@ export function AlumniMap({
             if (g.members.length > 1) {
               const r = sqrtRadius(g.count, max) + 4;
               const halo = r + 4;
-              const label = `${g.count} members across ${g.members.length} cities`;
+              /* The hover tooltip that read "N members across M cities" is
+                 gone (owner, 2026-08-03), and the whole tip rig with it: the
+                 state, the Escape handler, the orphan guard and the three
+                 pointer handlers that existed only to dismiss it. The disc
+                 already prints its own count, and the cities behind it are
+                 exactly what clicking gives you, so the label restated one
+                 number and promised the other. The screen-reader name keeps
+                 the count, because a screen reader cannot see the numeral
+                 drawn inside the circle. */
               return (
                 <g
                   key={g.key}
@@ -411,23 +387,13 @@ export function AlumniMap({
                   className={MARKER_CLASS}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Zoom in to ${label}`}
-                  // Hover only, and only for a real hovering pointer. A tap
-                  // cannot "un-hover", so on touch this super-pin just zooms;
-                  // its count is already printed inside the disc.
-                  onPointerEnter={(e) =>
-                    e.pointerType === "mouse" &&
-                    setTip({ id: g.key, mx: g.x, my: g.y, label })
-                  }
-                  onPointerLeave={dismissTip}
+                  aria-label={`Zoom in to ${g.count} ${g.count === 1 ? "member" : "members"}`}
                   onClick={() => {
-                    dismissTip();
                     onClusterClick(g);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      dismissTip();
                       onClusterClick(g);
                     }
                   }}
@@ -464,13 +430,11 @@ export function AlumniMap({
                 // which already leads with this exact line, so the hover label
                 // was pure duplication (owner call, 2026-07).
                 onClick={() => {
-                  dismissTip();
                   setDrill({ title: pin.city, count: pin.count, people: pin.people });
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    dismissTip();
                     setDrill({ title: pin.city, count: pin.count, people: pin.people });
                   }
                 }}
@@ -496,22 +460,6 @@ export function AlumniMap({
         </g>
       </svg>
 
-      {/* Cluster tooltip. Positioned from the CURRENT transform every render, so
-          it tracks its super-pin instead of being stranded at the coordinates it
-          happened to be opened at, and the box letterboxing is accounted for
-          (the fitted map is far shorter than its container in a phone column,
-          which used to put this label nowhere near its pin). */}
-      {liveTip && box.w > 0 && (
-        <div
-          className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-[140%] whitespace-nowrap rounded-lg bg-foreground px-2.5 py-1.5 text-[12px] font-medium text-background shadow-lg"
-          style={{
-            left: (box.w - W * box.s) / 2 + (liveTip.mx * transform.k + transform.x) * box.s,
-            top: (box.h - H * box.s) / 2 + (liveTip.my * transform.k + transform.y) * box.s,
-          }}
-        >
-          {liveTip.label}
-        </div>
-      )}
 
       {/* Zoom controls. Fullscreen on mobile adds a dedicated exit pill in this
           same corner (below), so these drop down to clear it; sm: and up
@@ -552,7 +500,6 @@ export function AlumniMap({
             type="button"
             aria-label="Reset the view to the whole world"
             onClick={() => {
-              dismissTip();
               zoomTo(W / 2, H / 2, MIN_Z);
             }}
             className="grid h-9 w-9 place-items-center rounded-full border border-border bg-card/95 text-foreground shadow-sm backdrop-blur transition-transform state-layer active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -565,7 +512,6 @@ export function AlumniMap({
       <button
         type="button"
         onClick={() => {
-          dismissTip();
           setFullscreen((v) => !v);
         }}
         aria-label={fullscreen ? "Exit full screen" : "View full screen"}
@@ -585,7 +531,6 @@ export function AlumniMap({
         <button
           type="button"
           onClick={() => {
-            dismissTip();
             setFullscreen(false);
           }}
           aria-label="Exit full screen"

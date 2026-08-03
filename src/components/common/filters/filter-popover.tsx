@@ -66,25 +66,34 @@ export function FilterButton({
 }
 
 /**
- * The desktop panel: the shared menu material, holding the full labelled
- * facet stack and a Clear all. Width is fixed rather than anchor-derived,
- * because the trigger is a small pill and the facets inside want room.
+ * The desktop panel: the shared menu material holding the labelled facet
+ * stack, and nothing else.
+ *
+ * It is a FIXED height (owner, 2026-08-03: "the filters drop down grows in
+ * size with every filter, and even the smallest version of it is way bigger
+ * than it needs to be"). Two things were wrong:
+ *
+ * - It grew. A "Clear all" row appeared the moment any facet was set, so the
+ *   panel was one height empty and another height in use. That row is gone
+ *   rather than reserved, because it was duplication: every set facet already
+ *   carries its own `x`, and the sentence line under the toolbar already ends
+ *   in a Clear all. The panel now has the same number of rows always.
+ * - It was too big at rest. The facets render at h-9 in here rather than the
+ *   toolbar's h-10, the stack gap drops to 6px, and the panel's own padding to
+ *   10px. Five facets now come to ~215px against ~300px, and the width drops
+ *   340 -> 300 since nothing in it needs 340.
  */
 export function FilterPopover({
   open,
   onOpenChange,
   trigger,
   children,
-  onClearAll,
-  hasActive,
   className,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   trigger: ReactNode;
   children: ReactNode;
-  onClearAll: () => void;
-  hasActive: boolean;
   className?: string;
 }) {
   return (
@@ -92,19 +101,8 @@ export function FilterPopover({
       <PopoverTrigger render={trigger as React.ReactElement} />
       <PopoverPortal>
         <PopoverPositioner align="end" sideOffset={6}>
-          <FacetPanel className={cn("w-[340px] p-3", className)}>
-            <div className="space-y-2.5">{children}</div>
-            {hasActive && (
-              <div className="mt-3 flex justify-end border-t border-border pt-2.5">
-                <button
-                  type="button"
-                  onClick={onClearAll}
-                  className="rounded-full px-2 py-1 text-[12.5px] font-semibold text-canopy underline-offset-2 transition-transform hover:underline active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-                >
-                  Clear all
-                </button>
-              </div>
-            )}
+          <FacetPanel className={cn("w-[300px] space-y-1.5 p-2.5", className)}>
+            {children}
           </FacetPanel>
         </PopoverPositioner>
       </PopoverPortal>
