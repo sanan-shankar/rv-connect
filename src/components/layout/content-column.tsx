@@ -16,7 +16,7 @@ import { usePathname } from "next/navigation";
  *
  *  CENTERED - one single column, centered in the space beside the
  *    sidebar. For everything that reads top to bottom: Letters,
- *    Support, About, Your profile (settings), You and the admins,
+ *    Support, About, Your profile (settings), Reach out,
  *    a member's profile. Text inside is still left-aligned; it is the
  *    COLUMN that is centered.
  *

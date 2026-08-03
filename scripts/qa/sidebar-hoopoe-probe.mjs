@@ -103,7 +103,7 @@ const readRail = (page) =>
     if (!aside) return { error: "no aside" };
     const bird = aside.querySelector(".hoopoe-mascot");
     const wrap = bird?.parentElement ?? null;
-    const ACCOUNT = ["My profile", "Settings", "Admin", "Message the admins", "Sign out"];
+    const ACCOUNT = ["My profile", "Settings", "Admin", "Reach out", "Sign out"];
     const accountRows = [...aside.querySelectorAll("a[href], button")]
       .map((el) => ({ el, text: el.textContent.trim() }))
       .filter(({ text }) => ACCOUNT.some((a) => text.startsWith(a)))
