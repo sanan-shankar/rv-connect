@@ -33,7 +33,7 @@ export function VerifiedMark({
       ? "Verified teacher"
       : user.accountType === "ex_teacher"
         ? "Verified former teacher"
-        : "Verified member";
+        : "Verified";
 
   return <VerifiedMarkInner label={label} isTeacher={isTeacher} size={size} />;
 }
