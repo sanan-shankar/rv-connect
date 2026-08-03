@@ -464,7 +464,7 @@ export function Sidebar({
         </div>
         <NavLinks pathname={pathname} markerId="nav-desktop" />
         {/* relative anchor for the idle-rest hoopoe, which perches just above
-            this row (see sidebar-hoopoe.tsx) */}
+            this section (see sidebar-hoopoe.tsx) */}
         <div className="relative mt-auto">
           <SidebarHoopoe />
           <AccountSection user={user} pathname={pathname} markerId="nav-desktop" />
