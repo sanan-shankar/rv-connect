@@ -75,9 +75,19 @@ export function SegmentedPills<T extends string>({
    *  "radiogroup": a single-choice form field (signup's account type, a
    *  Catch-up's cadence). Default matches the profile reference. */
   role?: "tablist" | "radiogroup";
-  /** Segments grow to fill the row in equal columns instead of sizing to
-   *  their labels. Only signup's "I am a..." toggle needs this, to hold
-   *  its half of a `flex-1` row beside the InfoTip. */
+  /**
+   * The track spans its row and the segments split it in equal columns,
+   * instead of the track hugging its labels.
+   *
+   * This is ONE prop rather than two on purpose. A caller used to stretch the
+   * track by passing `w-full` in `className` while leaving the segments
+   * label-sized, which is how the directory's mobile toggle ended up as a
+   * full-width bar with both options bunched against its left edge (owner,
+   * 2026-08-04: "each option should take up half of that pill, it shouldn't
+   * be squashed to one side ... that applies with all such pills"). Width and
+   * distribution have to move together, so `fill` now owns both and no call
+   * site should be setting a width itself.
+   */
   fill?: boolean;
   /** Track background/shadow/margin - each call site sits on a different
    *  surface (card, paper, muted), see file header. */
@@ -97,7 +107,7 @@ export function SegmentedPills<T extends string>({
       }
       className={cn(
         "items-center rounded-full border border-border p-1",
-        fill ? "grid gap-1.5" : "inline-flex w-fit max-w-full gap-1",
+        fill ? "grid w-full gap-1.5" : "inline-flex w-fit max-w-full gap-1",
         className
       )}
     >
