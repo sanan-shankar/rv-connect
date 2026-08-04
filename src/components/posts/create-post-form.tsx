@@ -121,7 +121,7 @@ const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   // Owner's wording, 2026-08-04: no "sighting", and the community rather than
   // the valley. Two things offered instead of three reads as an invitation
   // rather than a menu.
-  post: "Share a memory or a note to the community...",
+  post: "Share a memory or a note with the community...",
   group: "Share something with this group",
   letter: "Write your letter to the valley. Take your time.",
 };

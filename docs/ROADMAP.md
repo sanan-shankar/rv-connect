@@ -130,6 +130,6 @@ This is the single, contradiction-free build plan synthesized from all area spec
 8. ~~**Storage shim now or later?**~~ RESOLVED: the `storage.ts` shim shipped with the R2 migration; all image bytes flow through it.
 9. **Person-in-focus consent** is opt-out (default false), pushing a member's memory to everyone. Confirm opt-out (not opt-in) is acceptable.
 10. **Teacher batch nullability** ripples into `auth.ts`, `next-auth.d.ts`, the directory `groupBy`, and the shared batchline; must land as one coordinated change in Phase 10 so no workstream assumes a non-null batch.
-11. **Map dependencies** (`d3-geo`, `topojson-client`, `d3-zoom`, `supercluster`, world-atlas TopoJSON, trimmed GeoNames gazetteer) are small/free and fit the 200MB/5GB rules; confirm before adding.
+11. **Map dependencies** (`d3-geo`, `topojson-client`, `d3-zoom`, `supercluster`, world-atlas TopoJSON, trimmed GeoNames gazetteer) are small/free and fit the 200MB package rule; confirm before adding.
 
 Full plan written to `/private/tmp/claude-501/-Users-sanan-Documents-rv-alumni/d5fa1925-06df-4a12-ac6a-907f1c382f8e/scratchpad/BUILD_PLAN.md`.
