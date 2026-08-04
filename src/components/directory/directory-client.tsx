@@ -416,7 +416,11 @@ export function DirectoryClient({
             segments={viewSegments}
             value={browseView}
             onChange={setBrowseView}
-            className="w-full bg-card"
+            // Full width here, so the segments split it evenly rather than
+            // huddling at the left end of a wide bar. `fill` carries the
+            // width; the track must not also be sent a w-full class.
+            fill
+            className="bg-card"
           />
         </div>
         <SentenceLine
