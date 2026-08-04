@@ -92,7 +92,7 @@ const sectionVariants: Variants = {
   exiting: { transition: { staggerChildren: 0.03 } },
 };
 
-export function LandingHero() {
+export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean }) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const [phase, setPhase] = useState<Phase>("loading");
@@ -298,7 +298,15 @@ export function LandingHero() {
 
       {/* Headline + actions (the middle block that slides out on the exit) */}
       <motion.div className="relative z-10 flex flex-1 items-center" variants={middleVariants}>
-        <div className="w-full px-8 lg:px-16">
+        {/* Lifted by exactly the x-height of the 'e' in "Welcome" (owner,
+            2026-08-04), measured off the real font rather than estimated:
+            33px against the 60px h1, and the h1 changes size twice on the way
+            down, so the lift tracks it (0.55 of the heading's font size, which
+            is Libre Baskerville's x-height ratio). Lives on this inner block,
+            NOT the motion.div above it, because Framer writes `transform`
+            inline during the sign-in exit and would overwrite a utility class
+            here. */}
+        <div className="w-full -translate-y-[20px] px-8 sm:-translate-y-[26px] lg:-translate-y-[33px] lg:px-16">
           <div className="lg:grid lg:grid-cols-[88px_1fr] lg:gap-x-2.5">
             <div className="lg:col-start-2">
               <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl lg:whitespace-nowrap">
@@ -307,7 +315,13 @@ export function LandingHero() {
               <p className="mt-4 max-w-[42ch] text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg lg:max-w-none lg:whitespace-nowrap">
                 A space for the Rishi Valley community to stay connected.
               </p>
-              <div className="mt-9 flex flex-wrap items-center gap-3">
+              {/* Same 16px step as the subtitle above (owner, 2026-08-04: the
+                  three blocks "should be equally spaced ... the gap between
+                  the first two is fine"). Equal MARGINS also come out as equal
+                  INK here, measured 21.6px on both sides at 1440: the
+                  subtitle's half-leading is the only thing between the two
+                  gaps, and it sits on the inside of each. Was mt-9. */}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Link
                   href="/signup"
                   onClick={(e) => startExit(e, "signup")}
@@ -328,14 +342,19 @@ export function LandingHero() {
         </div>
       </motion.div>
 
-      {/* Scroll cue */}
-      <motion.div
-        className="relative z-10 flex flex-col items-center gap-3 pb-7 text-white/80"
-        variants={nudgeVariants}
-      >
-        <span className="text-[11px] font-medium uppercase tracking-[0.18em]">See what&apos;s inside</span>
-        <ChevronDown className="h-5 w-5 animate-bounce" aria-hidden />
-      </motion.div>
+      {/* Scroll cue. Suppressed while the showcase below the hero is held back
+          (see SHOW_SHOWCASE in src/app/page.tsx): pointing down at a page that
+          does not scroll is worse than pointing at nothing. The pb-7 goes with
+          it, so the hero's own bottom edge is the page's. */}
+      {showScrollCue && (
+        <motion.div
+          className="relative z-10 flex flex-col items-center gap-3 pb-7 text-white/80"
+          variants={nudgeVariants}
+        >
+          <span className="text-[11px] font-medium uppercase tracking-[0.18em]">See what&apos;s inside</span>
+          <ChevronDown className="h-5 w-5 animate-bounce" aria-hidden />
+        </motion.div>
+      )}
 
       {/* Slow-load company: a hopping Hoopoe on the warm beige, only if the photo
           is taking a while. Fades away as the hero reveals. */}
