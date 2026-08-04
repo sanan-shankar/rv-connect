@@ -1043,16 +1043,26 @@ export function CreatePostForm({
             >
               <span
                 aria-hidden
-                /* 3px, well under the app's 16 -> 12 -> 8 ladder. That ladder is
-                   for BOXES; this is a control glyph the size of a word, and at
-                   18px the 6px it started at read as a rounded-rect rather than
-                   a tickbox (owner: "way more squarish ... much tighter, but I
-                   don't want it fully squared off, just a slight curve"). */
+                /* Radius 3px, well under the app's 16 -> 12 -> 8 ladder. That
+                   ladder is for BOXES; this is a control glyph the size of a
+                   word, and at this size the 6px it started at read as a
+                   rounded-rect rather than a tickbox (owner: "way more squarish
+                   ... much tighter, but I don't want it fully squared off, just
+                   a slight curve").
+
+                   Size was the wrong dial. Three passes on the owner (18 "a bit
+                   smaller", 20 "too big", 19 "slightly small") could not all be
+                   about pixels, and they were not: the box sat in --border
+                   (#DFD8CB) at 1px while the two glyphs beside it are
+                   --muted-foreground (#6E7268) at a 2px stroke. A pale hairline
+                   reads small at ANY dimension, so growing the box only made a
+                   faint square bigger. It now wears the icons' own ink, at 19px
+                   (the size that measured closest), and the weights match. */
                 className={cn(
-                  "grid size-[18px] shrink-0 place-items-center rounded-[3px] border transition-colors",
+                  "grid size-[19px] shrink-0 place-items-center rounded-[3px] border transition-colors",
                   toCollection
                     ? "border-canopy bg-canopy text-white"
-                    : "border-border bg-card text-transparent group-hover/coll:border-canopy/60"
+                    : "border-muted-foreground/70 bg-card text-transparent group-hover/coll:border-canopy"
                 )}
               >
                 <Check className="size-3" strokeWidth={3} />
