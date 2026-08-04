@@ -138,6 +138,32 @@ the `<Analytics />` component only reports in a deployed Vercel environment; not
 Vercel dashboard until the round-6 branch is deployed to production.
 - Size: none, informational (owner deploys).
 
+### 17. The hoopoe misbehaves at browser zoom (reproduced only by the owner)
+Owner, 2026-08-04, on Cmd+ page zoom: "the eyes don't close anymore and the wings pivot about a
+weird point." Real report, cause not yet found. Two obvious explanations were tested and BOTH are
+wrong, so do not spend the time again:
+
+1. **Not the pivots.** `scripts/qa/hoopoe-zoom-probe.mjs` measures the computed `transform-box` and
+   `transform-origin` of the wings, eyes, crest and head at zoom 1 / 1.25 / 1.5 / 2. `transform-box`
+   stays `view-box` and every origin stays put at its user-unit value at all four. That is the
+   correct behaviour, and it is what would break if `RIG_CSS` ever stopped applying and motion's
+   `fill-box` default won. The probe is committed as a regression guard for that.
+   (Note for whoever reads its history: the probe's FIRST draft asserted the origins should SCALE
+   with the rendered SVG and duly reported 15 confident failures against a correct rig. `view-box`
+   origins are user units and must not scale.)
+2. **Not the mobile fly-in path wedging.** Zoom does shrink the CSS viewport past the auth pages'
+   `lg` (1024px) gate at about 1.4x, so a zoomed 1440 window genuinely renders the MOBILE
+   arrangement, where the bird arrives by `flyIn("sky")` rather than the cross-page flight. That
+   looked like the answer, since a wedged `flyIn` would never resolve and `runIntro` (which is what
+   calls `coverEyes`) would never run. Measured at 390x844 against 1440x900: both end with the wings
+   at the same ±163°, i.e. eyes covered. The mobile path completes.
+
+So the remaining suspects are things headless Chrome at a fixed `deviceScaleFactor` does not
+reproduce: real page-zoom rasterisation, a fractional device pixel ratio, or something specific to
+the owner's display. Next step is to look at it in a real zoomed browser rather than to theorise
+again. Low priority, owner: "if that's tough to fix never mind, we can push it down the road."
+- Size: investigation.
+
 ---
 
 ## Settled, do not re-open
