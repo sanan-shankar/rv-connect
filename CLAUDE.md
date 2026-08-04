@@ -37,7 +37,7 @@ CTAs/chips/tags are full pills. Do not use the old three-greens palette below ex
 ## Hard Rules
 
 - **Containment**: ALL commands run inside `/Users/sanan/Documents/rv-alumni/`. Never execute anything outside this folder without explicit permission.
-- **Storage**: Folder max 5GB. Don't install packages >200MB without asking.
+- **Storage**: Don't install packages >200MB without asking.
 - **Git commits**: NEVER include `Co-Authored-By`, model names, `noreply@anthropic.com`, or any AI attribution. Plain conventional commit messages only.
 - **Mobile**: Every desktop UI change MUST be verified on mobile (390×844). Screenshot both viewports.
 - **No `transition-all`**: Only animate `transform` and `opacity`. Use spring-style easing.
@@ -125,7 +125,7 @@ Screenshots save to `./temporary screenshots/screenshot-N.png` (auto-incremented
 5. **Skip iteration on animated elements** — they produce inconsistent frames
 
 **Gotchas (these have bitten past sessions):**
-1. **Stale `.next` cache.** If every route 404s, or a `globals.css` change does not show up, the Turbopack `.next` cache is corrupt. `rm -rf` is blocked and an in-folder move can exceed the 5GB cap, so move it to the scratchpad (same volume, instant): `mv .next "<scratchpad>/next-old"` then `npm run dev`. Always clear `.next` and restart after editing `globals.css` (HMR does not reliably pick up token/CSS-rule changes).
+1. **Stale `.next` cache.** If every route 404s, or a `globals.css` change does not show up, the Turbopack `.next` cache is corrupt. `rm -rf` is blocked, so move it aside instead (same volume, instant): `mv .next "<scratchpad>/next-old"` then `npm run dev`. Always clear `.next` and restart after editing `globals.css` (HMR does not reliably pick up token/CSS-rule changes). It grows large (5GB+ is normal); that is a cache, not a problem.
 2. **Screenshots need real Chrome.** The bundled Puppeteer Chrome is broken here. `scripts/qa/screenshot.mjs` now auto-falls-back to `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`; any sub-agent driving Puppeteer directly must set `PUPPETEER_EXECUTABLE_PATH` to that path or it cannot screenshot.
 3. **Verify at runtime, not just `tsc`.** `tsc --noEmit` has passed a Prisma `select` on a non-existent column that then 500'd the feed. Always screenshot the surface and watch the console / server log for `PrismaClientValidationError` / `pageerror`.
 4. **Every new preview/dev page must be registered.** Add it to `src/app/lab/_registry.ts` (the single index at `/lab` for every dev/preview room) in the same change, and run `node scripts/qa/lab-audit.mjs` to prove nothing is stranded.
