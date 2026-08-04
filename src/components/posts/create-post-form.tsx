@@ -118,7 +118,10 @@ const FORMAT_SHORTCUTS: Record<string, string> = {
 };
 
 const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
-  post: "Share a memory, a sighting, or a note for the valley",
+  // Owner's wording, 2026-08-04: no "sighting", and the community rather than
+  // the valley. Two things offered instead of three reads as an invitation
+  // rather than a menu.
+  post: "Share a memory or a note to the community",
   group: "Share something with this group",
   letter: "Write your letter to the valley. Take your time.",
 };
@@ -1100,14 +1103,34 @@ export function CreatePostForm({
   // starting stretched). The pill sits in flow as the collapsed baseline; the
   // editor is an overlay that fades over it while the box grows / shrinks beneath.
   return (
-    <div
+    /* COLLAPSED, there is no tile: just the bird and the pill sitting on the
+       page (owner, 2026-08-04, "get rid of the tile ... save some space and
+       just have an icon and a pill"). The card materialises only once the
+       composer is open, which is the state the owner is happy with.
+
+       The padding rides the SAME spring as the box height below, so opening
+       is one gesture: the card inflates around the pill as the pill becomes
+       the editor, rather than a tile snapping in first and then growing.
+       Background and border fade on the global 120ms colour transition; the
+       shadow is simply present while expanded, which nothing can catch during
+       a 300ms spring. */
+    <motion.div
       ref={rootRef}
       data-composer
-      className="card-elevated overflow-visible rounded-[var(--radius)] border border-border bg-card p-4"
+      initial={false}
+      animate={{ padding: expanded ? 16 : 0 }}
+      transition={SPRINGS.gentle}
+      className={cn(
+        "overflow-visible rounded-[var(--radius)] border",
+        expanded ? "card-elevated border-border bg-card" : "border-transparent bg-transparent"
+      )}
     >
       <div className="flex items-start gap-3">
         {currentUser && (
-          <BirdAvatar user={currentUser} size="sm" className="mt-0.5 hidden shrink-0 sm:inline-grid" />
+          // Shown at every width now. It used to hide below sm because the
+          // tile's own padding left no room for it; without the tile there is
+          // room, and the icon is half of what this control now is.
+          <BirdAvatar user={currentUser} size="sm" className="mt-0.5 shrink-0" />
         )}
         <motion.div
           className="relative min-w-0 flex-1"
@@ -1167,6 +1190,6 @@ export function CreatePostForm({
           </AnimatePresence>
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
