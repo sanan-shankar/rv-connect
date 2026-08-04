@@ -188,8 +188,15 @@ export function DarkGauntlet({ word }: { word: string }) {
             motionProps={stepMotion}
             kicker="Question 4 of 5"
             title="The UI is a lot less fun and has a lot less character in dark. Do you accept a life with less character?"
-            yes="I accept"
-            no="Character matters to me"
+            yes="Continue"
+            no="Stop"
+            // THE TRAP (owner, 2026-08-04). Three questions have trained the
+            // hand that the green pill on the right means "keep going". Here
+            // that pill is Stop, and the way onward is the quiet outline
+            // button. Answering on autopilot ends the run and you begin again
+            // from the first question, which is the entire point: one more
+            // reason not to go through with this.
+            swap
             onYes={() => setStep("word")}
             onNo={() => bail(3)}
           />
@@ -352,6 +359,7 @@ function GauntletStep({
   body,
   yes,
   no,
+  swap = false,
   onYes,
   onNo,
 }: {
@@ -361,9 +369,18 @@ function GauntletStep({
   body?: string;
   yes: string;
   no: string;
+  /**
+   * Hands the canopy fill to the NO action while leaving both buttons where
+   * they were. Position is what the hand has learned over the earlier
+   * questions, so moving the pill would give the swap away; only the label
+   * and what it does change underneath it.
+   */
+  swap?: boolean;
   onYes: () => void;
   onNo: () => void;
 }) {
+  const left = swap ? { label: yes, onClick: onYes } : { label: no, onClick: onNo };
+  const right = swap ? { label: no, onClick: onNo } : { label: yes, onClick: onYes };
   return (
     <motion.div {...motionProps} className="space-y-5 text-center">
       <StepKicker>{kicker}</StepKicker>
@@ -376,11 +393,11 @@ function GauntletStep({
         </p>
       )}
       <div className="flex justify-center gap-2 pt-2">
-        <Button variant="outline" onClick={onNo}>
-          {no}
+        <Button variant="outline" onClick={left.onClick}>
+          {left.label}
         </Button>
-        <Button variant="primary" onClick={onYes}>
-          {yes}
+        <Button variant="primary" onClick={right.onClick}>
+          {right.label}
         </Button>
       </div>
     </motion.div>
