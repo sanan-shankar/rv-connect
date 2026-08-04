@@ -12,8 +12,10 @@ import { cn } from "@/lib/utils";
  * input on click (as an absolute overlay, so it never reflows the header).
  *
  * Posts only: this box searches posts on the feed and submits to `/feed?q=`.
- * Searching for people is the directory's job -- its own search box handles
- * that separately, so there is no scope toggle here.
+ * A name typed here matches posts by their AUTHOR (owner, 2026-08-04), which
+ * is still a search for posts. Searching for a person is the directory's job
+ * -- its own search box handles that separately, so there is no scope toggle
+ * here.
  *
  * The expansion animates real `width`/`padding` values directly (never
  * Motion's `layout` FLIP animation). `layout` interpolates by scaling the box
@@ -176,8 +178,8 @@ export function SearchPill() {
                   setOpen(false);
                 }
               }}
-              placeholder="Search posts..."
-              aria-label="Search posts"
+              placeholder="Search posts or a name"
+              aria-label="Search posts, by their words or by who wrote them"
               className="min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground/75"
             />
           )}

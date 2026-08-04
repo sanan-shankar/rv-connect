@@ -613,11 +613,17 @@ export async function loadPosts(opts?: {
   // the first instead of combining with it).
   const andConditions: Record<string, unknown>[] = [];
   if (opts?.search) {
-    // Matches title (letters) or content, case-insensitive on Postgres.
+    /* Matches title (letters), content, or the AUTHOR'S NAME, case-insensitive
+       on Postgres. The author clause is there because people remember posts by
+       who wrote them at least as often as by what they said (owner,
+       2026-08-04: "they might not always remember words from the post, but
+       they might remember, oh, it was this person who did it"). It still
+       returns POSTS, not people; finding a person is the directory's job. */
     andConditions.push({
       OR: [
         { title: { contains: opts.search, ...searchInsensitive } },
         { content: { contains: opts.search, ...searchInsensitive } },
+        { author: { name: { contains: opts.search, ...searchInsensitive } } },
       ],
     });
   }
