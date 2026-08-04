@@ -472,10 +472,19 @@ export function Sidebar({
           <SheetContent
             side="left"
             showCloseButton={false}
-            className="flex w-[82%] max-w-xs flex-col gap-0 overflow-y-auto border-sidebar-border bg-sidebar p-4"
+            /* overflow-hidden here, with the NAV as the one scrolling region
+               below. The sheet used to scroll as a whole, which meant the
+               account block and the nav competed for the same height: open the
+               account rows on a short viewport and the drawer overflowed, the
+               mt-auto lost its slack, and the pill visibly dropped (owner,
+               2026-08-04: "when I expand it, the profile pill moves down a
+               couple pixels"). Measured at 390x640 it moved 22px. Now the pill
+               is pinned to the bottom and the nav gives up the room instead, so
+               expanding can never move it at any height. */
+            className="flex w-[82%] max-w-xs flex-col gap-0 overflow-hidden border-sidebar-border bg-sidebar p-4"
           >
             <SheetTitle className="sr-only">Menu</SheetTitle>
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex shrink-0 items-center justify-between">
               <Brand onNavigate={() => setOpen(false)} />
               <SheetClose
                 aria-label="Close menu"
@@ -484,11 +493,17 @@ export function Sidebar({
                 <X className="h-5 w-5" strokeWidth={2} />
               </SheetClose>
             </div>
-            <NavLinks
-              pathname={pathname}
-              onNavigate={() => setOpen(false)}
-              markerId="nav-mobile"
-            />
+            {/* min-h-0 is what makes flex-1 able to SHRINK here: without it a
+                flex child's floor is its content height, so the nav would
+                refuse to give room back and the overflow would reappear
+                somewhere else. */}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <NavLinks
+                pathname={pathname}
+                onNavigate={() => setOpen(false)}
+                markerId="nav-mobile"
+              />
+            </div>
             {/* The SAME AccountSection the desktop rail uses, not a flat list of
                 the same destinations (owner, 2026-08-04: "we need to incorporate
                 that into the mobile version ... let it shuffle up and do all of
@@ -496,13 +511,14 @@ export function Sidebar({
                 down, and the marker gliding out of the nav and onto the picked
                 row are one implementation rather than two that drift.
 
-                mt-auto anchors it to the BOTTOM of the drawer (owner,
-                2026-08-03), which is also what gives the rows empty space to
-                grow up into, exactly as on desktop. No border-t: the pill is a
-                contained object and does not need a rule to separate it from
-                the nav (owner, 2026-08-04, on the hairline that used to sit
-                above these rows: "we don't need that"). */}
-            <div className="mt-auto pt-3">
+                shrink-0 against the scrolling nav above anchors it to the
+                BOTTOM of the drawer (owner, 2026-08-03) and, unlike the mt-auto
+                it replaced, keeps it there even when the rows open on a short
+                phone. No border-t: the pill is a contained object and does not
+                need a rule to separate it from the nav (owner, 2026-08-04, on
+                the hairline that used to sit above these rows: "we don't need
+                that"). */}
+            <div className="shrink-0 pt-3">
               <AccountSection
                 user={user}
                 pathname={pathname}
