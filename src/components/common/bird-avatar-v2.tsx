@@ -225,12 +225,13 @@ const ARCHES: Arche[] = [
           <ellipse cx="30" cy="58" rx="9" ry="14" fill={GREY} transform="rotate(-14 30 58)" />
           {/* cream belly, kept low and small so it does not read as a second egg */}
           <ellipse cx="57" cy="75" rx="15" ry="9.5" fill={BELLY} />
-          {/* THE signature: the speckled necklace on the throat. Three copper dots, no black ones
+          {/* THE signature: the speckled necklace on the throat. Two copper dots, no black ones
               (owner, 2026-08-04). The dark row that used to sit above these read as hardware on a
-              soft bird, and it fought the eye for attention at 28px; copper alone keeps the bib
-              legible while letting the eye stay the darkest thing on the glyph. Staggered rather
-              than a straight row, because a level row read as a stripe. */}
-          {[[55.5, 55.5], [61.5, 62], [70, 60]].map(([x, y], k) => (
+              soft bird and fought the eye for attention at 28px; copper alone keeps the bib legible
+              while letting the eye stay the darkest thing on the glyph. Two rather than three, and
+              lifted 5 units off their first position, so they sit clear of the cream belly instead
+              of resting on its edge. Staggered, because a level pair read as a stripe. */}
+          {[[55.5, 50.5], [61.5, 57]].map(([x, y], k) => (
             <circle key={k} cx={x} cy={y} r="3.2" fill={COPPER} />
           ))}
           {beak(74, 45, 11, 3.2, "#4A423A")}
