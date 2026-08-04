@@ -9,7 +9,6 @@ import {
   Images,
   Feather,
   MessagesSquare,
-  HeartHandshake,
   Info,
   Settings,
   Shield,
@@ -19,6 +18,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { Tree as PhosphorTree } from "@phosphor-icons/react";
 import { useState } from "react";
 import {
   Sheet,
@@ -63,7 +63,7 @@ const NAV = [
   { href: "/catchups", label: "Catch-ups", icon: MessagesSquare },
   // /donate still exists as a redirect to this route (kept for old links);
   // this is the canonical live page with the real content.
-  { href: "/support", label: "Support", icon: HeartHandshake },
+  { href: "/support", label: "Support", icon: PhosphorTree },
   { href: "/about", label: "About", icon: Info },
 ];
 
@@ -182,7 +182,7 @@ function NavRow({
 }: {
   href: string;
   label: string;
-  icon: typeof Newspaper;
+  icon: typeof Newspaper | typeof PhosphorTree;
   active: boolean;
   markerId: string;
   onNavigate?: () => void;
@@ -238,7 +238,11 @@ function NavRow({
           className="flex shrink-0"
           {...(staggered ? { variants: ACCOUNT_INK } : {})}
         >
-          <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          {Icon === PhosphorTree ? (
+            <PhosphorTree className="h-[18px] w-[18px] shrink-0" weight="bold" />
+          ) : (
+            <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+          )}
         </motion.span>
         <motion.span
           className="truncate"

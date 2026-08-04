@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
 import { Users, FileText, AlertTriangle, UserPlus, Images, Mail } from "lucide-react";
+import { AdminSection } from "@/components/admin/admin-section";
+import { AdminStats } from "@/components/admin/admin-stats";
 import { UserManagement } from "@/components/admin/user-management";
 import { ReportManagement } from "@/components/admin/report-management";
 import { PhotoQueue } from "@/components/admin/photo-queue";
@@ -130,46 +131,34 @@ export default async function AdminPage({
     orderBy: { createdAt: "desc" },
   });
 
+  // Short labels: each one now has a sixth of the width rather than a quarter,
+  // and "Total" said nothing that the number beside it did not.
   const stats = [
-    { label: "Total Members", value: totalUsers, icon: Users },
-    { label: "Total Posts", value: totalPosts, icon: FileText },
-    { label: "New This Week", value: newSignups, icon: UserPlus },
-    { label: "Waiting on a Reply", value: unansweredMessages, icon: Mail },
-    { label: "Pending Reports", value: pendingReports, icon: AlertTriangle },
-    { label: "Photos to Review", value: pendingPhotos.length, icon: Images },
+    { label: "Members", value: totalUsers, icon: Users },
+    { label: "Posts", value: totalPosts, icon: FileText },
+    { label: "New this week", value: newSignups, icon: UserPlus },
+    { label: "Awaiting reply", value: unansweredMessages, icon: Mail },
+    { label: "Reports", value: pendingReports, icon: AlertTriangle },
+    { label: "Photos", value: pendingPhotos.length, icon: Images },
   ];
 
   return (
-    <div className="space-y-8">
+    // space-y-5, not space-y-8: five sections down one page were paying 32px
+    // each to be told apart, on a surface whose whole problem was scrolling.
+    <div className="space-y-5">
       <PageHeader
         title="Admin Panel"
         actions={showTour ? <TakeTourAgainButton /> : undefined}
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="flex items-center gap-3 pt-6">
-              <div className="rounded-lg bg-leaf/10 p-2">
-                <stat.icon className="h-5 w-5 text-leaf" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {stat.value}
-                </p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <AdminStats stats={stats} />
 
       {/* Messages from members (the in-app replacement for the old Tally form) */}
-      <section id="messages" className="scroll-mt-6">
-        <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
-          Messages{unansweredMessages > 0 ? ` (${unansweredMessages} waiting)` : ""}
-        </h2>
+      <AdminSection
+        id="messages"
+        label="Messages"
+        count={unansweredMessages > 0 ? unansweredMessages : undefined}
+      >
         <MessageQueue
           initialOpenId={openThreadId}
           threads={messageThreads.map((t) => ({
@@ -186,13 +175,10 @@ export default async function AdminPage({
             })),
           }))}
         />
-      </section>
+      </AdminSection>
 
       {/* Reported Posts */}
-      <section>
-        <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
-          Reported Posts ({pendingReports})
-        </h2>
+      <AdminSection label="Reported posts" count={pendingReports}>
         <ReportManagement
           reports={reports.map((r) => ({
             id: r.id,
@@ -207,21 +193,15 @@ export default async function AdminPage({
             reportedUserName: r.reportedUser?.name ?? null,
           }))}
         />
-      </section>
+      </AdminSection>
 
       {/* Verification queue */}
-      <section>
-        <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
-          Verification ({pendingVerification.length})
-        </h2>
+      <AdminSection label="Verification" count={pendingVerification.length}>
         <VerificationQueue users={pendingVerification} />
-      </section>
+      </AdminSection>
 
       {/* Photo queue */}
-      <section>
-        <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
-          Photos to Review ({pendingPhotos.length})
-        </h2>
+      <AdminSection label="Photos to review" count={pendingPhotos.length}>
         <PhotoQueue
           photos={pendingPhotos.map((p) => ({
             id: p.id,
@@ -237,13 +217,10 @@ export default async function AdminPage({
             createdAt: p.createdAt.toISOString(),
           }))}
         />
-      </section>
+      </AdminSection>
 
       {/* User Management */}
-      <section>
-        <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
-          Users ({users.length})
-        </h2>
+      <AdminSection label="Users" count={users.length}>
         <UserManagement
           users={users.map((u) => ({
             id: u.id,
@@ -256,7 +233,7 @@ export default async function AdminPage({
             createdAt: u.createdAt.toISOString(),
           }))}
         />
-      </section>
+      </AdminSection>
     </div>
   );
 }

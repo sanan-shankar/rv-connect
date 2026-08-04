@@ -5,7 +5,6 @@ import { Ban, Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { formatBatch } from "@/lib/utils";
 import { adminBlockUser, adminDeleteUser } from "@/components/profile/admin-actions";
 import { toast } from "sonner";
@@ -61,27 +60,32 @@ export function UserManagement({ users }: { users: UserRow[] }) {
       />
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        {/* min-w with w-full: `w-full` alone let the table squeeze to a 390px
+            phone, which wrapped every name and batch onto two lines and still
+            clipped Status and Actions off the right edge, so the block and
+            delete buttons could not be reached at all. A floor wide enough for
+            one line per row hands the overflow to the scroller instead. */}
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="pb-2 pr-4">Name</th>
-              <th className="pb-2 pr-4">Email</th>
-              <th className="pb-2 pr-4">Batch</th>
-              <th className="pb-2 pr-4">Status</th>
-              <th className="pb-2">Actions</th>
+              <th className="pb-1.5 pr-4 font-medium">Name</th>
+              <th className="pb-1.5 pr-4 font-medium">Email</th>
+              <th className="pb-1.5 pr-4 font-medium">Batch</th>
+              <th className="pb-1.5 pr-4 font-medium">Status</th>
+              <th className="pb-1.5 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((user) => (
               <tr key={user.id} className="border-b border-border">
-                <td className="py-2 pr-4 font-medium">{user.name}</td>
-                <td className="py-2 pr-4 text-muted-foreground">
+                <td className="py-1.5 pr-4 font-medium whitespace-nowrap">{user.name}</td>
+                <td className="py-1.5 pr-4 text-muted-foreground">
                   {user.email}
                 </td>
-                <td className="py-2 pr-4">
+                <td className="py-1.5 pr-4 whitespace-nowrap">
                   {formatBatch(user.batchType, user.batchYear)}
                 </td>
-                <td className="py-2 pr-4">
+                <td className="py-1.5 pr-4">
                   {user.role === "admin" && (
                     <Badge variant="outline" className="text-leaf border-leaf">
                       Admin
@@ -96,7 +100,7 @@ export function UserManagement({ users }: { users: UserRow[] }) {
                     <span className="text-xs text-muted-foreground">Active</span>
                   )}
                 </td>
-                <td className="py-2">
+                <td className="py-1.5">
                   <div className="flex gap-1">
                     <Link href={`/profile/${user.id}`} title="View profile">
                       <Button variant="ghost" size="icon" className="h-7 w-7">

@@ -23,7 +23,7 @@ interface ReportRow {
 
 export function ReportManagement({ reports }: { reports: ReportRow[] }) {
   if (reports.length === 0) {
-    return <p className="text-sm text-muted-foreground">No pending reports.</p>;
+    return <p className="px-1 py-1 text-[13px] text-muted-foreground">No pending reports.</p>;
   }
 
   async function handleDismiss(reportId: string) {
