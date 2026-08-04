@@ -4,21 +4,29 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { postSchema, commentSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { delImage } from "@/lib/storage";
+import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 
-/** Best-effort cleanup of a post's stored image files, in parallel. Bad JSON
- *  is ignored: a post with a corrupt images column should still delete. */
-async function deletePostImages(images: string | null): Promise<void> {
-  if (!images) return;
+/** The url list out of a post's `images` column. Bad JSON reads as no images,
+ *  never as a throw: a post with a corrupt column should still delete, and
+ *  should still post. */
+function parseImageUrls(images: string | null | undefined): string[] {
+  if (!images) return [];
   try {
-    const parsed = JSON.parse(images) as string[];
-    await Promise.all(parsed.map((img) => delImage(img)));
+    const parsed = JSON.parse(images);
+    return Array.isArray(parsed) ? parsed.filter((u) => typeof u === "string") : [];
   } catch {
-    // ignore parse errors
+    return [];
   }
+}
+
+/** Best-effort cleanup of a post's stored image files, in parallel. */
+async function deletePostImages(images: string | null): Promise<void> {
+  await Promise.all(parseImageUrls(images).map((img) => delImage(img)));
 }
 
 
@@ -61,6 +69,7 @@ export async function createPost(formData: FormData) {
     pollOptions,
     cityScope: (formData.get("cityScope") as string) || undefined,
     saveAsDraft: formData.get("saveAsDraft") === "true" ? true : undefined,
+    toCollection: formData.get("toCollection") === "true" ? true : undefined,
   };
 
   const parsed = postSchema.safeParse(raw);
@@ -123,6 +132,28 @@ export async function createPost(formData: FormData) {
         },
       });
     }
+  }
+
+  /* "Also add to the Collection". Scheduled with `after` so the composer gets
+     its response the moment the post exists: copying a photograph costs a
+     fetch of the original plus a sharp resize per image, and making someone
+     watch a spinner for that is exactly the imposition the tick was meant to
+     avoid. A draft is excluded because it is not published yet; if it is later
+     published, the author can contribute the photo the ordinary way.
+
+     Errors are swallowed inside the helper. By the time this runs the post is
+     committed and the response is gone, so there is nobody to tell. */
+  const collectionImages = isDraft ? [] : parseImageUrls(parsed.data.images);
+  if (parsed.data.toCollection && collectionImages.length > 0) {
+    const userId = session.user.id;
+    after(async () => {
+      await copyPostImagesToCollection({
+        userId,
+        imageUrls: collectionImages,
+        caption: parsed.data.content,
+      });
+      revalidatePath("/collection");
+    });
   }
 
   // A draft is never posted anywhere public, so there is nothing to revalidate

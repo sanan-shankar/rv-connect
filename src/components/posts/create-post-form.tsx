@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2 } from "lucide-react";
+import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -184,6 +184,10 @@ export function CreatePostForm({
   // own previews; fresh uploads append object URLs as before.
   const [images, setImages] = useState<string[]>(initialImages ?? []);
   const [previews, setPreviews] = useState<string[]>(initialImages ?? []);
+  /* "Also add to the Collection". Off by default and never remembered between
+     posts: it is an offer, and an offer that quietly stays ticked would put
+     photographs in the archive nobody chose to put there. */
+  const [toCollection, setToCollection] = useState(false);
   const [uploading, setUploading] = useState(false);
   // Determinate-feeling progress for the "Photo" button label while a batch
   // uploads one file at a time (no byte-level progress events on a plain
@@ -521,7 +525,14 @@ export function CreatePostForm({
   }
 
   function removeImage(index: number) {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImages((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      // Taking the last photograph out takes the offer with it, so adding a
+      // different one later starts from "no" rather than from a tick the
+      // writer left on for a picture they since deleted.
+      if (next.length === 0) setToCollection(false);
+      return next;
+    });
     setPreviews((prev) => {
       URL.revokeObjectURL(prev[index]);
       return prev.filter((_, i) => i !== index);
@@ -549,6 +560,9 @@ export function CreatePostForm({
     // "Save as draft" only ever applies to a letter; the button itself is
     // hidden outside letter mode, but this keeps the payload honest either way.
     if (isLetter && saveAsDraft) formData.set("saveAsDraft", "true");
+    // Only sent when there is actually a photograph to contribute; the tick is
+    // hidden otherwise, and the server ignores it for a draft.
+    if (toCollection && images.length > 0) formData.set("toCollection", "true");
 
     /* Resumed draft: the row already exists, so every save is an in-place
        update, and publishing is update-then-flip. The editor never clears -
@@ -596,6 +610,7 @@ export function CreatePostForm({
       setKind(defaultLetter ? "letter" : "post");
       setImages([]);
       setPreviews([]);
+      setToCollection(false);
       setPollOptions(null);
       setMore(false);
       setAudienceCity(null);
@@ -608,7 +623,14 @@ export function CreatePostForm({
             ? "Your letter is published"
             : groupId
               ? "Posted to the group"
-              : "Post shared!"
+              : "Post shared!",
+        // Said once, here, rather than as a line of help under the tick: a
+        // contribution waits for a moderator, and someone who ticks the box and
+        // then cannot find their photograph in the Collection deserves to know
+        // why. The tick itself stays a tick.
+        toCollection && images.length > 0
+          ? { description: "The photo is with the Collection editors." }
+          : undefined
       );
       onPosted?.();
     }
@@ -813,7 +835,13 @@ export function CreatePostForm({
             flex row re-centres a shrunken margin box and would swallow half the
             pull. The Post pill keeps its own corner: its FILL is the visual
             edge and already sits at the padding line, so it must not sink. */}
-        <div className="flex items-center gap-2">
+        {/* flex-wrap, added when the Collection tick joined this row: icons +
+            tick + Post overflow a 390px composer by a few pixels once three
+            photos are attached, and wrapping Post onto its own right-aligned
+            line is a far better answer than truncating the tick's label to
+            "Also add to the Coll...". At every width above that it stays one
+            row, which is where the owner asked for it. */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
           {/* Vertically CENTRED against the buttons on the right, not pinned to
               the bottom of the card (owner, 2026-08-02: the icons sat "with
               this weirdly big gap and almost sitting on the bottom", and should
@@ -993,6 +1021,53 @@ export function CreatePostForm({
             )}
           </div>
 
+          {/* The Collection offer, in the control row beside the two icons
+              rather than under the thumbnails (owner, 2026-08-04). It belongs
+              here: this row is already "what else goes with this post", which
+              is exactly what the tick is asking.
+
+              Small text and an 18px box, no card and no border (owner: "it
+              shouldn't be a big part ... maybe it could even just be a tiny
+              tick mark"). A real button with role=checkbox rather than an
+              <input>: the app has no checkbox primitive, and the whole row
+              needs to be the target so the label is tappable on a phone.
+              Unticked it is muted ink and a hairline box; ticked, the box fills
+              canopy. Colour only, no movement, per the hover rule. */}
+          {previews.length > 0 && (
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={toCollection}
+              onClick={() => setToCollection((v) => !v)}
+              className="group/coll flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <span
+                aria-hidden
+                /* 3px, well under the app's 16 -> 12 -> 8 ladder. That ladder is
+                   for BOXES; this is a control glyph the size of a word, and at
+                   18px the 6px it started at read as a rounded-rect rather than
+                   a tickbox (owner: "way more squarish ... much tighter, but I
+                   don't want it fully squared off, just a slight curve"). */
+                className={cn(
+                  "grid size-[18px] shrink-0 place-items-center rounded-[3px] border transition-colors",
+                  toCollection
+                    ? "border-canopy bg-canopy text-white"
+                    : "border-border bg-card text-transparent group-hover/coll:border-canopy/60"
+                )}
+              >
+                <Check className="size-3" strokeWidth={3} />
+              </span>
+              <span
+                className={cn(
+                  "text-[12.5px] transition-colors",
+                  toCollection ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                Also add to the Collection
+              </span>
+            </button>
+          )}
+
           {/* A small persistent indicator once an audience is chosen, so it stays
               legible without reopening the "+" menu -- clicking it reopens the
               menu to change or clear it. Truncates rather than pushing Post. */}
@@ -1031,21 +1106,22 @@ export function CreatePostForm({
                 as "New post" (shared buttonVariants, canopy fill, font-medium --
                 never bold). Still bespoke/animated (subdued until there's text,
                 springs to life) so it can't use <Button> directly.
-                SIZE IS BY CONTEXT. In the FEED composer it stays 36px: the page
-                header's own "New post" CTA is 40px and right above it, so a
-                second 40px canopy pill would compete with it. On the LETTERS
-                writing desk there is no competing CTA and Publish is the whole
-                point of the page, so it takes the full 40px (owner, 2026-08-02:
-                "the publish letter and save as a draft ctas can be as big as
-                the normal cta size"). */}
+
+                ONE size, the app's default 40px, in both contexts. The feed
+                composer used to drop to 36px on the argument that a second
+                canopy pill would compete with the header's "New post"; the
+                owner overruled it (2026-08-04: "make the post button a proper
+                sized CTA like New Post instead of the squashed thing it is
+                now"). The two are far enough apart on the page that matching
+                them reads as one language rather than a competition, and a
+                shrunken primary action was the more visible cost. */}
             <motion.button
               type="button"
               onClick={() => handleSubmit(false)}
               disabled={!content.trim() || submitting || savingDraft}
               className={cn(
-                buttonVariants({ variant: "primary", size: isLetter ? "default" : "sm" }),
-                isLetter ? "px-6" : "px-5",
-                "text-sm"
+                buttonVariants({ variant: "primary", size: "default" }),
+                "px-6 text-sm"
               )}
               animate={{ scale: hasContent ? 1 : 0.97, opacity: hasContent ? 1 : 0.55 }}
               whileTap={hasContent && !submitting ? { scale: 0.94 } : undefined}
