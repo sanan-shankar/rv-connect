@@ -1,0 +1,10 @@
+import puppeteer from "puppeteer";
+const url = process.argv[2], out = process.argv[3];
+const b = await puppeteer.launch({ headless: true, executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", args: ["--no-sandbox"] });
+const p = await b.newPage();
+await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+await p.goto(url, { waitUntil: "networkidle2" });
+await new Promise((r) => setTimeout(r, 2500));
+await p.screenshot({ path: out });
+await b.close();
+console.log("saved", out);

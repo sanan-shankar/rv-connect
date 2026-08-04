@@ -110,19 +110,42 @@ function Band({ tint = false, children }: { tint?: boolean; children: React.Reac
   );
 }
 
+/**
+ * Everything below the hero is held back (owner, 2026-08-04: "I want to make
+ * the landing page no longer scroll ... I don't want to delete everything
+ * under the landing page, I just need to improve it further before it's
+ * shipped"). The showcase stays written out in full below so turning it back
+ * on is this one flag; nothing has been deleted.
+ *
+ * Off, the page is exactly the hero's `min-h-dvh` and there is nothing to
+ * scroll to, so three things come off with it: the scroll cue in the hero
+ * (it would point at nothing), the sticky nav (it exists only to follow a
+ * long scroll), and the ambient leaves and perching birds (both are fixed
+ * layers that deliberately keep clear of the hero and live on the showcase
+ * frames, so with no showcase they would render nothing at a cost).
+ */
+const SHOW_SHOWCASE = false;
+
 export default function LandingPage() {
   return (
     <div className="bg-background">
-      <LandingNav />
+      {SHOW_SHOWCASE && (
+        <>
+          <LandingNav />
 
-      {/* Page-wide ambient life: sparse falling (tappable) leaves and hop-physics
-          birds on the showcase frames. Both are fixed layers that stay clear of
-          the hero and never block the page (pointer-events pass through, except
-          on the leaves themselves). */}
-      <AmbientLeaves />
-      <PerchingBirds />
+          {/* Page-wide ambient life: sparse falling (tappable) leaves and
+              hop-physics birds on the showcase frames. Both are fixed layers
+              that stay clear of the hero and never block the page
+              (pointer-events pass through, except on the leaves themselves). */}
+          <AmbientLeaves />
+          <PerchingBirds />
+        </>
+      )}
 
-      <LandingHero />
+      <LandingHero showScrollCue={SHOW_SHOWCASE} />
+
+      {SHOW_SHOWCASE && (
+        <>
 
       {/* Intro band, sets the tone before the showcase */}
       <SectionReveal>
@@ -224,7 +247,9 @@ export default function LandingPage() {
       </div>
 
       {/* 7. Closing CTA + footer */}
-      <LandingFooter />
+          <LandingFooter />
+        </>
+      )}
     </div>
   );
 }
