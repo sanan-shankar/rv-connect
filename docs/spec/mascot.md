@@ -206,10 +206,12 @@ does); reach for `flyIn` when the bird just needs to swoop onto a spot within on
 
 ## Open follow-ups
 
-- Lock the hoopoe out of the member avatar pool: in `src/lib/avatar.ts`, exclude species index 0 from
-  `birdFor()` (`species = 1 + axisIndex(s, "species::", BIRD_SPECIES_COUNT - 1)`); update `avatar.test.mjs`
-  to assert no species 0. NOT done yet (avatar files are still actively-changing WIP elsewhere).
-  The owner's `SPECIES_PINS` pin has already been reassigned off Hoopoe, to the Indian Roller (#3).
+- ~~Lock the hoopoe out of the member avatar pool.~~ DONE. Not by narrowing `birdFor()` (that would
+  have re-rolled every existing member's bird, since the pool size is the hash modulo) but by
+  remapping the ids that land on index 0 to a fixed alternate: `hashSpeciesFor` /
+  `HOOPOE_HASH_REMAP_INDEX` in `src/lib/avatar.ts`. `avatar.test.mjs` asserts the hash never returns
+  species 0. The owner's `SPECIES_PINS` pin is the Indian Roller, which as of 2026-08-04 is reserved
+  to him the same way (index 50, outside the pool entirely). See `docs/spec/avatars.md`.
 - Tail: DECIDED — no tail (default `tail={false}`; legs only). The compare card stays in the lab.
 - Proportions: the owner is dialing head/eye/beak size + position in the lab's Proportion Studio (saving
   slots to compare). Once they pick, bake the chosen `headScale`/`eyeScale`/`eyeY`/`eyeSpread`/`billLength`

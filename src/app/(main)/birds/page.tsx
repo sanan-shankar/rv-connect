@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
-import { BirdGlyphV2, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";
+import { BirdGlyphV2, GALLERY_SPECIES } from "@/components/common/bird-avatar-v2";
 
 export const metadata: Metadata = {
   title: "Birds",
@@ -9,9 +9,10 @@ export const metadata: Metadata = {
 
 /**
  * Public gallery of the Rishi Valley bird set, one glyph per species with its name. These are the
- * deterministic alumni avatars; every member without a photo is one of these birds. Names come from
- * SPECIES_FULL_NAMES (bird-avatar-v2.tsx) so this gallery can never drift from the names shown
- * elsewhere in the app.
+ * deterministic alumni avatars; every member without a photo is one of these birds. The list comes
+ * from GALLERY_SPECIES (bird-avatar-v2.tsx), which is where the reserved Indian Roller is held back,
+ * so this gallery can never drift from the names shown elsewhere in the app or quietly put the
+ * owner's bird back on the shelf.
  *
  * Adapted from the /lab/birds-rv scratch page for a public, in-app route: this version drops
  * the preview's own full-bleed background and standalone heading in favour of the shared app shell
@@ -27,7 +28,7 @@ export default function BirdsPage() {
         subtitle="Fifty species, each one a possible avatar. Every member without a photo wears one of these."
       />
       <ul className="grid grid-cols-2 gap-x-[var(--space-m)] gap-y-[var(--space-l)] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {SPECIES_FULL_NAMES.map((name, i) => (
+        {GALLERY_SPECIES.map(({ index: i, name }) => (
           <li key={i} className="flex flex-col items-center text-center">
             <span
               className="relative inline-grid shrink-0 place-items-center"

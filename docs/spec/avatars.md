@@ -20,7 +20,7 @@
 >   MASS (area-equivalent radius), not their farthest tip, so a long bill/tail/crest never shrinks
 >   the body. Converged: every bird centroid = (50,50), consistent body size.
 > - **Owner pin**: `SPECIES_PINS` in `src/lib/avatar.ts` pins a user id to a species (the owner is
->   pinned to the Indian Roller, not the Hoopoe - see the Hoopoe reservation below).
+>   pinned to the Indian Roller, not the Hoopoe - see the reservations below).
 > - **Manual per-user override (2026-07, shipped)**: `User.birdOverride` (DB column, a species slug
 >   like `"peregrine-falcon"`) lets an admin hand-assign one member's bird without touching the
 >   hash. **Precedence is now: photo > `birdOverride` > `SPECIES_PINS` > deterministic hash.**
@@ -36,8 +36,18 @@
 >   to land on the Hoopoe slot is deterministically remapped to a fixed alternate, the Rufous Treepie
 >   (`hashSpeciesFor` / `HOOPOE_HASH_REMAP_INDEX` in `src/lib/avatar.ts`) - this only changes the
 >   outcome for ids that would otherwise hash to the Hoopoe; every other id's bird is untouched.
-> - Previews: **`/preview/birds-rv`** (public gallery, one icon + name each) and **`/preview/centroid`**
->   (dev harness for the centering script). Distribution verified by `src/lib/avatar.test.mjs`.
+> - **Indian Roller reservation (2026-08-04)**: the Roller belongs to the owner alone. It was moved
+>   out of the hashable pool to index 50, one past the end (`BIRD_SPECIES_COUNT` is 50, so
+>   `hash % 50` returns 0..49), which means it needs no remap the way the Hoopoe does - nobody can
+>   land on it. `birdOverride = "indian-roller"` resolves only for the ids in
+>   `ROLLER_RESERVED_USER_IDS`, and `GALLERY_SPECIES` keeps it off `/birds`. **The Laughing Dove was
+>   drawn to take its vacated slot 3** rather than being appended: appending would have meant raising
+>   `BIRD_SPECIES_COUNT`, and since that number is the hash modulo, every member in the database
+>   would have woken up as a different bird. Taking slot 3 changed only the members who used to hash
+>   onto the Roller. **Never raise `BIRD_SPECIES_COUNT` to add a species**; take a slot inside 0..49.
+> - Rooms: **`/lab/birds-rv`** (gallery, mirrors the shipped `/birds`) and **`/lab/centroid`**
+>   (dev harness for the centering script). Verified by `src/lib/avatar.test.mjs`, which covers both
+>   the hash distribution and the two reservations.
 >
 > **Everything below this line is the ORIGINAL design proposal. It is superseded by the shipped
 > system described above,** and kept only for the still-valid rationale (why deterministic-from-id,

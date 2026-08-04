@@ -13,6 +13,8 @@
  *  claim that the real profile already has this data.
  * ------------------------------------------------------------------ */
 
+import { ROLLER_SPECIES_INDEX } from "@/lib/avatar";
+
 export type MockLinkKind = "instagram" | "linkedin";
 
 export interface MockLink {
@@ -62,9 +64,9 @@ export interface MockProfile {
    * fine; a letterbox strip is not.
    */
   coverPhoto: string | null;
-  /** Index into ARCHETYPES (src/components/common/bird-avatar-v2.tsx); 3 = Indian Roller. */
+  /** Index into ARCHETYPES (src/components/common/bird-avatar-v2.tsx). */
   avatarSpecies: number;
-  /** Common name for display; the internal glyph's short label is "Roller". */
+  /** Common name for display; the internal glyph's short label can differ (e.g. "Roller"). */
   speciesName: string;
   accountType: "alumnus" | "teacher" | "ex_teacher";
   verifyState: "unverified" | "pending" | "verified" | "flagged";
@@ -125,7 +127,10 @@ export const PROFILE: MockProfile = {
   name: "Sanan Shankar",
   photoUrl: null,
   coverPhoto: "/images/collection/v3.webp",
-  avatarSpecies: 3,
+  // The mock alumnus is the owner, so he wears the owner's reserved bird. Read from the constant,
+  // not typed as a number: the Roller moved from index 3 to 50 when it was reserved, and a literal
+  // here would silently have started showing a Laughing Dove under the caption "Indian Roller".
+  avatarSpecies: ROLLER_SPECIES_INDEX,
   speciesName: "Indian Roller",
   accountType: "alumnus",
   verifyState: "verified",

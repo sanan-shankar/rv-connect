@@ -11,7 +11,9 @@ import { fileURLToPath } from "url";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
 
-const BASE = "http://localhost:3000/preview/centroid";
+// /preview was folded into /lab on 2026-07-30 and its URLs are not redirected, so this pointed at
+// a 404 until 2026-08-04.
+const BASE = "http://localhost:3000/lab/centroid";
 // Size by visual MASS (area-equivalent radius), not the farthest tip, so birds with a long thin
 // tail/bill/crest (drongo, pond heron, kingfisher, peafowl) get a body as big as the round birds.
 // A cap keeps that thin part from pushing past the frame.
