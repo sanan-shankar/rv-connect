@@ -97,22 +97,6 @@ function accountNav(userId: string, isAdmin: boolean) {
   ];
 }
 
-/**
- * The mobile drawer's account rows (profile, settings, admin, messages, sign
- * out). They are the same control as a NavLinks row minus the route marker, so
- * they wear the same ink and the same hover rung, and the five of them share
- * one string rather than five copies that can drift.
- *
- * They used to be `text-sidebar-foreground/80` over `hover:bg-sidebar-accent/55`
- * -- an alpha pair that landed ~2 L* short of the nav rows sitting directly
- * above them in the same drawer, in both themes, for no reason anyone recorded.
- * Opaque idle ink is also the rail's standing rule (see the --sidebar-foreground-idle
- * note in globals.css): an alpha of white over a saturated surface is what put
- * the shipped label at 4.31:1.
- */
-const DRAWER_ROW_CLASS =
-  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring";
-
 function Brand({
   onNavigate,
   className = "",
@@ -501,53 +485,26 @@ export function Sidebar({
               onNavigate={() => setOpen(false)}
               markerId="nav-mobile"
             />
-            {/* mt-auto, not mt-3: the account rows sit at the BOTTOM of the
-                drawer (owner, 2026-08-03: "on mobile, let the bottom menu be
-                anchored to the bottom"), matching where they live on the
-                desktop rail, instead of floating directly under the nav with
-                the rest of the drawer empty below them. */}
-            <div className="mt-auto border-t border-sidebar-border pt-3">
-              <Link
-                href={`/profile/${user.id}`}
-                onClick={() => setOpen(false)}
-                className={DRAWER_ROW_CLASS}
-              >
-                <UserIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-                My Profile
-              </Link>
-              <Link
-                href="/settings"
-                onClick={() => setOpen(false)}
-                className={DRAWER_ROW_CLASS}
-              >
-                <Settings className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-                Settings
-              </Link>
-              {user.role === "admin" && (
-                <Link
-                  href="/admin"
-                  onClick={() => setOpen(false)}
-                  className={DRAWER_ROW_CLASS}
-                >
-                  <Shield className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-                  Admin
-                </Link>
-              )}
-              <Link
-                href="/messages"
-                onClick={() => setOpen(false)}
-                className={DRAWER_ROW_CLASS}
-              >
-                <MessageSquareText className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-                Reach out
-              </Link>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className={DRAWER_ROW_CLASS}
-              >
-                <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-                Sign out
-              </button>
+            {/* The SAME AccountSection the desktop rail uses, not a flat list of
+                the same destinations (owner, 2026-08-04: "we need to incorporate
+                that into the mobile version ... let it shuffle up and do all of
+                that stuff"). So the pill, the staggered unfurl, the fold back
+                down, and the marker gliding out of the nav and onto the picked
+                row are one implementation rather than two that drift.
+
+                mt-auto anchors it to the BOTTOM of the drawer (owner,
+                2026-08-03), which is also what gives the rows empty space to
+                grow up into, exactly as on desktop. No border-t: the pill is a
+                contained object and does not need a rule to separate it from
+                the nav (owner, 2026-08-04, on the hairline that used to sit
+                above these rows: "we don't need that"). */}
+            <div className="mt-auto pt-3">
+              <AccountSection
+                user={user}
+                pathname={pathname}
+                markerId="nav-mobile"
+                onNavigate={() => setOpen(false)}
+              />
             </div>
           </SheetContent>
         </Sheet>
