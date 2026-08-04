@@ -120,6 +120,41 @@ export function MascotFlightLayer() {
   const rafRef = useRef(0);
   const abortRef = useRef(false);
   const ranId = useRef(-1);
+  const startTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  /**
+   * Start the flight one tick after the rig says it is ready, never
+   * synchronously inside `onReady`.
+   *
+   * THIS IS WHY THE FLIGHT LOOKED DIFFERENT ON LOCALHOST AND ON THE DEPLOYED
+   * SITE (owner, 2026-08-04: on localhost "the wings are just tucked in and
+   * flapping a very little bit from the side to inside instead of flapping
+   * outwards"; deployed, they flap properly).
+   *
+   * React Strict Mode is dev-only and on by default. It mounts the rig, fires
+   * this callback, immediately tears that mount down again — running
+   * `<Hoopoe>`'s unmount cleanup, which calls `.stop()` on every live
+   * animation — and then re-runs the mount effects. A flight started
+   * synchronously from the first call therefore had its take-off pose killed
+   * milliseconds later, and the old `ranId` guard swallowed the second,
+   * post-dance call as a duplicate. So the whole flight ran with a puppet
+   * whose animations had just been stopped: this layer's own `setTransform`
+   * kept translating the box (it writes to the portal div, not the rig), so
+   * the bird still crossed the screen, but `takeOff` / `glide` / `perch` never
+   * took and the wings sat near their static rest markup. Production never had
+   * the dance, so it never had the bug, and localhost could not be trusted to
+   * review this animation at all.
+   *
+   * Deferring by one tick lets the dance finish first, so `ranId` then admits
+   * exactly one run and it is against a live rig. `clearTimeout` keeps only
+   * the newest ready signal, so the run is always the surviving mount's.
+   * This is the same fix, for the same motion v12 reason, that
+   * sidebar-hoopoe.tsx's `handleReady` already carries.
+   */
+  function queueFlight(api: HoopoeApi, flight: Active) {
+    clearTimeout(startTimerRef.current);
+    startTimerRef.current = setTimeout(() => void runFlight(api, flight), 0);
+  }
 
   // Subscribe to take-off requests. This is the ONLY thing alive while idle: a
   // single callback reference on the module bus (no DOM listeners).
@@ -132,6 +167,7 @@ export function MascotFlightLayer() {
     return () => {
       abortRef.current = true;
       cancelAnimationFrame(rafRef.current);
+      clearTimeout(startTimerRef.current);
     };
   }, []);
 
@@ -464,7 +500,7 @@ export function MascotFlightLayer() {
         size={size}
         idle={false}
         onReady={(api) => {
-          void runFlight(api, active);
+          queueFlight(api, active);
         }}
       />
     </div>,
