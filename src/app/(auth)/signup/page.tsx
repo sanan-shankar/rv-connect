@@ -102,11 +102,24 @@ export default function SignupPage() {
     if (!mobileFlyIn) setPreFlightVeil(false);
   }, [mobileFlyIn]);
 
-  // a warm wave-and-nod greeting, then it leans in, curious, ready to quiz you.
+  // A warm greeting: happy, a wave, a crest flick, then it just rests.
   // On a flight arrival this runs at handoff (the flyer having just landed).
+  //
+  // There used to be an `api.express("curious")` on the next line, meant to
+  // read as the bird leaning in ready to quiz you. It did not land where it
+  // looked like it would. `react()` is deliberately NOT enqueued: it awaits
+  // each verb in turn, so at this instant only the greet's FIRST step (the
+  // wave) is in the queue, and a verb called synchronously on the next line
+  // jumps in behind it, ahead of the greet's own remaining steps. The real
+  // running order was wave -> curious -> happy -> crestFlick, which is why
+  // the brows the owner objected to appeared right at the wave's tail:
+  // `curious` carries brow.op 0.5. Removed rather than resequenced, because
+  // the owner's read of the finished moment ("the happy is fine, and then the
+  // crest flick is awesome ... and then it rests nicely") has no room in it
+  // for a fourth pose. If a curious beat is ever wanted back, it belongs
+  // INSIDE the greet sequence, not called alongside it.
   function runIntro(api: HoopoeApi) {
     api.react("greet");
-    api.express("curious");
     introDone.current = true;
   }
 
