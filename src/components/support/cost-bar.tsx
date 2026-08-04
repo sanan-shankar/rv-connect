@@ -130,7 +130,8 @@ function useCountUpOnView(target: number) {
 
 export function CostBar() {
   const { ref, shown, value } = useCountUpOnView(MONTHLY_TOTAL);
-  const { ref: fundRef, shown: fundShown, value: fundValue } = useCountUpOnView(BUILD_RECOVERED);
+  // Only the on-view flag is wanted here now; there is no figure left to count.
+  const { ref: fundRef, shown: fundShown } = useCountUpOnView(BUILD_RECOVERED);
 
   const fundPct = Math.min(100, (BUILD_RECOVERED / BUILD_COST) * 100);
 
@@ -194,15 +195,11 @@ export function CostBar() {
           here would be a border neither box has earned. */}
       <div ref={fundRef} className="mt-[var(--space-l)]">
         <div className="flex flex-wrap items-baseline justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xxs)]">
+          {/* No figures in this section any more (owner, 2026-08-04): the bar
+              shows that there is a cost being recovered and roughly how far
+              along it is, without putting a number on either end. */}
           <p className="font-heading text-base font-bold text-foreground">
             Recovering what it cost to build
-          </p>
-          <p className="inline-flex items-center gap-0.5 text-lg font-semibold tabular-nums text-canopy">
-            <IndianRupee className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-            {fundValue.toLocaleString("en-IN")}
-            <span className="ml-1 text-sm font-medium text-muted-foreground">
-              of ₹{BUILD_COST.toLocaleString("en-IN")}
-            </span>
           </p>
         </div>
 
@@ -221,9 +218,12 @@ export function CostBar() {
           className="relative mt-[var(--space-m)] w-full overflow-hidden rounded-full bg-mist"
           style={{ height: FUND_TRACK_H }}
           role="progressbar"
+          // Percentages, not amounts: with the figures off the page, a screen
+          // reader announcing "0 of 400000" would be reading out the one thing
+          // this section no longer says.
           aria-valuemin={0}
-          aria-valuemax={BUILD_COST}
-          aria-valuenow={BUILD_RECOVERED}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(fundPct)}
           aria-label="Progress towards recovering the one-time cost of building the site"
         >
           <motion.div
@@ -235,10 +235,6 @@ export function CostBar() {
           />
         </div>
 
-        <div className="mt-[var(--space-xs)] flex items-center justify-between text-xs tabular-nums text-muted-foreground">
-          <span>₹0</span>
-          <span>₹{BUILD_COST.toLocaleString("en-IN")}</span>
-        </div>
       </div>
     </div>
   );
