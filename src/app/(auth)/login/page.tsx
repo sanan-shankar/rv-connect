@@ -258,7 +258,12 @@ export default function LoginPage() {
       if (api && !introDone.current) runIntro(api);
     };
     const unsub = onHandoff(reveal);
-    const fallback = setTimeout(reveal, 4000);
+    // Must stay ABOVE the flight layer's own failsafe (5800ms at the default
+    // speed, mascot-flight-layer.tsx), so the flyer always hands off before
+    // this fires and the two birds are never both on screen. Raised 4000 ->
+    // 6000 on 2026-08-04 with the slower cruise; the same three numbers live
+    // in that file's header comment.
+    const fallback = setTimeout(reveal, 6000);
     return () => {
       unsub();
       clearTimeout(fallback);
