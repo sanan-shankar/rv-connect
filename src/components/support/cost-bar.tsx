@@ -20,11 +20,9 @@
 
    Its indicator is the same bar recipe as the monthly one, not the old
    track-and-knob slider: one canopy fill in a mist pill trough, where the
-   fill's MINIMUM width equals the track's height. At ₹0 that minimum is all
+   fill's MINIMUM width equals the fill's height. At ₹0 that minimum is all
    there is, so the fill renders as a single circle resting at the left end:
-   progress that has visibly started, never a dial thumb bigger than its
-   rail (owner, 2026-07-30: "the circle will have the same size as the bar.
-   Not bigger or smaller").
+   progress that has visibly started, never a dial thumb bigger than its rail.
 
    transform/opacity only. Rupees throughout, no vendor names. */
 
@@ -47,13 +45,10 @@ const MONTHLY_TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
 const BUILD_COST = 400000;
 const BUILD_RECOVERED = 0;
 
-/* The fund bar's track height in px, which is also the fill's MINIMUM width:
-   at ₹0 the fill is a circle of exactly this diameter, equal to the track,
-   per the owner ("not bigger or smaller" - no dial knob). 20 matches the
-   monthly bar's outer h-5, so the two troughs read as the same object; this
-   one takes no inner p-1, because an inset would leave the fill 12px tall
-   against a 20px track and the 0% circle must match the track exactly. */
-const FUND_TRACK_H = 20;
+/* Both bars use a 20px track with a 4px inset, leaving a 12px fill. The fund
+   fill's minimum width matches that fill height so its zero-state remains a
+   circle rather than a larger knob. */
+const FUND_FILL_H = 12;
 
 /* Counts a figure up from 0 the first time the card scrolls into view, paired
    with the bar fill so the number and the bar land together. A rAF ease-out
@@ -203,20 +198,17 @@ export function CostBar() {
           </p>
         </div>
 
-        {/* The monthly bar's own trough recipe (a mist pill; the owner asked
-            for the twin explicitly, which outranks the one-well-per-card
-            guidance here), minus its 4px inset so fill height == track
-            height (see FUND_TRACK_H). The max() keeps the fill's width from
-            ever dropping below the track height, so at 0% it is a perfect
-            canopy circle at the left end and later progress stretches that
-            same circle into a pill. Width is set statically rather than
+        {/* The monthly bar's own trough recipe: a 20px mist pill with a 4px
+            inset, producing the same 12px fill thickness. The max() keeps
+            the fill's width from ever dropping below its height, so at 0% it
+            is a perfect canopy circle at the left end and later progress
+            stretches that same circle into a pill. Width is set statically rather than
             animated with scaleX like the bar above: a transform scale would
             squash the 0% circle into an ellipse, and width itself may not
             animate (transform/opacity only), so the on-view reveal is an
             opacity fade instead. */}
         <div
-          className="relative mt-[var(--space-m)] w-full overflow-hidden rounded-full bg-mist"
-          style={{ height: FUND_TRACK_H }}
+          className="relative mt-[var(--space-m)] h-5 w-full overflow-hidden rounded-full bg-mist p-1"
           role="progressbar"
           // Percentages, not amounts: with the figures off the page, a screen
           // reader announcing "0 of 400000" would be reading out the one thing
@@ -228,7 +220,7 @@ export function CostBar() {
         >
           <motion.div
             className="h-full rounded-full bg-canopy"
-            style={{ width: `max(${fundPct}%, ${FUND_TRACK_H}px)` }}
+            style={{ width: `max(${fundPct}%, ${FUND_FILL_H}px)` }}
             initial={{ opacity: 0 }}
             animate={{ opacity: fundShown ? 1 : 0 }}
             transition={SPRINGS.gentle}
