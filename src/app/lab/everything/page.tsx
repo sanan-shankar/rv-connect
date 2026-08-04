@@ -71,7 +71,7 @@ export default function EverythingRoom() {
   return (
     <LabShell
       title="Everything else"
-      lede="One read-through of every surface in the product, by nine readers who were told to hunt complacency rather than bugs. 76 findings. This is the map; the other rooms are the worked examples."
+      lede="One read-through of every surface, hunting for things that are fine rather than things that are broken. This is the map; the other rooms are the worked examples."
     >
       <Tell
         label="How to read this"
@@ -90,17 +90,16 @@ export default function EverythingRoom() {
         ]}
       >
         <p>
-          Each finding names the thing, quotes the code, says what it costs the reader, and proposes
-          one alternative. They are not all worth doing. Several contradict each other. The point is
-          that none of them was <b>visible</b> before: every one of these surfaces looked fine.
+          Each one names the thing, says what it costs you, and offers one alternative. Press{" "}
+          <b>Evidence</b> for the file and line. They are not all worth doing and a few contradict
+          each other. The point is that none of them was <b>visible</b> before: every one of these
+          surfaces looked fine.
         </p>
         <p className="text-[15px] text-muted-foreground">
-          Honesty note on sourcing: the nine findings in <b>Global chrome</b> were re-verified by
-          hand, every contrast ratio recomputed and every count re-grepped, as were the four in
-          Support. The rest are as reported by the reader that found them, with the evidence quote
-          attached so you can check any one in a few seconds. Treat an unverified claim as a lead, not
-          a fact. Catch-ups in particular was being rewritten on disk while it was read, so some of it
-          may already be stale.
+          Where the numbers come from: the ones marked re-verified were checked by hand, contrast
+          ratios recomputed and counts re-grepped. The rest are as the reader found them, so treat an
+          unverified claim as a lead rather than a fact. Groups was dropped from this list when the
+          feature was removed, so nothing here describes code that no longer exists.
         </p>
       </Tell>
 

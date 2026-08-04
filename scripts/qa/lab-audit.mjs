@@ -67,6 +67,19 @@ function routeMatcher(route) {
   return new RegExp(`^${pattern}$`);
 }
 
+/**
+ * Real product routes that live outside (main) and (auth) on purpose, and so
+ * are not lab rooms however much the folder layout looks like it.
+ *
+ * /catchups/join/<token> is the shared Catch-up invite link. It cannot sit in
+ * (main), because that layout demands a session and the whole point of the link
+ * is that the person following it may have no account yet.
+ *
+ * Keep this list short. A route belongs here only if there is a reason it
+ * cannot live in a route group; "I did not want to register it" is not one.
+ */
+const PRODUCT_ROUTES = [/^\/catchups\/join\/\[[^/]+\]$/];
+
 // ---- 1 & 2: walk disk, convert to routes, drop (main)/(auth)/root/lab ----
 
 const allPageFiles = findPageFiles(APP_DIR);
@@ -79,6 +92,7 @@ for (const file of allPageFiles) {
   const route = toRoute(file);
   if (route === "/") continue; // the real landing page
   if (route === "/lab") continue; // the index itself is not an entry in itself
+  if (PRODUCT_ROUTES.some((re) => re.test(route))) continue;
   diskRoutes.push(route);
 }
 
