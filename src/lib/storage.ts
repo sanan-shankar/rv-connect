@@ -156,15 +156,28 @@ export async function delImageByKey(key: string): Promise<void> {
   }
 }
 
+/**
+ * The object key behind one of OUR public URLs, or null when the URL does not
+ * belong to this store (a legacy host, an external image). Null means "not
+ * ours": callers should leave such a URL alone rather than guess a key for it.
+ */
+export function keyForUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (useR2 && R2_PUBLIC_BASE_URL && url.startsWith(R2_PUBLIC_BASE_URL)) {
+    return url.slice(R2_PUBLIC_BASE_URL.length + 1);
+  }
+  // A root-relative path is ours whether or not R2 is configured: rows written
+  // before the R2 migration still carry local paths, and they resolve against
+  // public/ in both modes. Matching the pre-refactor delImage exactly.
+  if (url.startsWith("/")) return url.slice(1);
+  return null;
+}
+
 /** Delete an image by its public URL (best-effort; never throws). Derives
  *  the object key and hands off to `delImageByKey`, so the actual R2-vs-local
  *  delete logic lives in exactly one place. */
 export async function delImage(url: string | null | undefined): Promise<void> {
-  if (!url) return;
-  if (useR2 && R2_PUBLIC_BASE_URL && url.startsWith(R2_PUBLIC_BASE_URL)) {
-    await delImageByKey(url.slice(R2_PUBLIC_BASE_URL.length + 1));
-  } else if (url.startsWith("/")) {
-    await delImageByKey(url.slice(1));
-  }
+  const key = keyForUrl(url);
+  if (key) await delImageByKey(key);
   // Any other remote URL (e.g. a legacy host) is left alone on purpose.
 }

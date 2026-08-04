@@ -120,6 +120,9 @@ export const postSchema = z.object({
   // Save this letter as a draft instead of publishing it. Only meaningful
   // when kind === "letter" (createPost ignores it for a plain post).
   saveAsDraft: z.boolean().optional(),
+  // The composer's "Also add to the Collection" tick. Only meaningful when the
+  // post actually carries images, and never for a draft (see createPost).
+  toCollection: z.boolean().optional(),
 });
 
 // The Collection contribute form (contribute-dialog.tsx) simplified to three

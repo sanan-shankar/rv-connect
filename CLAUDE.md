@@ -129,6 +129,7 @@ Screenshots save to `./temporary screenshots/screenshot-N.png` (auto-incremented
 2. **Screenshots need real Chrome.** The bundled Puppeteer Chrome is broken here. `scripts/qa/screenshot.mjs` now auto-falls-back to `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`; any sub-agent driving Puppeteer directly must set `PUPPETEER_EXECUTABLE_PATH` to that path or it cannot screenshot.
 3. **Verify at runtime, not just `tsc`.** `tsc --noEmit` has passed a Prisma `select` on a non-existent column that then 500'd the feed. Always screenshot the surface and watch the console / server log for `PrismaClientValidationError` / `pageerror`.
 4. **Every new preview/dev page must be registered.** Add it to `src/app/lab/_registry.ts` (the single index at `/lab` for every dev/preview room) in the same change, and run `node scripts/qa/lab-audit.mjs` to prove nothing is stranded.
+5. **A lab room has a house voice, and it is not the one the newest rooms drifted into.** Read `docs/spec/lab-voice.md` BEFORE writing a room, and do not infer the style by copying whichever room you read last. That is how every room ended up opening with a stats scoreboard it had no numbers for. Short sentences, plain words, something to actually look at, and the stats block only when the numbers are the finding.
 
 ## Design Guardrails
 
