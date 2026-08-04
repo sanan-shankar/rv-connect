@@ -17,6 +17,7 @@ import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
 import { reportPerch, onHandoff, FLIGHT_FLAG, PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
+import { nextPathFromLocation } from "@/lib/next-path";
 
 type Step = "trivia" | "register";
 
@@ -344,7 +345,18 @@ export default function SignupPage() {
                 <p className="mx-auto mb-6 mt-2 max-w-[34ch] text-sm leading-relaxed text-muted-foreground">
                   Tell us a bit about yourself so your batchmates can find you.
                 </p>
-                <SignupForm hoopoe={hoopoe} onSuccess={() => router.push("/welcome")} />
+                <SignupForm
+                  hoopoe={hoopoe}
+                  /* ?next= rides on to /welcome so it survives onboarding
+                     too: someone who followed a Catch-up invite with no
+                     account goes signup -> the five setup steps -> the
+                     invitation, instead of being dropped on the feed. */
+                  onSuccess={() =>
+                    router.push(
+                      `/welcome?next=${encodeURIComponent(nextPathFromLocation())}`
+                    )
+                  }
+                />
               </motion.div>
             )}
           </AnimatePresence>

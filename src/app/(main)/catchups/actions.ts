@@ -47,6 +47,7 @@ import {
   extendPatch,
   isEffectiveKeeper,
   isMissingCatchupTable,
+  newInviteToken,
   preparingPatch,
   publishPatch,
   QUESTION_WINDOW_DAYS,
@@ -302,7 +303,7 @@ export async function createCatchup(input: {
     try {
       const catchupId = await prisma.$transaction(async (tx) => {
         const catchup = await tx.catchup.create({
-          data: { groupId, createdById: session.user.id, cadence },
+          data: { groupId, createdById: session.user.id, cadence, inviteToken: newInviteToken() },
         });
         const edition = await tx.catchupEdition.create({
           data: {
@@ -407,7 +408,7 @@ export async function createCatchupWithPeople(input: {
         select: { id: true, name: true },
       });
       const catchup = await tx.catchup.create({
-        data: { groupId: group.id, createdById: creatorId, cadence },
+        data: { groupId: group.id, createdById: creatorId, cadence, inviteToken: newInviteToken() },
       });
       // Round 1 opens straight into `collecting` with NO questions. Questions
       // are no longer picked at creation time (owner: "why would I need to add
@@ -435,6 +436,53 @@ export async function createCatchupWithPeople(input: {
     revalidatePath("/catchups");
     revalidatePath(`/catchups/${catchupId}`);
     return { success: true as const, catchupId };
+  });
+}
+
+/**
+ * Accept a Catch-up invite link.
+ *
+ * The token is the whole authorisation: holding it is the invitation, the same
+ * way holding a WhatsApp group link is. So there is nothing to check against
+ * the caller beyond being signed in, and nothing here reads a client-supplied
+ * catchupId: the token resolves to exactly one Catch-up or to nothing.
+ *
+ * Idempotent. Following the same link twice, or landing on it as an existing
+ * member, is a no-op that still returns the id, because the honest response to
+ * "join this" from someone already in it is to show them the Catch-up.
+ *
+ * Ended Catch-ups refuse: joining something nobody will write in again is a
+ * dead end, and it is better to say so than to add a silent membership. A
+ * PAUSED one accepts, because pausing is temporary by definition.
+ */
+export async function joinCatchupByToken(token: string) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof token !== "string" || !/^[a-f0-9]{32}$/.test(token)) {
+      return { error: "That invite link is not valid." };
+    }
+
+    const catchup = await prisma.catchup.findUnique({
+      where: { inviteToken: token },
+      select: { id: true, status: true, groupId: true, group: { select: { name: true } } },
+    });
+    if (!catchup) return { error: "That invite link is not valid." };
+    if (catchup.status === "ended") {
+      return { error: "This Catch-up has ended." };
+    }
+
+    // upsert, not create: two taps on the button, or a link followed twice,
+    // must not throw on the (groupId, userId) unique.
+    await prisma.groupMember.upsert({
+      where: { groupId_userId: { groupId: catchup.groupId, userId: session.user.id } },
+      create: { groupId: catchup.groupId, userId: session.user.id, role: "member" },
+      update: {},
+    });
+
+    revalidatePath("/catchups");
+    revalidatePath(`/catchups/${catchup.id}`);
+    return { success: true as const, catchupId: catchup.id, groupName: catchup.group.name };
   });
 }
 

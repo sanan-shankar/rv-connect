@@ -17,6 +17,7 @@
  *  No em dashes. User-facing copy says "Rishi Valley", never "Alumni".
  * ------------------------------------------------------------------ */
 
+import { randomUUID } from "node:crypto";
 import type {
   Cadence,
   CatchupNotifyKind,
@@ -65,6 +66,21 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
 export const HOUR_MS = 60 * 60 * 1000;
 
 /** Question window: 3 days. Answer window: 7 days. Preparing hold: 24h. */
+/**
+ * A fresh Catch-up invite token: 32 hex characters from the platform CSPRNG.
+ *
+ * `randomUUID` rather than cuid: the ids in this app are cuids, and a token
+ * that looked like an id would invite someone to try a Catch-up id in the join
+ * URL. The dashes come out so it reads as one opaque string in a shared link.
+ *
+ * This is a BEARER token. Whoever holds the link can join, which is the point
+ * of a share link; it must therefore never be derivable from anything already
+ * public about the Catch-up (its id is in the URL of every one of its pages).
+ */
+export function newInviteToken(): string {
+  return randomUUID().replace(/-/g, "");
+}
+
 export const QUESTION_WINDOW_DAYS = 3;
 export const ANSWER_WINDOW_DAYS = 7;
 export const PREPARING_HOLD_HOURS = 24;

@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 /**
  * Step 5: Done. A warm send-off into the feed. No auto-redirect timer, the
  * person leaves this page on their own click.
+ *
+ * `next` is normally the feed, but someone who arrived from an invite link is
+ * sent back to it, so the thing they originally clicked is the thing they land
+ * on. The button says where it goes either way.
  */
-export function DoneStep({ name }: { name: string }) {
+export function DoneStep({ name, next = "/feed" }: { name: string; next?: string }) {
   const router = useRouter();
   const firstName = name.trim().split(/\s+/)[0] || "there";
 
@@ -41,9 +45,9 @@ export function DoneStep({ name }: { name: string }) {
         variant="primary"
         size="lg"
         className="w-full"
-        onClick={() => router.push("/feed")}
+        onClick={() => router.push(next)}
       >
-        Take me to the feed
+        {next === "/feed" ? "Take me to the feed" : "Take me there"}
       </Button>
     </div>
   );
