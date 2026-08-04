@@ -35,9 +35,7 @@ export function PhotoQueue({ photos }: { photos: PendingPhoto[] }) {
 
   if (photos.length === 0) {
     return (
-      <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-        No photos awaiting review.
-      </div>
+      <p className="px-1 py-1 text-[13px] text-muted-foreground">No photos awaiting review.</p>
     );
   }
 
