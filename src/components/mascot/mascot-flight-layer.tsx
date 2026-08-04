@@ -26,7 +26,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import dynamic from "next/dynamic";
 import type { HoopoeApi } from "./hoopoe-kit";
 import type { HoopoeProps } from "./hoopoe";
@@ -444,30 +444,43 @@ export function MascotFlightLayer() {
       // the graceful-degradation path (storage disabled, or a page that never
       // mounted).
       const aligned = getLatestPerch() != null;
+
+      /* The shadow, and why this ordering is the whole fix.
+       *
+       * Stacking two identical birds is invisible only where the sprite is
+       * OPAQUE. The ground shadow is not: it is a lone ellipse at opacity 0.18
+       * drawn on transparency (hoopoe.tsx, data-part=shadow), so two composite
+       * to 1 - (1 - 0.18)^2 = 0.33 for exactly the frames both are painted.
+       * That was the owner's 2026-08-03 report, and dropping the flyer's
+       * shadow was the right idea. Doing it BEFORE signalHandoff was not.
+       *
+       * signalHandoff sets React state on the destination page. Left to its
+       * own scheduling that commit lands in a LATER frame than this style
+       * write, so the darkened frame was simply traded for an empty one: the
+       * flyer painted at least once with no shadow at all before its
+       * replacement existed. A shadow that blinks out and comes back is what
+       * the owner is still seeing as the ground "resetting" under the bird
+       * (2026-08-04).
+       *
+       * flushSync makes the reveal land in this same tick, before the browser
+       * paints, so the two writes are guaranteed to reach one frame together:
+       * the destination arrives WITH its shadow in the same paint the flyer
+       * loses its own. Never zero, never doubled, no frame in between. The
+       * flyer's write goes straight to the node rather than through the
+       * controller because the rig is at rest by now (api.perch() has already
+       * resolved), so there is no animation left to fight.
+       *
+       * Not inside an event handler or a render, so flushSync is legal here;
+       * it is a no-op when nothing is subscribed (a page that never mounted). */
+      flushSync(() => {
+        signalHandoff();
+      });
       if (aligned) {
-        /* Owner, 2026-08-03: "the shadow is momentarily darkened while
-           swapping". It was, and the overlap below is exactly why.
-           Stacking two identical birds is invisible only where the sprite is
-           OPAQUE. The ground shadow is not: it is a lone ellipse at
-           opacity 0.18 drawn on transparency (hoopoe.tsx, data-part=shadow),
-           so two of them composite to 1 - (1 - 0.18)^2 = 0.33, an 82% darker
-           shadow for precisely the frames both birds are painted. Nothing
-           else in the rig doubles, because every other translucent mark sits
-           on top of the opaque body and so is already flattened into it.
-           The destination bird brings its own identical shadow at the same
-           rect, so the fix is simply to let it own it: drop the flyer's
-           before the reveal rather than after, so no painted frame ever
-           carries two. Written straight to the node instead of through the
-           controller because the rig is at rest here (api.perch() has
-           already resolved), so there is no animation left to fight. */
         boxRef.current
           ?.querySelectorAll<SVGElement>('[data-part="shadow"]')
           .forEach((el) => {
             el.style.opacity = "0";
           });
-      }
-      signalHandoff();
-      if (aligned) {
         // two rAFs, not a ms-timer: the overlap is frame-granular by nature
         // (one painted frame with both birds), so it should not scale by speed
         await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
