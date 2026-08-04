@@ -4,8 +4,8 @@
  *  SidebarHoopoe — the "idle-rest" moment: if nobody has touched the
  *  page in a while, the resident hoopoe glides in and settles, eyes
  *  closed, on top of the sidebar's bottom-left profile entry. The very
- *  first interaction startles it off the perch and it flies away to the
- *  LEFT, out of the viewport.
+ *  first interaction wakes it (eyes open, a small startle-stretch) and
+ *  it flies off to the LEFT, out of the viewport.
  *
  *  Desktop sidebar only (the mount point in sidebar.tsx only exists next
  *  to the desktop `UserMenu`; mobile has no equivalent row). Gated by its
@@ -16,26 +16,6 @@
  *  Idle detection: one fixed set of passive `window` listeners plus one
  *  `setTimeout`, reset on every activity event. No polling loop, no
  *  interval — the browser's own event queue is the "poll".
- *
- *  THE EXIT is the part that has to be defensive, and it is worth reading
- *  runWake's comments before touching it (owner, 2026-08-03: "it works like
- *  60% of the time ... the hoopoe just stays there and doesn't fly away").
- *  Every step of it is awaited on the puppet's controller, and a motion v12
- *  animation that gets superseded never resolves its `.finished`, so a step
- *  can simply never return. Three things together make the departure sure:
- *  `stop()` clears the queue so the flight cannot be trapped behind a hung
- *  entrance or sleep; the flight races EXIT_DEADLINE_MS, sized ABOVE the
- *  measured flight rather than estimated from the animation constants; and
- *  when that deadline does win, the wrapper fades on plain CSS opacity
- *  instead of the bird being unmounted mid-air. Measure any change to this
- *  with `scripts/qa/sidebar-hoopoe-probe.mjs`, which reports the flight's
- *  frame-by-frame x trace and so can tell a real departure apart from a
- *  teardown that merely left the DOM in the same state.
- *
- *  It also has to stay out of the way of the in-rail account menu, whose
- *  rows expand into the exact strip of rail the bird perches in, so it does
- *  not arrive while that menu is open. See `accountMenuOpen()` below for why
- *  neither re-anchoring nor restacking can solve that instead.
  *
  *  One-hoopoe rule: `anotherHoopoeOnScreen()` (moments/one-hoopoe-guard.ts)
  *  is the shared guard every moment checks before showing its own bird —
@@ -71,77 +51,12 @@ const RIG_SIZE = 60;
 // finishes; `html { overflow-x: clip }` (globals.css) keeps it from ever
 // creating a horizontal scrollbar as it passes the edge.
 const EXIT_X = -200;
-// How long the exit flight is allowed to take before we stop waiting on the
-// puppet and take the bird away ourselves.
-//
-// Every step of the exit is awaited on the mascot controller, and motion v12
-// never resolves `.finished` for an animation that was stopped or SUPERSEDED
-// by another write to the same property (the gotcha the controller's own abort
-// token exists for, hoopoe.tsx:225-227, and that arcAndLand dodges by hand for
-// the landing legs, hoopoe.tsx:676-679). So a step can simply never return,
-// which used to pin the phase at "waking" -- the one state nothing could leave
-// -- and the bird sat on the rail until a reload.
-//
-// SIZE THIS ABOVE THE REAL FLIGHT, and measure it, do not estimate it. The
-// first attempt at this guessed 2600ms from the animation constants and was
-// less than half the truth, so it fired on perfectly healthy exits and the
-// bird vanished mid-departure (owner: "it suddenly just cut and was basically
-// deleted"). The flight is measured at ~2.5s once `stop()` clears the queue
-// (`scripts/qa/sidebar-hoopoe-probe.mjs` reports minX and the frame trace);
-// 5000ms leaves room for a slow machine without letting a genuine hang sit
-// there for long.
-const EXIT_DEADLINE_MS = 5_000;
-// The backstop fade, when the deadline wins. Long enough to read as leaving,
-// short enough that nobody waits on it. Must stay just above the wrapper's
-// `duration-200` (a literal class, because Tailwind cannot extract an
-// interpolated one), so the element is only unmounted after the fade has
-// actually finished painting.
-const FADE_MS = 220;
 
 type Phase = "waiting" | "entering" | "asleep" | "waking";
-
-/**
- * Is the in-rail account menu expanded right now?
- *
- * The wrapper is anchored 62px above the account section's top edge and the rig
- * box is 76px tall, so the bird's box always reaches 14px PAST that edge, onto
- * whatever the section's first element happens to be. While that section was
- * just the pill, that 14px was the whole charm: the bird perches ON your
- * profile tab. Since the rows became part of the rail (2026-08-03, `c54671a`)
- * they grow upward out of the pill and become the first element, so the same
- * 14px now lands on "My profile" (measured: ink bottom 619 against a first row
- * at 605, scripts/qa/sidebar-hoopoe-shots.mjs), and the bird's wrapper is the
- * only z-indexed thing down there, so it paints over the open menu.
- *
- * Re-anchoring cannot solve it, which is worth recording so nobody retries it:
- * anchoring to the pill instead moves the bird DEEPER into the rows (they sit
- * directly above the pill), and dropping the z-index only turns "bird over a
- * label" into "label over a bird", since the rows are transparent at rest.
- * The bird's perch and the open menu want the same 76px of rail. So the rule
- * is simply that they never hold it at once.
- *
- * Read off the DOM rather than threaded through as a prop: `open` lives inside
- * AccountSection, where it is adjusted during render off the route (the React
- * adjust-state-on-prop-change pattern), and lifting it to a shared parent would
- * turn that into a cross-component setState during render. The pill already
- * publishes the fact as `aria-expanded` for assistive tech. Same reasoning as
- * `anotherHoopoeOnScreen()`: a signal already in the DOM beats a bus module
- * built to carry it.
- *
- * Only the ARRIVAL needs this. A press on the pill is a `pointerdown`, so a
- * bird already perched is sent away by the normal activity path.
- */
-function accountMenuOpen(): boolean {
-  if (typeof document === "undefined") return false;
-  return document.querySelector('aside button[aria-expanded="true"]') !== null;
-}
 
 export function SidebarHoopoe() {
   const [desktop, setDesktop] = useState(false);
   const [mounted, setMounted] = useState(false);
-  /* Set only when the exit deadline wins: fades the wrapper instead of
-     unmounting it from under the viewer. See runWake. */
-  const [leaving, setLeaving] = useState(false);
 
   const phaseRef = useRef<Phase>("waiting");
   const apiRef = useRef<HoopoeApi | null>(null);
@@ -184,9 +99,7 @@ export function SidebarHoopoe() {
 
     function tryEnter() {
       if (phaseRef.current !== "waiting") return;
-      // Same retry cadence as the one-hoopoe guard, and for the same reason:
-      // the visitor is still idle, they are just sitting on an open menu.
-      if (anotherHoopoeOnScreen() || accountMenuOpen()) {
+      if (anotherHoopoeOnScreen()) {
         timerRef.current = setTimeout(tryEnter, BLOCKED_RETRY_MS);
         return;
       }
@@ -195,63 +108,14 @@ export function SidebarHoopoe() {
     }
 
     async function runWake(api: HoopoeApi) {
-      // Interrupted BEFORE it ever landed, i.e. still flying in. Do not try to
-      // fly it out again: `flyTo` starts its arc from `rootX/rootY`, which the
-      // entrance only writes at touchdown, so a second flight begins from the
-      // off-canvas point the first one started at -- the bird teleports up and
-      // then leaves (traced: "arc from 0 -174.8"). It is also the one path
-      // where flyCore was seen to wedge with none of its nine takeoff
-      // animations resolving, not even a 100ms opacity tween. It is already
-      // mid-air and only ~60px tall, so fading is both honest and cheaper than
-      // a second flight from a position we do not actually know.
-      const midEntrance = phaseRef.current === "entering";
+      const wasAsleep = phaseRef.current === "asleep";
       phaseRef.current = "waking";
-      // Measured BEFORE anything else. If the press was on the account pill,
-      // the rows expand upward and move this wrapper with them; a rect read
-      // after that shift aims the exit at where the perch moved to rather than
-      // at where the bird actually is.
+      if (wasAsleep) await api.wake();
       const r = wrapRef.current?.getBoundingClientRect();
       const y = r ? r.top + r.height / 2 : 0;
-
-      // Clear the puppet's queue and abort whatever it is mid-way through
-      // BEFORE asking for the flight. The controller runs one step at a time,
-      // so an exit enqueued behind an entrance or a sleep chord cannot start
-      // until that finishes -- and if that step is one of the ones that never
-      // resolves, the flight is never even reached. `stop()` also commits the
-      // current pose rather than snapping it back, so the bird simply takes
-      // off from wherever it had got to.
-      //
-      // The cost is the wake stretch: stop() clears the asleep flag, so wake()
-      // would no-op, and the bird leaves with its eyes still shut. That is a
-      // deliberate trade. The stretch was the single largest hang surface AND
-      // it doubled the exit (4.6s measured with it, ~2.5s without), and a bird
-      // that reliably leaves beats a bird that yawns first and sometimes
-      // doesn't. Reads as being startled off the perch, which is what happened.
-      api.stop();
-
-      const flew =
-        !midEntrance &&
-        (await Promise.race([
-          api.flyTo({ x: EXIT_X, y }).then(() => true),
-          new Promise<boolean>((resolve) =>
-            setTimeout(() => resolve(false), EXIT_DEADLINE_MS)
-          ),
-        ]));
-
-      // Either the deadline won or we never flew at all. Either way the bird
-      // must LEAVE rather than be deleted out from under the viewer (owner,
-      // 2026-08-03: "it was about to fly away when it suddenly just cut and
-      // was basically deleted" -- that was an earlier deadline set BELOW the
-      // real exit duration, so it fired on perfectly healthy exits). Fading
-      // the wrapper is deliberately not the puppet's job: it is plain opacity
-      // on a plain div, so it still works when the rig is the wedged thing.
-      if (!flew) {
-        setLeaving(true);
-        await new Promise((resolve) => setTimeout(resolve, FADE_MS));
-      }
+      await api.flyTo({ x: EXIT_X, y });
       phaseRef.current = "waiting";
       apiRef.current = null;
-      setLeaving(false);
       setMounted(false);
       armIdle();
     }
@@ -265,8 +129,7 @@ export function SidebarHoopoe() {
       if ((phase === "entering" || phase === "asleep") && apiRef.current) {
         void runWake(apiRef.current);
       }
-      // "waking": already on its way out, and the exit deadline guarantees it
-      // finishes, so there is nothing further to do.
+      // "waking": already on its way out, nothing further to do.
     }
 
     const events: Array<[string, AddEventListenerOptions]> = [
@@ -321,9 +184,7 @@ export function SidebarHoopoe() {
     <div
       ref={wrapRef}
       aria-hidden
-      className={`pointer-events-none absolute -top-[62px] left-0 z-10 transition-opacity duration-200 ${
-        leaving ? "opacity-0" : "opacity-100"
-      }`}
+      className="pointer-events-none absolute -top-[62px] left-0 z-10"
     >
       <Hoopoe size={RIG_SIZE} onReady={handleReady} />
     </div>
