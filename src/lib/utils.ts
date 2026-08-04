@@ -68,6 +68,85 @@ export function formatBatch(
    `batchLine()` below and the function went with it rather than staying as a
    dead export offering a second, off-house batch format. */
 
+/* ------------------------------------------------------------------ *
+ *  Phone display.
+ *
+ *  Numbers are stored exactly as typed, which means most arrive with the
+ *  country code welded onto the national number ("+919845033712") and read
+ *  as one undifferentiated run of digits. The owner wants the code to stand
+ *  apart wherever a number is shown (2026-08-04: "plus 91 and then a space
+ *  and then the rest of the number ... true with all other phone
+ *  extensions"), so this is a DISPLAY-only split. Nothing here touches what
+ *  is stored, and `tel:` hrefs keep using the raw value.
+ *
+ *  Splitting on the country code is exact rather than guesswork because ITU
+ *  calling codes are prefix-free and their length follows the zone of the
+ *  first digit or two:
+ *    1 digit  zone 1 (NANP) and zone 7.
+ *    2 digits the listed zone-2-through-9 assignments below.
+ *    3 digits everything else.
+ *  So no 230-row table is needed, and no dependency.
+ * ------------------------------------------------------------------ */
+const TWO_DIGIT_CALLING_CODES = new Set([
+  "20", "27",
+  "30", "31", "32", "33", "34", "36", "39",
+  "40", "41", "43", "44", "45", "46", "47", "48", "49",
+  "51", "52", "53", "54", "55", "56", "57", "58",
+  "60", "61", "62", "63", "64", "65", "66",
+  "81", "82", "84", "86",
+  "90", "91", "92", "93", "94", "95", "98",
+])
+
+/** National-number lengths worth believing. Below the floor the leading digits
+ *  are the number, not a country code; above the ceiling nothing sane is left. */
+const MIN_NATIONAL_DIGITS = 6
+const MAX_NATIONAL_DIGITS = 11
+
+/** The longest a bare number can be and still be purely national (India and the
+ *  NANP are both 10, which is the common case here). At or under this, there is
+ *  no country code in front and nothing to split. */
+const MAX_BARE_NATIONAL_DIGITS = 10
+
+/**
+ * "+919845033712" and "917598975768" both become "+91 9845033712"-style: the
+ * country code separated by a space, with the "+" restored if it was missing.
+ *
+ * The "+" cannot be required. Numbers here are stored exactly as typed and a
+ * real share of them carry the code with no plus in front ("917598975768",
+ * "14084019893"), which is precisely the run-together display the owner
+ * flagged (2026-08-04). So a bare digit run is split too, but ONLY when it is
+ * longer than a national number can be on its own: at 10 digits or fewer it is
+ * somebody's plain mobile, and prefixing a country code onto it would be
+ * inventing a fact (a bare Indian "9845033712" is not Iran's +98).
+ *
+ * A value that already contains a space is returned untouched. Whatever the
+ * author typed there has the code visually separated already, which is the
+ * whole point, and re-spacing it would fight them.
+ */
+export function formatPhoneDisplay(raw: string): string {
+  const trimmed = raw.trim()
+  // Already separated by the author: leave it exactly as written.
+  if (/\s/.test(trimmed)) return trimmed
+
+  const hadPlus = trimmed.startsWith("+")
+  const digits = hadPlus ? trimmed.slice(1) : trimmed
+  if (!/^\d+$/.test(digits)) return trimmed
+  // With no "+" to declare one, a short run is the national number itself.
+  if (!hadPlus && digits.length <= MAX_BARE_NATIONAL_DIGITS) return trimmed
+
+  const codeLength =
+    digits[0] === "1" || digits[0] === "7"
+      ? 1
+      : TWO_DIGIT_CALLING_CODES.has(digits.slice(0, 2))
+        ? 2
+        : 3
+  const rest = digits.slice(codeLength)
+  // If what is left is not a plausible national number, this was not a country
+  // code after all. Show what was typed rather than a dangling "+91 ".
+  if (rest.length < MIN_NATIONAL_DIGITS || rest.length > MAX_NATIONAL_DIGITS) return trimmed
+  return `+${digits.slice(0, codeLength)} ${rest}`
+}
+
 /** One display-date format for photo/letter attribution ("22 May 2026"). */
 export function formatDisplayDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-GB", {

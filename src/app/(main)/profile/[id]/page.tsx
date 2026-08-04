@@ -4,7 +4,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
-import { batchLine, parseJsonArray } from "@/lib/utils";
+import { batchLine, formatPhoneDisplay, parseJsonArray } from "@/lib/utils";
 import { socialHref, socialDisplay, parseUserLinks } from "@/lib/social";
 import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
@@ -136,7 +136,10 @@ export default async function ProfilePage({
       // The first number stays plain "Phone"; later ones are numbered from 2
       // so no two rows in the Get in touch sheet share a label.
       label: i === 0 ? "Phone" : `Phone ${i + 1}`,
-      value: p,
+      // Display only: the country code gets a space after it so it reads as a
+      // code rather than the first digits of the number. The href keeps the
+      // raw value, which is what a dialer wants.
+      value: formatPhoneDisplay(p),
       href: `tel:${p}`,
     })),
     user.instagram
