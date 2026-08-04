@@ -36,12 +36,20 @@ export function TriviaGate({
     try {
       const res = await checkTrivia(question.id, answer);
       if (res.ok) {
-        // a happy nod + crest flick, then hand off to the register step while the
-        // mood is still settling so the same bird carries you into the form.
+        // A real celebration, not the nod it used to be (owner, 2026-08-04:
+        // "a celebration when you answer correctly"). celebrate(2) is the
+        // middle tier: happy eyes, a 24px hop, both wings thrown open twice,
+        // the tail and crest springing, and six particles. Level 3 is held
+        // back for actually joining, so the two moments escalate.
         setPassed(true);
         setChecking(false);
-        hoopoe.react("correct");
-        setTimeout(onPass, 720);
+        hoopoe.celebrate(2);
+        // 720ms cut the hop off at its apex. The bird is hoisted at the page
+        // level and never unmounts across the step swap, so the celebration
+        // does carry over -- but the form sliding in on top of it stole the
+        // moment. 1150ms lets the hop land first; the bird is still settling
+        // as the form arrives, which is the handover this always wanted.
+        setTimeout(onPass, 1150);
         return;
       }
       // a wrong answer: the hoopoe shakes its head and looks worried

@@ -1263,12 +1263,33 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
     };
     scheduleSparkle();
 
+    // The ambient crest flick. The crest is the one part of this bird nobody
+    // else's mascot has, and a flick costs the viewer nothing to ignore, so it
+    // is the cheapest possible way to keep the rig feeling alive between real
+    // events (owner, 2026-08-04: "crest flicks are so unintrusive, a sprinkle
+    // of a thing they subconsciously notice as cool").
+    //
+    // It used to be a bare `rotate: [0, -5, 0]`, which is a lean, not a flick:
+    // a fan that tips over and comes back without ever opening reads as the
+    // whole head having wobbled. This borrows the shape of the deliberate
+    // `crestFlickRaw` verb above -- overshoot past centre on the way back, plus
+    // a small scaleY pop so the fan visibly springs -- at slightly lower
+    // amplitude, because that one answers a click and this one answers nothing.
+    // Cadence tightened from 6-13s to 5-11s: often enough to be noticed within
+    // a single glance at a page, still rare enough that it never becomes
+    // something happening AT you.
     let flickT: ReturnType<typeof setTimeout>;
     const scheduleFlick = () => {
       flickT = setTimeout(() => {
-        if (!damper.active) animate(PARTS.crest, { rotate: [0, -5, 0] }, { duration: 0.6, ease: EASE_SPRING });
+        if (!damper.active) {
+          animate(
+            PARTS.crest,
+            { rotate: [0, -5, 2.5, 0], scaleY: [1, 1.07, 1] },
+            { duration: 0.58, ease: EASE_SPRING }
+          );
+        }
         scheduleFlick();
-      }, rand(6000, 13000));
+      }, rand(5000, 11000));
     };
     scheduleFlick();
 

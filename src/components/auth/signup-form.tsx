@@ -232,11 +232,21 @@ export function SignupForm({
           setError("Account created but sign in failed. Please log in manually.");
           hoopoe.react("error");
         } else {
-          // a proper celebration before we hand off to the feed
+          // The biggest moment in the whole flow, so it gets the top tier
+          // (owner, 2026-08-04: "another celebration after joining").
+          // celebrate(3) over react("success")'s level 2: a 38px hop instead
+          // of 24, nine particles instead of six, over 1.3s instead of 0.85.
+          // peek() first so the wings come off the eyes before they are needed
+          // for the celebration itself.
           hoopoe.peek();
-          hoopoe.react("success");
+          hoopoe.celebrate(3);
           toast.success("Welcome to the jungle!");
-          setTimeout(onSuccess, 700);
+          // 700ms navigated to the feed while the bird was still on its way UP,
+          // so the one unrepeatable celebration in the product was never once
+          // seen to completion. 1400ms covers the 1.3s hop. It is a beat longer
+          // before the feed appears, on the single occasion in a member's life
+          // when a beat is the right thing to spend.
+          setTimeout(onSuccess, 1400);
         }
       }
     } catch {

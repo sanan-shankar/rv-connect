@@ -8,12 +8,11 @@
  *  the whole cycle happens on (owner review 2026-07-25): questions get
  *  added here while collecting, and the issue is read here once it is
  *  published. Right rail = the member's reminder setting, the published
- *  issues, and the Keeper's settings link. Never a centered single
- *  column on desktop; collapses to one stack on mobile.
+ *  issues, and Keeper actions/settings. Never a centered single column on
+ *  desktop; collapses to one stack on mobile.
  *
- *  There is no "Keeper controls" box. Each Keeper transition lives in
- *  the console beside the thing it acts on, and Settings is a plain link
- *  at the foot of the rail so it stays reachable while paused or ended.
+ *  There is no "Keeper controls" box. "Open answering" is the full-width
+ *  rail action above Settings, which stays reachable while paused or ended.
  * ------------------------------------------------------------------ */
 
 import { useRouter } from "next/navigation";
@@ -25,7 +24,7 @@ import { FadeRise } from "@/components/common/motion";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { PublishNowButton } from "@/components/catchups/round/publish-now-button";
 import { resumeCatchup } from "@/app/(main)/catchups/actions";
-import { ConsoleCollecting } from "./console-collecting";
+import { ConsoleCollecting, OpenAnsweringButton } from "./console-collecting";
 import { ConsoleAnswering } from "./console-answering";
 import { ConsolePublished, type PublishedIssue } from "./console-published";
 import { ArchiveShelf } from "./archive-shelf";
@@ -91,6 +90,12 @@ export function CatchupHomeShell({
         {viewer.isKeeper && data.inviteToken && data.catchupStatus !== "ended" && (
           <InviteLinkCard token={data.inviteToken} />
         )}
+        {viewer.isKeeper &&
+          catchupStatus === "active" &&
+          edition?.status === "collecting" &&
+          edition.prompts.some((prompt) => prompt.accepted) && (
+            <OpenAnsweringButton editionId={edition.id} onChanged={refresh} />
+          )}
         {viewer.isKeeper && (
           <KeeperSettingsDialog
             catchupId={data.catchupId}

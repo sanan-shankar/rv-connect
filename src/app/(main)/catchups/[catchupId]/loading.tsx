@@ -1,6 +1,6 @@
-/* Mirrors the Catch-up home's real shape: a title with no subtitle under it,
-   one plain status line, the question box, the question list, and a rail of
-   the member's own settings. Same symmetric tile padding as the live screen. */
+/* Mirrors the Catch-up home's real shape: the title carries its countdown,
+   followed by aligned content and rail tiles. Same symmetric tile padding as
+   the live screen. */
 export default function CatchupHomeLoading() {
   return (
     <div>
@@ -10,8 +10,6 @@ export default function CatchupHomeLoading() {
 
       <div className="grid items-start gap-x-[var(--space-l)] gap-y-[var(--space-m)] lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-[var(--space-m)]">
-          <div className="skeleton-warm h-4 w-48 rounded-md" />
-
           <div className="rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]">
             <div className="skeleton-warm h-4 w-44 rounded-md" />
             <div className="skeleton-warm mt-[var(--space-s)] h-[6.5rem] w-full rounded-[var(--radius-input)]" />

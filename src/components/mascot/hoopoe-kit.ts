@@ -221,7 +221,15 @@ export const EXPRESSIONS: Record<Expression, Chord> = {
   // strong, crest fully wilts, head droops and looks down. Clearly different from worried's furrow.
   sad: { crest: { sx: 0.44, sy: 0.78, rot: -9 }, brow: { y: 1.5, ang: -9, op: 1 }, eye: "round", bill: 0, head: { rot: 0, y: 4 }, body: { sy: 0.96, y: 3 }, tail: { rot: -16, sx: 0.93 }, gaze: { x: 0, y: 0.85 } },
   sleepy: { crest: { sx: 0.46, sy: 0.8, rot: -6 }, brow: { y: 1.5, ang: -1, op: 0.25 }, eye: "sleepy", bill: 0, head: { rot: 5, y: 3 }, body: { sy: 1, y: 1 }, tail: { rot: -9, sx: 0.95 } },
-  love: { crest: { sx: 1.1, sy: 1.03, rot: 0 }, brow: { y: -2.5, ang: -1, op: 0 }, eye: "happy", bill: 2, head: { rot: 6, y: 0 }, body: { sy: 1, y: 0 }, tail: { rot: 4, sx: 1 } },
+  // love: eyes OPEN and wide, not the `happy` arc. The arc eyeshape is a
+  // stroked curve with no pupil, so on a pose that is meant to read as adoring
+  // it just looks like the bird has shut its eyes and gone to sleep standing up
+  // (owner, 2026-08-04: "the eyes are closed when it's in the love eyes, that
+  // looks weird"). Round eyes keep the catchlights, which are the whole reason
+  // this pose reads as fond rather than merely awake, and the head tilt plus
+  // the slightly open bill carry the warmth instead. `happy` keeps the arc:
+  // there it IS the smile.
+  love: { crest: { sx: 1.1, sy: 1.03, rot: 0 }, brow: { y: -2.5, ang: -1, op: 0 }, eye: "round", bill: 2, head: { rot: 6, y: 0 }, body: { sy: 1, y: 0 }, tail: { rot: 4, sx: 1 } },
   alert: { crest: { sx: 1.06, sy: 1.22, rot: 0 }, brow: { y: -5.5, ang: -1, op: 0.7 }, eye: "wide", bill: 0, head: { rot: 0, y: -3 }, body: { sy: 1.06, y: -3 }, tail: { rot: 11, sx: 1 } },
   proud: { crest: { sx: 1.14, sy: 1.14, rot: 0 }, brow: { y: -2, ang: -2, op: 0.3 }, eye: "round", bill: 0, head: { rot: -7, y: -1 }, body: { sy: 1.06, y: -1 }, tail: { rot: 5, sx: 1.05 } },
   worried: { crest: { sx: 0.58, sy: 0.88, rot: -3 }, brow: { y: -1, ang: 4, op: 0.85 }, eye: "round", bill: 0, head: { rot: 0, y: 1 }, body: { sy: 0.99, y: 1 }, tail: { rot: -7, sx: 0.95 } },

@@ -158,13 +158,29 @@ export default function LoginPage() {
   // handoff (the flyer having just landed) instead of at mount.
   function runIntro(api: HoopoeApi) {
     api.peek();
+    // Blink first, THEN smile (owner, 2026-08-04: "a sweet smile after hitting
+    // sign in, before going back to normal and closing eyes"). The order is the
+    // point: the double-blink plays on the round eyes, so it reads as the bird
+    // looking at you, and only then does the face change. Smiling first would
+    // put the blink on the `happy` arc eyeshape, which is a stroked curve with
+    // no pupil to blink -- the beat would simply not be visible.
     api.blinkOnce(true);
+    api.express("happy");
     introTimeoutRef.current = setTimeout(() => {
       introTimeoutRef.current = null;
       introDone.current = true;
+      // Back to normal before the wings come up. Without this the bird sat
+      // grinning behind its own wings for the rest of the page, which turns a
+      // greeting into a fixed expression.
+      api.express("content");
       if (showPwRef.current) api.peek();
       else api.coverEyes();
-    }, 1150);
+      // 1700, not the old 1150: the blink and the smile's spring together take
+      // ~750ms, so the shorter window left well under half a second of actual
+      // smile. This holds it about a second, which is long enough to register
+      // as warmth and short enough that it is gone before you have finished
+      // reaching for the email field.
+    }, 1700);
   }
 
   function onHoopoeReady(api: HoopoeApi) {
