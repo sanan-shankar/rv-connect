@@ -164,6 +164,17 @@ function balanceRows(widths: number[], band: number): number[][] {
     const slack = Math.max(0, band - rowW(from, to));
     let total = slack * slack;
 
+    /* A row holding ONE pill anywhere but at the end is charged the whole
+       band on top of its slack. Slack alone rates it as merely wasteful, and
+       it is worse than that: the pill below it starts a row that can be far
+       wider, so the turn leaving the lone pill has to cross most of the band
+       and arrives at its target from the inside, where that target's own
+       in-row arrow already is. That is the tangle in the owner's 2026-08-04
+       screenshot (Alamanda alone, then Jacaranda and Duranta beneath it).
+       A lone pill as the LAST row is fine and stays uncharged: a turn INTO
+       one arrives at a pill with no in-row neighbour to collide with. */
+    if (to === from && to < n - 1) total += band * band;
+
     if (to < n - 1) {
       let best = Infinity;
       let bestEnd = to + 1;
@@ -353,12 +364,26 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
        you): a plain vertical drop through the shared column, arrowhead down
        into the pill's top. Zero bends.
 
-       NO OVERLAP: one rounded quarter bend. The leg leaves the bottom of
-       pill a just inside its facing edge, drops to the vertical middle of row
-       r+1, turns once, and runs horizontally into the SIDE of pill b, so the
-       arrowhead points along the row the way the in-row arrows do. The
-       vertical leg is deliberately placed inside a and outside b, so it can
-       never cut through either pill on its way past. */
+       NO OVERLAP: one rounded quarter bend. There are two ways to spend that
+       one bend, and which is correct depends on where b sits.
+
+         REACHING OUTWARD (b's middle lies past a's outer edge): leave a's
+         OUTER SIDE horizontally at row r's middle, run outward, bend once,
+         and drop into the TOP of b. Nothing of row r exists past a's outer
+         edge and nothing sits above b, so this route is clean by
+         construction.
+
+         Otherwise: leave the bottom of a just inside its facing edge, drop
+         to the vertical middle of row r+1, bend once, and run horizontally
+         into the SIDE of b, so the arrowhead points along the row the way
+         the in-row arrows do.
+
+       The outward route exists because the second one has a failure the
+       owner photographed (2026-08-04): b is the FIRST pill of its row, so
+       its in-row arrow to the next house sits against its inner side, and
+       arriving on that same side puts two arrowheads in one 30px gap
+       pointing at each other. Arriving from above cannot collide with an
+       in-row arrow at all. */
   const turns = rowsIdx.slice(0, -1).map((row, r) => {
     const next = rowsIdx[r + 1];
     const backwards = r % 2 === 1;
@@ -393,18 +418,73 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
       };
     }
 
-    // b sits clear of a: -1 means it is further left, +1 further right.
-    const dir = bR <= aL ? -1 : 1;
-    // The vertical leg goes just inside a's edge that FACES b.
-    const vx = dir < 0 ? aL + CAP_INSET : aR - CAP_INSET;
-    // Stop short of b's facing side by the same lead, on whichever side the
-    // approach is coming from.
+    /* Which way the turn travels. Taken from the two pills' MIDDLES, never
+       from their edges: row r's inner edge and row r+1's outer edge land on
+       the same x often enough (three houses over two, in the owner's
+       2026-08-04 profile, where both sat at 280) that an edge test decides on
+       a rounding hair. It picked "rightward" for a turn that then had to run
+       232px left, so the bend curled one way and the line doubled straight
+       back through it. Middles cannot tie like that. */
+    const dir = (bL + bR) / 2 < (aL + aR) / 2 ? -1 : 1;
+
+    /* Which side of b the run would arrive on, and which side of b is free.
+       b is the FIRST pill of its row, so it is drawn at one END of that row
+       and its in-row arrow to the next house sits against its INNER side. A
+       run that arrives there puts two arrowheads in one 30px gap pointing at
+       each other, which is the doubled arrow in the owner's screenshot. */
+    const arrivesLeftOfB = dir > 0;
+    const innerSideIsLeft = nextBackwards;
+    const sideEntryIsSafe = arrivesLeftOfB !== innerSideIsLeft;
+
+    if (!sideEntryIsSafe) {
+      /* Come down onto b's TOP instead, which no in-row arrow can occupy.
+         One bend still: leave a's OUTER side horizontally at row r's middle
+         (past that edge, row r is empty), run outward, bend, drop into b.
+         The descent lands on the part of b's body nearest a that still
+         leaves room for the bend, so the horizontal run is as short as the
+         geometry allows. */
+      const out = backwards ? -1 : 1;
+      const aOuter = backwards ? aL : aR;
+      const limit = aOuter + out * (TURN_R + TURN_LEAD);
+      const bodyL = bL + CAP_INSET;
+      const bodyR = bR - CAP_INSET;
+      const bx = out > 0 ? Math.max(bodyL, limit) : Math.min(bodyR, limit);
+      if (out > 0 ? bx <= bodyR : bx >= bodyL) {
+        const ya = r * (pillH + ROW_GAP) + pillH / 2; // middle of row r
+        // Rightward-then-down is the clockwise quarter turn on screen;
+        // leftward-then-down is the counter-clockwise one.
+        const sweep = out > 0 ? 1 : 0;
+        return {
+          key: `turn-${r}`,
+          d: `M ${aOuter + out * TURN_LEAD} ${ya} L ${bx - out * TURN_R} ${ya} A ${TURN_R} ${TURN_R} 0 0 ${sweep} ${bx} ${ya + TURN_R} L ${bx} ${y2}`,
+          head: `M ${bx - 3.5} ${y2 - 4.5} L ${bx} ${y2} L ${bx + 3.5} ${y2 - 4.5}`,
+        };
+      }
+      // b is too narrow, or too close to a, to be entered from above. Fall
+      // through: a crowded arrowhead beats no arrow at all.
+    }
+
+    /* Stop short of b's near side by the same lead the drop uses. */
     const tx = (dir < 0 ? bR : bL) - dir * TURN_LEAD;
+    /* The vertical leg drops from under a, CAP_INSET inside its body so it
+       leaves from the straight part rather than off a rounded cap. Normally
+       that is a's side FACING b, which keeps the run short. When the two
+       pills very nearly abut, though, that side leaves less run than the bend
+       itself needs (8px against a 10px radius, in the owner's 2026-08-04
+       profile) and the arc overshoots its own target, so fall back to a's far
+       side and let the run cross beneath a. A pill narrower than two insets
+       collapses both choices to its middle rather than inverting them. */
+    const inset = Math.min(CAP_INSET, (aR - aL) / 2);
+    const near = dir < 0 ? aL + inset : aR - inset;
+    const far = dir < 0 ? aR - inset : aL + inset;
+    const vx = Math.abs(tx - near) >= TURN_R ? near : far;
+    // Never bend through more than the run actually has room for.
+    const rr = Math.min(TURN_R, Math.abs(tx - vx));
     // Sweep 1 turns clockwise on screen (leftward), 0 counter-clockwise.
     const sweep = dir < 0 ? 1 : 0;
     return {
       key: `turn-${r}`,
-      d: `M ${vx} ${y1} L ${vx} ${yc - TURN_R} A ${TURN_R} ${TURN_R} 0 0 ${sweep} ${vx + dir * TURN_R} ${yc} L ${tx} ${yc}`,
+      d: `M ${vx} ${y1} L ${vx} ${yc - rr} A ${rr} ${rr} 0 0 ${sweep} ${vx + dir * rr} ${yc} L ${tx} ${yc}`,
       head: `M ${tx - dir * 4.5} ${yc - 3.5} L ${tx} ${yc} L ${tx - dir * 4.5} ${yc + 3.5}`,
     };
   });
