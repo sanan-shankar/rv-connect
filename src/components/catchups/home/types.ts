@@ -74,6 +74,9 @@ export type HomeArchiveRow = {
 
 export type CatchupHomeData = {
   catchupId: string;
+  /** The shareable invite token. Null only for a row written before the column
+   *  existed; the Keeper's invite card is simply absent in that case. */
+  inviteToken: string | null;
   groupId: string;
   groupName: string;
   title: string;

@@ -18,6 +18,7 @@ import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, LOGIN_TRANSITION_FLAG } from "@/components/landing/hero-photo";
 import { reportPerch, onHandoff, FLIGHT_FLAG, PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
+import { nextPathFromLocation } from "@/lib/next-path";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -320,7 +321,7 @@ export default function LoginPage() {
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          window.location.href = "/feed";
+          window.location.href = nextPathFromLocation();
           return;
         }
         if (data.error) {
@@ -339,7 +340,10 @@ export default function LoginPage() {
       if (result?.error) {
         setError("Invalid email or password.");
       } else if (result?.ok) {
-        window.location.href = "/feed";
+        // ?next= carries a link that was followed before signing in (a
+        // Catch-up invite, say) so the person lands back on it rather than
+        // on the feed. Validated against same-site paths in safeNextPath.
+        window.location.href = nextPathFromLocation();
       }
     } catch {
       setError("Something went wrong. Please try again.");

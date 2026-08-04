@@ -497,6 +497,12 @@ model Catchup {
   intro       String?                       // one-line description on the home
   cadence     String    @default("monthly") // "biweekly" | "monthly" | "quarterly"
   status      String    @default("active")  // "active" | "paused" | "ended"
+  // Shareable invite link (/catchups/join/<token>). A BEARER token: whoever
+  // holds it can join, which is what a share link is. Not derived from `id`,
+  // which is already public in every URL of this Catch-up. Nullable only
+  // because the column was added to a live table; every row has one and
+  // createCatchup* always writes one.
+  inviteToken String?   @unique
   nextOpensAt DateTime?                      // when the next Round auto-opens (recurring cadences)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

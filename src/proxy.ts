@@ -62,7 +62,13 @@ export function proxy(request: NextRequest) {
   // NOTE: "/lab" is temporary — it is the one index over every dev/preview room
   // (the old /preview tree was folded into it on 2026-07-30). Remove before
   // shipping to the public, along with the rooms themselves.
-  const publicPaths = ["/", "/login", "/signup", "/api/auth", "/lab"];
+  // "/catchups/join" is public so a shared invite link can be OPENED by
+  // someone with no account (the whole point of it). Only the join page is
+  // exposed: prefix matching means /catchups and /catchups/<id> stay gated,
+  // because neither equals "/catchups/join" nor starts with "/catchups/join/".
+  // The page itself shows a stranger only the Catch-up's name, its Keeper and
+  // a member count, never anything anyone wrote.
+  const publicPaths = ["/", "/login", "/signup", "/api/auth", "/lab", "/catchups/join"];
   const isPublic = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + "/")
   );

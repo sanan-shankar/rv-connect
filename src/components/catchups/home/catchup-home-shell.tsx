@@ -29,6 +29,7 @@ import { ConsoleCollecting } from "./console-collecting";
 import { ConsoleAnswering } from "./console-answering";
 import { ConsolePublished, type PublishedIssue } from "./console-published";
 import { ArchiveShelf } from "./archive-shelf";
+import { InviteLinkCard } from "./invite-link-card";
 import { KeeperSettingsDialog } from "./keeper-settings-dialog";
 import { ReminderPrefControl } from "./reminder-pref-control";
 import type { CatchupHomeData } from "./types";
@@ -82,6 +83,14 @@ export function CatchupHomeShell({
       <aside className="space-y-[var(--space-m)]">
         <ReminderPrefControl catchupId={data.catchupId} initialMode={viewer.reminderMode} />
         <ArchiveShelf rows={data.archive} groupName={data.groupName} />
+        {/* Above the settings dialog, not inside it: adding a person is
+            something a Keeper does often and early, while cadence and Pause
+            are things they set once. Hidden on an ended Catch-up, where the
+            join action refuses anyway, so the link is never offered as a door
+            into a room that is shut. */}
+        {viewer.isKeeper && data.inviteToken && data.catchupStatus !== "ended" && (
+          <InviteLinkCard token={data.inviteToken} />
+        )}
         {viewer.isKeeper && (
           <KeeperSettingsDialog
             catchupId={data.catchupId}

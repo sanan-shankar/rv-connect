@@ -379,6 +379,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
 
   const data: CatchupHomeData = {
     catchupId: catchup.id,
+    inviteToken: catchup.inviteToken,
     groupId: catchup.groupId,
     groupName: catchup.group.name,
     title: homeTitle(catchup.title, catchup.group.name),

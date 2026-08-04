@@ -66,9 +66,14 @@ export function OnboardingFlow({
   user,
   initialStep,
   celebration,
+  next = "/feed",
 }: {
   user: OnboardingUser;
   initialStep: OnboardingStepId;
+  /** Where finishing (or skipping) lands. Defaults to the feed; an invite link
+   *  followed before signing up passes itself here so the person ends up back
+   *  on the invitation instead. Already validated by safeNextPath upstream. */
+  next?: string;
   /** The already-rendered `<CelebrationSignals>` server component, handed
    *  down so this client component controls exactly when it enters the
    *  tree (see the file comment above). */
@@ -109,7 +114,7 @@ export function OnboardingFlow({
       return;
     }
     if (user.admissionNumber != null) {
-      router.replace("/feed");
+      router.replace(next);
       return; // stay !ready — /feed takes over in a moment
     }
     if (hasSeenOnboarding(user.id)) {
@@ -136,7 +141,7 @@ export function OnboardingFlow({
   }
   function finishLater() {
     markOnboardingSeen(user.id);
-    router.push("/feed");
+    router.push(next);
   }
 
   return (
@@ -199,7 +204,7 @@ export function OnboardingFlow({
           {step === "photo" && (
             <PhotoStep user={user} onNext={goNext} onBack={goBack} onSkip={goNext} />
           )}
-          {step === "done" && <DoneStep name={user.name} />}
+          {step === "done" && <DoneStep name={user.name} next={next} />}
         </motion.div>
       </AnimatePresence>
 

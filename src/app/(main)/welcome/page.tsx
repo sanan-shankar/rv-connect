@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
 import { OnboardingFlow, type OnboardingStepId } from "@/components/onboarding/onboarding-flow";
+import { safeNextPath } from "@/lib/next-path";
 
 export const metadata: Metadata = {
   title: "Welcome",
@@ -20,7 +21,7 @@ const STEP_IDS: OnboardingStepId[] = ["welcome", "register", "houses", "photo", 
 export default async function WelcomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ step?: string }>;
+  searchParams: Promise<{ step?: string; next?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -46,7 +47,10 @@ export default async function WelcomePage({
   });
   if (!user) redirect("/login");
 
-  const { step: stepParam } = await searchParams;
+  const { step: stepParam, next: nextParam } = await searchParams;
+  // Carried here from /signup so an invite link survives the whole
+  // signup -> onboarding detour. Validated, never used raw.
+  const next = safeNextPath(nextParam);
   const requestedStep = STEP_IDS.includes(stepParam as OnboardingStepId)
     ? (stepParam as OnboardingStepId)
     : null;
@@ -78,6 +82,7 @@ export default async function WelcomePage({
 
   return (
     <OnboardingFlow
+      next={next}
       user={{
         id: user.id,
         name: user.name,
