@@ -41,6 +41,21 @@ export interface PickedPerson {
 
 const DEBOUNCE_MS = 200;
 
+/**
+ * One chip, so the roster cannot end up with two shapes in it.
+ *
+ * The right padding is 14px rather than matching the left's 6px. The left is
+ * tight because a 28px avatar circle sits there and fills the pill's cap on
+ * its own; the right ends in text, which has no such bounding circle, and the
+ * pill is 38px tall so its cap radius is 19px. At the 10px it used to carry,
+ * the last letter of a name sat inside the curve and the chip read as
+ * mis-sized next to its neighbours (owner, 2026-08-04). A chip WITH a remove
+ * button overrides this back down to 8px, because there the trailing element
+ * is a 20px circle that centres in the cap the way the avatar does.
+ */
+const CHIP_CLASS =
+  "inline-flex items-center gap-1.5 rounded-full border border-leaf/30 bg-leaf/[0.07] py-1 pl-1.5 pr-3.5 text-[13px] font-medium text-leaf";
+
 export function PeoplePicker({
   value,
   onChange,
@@ -210,7 +225,7 @@ export function PeoplePicker({
         {/* You, first and always. Same chip shape as the rest so the list
             reads as one roster, minus the remove button. */}
         <li key={me.id}>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-leaf/30 bg-leaf/[0.07] py-1 pl-1.5 pr-2.5 text-[13px] font-medium text-leaf">
+          <span className={CHIP_CLASS}>
             <BirdAvatar
               user={{
                 id: me.id,
@@ -227,14 +242,7 @@ export function PeoplePicker({
             <li key={person.id}>
               {/* Leaf tint from the protocol's chip trio (people = leaf; the
                   drab canopy/10 pairing is dead). */}
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border border-leaf/30 bg-leaf/[0.07] py-1 pl-1.5 text-[13px] font-medium text-leaf",
-                  // No remove button means no room needs reserving for one, so
-                  // the chip closes up to the same padding as your own.
-                  canRemove ? "pr-2" : "pr-2.5"
-                )}
-              >
+              <span className={cn(CHIP_CLASS, canRemove && "pr-2")}>
                 <BirdAvatar
                   user={{
                     id: person.id,
