@@ -70,8 +70,15 @@ async function loadIndexData(userId: string) {
           id: true,
           name: true,
           _count: { select: { members: true } },
+          /* No `take` here any more. It used to fetch an arbitrary 6 with no
+             ordering, so whether the VIEWER appeared in the card's avatar
+             cluster came down to whatever order Postgres happened to return,
+             and members who fell outside that 6 asked the owner whether they
+             were even in the Catch-up (2026-08-04). The rows are four scalar
+             columns each and these groups are a set of people you picked, so
+             reading them all and putting the viewer first below costs nothing
+             worth protecting. `_count` above still supplies the true total. */
           members: {
-            take: 6,
             select: { user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
           },
           catchup: {
@@ -98,7 +105,11 @@ async function loadIndexData(userId: string) {
 
   const now = new Date();
   const cards: IndexCardView[] = memberships.map(({ group }) => {
-    const members = group.members.map((m) => m.user);
+    // Viewer first, so the card's cluster (which shows only the first few)
+    // always answers "am I in this?" before it answers "who else is?".
+    const members = group.members
+      .map((m) => m.user)
+      .sort((a, b) => (a.id === userId ? -1 : b.id === userId ? 1 : 0));
     const memberCount = group._count.members;
 
     if (!group.catchup) {
