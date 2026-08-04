@@ -121,7 +121,7 @@ const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   // Owner's wording, 2026-08-04: no "sighting", and the community rather than
   // the valley. Two things offered instead of three reads as an invitation
   // rather than a menu.
-  post: "Share a memory or a note to the community",
+  post: "Share a memory or a note to the community...",
   group: "Share something with this group",
   letter: "Write your letter to the valley. Take your time.",
 };
@@ -1147,18 +1147,21 @@ export function CreatePostForm({
               fully inside the pill's bounds so its rounded caps are never cut off
               by this wrapper's overflow-hidden clipping during expand/collapse.
 
-              Contrast, both states (the owner: "between the pill inside the
-              composer and the composer tile there's no contrast, and this one in
-              particular, when you hover over it, the contrast is even less"):
-              the pill sits on the composer's bg-card #F5F2EA tile. --secondary is
-              now #EAE7DC = -3.92 dL* against that card, so it reads at rest;
-              it used to be #F0EDE4 = -1.77 dL*, under the ~2 dL* JND. Hover was
-              `bg-accent` #FAF8F2 = +2.06 dL*, which CROSSED THROUGH the card
-              colour on the way up, so mid-hover the pill briefly matched its own
-              container. `state-layer` instead composites a translucent ink tint
-              over --secondary, so hover always darkens from wherever the pill
-              rests and can never invert. rounded-full stays: the composer's
-              inline post box is the app's one sanctioned pill-shaped input. */}
+              Resting colour is `bg-card` (owner, 2026-08-04: the pill should
+              rest at the tile's own background colour). The pill used to be
+              --secondary specifically to hold contrast AGAINST the card it sat
+              inside; collapsed, there is no card any more, so the thing it now
+              has to read against is the page (#E4E1D5), and #F5F2EA is the
+              lighter rung above that. It also means the pill is already wearing
+              the tile's colour when the tile inflates around it on expand,
+              rather than changing shade mid-gesture.
+
+              `state-layer` composites a translucent ink tint on hover, so hover
+              always darkens from wherever the pill rests and can never invert
+              (the old `bg-accent` hover crossed THROUGH the resting colour, so
+              mid-hover the pill briefly matched its own container).
+              rounded-full stays: the composer's inline post box is the app's
+              one sanctioned pill-shaped input. */}
           <motion.button
             ref={tourAnchorRef}
             type="button"
@@ -1169,7 +1172,7 @@ export function CreatePostForm({
             animate={{ opacity: expanded ? 0 : 1 }}
             transition={SPRINGS.gentle}
             style={{ pointerEvents: expanded ? "none" : undefined }}
-            className="state-layer flex h-11 w-full min-w-0 items-center rounded-full bg-secondary px-4 text-left text-[14px] text-muted-foreground hover:text-foreground active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inset"
+            className="state-layer flex h-11 w-full min-w-0 items-center rounded-full bg-card px-4 text-left text-[14px] text-muted-foreground hover:text-foreground active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inset"
           >
             <span className="truncate">{collapsedPlaceholder}</span>
           </motion.button>
