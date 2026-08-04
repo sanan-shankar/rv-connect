@@ -176,9 +176,9 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
     id: "photo-wall",
     label: "A photo from everyone",
     prompts: [
-      "Add one photo from where you are right now.",
-      "Add one photo of something you made, cooked, or grew.",
-      "Add one photo from somewhere you went recently.",
+      "Add a photo from where you are right now.",
+      "Add a photo of something you made, cooked, or grew.",
+      "Add a photo from somewhere you went recently.",
     ],
   },
   {
@@ -459,6 +459,20 @@ function daysUntilLabel(t: Date | string | null | undefined, now: Date): string 
   return `${days} days left`;
 }
 
+/** Countdown-only copy for the live part of a Round. */
+export function editionCountdownLabel(
+  ed: {
+    status: EditionStatus;
+    questionsCloseAt?: Date | string | null;
+    answersCloseAt?: Date | string | null;
+  },
+  now: Date = new Date()
+): string | null {
+  if (ed.status === "collecting") return daysUntilLabel(ed.questionsCloseAt, now);
+  if (ed.status === "answering") return daysUntilLabel(ed.answersCloseAt, now);
+  return null;
+}
+
 export function describeEditionStatus(
   ed: {
     status: EditionStatus;
@@ -472,11 +486,11 @@ export function describeEditionStatus(
     case "draft":
       return "Draft";
     case "collecting": {
-      const left = daysUntilLabel(ed.questionsCloseAt, now);
+      const left = editionCountdownLabel(ed, now);
       return left ? `Questions open, ${left}` : "Questions open";
     }
     case "answering": {
-      const left = daysUntilLabel(ed.answersCloseAt, now);
+      const left = editionCountdownLabel(ed, now);
       return left ? `Answering now, ${left}` : "Answering now";
     }
     case "preparing":

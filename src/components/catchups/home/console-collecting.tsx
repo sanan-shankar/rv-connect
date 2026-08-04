@@ -4,11 +4,9 @@
  *  <ConsoleCollecting> - the console while a Round is collecting
  *  questions (spec 3.3 + 3.3.1).
  *
- *  Three things, in the order they matter: one plain line saying which
- *  window is open and how long is left, the box for writing a question,
- *  and the list of what the group has asked so far. The Keeper's one
- *  transition ("Open answering") sits with that list, because the list
- *  is what they are reading when they decide to use it.
+ *  Two things, in the order they matter: the box for writing a question
+ *  and the list of what the group has asked so far. The live countdown is
+ *  carried beside the Catch-up name in the page heading.
  *
  *  No status tile, no countdown ring, no roster cluster and no separate
  *  controls box: all four were removed in the owner review of
@@ -48,8 +46,6 @@ export function ConsoleCollecting({
 
   return (
     <div className="space-y-[var(--space-m)]">
-      <p className="text-sm font-medium text-muted-foreground">{edition.statusLabel}</p>
-
       <SubmissionPanel
         editionId={edition.id}
         viewerName={viewer.name}
@@ -174,8 +170,8 @@ function SubmissionPanel({
   );
 }
 
-/** The Keeper's one transition out of collecting, kept beside the questions. */
-function OpenAnsweringButton({
+/** The Keeper's one transition out of collecting, rendered in the right rail. */
+export function OpenAnsweringButton({
   editionId,
   onChanged,
 }: {
@@ -197,7 +193,13 @@ function OpenAnsweringButton({
   }
 
   return (
-    <Button variant="primary" size="sm" onClick={handleClick} disabled={busy}>
+    <Button
+      variant="primary"
+      size="sm"
+      className="w-full justify-center"
+      onClick={handleClick}
+      disabled={busy}
+    >
       {busy ? "Opening..." : "Open answering"}
       <ArrowRight className="h-3.5 w-3.5" />
     </Button>
@@ -259,12 +261,9 @@ function QuestionsList({
       <div className={TILE}>
         {accepted.length > 0 && (
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-[var(--space-s)]">
-              <p className="text-sm font-semibold text-foreground">
-                {accepted.length} {accepted.length === 1 ? "question" : "questions"} in this round
-              </p>
-              {isKeeper && <OpenAnsweringButton editionId={editionId} onChanged={onChanged} />}
-            </div>
+            <p className="text-sm font-semibold text-foreground">
+              {accepted.length} {accepted.length === 1 ? "question" : "questions"} in this round
+            </p>
             <div ref={listRef} className="mt-[var(--space-s)] space-y-[var(--space-xs)]">
               {accepted.map((p, i) => (
                 <QuestionRow

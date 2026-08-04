@@ -20,7 +20,7 @@ import type {
 import {
   advanceEdition,
   CATCHUP_PROMPT_SETS,
-  describeEditionStatus,
+  editionCountdownLabel,
   isEffectiveKeeper,
   isMissingCatchupTable,
   type AdvanceEditionInput,
@@ -48,13 +48,12 @@ import { batchLine, parseJsonArray } from "@/lib/utils";
  * ------------------------------------------------------------------ */
 
 /**
- * This screen's heading: "{Group name} catch-up", singular, because it is one
- * Catch-up being looked at (owner review 2026-07-25). A Keeper's custom title
- * wins when they have set one. Deliberately not `catchupTitle()`, which is the
- * plural "{group} Catch-ups" label used by the index and the archive.
+ * This screen names the Catch-up without adding "catch-up" to the visible
+ * heading. A Keeper's custom title wins; otherwise the group name stands on
+ * its own.
  */
 function homeTitle(title: string | null | undefined, groupName: string): string {
-  return title?.trim() || `${groupName} catch-up`;
+  return title?.trim() || groupName;
 }
 
 export async function generateMetadata({
@@ -331,8 +330,12 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       answersCloseAt: freshLatest.answersCloseAt?.toISOString() ?? null,
       publishAt: freshLatest.publishAt?.toISOString() ?? null,
       publishedAt: freshLatest.publishedAt?.toISOString() ?? null,
-      statusLabel: describeEditionStatus(
-        { status, number: freshLatest.number, questionsCloseAt: freshLatest.questionsCloseAt, answersCloseAt: freshLatest.answersCloseAt },
+      countdownLabel: editionCountdownLabel(
+        {
+          status,
+          questionsCloseAt: freshLatest.questionsCloseAt,
+          answersCloseAt: freshLatest.answersCloseAt,
+        },
         new Date(now)
       ),
       prompts,
@@ -486,7 +489,13 @@ export default async function CatchupHomePage({
 
   return (
     <div>
-      <PageHeader title={result.title} />
+      <PageHeader
+        title={
+          result.edition?.countdownLabel
+            ? `${result.title} · ${result.edition.countdownLabel}`
+            : result.title
+        }
+      />
       <CatchupHomeShell data={result} issue={issue} />
     </div>
   );

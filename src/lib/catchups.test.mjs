@@ -27,6 +27,7 @@ import {
   roundLabel,
   catchupTitle,
   isEffectiveKeeper,
+  editionCountdownLabel,
   describeEditionStatus,
   resolveSpotify,
   isMissingCatchupTable,
@@ -239,6 +240,15 @@ test("roundLabel + catchupTitle fallbacks", () => {
 });
 
 test("describeEditionStatus: readable per-status copy", () => {
+  assert.equal(
+    editionCountdownLabel({ status: "collecting", questionsCloseAt: at(3 * DAY_MS) }, NOW),
+    "3 days left"
+  );
+  assert.equal(
+    editionCountdownLabel({ status: "answering", answersCloseAt: at(DAY_MS) }, NOW),
+    "last day"
+  );
+  assert.equal(editionCountdownLabel({ status: "published" }, NOW), null);
   assert.equal(
     describeEditionStatus({ status: "answering", number: 2, answersCloseAt: at(3 * DAY_MS) }, NOW),
     "Answering now, 3 days left"

@@ -6,10 +6,9 @@
  *  the frozen question list. No answer content is readable by anyone,
  *  Keeper included, until the Round publishes.
  *
- *  Same shape as the collecting console (owner review 2026-07-25): which
- *  window is open and how long is left is one plain line, not a tile,
- *  and there is no countdown ring. The ring's own label WAS that status
- *  line, so it carried nothing the line does not.
+ *  Same shape as the collecting console (owner review 2026-07-25). The
+ *  countdown sits beside the Catch-up name in the page heading, so the
+ *  first tile aligns with the first tile in the right rail.
  *
  *  DEFERRED, flagged per the fix brief section 6: answering still hands
  *  off to /catchups/[catchupId]/answer instead of running inline here.
@@ -45,8 +44,6 @@ export function ConsoleAnswering({
 
   return (
     <div className="space-y-[var(--space-m)]">
-      <p className="text-sm font-medium text-muted-foreground">{edition.statusLabel}</p>
-
       <FadeRise>
         <div className={TILE}>
           <div className="flex flex-wrap items-center justify-between gap-[var(--space-m)]">

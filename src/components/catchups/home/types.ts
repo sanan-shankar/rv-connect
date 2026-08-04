@@ -53,10 +53,8 @@ export type HomeEditionView = {
   answersCloseAt: string | null;
   publishAt: string | null;
   publishedAt: string | null;
-  /** Human status line, shared copy from `describeEditionStatus` (WP1). This is
-   *  the whole of the console's status display now: the countdown ring that
-   *  used to wrap it went in the owner review of 2026-07-25. */
-  statusLabel: string;
+  /** Countdown-only copy used beside the Catch-up name in the page heading. */
+  countdownLabel: string | null;
   /** collecting: every prompt the viewer may see. answering: frozen accepted prompts only. */
   prompts: HomePromptView[];
   answeredCount: number;
