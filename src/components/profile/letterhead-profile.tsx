@@ -46,7 +46,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import Link from "next/link";
 import Image from "next/image";
 import { Pencil } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useAnimationControls } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { Button } from "@/components/ui/button";
@@ -502,8 +502,42 @@ function SectionLabel({ children }: { children: string }) {
  *  moving the bird") and carries no species label. Pressing it chirps,
  *  because that only happens when someone asks for it.
  * ------------------------------------------------------------------ */
+/* The pause between the tap and the bird answering it (owner, 2026-08-04:
+   "when you tap it, it'll trigger something that starts a beat later"). The
+   old reaction fired on the same frame as the press, which is what made it
+   feel rushed: the cause and the effect landed together with nothing in
+   between. */
+const CHIRP_BEAT_MS = 110;
+
+/** Ignore taps that land inside an answer already in progress. */
+const CHIRP_MIN_GAP_MS = 700;
+
 function PerchedBird({ user }: { user: LetterheadProfileUser }) {
   const [chirp, setChirp] = useState(0);
+  const controls = useAnimationControls();
+  const lastChirp = useRef(0);
+  const beat = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => clearTimeout(beat.current), []);
+
+  function tap() {
+    const now = Date.now();
+    if (now - lastChirp.current < CHIRP_MIN_GAP_MS) return;
+    lastChirp.current = now;
+    clearTimeout(beat.current);
+    beat.current = setTimeout(async () => {
+      setChirp((c) => c + 1); // arcs go out on the same beat as the movement
+      /* Out and back on two soft springs, driven by controls rather than a
+         key-remount. The old version remounted the element ALREADY displaced
+         to scale 1.1 and snapped it home on the stiffest spring we have, so
+         the whole thing was one hard recoil with no outward move to watch:
+         "way too fast, way too little frames ... very compressed". Starting
+         from rest means there is a rise to see, and `gentle` then `settle`
+         are the two softest springs in the set. */
+      await controls.start({ scale: 1.09, rotate: -6 }, SPRINGS.gentle);
+      await controls.start({ scale: 1, rotate: 0 }, SPRINGS.settle);
+    }, CHIRP_BEAT_MS);
+  }
 
   return (
     /* Scaled from its FEET on phones, so the perch line stays put at both
@@ -511,17 +545,17 @@ function PerchedBird({ user }: { user: LetterheadProfileUser }) {
     <div className="absolute -top-12 right-6 z-20 origin-bottom scale-[0.8] sm:right-10 sm:scale-100">
       <button
         type="button"
-        onClick={() => setChirp((c) => c + 1)}
+        onClick={tap}
         aria-label={`${user.name}'s bird. Tap for a chirp.`}
-        className="relative block rounded-full outline-none transition-transform duration-150 active:scale-[0.95] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        /* No press sink and no transition on this control (owner: "I don't
+           want to depress when you press it down ... that itself is a bad way
+           to go about it"). The sink also put the bird on its own composited
+           layer for the duration, which is where the faint extra shadow under
+           it on click was coming from; without a transform there is no layer
+           and no second shadow. The chirp below is the entire feedback. */
+        className="relative block rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        <motion.span
-          key={chirp}
-          initial={chirp > 0 ? { scale: 1.1, rotate: -6 } : false}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={SPRINGS.snappy}
-          className="block"
-        >
+        <motion.span animate={controls} initial={false} className="block">
           <BirdAvatar user={user} size={80} />
         </motion.span>
 
