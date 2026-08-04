@@ -61,11 +61,12 @@ const BODY_CX = (size: number) => size / 2; // viewBox x60 of 120
 const BODY_CY = (size: number) => (size * 111) / 152; // viewBox y101 above origin y-10
 
 // The destination pages' own hard-coded reveal fallback (see /login and
-// /signup's `fallback = setTimeout(reveal, 4000)`). Referenced only in this
+// /signup's `fallback = setTimeout(reveal, 6000)`). Referenced only in this
 // comment, not imported — those pages don't depend on this module. At the
-// default speed (1, every current call site) the failsafe below is 3900ms
-// and the perch-timeout is 2500ms, both under that 4000ms, same shape as
-// before `speed` existed.
+// default speed (1, every current call site) the failsafe below is 5800ms
+// and the perch-timeout is 2500ms, both under that 6000ms, same shape as
+// before `speed` existed. All three moved together on 2026-08-04 when the
+// cruise slowed down; if any one of them changes again, check the other two.
 //
 // Both timers scale by the same 1/speed factor as every other duration in
 // this flight (via `ms()` below), so a slower-than-default flight gets a
@@ -83,6 +84,27 @@ const BODY_CY = (size: number) => (size * 111) / 152; // viewBox y101 above orig
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 // C2-smooth ease (gentle takeoff + landing), same family flyCore uses.
 const smoother = (u: number) => u * u * u * (u * (u * 6 - 15) + 10);
+
+// The cruise chord's own progress curve.
+//
+// `smoother` is SYMMETRIC: it spends as much of the flight speeding up as
+// slowing down. Over the old 1.1s cruise that read as the bird being fired
+// across the screen and stopping dead (owner, 2026-08-04: "it just zips over,
+// it's not at all smooth ... I'd like it if it slowed down towards the end").
+// This blends that symmetric curve into a cubic ease-out, weighting toward the
+// ease-out as the flight proceeds: the push-off stays soft, and nearly all of
+// the slowing now happens across the last third, so the bird visibly runs out
+// of speed onto the perch instead of arriving still at cruise pace.
+//
+// Monotonic by construction, which matters because a non-monotonic progress
+// curve would track the bird backwards mid-air: both inputs rise 0->1, the
+// ease-out leads the symmetric curve everywhere in between, and the weight
+// only ever shifts from the slower one toward the faster one.
+const cruiseEase = (u: number) => {
+  const symmetric = smoother(u);
+  const decelerate = 1 - (1 - u) ** 3;
+  return symmetric * (1 - u) + decelerate * u;
+};
 
 // The final alight: the residual this tween ever has to cover is at most the
 // 4px hover bob, a ~2° bank, and the last <1px of target drift. 180ms reads
@@ -169,19 +191,24 @@ export function MascotFlightLayer() {
 
     // Hard ceiling: never leave a flight (or a hidden destination hoopoe)
     // stranded if something stalls. Force the handoff + teardown after this.
-    // At the default speed (1, every current call site) this is 3900ms:
-    // the longest graceful path — no report ever arrives, so the flyer hovers
-    // to the full 2500ms perch timeout, settles (180ms), folds down (~0.5s
-    // perch), and fades (150ms) — sums to ~3.7s, and 3900 leaves that path
-    // room to finish (the previous 3600 clipped it mid-fold) while staying
-    // below the destination pages' own fallback-reveal timer (4000ms) so the
-    // flyer always hands off + tears down BEFORE a page would reveal its own
-    // hoopoe on its own. Scaled by speed like every other duration below,
-    // uncapped, so a slower flight's safety net stays proportionally longer
-    // than the (also slower) real animation instead of firing mid-flight —
-    // see the comment above for why an earlier hard-coded ceiling here was a
-    // bug, not a feature.
-    const failsafeMs = ms(3900);
+    //
+    // THIS NUMBER IS DERIVED, NOT PICKED, and it has to be re-derived whenever
+    // the cruise gets longer. It is the longest GRACEFUL path: take-off (240)
+    // + the full cruise (2050) + no report ever arriving, so the flyer hovers
+    // out the whole perch timeout (2500) + settle (180) + the perch fold
+    // (~450), which sums to ~5.4s. 5800 clears that with room for a slow
+    // machine. Set below the real path instead, this fires mid-air and the
+    // bird is deleted in front of the viewer — the exact bug the sidebar
+    // bird's own deadline hit on 2026-08-03. Raised from 3900 on 2026-08-04
+    // alongside the slower cruise; the destination pages' own fallback-reveal
+    // timers went 4000 -> 6000 in the same commit and must stay ABOVE this, so
+    // the flyer always hands off before a page reveals its own hoopoe.
+    //
+    // Scaled by speed like every other duration below, uncapped, so a slower
+    // flight's safety net stays proportionally longer than the (also slower)
+    // real animation — see the comment above for why an earlier hard-coded
+    // ceiling here was a bug, not a feature.
+    const failsafeMs = ms(5800);
     const failsafe = setTimeout(() => {
       abortRef.current = true;
       signalHandoff();
@@ -224,9 +251,23 @@ export function MascotFlightLayer() {
       // starts — aim there from the first frame when it does.
       const aim = getLatestPerch() ?? prov;
       const dist = Math.hypot(aim.left - A.x, aim.top - A.y);
-      const flyMs = ms(clamp(820 + dist * 0.45, 820, 1120));
-      const peak = clamp(70 + dist * 0.12, 70, 165);
-      const flaps = 4;
+      // Pace and arc, both raised on 2026-08-04. The hero CTA to the form is
+      // ~900px, which under the old numbers bought a 1120ms cruise over a
+      // 165px arch: a flat, ~0.8 screen-widths-per-second dash the eye cannot
+      // track, which is most of why the flight read as dropping frames rather
+      // than as being fast. 1960ms over a 280px arch at the same distance is
+      // near enough half the speed and 1.7x the height, so there is an arc to
+      // follow and time to follow it. The floors matter as much as the caps: a
+      // short flight must not become a twitch.
+      const flyMs = ms(clamp(1150 + dist * 0.9, 1150, 2050));
+      const peak = clamp(95 + dist * 0.24, 95, 280);
+      // The body's undulation is meant to be the wingbeat showing through the
+      // flight path, so it is DERIVED from the cruise length against the
+      // puppet's own 0.44s wing cycle (hoopoe.tsx, glide) rather than pinned at
+      // a constant. Left at the old hard-coded 4 the two drifted apart the
+      // moment the cruise got longer, and a ripple running slower than the
+      // wings it is supposed to come from reads as a wobble.
+      const flaps = Math.max(3, Math.round(flyMs / 440));
       const undAmp = 5;
       // Smoothed target so a late/corrected perch report never snaps the path.
       const smoothT = { x: aim.left, y: aim.top };
@@ -261,7 +302,7 @@ export function MascotFlightLayer() {
           }
 
           if (raw < 1) {
-            const e = smoother(raw);
+            const e = cruiseEase(raw);
             const arch = Math.sin(Math.PI * raw);
             cur.x = A.x + (smoothT.x - A.x) * e;
             cur.y =
