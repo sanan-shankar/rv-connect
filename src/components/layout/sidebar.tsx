@@ -496,8 +496,17 @@ export function Sidebar({
             {/* min-h-0 is what makes flex-1 able to SHRINK here: without it a
                 flex child's floor is its content height, so the nav would
                 refuse to give room back and the overflow would reappear
-                somewhere else. */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
+                somewhere else.
+
+                -mx-3/px-3 is not decoration. `overflow-y-auto` forces overflow-x
+                to `auto` as well, so this box clips horizontally too, and the
+                active row's cinnamon edge is drawn at left-[-8px], OUTSIDE the
+                nav. Adding the scroller swallowed it (owner, 2026-08-04: "on
+                mobile there's no cinnamon marker for the top menu"). Widening
+                the box by 12px each side and padding the content back by the
+                same puts the marker inside the clip with 4px to spare, while
+                every row stays exactly where it was. */}
+            <div className="-mx-3 min-h-0 flex-1 overflow-y-auto px-3">
               <NavLinks
                 pathname={pathname}
                 onNavigate={() => setOpen(false)}
