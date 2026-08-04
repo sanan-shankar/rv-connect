@@ -1072,7 +1072,15 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
         gazeY.set(-0.6); // look up while thinking
         return sequence(["express", "curious"], ["blinkOnce", true]);
       case "greet":
-        return sequence(["wave", 2], ["express", "happy"], ["crestFlick"]);
+        // Happy FIRST, then the wave (owner, 2026-08-04: "when it's waving I
+        // don't want the eyebrows to show ... it looks concerned when it's
+        // waving. Maybe let it wave when it's happy instead"). Waving out of
+        // whatever pose the bird happened to be in meant the face during the
+        // wave was never decided; only the beat after it was. `happy` is the
+        // one warm chord with brow.op 0 (hoopoe-kit.ts EXPRESSIONS), so
+        // leading with it both fixes the brows and means the wave is finally
+        // performed by a bird that is already pleased to see you.
+        return sequence(["express", "happy"], ["wave", 2], ["crestFlick"]);
       case "idleBored":
         return sequence(
           () => { gazeX.set(-0.5); },
