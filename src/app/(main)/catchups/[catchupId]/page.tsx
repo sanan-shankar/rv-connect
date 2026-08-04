@@ -255,12 +255,17 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       })
     : null;
 
-  const members: HomePersonRef[] = catchup.group.members.map((m) => ({
-    id: m.user.id,
-    name: m.user.name,
-    photoUrl: m.user.photoUrl,
-    birdOverride: m.user.birdOverride,
-  }));
+  // Viewer first: MemberStrip shows only its first `max`, and someone who
+  // fell off the end of an unordered list read that as not being a member at
+  // all (owner, 2026-08-04).
+  const members: HomePersonRef[] = catchup.group.members
+    .map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+      photoUrl: m.user.photoUrl,
+      birdOverride: m.user.birdOverride,
+    }))
+    .sort((a, b) => (a.id === viewerId ? -1 : b.id === viewerId ? 1 : 0));
   const viewerName = members.find((m) => m.id === viewerId)?.name ?? "You";
 
   let editionView: HomeEditionView | null = null;

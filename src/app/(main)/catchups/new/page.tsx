@@ -47,12 +47,30 @@ export default async function NewCatchupPage({
   let tableMissing = false;
   let groupName: string | null = null;
   let groupMembers: PickedPerson[] = [];
+  // The viewer's own chip in the With list. Falls back to the session's
+  // identity so the chip is never missing even if this read fails.
+  let me: PickedPerson = {
+    id: session.user.id,
+    name: session.user.name,
+    photoUrl: session.user.photoUrl ?? null,
+    birdOverride: session.user.birdOverride ?? null,
+    batchYear: null,
+  };
   try {
-    const me = await prisma.user.findUnique({
+    const viewer = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { batchYear: true },
+      select: { batchYear: true, name: true, photoUrl: true, birdOverride: true },
     });
-    batchYear = me?.batchYear ?? null;
+    batchYear = viewer?.batchYear ?? null;
+    if (viewer) {
+      me = {
+        id: session.user.id,
+        name: viewer.name,
+        photoUrl: viewer.photoUrl,
+        birdOverride: viewer.birdOverride,
+        batchYear: viewer.batchYear,
+      };
+    }
 
     if (groupId) {
       const membership = await prisma.groupMember.findUnique({
@@ -111,6 +129,7 @@ export default async function NewCatchupPage({
         myBatchYear={batchYear}
         suggestedName={groupName ?? (batchYear ? `Batch of ${batchYear}` : "")}
         initialPeople={groupMembers}
+        me={me}
       />
     </div>
   );

@@ -12,8 +12,15 @@
  *
  *  Two ways in, because they are the two real cases: search someone by
  *  name, or add a whole batch at once (the batch Catch-up being the one
- *  everybody wants). You are always in your own Catch-up, so you are
- *  never listed or removable here.
+ *  everybody wants).
+ *
+ *  You ARE listed, first, in a chip like everyone else's. Being in your own
+ *  Catch-up was always true and used to be left unsaid, which read to
+ *  members as being left out: two people asked the owner outright whether
+ *  they were even part of a Catch-up because they could not find
+ *  themselves in the list (2026-08-04). Saying the obvious thing costs one
+ *  chip. It carries no "you" label and no remove button: the position and
+ *  the missing X say it, and leaving is not a thing this screen does.
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
@@ -22,6 +29,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
+import { cn } from "@/lib/utils";
 
 export interface PickedPerson {
   id: string;
@@ -37,11 +45,25 @@ export function PeoplePicker({
   value,
   onChange,
   myBatchYear,
+  me,
+  canRemove = true,
 }: {
   value: PickedPerson[];
   onChange: (next: PickedPerson[]) => void;
   /** Enables the "everyone from my batch" shortcut when known. */
   myBatchYear: number | null;
+  /** The viewer, shown first and unremovable. Never part of `value`: the
+   *  server adds the creator to the group itself, so including them here
+   *  would submit them twice. */
+  me: PickedPerson;
+  /**
+   * Whether the viewer may take people OUT of the roster. Removing someone is
+   * the Keeper's call (owner, 2026-08-04), so anyone else sees the same list
+   * as plain, un-dismissable pills. True here because the person filling in
+   * this form becomes the Keeper; the prop exists so an edit surface opened by
+   * an ordinary member cannot quietly inherit the ability.
+   */
+  canRemove?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PickedPerson[]>([]);
@@ -184,13 +206,35 @@ export function PeoplePicker({
         </Button>
       )}
 
-      {value.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5 pt-1">
-          {value.map((person) => (
+      <ul className="flex flex-wrap gap-1.5 pt-1">
+        {/* You, first and always. Same chip shape as the rest so the list
+            reads as one roster, minus the remove button. */}
+        <li key={me.id}>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-leaf/30 bg-leaf/[0.07] py-1 pl-1.5 pr-2.5 text-[13px] font-medium text-leaf">
+            <BirdAvatar
+              user={{
+                id: me.id,
+                name: me.name,
+                photoUrl: me.photoUrl,
+                birdOverride: me.birdOverride,
+              }}
+              size="xs"
+            />
+            <span className="max-w-[12rem] truncate">{me.name}</span>
+          </span>
+        </li>
+        {value.map((person) => (
             <li key={person.id}>
               {/* Leaf tint from the protocol's chip trio (people = leaf; the
                   drab canopy/10 pairing is dead). */}
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-leaf/30 bg-leaf/[0.07] py-1 pl-1.5 pr-2 text-[13px] font-medium text-leaf">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border border-leaf/30 bg-leaf/[0.07] py-1 pl-1.5 text-[13px] font-medium text-leaf",
+                  // No remove button means no room needs reserving for one, so
+                  // the chip closes up to the same padding as your own.
+                  canRemove ? "pr-2" : "pr-2.5"
+                )}
+              >
                 <BirdAvatar
                   user={{
                     id: person.id,
@@ -201,19 +245,20 @@ export function PeoplePicker({
                   size="xs"
                 />
                 <span className="max-w-[12rem] truncate">{person.name}</span>
-                <button
-                  type="button"
-                  aria-label={`Remove ${person.name}`}
-                  onClick={() => remove(person.id)}
-                  className="grid size-5 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-colors duration-150 hover:bg-canopy/20 hover:text-canopy active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
-                >
-                  <X className="size-3" strokeWidth={2.5} />
-                </button>
+                {canRemove && (
+                  <button
+                    type="button"
+                    aria-label={`Remove ${person.name}`}
+                    onClick={() => remove(person.id)}
+                    className="grid size-5 shrink-0 place-items-center rounded-full text-canopy/70 outline-none transition-colors duration-150 hover:bg-canopy/20 hover:text-canopy active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+                  >
+                    <X className="size-3" strokeWidth={2.5} />
+                  </button>
+                )}
               </span>
-            </li>
-          ))}
-        </ul>
-      )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

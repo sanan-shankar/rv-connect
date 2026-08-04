@@ -37,9 +37,12 @@ export function CreateCatchupForm({
   myBatchYear,
   suggestedName,
   initialPeople = [],
+  me,
 }: {
   cadenceLabels: Record<Cadence, string>;
   myBatchYear: number | null;
+  /** The viewer, so the With list can show them in it (see PeoplePicker). */
+  me: PickedPerson;
   /** e.g. "Batch of 2023", so the common case needs no typing. */
   suggestedName: string;
   /** Preloaded from `?group=<id>` (an existing group with no Catch-up yet
@@ -101,7 +104,7 @@ export function CreateCatchupForm({
       <div>
         <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">With</p>
         <div className="mt-[var(--space-xs)]">
-          <PeoplePicker value={people} onChange={setPeople} myBatchYear={myBatchYear} />
+          <PeoplePicker value={people} onChange={setPeople} myBatchYear={myBatchYear} me={me} />
         </div>
       </div>
 
