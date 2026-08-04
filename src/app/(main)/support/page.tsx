@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { SupportContribute } from "@/components/support/support-contribute";
 import { CostBar } from "@/components/support/cost-bar";
-import { BirdGlyphV2 } from "@/components/common/bird-avatar-v2";
+import { BirdGlyphV2, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -19,19 +19,15 @@ export const metadata: Metadata = {
 // A hand-picked set of species for the reward preview: colourful and visibly
 // different from one another (not the first N indices), because the point of
 // this row is to show the collection's variety, not just that it exists.
-// Indices are positions in SPECIES_FULL_NAMES / ARCHES (bird-avatar-v2.tsx).
-const REWARD_SPECIES = [
-  { i: 5, name: "Indian Pitta" },
-  { i: 3, name: "Indian Roller" },
-  { i: 9, name: "Coppersmith Barbet" },
-  { i: 20, name: "Black-hooded Oriole" },
-  { i: 22, name: "Purple Sunbird" },
-  { i: 26, name: "Asian Paradise Flycatcher" },
-  { i: 37, name: "Red Avadavat" },
-  { i: 41, name: "Black-rumped Flameback" },
-  { i: 43, name: "Purple-rumped Sunbird" },
-  { i: 44, name: "Tickell's Blue Flycatcher" },
-];
+// Names are read out of SPECIES_FULL_NAMES rather than typed here, so this row can never end up
+// captioning one bird with another's name (it did: index 3 kept the label "Indian Roller" after the
+// Roller was reserved and the Laughing Dove took that slot).
+//
+// The Roller itself is deliberately absent. It is the one bird no contribution can earn.
+const REWARD_SPECIES = [5, 4, 9, 20, 22, 26, 37, 41, 43, 44].map((i) => ({
+  i,
+  name: SPECIES_FULL_NAMES[i],
+}));
 
 export default function SupportPage() {
   return (

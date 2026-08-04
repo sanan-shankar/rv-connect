@@ -8,6 +8,9 @@
  * visible variety is 50 species x 2 poses (left/right) and the disc colour is held in reserve for
  * the disc-bearing modes.
  *
+ * Two of those birds belong to one account each and are not dealt to anyone: the Hoopoe (the
+ * mascot, index 0) and the Indian Roller (the owner, index 50). See their constants below.
+ *
  * Photo upload overrides the bird; a manual per-user `birdOverride` (DB column, species slug) or an
  * owner/staff pin can also override the hash (precedence: photo > birdOverride > pin > hash). The
  * same id yields the same bird on the server and the client because this is pure arithmetic over
@@ -27,26 +30,62 @@ export const AVATAR_PALETTE = [
   "#D2694A", // terracotta / coral (keeps real red in the mix)
 ];
 
-// Rishi Valley bird species. Keep in sync with the ARCHES list in bird-avatar-v2.tsx.
+/**
+ * The size of the HASHABLE pool, not the length of the ARCHES list in bird-avatar-v2.tsx (which is
+ * one longer: index 50 is the reserved Indian Roller). `hash % BIRD_SPECIES_COUNT` therefore only
+ * ever returns 0..49, which is what keeps the reserved bird unreachable by chance.
+ *
+ * Do not raise this number to "make room" for a new species. It is the modulo the whole member base
+ * hashes through, so changing it re-rolls every existing member's bird. A new species takes a slot
+ * inside 0..49 instead (the Laughing Dove took slot 3 this way).
+ */
 export const BIRD_SPECIES_COUNT = 50;
 
 // Pose variations (left/right). Only pose >= 2 mirrors the bird; see bird-avatar-v2.tsx.
 export const BIRD_POSE_COUNT = 4;
 
 /**
- * Manual species pins by user id, until a settings UI lets members pick their own bird.
- * The owner (the account matching ADMIN_EMAIL in .env.local) is pinned to the Indian Roller (#3)
- * so their personal avatar reads distinctly from the Hoopoe, which stays reserved for the app's
- * flying mascot rather than doubling as anyone's member identity (see docs/spec/mascot.md, "Open
- * follow-ups").
- * (For production this should migrate to an avatarSpecies column; ids differ per database, so the
- * seed-demo id below is kept for the local demo-seed flow and the production id was resolved once
- * against the live database for the ADMIN_EMAIL account.)
+ * The Indian Roller: the owner's bird and nobody else's (owner, 2026-08-04).
+ *
+ * It sits at ARCHES index 50, one past the end of the hashable pool, so no member can be dealt it
+ * by chance. The two remaining doors are closed explicitly: `resolveBirdOverride` in
+ * bird-avatar-v2.tsx refuses the "indian-roller" slug for any other id, and GALLERY_SPECIES keeps
+ * it off the public bird pages, so it is not even on the shelf to ask for.
+ *
+ * This is the same shape as the Hoopoe reservation below, with one difference worth knowing: the
+ * Hoopoe sits INSIDE the pool at index 0, so it needs HOOPOE_HASH_REMAP_INDEX to catch the members
+ * who hash onto it. The Roller needs no remap at all.
  */
-export const SPECIES_PINS: Record<string, number> = {
-  cmmz0vvws0000ynsg3ueb9scp: 3, // seed-demo owner -> Indian Roller
-  cmr1uahuj000004jx4dc4p8co: 3, // production owner (ADMIN_EMAIL) -> Indian Roller
-};
+export const ROLLER_SPECIES_INDEX = 50;
+
+/**
+ * How many species are actually DRAWN (== ARCHES.length in bird-avatar-v2.tsx): the 50-strong
+ * hashable pool plus the reserved Roller. Only used to bound an explicit override index; the hash
+ * never sees it.
+ */
+export const DRAWN_SPECIES_COUNT = ROLLER_SPECIES_INDEX + 1;
+
+/**
+ * The ids allowed to wear the Roller. Two entries for two databases: the local demo seed and the
+ * live ADMIN_EMAIL account, whose id was resolved once against production. An id, not an email,
+ * because this is read on the client where no email is in scope.
+ */
+export const ROLLER_RESERVED_USER_IDS: readonly string[] = [
+  "cmmz0vvws0000ynsg3ueb9scp", // seed-demo owner
+  "cmr1uahuj000004jx4dc4p8co", // production owner (ADMIN_EMAIL)
+];
+
+/**
+ * Manual species pins by user id, until a settings UI lets members pick their own bird.
+ * The owner is pinned to the Indian Roller so their personal avatar reads distinctly from the
+ * Hoopoe, which stays reserved for the app's flying mascot rather than doubling as anyone's member
+ * identity (see docs/spec/mascot.md, "Open follow-ups").
+ * (For production this should migrate to an avatarSpecies column; ids differ per database, which is
+ * why both the seed-demo and the live owner id are listed.)
+ */
+export const SPECIES_PINS: Record<string, number> = Object.fromEntries(
+  ROLLER_RESERVED_USER_IDS.map((id) => [id, ROLLER_SPECIES_INDEX])
+);
 
 /**
  * The Hoopoe is species index 0 in the Rishi Valley set (see ARCHES in bird-avatar-v2.tsx) and is
@@ -88,7 +127,9 @@ export function hashSpeciesFor(seed: string): number {
  */
 export function speciesForMember(seed: string, overrideIndex?: number | null): number {
   if (overrideIndex !== undefined && overrideIndex !== null) {
-    return ((overrideIndex % BIRD_SPECIES_COUNT) + BIRD_SPECIES_COUNT) % BIRD_SPECIES_COUNT;
+    // Wrapped against DRAWN_SPECIES_COUNT, not BIRD_SPECIES_COUNT: the pool size would fold the
+    // reserved Roller at index 50 back onto 0 and dress the owner as the Hoopoe mascot.
+    return ((overrideIndex % DRAWN_SPECIES_COUNT) + DRAWN_SPECIES_COUNT) % DRAWN_SPECIES_COUNT;
   }
   const pinned = SPECIES_PINS[seed];
   if (pinned !== undefined) return pinned;

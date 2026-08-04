@@ -4,6 +4,8 @@ import {
   hashSpeciesFor,
   HOOPOE_SPECIES_INDEX,
   HOOPOE_RESERVED_USER_ID,
+  ROLLER_SPECIES_INDEX,
+  ROLLER_RESERVED_USER_IDS,
 } from "@/lib/avatar";
 import ADJUST from "@/components/common/bird-adjust.json";
 
@@ -189,23 +191,50 @@ const ARCHES: Arche[] = [
       );
     },
   },
-  // 3 - INDIAN ROLLER. Cinnamon breast + bold turquoise/cobalt wing bands. Chunky big head.
+  // 3 - LAUGHING DOVE. Plump rosy-fawn dove, chequered copper-and-black necklace across the throat,
+  // one cool blue-grey wing panel against all that warmth.
+  //
+  // This slot used to hold the Indian Roller. When the Roller was reserved to the owner alone
+  // (2026-08-04, see ROLLER_SPECIES_INDEX in src/lib/avatar.ts) the Dove took its index rather than
+  // being appended at the end: appending would have meant raising BIRD_SPECIES_COUNT, and the hash
+  // is a modulo of that number, so every member in the database would have woken up as a different
+  // bird. Taking slot 3 changes exactly the members who used to hash onto the Roller and nobody else.
   {
-    name: "Roller",
-    skip: BLUES,
+    name: "Laughing Dove",
+    skip: WARMS,
     draw: () => {
-      const CIN = "#C07A48", TURQ = "#28A6A8", COB = "#2E5FB0", SKY = "#5FB3D8";
+      const ROSE = "#D2977E",   // rosy-fawn: head AND breast, one colour on the real bird
+        RUF = "#A96F49",        // warm rufous back + folded wing
+        GREY = "#8B94A1",       // blue-grey wing panel: the one cool note
+        BELLY = "#F0E6D5",
+        COPPER = "#9C5730";     // the necklace
       return (
         <g>
-          {/* cinnamon body */}
-          <circle cx="50" cy="54" r="33" fill={CIN} />
-          {/* turquoise crown + belly */}
-          <path d="M50 21 A33 33 0 0 1 50 87 Q72 70 72 54 Q72 34 50 21 Z" fill={TURQ} />
-          {/* cobalt + sky wing bands */}
-          <ellipse cx="40" cy="58" rx="18" ry="13" fill={COB} transform="rotate(-16 40 58)" />
-          <ellipse cx="35" cy="64" rx="12" ry="7" fill={SKY} transform="rotate(-16 35 64)" />
-          {beak(78, 50, 12, 3.2, "#3A352E")}
-          <Eye cx={62} cy={45} />
+          {/* One circle for head and body together, no separate head disc: a dove's head is the
+              same rosy fawn as its breast, and drawing it as its own lighter circle read as a
+              pale coin stuck on a ball. The necklace below does the identifying instead. */}
+          <circle cx="49" cy="55" r="32" fill={ROSE} />
+          {/* Rufous mantle: a crescent hugging the BACK edge, not a wedge cut toward the middle.
+              The first attempt ran the boundary through x=49 (dead centre) and the brown read as a
+              slice removed from the ball; keeping it out at the rim leaves the whole upper right
+              rose, which is what gives the face somewhere to be without drawing a head disc. */}
+          {/* Its outer edge is an ARC on the body's own circle, not a hand-guessed curve: drawn
+              freehand it left a rose rim showing outside the brown in places and pushed past the
+              silhouette in others. Both endpoints sit on r=32 about (49,55). */}
+          <path d="M46 23.5 A32 32 0 0 0 33 83 Q41 76 40 60 Q40 38 46 23.5 Z" fill={RUF} />
+          <ellipse cx="30" cy="58" rx="9" ry="14" fill={GREY} transform="rotate(-14 30 58)" />
+          {/* cream belly, kept low and small so it does not read as a second egg */}
+          <ellipse cx="57" cy="75" rx="15" ry="9.5" fill={BELLY} />
+          {/* THE signature: the speckled necklace on the throat. Three copper dots, no black ones
+              (owner, 2026-08-04). The dark row that used to sit above these read as hardware on a
+              soft bird, and it fought the eye for attention at 28px; copper alone keeps the bib
+              legible while letting the eye stay the darkest thing on the glyph. Staggered rather
+              than a straight row, because a level row read as a stripe. */}
+          {[[55.5, 55.5], [61.5, 62], [70, 60]].map(([x, y], k) => (
+            <circle key={k} cx={x} cy={y} r="3.2" fill={COPPER} />
+          ))}
+          {beak(74, 45, 11, 3.2, "#4A423A")}
+          <Eye cx={62} cy={41} />
         </g>
       );
     },
@@ -1548,6 +1577,34 @@ const ARCHES: Arche[] = [
       );
     },
   },
+  // 50 - INDIAN ROLLER. Cinnamon breast + bold turquoise/cobalt wing bands. Chunky big head.
+  //
+  // RESERVED, and deliberately the last entry. The hashable pool is indices 0..49
+  // (BIRD_SPECIES_COUNT is 50, so `hash % 50` can never reach 50), which means no member can land
+  // on this bird by chance and there is no remap to maintain, unlike the Hoopoe's exclusion at
+  // index 0. It belongs to the owner alone (owner, 2026-08-04) and is kept off the public gallery
+  // by GALLERY_SPECIES below. Its short name stays "Roller" so its measured entry in
+  // bird-adjust.json keeps applying.
+  {
+    name: "Roller",
+    skip: BLUES,
+    draw: () => {
+      const CIN = "#C07A48", TURQ = "#28A6A8", COB = "#2E5FB0", SKY = "#5FB3D8";
+      return (
+        <g>
+          {/* cinnamon body */}
+          <circle cx="50" cy="54" r="33" fill={CIN} />
+          {/* turquoise crown + belly */}
+          <path d="M50 21 A33 33 0 0 1 50 87 Q72 70 72 54 Q72 34 50 21 Z" fill={TURQ} />
+          {/* cobalt + sky wing bands */}
+          <ellipse cx="40" cy="58" rx="18" ry="13" fill={COB} transform="rotate(-16 40 58)" />
+          <ellipse cx="35" cy="64" rx="12" ry="7" fill={SKY} transform="rotate(-16 35 64)" />
+          {beak(78, 50, 12, 3.2, "#3A352E")}
+          <Eye cx={62} cy={45} />
+        </g>
+      );
+    },
+  },
 ];
 
 export const ARCHETYPE_COUNT = ARCHES.length;
@@ -1566,7 +1623,7 @@ export const SPECIES_FULL_NAMES: string[] = [
   "Hoopoe",
   "Indian Peafowl",
   "Spotted Owlet",
-  "Indian Roller",
+  "Laughing Dove",
   "White-throated Kingfisher",
   "Indian Pitta",
   "Rose-ringed Parakeet",
@@ -1613,7 +1670,21 @@ export const SPECIES_FULL_NAMES: string[] = [
   "Small Minivet",
   "Orange-breasted Green-Pigeon",
   "Indian White-eye",
+  "Indian Roller", // index 50, reserved; see the ARCHES entry and GALLERY_SPECIES below
 ];
+
+/**
+ * What the public bird galleries list: every species except the ones held back for one account.
+ * Today that is the Indian Roller alone. The Hoopoe stays on the shelf even though no member may
+ * wear it, because a gallery of the valley's birds that left out the mascot would read as an
+ * omission rather than a decision.
+ *
+ * Fifty entries. Both /birds and /lab/birds-rv render from this one list, so the count in the page
+ * copy and the birds actually shown can never drift apart.
+ */
+export const GALLERY_SPECIES: { index: number; name: string }[] = SPECIES_FULL_NAMES.map(
+  (name, index) => ({ index, name })
+).filter(({ index }) => index !== ROLLER_SPECIES_INDEX);
 
 /**
  * The species name for a member's deterministic bird (same precedence as
@@ -1649,11 +1720,22 @@ const SLUG_TO_SPECIES_INDEX: Record<string, number> = SPECIES_SLUGS.reduce(
 );
 
 /**
+ * Which ids may wear each reserved species. A slug naming one of these resolves for the listed
+ * accounts and is ignored for everyone else, so a stray or hand-set override can never dress a
+ * member as the mascot or as the owner.
+ */
+const RESERVED_SPECIES_OWNERS: Record<number, readonly string[]> = {
+  [HOOPOE_SPECIES_INDEX]: [HOOPOE_RESERVED_USER_ID],
+  [ROLLER_SPECIES_INDEX]: ROLLER_RESERVED_USER_IDS,
+};
+
+/**
  * Resolves a `User.birdOverride` slug (e.g. "peregrine-falcon") to a species index, enforcing the
- * Hoopoe reservation: the Hoopoe slug only resolves for the Anonymous placeholder account
- * (HOOPOE_RESERVED_USER_ID); for any other user id it is ignored (falls through to the pin/hash
- * tiers), so a stray or malicious "hoopoe" override can never dress a real member as the mascot.
- * Unknown slugs are also ignored. Returns undefined when there is no applicable override.
+ * reservations above: the "hoopoe" slug only resolves for the Anonymous placeholder account and
+ * "indian-roller" only for the owner. For anyone else those slugs are ignored (the caller falls
+ * through to the pin/hash tiers) rather than throwing, because a bad override should cost a member
+ * their preferred bird, not their avatar. Unknown slugs are ignored the same way. Returns undefined
+ * when there is no applicable override.
  */
 export function resolveBirdOverride(
   userId: string | null | undefined,
@@ -1662,7 +1744,8 @@ export function resolveBirdOverride(
   if (!birdOverride) return undefined;
   const index = SLUG_TO_SPECIES_INDEX[birdOverride];
   if (index === undefined) return undefined;
-  if (index === HOOPOE_SPECIES_INDEX && userId !== HOOPOE_RESERVED_USER_ID) return undefined;
+  const allowed = RESERVED_SPECIES_OWNERS[index];
+  if (allowed && !allowed.includes(userId ?? "")) return undefined;
   return index;
 }
 

@@ -5,11 +5,21 @@
  * the salted FNV-1a in src/lib/avatar.ts and verifies, over thousands of cuid-shaped ids, that:
  *   - every species / colour / pose bucket lands within a generous band of its expected share
  *   - the three axes are decorrelated (no triple is wildly over-represented)
- * The set is 50 Rishi Valley species. The rendered avatars are currently background-less
+ *   - the two reserved birds stay reserved (see the block at the end)
+ * The hashable set is 50 Rishi Valley species; 51 are drawn, the extra one being the Indian Roller
+ * held back for the owner at index 50. The rendered avatars are currently background-less
  * (BG_MODE="none"), so the disc colour is not shown and the visual variety is 50 species x 2
  * poses (left/right); colour is still hashed so the disc-bearing modes work if re-enabled.
  * It throws (non-zero exit) on failure so it can gate a build if desired.
  */
+
+import {
+  speciesForMember,
+  hashSpeciesFor,
+  ROLLER_SPECIES_INDEX,
+  ROLLER_RESERVED_USER_IDS,
+  HOOPOE_SPECIES_INDEX,
+} from "./avatar.ts";
 
 const SPECIES_COUNT = 50;
 const COLOR_COUNT = 10;
@@ -84,6 +94,37 @@ checkAxis("pose", pose, POSE_COUNT, 0.1);
 
 const distinct = triples.size;
 if (distinct < 500) fails.push(`only ${distinct} distinct combinations observed, need >= 500`);
+
+/* ---------------------------------------------------------------- *
+ *  Reserved birds.
+ *
+ *  Unlike the distribution block above (which mirrors the hash in plain JS on purpose, so a bug in
+ *  avatar.ts cannot hide behind the same bug in its test), these assertions import the real module:
+ *  the point is the actual reservation, not an independent re-derivation of it.
+ * ---------------------------------------------------------------- */
+for (const id of ROLLER_RESERVED_USER_IDS) {
+  const got = speciesForMember(id);
+  if (got !== ROLLER_SPECIES_INDEX) {
+    fails.push(`reserved id ${id} should wear the Indian Roller (${ROLLER_SPECIES_INDEX}), got ${got}`);
+  }
+}
+
+// The Roller sits one past the end of the hashable pool, so no member can be dealt it by chance.
+// This is the assertion that would catch someone "helpfully" raising BIRD_SPECIES_COUNT.
+let highest = -1;
+let lowest = SPECIES_COUNT;
+for (let i = 0; i < 200000; i++) {
+  const s = hashSpeciesFor(fakeCuid(i));
+  if (s > highest) highest = s;
+  if (s < lowest) lowest = s;
+}
+if (highest >= ROLLER_SPECIES_INDEX) {
+  fails.push(`the hash reached species ${highest}; the Roller at ${ROLLER_SPECIES_INDEX} must be unreachable`);
+}
+if (lowest === HOOPOE_SPECIES_INDEX) {
+  fails.push(`the hash reached the reserved Hoopoe at ${HOOPOE_SPECIES_INDEX}`);
+}
+console.log(`reserved: hash spans species ${lowest}..${highest}; Roller ${ROLLER_SPECIES_INDEX} and Hoopoe ${HOOPOE_SPECIES_INDEX} held back`);
 
 console.log(`samples: ${N}`);
 console.log(`distinct combinations observed: ${distinct} (max possible ${SPECIES_COUNT * COLOR_COUNT * POSE_COUNT})`);
