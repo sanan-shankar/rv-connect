@@ -68,7 +68,12 @@ export function proxy(request: NextRequest) {
   // because neither equals "/catchups/join" nor starts with "/catchups/join/".
   // The page itself shows a stranger only the Catch-up's name, its Keeper and
   // a member count, never anything anyone wrote.
-  const publicPaths = ["/", "/login", "/signup", "/api/auth", "/lab", "/catchups/join"];
+  // "/api/razorpay" is public because Razorpay's webhook is a server-to-server
+  // POST with no session cookie -- gated, every webhook would be answered with
+  // a redirect to /login and no payment would ever be recorded when the payer
+  // closed their tab. The route authenticates the request itself, by HMAC over
+  // the raw body against RAZORPAY_WEBHOOK_SECRET.
+  const publicPaths = ["/", "/login", "/signup", "/api/auth", "/api/razorpay", "/lab", "/catchups/join"];
   const isPublic = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + "/")
   );

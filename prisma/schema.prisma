@@ -84,6 +84,8 @@ model User {
   catchupEntries  CatchupEntry[]     @relation("CatchupEntriesAuthored")
   catchupLoves    CatchupEntryLove[] @relation("CatchupLoves")
   catchupPrefs    CatchupPref[]      @relation("CatchupPrefs")
+
+  contributions   Contribution[]     @relation("Contributions")
 }
 
 model Photo {
@@ -616,4 +618,47 @@ model LabRoomState {
   href      String   @id // the room's registry href, e.g. "/lab/houses"
   archived  Boolean  @default(false)
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+// One row per attempt to chip in on /support, created BEFORE the payer sees
+// the Razorpay modal and updated afterwards. Rows in "created" that never move
+// are abandoned checkouts, which is normal and worth being able to see.
+//
+// This table is the reason /support can ever show a real recovered figure
+// instead of the hand-edited constant in cost-bar.tsx, and it is what makes
+// both confirmation paths (browser callback, webhook) idempotent.
+model Contribution {
+  id     String  @id @default(cuid())
+  // Nullable + SetNull: a deleted account must never take the record of its
+  // money with it. Also leaves room for a future signed-out contribution.
+  userId String?
+
+  // Paise, always -- the unit Razorpay counts in. Rupees exist only in the UI.
+  amount   Int
+  currency String @default("INR")
+  status   String @default("created") // "created" | "paid" | "failed"
+
+  // Real money or a test payment. This database is shared by production AND
+  // local dev (see AGENTS.md), and a Razorpay test order is indistinguishable
+  // from a live one by its ids alone, so without this column a developer
+  // clicking Contribute on localhost would land a row that looks exactly like
+  // a real contribution. Derived from the key prefix, never from the client.
+  // Anything summing this table for a public figure must filter on it.
+  livemode Boolean @default(false)
+
+  // Unique: this is the idempotency key. The browser callback and the webhook
+  // both race to confirm the same order, and only one of them may win.
+  razorpayOrderId   String  @unique
+  razorpayPaymentId String?
+  method            String? // "upi" | "card" | "netbanking" ... as Razorpay reports it
+  failureReason     String?
+
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+  updatedAt DateTime  @updatedAt
+
+  user User? @relation("Contributions", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId])
 }

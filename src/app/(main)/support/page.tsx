@@ -13,8 +13,9 @@ export const metadata: Metadata = {
 // The owner opted into publishing the one-time build cost: it runs as the
 // second section of CostBar's card, a sibling of the monthly breakdown
 // rather than a note nested inside it (see cost-bar.tsx). The amount
-// recovered is a hand-maintained constant in cost-bar.tsx, since nothing
-// tracks UPI contributions automatically.
+// recovered is still a hand-maintained constant in cost-bar.tsx; the
+// Contribution table added with Razorpay (2026-08-05) now holds the real
+// figure, so that constant can become a query whenever the owner wants it to.
 
 // A hand-picked set of species for the reward preview: colourful and visibly
 // different from one another (not the first N indices), because the point of
@@ -136,7 +137,7 @@ export default function SupportPage() {
           id="contribute-heading"
           className="mb-[var(--space-s)] font-heading text-xl font-bold tracking-tight text-foreground"
         >
-          Chip in over UPI
+          Chip in
         </h2>
         <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)]">
           <SupportContribute />
