@@ -39,9 +39,11 @@ const SEGMENTS = [
 const MONTHLY_TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
 
 /* The one-time cost of designing and building the site, and how much of it has
-   come back so far. Nothing tracks contributions automatically (there is no
-   payment processor, just UPI), so RECOVERED is a figure the owner edits by
-   hand as money actually arrives. */
+   come back so far. Still a figure the owner edits by hand, but no longer
+   because nothing tracks contributions: since Razorpay replaced the UPI QR
+   (2026-08-05) every paid contribution is a Contribution row, so this can
+   become SUM(amount) WHERE status = 'paid' whenever the owner wants it live
+   rather than curated. */
 const BUILD_COST = 400000;
 const BUILD_RECOVERED = 0;
 
