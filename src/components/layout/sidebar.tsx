@@ -440,22 +440,45 @@ export function Sidebar({
 
   return (
     <>
-      {/* Desktop: flush, full-height sidebar */}
-      <aside className="sticky top-0 z-10 hidden h-screen w-[248px] shrink-0 flex-col gap-3 bg-sidebar px-4 pb-4 pt-5 md:flex">
-        {/* The lockup's own width is content-hugging (see peaks-mark.tsx), so
-            centering it takes an outer flex row rather than touching the
-            mark/wordmark pairing itself, which stays exactly as tuned. */}
-        <div className="flex justify-center">
-          <LogoEasterEgg>
-            <LogoFact />
-          </LogoEasterEgg>
-        </div>
-        <NavLinks pathname={pathname} markerId="nav-desktop" />
-        {/* relative anchor for the idle-rest hoopoe, which perches just above
-            this section (see sidebar-hoopoe.tsx) */}
-        <div className="relative mt-auto">
-          <SidebarHoopoe />
-          <AccountSection user={user} pathname={pathname} markerId="nav-desktop" />
+      {/* Desktop: flush, full-height sidebar.
+
+          TWO elements on purpose. The <aside> is an inert in-flow spacer that
+          does nothing but reserve 248px in the shell's flex row; the panel
+          inside it is `fixed`.
+
+          It used to be one `sticky top-0` element, which is the obvious way to
+          write this and is quietly fragile: `position: sticky` resolves against
+          the nearest SCROLLING ancestor, so the moment anything sets
+          `overflow: hidden` on <body> the sidebar stops sticking and snaps back
+          to its static position, jumping up the page by exactly the current
+          scroll offset. Third-party overlays lock body scroll that way as a
+          matter of course, and Razorpay's checkout does (2026-08-05: opening
+          the payment modal visibly threw the sidebar up the page). Measured:
+          `body{overflow:hidden}` moved it -318px, `html{overflow:hidden}` and
+          `body{position:fixed}` did not.
+
+          `fixed` resolves against the viewport instead and cannot be broken
+          this way by anyone. Its own catch is that a `transform`, `filter` or
+          `will-change` on ANY ancestor would re-root it; there is none today
+          (app-shell and both layouts are clean), so do not add one above this
+          without re-checking. */}
+      <aside className="hidden w-[248px] shrink-0 md:block">
+        <div className="fixed left-0 top-0 z-10 flex h-screen w-[248px] flex-col gap-3 bg-sidebar px-4 pb-4 pt-5">
+          {/* The lockup's own width is content-hugging (see peaks-mark.tsx), so
+              centering it takes an outer flex row rather than touching the
+              mark/wordmark pairing itself, which stays exactly as tuned. */}
+          <div className="flex justify-center">
+            <LogoEasterEgg>
+              <LogoFact />
+            </LogoEasterEgg>
+          </div>
+          <NavLinks pathname={pathname} markerId="nav-desktop" />
+          {/* relative anchor for the idle-rest hoopoe, which perches just above
+              this section (see sidebar-hoopoe.tsx) */}
+          <div className="relative mt-auto">
+            <SidebarHoopoe />
+            <AccountSection user={user} pathname={pathname} markerId="nav-desktop" />
+          </div>
         </div>
       </aside>
 
