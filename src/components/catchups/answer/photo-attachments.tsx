@@ -13,11 +13,12 @@
  *  and only passes the resulting url array back in.
  * ------------------------------------------------------------------ */
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { SpringPress } from "@/components/common/motion";
+import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -32,20 +33,20 @@ export function PhotoAttachments({
   max?: number;
 }) {
   const [uploading, setUploading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
   const [listRef] = useAutoAnimate();
 
   const single = max === 1;
   const plateSize = single ? "h-44 w-full sm:w-72" : "h-20 w-20";
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  async function handleFiles(files: File[]) {
+    if (files.length === 0) return;
     const remaining = max - images.length;
     if (remaining <= 0) {
       toast.error(single ? "One photo for this question." : `Up to ${max} photos per answer.`);
       return;
     }
-    const picked = Array.from(files).slice(0, remaining);
+    const picked = files.slice(0, remaining);
     for (const file of picked) {
       if (file.size > MAX_BYTES) {
         toast.error("Each photo must be under 5MB.");
@@ -69,19 +70,17 @@ export function PhotoAttachments({
       toast.error("That photo would not upload. Try again.");
     } finally {
       setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
   return (
     <div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
+      <AttachImageDialog
+        open={attachOpen}
+        onOpenChange={setAttachOpen}
+        onFiles={handleFiles}
         multiple={!single}
-        className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
+        title={single ? "Add your photo" : "Add a photo"}
       />
       <div ref={listRef} className="flex flex-wrap items-center gap-[var(--space-s)]">
         {images.map((src, i) => (
@@ -107,7 +106,7 @@ export function PhotoAttachments({
         {images.length < max && (
           <SpringPress
             as="button"
-            onClick={() => inputRef.current?.click()}
+            onClick={() => setAttachOpen(true)}
             className={cn(
               "inline-flex flex-col items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-dashed border-border text-muted-foreground hover:border-leaf/50 hover:text-foreground disabled:cursor-default disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               plateSize

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Send, X } from "lucide-react";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
+import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { COMPOSER_KINDS, MAX_MESSAGE_LENGTH, kindLabel } from "@/lib/admin-threads";
 import {
   adminReplyToThread,
@@ -49,17 +50,13 @@ export function MessageComposer({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   const busy = sending || uploading;
   const canSend = body.trim().length > 0 && !busy;
   const remaining = MAX_MESSAGE_LENGTH - body.length;
 
-  async function handlePickImage(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // so picking the same file twice still fires
-    if (!file) return;
-
+  async function handlePickImage(file: File) {
     setUploading(true);
     try {
       const form = new FormData();
@@ -199,17 +196,18 @@ export function MessageComposer({
             </div>
           )}
 
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            onChange={handlePickImage}
-            className="sr-only"
-            tabIndex={-1}
+          <AttachImageDialog
+            open={attachOpen}
+            onOpenChange={setAttachOpen}
+            onFiles={(files) => {
+              if (files[0]) handlePickImage(files[0]);
+            }}
+            multiple={false}
+            title="Add a screenshot"
           />
           <motion.button
             type="button"
-            onClick={() => fileRef.current?.click()}
+            onClick={() => setAttachOpen(true)}
             disabled={busy}
             whileTap={{ scale: 0.94 }}
             transition={SPRINGS.snappy}

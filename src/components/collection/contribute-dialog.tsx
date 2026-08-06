@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { AttachImageWell } from "@/components/common/attach-image-dialog";
 import {
   Select,
   SelectContent,
@@ -63,7 +64,6 @@ export function ContributeDialog({
   const [monthChoice, setMonthChoice] = useState<string>(NO_MONTH);
   const [decade, setDecade] = useState<string>("unknown");
   const [submitting, setSubmitting] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   function reset() {
     setFile(null);
@@ -178,14 +178,9 @@ export function ContributeDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* File */}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-          />
+          {/* File: the dialog is already open, so this embeds the shared
+              pick surface directly rather than nesting a second dialog
+              inside it. */}
           {preview ? (
             <div className="relative overflow-hidden rounded-[var(--radius-md)] border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -203,16 +198,11 @@ export function ContributeDialog({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => fileRef.current?.click()}
-              // A 100px drop target whose only hover was a dashed hairline and
-              // the label ink. state-layer fills the well itself and brings the
-              // press state it was missing; the leaf border hint stays.
-              className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-md)] border border-dashed border-border bg-paper/50 py-10 text-muted-foreground transition-colors state-layer hover:border-leaf/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              <ImagePlus className="h-7 w-7" />
-              <span className="text-sm font-medium">Choose a photo (up to 20MB)</span>
-            </button>
+            <AttachImageWell
+              active={open}
+              multiple={false}
+              onFiles={(files) => pickFile(files[0] ?? null)}
+            />
           )}
 
           {/* Caption */}

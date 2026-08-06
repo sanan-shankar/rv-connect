@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { AnimatePresence, motion } from "motion/react";
@@ -14,6 +14,7 @@ import { LocationPicker, type PlaceSelection } from "@/components/common/locatio
 import { HousePicker } from "@/components/common/house-picker";
 import { YearInput } from "@/components/common/year-input";
 import { AvatarCropDialog } from "./avatar-crop-dialog";
+import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -239,7 +240,7 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
   const [photoBusy, setPhotoBusy] = useState(false);
   /* The file waiting in the crop dialog; null = dialog closed. */
   const [cropFile, setCropFile] = useState<File | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
 
   const [about, setAbout] = useState(user.about ?? "");
 
@@ -329,7 +330,6 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
     fd.set("file", payload instanceof File ? payload : new File([payload], "avatar.webp", { type: "image/webp" }));
     const result = await updateAvatar(fd);
     setPhotoBusy(false);
-    if (fileRef.current) fileRef.current.value = "";
     if (result.error) return toast.error(result.error);
     setPhotoUrl(result.photoUrl ?? null);
     toast.success("Photo updated");
@@ -453,12 +453,12 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
               label="Profile photo"
               hint={photoUrl ? "Shows everywhere in place of your bird." : "Upload a photo, or keep your valley bird."}
             >
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handlePhotoPick(e.target.files?.[0] ?? null)}
+              <AttachImageDialog
+                open={attachOpen}
+                onOpenChange={setAttachOpen}
+                onFiles={(files) => handlePhotoPick(files[0] ?? null)}
+                multiple={false}
+                title="Add a profile photo"
               />
               {/* md (64px), not sm (40px): this is the one control whose whole
                   job is answering "is this the right photo?" */}
@@ -471,7 +471,7 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
                 }}
                 size="md"
               />
-              <Button type="button" variant="outline" size="sm" disabled={photoBusy} onClick={() => fileRef.current?.click()}>
+              <Button type="button" variant="outline" size="sm" disabled={photoBusy} onClick={() => setAttachOpen(true)}>
                 {photoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
                 {photoUrl ? "Change" : "Upload"}
               </Button>
@@ -801,10 +801,7 @@ export function SettingsForm({ user }: { user: SettingsUser }) {
           setCropFile(null);
           await uploadAvatarBlob(blob);
         }}
-        onCancel={() => {
-          setCropFile(null);
-          if (fileRef.current) fileRef.current.value = "";
-        }}
+        onCancel={() => setCropFile(null)}
         onDecodeError={(f) => {
           // The browser could not decode this file (HEIC etc.). Send the
           // original straight to the server, whose sharp pipeline either
