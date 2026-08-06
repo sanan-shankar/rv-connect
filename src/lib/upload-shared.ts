@@ -8,6 +8,11 @@
 /** The one photo ceiling, everywhere: 20MB. */
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
+/** The one "is this actually a picture" check, everywhere. */
+export function isImageFile(file: { type: string }): boolean {
+  return file.type.startsWith("image/");
+}
+
 /** True for iPhone photos exported as HEIC/HEIF. sharp's prebuilt binary has
  *  no HEVC decoder (patent licensing), so these fail with an opaque
  *  "unsupported image format" error; catch them earlier with a message that

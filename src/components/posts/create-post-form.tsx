@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
+import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { downscaleImage } from "@/lib/image-downscale";
 import { directUploadPut } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
@@ -209,7 +210,7 @@ export function CreatePostForm({
   // True only once the grow animation has fully settled; gates overflow so the
   // "More" popover can escape the box, while the unfurl/contraction stays clipped.
   const [settled, setSettled] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const richRef = useRef<HTMLDivElement>(null);
@@ -314,8 +315,17 @@ export function CreatePostForm({
   // Outside-click + Escape. Empty + outside click (or Escape with nothing open)
   // retracts to the pill; if the user has typed, an outside click only closes a
   // popover so a draft is never lost to a stray click.
+  //
+  // Guarded on `attachOpen`: the attach-photo dialog renders through THE
+  // dialog material's portal (src/components/ui/dialog.tsx), i.e. as a
+  // sibling of rootRef in the DOM, not a descendant. Without this guard,
+  // clicking anything inside that popup -- the dropzone, "browse" -- reads
+  // as a click OUTSIDE the composer and collapsed it out from under the
+  // file input mid-pick, so the OS file dialog returned a file to an
+  // element that no longer existed (owner, 2026-08-06: "composer reset
+  // when you browse for files... nothing uploads").
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded || attachOpen) return;
     function onDown(e: MouseEvent) {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         if (!hasContent) collapse();
@@ -333,7 +343,7 @@ export function CreatePostForm({
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [expanded, hasContent, more, collapse]);
+  }, [expanded, hasContent, more, collapse, attachOpen]);
 
   // Re-derive the markdown mirror + mention query from the live DOM. Called after
   // every keystroke, paste, and formatting toggle so `content` (used for the Post
@@ -466,12 +476,11 @@ export function CreatePostForm({
     return urls[0] as string;
   }
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
+  async function handleImageFiles(files: File[]) {
+    if (files.length === 0) return;
 
     const remaining = 3 - images.length;
-    if (fileList.length > remaining) {
+    if (files.length > remaining) {
       toast.error(`You can add ${remaining} more image${remaining !== 1 ? "s" : ""}`);
       return;
     }
@@ -480,7 +489,7 @@ export function CreatePostForm({
     // rather than aborting the whole batch on the first one). 20MB is the
     // real ceiling now that the direct path PUTs originals straight to
     // storage; only the proxied fallback still shrinks in the browser.
-    const candidates = Array.from(fileList).slice(0, remaining);
+    const candidates = files.slice(0, remaining);
     const valid: File[] = [];
     for (const file of candidates) {
       if (file.size > MAX_UPLOAD_BYTES) {
@@ -489,10 +498,7 @@ export function CreatePostForm({
       }
       valid.push(file);
     }
-    if (valid.length === 0) {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
+    if (valid.length === 0) return;
 
     setUploading(true);
     const uploadedUrls: string[] = [];
@@ -521,7 +527,6 @@ export function CreatePostForm({
 
     setUploading(false);
     setUploadProgress(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function removeImage(index: number) {
@@ -856,13 +861,12 @@ export function CreatePostForm({
               the glyph ink up under the text box's left edge rather than the
               icon button's invisible bounding box. */}
           <div className="-ml-[9px] flex shrink-0 items-center gap-1">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
+            <AttachImageDialog
+              open={attachOpen}
+              onOpenChange={setAttachOpen}
+              onFiles={handleImageFiles}
               multiple
-              className="hidden"
-              onChange={handleImageUpload}
+              title="Add photos"
             />
 
             {/* Icon only: the word "Photo" is gone, so the label lives in
@@ -870,7 +874,7 @@ export function CreatePostForm({
                 used to be the button's text). */}
             <SpringPress
               className={iconControl}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setAttachOpen(true)}
               {...({
                 type: "button",
                 disabled: images.length >= 3 || uploading,

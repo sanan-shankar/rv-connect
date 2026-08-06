@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, ArrowRight, ImagePlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { speciesNameFor, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
+import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { updateAvatar } from "@/components/settings/actions";
 import type { OnboardingUser } from "../onboarding-flow";
 
@@ -29,7 +30,7 @@ export function PhotoStep({
 }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
   const [busy, setBusy] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
   const speciesName = speciesNameFor(user.id, resolveBirdOverride(user.id, user.birdOverride));
 
   async function handlePick(file: File | null) {
@@ -47,7 +48,6 @@ export function PhotoStep({
     fd.set("file", file);
     const result = await updateAvatar(fd);
     setBusy(false);
-    if (fileRef.current) fileRef.current.value = "";
     if (result.error) {
       toast.error(result.error);
       return;
@@ -69,12 +69,12 @@ export function PhotoStep({
       </div>
 
       <div className="flex flex-col items-center gap-[var(--space-m)] rounded-2xl border border-border bg-card p-[var(--space-l)]">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => handlePick(e.target.files?.[0] ?? null)}
+        <AttachImageDialog
+          open={attachOpen}
+          onOpenChange={setAttachOpen}
+          onFiles={(files) => handlePick(files[0] ?? null)}
+          multiple={false}
+          title="Add a photo"
         />
         <BirdAvatar
           user={{
@@ -96,7 +96,7 @@ export function PhotoStep({
           variant="outline"
           size="sm"
           disabled={busy}
-          onClick={() => fileRef.current?.click()}
+          onClick={() => setAttachOpen(true)}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
           {photoUrl ? "Change photo" : "Upload a photo"}
