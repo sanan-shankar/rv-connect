@@ -528,7 +528,11 @@ model CatchupEdition {
   answersCloseAt   DateTime?
   publishAt        DateTime?                          // = answersCloseAt + 24h (the preparing ritual)
   publishedAt      DateTime?
-  remindersSent    Int       @default(0)              // bitmask: 1=two-days, 2=last-day, 4=extended-once
+  // Packed reminder bookkeeping, see `dailyBucket`/`withDailyBucket` in
+  // src/lib/catchups.ts. Low byte = flags (4 = auto-extended once; 1 and 2 are
+  // the retired two-days/last-day bits, inert on old rows). High bits = the
+  // days-left value the last DAILY reminder was sent for, 0 for none.
+  remindersSent    Int       @default(0)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

@@ -23,12 +23,13 @@
  *  the missing X say it, and leaving is not a thing this screen does.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Loader2, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
+import { useUserSearch } from "@/components/common/use-user-search";
 import { cn } from "@/lib/utils";
 
 export interface PickedPerson {
@@ -38,8 +39,6 @@ export interface PickedPerson {
   birdOverride: string | null;
   batchYear: number | null;
 }
-
-const DEBOUNCE_MS = 200;
 
 /**
  * One chip, so the roster cannot end up with two shapes in it.
@@ -81,41 +80,16 @@ export function PeoplePicker({
   canRemove?: boolean;
 }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<PickedPerson[]>([]);
-  const [searching, setSearching] = useState(false);
   const [addingBatch, setAddingBatch] = useState(false);
-  const requestId = useRef(0);
-
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) {
-      setResults([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const id = ++requestId.current;
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        // Ignore a response that a newer keystroke has already superseded.
-        if (id !== requestId.current) return;
-        setResults(Array.isArray(data) ? data : []);
-      } catch {
-        if (id === requestId.current) setResults([]);
-      } finally {
-        if (id === requestId.current) setSearching(false);
-      }
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [query]);
+  // Shared with the Catch-up people panel, so the debounce and the
+  // stale-response guard cannot drift between the two search fields.
+  const { results, searching, reset } = useUserSearch(query);
 
   function add(person: PickedPerson) {
     if (value.some((p) => p.id === person.id)) return;
     onChange([...value, person]);
     setQuery("");
-    setResults([]);
+    reset();
   }
 
   function remove(id: string) {

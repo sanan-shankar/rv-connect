@@ -25,7 +25,6 @@ import type {
   EditionStatus,
   EditionTiming,
   PromptCategory,
-  ReminderMode,
 } from "@/lib/catchups-types";
 
 /* ------------------------------------------------------------------ *
@@ -87,14 +86,61 @@ export const PREPARING_HOLD_HOURS = 24;
 /** Too-few-answers auto-extend, applied at most once. */
 export const EXTEND_DAYS = 3;
 
-/** How early the two dated reminders fire, before answersCloseAt. */
-export const TWO_DAYS_LEFT_MS = 2 * DAY_MS;
-export const LAST_DAY_MS = 1 * DAY_MS;
-
-/** remindersSent bitmask (spec section 2.4). */
-export const REMINDER_TWO_DAYS = 1;
-export const REMINDER_LAST_DAY = 2;
+/** remindersSent low bits (spec section 2.4). */
+export const REMINDER_TWO_DAYS = 1; // legacy: superseded by the daily bucket below
+export const REMINDER_LAST_DAY = 2; // legacy: superseded by the daily bucket below
 export const REMINDER_EXTENDED = 4;
+
+/* ------------------------------------------------------------------ *
+ *  The daily reminder bucket.
+ *
+ *  Reminders used to be two fixed nudges (two-days-left, last-day), each
+ *  guarded by its own bit. The owner asked for one EVERY day the answer
+ *  window is open instead (2026-08-05), which a two-bit mask cannot
+ *  express: a 7-day window has seven of them, and an extension can add
+ *  more.
+ *
+ *  So `remindersSent` is now split. The low byte keeps the existing bits
+ *  (only REMINDER_EXTENDED still means anything; 1 and 2 are inert history
+ *  on rows written before this change). The high bits carry a small
+ *  integer: the days-left value at which the last daily reminder went out,
+ *  0 for "none yet".
+ *
+ *  Why days-left and not a date: it needs no timezone (spec fence: "no
+ *  timezone machinery"), it is a pure function of two timestamps the row
+ *  already has, and it is strictly decreasing inside a window, so "the
+ *  bucket differs from today's days-left" is a complete and self-clearing
+ *  guard. An extension pushes days-left back UP, which correctly reads as
+ *  a new bucket and lets the next day's reminder fire.
+ *
+ *  This is deliberately still one Int column: no migration.
+ * ------------------------------------------------------------------ */
+const DAILY_BUCKET_SHIFT = 8;
+const REMINDER_FLAG_MASK = (1 << DAILY_BUCKET_SHIFT) - 1;
+
+/** The days-left value the last daily reminder was sent for, or 0 for none. */
+export function dailyBucket(remindersSent: number): number {
+  return remindersSent >> DAILY_BUCKET_SHIFT;
+}
+
+/** `remindersSent` with its daily bucket set to `daysLeft`, flags untouched. */
+export function withDailyBucket(remindersSent: number, daysLeft: number): number {
+  return (remindersSent & REMINDER_FLAG_MASK) | (Math.max(0, daysLeft) << DAILY_BUCKET_SHIFT);
+}
+
+/**
+ * Whole days left before `closeAt`, floored at 1 while the window is still
+ * open. 1 means "last day", which is what the copy says. Returns 0 once the
+ * moment has passed, because then the answer is a transition, not a nudge.
+ */
+export function daysLeftUntil(closeAt: Date | string | null | undefined, now: Date): number {
+  if (closeAt == null) return 0;
+  const close = new Date(closeAt).getTime();
+  if (Number.isNaN(close)) return 0;
+  const diff = close - now.getTime();
+  if (diff <= 0) return 0;
+  return Math.max(1, Math.ceil(diff / DAY_MS));
+}
 
 /** Forward-only order of the Round state machine. */
 export const STATUS_ORDER: EditionStatus[] = [
@@ -241,7 +287,22 @@ export function catchupTitle(title: string | null | undefined, groupName: string
   return title?.trim() || `${groupName} Catch-ups`;
 }
 
-/** Effective Keeper = the creator OR any group admin (spec section 7). */
+/**
+ * Effective Keeper = the creator, anyone given the Keeper hat, or a group admin
+ * (spec section 7).
+ *
+ * The two accepted roles are NOT interchangeable, and the difference matters.
+ * `"admin"` is the GROUP's admin role, and it is read outside this feature:
+ * `deletePost` in `feed/actions.ts` lets a group admin delete anyone's post in
+ * that group. So `setCatchupKeeper` writes `"keeper"` instead, which means
+ * exactly "holds Keeper powers in this Catch-up" and nothing else. Handing
+ * someone the Keeper hat must never quietly also hand them moderation over a
+ * group's posts.
+ *
+ * `"admin"` stays accepted because it is what the spec's original rule says and
+ * what existing rows (including every Catch-up creator's own membership row)
+ * already carry. Read both; only ever write `"keeper"`.
+ */
 export function isEffectiveKeeper(opts: {
   viewerId: string | null | undefined;
   createdById: string | null | undefined;
@@ -249,7 +310,7 @@ export function isEffectiveKeeper(opts: {
 }): boolean {
   if (!opts.viewerId) return false;
   if (opts.createdById && opts.viewerId === opts.createdById) return true;
-  return opts.groupRole === "admin";
+  return opts.groupRole === "keeper" || opts.groupRole === "admin";
 }
 
 // ─── Pure state machine ──────────────────────────────────────────────────────
@@ -300,27 +361,21 @@ export function nextEditionStatus(ed: EditionTiming, now: Date): EditionStatus |
   return STATUS_ORDER[ci + 1];
 }
 
-/** The mid-window reminder due right now (if any), while still answering. */
-export function dueReminder(
-  ed: EditionTiming,
-  now: Date
-): { bit: number; modes: ReminderMode[] } | null {
+/**
+ * The daily reminder due right now (if any), while still answering. One per
+ * day of the answer window, guarded by the days-left bucket so a hundred page
+ * views in one day still produce exactly one.
+ *
+ * The bucket is seeded to the full window at the moment answering opens (see
+ * `answeringPatch`), so the first daily nudge lands a day LATER rather than
+ * piling straight on top of the "answers are open" notification.
+ */
+export function dueReminder(ed: EditionTiming, now: Date): { daysLeft: number } | null {
   if (ed.status !== "answering") return null;
-  const close = ms(ed.answersCloseAt);
-  if (close == null) return null;
-  const t = now.getTime();
-  if (t >= close) return null; // past the window; we transition instead of nudging
-
-  const twoDaySent = (ed.remindersSent & REMINDER_TWO_DAYS) !== 0;
-  const lastDaySent = (ed.remindersSent & REMINDER_LAST_DAY) !== 0;
-
-  if (!twoDaySent && t >= close - TWO_DAYS_LEFT_MS) {
-    return { bit: REMINDER_TWO_DAYS, modes: ["all"] };
-  }
-  if (!lastDaySent && t >= close - LAST_DAY_MS) {
-    return { bit: REMINDER_LAST_DAY, modes: ["all", "last"] };
-  }
-  return null;
+  const daysLeft = daysLeftUntil(ed.answersCloseAt, now);
+  if (daysLeft === 0) return null; // past the window: we transition instead of nudging
+  if (dailyBucket(ed.remindersSent) === daysLeft) return null; // already sent today's
+  return { daysLeft };
 }
 
 /** Too-few-answers: extend once when the answer window closes with zero entries. */
@@ -332,15 +387,52 @@ export function shouldExtendForTooFew(ed: EditionTiming, entryCount: number): bo
 
 export type EditionPatch = {
   status?: EditionStatus;
+  questionsCloseAt?: Date;
   answersCloseAt?: Date;
   publishAt?: Date;
   publishedAt?: Date;
   remindersSent?: number;
 };
 
-/** collecting -> answering. Sets the 7-day answer window. */
-export function answeringPatch(now: Date): EditionPatch {
-  return { status: "answering", answersCloseAt: addDays(now, ANSWER_WINDOW_DAYS) };
+/**
+ * collecting -> answering. Sets the 7-day answer window, and seeds the daily
+ * reminder bucket to that window's days-left so the first daily nudge is a day
+ * away rather than landing on the same page view as "answers are open".
+ */
+export function answeringPatch(ed: EditionTiming, now: Date): EditionPatch {
+  const answersCloseAt = addDays(now, ANSWER_WINDOW_DAYS);
+  return {
+    status: "answering",
+    answersCloseAt,
+    remindersSent: withDailyBucket(ed.remindersSent, daysLeftUntil(answersCloseAt, now)),
+  };
+}
+
+/**
+ * A Keeper pushing a deadline out by hand (owner, 2026-08-05: "importantly
+ * have the ability to extend deadline ... by 1 day 2 days or 4 days or a
+ * week"). Extends from the deadline itself, not from now: "extend by 2 days"
+ * means the date on the page moves two days, which is not the same thing once
+ * a day of the window has already gone.
+ *
+ * `collecting` moves `questionsCloseAt`; `answering` moves `answersCloseAt`
+ * and re-seeds the daily bucket, so buying the group more time does not
+ * immediately spend it on a reminder saying so.
+ */
+export function extendPhasePatch(ed: EditionTiming, days: number, now: Date): EditionPatch | null {
+  if (ed.status === "collecting") {
+    const from = ms(ed.questionsCloseAt) ?? now.getTime();
+    return { questionsCloseAt: addDays(new Date(from), days) };
+  }
+  if (ed.status === "answering") {
+    const from = ms(ed.answersCloseAt) ?? now.getTime();
+    const answersCloseAt = addDays(new Date(from), days);
+    return {
+      answersCloseAt,
+      remindersSent: withDailyBucket(ed.remindersSent, daysLeftUntil(answersCloseAt, now)),
+    };
+  }
+  return null; // preparing and published have no window left to extend
 }
 
 /** answering -> preparing. Sets the 24h ritual hold (publishAt = answersCloseAt + 24h). */
@@ -358,9 +450,16 @@ export function publishPatch(now: Date): EditionPatch {
 
 /** Too-few extension: push the answer window 3 days and set the extended bit. */
 export function extendPatch(ed: EditionTiming, now: Date): EditionPatch {
+  const answersCloseAt = addDays(now, EXTEND_DAYS);
   return {
-    answersCloseAt: addDays(now, EXTEND_DAYS),
-    remindersSent: ed.remindersSent | REMINDER_EXTENDED,
+    answersCloseAt,
+    // Extended flag AND a fresh daily bucket: this transition already re-fires
+    // `catchup_answers_open` to the non-answerers, so a same-instant "3 days
+    // left" on top of it would be the same message twice.
+    remindersSent: withDailyBucket(
+      ed.remindersSent | REMINDER_EXTENDED,
+      daysLeftUntil(answersCloseAt, now)
+    ),
   };
 }
 
@@ -377,7 +476,7 @@ export type EditionAction =
       setsNextOpensAt: boolean;
     }
   | { kind: "extend"; patch: EditionPatch; notify: "catchup_answers_open" }
-  | { kind: "reminder"; bit: number; modes: ReminderMode[]; patch: EditionPatch };
+  | { kind: "reminder"; daysLeft: number; patch: EditionPatch };
 
 /**
  * What advanceEdition should do next, as a single step. Pure: given the same
@@ -408,7 +507,7 @@ export function planNextAction(ed: EditionTiming, entryCount: number, now: Date)
         kind: "transition",
         from: ed.status,
         to: "answering",
-        patch: answeringPatch(now),
+        patch: answeringPatch(ed, now),
         notify: "catchup_answers_open",
         setsNextOpensAt: false,
       };
@@ -438,9 +537,8 @@ export function planNextAction(ed: EditionTiming, entryCount: number, now: Date)
   if (rem) {
     return {
       kind: "reminder",
-      bit: rem.bit,
-      modes: rem.modes,
-      patch: { remindersSent: ed.remindersSent | rem.bit },
+      daysLeft: rem.daysLeft,
+      patch: { remindersSent: withDailyBucket(ed.remindersSent, rem.daysLeft) },
     };
   }
 
@@ -731,7 +829,7 @@ async function applyEditionAction(
       data: action.patch,
     });
     if (cas.count === 0) return false;
-    await notify.notifyReminder(tx, { ...meta, editionId, modes: action.modes });
+    await notify.notifyReminder(tx, { ...meta, editionId, daysLeft: action.daysLeft });
     return true;
   });
 }

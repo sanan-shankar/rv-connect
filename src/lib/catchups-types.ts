@@ -45,19 +45,30 @@ export type PromptSource = "library" | "member" | "keeper";
  * the kind here rather than in a new column keeps both special question types
  * migration-free.
  *
- * The three `legacy-` entries are sets that were cut from the library on
- * 2026-07-25. Rows written before then still carry those values, so they stay
- * in the union to keep reads type-safe; nothing offers them any more.
+ * This ARRAY, not the union, is the source of truth, and every validator must
+ * import it rather than retyping the ids. `catchups/actions.ts` used to keep
+ * its own hand-written Zod enum, which went stale the day the library was
+ * rewritten (2026-07-25) and started rejecting three of the five live sets with
+ * a raw "Invalid option: expected one of valley-days|..." in front of the
+ * member. Deriving the union from the array means a set can never again be in
+ * the library but absent from the validator.
+ *
+ * The last three ids are sets that were CUT in that rewrite. Rows written
+ * before then still carry them, so they stay here to keep reads type-safe and
+ * to keep an old question re-submittable; nothing offers them any more.
  */
-export type PromptCategory =
-  | "right-now"
-  | "small-things"
-  | "the-valley"
-  | "photo-wall"
-  | "songs"
-  | "valley-days"
-  | "most-likely-to"
-  | "on-the-horizon";
+export const PROMPT_CATEGORIES = [
+  "right-now",
+  "small-things",
+  "the-valley",
+  "photo-wall",
+  "songs",
+  "valley-days",
+  "most-likely-to",
+  "on-the-horizon",
+] as const;
+
+export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
 
 /** How a question is answered. Derived from the category, see PROMPT_KIND. */
 export type PromptKind = "text" | "photo" | "songs";
@@ -223,8 +234,12 @@ export type NotifyAnswersOpenFn = (
 export type NotifyReminderFn = (
   db: CatchupDb,
   ctx: NotifyBaseCtx & {
-    /** Which reminderMode values qualify. Two-days = ["all"], last-day = ["all","last"]. */
-    modes: ReminderMode[];
+    /**
+     * Whole days left in the answer window, 1 meaning "last day". Decides both
+     * the copy and who qualifies: `reminderMode: "last"` members only hear from
+     * us at 1. Omitted for a manual Keeper nudge, which is not a countdown.
+     */
+    daysLeft?: number;
     /** Manual Keeper nudge: reaches "off" members too. */
     bypassOff?: boolean;
     keeperName?: string;

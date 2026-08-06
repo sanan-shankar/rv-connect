@@ -187,7 +187,15 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         select: {
           id: true,
           name: true,
-          members: { select: { user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } } },
+          members: {
+            select: {
+              // The role IS the second-Keeper flag: `setCatchupKeeper` writes
+              // "keeper" here, which `isEffectiveKeeper` honours, so the hat is
+              // handed over without a new column.
+              role: true,
+              user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+            },
+          },
         },
       },
       createdBy: { select: { id: true, name: true } },
@@ -256,15 +264,28 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
 
   // Viewer first: MemberStrip shows only its first `max`, and someone who
   // fell off the end of an unordered list read that as not being a member at
-  // all (owner, 2026-08-04).
+  // all (owner, 2026-08-04). Keepers next, then everyone else in name order,
+  // so the roster reads the same way every time it is opened rather than in
+  // whatever order the join table happened to return.
   const members: HomePersonRef[] = catchup.group.members
     .map((m) => ({
       id: m.user.id,
       name: m.user.name,
       photoUrl: m.user.photoUrl,
       birdOverride: m.user.birdOverride,
+      isKeeper: isEffectiveKeeper({
+        viewerId: m.user.id,
+        createdById: catchup.createdById,
+        groupRole: m.role,
+      }),
+      isCreator: !!catchup.createdById && m.user.id === catchup.createdById,
     }))
-    .sort((a, b) => (a.id === viewerId ? -1 : b.id === viewerId ? 1 : 0));
+    .sort((a, b) => {
+      if (a.id === viewerId) return -1;
+      if (b.id === viewerId) return 1;
+      if (a.isKeeper !== b.isKeeper) return a.isKeeper ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
   const viewerName = members.find((m) => m.id === viewerId)?.name ?? "You";
 
   let editionView: HomeEditionView | null = null;
@@ -339,7 +360,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         new Date(now)
       ),
       prompts,
-      answeredCount: answeredAuthorIds.length,
       answeredAuthorIds,
     };
   }
@@ -390,7 +410,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     catchupStatus: catchup.status as CatchupStatus,
     keeperName: catchup.createdBy?.name ?? null,
     members,
-    memberCount: members.length,
     viewer: {
       id: viewerId,
       name: viewerName,

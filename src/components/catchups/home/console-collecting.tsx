@@ -15,7 +15,7 @@
 
 import { useState } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { ArrowUp, ArrowDown, ArrowRight, Check, X } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowRight, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,8 +41,9 @@ export function ConsoleCollecting({
   onChanged: () => void;
 }) {
   const { viewer } = data;
+  // Every question is in the Round the moment it is asked (2026-08-05), so
+  // there is one list, not an accepted one and a queue behind it.
   const accepted = edition.prompts.filter((p) => p.accepted);
-  const pending = edition.prompts.filter((p) => !p.accepted);
 
   return (
     <div className="space-y-[var(--space-m)]">
@@ -58,7 +59,6 @@ export function ConsoleCollecting({
         <QuestionsList
           editionId={edition.id}
           accepted={accepted}
-          pending={pending}
           isKeeper={viewer.isKeeper}
           onChanged={onChanged}
         />
@@ -105,8 +105,8 @@ function SubmissionPanel({
       toast.error(result.error);
       return;
     }
-    const accepted = result && "accepted" in result && result.accepted;
-    toast.success(accepted ? "Added to the round." : "Sent to the Keeper.");
+    // Always "added": since 2026-08-05 nothing waits on a Keeper.
+    toast.success("Added to the round.");
     setText("");
     setCategory(null);
     setShowAsker(true);
@@ -209,26 +209,15 @@ export function OpenAnsweringButton({
 function QuestionsList({
   editionId,
   accepted,
-  pending,
   isKeeper,
   onChanged,
 }: {
   editionId: string;
   accepted: HomePromptView[];
-  pending: HomePromptView[];
   isKeeper: boolean;
   onChanged: () => void;
 }) {
   const [listRef] = useAutoAnimate();
-
-  async function handleAccept(promptId: string) {
-    const result = await curatePrompt({ action: "accept", promptId });
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
-    }
-    onChanged();
-  }
 
   async function handleRemove(promptId: string) {
     const result = await curatePrompt({ action: "remove", promptId });
@@ -311,48 +300,6 @@ function QuestionsList({
           </div>
         )}
 
-        {pending.length > 0 && (
-          <div
-            className={cn(
-              accepted.length > 0 && "mt-[var(--space-m)] border-t border-border pt-[var(--space-m)]"
-            )}
-          >
-            {/* Says what the row's own state is. The Keeper's two buttons say
-                what to do about it, so no second line repeats them. */}
-            <p className="text-sm font-semibold text-foreground">Not in the round yet</p>
-            <div className="mt-[var(--space-s)] space-y-[var(--space-xs)]">
-              {pending.map((p) => (
-                <QuestionRow
-                  key={p.id}
-                  prompt={p}
-                  muted
-                  actions={
-                    isKeeper ? (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          aria-label="Add to the round"
-                          onClick={() => handleAccept(p.id)}
-                          className="rounded-md p-1.5 text-leaf transition-colors duration-150 hover:bg-leaf/10 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Remove question"
-                          onClick={() => handleRemove(p.id)}
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : null
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </FadeRise>
   );
@@ -361,11 +308,9 @@ function QuestionsList({
 function QuestionRow({
   prompt,
   actions,
-  muted,
 }: {
   prompt: HomePromptView;
   actions?: React.ReactNode;
-  muted?: boolean;
 }) {
   const askerLabel = prompt.isOwn
     ? prompt.showAsker
@@ -377,10 +322,8 @@ function QuestionRow({
 
   return (
     <div
-      className={cn(
-        "flex items-start justify-between gap-[var(--space-s)] rounded-[var(--radius-md)] border border-border/70 bg-background/40 p-[var(--space-s)]",
-        muted && "border-dashed"
-      )}
+      className="flex items-start justify-between gap-[var(--space-s)] rounded-[var(--radius-md)] border border-border/70 bg-background/40 p-[var(--space-s)]"
+
     >
       <div className="flex min-w-0 items-start gap-2.5">
         {prompt.author ? (

@@ -13,6 +13,11 @@
  *
  *  There is no "Keeper controls" box. "Open answering" is the full-width
  *  rail action above Settings, which stays reachable while paused or ended.
+ *
+ *  The rail's first card is the people (2026-08-05). It carries the roster,
+ *  add/remove, the Keeper hat and the invite link, and it is present at every
+ *  status, so the group is visible while asking, answering and reading rather
+ *  than only at the moment it was created.
  * ------------------------------------------------------------------ */
 
 import { useRouter } from "next/navigation";
@@ -28,8 +33,9 @@ import { ConsoleCollecting, OpenAnsweringButton } from "./console-collecting";
 import { ConsoleAnswering } from "./console-answering";
 import { ConsolePublished, type PublishedIssue } from "./console-published";
 import { ArchiveShelf } from "./archive-shelf";
-import { InviteLinkCard } from "./invite-link-card";
+import { ExtendDeadlineCard } from "./extend-deadline-card";
 import { KeeperSettingsDialog } from "./keeper-settings-dialog";
+import { PeoplePanel } from "./people-panel";
 import { ReminderPrefControl } from "./reminder-pref-control";
 import type { CatchupHomeData } from "./types";
 
@@ -80,16 +86,38 @@ export function CatchupHomeShell({
       </div>
 
       <aside className="space-y-[var(--space-m)]">
+        {/* Above everything else in the rail, and present at every status:
+            who you are doing this with is the thing a member most wants to
+            see, and seeing the same faces in the same place while asking,
+            answering and reading is what makes it one room (owner,
+            2026-08-05). Answered ticks only during answering, where "has
+            written in" is a fact rather than a prediction. */}
+        <PeoplePanel
+          data={data}
+          answeredIds={
+            edition?.status === "answering"
+              ? new Set(edition.answeredAuthorIds)
+              : undefined
+          }
+          onChanged={refresh}
+        />
         <ReminderPrefControl catchupId={data.catchupId} initialMode={viewer.reminderMode} />
         <ArchiveShelf rows={data.archive} groupName={data.groupName} />
-        {/* Above the settings dialog, not inside it: adding a person is
-            something a Keeper does often and early, while cadence and Pause
-            are things they set once. Hidden on an ended Catch-up, where the
-            join action refuses anyway, so the link is never offered as a door
-            into a room that is shut. */}
-        {viewer.isKeeper && data.inviteToken && data.catchupStatus !== "ended" && (
-          <InviteLinkCard token={data.inviteToken} />
-        )}
+        {/* Above the settings dialog, not inside it: a deadline is something a
+            Keeper reaches for in the moment, on the day it matters, and it is
+            useless once the window it extends has closed. */}
+        {viewer.isKeeper &&
+          catchupStatus === "active" &&
+          (edition?.status === "collecting" || edition?.status === "answering") && (
+            <ExtendDeadlineCard
+              editionId={edition.id}
+              phase={edition.status}
+              closesAt={
+                edition.status === "collecting" ? edition.questionsCloseAt : edition.answersCloseAt
+              }
+              onChanged={refresh}
+            />
+          )}
         {viewer.isKeeper &&
           catchupStatus === "active" &&
           edition?.status === "collecting" &&
