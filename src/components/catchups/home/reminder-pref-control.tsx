@@ -11,12 +11,18 @@ import { Bell } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { EASE_SEGMENT_GLIDE, FadeRise, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
+import { InfoTooltip } from "@/components/common/info-tooltip";
 import { cn } from "@/lib/utils";
 import { setReminderPref } from "@/app/(main)/catchups/actions";
 import type { ReminderMode } from "@/lib/catchups-types";
 
+/**
+ * "Daily", not "All" (owner, 2026-08-05). "All" answered a question nobody was
+ * asking (all of WHAT?); the reminder now genuinely goes out once a day while
+ * replies are open, so the option says how often it comes.
+ */
 const OPTIONS: Array<{ value: ReminderMode; label: string }> = [
-  { value: "all", label: "All" },
+  { value: "all", label: "Daily" },
   { value: "last", label: "Last day" },
   { value: "off", label: "Off" },
 ];
@@ -49,8 +55,15 @@ export function ReminderPrefControl({
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
             Reminders
           </p>
+          {/* The one thing the three labels genuinely do not say: WHAT is
+              being reminded about, and when it starts. Behind an (i) rather
+              than as a line of sub-copy, because the 2026-07-25 review deleted
+              the sub-copy under this exact heading. */}
+          <InfoTooltip label="What these reminders are">
+            Reminders to answer, once the round is open to replies.
+          </InfoTooltip>
         </div>
-        {/* All / Last day / Off need no sub-copy: the three labels are the
+        {/* Daily / Last day / Off need no sub-copy: the three labels are the
             explanation (owner review, 2026-07-25). */}
         <div className="relative mt-[var(--space-s)] grid grid-cols-3 gap-1 rounded-full border border-border bg-muted/40 p-1">
           {OPTIONS.map((opt) => {

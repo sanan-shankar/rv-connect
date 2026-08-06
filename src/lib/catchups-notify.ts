@@ -108,13 +108,35 @@ export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
 };
 
 /**
- * A reminder to non-answerers. `modes` selects which reminderMode values qualify
- * (two-days = ["all"], last-day = ["all","last"]). `bypassOff` (manual Keeper
- * nudge) reaches everyone with no Entry regardless of their pref.
+ * A reminder to non-answerers. Fires once a DAY while the answer window is
+ * open (owner, 2026-08-05), with `daysLeft` counting down; `bypassOff` is the
+ * manual Keeper nudge, which reaches everyone with no Entry regardless of
+ * their pref.
+ *
+ * Who gets one:
+ *   - "all" (shown as Daily): every day.
+ *   - "last": only on the last day.
+ *   - "off": never, unless this is the Keeper's manual nudge.
+ *
+ * Today's reminder REPLACES yesterday's rather than stacking on it (owner:
+ * "make sure it deletes the previous notification, so that they don't build
+ * up"). The delete is scoped by type + link, so it takes out exactly this
+ * Catch-up's reminders and nothing else, and it runs over every group member
+ * rather than just today's recipients: someone who has since answered, or who
+ * has switched their pref to off, should have their stale nudge cleared too
+ * rather than left sitting in the bell forever.
+ *
+ * Both statements share the caller's transaction, so a reader can never catch
+ * the gap where the old one is gone and the new one is not there yet.
  */
 export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
-  const nonAnswerers = await nonAnswererIds(db, ctx.groupId, ctx.editionId);
-  if (nonAnswerers.length === 0) return;
+  const link = `/catchups/${ctx.catchupId}/answer`;
+  const days = ctx.daysLeft ?? 0;
+  const [members, answered] = await Promise.all([
+    groupMemberIds(db, ctx.groupId),
+    answeredUserIds(db, ctx.editionId),
+  ]);
+  const nonAnswerers = members.filter((id) => !answered.has(id));
 
   let recipients = nonAnswerers;
   if (!ctx.bypassOff) {
@@ -125,24 +147,30 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
     const prefByUser = new Map<string, ReminderMode>(
       prefs.map((p) => [p.userId, p.reminderMode as ReminderMode])
     );
-    const allowed = new Set(ctx.modes);
-    // Default to "all" when a member has never set a pref.
-    recipients = nonAnswerers.filter((id) => allowed.has(prefByUser.get(id) ?? "all"));
+    const isLastDay = days <= 1;
+    recipients = nonAnswerers.filter((id) => {
+      // Default to "all" when a member has never set a pref.
+      const mode = prefByUser.get(id) ?? "all";
+      if (mode === "all") return true;
+      if (mode === "last") return isLastDay;
+      return false;
+    });
   }
+
+  if (members.length > 0) {
+    await db.notification.deleteMany({
+      where: { userId: { in: members }, type: "catchup_reminder", link },
+    });
+  }
+  if (recipients.length === 0) return;
 
   const message = ctx.bypassOff
     ? `${ctx.keeperName ?? "The Keeper"} is waiting on you for ${ctx.groupName}'s Catch-up.`
-    : ctx.modes.includes("last")
+    : days <= 1
       ? `Last day to answer ${ctx.groupName}'s Catch-up.`
-      : `Two days left to answer ${ctx.groupName}'s Catch-up.`;
+      : `${days} days left to answer ${ctx.groupName}'s Catch-up.`;
 
-  await createMany(
-    db,
-    recipients,
-    "catchup_reminder",
-    message,
-    `/catchups/${ctx.catchupId}/answer`
-  );
+  await createMany(db, recipients, "catchup_reminder", message, link);
 };
 
 /** Round enters `published`: the reveal notification, the moment the ritual pays off. */

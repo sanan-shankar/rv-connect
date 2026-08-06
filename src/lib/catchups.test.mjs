@@ -33,7 +33,12 @@ import {
   isMissingCatchupTable,
   suggestSeedPrompts,
   CATCHUP_PROMPT_SETS,
+  dailyBucket,
+  withDailyBucket,
+  daysLeftUntil,
+  extendPhasePatch,
 } from "./catchups.ts";
+import { PROMPT_CATEGORIES } from "./catchups-types.ts";
 
 // A fixed clock so every case is deterministic.
 const NOW = new Date("2026-03-01T12:00:00.000Z");
@@ -145,33 +150,103 @@ test("planNextAction: answering -> preparing with answers present proceeds (no e
   assert.ok(a.patch.publishAt instanceof Date);
 });
 
-// ─── reminder bitmask idempotency ────────────────────────────────────────────
+// ─── daily reminders (owner, 2026-08-05: one a day while answers are open) ───
 
-test("planNextAction: two-days reminder fires once (bit 1), then not again", () => {
-  // 1.5 days before close: inside the two-day window, not yet the last day.
-  let ed = edition({ status: "answering", answersCloseAt: at(1.5 * DAY_MS) });
+test("planNextAction: one reminder per day, idempotent within the same day", () => {
+  // 2.5 days before close: days-left rounds up to 3.
+  let ed = edition({ status: "answering", answersCloseAt: at(2.5 * DAY_MS) });
   const r1 = planNextAction(ed, 3, NOW);
   assert.equal(r1.kind, "reminder");
-  assert.equal(r1.bit, REMINDER_TWO_DAYS);
-  assert.deepEqual(r1.modes, ["all"]);
-  assert.equal(r1.patch.remindersSent, REMINDER_TWO_DAYS);
+  assert.equal(r1.daysLeft, 3);
+  assert.equal(dailyBucket(r1.patch.remindersSent), 3);
 
   ed = applyPatch(ed, r1.patch);
-  assert.equal(planNextAction(ed, 3, NOW).kind, "none"); // bit 1 set; last day not due yet
+  // A hundred more page views the same day must not produce a second one:
+  // an hour on, days-left is still 3, so the bucket still matches.
+  assert.equal(planNextAction(ed, 3, NOW).kind, "none");
+  assert.equal(planNextAction(ed, 3, at(HOUR_MS)).kind, "none");
+  // A day on it is due again, at 2.
+  const next = planNextAction(ed, 3, at(DAY_MS));
+  assert.equal(next.kind, "reminder");
+  assert.equal(next.daysLeft, 2);
 });
 
-test("planNextAction: last-day reminder fires once (bit 2) after the two-day one", () => {
-  // Start with the two-day reminder already sent.
-  let ed = edition({ status: "answering", answersCloseAt: at(1.5 * DAY_MS), remindersSent: REMINDER_TWO_DAYS });
-  const lastDayNow = at(DAY_MS); // now within 12h of close
-  const r2 = planNextAction(ed, 3, lastDayNow);
-  assert.equal(r2.kind, "reminder");
-  assert.equal(r2.bit, REMINDER_LAST_DAY);
-  assert.deepEqual(r2.modes, ["all", "last"]);
+test("planNextAction: the countdown steps down a day at a time to the last day", () => {
+  let ed = edition({ status: "answering", answersCloseAt: at(3 * DAY_MS) });
+  const seen = [];
+  // Walk the clock forward one day at a time across the whole window.
+  for (let day = 0; day < 3; day += 1) {
+    const now = at(day * DAY_MS);
+    const action = planNextAction(ed, 0, now);
+    assert.equal(action.kind, "reminder", `expected a reminder on day ${day}`);
+    seen.push(action.daysLeft);
+    ed = applyPatch(ed, action.patch);
+    assert.equal(planNextAction(ed, 0, now).kind, "none"); // still one per day
+  }
+  assert.deepEqual(seen, [3, 2, 1]);
+});
 
-  ed = applyPatch(ed, r2.patch);
-  assert.equal(ed.remindersSent, REMINDER_TWO_DAYS | REMINDER_LAST_DAY);
-  assert.equal(planNextAction(ed, 3, lastDayNow).kind, "none"); // both bits set
+test("answeringPatch: seeds the bucket so the first daily nudge is a day away", () => {
+  const ed = edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS) });
+  const action = planNextAction(ed, 0, NOW);
+  assert.equal(action.kind, "transition");
+  assert.equal(action.to, "answering");
+  // 7-day window seeded at 7, so "answers are open" is not immediately
+  // followed by "7 days left to answer" on the same page view.
+  assert.equal(dailyBucket(action.patch.remindersSent), 7);
+  const opened = applyPatch(ed, action.patch);
+  assert.equal(planNextAction(opened, 0, NOW).kind, "none");
+  // A day later it does fire, counting 6.
+  const next = planNextAction(opened, 0, at(DAY_MS));
+  assert.equal(next.kind, "reminder");
+  assert.equal(next.daysLeft, 6);
+});
+
+test("dailyBucket / withDailyBucket: the bucket never clobbers the flag bits", () => {
+  const flags = REMINDER_TWO_DAYS | REMINDER_LAST_DAY | REMINDER_EXTENDED;
+  const packed = withDailyBucket(flags, 5);
+  assert.equal(dailyBucket(packed), 5);
+  assert.equal(packed & REMINDER_EXTENDED, REMINDER_EXTENDED);
+  // Re-bucketing leaves the flags exactly as they were.
+  assert.equal(withDailyBucket(packed, 2) & 0xff, flags);
+  assert.equal(dailyBucket(withDailyBucket(packed, 2)), 2);
+});
+
+test("daysLeftUntil: rounds up, floors at 1 while open, 0 once past", () => {
+  assert.equal(daysLeftUntil(at(3 * DAY_MS), NOW), 3);
+  assert.equal(daysLeftUntil(at(2.1 * DAY_MS), NOW), 3); // any part of a day counts
+  assert.equal(daysLeftUntil(at(HOUR_MS), NOW), 1); // last day, never 0 while open
+  assert.equal(daysLeftUntil(at(-HOUR_MS), NOW), 0); // past: transition, not nudge
+  assert.equal(daysLeftUntil(null, NOW), 0);
+});
+
+// ─── extending a deadline by hand (Keeper, owner 2026-08-05) ─────────────────
+
+test("extendPhasePatch: collecting moves the question deadline from the deadline", () => {
+  const ed = edition({ status: "collecting", questionsCloseAt: at(DAY_MS) });
+  const patch = extendPhasePatch(ed, 2, NOW);
+  // +2 days from the DEADLINE (NOW + 1d), not from now.
+  assert.equal(patch.questionsCloseAt.getTime(), at(3 * DAY_MS).getTime());
+  assert.equal(patch.answersCloseAt, undefined);
+});
+
+test("extendPhasePatch: answering moves the answer deadline and re-seeds the bucket", () => {
+  const ed = edition({
+    status: "answering",
+    answersCloseAt: at(DAY_MS),
+    remindersSent: withDailyBucket(REMINDER_EXTENDED, 1),
+  });
+  const patch = extendPhasePatch(ed, 7, NOW);
+  assert.equal(patch.answersCloseAt.getTime(), at(8 * DAY_MS).getTime());
+  assert.equal(dailyBucket(patch.remindersSent), 8);
+  assert.equal(patch.remindersSent & REMINDER_EXTENDED, REMINDER_EXTENDED);
+  // Buying the group a week does not immediately spend it on a reminder.
+  assert.equal(planNextAction(applyPatch(ed, patch), 0, NOW).kind, "none");
+});
+
+test("extendPhasePatch: nothing left to extend once the window has closed", () => {
+  assert.equal(extendPhasePatch(edition({ status: "preparing" }), 1, NOW), null);
+  assert.equal(extendPhasePatch(edition({ status: "published" }), 1, NOW), null);
 });
 
 test("planNextAction: no reminder once the answer window has fully closed", () => {
@@ -340,24 +415,46 @@ test("isMissingCatchupTable: true for P2021 / 42P01 / scoped message, false othe
 
 // ─── the question library (spec section 4) ───────────────────────────────────
 
-test("CATCHUP_PROMPT_SETS: 5 sets, 30 prompts, correct categories, no em dashes", () => {
-  assert.equal(CATCHUP_PROMPT_SETS.length, 5);
+test("CATCHUP_PROMPT_SETS: the five live sets, every prompt non-empty, no em dashes", () => {
+  // Rewritten 2026-07-25; this assertion is the record of what the library IS,
+  // so a future rewrite that forgets to bring the validators along fails here
+  // rather than in front of a member. (It did exactly that once: see the next
+  // test.) Counts are deliberately loose, because the owner may add or cut a
+  // question without that being a regression.
   assert.deepEqual(
     CATCHUP_PROMPT_SETS.map((s) => s.id),
-    ["valley-days", "right-now", "most-likely-to", "on-the-horizon", "small-things"]
+    ["right-now", "small-things", "the-valley", "photo-wall", "songs"]
   );
-  const total = CATCHUP_PROMPT_SETS.reduce((n, s) => n + s.prompts.length, 0);
-  assert.equal(total, 30);
   for (const set of CATCHUP_PROMPT_SETS) {
+    assert.ok(set.label.trim().length > 0, `set ${set.id} has no label`);
+    assert.ok(set.prompts.length > 0, `set ${set.id} has no prompts`);
     for (const prompt of set.prompts) {
+      assert.ok(prompt.trim().length > 0, `empty prompt in ${set.id}`);
       assert.ok(!prompt.includes("—"), `em dash found in prompt: ${prompt}`);
     }
   }
 });
 
-test("suggestSeedPrompts: one valley-days + one right-now for Round 1", () => {
+test("every library set id is an accepted PromptCategory (the 2026-08-05 bug)", () => {
+  // The regression this exists for: the library was rewritten and the server's
+  // category validator was not, so picking anything from "Back then", "A photo
+  // from everyone" or "Songs from everyone" was refused with a raw Zod error
+  // ("Invalid option: expected one of valley-days|..."). PROMPT_CATEGORIES is
+  // now the single list every validator builds from; this proves the library
+  // cannot drift out of it again.
+  for (const set of CATCHUP_PROMPT_SETS) {
+    assert.ok(
+      PROMPT_CATEGORIES.includes(set.id),
+      `library set "${set.id}" is not in PROMPT_CATEGORIES, so submitting it would be rejected`
+    );
+  }
+});
+
+test("suggestSeedPrompts: two Round 1 starters, both from a real set", () => {
   const seeds = suggestSeedPrompts();
   assert.equal(seeds.length, 2);
-  assert.equal(seeds[0].category, "valley-days");
-  assert.equal(seeds[1].category, "right-now");
+  for (const seed of seeds) {
+    assert.equal(seed.category, "right-now");
+    assert.ok(seed.text.trim().length > 0);
+  }
 });

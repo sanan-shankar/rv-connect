@@ -91,9 +91,9 @@ function isActive(pathname: string, href: string) {
 function accountNav(userId: string, isAdmin: boolean) {
   return [
     { href: `/profile/${userId}`, label: "My profile", icon: UserIcon },
+    { href: "/messages", label: "Reach out", icon: MessageSquareText },
     { href: "/settings", label: "Settings", icon: Settings },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
-    { href: "/messages", label: "Reach out", icon: MessageSquareText },
   ];
 }
 

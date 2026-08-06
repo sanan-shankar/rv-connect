@@ -142,12 +142,17 @@ export function SupportContribute() {
       // light variant because the logo sits on a white tile inside the modal,
       // not on the green panel beside it.
       //
-      // UNVERIFIED against localhost: the modal still showed the fallback "R"
-      // in local testing, almost certainly because Razorpay cannot resolve a
-      // localhost URL. Expected to work once this is served from the real
-      // domain. Uploading the same mark under Razorpay Dashboard > Settings >
-      // Business is the belt-and-braces fix and also covers their hosted pages
-      // and receipt emails, which this option does not reach.
+      // Confirmed working in production (2026-08-05). It shows the fallback
+      // "R" on localhost, which is not a bug in this line: Razorpay cannot
+      // resolve a localhost URL, so only a real domain renders it.
+      //
+      // Razorpay draws it on a white tile, which is why the light mark is
+      // right; do not "fix" that frame away with theme.image_padding: false,
+      // because a green mark on the green panel disappears.
+      //
+      // The illustration below it in the modal is NOT settable from here. It
+      // is a preset chosen under Dashboard > Account Settings > Checkout
+      // Styling, which is also where the logo, fonts and border style live.
       image: `${window.location.origin}/images/brand/rishi-valley-mountain-mark-light-200.png`,
       prefill: { name: started.name, email: started.email, contact: started.contact },
       theme: { color: "#235C49" },

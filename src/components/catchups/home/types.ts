@@ -23,14 +23,21 @@ export type HomePersonRef = {
   name: string;
   photoUrl: string | null;
   birdOverride?: string | null;
+  /**
+   * Holds Keeper powers: this Catch-up's creator, or anyone since given the hat
+   * (`GroupMember.role`). Mirrors `isEffectiveKeeper` server-side; it decides
+   * what the roster LABELS, never what anyone is allowed to do, which every
+   * action re-derives from the database for itself.
+   */
+  isKeeper?: boolean;
+  /** Started this Catch-up. Permanently a Keeper, so cannot be demoted or removed. */
+  isCreator?: boolean;
 };
 
-/** Soft caps mirrored from `catchups/actions.ts` (not exported there - a
- *  "use server" file may only export async functions). UI copy only; the
- *  real enforcement lives server-side in `submitPrompt`/`curatePrompt`. */
-export const MAX_PENDING_PROMPTS_PER_MEMBER = 3;
 // Kept in sync with the server ceiling, but the UI must NOT print it: the
-// question count is shown as a plain "N questions in this round".
+// question count is shown as a plain "N questions in this round". The
+// companion per-member pending cap went with the approval step it capped
+// (2026-08-05): nothing pends, so nothing needed counting.
 export const MAX_ACCEPTED_PROMPTS_PER_EDITION = 40;
 
 export type HomePromptView = {
@@ -57,7 +64,7 @@ export type HomeEditionView = {
   countdownLabel: string | null;
   /** collecting: every prompt the viewer may see. answering: frozen accepted prompts only. */
   prompts: HomePromptView[];
-  answeredCount: number;
+  /** Who has written in. The count is derived from this, not stored twice. */
   answeredAuthorIds: string[];
 };
 
@@ -82,7 +89,6 @@ export type CatchupHomeData = {
   catchupStatus: CatchupStatus;
   keeperName: string | null;
   members: HomePersonRef[];
-  memberCount: number;
   viewer: {
     id: string;
     name: string;

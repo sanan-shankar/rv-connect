@@ -13,9 +13,9 @@
  *  a client-supplied flag (spec section 7, threat T-catchups-02):
  *   - participation is inherited from `GroupMember` (private groups are
  *     already gated by that same check);
- *   - the effective Keeper is the Catch-up's `createdBy` OR any group admin,
- *     computed via `isEffectiveKeeper` (WP1) from freshly-read rows, never
- *     trusted from the caller.
+ *   - the effective Keeper is the Catch-up's `createdBy` OR a member holding
+ *     the Keeper role, computed via `isEffectiveKeeper` (WP1) from freshly-read
+ *     rows, never trusted from the caller.
  *
  *  The lazy-advance touchpoint (spec 2.4): any action that reads a Round's
  *  status first calls WP1's `advanceEdition` on it via `loadFreshEdition`, so
@@ -45,6 +45,7 @@ import {
   advanceEdition,
   answeringPatch,
   extendPatch,
+  extendPhasePatch,
   isEffectiveKeeper,
   isMissingCatchupTable,
   newInviteToken,
@@ -62,6 +63,7 @@ import {
   notifyQuestionsOpen,
   notifyReminder,
 } from "@/lib/catchups-notify";
+import { PROMPT_CATEGORIES } from "@/lib/catchups-types";
 import type {
   Cadence,
   CatchupStatus,
@@ -72,28 +74,30 @@ import type {
 
 // ─── Soft caps (spec 3.3.1, enforced here rather than only surfaced as UI copy) ──
 
-const MAX_PENDING_PROMPTS_PER_MEMBER = 3;
 // Raised from 12 and no longer surfaced anywhere in the UI. The owner's call:
 // a visible "3 of 12" counter made a Round feel rationed for no reason nobody
 // could explain. This is now purely a runaway/spam ceiling that a real group
-// will never reach, not a budget members are asked to manage.
+// will never reach, not a budget members are asked to manage. The companion
+// per-member pending cap is gone: since 2026-08-05 nothing pends.
 const MAX_ACCEPTED_PROMPTS_PER_EDITION = 40;
 
 // ─── Validation ──────────────────────────────────────────────────────────────
 
 const CADENCE_VALUES = ["biweekly", "monthly", "quarterly"] as const;
-const PROMPT_CATEGORY_VALUES = [
-  "valley-days",
-  "right-now",
-  "most-likely-to",
-  "on-the-horizon",
-  "small-things",
-] as const;
 const REMINDER_MODE_VALUES = ["all", "last", "off"] as const;
 
 const cadenceSchema = z.enum(CADENCE_VALUES);
-const promptCategorySchema = z.enum(PROMPT_CATEGORY_VALUES).nullable();
+/**
+ * Built from the shared `PROMPT_CATEGORIES` array, never from a list retyped
+ * here. The hand-written copy this replaces went stale when the question
+ * library was rewritten (2026-07-25) and rejected three of the five live sets
+ * with a raw "Invalid option: expected one of valley-days|..." shown to the
+ * member (owner, 2026-08-05: "that should never happen").
+ */
+const promptCategorySchema = z.enum(PROMPT_CATEGORIES).nullable();
 const reminderModeSchema = z.enum(REMINDER_MODE_VALUES);
+/** How far a Keeper may push a deadline in one go (owner, 2026-08-05). */
+const extendDaysSchema = z.union([z.literal(1), z.literal(2), z.literal(4), z.literal(7)]);
 
 const seedPromptSchema = z.object({
   text: z.string().trim().min(1, "A question cannot be empty.").max(300, "Keep it under 300 characters."),
@@ -120,8 +124,8 @@ const submitPromptSchema = z.object({
   showAsker: z.boolean().default(true),
 });
 
-const curateAcceptRemoveSchema = z.object({
-  action: z.enum(["accept", "remove"]),
+const curateRemoveSchema = z.object({
+  action: z.literal("remove"),
   promptId: z.string().min(1),
 });
 
@@ -601,10 +605,16 @@ export async function endCatchup(catchupId: string) {
 
 /**
  * Submit a question for the current Round, named or anonymous (`showAsker`).
- * The author is always stored regardless of `showAsker`. A regular member's
- * submission is pending (`accepted: false`) until the Keeper curates it; the
- * effective Keeper's own submission auto-accepts (spec 3.3.1). Soft caps: up
- * to 3 pending submissions per member, up to 12 accepted prompts per Round.
+ * The author is always stored regardless of `showAsker`.
+ *
+ * Every submission goes straight into the Round (owner, 2026-08-05: "don't
+ * make the keeper verify everyone's questions, let it automatically be
+ * included in the round"). The Keeper's approval step is gone; what they keep
+ * is the ability to REMOVE a question and to reorder the list, which is the
+ * moderation that actually gets used. The pending-submission cap went with it
+ * (nothing pends any more); the silent per-Round ceiling stays as the only
+ * limit, and it is a runaway guard rather than a budget anyone is asked to
+ * manage.
  */
 export async function submitPrompt(input: {
   editionId: string;
@@ -634,38 +644,17 @@ export async function submitPrompt(input: {
       groupRole: membership.role,
     });
 
-    // `position` only matters for accepted prompts: it is the Round's
-    // rendered/reorderable order (the `reorder` branch below only ever
-    // touches `accepted: true` rows). A Keeper's own addition here is
-    // auto-accepted, so it MUST derive its position from the same
-    // denominator curatePrompt's accept branch uses below (count of already
-    // `accepted: true` prompts), not a count of every prompt in the edition
-    // (which also includes pending ones) - otherwise two ordinary Keeper
-    // actions in one sitting (add a question directly, then curate a
-    // member's pending one) can hand out the same position twice. A
-    // still-pending prompt's position is a placeholder: curatePrompt
-    // always overwrites it with a fresh accepted-count at the moment it is
-    // accepted, so any distinct value is safe for it.
-    let acceptedCount = 0;
-    if (keeper) {
-      acceptedCount = await prisma.catchupPrompt.count({
-        where: { editionId, accepted: true },
-      });
-      if (acceptedCount >= MAX_ACCEPTED_PROMPTS_PER_EDITION) {
-        return { error: "This Round has as many questions as it can hold. Remove one to add another." };
-      }
-    } else {
-      const pendingCount = await prisma.catchupPrompt.count({
-        where: { editionId, authorId: session.user.id, accepted: false },
-      });
-      if (pendingCount >= MAX_PENDING_PROMPTS_PER_MEMBER) {
-        return { error: "You can have up to 3 questions waiting on the Keeper at a time." };
-      }
+    // `position` is the Round's rendered/reorderable order, so it counts the
+    // rows that are actually in the Round. Everything written here is, so this
+    // is simply "next in line". (Legacy rows from before auto-accept may still
+    // be sitting pending; they are excluded, exactly as the reorder branch
+    // excludes them, so they cannot push live questions out of sequence.)
+    const acceptedCount = await prisma.catchupPrompt.count({
+      where: { editionId, accepted: true },
+    });
+    if (acceptedCount >= MAX_ACCEPTED_PROMPTS_PER_EDITION) {
+      return { error: "This Round has as many questions as it can hold. Remove one to add another." };
     }
-
-    const position = keeper
-      ? acceptedCount
-      : await prisma.catchupPrompt.count({ where: { editionId } });
 
     const prompt = await prisma.catchupPrompt.create({
       data: {
@@ -675,28 +664,33 @@ export async function submitPrompt(input: {
         category: category ?? null,
         source: keeper ? "keeper" : category ? "library" : "member",
         showAsker,
-        accepted: keeper,
-        position,
+        accepted: true,
+        position: acceptedCount,
       },
       select: { id: true },
     });
 
     revalidatePath(`/catchups/${edition.catchupId}`);
-    return { success: true, promptId: prompt.id, accepted: keeper };
+    return { success: true, promptId: prompt.id, accepted: true };
   });
 }
 
 export type CuratePromptInput =
-  | { action: "accept"; promptId: string }
   | { action: "remove"; promptId: string }
   | { action: "reorder"; editionId: string; orderedPromptIds: string[] };
 
 /**
- * Keeper curation of a Round's questions (spec 3.3): accept a pending
- * submission, remove one, or persist a new accepted order. All three require
- * effective Keeper power and only run while the Round is still `collecting`.
- * "Add from the library" for a Keeper is just `submitPrompt`, which
- * auto-accepts when the caller already holds Keeper power.
+ * Keeper curation of a Round's questions (spec 3.3): remove one, or persist a
+ * new order. Both require effective Keeper power and only run while the Round
+ * is still `collecting`.
+ *
+ * There is no longer an "accept" action. Every question now goes straight into
+ * the Round (owner, 2026-08-05), so there is nothing to approve; removing and
+ * reordering are the moderation that is left. The branch was deleted rather
+ * than kept for rows written before that change, because there are none: the
+ * table held nine prompts and zero pending ones when this was verified, so
+ * carrying an approval path nothing can reach would have been scaffolding
+ * around an empty room.
  */
 export async function curatePrompt(input: CuratePromptInput) {
   return runAction(async () => {
@@ -741,13 +735,13 @@ export async function curatePrompt(input: CuratePromptInput) {
       return { success: true };
     }
 
-    const parsed = curateAcceptRemoveSchema.safeParse(input);
+    const parsed = curateRemoveSchema.safeParse(input);
     if (!parsed.success) return { error: "Invalid request." };
-    const { action, promptId } = parsed.data;
+    const { promptId } = parsed.data;
 
     const prompt = await prisma.catchupPrompt.findUnique({
       where: { id: promptId },
-      select: { id: true, editionId: true, accepted: true },
+      select: { id: true, editionId: true },
     });
     if (!prompt) return { error: "Question not found." };
 
@@ -768,20 +762,7 @@ export async function curatePrompt(input: CuratePromptInput) {
       return { error: "Questions can only be curated while the window is open." };
     }
 
-    if (action === "remove") {
-      await prisma.catchupPrompt.delete({ where: { id: promptId } });
-    } else if (!prompt.accepted) {
-      const acceptedCount = await prisma.catchupPrompt.count({
-        where: { editionId: prompt.editionId, accepted: true },
-      });
-      if (acceptedCount >= MAX_ACCEPTED_PROMPTS_PER_EDITION) {
-        return { error: "This Round has as many questions as it can hold. Remove one to add another." };
-      }
-      await prisma.catchupPrompt.update({
-        where: { id: promptId },
-        data: { accepted: true, position: acceptedCount },
-      });
-    }
+    await prisma.catchupPrompt.delete({ where: { id: promptId } });
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return { success: true };
@@ -815,7 +796,7 @@ export async function openAnswering(editionId: string) {
     }
 
     const now = new Date();
-    const patch = answeringPatch(now);
+    const patch = answeringPatch(edition, now);
 
     const applied = await prisma.$transaction(async (tx) => {
       const cas = await tx.catchupEdition.updateMany({
@@ -906,6 +887,79 @@ export async function closeAndPrepare(editionId: string) {
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return { success: true, extended: false };
+  });
+}
+
+/**
+ * Keeper-only: push the current phase's deadline out by 1, 2, 4 or 7 days
+ * (owner, 2026-08-05). Works on BOTH windows: `collecting` moves
+ * `questionsCloseAt`, `answering` moves `answersCloseAt`. Which one is being
+ * moved is read from the Round's own fresh status, never from the caller, so a
+ * stale page cannot extend the phase it thinks it is looking at.
+ *
+ * The compare-and-swap is on the deadline itself rather than just the status:
+ * two Keepers each tapping "2 days" on their own stale copy of the page should
+ * add two days, not four, and matching on the timestamp they both saw means the
+ * second one loses and is told so.
+ *
+ * `preparing` and `published` are refused: there is no window left to extend,
+ * and reopening a sealed Round is a different (and unasked-for) feature.
+ */
+export async function extendDeadline(editionId: string, days: number) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
+    const parsedDays = extendDaysSchema.safeParse(days);
+    if (!parsedDays.success) return { error: "Pick 1, 2, 4 days or a week." };
+
+    const edition = await loadFreshEdition(editionId);
+    if (!edition) return { error: "Catch-up round not found." };
+    const membership = await loadMembership(edition.catchup.group.id, session.user.id);
+    if (!membership) return { error: "You are not a member of this group." };
+    if (
+      !isEffectiveKeeper({
+        viewerId: session.user.id,
+        createdById: edition.catchup.createdById,
+        groupRole: membership.role,
+      })
+    ) {
+      return { error: "Only a Keeper can extend the deadline." };
+    }
+
+    const now = new Date();
+    const patch = extendPhasePatch(edition, parsedDays.data, now);
+    // `extendPhasePatch` returns null only for a status past the two open
+    // windows, so this is the one thing left to say.
+    if (!patch) {
+      return { error: "This Round has closed. There is no deadline left to extend." };
+    }
+
+    const cas = await prisma.catchupEdition.updateMany({
+      where:
+        edition.status === "collecting"
+          ? { id: editionId, status: "collecting", questionsCloseAt: edition.questionsCloseAt }
+          : { id: editionId, status: "answering", answersCloseAt: edition.answersCloseAt },
+      data: patch,
+    });
+    if (cas.count === 0) return { error: "The deadline just moved. Reload and try again." };
+
+    // Any reminder already in the bell now names a deadline that is no longer
+    // true ("Last day to answer" when there is a week left). Clear them; the
+    // daily reminder writes an accurate one on its next pass.
+    if (edition.status === "answering") {
+      await prisma.notification.deleteMany({
+        where: { type: "catchup_reminder", link: `/catchups/${edition.catchupId}/answer` },
+      });
+    }
+
+    revalidatePath(`/catchups/${edition.catchupId}`);
+    revalidatePath(`/catchups/${edition.catchupId}/answer`);
+    return {
+      success: true as const,
+      days: parsedDays.data,
+      phase: edition.status === "collecting" ? ("questions" as const) : ("answers" as const),
+    };
   });
 }
 
@@ -1109,6 +1163,174 @@ export async function toggleEntryLove(entryId: string) {
   });
 }
 
+// ─── Who is in it (owner, 2026-08-05) ─────────────────────────────────────────
+//
+//  "Can't control who's in the catch up once the question round has started.
+//   Might still want to add and remove and just see who all are part of it
+//   while it's going on. Also the ability to make other people the keeper."
+//
+//  None of these look at the Round's status: adding, removing and handing over
+//  the Keeper's hat are things a group does mid-cycle, and refusing them once
+//  questions open was the bug being reported. They are Keeper-only, and they
+//  operate on `GroupMember` because that is the membership container every
+//  other part of the feature already derives its audience from.
+//
+//  A second Keeper is a `GroupMember.role` of "admin", which `isEffectiveKeeper`
+//  has always honoured. So "make them a Keeper" needs no new column and no
+//  migration; it is the role flip, and every Keeper-gated action picks it up
+//  at once.
+
+/**
+ * The Catch-up a Keeper is acting on, or the reason they may not. Builds on
+ * `loadCatchupContext` rather than re-reading the same two rows, so the three
+ * actions below share one Keeper gate instead of each restating it.
+ */
+async function loadKeeperScope(catchupId: string, viewerId: string) {
+  const ctx = await loadCatchupContext(catchupId, viewerId);
+  if (!ctx) return { error: "Catch-up not found." as const };
+  if (!ctx.membership) return { error: "You are not a member of this Catch-up." as const };
+  if (
+    !isEffectiveKeeper({
+      viewerId,
+      createdById: ctx.catchup.createdById,
+      groupRole: ctx.membership.role,
+    })
+  ) {
+    return { error: "Only a Keeper can change who is in this Catch-up." as const };
+  }
+  return { catchup: ctx.catchup };
+}
+
+/**
+ * Keeper-only: add people to a live Catch-up. Silently skips anyone already in
+ * (re-adding is a no-op, not an error) and anyone who is blocked or no longer a
+ * real user, so a picker that went stale between opening and submitting does
+ * not fail the whole action.
+ */
+export async function addCatchupMembers(catchupId: string, userIds: string[]) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+    const parsed = z.array(z.string().min(1)).min(1).max(500).safeParse(userIds);
+    if (!parsed.success) return { error: "Pick at least one person." };
+
+    const scope = await loadKeeperScope(catchupId, session.user.id);
+    if ("error" in scope) return { error: scope.error };
+    const { catchup } = scope;
+    if (catchup.status === "ended") return { error: "This Catch-up has ended." };
+
+    const real = await prisma.user.findMany({
+      where: { id: { in: [...new Set(parsed.data)] }, isBlocked: false },
+      select: { id: true },
+    });
+    if (real.length === 0) return { error: "No one to add." };
+
+    // createMany + skipDuplicates rather than a read-then-write: the unique on
+    // (groupId, userId) is what decides, so two Keepers adding the same person
+    // at the same moment cannot make this throw.
+    const created = await prisma.groupMember.createMany({
+      data: real.map((u) => ({ groupId: catchup.groupId, userId: u.id, role: "member" })),
+      skipDuplicates: true,
+    });
+
+    revalidatePath(`/catchups/${catchupId}`);
+    revalidatePath("/catchups");
+    return { success: true as const, added: created.count };
+  });
+}
+
+/**
+ * Keeper-only: take someone out of a live Catch-up.
+ *
+ * Their words stay where they are. A published Round is a record of what the
+ * group wrote, and unpublishing someone's answer out of it after the fact is
+ * not what "remove" means here; what removal does is end their access and stop
+ * their notifications. Re-adding restores both, which is why this is safe to
+ * offer mid-cycle.
+ *
+ * The Catch-up's creator cannot be removed (they are its permanent Keeper),
+ * and a Keeper cannot remove themselves: leaving is a different action, and one
+ * misfire here would leave a Catch-up with nobody able to tend it.
+ */
+export async function removeCatchupMember(catchupId: string, userId: string) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+    if (typeof userId !== "string" || !userId) return { error: "Invalid request." };
+
+    const scope = await loadKeeperScope(catchupId, session.user.id);
+    if ("error" in scope) return { error: scope.error };
+    const { catchup } = scope;
+
+    if (userId === session.user.id) return { error: "You cannot remove yourself." };
+    if (catchup.createdById && userId === catchup.createdById) {
+      return { error: "The person who started this Catch-up cannot be removed." };
+    }
+
+    const removed = await prisma.groupMember.deleteMany({
+      where: { groupId: catchup.groupId, userId },
+    });
+    if (removed.count === 0) return { error: "They are not in this Catch-up." };
+
+    // Their pending nudges point at a Catch-up they can no longer open.
+    await prisma.notification.deleteMany({
+      where: {
+        userId,
+        type: { in: ["catchup_reminder", "catchup_answers_open", "catchup_questions_open"] },
+        link: { startsWith: `/catchups/${catchupId}` },
+      },
+    });
+
+    revalidatePath(`/catchups/${catchupId}`);
+    revalidatePath("/catchups");
+    return { success: true as const };
+  });
+}
+
+/**
+ * Keeper-only: hand someone else the Keeper's hat, or take it back.
+ *
+ * Writes `GroupMember.role = "keeper"`, which `isEffectiveKeeper` honours, so
+ * one flip is the whole feature and no migration is needed (role is a free
+ * string). Deliberately NOT `"admin"`, even though that also satisfies
+ * `isEffectiveKeeper`: `"admin"` is the group's own admin role and is read
+ * outside this feature, where `deletePost` lets a group admin delete anyone's
+ * post in that group. Making someone a Keeper of a Catch-up must not silently
+ * also make them a moderator of a group's posts.
+ *
+ * The creator's own row is untouchable: they hold Keeper power through
+ * `Catchup.createdById` regardless of role, so "demoting" them would change
+ * nothing while looking like it had. Saying so is better than a silent no-op.
+ */
+export async function setCatchupKeeper(catchupId: string, userId: string, isKeeper: boolean) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+    if (typeof userId !== "string" || !userId) return { error: "Invalid request." };
+    if (typeof isKeeper !== "boolean") return { error: "Invalid request." };
+
+    const scope = await loadKeeperScope(catchupId, session.user.id);
+    if ("error" in scope) return { error: scope.error };
+    const { catchup } = scope;
+
+    if (catchup.createdById && userId === catchup.createdById) {
+      return { error: "Whoever started a Catch-up is always its Keeper." };
+    }
+
+    const updated = await prisma.groupMember.updateMany({
+      where: { groupId: catchup.groupId, userId },
+      data: { role: isKeeper ? "keeper" : "member" },
+    });
+    if (updated.count === 0) return { error: "They are not in this Catch-up." };
+
+    revalidatePath(`/catchups/${catchupId}`);
+    return { success: true as const, isKeeper };
+  });
+}
+
 // ─── Prefs and nudges (spec 5) ──────────────────────────────────────────────────
 
 /** A member's own reminder setting for one Catchup: all / last only / off. */
@@ -1168,7 +1390,6 @@ export async function nudgeGroup(editionId: string) {
       editionId,
       groupId: edition.catchup.group.id,
       groupName: edition.catchup.group.name,
-      modes: ["all", "last"],
       bypassOff: true,
       keeperName: session.user.name,
     });

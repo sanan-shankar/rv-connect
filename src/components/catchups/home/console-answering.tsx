@@ -25,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { FadeRise } from "@/components/common/motion";
 import { closeAndPrepare, nudgeGroup } from "@/app/(main)/catchups/actions";
-import { MemberStrip } from "./member-strip";
 import type { CatchupHomeData, HomeEditionView } from "./types";
 
 /** Same tile shape as the rest of the Catch-up home: one token, all four sides. */
@@ -40,25 +39,19 @@ export function ConsoleAnswering({
   edition: HomeEditionView;
   onChanged: () => void;
 }) {
-  const answeredIds = new Set(edition.answeredAuthorIds);
-
   return (
     <div className="space-y-[var(--space-m)]">
       <FadeRise>
         <div className={TILE}>
           <div className="flex flex-wrap items-center justify-between gap-[var(--space-m)]">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                {edition.answeredCount} of {data.memberCount} have shared
-              </p>
-              <MemberStrip
-                members={data.members}
-                highlightIds={answeredIds}
-                className="mt-[var(--space-s)]"
-                max={10}
-                size={26}
-              />
-            </div>
+            {/* The progress count and the avatar cluster that used to sit here
+                moved into the rail's people panel (2026-08-05), where the same
+                faces are shown at every status instead of appearing only
+                during answering. Printing "N of M have shared" in both places
+                is the duplication the 2026-07-25 review deleted a tile for. */}
+            <p className="min-w-0 text-sm font-semibold text-foreground">
+              Answers are open.
+            </p>
             <Link href={`/catchups/${data.catchupId}/answer`}>
               <Button variant="primary" size="lg">
                 Answer now
