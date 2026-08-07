@@ -31,8 +31,15 @@
  *  together at 60fps.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useRef, type ReactNode } from "react";
-import { motion } from "motion/react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
 
@@ -84,7 +91,9 @@ export function PenSlot({
   children: ReactNode;
 }) {
   return (
-    <span className={cn("relative inline-block max-w-full align-top", className)}>
+    <span
+      className={cn("relative inline-block max-w-full align-top", className)}
+    >
       {children}
       <PenRule on={editing} delay={delay} />
     </span>
@@ -131,7 +140,10 @@ export function PenValue({
       <span className="inline-grid max-w-full overflow-hidden align-top">
         <span
           aria-hidden
-          className={cn(PEN_BOX, "invisible col-start-1 row-start-1 whitespace-pre")}
+          className={cn(
+            PEN_BOX,
+            "invisible col-start-1 row-start-1 whitespace-pre",
+          )}
         >
           {value || placeholder}
         </span>
@@ -155,7 +167,11 @@ export function PenValue({
           // mirror: the column comes out 168px wide however short the text is.
           size={1}
           tabIndex={editing ? 0 : -1}
-          className={cn(PEN_BOX, "col-start-1 row-start-1 w-full min-w-0", editing && PEN_LIVE)}
+          className={cn(
+            PEN_BOX,
+            "col-start-1 row-start-1 w-full min-w-0",
+            editing && PEN_LIVE,
+          )}
         />
       </span>
     </PenSlot>
@@ -181,6 +197,7 @@ export function PenBlock({
   delay,
   className,
   singleLine = false,
+  snug = false,
   maxLength,
 }: {
   value: string;
@@ -193,6 +210,20 @@ export function PenBlock({
   className?: string;
   /** A name has no second paragraph, so Enter is swallowed. */
   singleLine?: boolean;
+  /**
+   * Sized to the text rather than to the column.
+   *
+   * A name needs this and About does not. About is a paragraph: its rule
+   * running the width of the sheet reads as a line to write on. A name is a
+   * value, and a rule carrying on 180px past "Sanan Shankar" reads as a blank
+   * waiting to be filled in, which it is not. It also drags the verified leaf
+   * away from the last letter of the name, where it belongs.
+   *
+   * Same mirror trick as PenValue, with a WRAPPING copy instead of a
+   * `whitespace-pre` one, so the box is as wide as the longest line it needs
+   * and no wider, and still wraps when the column runs out.
+   */
+  snug?: boolean;
   maxLength?: number;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -208,34 +239,168 @@ export function PenBlock({
   }, [value, placeholder, editing]);
 
   return (
-    <PenSlot editing={editing} delay={delay} className={cn("block w-full", className)}>
-      <textarea
-        ref={ref}
-        rows={1}
-        value={value}
-        readOnly={!editing}
-        onChange={(e) => onChange(singleLine ? e.target.value.replace(/\n/g, "") : e.target.value)}
-        onBlur={() => editing && onCommit()}
-        onKeyDown={(e) => {
-          if (singleLine && e.key === "Enter") {
-            e.preventDefault();
-            e.currentTarget.blur();
-          }
-        }}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        maxLength={maxLength}
-        spellCheck={!singleLine}
-        tabIndex={editing ? 0 : -1}
-        className={cn(
-          PEN_BOX,
-          "block w-full resize-none overflow-hidden",
-          editing && PEN_LIVE,
-          // At rest an empty About still has to read as the prompt it always
-          // was, so the placeholder stays visible when the field is inert.
-          !editing && "placeholder:text-muted-foreground"
+    <PenSlot
+      editing={editing}
+      delay={delay}
+      className={cn(snug ? "block" : "block w-full", className)}
+    >
+      <span className={cn("grid max-w-full", snug ? "w-fit" : "w-full")}>
+        {snug && (
+          <span
+            aria-hidden
+            className={cn(
+              PEN_BOX,
+              "invisible col-start-1 row-start-1 whitespace-pre-wrap",
+            )}
+          >
+            {value || placeholder}
+          </span>
         )}
-      />
+        <textarea
+          ref={ref}
+          rows={1}
+          // cols={1} for the same reason PenValue passes size={1}: a textarea's
+          // intrinsic width comes from `cols`, which defaults to 20. In a w-fit
+          // grid cell that beats the mirror outright, and at display size twenty
+          // characters is most of the sheet, so the name's rule ran 175px past
+          // the last letter and dragged the verified leaf out there with it.
+          cols={1}
+          value={value}
+          readOnly={!editing}
+          onChange={(e) =>
+            onChange(
+              singleLine ? e.target.value.replace(/\n/g, "") : e.target.value,
+            )
+          }
+          onBlur={() => editing && onCommit()}
+          onKeyDown={(e) => {
+            if (singleLine && e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          maxLength={maxLength}
+          spellCheck={!singleLine}
+          tabIndex={editing ? 0 : -1}
+          className={cn(
+            PEN_BOX,
+            "col-start-1 row-start-1 block w-full resize-none overflow-hidden",
+            editing && PEN_LIVE,
+            // At rest an empty About still has to read as the prompt it always
+            // was, so the placeholder stays visible when the field is inert.
+            !editing && "placeholder:text-muted-foreground",
+          )}
+        />
+      </span>
     </PenSlot>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ *  The save mark, and the queue behind it.
+ *
+ *  Owner, 2026-08-07: "let the profiles automatically save. So maybe
+ *  just have a loading icon and a saved with tick mark thing. Instead of
+ *  'everything saves as you go' or some other cringe shit like that."
+ *
+ *  So there is no bar, no Save button and no sentence. A field commits on
+ *  its own blur, a spinner turns while the write is in flight, a tick
+ *  says it landed, and after a few seconds the whole thing goes back to
+ *  saying nothing at all, which is the honest state most of the time.
+ *
+ *  The mark reserves its own width whether or not it is showing anything,
+ *  so the row it sits in cannot change size when a save starts.
+ * ------------------------------------------------------------------ */
+
+export type SaveState = "idle" | "saving" | "saved" | "error";
+
+export function useAutoSave() {
+  const [state, setState] = useState<SaveState>("idle");
+  const [message, setMessage] = useState<string | null>(null);
+  /* Counted, not booleaned: blurring one field while another is still in
+     flight has to keep the spinner up rather than tick early. */
+  const inFlight = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  const run = useCallback(
+    async (fn: () => Promise<{ error?: string } | void>) => {
+      inFlight.current += 1;
+      if (timer.current) clearTimeout(timer.current);
+      setState("saving");
+      setMessage(null);
+      let failed: string | null = null;
+      try {
+        const result = await fn();
+        if (result && "error" in result && result.error) failed = result.error;
+      } catch {
+        failed = "That did not save. Check your connection.";
+      }
+      inFlight.current -= 1;
+      if (inFlight.current > 0) return;
+      if (failed) {
+        // An error stays put. It is the one state that must not time itself out,
+        // because the value on screen is not the value on file.
+        setState("error");
+        setMessage(failed);
+        return;
+      }
+      setState("saved");
+      timer.current = setTimeout(() => setState("idle"), 2400);
+    },
+    [],
+  );
+
+  return { state, message, run };
+}
+
+export function SaveMark({
+  state,
+  message,
+}: {
+  state: SaveState;
+  message?: string | null;
+}) {
+  return (
+    <span
+      className="inline-flex min-h-5 items-center gap-1.5 text-[12.5px] font-semibold"
+      aria-live="polite"
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {state !== "idle" && (
+          <motion.span
+            key={state}
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={SPRINGS.gentle}
+            className={cn(
+              "inline-flex items-center gap-1.5",
+              state === "error" ? "text-heart" : "text-muted-foreground",
+            )}
+          >
+            {state === "saving" && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            )}
+            {state === "saved" && (
+              <Check className="h-3.5 w-3.5 text-leaf" aria-hidden />
+            )}
+            {state === "saving"
+              ? "Saving"
+              : state === "saved"
+                ? "Saved"
+                : (message ?? "Not saved")}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
   );
 }

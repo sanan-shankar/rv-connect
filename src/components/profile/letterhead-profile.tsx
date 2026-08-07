@@ -43,22 +43,86 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Pencil } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { motion, AnimatePresence, useAnimationControls } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { Button } from "@/components/ui/button";
+import { LocationPicker, type PlaceSelection } from "@/components/common/location-picker";
+import {
+  Popover,
+  PopoverContent,
+  PopoverPortal,
+  PopoverPositioner,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
 import { AdmissionStamp } from "@/components/profile/admission-stamp";
 import { HouseTrail } from "@/components/profile/houses-chain";
+import { HouseChainEditor } from "@/components/profile/house-chain-editor";
+import {
+  ContactsEditor,
+  buildRows,
+  rowsToPayload,
+  type ContactRow,
+} from "@/components/profile/contacts-editor";
+import {
+  PenBlock,
+  PenRule,
+  PenValue,
+  PEN_BOX,
+  SaveMark,
+  useAutoSave,
+} from "@/components/profile/pen";
 import { ProfileAuthorFeed } from "@/components/profile/profile-author-feed";
 import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { SPRINGS, EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
+import { updateUserPlaces } from "@/components/settings/actions";
+import {
+  updateProfileField,
+  updateContactMethods,
+  type ProfileField,
+} from "@/components/profile/profile-actions";
+import { saveOnboardingHouses } from "@/components/onboarding/actions";
+import { cn } from "@/lib/utils";
+import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
+
+/* ------------------------------------------------------------------ *
+ *  Everything the sheet needs in order to be typed into.
+ *
+ *  Present only on your OWN profile; a stranger's sheet never receives
+ *  it and renders exactly as it always did. Raw values, not the display
+ *  strings the read-only sheet takes, because the moment a field is
+ *  editable the display string has to be rebuilt from what you typed.
+ * ------------------------------------------------------------------ */
+export interface ProfileDraft {
+  /** Arriving from /settings, which redirects here with ?edit=1. */
+  startEditing: boolean;
+  name: string;
+  about: string;
+  jobTitle: string;
+  workplace: string;
+  batchYear: string;
+  yearJoined: string;
+  yearLeft: string;
+  admissionNumber: string;
+  places: PlaceSelection[];
+  houses: HouseYearEntry[];
+  contacts: {
+    displayEmail: string | null;
+    phones: string[];
+    instagram: string | null;
+    linkedin: string | null;
+    facebook: string | null;
+    links: { label: string; url: string }[];
+  };
+}
 
 /* A faint grain so the sheet reads as paper, not a flat fill. */
 const PAPER_GRAIN =
@@ -156,6 +220,7 @@ export function LetterheadProfile({
   photosNode,
   adminNode,
   flagNode,
+  draft,
 }: {
   user: LetterheadProfileUser;
   firstName: string;
@@ -176,23 +241,182 @@ export function LetterheadProfile({
   photosNode: ReactNode;
   adminNode: ReactNode;
   flagNode: ReactNode;
+  /** Only ever passed on your own profile. Its presence is what makes the
+   *  sheet typeable at all. */
+  draft?: ProfileDraft;
 }) {
+  const router = useRouter();
   const hasPhoto = Boolean(user.photoUrl);
-  const aboutText = about?.trim() ?? "";
 
-  /* Three facts, no sub-lines, in the owner's order. */
-  const facts: { label: string; value: string; wide?: boolean }[] = [];
-  if (batchLabel) facts.push({ label: "Batch", value: batchLabel });
-  if (rvYears) facts.push({ label: "In the valley", value: rvYears });
-  if (cities.length > 0) {
-    facts.push({
-      label: cities.length > 1 ? "Cities" : "City",
-      // Wide on the 2-column phone grid: a comma series is the one fact that
-      // can run long, and truncating someone's third city to fit a column is
-      // the ranking this design exists to remove.
-      wide: true,
-      value: cities.join(", "),
+  /* ---------------------------------------------------------------- *
+   *  The pen.
+   *
+   *  These hooks run whether or not `draft` is here, because hooks
+   *  cannot be conditional; when it is absent they hold empty values
+   *  nothing ever reads. `editable` is the switch, and `live` is
+   *  editable AND currently turned on.
+   * ---------------------------------------------------------------- */
+  const editable = Boolean(draft);
+  const [live, setLive] = useState(draft?.startEditing ?? false);
+  const [form, setForm] = useState(() => ({
+    name: draft?.name ?? "",
+    about: draft?.about ?? "",
+    jobTitle: draft?.jobTitle ?? "",
+    workplace: draft?.workplace ?? "",
+    batchYear: draft?.batchYear ?? "",
+    yearJoined: draft?.yearJoined ?? "",
+    yearLeft: draft?.yearLeft ?? "",
+    admissionNumber: draft?.admissionNumber ?? "",
+  }));
+  const [places, setPlaces] = useState<PlaceSelection[]>(draft?.places ?? []);
+  const [houses, setHouses] = useState<HouseYearEntry[]>(draft?.houses ?? []);
+  const [contactRows, setContactRows] = useState<ContactRow[]>(() =>
+    draft ? buildRows(draft.contacts) : []
+  );
+  const [citiesOpen, setCitiesOpen] = useState(false);
+  const { state: saveState, message: saveMessage, run } = useAutoSave();
+
+  /* The value last written, per field, so a blur that changed nothing does
+     not fire a round trip. Typing into a field and tabbing straight out of it
+     is the commonest thing anyone does on this page. */
+  const saved = useRef<Record<string, string>>({});
+
+  function setField(key: keyof typeof form, value: string) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function commitField(key: ProfileField) {
+    const value = form[key];
+    if (saved.current[key] === value) return;
+    saved.current[key] = value;
+    void run(async () => {
+      const result = await updateProfileField(key, value);
+      if (!result.error) router.refresh();
+      return result;
     });
+  }
+
+  function commitPlaces(next: PlaceSelection[]) {
+    setPlaces(next);
+    void run(async () => {
+      const result = await updateUserPlaces(
+        next.map((p) => ({ placeId: p.placeId, label: p.label, city: p.city, lat: p.lat, lng: p.lng }))
+      );
+      if (!result.error) router.refresh();
+      return result;
+    });
+  }
+
+  function commitHouses(next: HouseYearEntry[]) {
+    setHouses(next);
+    void run(async () => {
+      const result = await saveOnboardingHouses(next);
+      if (!("error" in result)) router.refresh();
+      return "error" in result ? { error: result.error } : undefined;
+    });
+  }
+
+  function commitContacts() {
+    void run(async () => {
+      const result = await updateContactMethods(rowsToPayload(contactRows));
+      if (!result.error) router.refresh();
+      return result;
+    });
+  }
+
+  /* Editing, About comes from what is on screen right now, so `showAbout`
+     below never blinks the section away mid-keystroke. */
+  const aboutText = editable ? form.about : (about?.trim() ?? "");
+
+  /* Three facts, no sub-lines, in the owner's order.
+     Editable, every one of them is present whether or not it has a value,
+     because a fact that appears the moment you type into it would be a row
+     arriving mid-transition, which is exactly the resizing this is avoiding. */
+  const liveCities = editable ? places.map((p) => p.city) : cities;
+  const facts: { label: string; value: ReactNode; wide?: boolean; pen?: boolean }[] = [];
+
+  if (editable) {
+    facts.push({
+      label: "Batch",
+      pen: true,
+      value: (
+        <PenValue
+          value={form.batchYear}
+          onChange={(v) => setField("batchYear", digits(v, 4))}
+          onCommit={() => commitField("batchYear")}
+          editing={live}
+          placeholder="0000"
+          ariaLabel="Which batch you are in"
+          delay={0.1}
+          className="text-[15px] font-semibold tabular-nums"
+          inputMode="numeric"
+        />
+      ),
+    });
+    facts.push({
+      label: "In the valley",
+      pen: true,
+      value: (
+        <span className="inline-flex items-center">
+          <PenValue
+            value={form.yearJoined}
+            onChange={(v) => setField("yearJoined", digits(v, 4))}
+            onCommit={() => commitField("yearJoined")}
+            editing={live}
+            placeholder="0000"
+            ariaLabel="Year you joined"
+            delay={0.14}
+            className="text-[15px] font-semibold tabular-nums"
+            inputMode="numeric"
+          />
+          <span className="px-0.5 text-muted-foreground">to</span>
+          <PenValue
+            value={form.yearLeft}
+            onChange={(v) => setField("yearLeft", digits(v, 4))}
+            onCommit={() => commitField("yearLeft")}
+            editing={live}
+            placeholder="0000"
+            ariaLabel="Year you left"
+            delay={0.18}
+            className="text-[15px] font-semibold tabular-nums"
+            inputMode="numeric"
+          />
+        </span>
+      ),
+    });
+    facts.push({
+      label: liveCities.length > 1 ? "Cities" : "City",
+      wide: true,
+      pen: true,
+      /* The one fact whose editor cannot be an input: adding a city is a
+         search. So the VALUE stays exactly the text it is at rest and becomes
+         a button that opens the picker in a popover. The cell never changes
+         size, which is what keeps the facts row from reflowing when the pen
+         comes out (owner: "the desktop version seems to put cities on the next
+         line, I don't know how we'll transition from same line to next line"). */
+      value: (
+        <CitiesPen
+          live={live}
+          open={citiesOpen}
+          onOpenChange={setCitiesOpen}
+          places={places}
+          onChange={commitPlaces}
+        />
+      ),
+    });
+  } else {
+    if (batchLabel) facts.push({ label: "Batch", value: batchLabel });
+    if (rvYears) facts.push({ label: "In the valley", value: rvYears });
+    if (cities.length > 0) {
+      facts.push({
+        label: cities.length > 1 ? "Cities" : "City",
+        // Wide on the 2-column phone grid: a comma series is the one fact that
+        // can run long, and truncating someone's third city to fit a column is
+        // the ranking this design exists to remove.
+        wide: true,
+        value: cities.join(", "),
+      });
+    }
   }
 
   /* About shows for a stranger only when there is something to read. On your
@@ -240,7 +464,28 @@ export function LetterheadProfile({
      same 40px height and canopy fill as every other primary CTA in the app
      (the old header set it at "sm", which read as a secondary control on the
      page it belongs to). Matches the app's Button-inside-Link pattern. */
-  const action = isOwnProfile ? (
+  const action = editable ? (
+    /* One button in one place, its label swapped. Not two buttons crossfading:
+       the pill must not move or resize when the pen comes out, and a
+       fixed-width morph would lie about how long each word is. The width does
+       change between "Edit profile" and "Done", but only once, on a press the
+       reader made, which is the one moment a control is allowed to move. */
+    <div className="flex items-center gap-3">
+      <SaveMark state={saveState} message={saveMessage} />
+      <Button
+        variant={live ? "primary" : "default"}
+        // 132px is "Edit profile" plus its icon, measured. Without it the pill
+        // shrinks to fit "Done", the lockup beside it gets 34px wider, and a
+        // name long enough to wrap re-wraps on the way in and again on the way
+        // out. The one number here buys the whole header its stillness.
+        className="min-w-[132px] rounded-full"
+        onClick={() => setLive((v) => !v)}
+      >
+        {live ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+        {live ? "Done" : "Edit profile"}
+      </Button>
+    </div>
+  ) : isOwnProfile ? (
     <Link href="/settings" className="inline-flex rounded-full focus-visible:outline-none">
       <Button className="rounded-full">
         <Pencil className="h-4 w-4" />
@@ -340,7 +585,35 @@ export function LetterheadProfile({
                     {/* A block-level row, not inline-flex: an inline box would
                         add its line's leading under the mark and quietly turn
                         the 8px step into 14.5px. */}
-                    {admissionNumber ? (
+                    {editable ? (
+                      /* The mark, then the number as a field. The stamp easter
+                         egg still fires from the mark itself, so pressing it
+                         keeps working while the digits are typeable. */
+                      <span className="flex h-[var(--lh-colophon)] w-fit items-center gap-1.5 text-cinnamon">
+                        <button
+                          type="button"
+                          onClick={fireStamp}
+                          aria-label="Stamp the sheet"
+                          className="rounded-sm transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        >
+                          <PeaksMark size={COLOPHON.markSize} />
+                        </button>
+                        <PenValue
+                          value={form.admissionNumber}
+                          onChange={(v) => setField("admissionNumber", digits(v, 5))}
+                          onCommit={() => commitField("admissionNumber")}
+                          editing={live}
+                          // Not "0000": there is no label beside this one, only
+                          // the mark, so the placeholder says what the field is
+                          // rather than what shape it takes.
+                          placeholder="adm no"
+                          ariaLabel="Admission number"
+                          delay={0.02}
+                          className="text-[13px] font-bold uppercase leading-none tracking-[0.16em]"
+                          inputMode="numeric"
+                        />
+                      </span>
+                    ) : admissionNumber ? (
                       <button
                         type="button"
                         onClick={fireStamp}
@@ -367,15 +640,40 @@ export function LetterheadProfile({
                     {/* The leaf rides inline after the last word so a wrapping
                         name never strands it on a line of its own, and sits on
                         the baseline. */}
-                    <h1
-                      className="mt-[var(--lh-gap)] font-heading font-bold tracking-[-0.03em] text-foreground"
-                      style={{ fontSize: "var(--lh-name)", lineHeight: 1.05 }}
-                    >
-                      {user.name}
-                      <span className="ml-2.5 inline-flex align-baseline">
-                        <VerifiedMark user={user} size={16} />
-                      </span>
-                    </h1>
+                    {editable ? (
+                      /* A textarea, not an input: the <h1> it stands in for
+                         wraps to two lines on a phone, so this has to as well
+                         or a long name runs off the sheet. -ml-1.5 puts the
+                         glyphs back on the sheet's own left edge; only the
+                         invisible box hangs outside it. */
+                      <div className="mt-[var(--lh-gap)] -ml-1.5 flex items-end gap-2.5">
+                        <PenBlock
+                          value={form.name}
+                          onChange={(v) => setField("name", v)}
+                          onCommit={() => commitField("name")}
+                          editing={live}
+                          placeholder="Your name"
+                          ariaLabel="Your name"
+                          singleLine
+                          snug
+                          maxLength={80}
+                          className="min-w-0 font-heading font-bold tracking-[-0.03em] text-foreground [font-size:var(--lh-name)] [line-height:1.05]"
+                        />
+                        <span className="mb-1 shrink-0">
+                          <VerifiedMark user={user} size={16} />
+                        </span>
+                      </div>
+                    ) : (
+                      <h1
+                        className="mt-[var(--lh-gap)] font-heading font-bold tracking-[-0.03em] text-foreground"
+                        style={{ fontSize: "var(--lh-name)", lineHeight: 1.05 }}
+                      >
+                        {user.name}
+                        <span className="ml-2.5 inline-flex align-baseline">
+                          <VerifiedMark user={user} size={16} />
+                        </span>
+                      </h1>
+                    )}
                   </div>
 
                   {/* Held back on phones, where a 40px pill beside a 30px
@@ -387,10 +685,41 @@ export function LetterheadProfile({
                   )}
                 </div>
 
-                {occupation && (
-                  <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
-                    {occupation}
-                  </p>
+                {editable ? (
+                  /* The sentence the sheet prints, with two holes in it. Each
+                     hole is exactly as wide as what is in it, so "Student" is
+                     never followed by 100px of nothing before the word "at". */
+                  <div className="-ml-1.5 mt-[var(--space-xs)] flex flex-wrap items-center text-[15px] leading-[1.6] text-muted-foreground">
+                    <PenValue
+                      value={form.jobTitle}
+                      onChange={(v) => setField("jobTitle", v)}
+                      onCommit={() => commitField("jobTitle")}
+                      editing={live}
+                      placeholder="what you do"
+                      ariaLabel="What you do"
+                      delay={0.06}
+                      className="text-[15px]"
+                      maxLength={120}
+                    />
+                    <span className="px-1">at</span>
+                    <PenValue
+                      value={form.workplace}
+                      onChange={(v) => setField("workplace", v)}
+                      onCommit={() => commitField("workplace")}
+                      editing={live}
+                      placeholder="where"
+                      ariaLabel="Where you work or study"
+                      delay={0.08}
+                      className="text-[15px]"
+                      maxLength={120}
+                    />
+                  </div>
+                ) : (
+                  occupation && (
+                    <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
+                      {occupation}
+                    </p>
+                  )
                 )}
 
                 {action && <div className="mt-[var(--space-m)] sm:hidden">{action}</div>}
@@ -400,7 +729,16 @@ export function LetterheadProfile({
                 <dl className="mt-[var(--space-l)] grid grid-cols-2 gap-x-[var(--space-l)] gap-y-[var(--space-m)] sm:grid-cols-3">
                   {facts.map((f) => (
                     <div key={f.label} className={f.wide ? "col-span-2 sm:col-span-1" : "min-w-0"}>
-                      <dt className="text-[11px] font-bold uppercase tracking-[0.16em] text-canopy">
+                      <dt
+                        className={cn(
+                          "text-[11px] font-bold uppercase tracking-[0.16em] text-canopy",
+                          // The pen's own 6px of padding, cancelled, so an
+                          // editable value sits on exactly the x its label
+                          // does. Without it the sheet grows a second left
+                          // edge the moment the pen comes out.
+                          f.pen && "ml-1.5"
+                        )}
+                      >
                         {f.label}
                       </dt>
                       {/* 15px, not 17. Owner (2026-08-02): "the font size for
@@ -440,7 +778,21 @@ export function LetterheadProfile({
                       PostCard's body style, because it is the same kind of
                       text. At 17 the sheet held the one paragraph in the app
                       set larger than a post. */}
-                  {aboutText ? (
+                  {editable ? (
+                    <PenBlock
+                      value={form.about}
+                      onChange={(v) => setField("about", v)}
+                      onCommit={() => commitField("about")}
+                      editing={live}
+                      // At rest this IS the empty state: the same sentence the
+                      // read-only sheet shows, sitting in the field it fills.
+                      placeholder="You haven't written an About yet. A few lines, so people know who you are now."
+                      ariaLabel="About you"
+                      delay={0.22}
+                      maxLength={4000}
+                      className="-ml-1.5 mt-[var(--space-s)] w-[calc(100%+0.75rem)] text-[15px] leading-[1.7] text-foreground"
+                    />
+                  ) : aboutText ? (
                     <p className="mt-[var(--space-s)] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
                       {aboutText}
                     </p>
@@ -457,30 +809,98 @@ export function LetterheadProfile({
               </FadeRise>
             )}
 
-            {houseSpans.length > 0 && (
+            {editable ? (
               <FadeRise delay={0.09}>
                 <section className="mt-[var(--space-l)]">
                   <SectionLabel>Houses</SectionLabel>
                   <div className="mt-[var(--space-s)]">
-                    <HouseTrail spans={houseSpans} />
+                    {/* The SAME component in both states, never a swap: turning
+                        the pen on must not remount the chain, or it re-measures
+                        its pill widths and re-runs its entrance. */}
+                    <HouseChainEditor
+                      entries={houses}
+                      onChange={commitHouses}
+                      yearJoined={Number(form.yearJoined) || null}
+                      yearLeft={Number(form.yearLeft) || null}
+                      editing={live}
+                    />
                   </div>
+                  <AnimatePresence initial={false}>
+                    {live && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ ...SPRINGS.gentle, delay: 0.3 }}
+                        className="mt-[var(--space-s)] text-[12px] text-muted-foreground"
+                      >
+                        Tap a house to change it.
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </section>
               </FadeRise>
+            ) : (
+              houseSpans.length > 0 && (
+                <FadeRise delay={0.09}>
+                  <section className="mt-[var(--space-l)]">
+                    <SectionLabel>Houses</SectionLabel>
+                    <div className="mt-[var(--space-s)]">
+                      <HouseTrail spans={houseSpans} />
+                    </div>
+                  </section>
+                </FadeRise>
+              )
             )}
           </div>
         </div>
       </div>
 
-      <Writing
-        authorId={user.id}
-        firstName={firstName}
-        isOwnProfile={isOwnProfile}
-        postCount={postCount}
-        letterCount={letterCount}
-        photoCount={photoCount}
-        savedCount={savedCount}
-        photosNode={photosNode}
-      />
+      {/* What sits under the sheet.
+          Reading, it is the tab strip over your writing. With the pen out it
+          is the contact rows instead (owner: "right now it shows All posts,
+          Letters, Saved. We can remove all of that, fade it out and put this
+          stuff that isn't above"). One crossfade, no height animation: both
+          blocks are absolutely the same kind of object in the same place, and
+          animating the height between them is what would read as janky. */}
+      <div className="mt-[var(--space-l)] sm:mt-[var(--space-xl)]">
+        <AnimatePresence mode="wait" initial={false}>
+          {live ? (
+            <motion.div
+              key="reaching"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={SPRINGS.gentle}
+            >
+              <ContactsEditor
+                rows={contactRows}
+                onChange={setContactRows}
+                onCommit={commitContacts}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="writing"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={SPRINGS.gentle}
+            >
+              <Writing
+                authorId={user.id}
+                firstName={firstName}
+                isOwnProfile={isOwnProfile}
+                postCount={postCount}
+                letterCount={letterCount}
+                photoCount={photoCount}
+                savedCount={savedCount}
+                photosNode={photosNode}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {(adminNode || flagNode) && (
         <div className="mt-[var(--space-xl)] space-y-[var(--space-m)]">
@@ -640,7 +1060,9 @@ function Writing({
   const [tab, setTab] = useState<TabKey>("all");
 
   return (
-    <div className="mt-[var(--space-l)] sm:mt-[var(--space-xl)]">
+    /* The top margin lives on the caller now, because the contact block that
+       takes this one's place in edit mode has to sit at exactly the same y. */
+    <div>
       <SegmentedPills
         ariaLabel="Profile sections"
         layoutId="profileWriting"
@@ -686,5 +1108,80 @@ function Writing({
         {tab === "saved" && <SavedPostsFeed />}
       </div>
     </div>
+  );
+}
+
+/** Digits only, capped. Every numeric field on the sheet takes the same
+ *  treatment, so a stray letter can never reach the server. */
+function digits(raw: string, max: number): string {
+  return raw.replace(/\D/g, "").slice(0, max);
+}
+
+/* ------------------------------------------------------------------ *
+ *  The cities fact.
+ *
+ *  The only value on the sheet whose editor cannot be a field, because
+ *  adding a city is a search against GeoNames rather than a typed
+ *  string. Putting the picker inline would swap a one-line comma series
+ *  for a chip list and a search box, which is the fact growing three
+ *  rows taller the moment you press Edit.
+ *
+ *  So the value stays the value. It reads as the same comma series it
+ *  always did, in the same cell, at the same height; with the pen out it
+ *  becomes a button, and the picker opens over the page instead of
+ *  inside the sheet. The cell cannot resize, because nothing in it
+ *  changed.
+ * ------------------------------------------------------------------ */
+function CitiesPen({
+  live,
+  open,
+  onOpenChange,
+  places,
+  onChange,
+}: {
+  live: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  places: PlaceSelection[];
+  onChange: (next: PlaceSelection[]) => void;
+}) {
+  const label = places.map((p) => p.city).join(", ");
+
+  return (
+    <span className="relative inline-block max-w-full align-top">
+      <Popover open={live && open} onOpenChange={onOpenChange}>
+        <PopoverTrigger
+          type="button"
+          disabled={!live}
+          aria-label="Cities you call home"
+          className={cn(
+            PEN_BOX,
+            "block max-w-full truncate text-left text-[15px] font-semibold leading-[1.35] text-foreground",
+            live &&
+              "cursor-pointer hover:border-border hover:bg-float/60 focus-visible:border-canopy/45 focus-visible:bg-float",
+            !label && "text-muted-foreground"
+          )}
+        >
+          {label || (live ? "Add a city" : " ")}
+        </PopoverTrigger>
+        <PopoverPortal>
+          <PopoverPositioner sideOffset={8} align="start" side="bottom">
+            <PopoverContent className="w-[320px]">
+              <p className="mb-2 text-[13px] font-semibold text-foreground">
+                Everywhere you call home
+              </p>
+              <LocationPicker
+                mode="multi"
+                value={places}
+                onChange={onChange}
+                placeholder="Add a city"
+                aria-label="Your cities"
+              />
+            </PopoverContent>
+          </PopoverPositioner>
+        </PopoverPortal>
+      </Popover>
+      <PenRule on={live} delay={0.2} />
+    </span>
   );
 }
