@@ -55,6 +55,27 @@ export const HOUSE_TINTS = [
  * lands most of the way to nothing and "visibly selected" stops being true.
  * These are the tints that read on white the way the chain's read on paper.
  */
+/**
+ * The same three hues again, as a HOVER preview and as bare ink.
+ *
+ * Hovering a house in the picker shows the colour that house is about to
+ * become in the chain, not a fixed green (owner, 2026-08-07: "if I have no
+ * houses and I'm going through it, it would hover green, then cinnamon, then
+ * blue, you get it, because the house pill it would become would be that
+ * colour"). The year in the panel's own heading takes the same ink, so the
+ * question and the answer are asked in one colour.
+ *
+ * Lighter than the selected fill on purpose: a preview that weighs the same
+ * as a commitment cannot be told from one.
+ */
+export const HOUSE_TINTS_HOVER = [
+  "hover:border-leaf/40 hover:bg-leaf/[0.07] hover:text-leaf",
+  "hover:border-cinnamon/40 hover:bg-cinnamon/[0.07] hover:text-cinnamon",
+  "hover:border-sky/45 hover:bg-sky/[0.09] hover:text-sky",
+];
+
+export const HOUSE_INK = ["text-leaf", "text-cinnamon", "text-sky"];
+
 export const HOUSE_TINTS_PANEL = [
   "border-leaf/45 bg-leaf/[0.13] text-leaf",
   "border-cinnamon/45 bg-cinnamon/[0.13] text-cinnamon",
