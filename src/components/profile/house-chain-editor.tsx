@@ -216,11 +216,14 @@ export function HouseChainEditor({
       setOtherText={setOther}
       onAddOther={addOther}
       customEntries={chosen.filter((h) => !canonical.has(h))}
-      onRemoveCustom={toggle}
+      /* Each selected house, in the colour its own pill wears in the chain
+         above. openIndices are span indices, and a span's index IS its tint,
+         so this is the chain's answer rather than a second guess at it. */
+      tintIndexFor={(h) => openIndices.find((i) => spans[i]?.house === h)}
       heading={
         wide ? (
           <p className="text-[13px] font-semibold text-foreground">
-            Which house in <span className="tabular-nums text-canopy">{scopeLabel}</span>?
+            Which house in <span className="tabular-nums text-leaf">{scopeLabel}</span>?
           </p>
         ) : undefined
       }
@@ -274,7 +277,7 @@ export function HouseChainEditor({
               align="start"
               side="bottom"
             >
-              <PopoverContent className="w-[300px]">{panel}</PopoverContent>
+              <PopoverContent className="w-[344px]">{panel}</PopoverContent>
             </PopoverPositioner>
           </PopoverPortal>
         </Popover>
@@ -284,7 +287,7 @@ export function HouseChainEditor({
             <SheetHeader className="border-b border-border pb-3">
               <SheetTitle className="font-heading text-[15px] font-semibold tracking-tight">
                 Which house in{" "}
-                <span className="tabular-nums text-canopy">{scopeLabel}</span>?
+                <span className="tabular-nums text-leaf">{scopeLabel}</span>?
               </SheetTitle>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto px-4 pb-4">{panel}</div>

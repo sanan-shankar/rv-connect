@@ -32,10 +32,33 @@ import { academicSpanLabel, parseHouseSpans, type HouseSpan } from "@/lib/house-
  * fills the line it has and the arc always knows exactly where a row ends.
  */
 
-const HOUSE_TINTS = [
+/* The chain's palette, exported because the PICKER uses it too. Picking a
+   house and seeing it land in the chain should be the same object twice, and
+   the only way to guarantee that is one list of tints, read from one place. */
+export const HOUSE_TINTS = [
   "border-leaf/30 bg-leaf/[0.07] text-leaf",
   "border-cinnamon/30 bg-cinnamon/[0.07] text-cinnamon",
   "border-sky/35 bg-sky/[0.10] text-sky",
+];
+
+/**
+ * The same three hues, carrying the same weight on a lighter ground.
+ *
+ * The picker paints a selected house in the colour that house wears in the
+ * chain, so picking one and watching it land are the same object twice
+ * (owner, 2026-08-07: "make the selected colour of the house the same colour
+ * as the pill for it, and colour it in a bit like the pill is so it's visibly
+ * selected"). Same hue, and only the hue is the point.
+ *
+ * The fill is heavier because the ground is. The chain sits on the tan sheet;
+ * the picker floats on Float-white, roughly 10 dL* lighter, where a 7% wash
+ * lands most of the way to nothing and "visibly selected" stops being true.
+ * These are the tints that read on white the way the chain's read on paper.
+ */
+export const HOUSE_TINTS_PANEL = [
+  "border-leaf/45 bg-leaf/[0.13] text-leaf",
+  "border-cinnamon/45 bg-cinnamon/[0.13] text-cinnamon",
+  "border-sky/50 bg-sky/[0.15] text-sky",
 ];
 
 // Each stored year is an ACADEMIC year (2014 reads as "2014-15"), so every

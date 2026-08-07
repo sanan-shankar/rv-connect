@@ -26,13 +26,20 @@
  *  pixel-identical to the one that never had a pen, and turning the pen
  *  on cannot move anything either.
  *
- *  Everything that makes a field LOOK editable is painted outside the
- *  layout, as absolutely positioned siblings:
- *   - the plate, a rounded rect that appears under the pointer and on
- *     focus, inset NEGATIVELY so it surrounds the text without occupying
- *     anything;
- *   - the rule, a dotted canopy line that draws in on scaleX.
- *  Neither can reflow, because neither is in flow.
+ *  What makes a field look editable is the RULE and nothing else: a
+ *  dotted canopy line, absolutely positioned so it adds no height, drawn
+ *  in on scaleX. There was also a white plate behind the text on hover
+ *  and focus; the owner cut it (2026-08-07: "this rectangle selection
+ *  when you're hovering and you're typing into it wasn't there before, I
+ *  don't like the white rectangles, isn't it fine to not have the
+ *  rectangle?"). It is fine. The rule already says the whole sheet is
+ *  live, and a box that appears under the pointer says it a second time
+ *  in a heavier voice.
+ *
+ *  Cutting it also fixed a bug it was causing on its own: the cities
+ *  trigger keeps DOM focus after its popover closes, so the plate's
+ *  focus-within state stayed painted and left a white rectangle sitting
+ *  over the value until you clicked somewhere else.
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -52,14 +59,6 @@ import { SPRINGS } from "@/components/common/motion";
  */
 const PEN_FIELD =
   "m-0 border-0 bg-transparent p-0 text-inherit outline-none disabled:cursor-default";
-
-/* The plate: hover and focus, painted around the text rather than under it.
-   -inset-x-1.5 / -inset-y-1 is the padding the field deliberately does not
-   have, put back as paint. */
-const PLATE_BASE =
-  "pointer-events-none absolute -inset-x-1.5 -inset-y-1 rounded-[var(--radius-sm)] border border-transparent transition-[background-color,border-color] duration-150";
-const PLATE_LIVE =
-  "group-hover/pen:border-border group-focus-within/pen:border-canopy/45 group-focus-within/pen:bg-float";
 
 /* The rule, dotted, in canopy. A repeating gradient rather than a dotted
    border, so the dash rhythm is ours rather than the browser's and so it can
@@ -85,9 +84,8 @@ export function PenRule({ on, delay = 0 }: { on: boolean; delay?: number }) {
   );
 }
 
-/** The wrapper every pen shares: the plate behind, the rule beneath, and the
- *  field between them. `inline-block` so it sits in text flow exactly as the
- *  span it replaces would. */
+/** The wrapper every pen shares: the field, and the rule beneath it.
+ *  `inline-block` so it sits in text flow exactly as the span it replaces. */
 export function PenSlot({
   editing,
   delay,
@@ -100,10 +98,7 @@ export function PenSlot({
   children: ReactNode;
 }) {
   return (
-    <span
-      className={cn("group/pen relative inline-block max-w-full align-baseline", className)}
-    >
-      <span aria-hidden className={cn(PLATE_BASE, editing && PLATE_LIVE)} />
+    <span className={cn("relative inline-block max-w-full align-baseline", className)}>
       {children}
       <PenRule on={editing} delay={delay} />
     </span>

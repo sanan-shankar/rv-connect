@@ -1199,7 +1199,10 @@ function CitiesPen({
           className={cn(
             // Zero box, like every other pen: the trigger occupies exactly the
             // text the read-only <dd> printed, so the facts row cannot change
-            // shape when the pen comes out.
+            // shape when the pen comes out. No hover or focus paint either --
+            // this control keeps DOM focus after its popover closes, so any
+            // focus styling here outlives the popover and sits on the value
+            // until you click elsewhere.
             "m-0 block max-w-full truncate border-0 bg-transparent p-0 text-left text-inherit outline-none",
             live && "cursor-pointer",
             !label && "text-muted-foreground"
