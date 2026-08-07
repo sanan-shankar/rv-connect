@@ -84,6 +84,24 @@ const TURN_LEAD = 4;
 
 const STROKE = { stroke: "currentColor", strokeWidth: 1.25, strokeLinecap: "round" as const };
 
+/**
+ * What the chain draws. A house span, or the one empty pill the EDITOR keeps
+ * at the end of the chain (owner, 2026-08-07: "I just want a pill, maybe it's
+ * a grey, for when it's not selected ... the next pill will be created only
+ * when you select the answer for this pill").
+ *
+ * The pending pill is a real item, not an extra element bolted on after the
+ * fact. That is the whole trick: it goes through the same measuring pass and
+ * the same row packing as a house, so a turn lands on it exactly the way a
+ * turn lands on a house, and the chain never has to know it is being edited.
+ */
+type ChainItem =
+  /** `tint` is the SPAN's own index, not the item's. The pending pill can sit
+   *  anywhere in the line, and if the tints were counted off item positions
+   *  every house after it would change colour the moment it moved. */
+  | { kind: "span"; span: HouseSpan; tint: number }
+  | { kind: "pending"; label: string };
+
 /* Straight arrows are SVG rather than the "→" glyph so they share one stroke
    weight and one cap style with the turning arc. */
 function Arrow({ back }: { back: boolean }) {
@@ -103,20 +121,51 @@ function Arrow({ back }: { back: boolean }) {
   );
 }
 
-/** One pill. Shared by the hidden measuring pass and the real render so the
- *  packed row widths are the truth, not an estimate. */
-function Pill({ span }: { span: HouseSpan }) {
+/** One pill's contents. Shared by the hidden measuring pass and the real
+ *  render so the packed row widths are the truth, not an estimate. */
+function Pill({ item }: { item: ChainItem }) {
+  if (item.kind === "pending") {
+    /* The year sits in the slot the house NAME will take, not in the small
+       year slot beside it. So answering the pill does not move anything: the
+       year slides down into its subordinate size and the house name takes the
+       place it was holding. */
+    return <span className="font-heading text-[12.5px] font-bold leading-none">{item.label}</span>;
+  }
   return (
     <>
-      <span className="font-heading text-[12.5px] font-bold leading-none">{span.house}</span>
+      <span className="font-heading text-[12.5px] font-bold leading-none">{item.span.house}</span>
       <span className="text-[10.5px] font-semibold tabular-nums leading-none opacity-75">
-        {yearRange(span)}
+        {yearRange(item.span)}
       </span>
     </>
   );
 }
 
 const PILL_CLASS = "inline-flex items-baseline gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1";
+
+/* The one dashed outline in the chain, because it is the one pill that is not
+   a fact yet. Grey and unfilled, so a finished chain has no grey left in it
+   and "am I done" is answered by looking rather than by counting. */
+const PENDING_TINT =
+  "border-dashed border-muted-foreground/40 bg-foreground/[0.025] text-muted-foreground";
+
+/* Editor-only. Lives apart from PILL_CLASS because the profile's chain is not
+   pressable and must not grow a pointer cursor or a press. `state-layer` is a
+   background-IMAGE, so it tints over each pill's own fill instead of replacing
+   it, and one class lands at the same weight on all three house tints and on
+   the dashed add pill. The border does not change on hover: the owner's rule
+   is that hovering never moves or re-weights a control.
+
+   The press is framer's own `whileTap`, not `active:scale-[0.97]`: every pill
+   is a motion element, framer writes `transform` inline, and an inline
+   transform beats a utility class every time. A Tailwind press on these would
+   simply never fire. */
+const PILL_PRESS =
+  "state-layer cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+
+/* The pill whose panel is open. A ring, not a fill swap: the pill still has to
+   read as the house it names while you are changing it. */
+const PILL_OPEN = "ring-2 ring-canopy/40";
 
 /** Greedy row packing over the measured pill widths. */
 /* ------------------------------------------------------------------ *
@@ -226,14 +275,52 @@ function balanceRows(widths: number[], band: number): number[][] {
 
 type Metrics = { widths: number[]; pillH: number; containerW: number };
 
-export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
+export function HouseTrail({
+  spans,
+  onSpanClick,
+  pending,
+  openIndex = null,
+}: {
+  spans: HouseSpan[];
+  /** Makes every house pill a button. Omitted (the profile) = read only.
+   *  The element is handed back so a caller can anchor a popover to the exact
+   *  pill that was pressed; the chain's own layout is the only thing that
+   *  knows where a pill ended up. */
+  onSpanClick?: (index: number, el: HTMLElement) => void;
+  /** The one empty pill. Omitted = nothing left to answer. `at` places it in
+   *  the line; leave it off and it goes on the end. */
+  pending?: {
+    label: string;
+    onClick: (el: HTMLElement) => void;
+    open?: boolean;
+    at?: number;
+  };
+  /** Index of the pill whose panel is open, drawn with a ring. */
+  openIndex?: number | null;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
+  const items: ChainItem[] = spans.map((span, i): ChainItem => ({ kind: "span", span, tint: i }));
+  if (pending) {
+    /* Chronological, not just last. Clear a year in the middle of a finished
+       chain and the empty pill has to reappear where that year belongs, or
+       the line stops reading left to right. */
+    const at = Math.max(0, Math.min(pending.at ?? items.length, items.length));
+    items.splice(at, 0, { kind: "pending", label: pending.label });
+  }
+  const editing = Boolean(onSpanClick || pending);
+
   // Stable key: parents rebuild the spans array every render, so depending on
   // the array itself would re-measure (and re-render) forever.
-  const spansKey = spans.map((s) => `${s.house}:${s.fromYear}:${s.toYear}`).join("|");
+  const spansKey = items
+    .map((it) =>
+      it.kind === "pending"
+        ? `?${it.label}`
+        : `${it.span.house}:${it.span.fromYear}:${it.span.toYear}`
+    )
+    .join("|");
 
   useLayoutEffect(() => {
     const host = hostRef.current;
@@ -269,7 +356,77 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
     return () => ro.disconnect();
   }, [spansKey]);
 
-  if (spans.length === 0) return null;
+  if (items.length === 0) return null;
+
+  const tintFor = (item: ChainItem) =>
+    item.kind === "pending" ? PENDING_TINT : HOUSE_TINTS[item.tint % HOUSE_TINTS.length];
+
+  /** One pill, in whichever of the three forms it needs: a plain span on the
+   *  profile, a button on a house you can change, the empty pill at the end. */
+  function renderPill(idx: number) {
+    const item = items[idx];
+    /* The key stays out of this object and is written on each element by
+       hand: React refuses to read a `key` that arrives through a spread.
+       Read-only, a pill rises into place. In the editor it POPS, because
+       there the entrance is answering a tap you just made and the moment
+       worth drawing is the empty pill taking its colour. */
+    const shared = editing
+      ? {
+          initial: { opacity: 0, scale: 0.82 },
+          animate: { opacity: 1, scale: 1 },
+          transition: SPRINGS.snappy,
+        }
+      : {
+          initial: { opacity: 0, y: 6 },
+          animate: { opacity: 1, y: 0 },
+          transition: { ...SPRINGS.gentle, delay: 0.04 * idx },
+        };
+    if (item.kind === "pending") {
+      return (
+        <motion.button
+          key="p-pending"
+          {...shared}
+          type="button"
+          onClick={(e) => pending?.onClick(e.currentTarget)}
+          aria-label={`Pick a house for ${item.label}`}
+          whileTap={{ scale: 0.97 }}
+          className={cn(
+            PILL_CLASS,
+            tintFor(item),
+            PILL_PRESS,
+            pending?.open && "border-solid border-canopy/50 text-canopy"
+          )}
+        >
+          <Pill item={item} />
+        </motion.button>
+      );
+    }
+    if (onSpanClick) {
+      return (
+        <motion.button
+          key={`p-${idx}`}
+          {...shared}
+          type="button"
+          onClick={(e) => onSpanClick(idx, e.currentTarget)}
+          whileTap={{ scale: 0.97 }}
+          aria-label={`${item.span.house}, ${yearRange(item.span)}. Change this.`}
+          className={cn(
+            PILL_CLASS,
+            tintFor(item),
+            PILL_PRESS,
+            openIndex === idx && PILL_OPEN
+          )}
+        >
+          <Pill item={item} />
+        </motion.button>
+      );
+    }
+    return (
+      <motion.span key={`p-${idx}`} {...shared} className={cn(PILL_CLASS, tintFor(item))}>
+        <Pill item={item} />
+      </motion.span>
+    );
+  }
 
   /* The hidden measuring strip renders every pill once, invisibly, with the
      exact classes of the real ones. It stays mounted so a resize or font swap
@@ -281,15 +438,19 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
       className="pointer-events-none absolute h-0 overflow-hidden whitespace-nowrap"
       style={{ visibility: "hidden" }}
     >
-      {spans.map((span, i) => (
-        <span key={i} className={cn(PILL_CLASS, HOUSE_TINTS[i % HOUSE_TINTS.length])}>
-          <Pill span={span} />
+      {items.map((item, i) => (
+        <span key={i} className={cn(PILL_CLASS, tintFor(item))}>
+          <Pill item={item} />
         </span>
       ))}
     </div>
   );
 
-  const srText = (
+  /* Read-only, the chain is one aria-hidden picture with this sentence behind
+     it. As an editor it is a row of real buttons, which a screen reader has to
+     be able to reach, so the picture stops being hidden and the sentence would
+     only repeat what the buttons already say. */
+  const srText = editing ? null : (
     <p className="sr-only">
       Houses over the years: {spans.map((s) => `${s.house} ${yearRange(s)}`).join(", then ")}
     </p>
@@ -305,7 +466,7 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
   }
 
   const { widths, pillH, containerW } = metrics;
-  const singleW = widths.reduce((a, b) => a + b, 0) + (spans.length - 1) * ARROW_SLOT;
+  const singleW = widths.reduce((a, b) => a + b, 0) + (items.length - 1) * ARROW_SLOT;
 
   /* Everything fits on one line: no turns, no gutters, just the snug row. */
   if (singleW <= containerW) {
@@ -313,20 +474,10 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
       <div ref={hostRef} className="relative w-full">
         {srText}
         {measurer}
-        <div aria-hidden className="flex w-fit items-center" style={{ gap: GAP }}>
-          {spans.flatMap((span, i) => {
-            const cells = [
-              <motion.span
-                key={`p-${i}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...SPRINGS.gentle, delay: 0.04 * i }}
-                className={cn(PILL_CLASS, HOUSE_TINTS[i % HOUSE_TINTS.length])}
-              >
-                <Pill span={span} />
-              </motion.span>,
-            ];
-            if (i < spans.length - 1) cells.push(<Arrow key={`a-${i}`} back={false} />);
+        <div aria-hidden={!editing} className="flex w-fit items-center" style={{ gap: GAP }}>
+          {items.flatMap((_, i) => {
+            const cells = [renderPill(i)];
+            if (i < items.length - 1) cells.push(<Arrow key={`a-${i}`} back={false} />);
             return cells;
           })}
         </div>
@@ -493,7 +644,7 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
     <div ref={hostRef} className="relative w-full">
       {srText}
       {measurer}
-      <div aria-hidden className="relative" style={{ height: totalH }}>
+      <div aria-hidden={!editing} className="relative" style={{ height: totalH }}>
         {rowsIdx.map((row, r) => {
           const backwards = r % 2 === 1;
           const ordered = backwards ? [...row].reverse() : row;
@@ -511,21 +662,10 @@ export function HouseTrail({ spans }: { spans: HouseSpan[] }) {
                 height: pillH,
               }}
             >
-              {ordered.flatMap((spanIdx, pos) => {
-                const span = spans[spanIdx];
-                const cells = [
-                  <motion.span
-                    key={`p-${spanIdx}`}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ ...SPRINGS.gentle, delay: 0.04 * spanIdx }}
-                    className={cn(PILL_CLASS, HOUSE_TINTS[spanIdx % HOUSE_TINTS.length])}
-                  >
-                    <Pill span={span} />
-                  </motion.span>,
-                ];
+              {ordered.flatMap((itemIdx, pos) => {
+                const cells = [renderPill(itemIdx)];
                 if (pos < ordered.length - 1) {
-                  cells.push(<Arrow key={`a-${spanIdx}`} back={backwards} />);
+                  cells.push(<Arrow key={`a-${itemIdx}`} back={backwards} />);
                 }
                 return cells;
               })}
