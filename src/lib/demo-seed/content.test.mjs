@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { ALL_DEMO_PEOPLE } from "./people.ts";
 import {
@@ -163,6 +165,40 @@ test("every seeded city can be placed on the map", () => {
     }
   }
   assert.deepEqual(missing, [], `\n  ${missing.join("\n  ")}\n`);
+});
+
+test("every Collection photo's recorded size matches the file on disk", async () => {
+  // The Collection grid is CSS-columns masonry: each tile renders the
+  // THUMBNAIL at w-full with width/height attributes taken from these
+  // numbers, so the browser sizes the box from this ratio before the image
+  // loads. Three of these were originally guessed rather than measured, and
+  // the grid came out ragged, with tiles at sizes that did not match their
+  // pictures. Measuring beats trusting.
+  const sharp = (await import("sharp")).default;
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../public/images/collection");
+
+  const wrong = [];
+  for (const ph of DEMO_PHOTOS) {
+    const display = await sharp(resolve(root, `${ph.file}.webp`)).metadata();
+    const thumb = await sharp(resolve(root, `${ph.file}-thumb.webp`)).metadata();
+
+    if (display.width !== ph.width || display.height !== ph.height) {
+      wrong.push(
+        `${ph.slug}: recorded ${ph.width}x${ph.height}, file is ${display.width}x${display.height}`,
+      );
+    }
+    // And the thumbnail must share that ratio, because it is the one actually
+    // rendered into the box the recorded ratio reserved. contributePhoto uses
+    // fit:"inside" for both, so real uploads hold this automatically.
+    const dr = display.width / display.height;
+    const tr = thumb.width / thumb.height;
+    if (Math.abs(dr - tr) > 0.01) {
+      wrong.push(
+        `${ph.slug}: thumbnail ratio ${tr.toFixed(2)} does not match display ratio ${dr.toFixed(2)}`,
+      );
+    }
+  }
+  assert.deepEqual(wrong, [], `\n  ${wrong.join("\n  ")}\n`);
 });
 
 test("letters have titles and posts do not", () => {
