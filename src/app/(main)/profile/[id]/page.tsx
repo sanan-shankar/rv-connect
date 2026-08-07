@@ -282,6 +282,7 @@ export default async function ProfilePage({
               yearJoined: user.yearJoined?.toString() ?? "",
               yearLeft: user.yearLeft?.toString() ?? "",
               admissionNumber: user.admissionNumber?.toString() ?? "",
+              theme: user.theme ?? null,
               places: user.places.map((p) => ({
                 placeId: p.placeId,
                 label: p.label,

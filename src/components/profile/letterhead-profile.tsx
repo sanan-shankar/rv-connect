@@ -81,13 +81,30 @@ import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { SPRINGS, EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
-import { updateUserPlaces } from "@/components/settings/actions";
+import {
+  updateUserPlaces,
+  deleteAccount,
+  updateAvatar,
+  removeAvatar,
+} from "@/components/settings/actions";
+import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
+import { AttachImageDialog } from "@/components/common/attach-image-dialog";
+import { ImagePlus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   updateProfileField,
   updateContactMethods,
   type ProfileField,
 } from "@/components/profile/profile-actions";
 import { saveOnboardingHouses } from "@/components/onboarding/actions";
+import { signOut } from "next-auth/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
@@ -101,7 +118,9 @@ import type { HouseSpan } from "@/lib/house-spans";
  *  editable the display string has to be rebuilt from what you typed.
  * ------------------------------------------------------------------ */
 export interface ProfileDraft {
-  /** Arriving from /settings, which redirects here with ?edit=1. */
+  /** Opens with the pen already out. Nothing sets it now that /settings is
+   *  gone, but ?edit=1 still works and is how a link can hand somebody a
+   *  editable sheet. */
   startEditing: boolean;
   name: string;
   about: string;
@@ -111,6 +130,9 @@ export interface ProfileDraft {
   yearJoined: string;
   yearLeft: string;
   admissionNumber: string;
+  /** "dark" or anything else. Not a profile field, but its tile lives under
+   *  the contact rows now that there is no settings page to hold it. */
+  theme: string | null;
   places: PlaceSelection[];
   houses: HouseYearEntry[];
   contacts: {
@@ -274,6 +296,49 @@ export function LetterheadProfile({
     draft ? buildRows(draft.contacts) : []
   );
   const [citiesOpen, setCitiesOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  /* The photograph. It used to be a row on the settings form; that form is
+     gone, and this is the only place left that is yours to change, so the
+     upload comes here rather than nowhere. Same crop dialog, same two
+     actions, same 15MB gate. */
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
+
+  async function uploadAvatarBlob(payload: Blob | File) {
+    setPhotoBusy(true);
+    const fd = new FormData();
+    fd.set(
+      "file",
+      payload instanceof File ? payload : new File([payload], "avatar.webp", { type: "image/webp" })
+    );
+    const result = await updateAvatar(fd);
+    setPhotoBusy(false);
+    if (result.error) return toast.error(result.error);
+    toast.success("Photo updated");
+    router.refresh();
+  }
+
+  /* Picking a photo opens the crop dialog rather than uploading blind: the
+     old path shipped the ORIGINAL bytes to a hard-coded centre crop, so an
+     off-centre face was silently beheaded and a 6MB phone photo could die on
+     Vercel's ~4.5MB serverless body cap. */
+  function handlePhotoPick(f: File | null) {
+    if (!f) return;
+    if (!f.type.startsWith("image/")) return toast.error("Please choose an image");
+    if (f.size > 15 * 1024 * 1024) return toast.error("Photo must be under 15MB");
+    setCropFile(f);
+  }
+
+  async function handlePhotoRemove() {
+    setPhotoBusy(true);
+    const result = await removeAvatar();
+    setPhotoBusy(false);
+    if (result.error) return toast.error(result.error);
+    toast.success("Photo removed");
+    router.refresh();
+  }
   const { state: saveState, message: saveMessage, run } = useAutoSave();
 
   /* The value last written, per field, so a blur that changed nothing does
@@ -489,13 +554,6 @@ export function LetterheadProfile({
         {live ? "Done" : "Edit profile"}
       </Button>
     </div>
-  ) : isOwnProfile ? (
-    <Link href="/settings" className="inline-flex rounded-full focus-visible:outline-none">
-      <Button className="rounded-full">
-        <Pencil className="h-4 w-4" />
-        Edit profile
-      </Button>
-    </Link>
   ) : contactMethods.length > 0 ? (
     <GetInTouch name={user.name} methods={contactMethods} vcard={vcard} showSave={false} size="default" />
   ) : null;
@@ -804,7 +862,7 @@ export function LetterheadProfile({
                   ) : editable ? (
                     /* Resting, with nothing written: the sentence the sheet has
                        always shown, link and all. The link no longer leaves for
-                       /settings, it just hands you the pen. Same type, same one
+                       anywhere, it just hands you the pen. Same type, same one
                        line, so picking it up moves nothing. */
                     <p className="mt-[var(--space-s)] text-[15px] leading-[1.7] text-muted-foreground">
                       You haven&rsquo;t written an About yet.{" "}
@@ -823,11 +881,7 @@ export function LetterheadProfile({
                     </p>
                   ) : (
                     <p className="mt-[var(--space-s)] text-[15px] leading-[1.7] text-muted-foreground">
-                      You haven&rsquo;t written an About yet.{" "}
-                      <Link href="/settings" className="rounded-sm font-semibold text-leaf hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-                        Add a few lines
-                      </Link>{" "}
-                      so people know who you are now.
+                      You haven&rsquo;t written an About yet.
                     </p>
                   )}
                 </section>
@@ -920,6 +974,107 @@ export function LetterheadProfile({
                 onChange={setContactRows}
                 onCommit={commitContacts}
               />
+
+              {/* Your photograph, and the two things that are NOT your
+                  profile. All three used to sit on /settings; that route is
+                  gone, and stranding them was never an option. They stay out
+                  of the sheet itself because none of them is something
+                  anybody reads about you.
+                  The photo control lives here rather than beside the avatar
+                  because the sheet's geometry has to be identical in both
+                  states, and a button that exists only in edit mode is a row
+                  arriving mid-transition. */}
+              <div
+                className="mt-[var(--space-m)] flex items-center gap-4 rounded-[var(--radius)] border border-border bg-card px-[var(--space-m)] py-3.5"
+                style={{
+                  boxShadow:
+                    "0 1px 2px rgba(35,36,30,0.04), 0 10px 24px -20px rgba(35,36,30,0.5)",
+                }}
+              >
+                <BirdAvatar
+                  user={{
+                    id: user.id,
+                    name: user.name,
+                    photoUrl: user.photoUrl,
+                    birdOverride: user.birdOverride,
+                  }}
+                  size={44}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13.5px] font-medium text-foreground">
+                    {hasPhoto ? "Your photo" : "Your valley bird"}
+                  </p>
+                  <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+                    {hasPhoto
+                      ? "Shown everywhere in place of your bird."
+                      : "Upload a photo, or keep the bird."}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={photoBusy}
+                    onClick={() => setAttachOpen(true)}
+                  >
+                    {photoBusy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="h-4 w-4" />
+                    )}
+                    {hasPhoto ? "Change" : "Upload"}
+                  </Button>
+                  {hasPhoto && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={photoBusy}
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={handlePhotoRemove}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className="mt-[var(--space-m)] flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-card px-[var(--space-m)] py-3.5 sm:flex-row sm:items-center sm:justify-between"
+                style={{
+                  boxShadow:
+                    "0 1px 2px rgba(35,36,30,0.04), 0 10px 24px -20px rgba(35,36,30,0.5)",
+                }}
+              >
+                <div>
+                  <p className="text-[13.5px] font-medium text-foreground">
+                    {draft?.theme === "dark" ? "Dark mode is on" : "Dark mode"}
+                  </p>
+                  <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+                    {draft?.theme === "dark"
+                      ? "You made it through the questions. Turning it off is one press."
+                      : "Experimental. Turning it on involves some questions."}
+                  </p>
+                </div>
+                <Link href="/dark-mode" className="inline-flex rounded-full">
+                  <Button variant="outline" size="sm">
+                    {draft?.theme === "dark" ? "Turn it off" : "Explore the dark"}
+                  </Button>
+                </Link>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                // One line of quiet text, not a red-bordered box with a
+                // heading and a paragraph. The dialog behind it is where a
+                // warning belongs; a box drawn around it here only makes the
+                // page longer for a thing nobody is looking for.
+                className="state-layer mt-3 rounded-full px-2 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-heart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                Delete your account
+              </button>
             </motion.div>
           ) : (
             <motion.div
@@ -943,6 +1098,61 @@ export function LetterheadProfile({
           )}
         </AnimatePresence>
       </div>
+
+      <AttachImageDialog
+        open={attachOpen}
+        onOpenChange={setAttachOpen}
+        onFiles={(files) => handlePhotoPick(files[0] ?? null)}
+        multiple={false}
+        title="Add a profile photo"
+      />
+      <AvatarCropDialog
+        file={cropFile}
+        onConfirm={async (blob) => {
+          setCropFile(null);
+          await uploadAvatarBlob(blob);
+        }}
+        onCancel={() => setCropFile(null)}
+        onDecodeError={(f) => {
+          // The browser could not decode this file (HEIC etc.). Send the
+          // original to the server, whose sharp pipeline either handles it or
+          // answers with the friendly "export as JPG" message.
+          setCropFile(null);
+          void uploadAvatarBlob(f);
+        }}
+      />
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete account</DialogTitle>
+            <DialogDescription>
+              This will permanently delete your account, all your posts, comments and
+              data. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              onClick={async () => {
+                setDeleting(true);
+                const result = await deleteAccount();
+                if (result.error) {
+                  setDeleting(false);
+                  return;
+                }
+                signOut({ callbackUrl: "/" });
+              }}
+            >
+              {deleting ? "Deleting..." : "Yes, delete my account"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {(adminNode || flagNode) && (
         <div className="mt-[var(--space-xl)] space-y-[var(--space-m)]">

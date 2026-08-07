@@ -10,7 +10,6 @@ import {
   Feather,
   MessagesSquare,
   Info,
-  Settings,
   Shield,
   LogOut,
   User as UserIcon,
@@ -92,7 +91,6 @@ function accountNav(userId: string, isAdmin: boolean) {
   return [
     { href: `/profile/${userId}`, label: "My profile", icon: UserIcon },
     { href: "/messages", label: "Reach out", icon: MessageSquareText },
-    { href: "/settings", label: "Settings", icon: Settings },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
   ];
 }
@@ -302,11 +300,13 @@ function AccountSection({
   pathname,
   markerId,
   onNavigate,
+  demo = false,
 }: {
   user: SidebarUser;
   pathname: string;
   markerId: string;
   onNavigate?: () => void;
+  demo?: boolean;
 }) {
   const rows = accountNav(user.id, user.role === "admin");
   const onAccountRoute = rows.some((r) => isActive(pathname, r.href));
@@ -349,6 +349,12 @@ function AccountSection({
                 staggered
               />
             ))}
+            {/* No sign out on the demo. There is no session to end: identity
+                is a constant there (src/lib/auth.ts), and the demo closes
+                /api/auth, so the button could only ever fail. A control that
+                visibly does nothing reads as a broken app, which is the one
+                impression this deployment exists to avoid. */}
+            {!demo && (
             <motion.button
               type="button"
               onClick={() => signOut({ callbackUrl: "/" })}
@@ -358,6 +364,7 @@ function AccountSection({
               <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
               Sign out
             </motion.button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -382,8 +389,8 @@ function UserMenu({
   // dot-separated meta row rather than on its own.
   const meta = batchLine(user, { fullYear: true });
   return (
-    /* The pill that ties the bird, the name, the batch line and the gear into
-       one unit. Back to the original white-alpha fill (owner, 2026-08-03: "just
+    /* The pill that ties the bird, the name, the batch line and the shortcut
+       to your own sheet into one unit. Back to the original white-alpha fill (owner, 2026-08-03: "just
        go back to the pill thing it was before you removed it"). */
     <div className="flex items-center gap-1.5 rounded-2xl bg-white/[0.07] p-1.5">
       {/* The pill is now the toggle for the rows above it, not the trigger for
@@ -413,16 +420,20 @@ function UserMenu({
             there's no direction to expand it, they'll figure it out"). The
             pill's own lit state via aria-expanded is what says it is open. */}
       </button>
+      {/* Straight to your own sheet, not to a settings page. There is no
+          settings page any more: your profile IS it, and this is the shortcut
+          that saves opening the menu to reach it (owner, 2026-08-07: "replace
+          the settings icon near the bottom left profile pill with the my
+          profile icon so they can directly access it").
+          The gear used to turn 45 degrees on hover, which was the icon's own
+          affordance inside a control that does not move. A person does not
+          turn, so the hover here is the colour change alone. */}
       <Link
-        href="/settings"
-        aria-label="Settings"
-        className="group grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
+        href={`/profile/${user.id}`}
+        aria-label="My profile"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sidebar-foreground-idle transition-[background-color,color,transform] duration-150 ease-out hover:bg-sidebar-hover hover:text-sidebar-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
       >
-        {/* The gear turning is the icon's own affordance inside a control that
-            does not itself move, which is the one shape of hover motion the
-            house rule leaves open. The colour change beside it is what carries
-            the hover. */}
-        <Settings className="h-[18px] w-[18px] transition-transform duration-300 ease-out group-hover:[transform:rotate(45deg)]" strokeWidth={1.9} />
+        <UserIcon className="h-[18px] w-[18px]" strokeWidth={1.9} />
       </Link>
     </div>
   );
@@ -431,9 +442,13 @@ function UserMenu({
 export function Sidebar({
   user,
   unreadCount,
+  demo = false,
 }: {
   user: SidebarUser;
   unreadCount: number;
+  /** True on the demo deployment; see the note in app-shell.tsx for why this
+   *  arrives as a prop instead of being read from `IS_DEMO` here. */
+  demo?: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -477,7 +492,7 @@ export function Sidebar({
               this section (see sidebar-hoopoe.tsx) */}
           <div className="relative mt-auto">
             <SidebarHoopoe />
-            <AccountSection user={user} pathname={pathname} markerId="nav-desktop" />
+            <AccountSection user={user} pathname={pathname} markerId="nav-desktop" demo={demo} />
           </div>
         </div>
       </aside>
@@ -556,6 +571,7 @@ export function Sidebar({
                 pathname={pathname}
                 markerId="nav-mobile"
                 onNavigate={() => setOpen(false)}
+                demo={demo}
               />
             </div>
           </SheetContent>
