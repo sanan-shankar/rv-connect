@@ -292,6 +292,7 @@ export default async function ProfilePage({
               houses: parseHouseYearEntries(user.houses),
               contacts: {
                 displayEmail: user.displayEmail,
+                email: user.email,
                 phones: phoneNumbers,
                 instagram: user.instagram,
                 linkedin: user.linkedin,
