@@ -115,6 +115,7 @@ export interface ProfileDraft {
   houses: HouseYearEntry[];
   contacts: {
     displayEmail: string | null;
+    email: string;
     phones: string[];
     instagram: string | null;
     linkedin: string | null;
@@ -851,15 +852,26 @@ export function LetterheadProfile({
                   </div>
                   <AnimatePresence initial={false}>
                     {live && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ ...SPRINGS.gentle, delay: 0.3 }}
-                        className="mt-[var(--space-s)] text-[12px] text-muted-foreground"
+                      /* Height, not just opacity. This one line is the only
+                         thing that makes the sheet taller in edit mode, and
+                         fading it while its 26px vanished in a frame is what
+                         made the whole card snap shut on Done (owner,
+                         2026-08-07: "the profile just kind of snaps up ...
+                         instead of transitioning up and becoming shorter, it
+                         just snaps suddenly"). Animating a height is normally
+                         off the table here; it is on it for exactly this,
+                         because the alternative is the jump. */
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={SPRINGS.gentle}
+                        className="overflow-hidden"
                       >
-                        Tap a house to change it.
-                      </motion.p>
+                        <p className="pt-[var(--space-s)] text-[12px] text-muted-foreground">
+                          Tap a house to change it.
+                        </p>
+                      </motion.div>
                     )}
                   </AnimatePresence>
                 </section>
@@ -888,7 +900,13 @@ export function LetterheadProfile({
           blocks are absolutely the same kind of object in the same place, and
           animating the height between them is what would read as janky. */}
       <div className="mt-[var(--space-l)] sm:mt-[var(--space-xl)]">
-        <AnimatePresence mode="wait" initial={false}>
+        {/* popLayout, not "wait". With "wait" the outgoing block unmounts and
+            the incoming one only starts after it, so for 200ms this container
+            holds nothing at all and the page collapses to the sheet before
+            springing back out: two jumps to say one thing. popLayout takes the
+            outgoing block out of flow immediately, so the incoming one owns
+            the height from the first frame and there is only ever one move. */}
+        <AnimatePresence mode="popLayout" initial={false}>
           {live ? (
             <motion.div
               key="reaching"

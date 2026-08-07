@@ -283,20 +283,17 @@ export function HouseTrail({
 }: {
   spans: HouseSpan[];
   /** Makes every house pill a button. Omitted (the profile) = read only.
-   *  The element is handed back so a caller can anchor a popover to the exact
-   *  pill that was pressed; the chain's own layout is the only thing that
-   *  knows where a pill ended up. */
-  onSpanClick?: (index: number, el: HTMLElement) => void;
+   *  The index is the SPAN's, counted off the `spans` array the caller passed
+   *  in, NOT the pill's position in the drawn line. The two are different the
+   *  moment a grey pill sits earlier in the chain, and handing back the drawn
+   *  position meant `spans[i]` was the wrong span, or undefined: tapping a
+   *  house with an unanswered year before it did nothing at all. */
+  onSpanClick?: (spanIndex: number) => void;
   /** The one empty pill. Omitted = nothing left to answer. `at` places it in
    *  the line; leave it off and it goes on the end. */
-  pending?: {
-    label: string;
-    onClick: (el: HTMLElement) => void;
-    open?: boolean;
-    at?: number;
-  };
-  /** Indices of the pills the open panel covers, drawn with a ring. Plural,
-   *  because a year holding two houses is two pills and the panel edits both. */
+  pending?: { label: string; onClick: () => void; open?: boolean; at?: number };
+  /** SPAN indices the open panel covers, drawn with a ring. Plural, because a
+   *  year holding two houses is two pills and the panel edits both. */
   openIndices?: number[];
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -388,7 +385,7 @@ export function HouseTrail({
           key="p-pending"
           {...shared}
           type="button"
-          onClick={(e) => pending?.onClick(e.currentTarget)}
+          onClick={() => pending?.onClick()}
           aria-label={`Pick a house for ${item.label}`}
           whileTap={{ scale: 0.97 }}
           className={cn(
@@ -408,14 +405,14 @@ export function HouseTrail({
           key={`p-${idx}`}
           {...shared}
           type="button"
-          onClick={(e) => onSpanClick(idx, e.currentTarget)}
+          onClick={() => onSpanClick(item.tint)}
           whileTap={{ scale: 0.97 }}
           aria-label={`${item.span.house}, ${yearRange(item.span)}. Change this.`}
           className={cn(
             PILL_CLASS,
             tintFor(item),
             PILL_PRESS,
-            openIndices?.includes(idx) && PILL_OPEN
+            openIndices?.includes(item.tint) && PILL_OPEN
           )}
         >
           <Pill item={item} />

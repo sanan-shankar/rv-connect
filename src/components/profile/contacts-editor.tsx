@@ -106,6 +106,8 @@ export function rowsToPayload(rows: ContactRow[]) {
 
 export function buildRows(source: {
   displayEmail: string | null;
+  /** the account address, used when no display address has been chosen */
+  email: string;
   phones: string[];
   instagram: string | null;
   linkedin: string | null;
@@ -113,7 +115,16 @@ export function buildRows(source: {
   links: { label: string; url: string }[];
 }): ContactRow[] {
   const rows: ContactRow[] = [];
-  if (source.displayEmail) rows.push({ id: newId(), kind: "email", value: source.displayEmail });
+  /* The email people ACTUALLY see. The profile's Get in touch falls back to
+     the account address when displayEmail is unset, so seeding this list from
+     displayEmail alone showed nothing at all to everyone who never set one
+     (owner, 2026-08-07: "it only shows my phone number, but I'm pretty sure
+     that if people get in touch with me it'll also show my email"). Showing
+     the effective address is the honest thing: it is what is on the profile,
+     and editing it is how you change what is on the profile. */
+  if (source.displayEmail || source.email) {
+    rows.push({ id: newId(), kind: "email", value: source.displayEmail || source.email });
+  }
   for (const p of source.phones) rows.push({ id: newId(), kind: "phone", value: p });
   if (source.instagram) rows.push({ id: newId(), kind: "instagram", value: source.instagram });
   if (source.linkedin) rows.push({ id: newId(), kind: "linkedin", value: source.linkedin });

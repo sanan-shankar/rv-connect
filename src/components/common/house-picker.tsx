@@ -309,35 +309,32 @@ export function HouseOptions({
                   aria-pressed={selected}
                   onClick={() => onToggle(h)}
                   className={cn(
-                    // min-h-11 holds the owner's 44px touch floor; radius-sm
-                    // (8.8px) is one rung inside the 12px panel per the radius
-                    // ladder.
+                    // A PILL, the same shape the chain draws a house as (owner,
+                    // 2026-08-07: "I wanted more of an outline that looks like
+                    // the actual house pill in the chain"). Same rounded-full,
+                    // same tinted fill, same hairline outline, so picking a
+                    // house here and seeing it land in the chain are obviously
+                    // the same object twice.
                     //
-                    // SELECTED IS A FILL, NOT A TICK (owner, 2026-08-07: "I
-                    // don't just want a tick mark, I want it kind of coloured
-                    // in like the pill is coloured in so I can clearly see
-                    // which houses are selected. The tick mark thing isn't
-                    // good"). A 16px check against 13.5px text was carrying
-                    // the whole state on one glyph at the far left of a
-                    // two-column list. The row now reads canopy on canopy the
-                    // way the chain's own pills do, and the check is gone
-                    // along with the slot that reserved space for it.
+                    // min-h-10 + my-0.5 is still the owner's 44px touch floor,
+                    // but the PAINTED pill is 40px with 2px clear above and
+                    // below. Flush 44px rows made two selected houses in one
+                    // column run their outlines into each other, which is the
+                    // overlap in the same review.
                     //
-                    // The selected ring is `ring-inset`, not a border: a
+                    // The outline is an inset RING rather than a border: a
                     // border would add a pixel and shift every name in the
-                    // column by one.
+                    // column across by one as it came and went.
                     //
-                    // HOVER IS ITS OWN CANOPY WASH, not the shared state
-                    // layer (owner, same review: "it doesn't show what you're
-                    // hovering over"). The state layer is a 6% ink tint, which
-                    // is legible on a page but not against a Float-white
-                    // popover holding 22 rows. A canopy wash at 8% both reads
-                    // clearly and previews exactly what picking will look
-                    // like.
-                    "flex min-h-11 w-full items-center rounded-[var(--radius-sm)] px-2.5 text-left text-[13.5px] transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                    // Hover is its own canopy wash, not the shared state layer
+                    // ("it doesn't show what you're hovering over"). That layer
+                    // is a 6% ink tint, which reads on a page but not on a
+                    // Float-white popover; a canopy wash both reads clearly and
+                    // previews exactly what picking will look like.
+                    "my-0.5 flex min-h-10 w-full items-center rounded-full px-3 text-left text-[13.5px] transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                     selected
-                      ? "bg-canopy/[0.12] font-semibold text-canopy ring-1 ring-inset ring-canopy/35 hover:bg-canopy/[0.18]"
-                      : "font-medium text-foreground hover:bg-canopy/[0.08] hover:text-canopy"
+                      ? "bg-canopy/[0.10] font-semibold text-canopy ring-1 ring-inset ring-canopy/40 hover:bg-canopy/[0.16]"
+                      : "font-medium text-foreground hover:bg-canopy/[0.07] hover:text-canopy"
                   )}
                 >
                   {h}

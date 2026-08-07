@@ -31,7 +31,7 @@
  *  only new thing is that the answer is a pill in a chain.
  * ------------------------------------------------------------------ */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HouseTrail } from "@/components/profile/houses-chain";
 import { HouseOptions } from "@/components/common/house-picker";
 import {
@@ -69,10 +69,19 @@ function useWideViewport(): boolean {
  * `spans[target.index]` is undefined. That was the "undefined is not an object
  * evaluating item.kind" crash on removing a second house. A year range is
  * stable however the houses on it are rearranged.
+ *
+ * There is no anchor here either, and that is the second half of the same
+ * lesson. The panel used to be anchored to the PILL that was pressed, so every
+ * pick moved it: picking a house re-packs the chain, the pill it was hanging
+ * off is replaced, and the positioner falls back to the left of the screen
+ * (owner, 2026-08-07: "the panel just has teleported to the left of the
+ * screen ... that was a pretty janky move"). It now hangs off the chain's own
+ * container, which never remounts, so it opens in one place and stays there
+ * for the whole run while the chain grows above it.
  */
 type Target =
-  | { kind: "next"; anchor: HTMLElement }
-  | { kind: "span"; from: number; to: number; anchor: HTMLElement };
+  | { kind: "next" }
+  | { kind: "span"; from: number; to: number };
 
 export function HouseChainEditor({
   entries,
@@ -96,6 +105,9 @@ export function HouseChainEditor({
   const [target, setTarget] = useState<Target | null>(null);
   const [other, setOther] = useState("");
   const wide = useWideViewport();
+  /* The one thing the panel hangs off, and the one thing that is guaranteed
+     not to be replaced when the chain re-packs itself. */
+  const chainRef = useRef<HTMLDivElement>(null);
 
   /* Round-tripping through JSON to reach parseHouseSpans looks odd and is
      deliberate: that function is what the profile's read-only chain calls, so
@@ -164,10 +176,18 @@ export function HouseChainEditor({
           )
         : sorted([...entries, ...yearsIn(scope).map((year) => ({ year, house }))]);
       onChange(next);
-      // Taking the LAST house off these years leaves a gap, so the pill being
-      // edited no longer exists and there is nothing to stay open on.
       if (housesInSpan(next, { fromYear: scope.from, toYear: scope.to }).length === 0) {
+        // Taking the LAST house off these years leaves a gap, so the pill being
+        // edited no longer exists and there is nothing to stay open on.
         setTarget(null);
+      } else if (!already) {
+        /* ADDING a second house to a year is a finished answer like any other,
+           so it hands the run forward exactly as the grey pill does (owner,
+           2026-08-07: "now I've added Jacaranda, but I'm still on 21-22, it
+           should have moved ahead to 22-23"). Removing one does not: that is a
+           correction, and you may well be about to pick its replacement. */
+        const gap = firstGap(next, career!.from, career!.to);
+        setTarget(gap == null ? null : { kind: "next" });
       }
       return;
     }
@@ -209,15 +229,16 @@ export function HouseChainEditor({
 
   return (
     <div>
-      <HouseTrail
+      <div ref={chainRef}>
+        <HouseTrail
         spans={spans}
         onSpanClick={
           editing
-            ? (index, anchor) => {
+            ? (spanIndex) => {
                 setOther("");
-                const sp = spans[index];
+                const sp = spans[spanIndex];
                 if (!sp) return;
-                setTarget({ kind: "span", from: sp.fromYear, to: sp.toYear, anchor });
+                setTarget({ kind: "span", from: sp.fromYear, to: sp.toYear });
               }
             : undefined
         }
@@ -231,14 +252,15 @@ export function HouseChainEditor({
                 // year in the middle of a finished chain has to put the grey
                 // pill back where that year belongs.
                 at: indexOfYear(spans, nextYear),
-                onClick: (anchor) => {
+                onClick: () => {
                   setOther("");
-                  setTarget({ kind: "next", anchor });
+                  setTarget({ kind: "next" });
                 },
               }
         }
-        openIndices={openIndices}
-      />
+          openIndices={openIndices}
+        />
+      </div>
 
       {/* One panel, anchored to whichever pill asked for it. The anchor is the
           pill's own element rather than a wrapper, because the chain packs its
@@ -247,8 +269,8 @@ export function HouseChainEditor({
         <Popover open={Boolean(target)} onOpenChange={(o) => !o && setTarget(null)}>
           <PopoverPortal>
             <PopoverPositioner
-              anchor={target?.anchor ?? null}
-              sideOffset={8}
+              anchor={chainRef.current}
+              sideOffset={10}
               align="start"
               side="bottom"
             >
