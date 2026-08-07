@@ -1,10 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["bom1"],
+  "framework": "nextjs",
   "crons": [
     {
       "path": "/api/catchups/tick",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/demo/reset",
+      "schedule": "0 20 * * *"
     }
   ]
 }

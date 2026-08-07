@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { adminMessageSchema } from "@/lib/validators";
 import { deriveSubject, previewOf, threadTitle } from "@/lib/admin-threads";
@@ -67,6 +68,7 @@ export async function startThread(input: {
 }): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not signed in" };
+  if (IS_DEMO) return { error: "Messages here reach a real person, so the demo keeps this one closed." };
 
   const parsed = parsePayload(input);
   if (!parsed.ok) return { error: parsed.error };
@@ -106,6 +108,7 @@ export async function replyToThread(
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not signed in" };
+  if (IS_DEMO) return { error: "Messages here reach a real person, so the demo keeps this one closed." };
 
   const parsed = parsePayload(input);
   if (!parsed.ok) return { error: parsed.error };

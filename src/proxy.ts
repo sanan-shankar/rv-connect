@@ -8,8 +8,75 @@ import type { NextRequest } from "next/server";
 const LEGACY_HOST = "rv-alumni.vercel.app";
 const CANONICAL_ORIGIN = "https://rishivalley.space";
 
+/* ------------------------------------------------------------------ *
+ *  Demo deployment (DEMO_MODE=1, separate Vercel project, separate
+ *  database of invented people). Two jobs, both of which must happen
+ *  before any of the real-site logic below.
+ *
+ *  1. There is no session cookie in demo mode -- identity is a constant
+ *     resolved in src/lib/auth.ts -- so the cookie check further down
+ *     would bounce every single request to /login. The demo branch
+ *     returns before it can.
+ *  2. Shut the doors that lead somewhere the demo has no business going,
+ *     before the route code runs at all. This is the outermost of the
+ *     three layers (proxy -> per-action guard -> Prisma allowlist).
+ * ------------------------------------------------------------------ */
+const IS_DEMO = process.env.DEMO_MODE === "1";
+
+// Page routes the demo does not open: the admin surface, the dev/preview
+// rooms, and every flow that only makes sense when accounts are real.
+// Mirrors DEMO_CLOSED_PATHS in src/lib/demo.ts (kept honest by demo.test.mjs;
+// this file cannot import it, because proxy is bundled for the edge runtime).
+const DEMO_CLOSED_PATHS = [
+  "/admin",
+  "/lab",
+  "/copy-editor",
+  "/onboarding",
+  "/signup",
+  "/verify",
+  "/catchups/join",
+];
+
+// API routes the demo refuses outright. Each either spends real money,
+// writes real bytes to a real bucket, or hands out a real session:
+//   /api/upload   -- an anonymous stranger putting files into R2 is the
+//                    single most dangerous thing a public link can offer.
+//   /api/razorpay -- live payment intents and the payment webhook.
+//   /api/auth     -- admin-login mints an ADMIN session from an email
+//                    alone. It must not exist on a link anyone can open.
+//   /api/places   -- a metered geocoding provider, i.e. a billing
+//                    amplifier pointed at the owner's account.
+const DEMO_CLOSED_APIS = [
+  "/api/upload",
+  "/api/razorpay",
+  "/api/auth",
+  "/api/places",
+  "/api/copy-review",
+];
+
+function isUnder(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (IS_DEMO) {
+    // JSON for APIs, not a redirect: a fetch() handed a 302 to an HTML page
+    // fails far more confusingly in the client than a plain 403 does.
+    if (isUnder(pathname, DEMO_CLOSED_APIS)) {
+      return NextResponse.json({ error: "Not available in the demo." }, { status: 403 });
+    }
+    // Closed pages go to the feed rather than 404: the visitor clicked
+    // something that does not apply to them, and a dead end reads as a
+    // broken site when the whole purpose here is to look finished.
+    if (isUnder(pathname, DEMO_CLOSED_PATHS)) {
+      return NextResponse.redirect(new URL("/feed", request.url));
+    }
+    // "/" keeps its landing page (it is some of the best work on the site);
+    // everything else is already signed in, so nothing is gated.
+    return NextResponse.next();
+  }
 
   // Canonical-domain redirect: send the old Vercel host to the real domain,
   // preserving the full path and query string. Runs before the auth check

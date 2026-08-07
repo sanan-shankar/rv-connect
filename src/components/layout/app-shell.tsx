@@ -18,10 +18,16 @@ import { ContentColumn } from "./content-column";
 export function AppShell({
   user,
   unreadCount,
+  demo = false,
   children,
 }: {
   user: SidebarUser;
   unreadCount: number;
+  /** True on the demo deployment. Passed down as a prop rather than read
+   *  from `IS_DEMO`, because `DEMO_MODE` has no NEXT_PUBLIC_ prefix and so
+   *  inlines as undefined in a client bundle: the Sidebar below is a client
+   *  component and would silently see `false` if it imported the flag. */
+  demo?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -41,7 +47,7 @@ export function AppShell({
         style={{ backgroundImage: "url(/images/landing.jpeg)" }}
       />
       <KonamiEggs />
-      <Sidebar user={user} unreadCount={unreadCount} />
+      <Sidebar user={user} unreadCount={unreadCount} demo={demo} />
       {/* pb on mobile clears the fixed bottom tab bar */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
         {/* Padding rule (owner, 2026-07-30): the title's distance from the

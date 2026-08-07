@@ -3,6 +3,7 @@
 import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { putImage, delImage } from "@/lib/storage";
 import { profileSchema } from "@/lib/validators";
@@ -181,6 +182,7 @@ export async function updateUserPlaces(
 export async function updateAvatar(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "The demo does not accept photo uploads, but you can change your bird from the species picker." };
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
@@ -243,6 +245,7 @@ export async function removeAvatar() {
 export async function deleteAccount() {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "This is a demo account, so it stays put." };
 
   await prisma.user.delete({
     where: { id: session.user.id },

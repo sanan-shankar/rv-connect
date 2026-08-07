@@ -7,7 +7,9 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
 
 const url = process.argv[2] || 'http://localhost:3000';
-const label = process.argv[3] || '';
+// Flags are filtered out so `screenshot.mjs <url> --mobile` (no label) cannot
+// end up with a file called "screenshot-7---mobile.png".
+const label = (process.argv[3] || '').startsWith('--') ? '' : process.argv[3] || '';
 
 const screenshotsDir = './temporary screenshots';
 mkdirSync(screenshotsDir, { recursive: true });
@@ -37,7 +39,17 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
 const page = await browser.newPage();
-await page.setViewport({ width: 1440, height: 900 });
+// `--mobile` gives the same 390x844 iPhone viewport screenshot-auth.mjs uses,
+// so a public page can be checked at both sizes without going through the
+// admin bypass. It was documented in the CLAUDE.md table but only ever
+// implemented in the auth variant, so passing it here was silently ignored
+// and produced a desktop shot labelled as mobile.
+const mobile = process.argv.includes('--mobile');
+await page.setViewport(
+  mobile
+    ? { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }
+    : { width: 1440, height: 900 },
+);
 
 try {
   await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });

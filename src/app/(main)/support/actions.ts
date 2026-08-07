@@ -15,6 +15,7 @@
 
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { createOrder, razorpayKeyId, razorpayLivemode, verifyPaymentSignature } from "@/lib/razorpay";
 
@@ -47,6 +48,7 @@ export type StartResult =
 export async function startContribution(amountRupees: number): Promise<StartResult> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "This is a demo, so no real payment is taken. The rest of the page works as it would." };
 
   // Number.isInteger rejects NaN, Infinity and ₹500.50 in one go. Rupees are
   // whole here by choice: nothing on the page offers paise, so a fractional
@@ -133,6 +135,7 @@ export async function confirmContribution(input: {
 }): Promise<{ ok: true } | { error: string }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "This is a demo, so no real payment is taken." };
 
   const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = input;
   if (!orderId || !paymentId || !signature) return { error: "Missing payment details" };

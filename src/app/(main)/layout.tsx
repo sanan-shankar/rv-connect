@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
 import { TourProvider } from "@/components/tour/tour-provider";
+import { IS_DEMO } from "@/lib/demo";
+import { DemoBar } from "@/components/demo/demo-bar";
 
 export default async function MainLayout({
   children,
@@ -34,7 +36,11 @@ export default async function MainLayout({
   ]);
 
   return (
-    <TourProvider userId={session.user.id}>
+    // The tour auto-offers itself on the demo and nowhere else. A visitor
+    // with no stake in the place will not go hunting for a walkthrough, and
+    // the tour is the fastest way to show someone the four surfaces worth
+    // seeing. On the real site it stays opt-in, where the owner left it.
+    <TourProvider userId={session.user.id} autoOffer={IS_DEMO}>
       <AppShell
         user={{
           id: session.user.id,
@@ -48,8 +54,10 @@ export default async function MainLayout({
           batchYear: session.user.batchYear,
         }}
         unreadCount={unreadCount}
+        demo={IS_DEMO}
       >
         {children}
+        {IS_DEMO && <DemoBar userId={session.user.id} />}
       </AppShell>
     </TourProvider>
   );
