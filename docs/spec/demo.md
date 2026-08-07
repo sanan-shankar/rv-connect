@@ -108,7 +108,21 @@ Environment variables:
 The demo has no use for them, and a secret that is not in the environment is a
 secret that cannot leak from it.
 
-Add `demo.rishivalley.space` as the domain.
+### Domain
+
+`demo.rishivalley.space` is attached to the project. `rishivalley.space` runs
+on Namecheap's nameservers (`dns1/dns2.registrar-servers.com`), not Vercel's,
+so the record has to be created there:
+
+| Type | Host | Value |
+|---|---|---|
+| `CNAME` | `demo` | `cname.vercel-dns.com` |
+
+Vercel's own suggestion is `A demo 76.76.21.21`. Either works; the CNAME is
+preferred because it survives Vercel changing that IP.
+
+Until the record exists the domain will not resolve, and the deployment is
+reachable at `rv-alumni-demo.vercel.app`.
 
 ### 3. Filling the Collection
 
