@@ -32,7 +32,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HouseTrail } from "@/components/profile/houses-chain";
+import { HouseTrail, HOUSE_INK } from "@/components/profile/houses-chain";
 import { HouseOptions } from "@/components/common/house-picker";
 import {
   Popover,
@@ -43,6 +43,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
 import { HOUSES, normalizeHouse, type HouseYearEntry } from "@/lib/houses";
+import { cn } from "@/lib/utils";
 
 /* Same test, and the same reasoning, as the shipped HousePicker: the shell is
    chosen from the viewport rather than left to collision flipping, because at
@@ -159,6 +160,36 @@ export function HouseChainEditor({
         )
       : [];
 
+  /**
+   * What colour a house is in this chain, or would be if it were picked now.
+   *
+   * A span's index IS its tint, so this is the chain's own answer rather than
+   * a second guess at it. Three cases:
+   *  - Already on these years: its own span's index.
+   *  - Would EXTEND the run before it (same house, ending the year before):
+   *    the two collapse into one pill, so it inherits that pill's colour.
+   *  - Otherwise it opens a new span where this year belongs.
+   */
+  function tintIndexFor(house: string): number {
+    if (!scope) return 0;
+    const owned = spans.findIndex(
+      (sp) => sp.house === house && sp.fromYear <= scope.to && sp.toYear >= scope.from
+    );
+    if (owned !== -1) return owned;
+    const at = indexOfYear(spans, scope.from);
+    const before = spans[at - 1];
+    if (before && before.house === house && before.toYear === scope.from - 1) return at - 1;
+    return at;
+  }
+
+  /* The year in the heading takes the colour of the pill being answered, so
+     the question is asked in the colour of its own answer. */
+  const scopeInk =
+    HOUSE_INK[
+      (target?.kind === "span" ? (openIndices[0] ?? 0) : indexOfYear(spans, scope?.from ?? 0)) %
+        HOUSE_INK.length
+    ];
+
   function toggle(house: string) {
     if (!scope || !target) return;
 
@@ -219,11 +250,11 @@ export function HouseChainEditor({
       /* Each selected house, in the colour its own pill wears in the chain
          above. openIndices are span indices, and a span's index IS its tint,
          so this is the chain's answer rather than a second guess at it. */
-      tintIndexFor={(h) => openIndices.find((i) => spans[i]?.house === h)}
+      tintIndexFor={tintIndexFor}
       heading={
         wide ? (
           <p className="text-[13px] font-semibold text-foreground">
-            Which house in <span className="tabular-nums text-leaf">{scopeLabel}</span>?
+            Which house in <span className={cn("tabular-nums", scopeInk)}>{scopeLabel}</span>?
           </p>
         ) : undefined
       }
@@ -287,7 +318,7 @@ export function HouseChainEditor({
             <SheetHeader className="border-b border-border pb-3">
               <SheetTitle className="font-heading text-[15px] font-semibold tracking-tight">
                 Which house in{" "}
-                <span className="tabular-nums text-leaf">{scopeLabel}</span>?
+                <span className={cn("tabular-nums", scopeInk)}>{scopeLabel}</span>?
               </SheetTitle>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto px-4 pb-4">{panel}</div>

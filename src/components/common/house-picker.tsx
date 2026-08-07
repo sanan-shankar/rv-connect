@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MetaDots } from "@/components/common/meta-dots";
 import { HOUSES, normalizeHouse } from "@/lib/houses";
-import { HOUSE_TINTS_PANEL } from "@/components/profile/houses-chain";
+import { HOUSE_TINTS_HOVER, HOUSE_TINTS_PANEL } from "@/components/profile/houses-chain";
 
 /**
  * Grouped house picker: a panel of house rows in the owner's canonical
@@ -296,9 +296,11 @@ export function HouseOptions({
   setOtherText: (v: string) => void;
   onAddOther: () => void;
   customEntries: string[];
-  /** The tint a selected house wears in the chain, so the panel can show it in
-   *  the same colour. Omitted (the onboarding year rows, which have no chain
-   *  beside them) and the tints fall back to the order they were picked in. */
+  /** The tint this house wears in the chain, or WOULD wear if it were picked
+   *  right now. Drives the selected fill and the hover preview alike, so
+   *  hovering a house shows the colour it is about to become. Omitted (the
+   *  onboarding year rows, which have no chain beside them) and selection
+   *  falls back to the order things were picked in. */
   tintIndexFor?: (house: string) => number | undefined;
   /** An in-body heading; omitted when the shell (the sheet's own title) already carries the year. */
   heading?: ReactNode;
@@ -324,7 +326,7 @@ export function HouseOptions({
           /* Its colour in the chain when the caller knows one, else its
              position in this panel's own selection, which is the same rule the
              chain uses: first is leaf, second cinnamon, third sky. */
-          const tint = selected ? (tintIndexFor?.(h) ?? picked) : 0;
+          const tint = tintIndexFor?.(h) ?? (selected ? picked : 0);
           return (
             <button
               key={h}
@@ -335,7 +337,10 @@ export function HouseOptions({
                 "inline-flex min-h-[34px] items-center rounded-full border px-3 text-[13px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 selected
                   ? cn(HOUSE_TINTS_PANEL[tint % HOUSE_TINTS_PANEL.length], "font-semibold")
-                  : "border-border/80 bg-transparent font-medium text-foreground hover:border-leaf/40 hover:bg-leaf/[0.07] hover:text-leaf"
+                  : cn(
+                      "border-border/80 bg-transparent font-medium text-foreground",
+                      HOUSE_TINTS_HOVER[tint % HOUSE_TINTS_HOVER.length]
+                    )
               )}
             >
               {h}
