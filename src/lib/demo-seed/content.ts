@@ -656,6 +656,19 @@ export const DEMO_LETTERS: DemoPost[] = [
 /* ---------------------------------------------------------------- *
  *  The Collection
  *
+ *  DIMENSIONS MATTER HERE. The grid is CSS-columns masonry and each tile
+ *  renders the THUMBNAIL at `w-full` with `width`/`height` set from these
+ *  numbers, so the browser reserves its box from this ratio. If it disagrees
+ *  with the thumbnail's real ratio the tile renders at the wrong size and the
+ *  columns go ragged, which is exactly what happened when three of these were
+ *  guessed at rather than measured.
+ *
+ *  The `demo-*` files are generated with `fit: "inside"` at 1600 and 480, the
+ *  same settings contributePhoto uses, so a thumbnail always shares its
+ *  display image's aspect ratio. The original numbered assets do NOT hold
+ *  that invariant (two of their thumbs are square crops of non-square
+ *  images) and are left alone because /lab/viewer uses them as fixtures.
+ *
  *  Six frames of the banyan and the assembly benches. Small on purpose:
  *  these are the only photographs the repository actually owns, and six
  *  well-captioned ones read as a young archive that has begun properly,
@@ -683,7 +696,7 @@ export interface DemoPhoto {
 export const DEMO_PHOTOS: DemoPhoto[] = [
   {
     slug: "banyan-benches",
-    file: "c1",
+    file: "demo-banyan-benches",
     uploader: "harsh-vardhan",
     caption: "The assembly benches, empty, on a Sunday morning in August.",
     subject: "assembly-dining,campus",
@@ -701,7 +714,7 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
   },
   {
     slug: "banyan-trunk",
-    file: "c3",
+    file: "demo-banyan-trunk",
     uploader: "harsh-vardhan",
     caption: "The main trunk. For scale, those are full-sized stone benches behind it.",
     subject: "banyan,flora",
@@ -720,7 +733,7 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
   },
   {
     slug: "banyan-arch",
-    file: "c5",
+    file: "demo-banyan-arch",
     uploader: "ishaan-verma",
     caption: "The low branch everyone has sat on at least once, and nobody was ever supposed to.",
     subject: "banyan,campus",
@@ -737,7 +750,7 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
   },
   {
     slug: "assembly-wide",
-    file: "v5",
+    file: "demo-assembly-wide",
     uploader: "gita-raman",
     caption: "Where morning assembly happens, for anyone who has forgotten the shape of it.",
     subject: "assembly-dining,landscape",
@@ -749,12 +762,12 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
       "visitor", "sunita-devi", "peter-dsouza", "ramesh-babu", "lakshmi-narayanan",
       "rukmini-iyer", "harsh-vardhan", "zoya-hussain", "priya-mathew",
     ],
-    width: 1200,
-    height: 800,
+    width: 760,
+    height: 1140,
   },
   {
     slug: "banyan-canopy",
-    file: "v6",
+    file: "demo-banyan-canopy",
     uploader: "ishaan-verma",
     caption: "Looking up from the third row of benches.",
     subject: "banyan,weather-sky",
@@ -766,12 +779,12 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
       "visitor", "vikram-desai", "sameer-kulkarni", "kabir-anand", "tanvi-shah",
       "ananya-ghosh", "leela-varghese", "farida-contractor",
     ],
-    width: 1200,
-    height: 800,
+    width: 1280,
+    height: 760,
   },
   {
     slug: "banyan-pillar",
-    file: "v1",
+    file: "demo-banyan-pillar",
     uploader: "gita-raman",
     caption: "The stone pillar at the centre. Nobody I have asked knows what it was originally for.",
     subject: "buildings,historical",
