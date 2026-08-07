@@ -89,7 +89,7 @@ import {
 } from "@/components/settings/actions";
 import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
-import { ImagePlus, Loader2 } from "lucide-react";
+import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateProfileField,
@@ -567,7 +567,9 @@ export function LetterheadProfile({
     <div className="pt-4">
       {/* Not clipped, so the perched bird can overlap the sheet's own edge. */}
       <div className="relative" style={IDENTITY_VARS}>
-        {!hasPhoto && <PerchedBird user={user} />}
+        {!hasPhoto && (
+          <PerchedBird user={user} live={live} onPick={() => setAttachOpen(true)} />
+        )}
 
         <div
           className="relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
@@ -605,12 +607,52 @@ export function LetterheadProfile({
               <header>
                 <div className="flex items-start gap-[var(--space-m)]">
                   {hasPhoto && (
+                    /* Same circle, same size, in flow. With the pen out it
+                       becomes the control: press it to change the photo, and
+                       the small x beside it takes it off and gives you your
+                       bird back. Both badges are absolutely positioned, so
+                       nothing about the lockup moves. */
                     <span
-                      className="relative block shrink-0 overflow-hidden rounded-full border border-border/60 bg-mist"
+                      className="group/photo relative block shrink-0 rounded-full"
                       style={{ width: circle, height: circle }}
-                      role="img"
-                      aria-label={user.name}
                     >
+                      {live && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setAttachOpen(true)}
+                            aria-label="Change your photo"
+                            className="absolute inset-0 z-10 rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                          />
+                          {/* No badge on a photograph. The scrim only appears
+                              when you are actually pointing at it, so the
+                              picture is a picture until the moment you reach
+                              for it. */}
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-full bg-ink/45 text-white opacity-0 transition-opacity duration-150 group-hover/photo:opacity-100 group-focus-within/photo:opacity-100"
+                          >
+                            <Camera className="h-6 w-6" strokeWidth={1.6} />
+                          </span>
+                          <motion.button
+                            type="button"
+                            onClick={handlePhotoRemove}
+                            disabled={photoBusy}
+                            aria-label="Remove your photo and use your bird"
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ ...SPRINGS.snappy, delay: 0.06 }}
+                            className="absolute -right-1 -top-1 z-20 grid h-6 w-6 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm outline-none transition-colors duration-150 hover:text-heart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                          >
+                            <X className="h-3 w-3" />
+                          </motion.button>
+                        </>
+                      )}
+                      <span
+                        className="relative block h-full w-full overflow-hidden rounded-full border border-border/60 bg-mist"
+                        role="img"
+                        aria-label={user.name}
+                      >
                       {/* The one photograph the page is about, so it is the one
                           image here allowed to be `priority`: it is the LCP
                           candidate on a profile and it must not arrive after
@@ -636,6 +678,7 @@ export function LetterheadProfile({
                         priority
                         className="object-cover"
                       />
+                      </span>
                     </span>
                   )}
 
@@ -975,71 +1018,12 @@ export function LetterheadProfile({
                 onCommit={commitContacts}
               />
 
-              {/* Your photograph, and the two things that are NOT your
-                  profile. All three used to sit on /settings; that route is
-                  gone, and stranding them was never an option. They stay out
-                  of the sheet itself because none of them is something
-                  anybody reads about you.
-                  The photo control lives here rather than beside the avatar
-                  because the sheet's geometry has to be identical in both
-                  states, and a button that exists only in edit mode is a row
-                  arriving mid-transition. */}
-              <div
-                className="mt-[var(--space-m)] flex items-center gap-4 rounded-[var(--radius)] border border-border bg-card px-[var(--space-m)] py-3.5"
-                style={{
-                  boxShadow:
-                    "0 1px 2px rgba(35,36,30,0.04), 0 10px 24px -20px rgba(35,36,30,0.5)",
-                }}
-              >
-                <BirdAvatar
-                  user={{
-                    id: user.id,
-                    name: user.name,
-                    photoUrl: user.photoUrl,
-                    birdOverride: user.birdOverride,
-                  }}
-                  size={44}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13.5px] font-medium text-foreground">
-                    {hasPhoto ? "Your photo" : "Your valley bird"}
-                  </p>
-                  <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
-                    {hasPhoto
-                      ? "Shown everywhere in place of your bird."
-                      : "Upload a photo, or keep the bird."}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={photoBusy}
-                    onClick={() => setAttachOpen(true)}
-                  >
-                    {photoBusy ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ImagePlus className="h-4 w-4" />
-                    )}
-                    {hasPhoto ? "Change" : "Upload"}
-                  </Button>
-                  {hasPhoto && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={photoBusy}
-                      className="text-muted-foreground hover:text-foreground"
-                      onClick={handlePhotoRemove}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              </div>
-
+              {/* The two things on this page that are NOT your profile. Both
+                  used to sit on /settings; that route is gone, and stranding
+                  them was never an option. Both stay out of the sheet itself,
+                  because neither is something anybody reads about you.
+                  The photograph is not here: it is the circle at the top of
+                  the sheet, which is where somebody looks for it. */}
               <div
                 className="mt-[var(--space-m)] flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-card px-[var(--space-m)] py-3.5 sm:flex-row sm:items-center sm:justify-between"
                 style={{
@@ -1184,7 +1168,18 @@ const CHIRP_BEAT_MS = 110;
 /** Ignore taps that land inside an answer already in progress. */
 const CHIRP_MIN_GAP_MS = 700;
 
-function PerchedBird({ user }: { user: LetterheadProfileUser }) {
+function PerchedBird({
+  user,
+  live,
+  onPick,
+}: {
+  user: LetterheadProfileUser;
+  /** With the pen out the bird sits in a circle you can tap to upload a
+   *  photo (owner, 2026-08-07: "let the bird transform into a circle that you
+   *  can tap to upload your profile picture when you click edit"). */
+  live?: boolean;
+  onPick?: () => void;
+}) {
   const [chirp, setChirp] = useState(0);
   const controls = useAnimationControls();
   const lastChirp = useRef(0);
@@ -1217,19 +1212,54 @@ function PerchedBird({ user }: { user: LetterheadProfileUser }) {
     <div className="absolute -top-12 right-6 z-20 origin-bottom scale-[0.8] sm:right-10 sm:scale-100">
       <button
         type="button"
-        onClick={tap}
-        aria-label={`${user.name}'s bird. Tap for a chirp.`}
+        onClick={live ? onPick : tap}
+        aria-label={
+          live
+            ? "Add a profile photo"
+            : `${user.name}'s bird. Tap for a chirp.`
+        }
         /* No press sink and no transition on this control (owner: "I don't
            want to depress when you press it down ... that itself is a bad way
            to go about it"). The sink also put the bird on its own composited
            layer for the duration, which is where the faint extra shadow under
            it on click was coming from; without a transform there is no layer
            and no second shadow. The chirp below is the entire feedback. */
-        className="relative block rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="group/slot relative block rounded-full outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        <motion.span animate={controls} initial={false} className="block">
+        {/* The bird steps aside and an empty photo slot takes its place
+            (owner, 2026-08-07: "just disappear the bird and have a circle
+            floating there that they'd click to add a profile picture").
+            Not a badge on the bird, and not a ring around it: those both say
+            "this bird does something", when what is true is that this is
+            where a photograph goes.
+
+            Both live in the same 80px box and only opacity and scale change,
+            so the perch line holds and nothing below it moves. A dashed edge
+            because it is a slot waiting to be filled; a camera because that
+            is the one glyph nobody has to be taught. */}
+        <motion.span
+          animate={controls}
+          initial={false}
+          className="relative block"
+          style={{ opacity: live ? 0 : 1, pointerEvents: live ? "none" : undefined }}
+        >
           <BirdAvatar user={user} size={80} />
         </motion.span>
+
+        <AnimatePresence initial={false}>
+          {live && (
+            <motion.span
+              aria-hidden
+              initial={{ opacity: 0, scale: 0.72 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.72 }}
+              transition={SPRINGS.snappy}
+              className="absolute inset-0 grid place-items-center rounded-full border-2 border-dashed border-canopy/40 bg-card/85 text-canopy transition-colors duration-150 group-hover/slot:border-canopy/70 group-hover/slot:bg-card"
+            >
+              <Camera className="h-7 w-7" strokeWidth={1.6} />
+            </motion.span>
+          )}
+        </AnimatePresence>
 
         {chirp > 0 && (
           <span
