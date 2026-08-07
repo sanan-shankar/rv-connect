@@ -35,6 +35,7 @@ import {
   X,
 } from "lucide-react";
 import { SPRINGS } from "@/components/common/motion";
+import { formatPhoneDisplay } from "@/lib/utils";
 import { PenValue } from "@/components/profile/pen";
 import {
   Popover,
@@ -125,7 +126,12 @@ export function buildRows(source: {
   if (source.displayEmail || source.email) {
     rows.push({ id: newId(), kind: "email", value: source.displayEmail || source.email });
   }
-  for (const p of source.phones) rows.push({ id: newId(), kind: "phone", value: p });
+  /* Spaced the way the profile prints it. Numbers are stored normalised (no
+     spaces), so the raw value reads "+919940055940" in a field the profile
+     shows as "+91 99400 55940". Saving re-normalises whatever is typed, so
+     showing the formatted form round-trips cleanly. */
+  for (const p of source.phones)
+    rows.push({ id: newId(), kind: "phone", value: formatPhoneDisplay(p) });
   if (source.instagram) rows.push({ id: newId(), kind: "instagram", value: source.instagram });
   if (source.linkedin) rows.push({ id: newId(), kind: "linkedin", value: source.linkedin });
   if (source.facebook) rows.push({ id: newId(), kind: "facebook", value: source.facebook });
@@ -161,7 +167,12 @@ export function ContactsEditor({
     >
       <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-canopy">Reaching you</p>
 
-      <div className="mt-[var(--space-s)] space-y-0.5">
+      {/* space-y-3, not the 2px it was. Every row carries a dotted rule 4px
+          under its text, so at 2px the rule under the email was practically
+          touching the phone icon below it (owner, 2026-08-07: "email and phone
+          are too close together"). 12px leaves the rule 8px of air and lets
+          the list read as separate facts rather than a block. */}
+      <div className="mt-[var(--space-s)] space-y-3">
         <AnimatePresence initial={false}>
           {rows.map((row, i) => {
             const Icon = ICON[row.kind];
@@ -200,7 +211,11 @@ export function ContactsEditor({
                   placeholder={PLACEHOLDER[row.kind]}
                   ariaLabel={KIND_LABEL[row.kind]}
                   delay={0.02 * i}
-                  className="min-w-0 flex-1 text-[15px]"
+                  // Hugs its text, like every other pen on the sheet. Stretched
+                  // to flex-1 it dragged a 700px dotted rule out from under a
+                  // 200px email address, which reads as a line on a form rather
+                  // than as a value you can change.
+                  className="min-w-0 text-[15px]"
                   inputMode={row.kind === "phone" ? "tel" : row.kind === "email" ? "email" : undefined}
                 />
                 {/* The slot is always reserved and only painted on hover or
@@ -212,7 +227,9 @@ export function ContactsEditor({
                     onChange(rows.filter((r) => r.id !== row.id));
                     onCommit();
                   }}
-                  className="state-layer shrink-0 rounded-full p-1.5 text-muted-foreground opacity-0 outline-none transition-opacity duration-150 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring group-hover/row:opacity-100"
+                  // ml-auto, so the removes line up on one right edge even
+                  // though the values they belong to are all different lengths.
+                  className="state-layer ml-auto shrink-0 rounded-full p-1.5 text-muted-foreground opacity-0 outline-none transition-opacity duration-150 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring group-hover/row:opacity-100"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -222,7 +239,7 @@ export function ContactsEditor({
         </AnimatePresence>
 
         {options.length > 0 && (
-          <div className="pt-2">
+          <div className="pt-3">
             <Popover open={addOpen} onOpenChange={setAddOpen}>
               <PopoverTrigger
                 type="button"

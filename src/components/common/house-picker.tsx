@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MetaDots } from "@/components/common/meta-dots";
 import { HOUSES, normalizeHouse } from "@/lib/houses";
+import { HOUSE_TINTS_PANEL } from "@/components/profile/houses-chain";
 
 /**
  * Grouped house picker: a panel of house rows in the owner's canonical
@@ -133,10 +134,6 @@ export function HousePicker({
     onPicked?.();
   }
 
-  function removeCustom(name: string) {
-    onChange(value.filter((v) => v !== name));
-  }
-
   const triggerContent = (
     <>
       {value.length === 0 ? (
@@ -170,7 +167,7 @@ export function HousePicker({
 
   const inlineHeading = yearLabel ? (
     <p className="text-[13px] font-semibold text-foreground">
-      Which house in <span className="tabular-nums text-canopy">{yearLabel}</span>?
+      Which house in <span className="tabular-nums text-leaf">{yearLabel}</span>?
     </p>
   ) : null;
 
@@ -187,7 +184,7 @@ export function HousePicker({
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverPositioner sideOffset={8} align="start" side="right">
-            <PopoverContent className="w-[300px]">
+            <PopoverContent className="w-[344px]">
               <HouseOptions
                 value={value}
                 onToggle={toggleHouse}
@@ -195,7 +192,6 @@ export function HousePicker({
                 setOtherText={setOtherText}
                 onAddOther={addOther}
                 customEntries={customEntries}
-                onRemoveCustom={removeCustom}
                 heading={inlineHeading}
               />
             </PopoverContent>
@@ -223,7 +219,7 @@ export function HousePicker({
             <SheetTitle className="font-heading text-[15px] font-semibold tracking-tight">
               {yearLabel ? (
                 <>
-                  Which house in <span className="tabular-nums text-canopy">{yearLabel}</span>?
+                  Which house in <span className="tabular-nums text-leaf">{yearLabel}</span>?
                 </>
               ) : (
                 "Pick a house"
@@ -238,7 +234,6 @@ export function HousePicker({
               setOtherText={setOtherText}
               onAddOther={addOther}
               customEntries={customEntries}
-              onRemoveCustom={removeCustom}
             />
           </div>
         </SheetContent>
@@ -258,12 +253,33 @@ export function HousePicker({
 const TRIGGER_CLASS =
   "flex min-h-11 w-full flex-1 items-center gap-1.5 rounded-[var(--radius-input)] border border-input bg-transparent px-3 py-1.5 text-left text-[13px] outline-none transition-colors duration-150 scroll-mt-24 hover:border-ring/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-/** The panel body: the 22 houses as two quiet columns of text rows, plus the
- *  free-text "Other" escape, shared between the desktop popover and the
- *  mobile sheet so the two shells never drift apart. One calm neutral style:
- *  no idle border, no idle fill, no per-house colour, no family grouping.
- *  Selected is the one canopy state - a small check plus canopy text, never
- *  a solid slab. */
+/**
+ * The panel body: the 22 houses as a field of PILLS, plus the free-text
+ * escape.
+ *
+ * It used to be two columns of text rows, with a selected row inflating into
+ * a lozenge. The owner threw that out (2026-08-07: "it's still not a very
+ * pretty outline ... I wanted more of an outline that looks like the actual
+ * house pill in the chain ... make a bigger change if necessary"). He was
+ * right about the cause: a list whose selected items become pills has two
+ * kinds of object in it, at two different widths, scattered down a column.
+ * The eye reads the shape before the word, so the shape has to be constant.
+ *
+ * So every house is a pill, always. Unselected is a hairline outline and no
+ * fill; picking one fills it. Nothing changes shape, nothing changes width,
+ * and the panel reads as one set of things rather than a list with lumps in.
+ *
+ * THE TINTS ARE THE CHAIN'S OWN, imported rather than matched by eye, and
+ * they are handed out in selection order: the first house you pick for a year
+ * is leaf, a second is cinnamon, which is exactly the pair the chain will
+ * draw side by side once you close the panel. Colour means the same thing in
+ * both places, which is the whole reason to spend it. It is NOT a colour per
+ * house: that has been proposed and rejected twice, and 22 tinted names is a
+ * confetti you cannot scan.
+ *
+ * Hover is a leaf wash, the light green (owner, same review), so it previews
+ * what picking will do rather than inventing a third state colour.
+ */
 export function HouseOptions({
   value,
   onToggle,
@@ -271,7 +287,7 @@ export function HouseOptions({
   setOtherText,
   onAddOther,
   customEntries,
-  onRemoveCustom,
+  tintIndexFor,
   heading,
 }: {
   value: string[];
@@ -280,123 +296,81 @@ export function HouseOptions({
   setOtherText: (v: string) => void;
   onAddOther: () => void;
   customEntries: string[];
-  onRemoveCustom: (name: string) => void;
+  /** The tint a selected house wears in the chain, so the panel can show it in
+   *  the same colour. Omitted (the onboarding year rows, which have no chain
+   *  beside them) and the tints fall back to the order they were picked in. */
+  tintIndexFor?: (house: string) => number | undefined;
   /** An in-body heading; omitted when the shell (the sheet's own title) already carries the year. */
   heading?: ReactNode;
 }) {
-  // No motion wrapper here: the shells already animate their own entrance
-  // (the popover's fade/zoom, the sheet's rise), and a second inner animation
-  // on top of that read as a stutter, not a flourish.
-  //
-  // An explicit midpoint split (not CSS columns) keeps the canonical order
-  // flowing down column one then column two while DOM order stays 1..22, so
-  // keyboard tabbing walks the list in the same order the eye reads it, and
-  // no row can ever fragment across a column break.
-  const mid = Math.ceil(HOUSES.length / 2);
-  const columns = [HOUSES.slice(0, mid), HOUSES.slice(mid)];
+  /* Canonical order first, then anything free-typed, so a house someone added
+     by hand sits in the same field as the rest instead of in a separate tray
+     underneath it. */
+  const all = [...HOUSES, ...customEntries];
+
   return (
     <div className="space-y-3">
       {heading}
-      <div className="grid grid-cols-2 gap-x-2" role="group" aria-label="Pick one or more houses">
-        {columns.map((column, ci) => (
-          <div key={ci}>
-            {column.map((h) => {
-              const selected = value.includes(h);
-              return (
-                <button
-                  key={h}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => onToggle(h)}
-                  className={cn(
-                    // A PILL, the same shape the chain draws a house as (owner,
-                    // 2026-08-07: "I wanted more of an outline that looks like
-                    // the actual house pill in the chain"). Same rounded-full,
-                    // same tinted fill, same hairline outline, so picking a
-                    // house here and seeing it land in the chain are obviously
-                    // the same object twice.
-                    //
-                    // min-h-10 + my-0.5 is still the owner's 44px touch floor,
-                    // but the PAINTED pill is 40px with 2px clear above and
-                    // below. Flush 44px rows made two selected houses in one
-                    // column run their outlines into each other, which is the
-                    // overlap in the same review.
-                    //
-                    // The outline is an inset RING rather than a border: a
-                    // border would add a pixel and shift every name in the
-                    // column across by one as it came and went.
-                    //
-                    // Hover is its own canopy wash, not the shared state layer
-                    // ("it doesn't show what you're hovering over"). That layer
-                    // is a 6% ink tint, which reads on a page but not on a
-                    // Float-white popover; a canopy wash both reads clearly and
-                    // previews exactly what picking will look like.
-                    "my-0.5 flex min-h-10 w-full items-center rounded-full px-3 text-left text-[13.5px] transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
-                    selected
-                      ? "bg-canopy/[0.10] font-semibold text-canopy ring-1 ring-inset ring-canopy/40 hover:bg-canopy/[0.16]"
-                      : "font-medium text-foreground hover:bg-canopy/[0.07] hover:text-canopy"
-                  )}
-                >
-                  {h}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+      {/* Tight. The first pill version gave every house a 44px body and 8px of
+          gap, which for names as short as "Red" is mostly air: 22 houses ran
+          seven ragged rows deep (owner, 2026-08-07: "compress it so it fills
+          the rows fully instead of this huge whitespace"). At 34px with 6px
+          gaps the same 22 pack four and five to a line with almost no ragged
+          tail, and the field reads as one block rather than a scatter. */}
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pick one or more houses">
+        {all.map((h) => {
+          const picked = value.indexOf(h);
+          const selected = picked !== -1;
+          /* Its colour in the chain when the caller knows one, else its
+             position in this panel's own selection, which is the same rule the
+             chain uses: first is leaf, second cinnamon, third sky. */
+          const tint = selected ? (tintIndexFor?.(h) ?? picked) : 0;
+          return (
+            <button
+              key={h}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onToggle(h)}
+              className={cn(
+                "inline-flex min-h-[34px] items-center rounded-full border px-3 text-[13px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                selected
+                  ? cn(HOUSE_TINTS_PANEL[tint % HOUSE_TINTS_PANEL.length], "font-semibold")
+                  : "border-border/80 bg-transparent font-medium text-foreground hover:border-leaf/40 hover:bg-leaf/[0.07] hover:text-leaf"
+              )}
+            >
+              {h}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="space-y-1.5 border-t border-border pt-3">
-        <p className="text-[12px] font-medium text-muted-foreground">Not listed?</p>
-        <div className="flex items-center gap-1.5">
-          <Input
-            value={otherText}
-            onChange={(e) => setOtherText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                onAddOther();
-              }
-            }}
-            placeholder="Type a house name"
-            aria-label="Type a house name"
-            className="h-11 flex-1 text-[13px]"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-lg"
-            aria-label="Add this house"
-            onClick={onAddOther}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        {customEntries.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {customEntries.map((name) => (
-              <span
-                key={name}
-                className="inline-flex items-center gap-1 rounded-full bg-cinnamon/10 px-2.5 py-1 text-[12px] font-semibold text-cinnamon"
-              >
-                {name}
-                <button
-                  type="button"
-                  aria-label={`Remove ${name}`}
-                  onClick={() => onRemoveCustom(name)}
-                  // Hover is the glyph's own colour (cinnamon/70 -> cinnamon),
-                  // not a state layer: this x is a bare 12px mark with no
-                  // padding, so a tint behind it would draw a box tighter than
-                  // the icon it sits under. active:scale-90 is the press the
-                  // rest of the kit's x buttons use (see FacetClearButton), and
-                  // transform joins the transition so it has a curve to run on.
-                  className="rounded-full text-cinnamon/70 outline-none transition-[color,transform] duration-150 hover:text-cinnamon active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
+      {/* No rule above it. The field of pills already ends where it ends, and
+          a hairline across a 344px panel to separate two things that are
+          obviously different is a border that has not earned itself. */}
+      <div className="flex items-center gap-1.5">
+        <Input
+          value={otherText}
+          onChange={(e) => setOtherText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onAddOther();
+            }
+          }}
+          placeholder="Not listed? Type it"
+          aria-label="Type a house name"
+          className="h-10 flex-1 text-[13px]"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label="Add this house"
+          disabled={!normalizeHouse(otherText)}
+          onClick={onAddOther}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
