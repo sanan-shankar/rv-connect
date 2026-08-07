@@ -279,7 +279,7 @@ export function HouseTrail({
   spans,
   onSpanClick,
   pending,
-  openIndex = null,
+  openIndices,
 }: {
   spans: HouseSpan[];
   /** Makes every house pill a button. Omitted (the profile) = read only.
@@ -295,8 +295,9 @@ export function HouseTrail({
     open?: boolean;
     at?: number;
   };
-  /** Index of the pill whose panel is open, drawn with a ring. */
-  openIndex?: number | null;
+  /** Indices of the pills the open panel covers, drawn with a ring. Plural,
+   *  because a year holding two houses is two pills and the panel edits both. */
+  openIndices?: number[];
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -414,7 +415,7 @@ export function HouseTrail({
             PILL_CLASS,
             tintFor(item),
             PILL_PRESS,
-            openIndex === idx && PILL_OPEN
+            openIndices?.includes(idx) && PILL_OPEN
           )}
         >
           <Pill item={item} />
@@ -456,7 +457,14 @@ export function HouseTrail({
     </p>
   );
 
-  if (!metrics) {
+  /* Not measured yet, OR measured against a different chain. The second case
+     is the crash: metrics are written in a layout effect, so on the render
+     where a house is removed `widths` still describes the longer chain, and
+     the row packing hands back indices past the end of `items`, which is the
+     "undefined is not an object evaluating item.kind" the owner hit. Stale
+     metrics are no metrics. The effect below re-measures before paint, so
+     this costs a frame nobody sees, not a flash. */
+  if (!metrics || metrics.widths.length !== items.length) {
     return (
       <div ref={hostRef} className="relative w-full">
         {srText}

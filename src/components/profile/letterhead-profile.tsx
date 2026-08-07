@@ -71,9 +71,8 @@ import {
 } from "@/components/profile/contacts-editor";
 import {
   PenBlock,
-  PenRule,
+  PenSlot,
   PenValue,
-  PEN_BOX,
   SaveMark,
   useAutoSave,
 } from "@/components/profile/pen";
@@ -348,7 +347,7 @@ export function LetterheadProfile({
           placeholder="0000"
           ariaLabel="Which batch you are in"
           delay={0.1}
-          className="text-[15px] font-semibold tabular-nums"
+          className="tabular-nums"
           inputMode="numeric"
         />
       ),
@@ -366,10 +365,13 @@ export function LetterheadProfile({
             placeholder="0000"
             ariaLabel="Year you joined"
             delay={0.14}
-            className="text-[15px] font-semibold tabular-nums"
+            className="tabular-nums"
             inputMode="numeric"
           />
-          <span className="px-0.5 text-muted-foreground">to</span>
+          {/* An en dash with no spaces, which is exactly what rvYearsLabel
+              prints on the read-only sheet. The first version wrote
+              "2014 to 2023" and pushed the fact 30px wider. */}
+          <span>&ndash;</span>
           <PenValue
             value={form.yearLeft}
             onChange={(v) => setField("yearLeft", digits(v, 4))}
@@ -378,7 +380,7 @@ export function LetterheadProfile({
             placeholder="0000"
             ariaLabel="Year you left"
             delay={0.18}
-            className="text-[15px] font-semibold tabular-nums"
+            className="tabular-nums"
             inputMode="numeric"
           />
         </span>
@@ -474,11 +476,12 @@ export function LetterheadProfile({
       <SaveMark state={saveState} message={saveMessage} />
       <Button
         variant={live ? "primary" : "default"}
-        // 132px is "Edit profile" plus its icon, measured. Without it the pill
-        // shrinks to fit "Done", the lockup beside it gets 34px wider, and a
-        // name long enough to wrap re-wraps on the way in and again on the way
-        // out. The one number here buys the whole header its stillness.
-        className="min-w-[132px] rounded-full"
+        /* No min-width. "Done" is narrower than "Edit profile" and that is
+           allowed to be true: the name beside it is sized to its own text, so
+           the column growing by 13px moves nothing anyone can see. A
+           min-width here made the RESTING pill 13px wider than it has always
+           been, which is a change nobody asked for. */
+        className="rounded-full"
         onClick={() => setLive((v) => !v)}
       >
         {live ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
@@ -589,29 +592,36 @@ export function LetterheadProfile({
                       /* The mark, then the number as a field. The stamp easter
                          egg still fires from the mark itself, so pressing it
                          keeps working while the digits are typeable. */
+                      /* Byte-for-byte the read-only lockup below, with the
+                         number swapped for a field: same row height, same
+                         gap, same 13px caps, same paint-only nudge. */
                       <span className="flex h-[var(--lh-colophon)] w-fit items-center gap-1.5 text-cinnamon">
                         <button
                           type="button"
                           onClick={fireStamp}
                           aria-label="Stamp the sheet"
-                          className="rounded-sm transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                          className="flex items-center rounded-sm transition-opacity duration-150 hover:opacity-75 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                           <PeaksMark size={COLOPHON.markSize} />
                         </button>
-                        <PenValue
-                          value={form.admissionNumber}
-                          onChange={(v) => setField("admissionNumber", digits(v, 5))}
-                          onCommit={() => commitField("admissionNumber")}
-                          editing={live}
-                          // Not "0000": there is no label beside this one, only
-                          // the mark, so the placeholder says what the field is
-                          // rather than what shape it takes.
-                          placeholder="adm no"
-                          ariaLabel="Admission number"
-                          delay={0.02}
+                        <span
                           className="text-[13px] font-bold uppercase leading-none tracking-[0.16em]"
-                          inputMode="numeric"
-                        />
+                          style={{ transform: `translateY(${COLOPHON.numberNudge}px)` }}
+                        >
+                          <PenValue
+                            value={form.admissionNumber}
+                            onChange={(v) => setField("admissionNumber", digits(v, 5))}
+                            onCommit={() => commitField("admissionNumber")}
+                            editing={live}
+                            // Not "0000": there is no label beside this one,
+                            // only the mark, so the placeholder says what the
+                            // field is rather than what shape it takes.
+                            placeholder="adm no"
+                            ariaLabel="Admission number"
+                            delay={0.02}
+                            inputMode="numeric"
+                          />
+                        </span>
                       </span>
                     ) : admissionNumber ? (
                       <button
@@ -643,10 +653,14 @@ export function LetterheadProfile({
                     {editable ? (
                       /* A textarea, not an input: the <h1> it stands in for
                          wraps to two lines on a phone, so this has to as well
-                         or a long name runs off the sheet. -ml-1.5 puts the
-                         glyphs back on the sheet's own left edge; only the
-                         invisible box hangs outside it. */
-                      <div className="mt-[var(--lh-gap)] -ml-1.5 flex items-end gap-2.5">
+                         or a long name runs off the sheet. */
+                      /* The h1's own box, with the text swapped for a field.
+                         Same mt, same type, and the leaf keeps its 10px gap
+                         and its baseline. */
+                      <div
+                        className="mt-[var(--lh-gap)] flex items-baseline gap-2.5 font-heading font-bold tracking-[-0.03em] text-foreground"
+                        style={{ fontSize: "var(--lh-name)", lineHeight: 1.05 }}
+                      >
                         <PenBlock
                           value={form.name}
                           onChange={(v) => setField("name", v)}
@@ -657,9 +671,9 @@ export function LetterheadProfile({
                           singleLine
                           snug
                           maxLength={80}
-                          className="min-w-0 font-heading font-bold tracking-[-0.03em] text-foreground [font-size:var(--lh-name)] [line-height:1.05]"
+                          className="min-w-0"
                         />
-                        <span className="mb-1 shrink-0">
+                        <span className="shrink-0">
                           <VerifiedMark user={user} size={16} />
                         </span>
                       </div>
@@ -689,7 +703,12 @@ export function LetterheadProfile({
                   /* The sentence the sheet prints, with two holes in it. Each
                      hole is exactly as wide as what is in it, so "Student" is
                      never followed by 100px of nothing before the word "at". */
-                  <div className="-ml-1.5 mt-[var(--space-xs)] flex flex-wrap items-center text-[15px] leading-[1.6] text-muted-foreground">
+                  /* The same <p> the read-only sheet prints, with two holes
+                     in it. "at" carries ONE space each side and no padding:
+                     the first version put px-1 on it and 6px of pen padding
+                     on both fields, so "Student at Imperial" arrived spaced
+                     out like a shop sign. */
+                  <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
                     <PenValue
                       value={form.jobTitle}
                       onChange={(v) => setField("jobTitle", v)}
@@ -698,10 +717,9 @@ export function LetterheadProfile({
                       placeholder="what you do"
                       ariaLabel="What you do"
                       delay={0.06}
-                      className="text-[15px]"
                       maxLength={120}
                     />
-                    <span className="px-1">at</span>
+                    <span className="whitespace-pre"> at </span>
                     <PenValue
                       value={form.workplace}
                       onChange={(v) => setField("workplace", v)}
@@ -710,10 +728,9 @@ export function LetterheadProfile({
                       placeholder="where"
                       ariaLabel="Where you work or study"
                       delay={0.08}
-                      className="text-[15px]"
                       maxLength={120}
                     />
-                  </div>
+                  </p>
                 ) : (
                   occupation && (
                     <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
@@ -729,16 +746,7 @@ export function LetterheadProfile({
                 <dl className="mt-[var(--space-l)] grid grid-cols-2 gap-x-[var(--space-l)] gap-y-[var(--space-m)] sm:grid-cols-3">
                   {facts.map((f) => (
                     <div key={f.label} className={f.wide ? "col-span-2 sm:col-span-1" : "min-w-0"}>
-                      <dt
-                        className={cn(
-                          "text-[11px] font-bold uppercase tracking-[0.16em] text-canopy",
-                          // The pen's own 6px of padding, cancelled, so an
-                          // editable value sits on exactly the x its label
-                          // does. Without it the sheet grows a second left
-                          // edge the moment the pen comes out.
-                          f.pen && "ml-1.5"
-                        )}
-                      >
+                      <dt className="text-[11px] font-bold uppercase tracking-[0.16em] text-canopy">
                         {f.label}
                       </dt>
                       {/* 15px, not 17. Owner (2026-08-02): "the font size for
@@ -778,7 +786,7 @@ export function LetterheadProfile({
                       PostCard's body style, because it is the same kind of
                       text. At 17 the sheet held the one paragraph in the app
                       set larger than a post. */}
-                  {editable ? (
+                  {editable && (live || form.about) ? (
                     <PenBlock
                       value={form.about}
                       onChange={(v) => setField("about", v)}
@@ -790,8 +798,24 @@ export function LetterheadProfile({
                       ariaLabel="About you"
                       delay={0.22}
                       maxLength={4000}
-                      className="-ml-1.5 mt-[var(--space-s)] w-[calc(100%+0.75rem)] text-[15px] leading-[1.7] text-foreground"
+                      className="mt-[var(--space-s)] text-[15px] leading-[1.7] text-foreground"
                     />
+                  ) : editable ? (
+                    /* Resting, with nothing written: the sentence the sheet has
+                       always shown, link and all. The link no longer leaves for
+                       /settings, it just hands you the pen. Same type, same one
+                       line, so picking it up moves nothing. */
+                    <p className="mt-[var(--space-s)] text-[15px] leading-[1.7] text-muted-foreground">
+                      You haven&rsquo;t written an About yet.{" "}
+                      <button
+                        type="button"
+                        onClick={() => setLive(true)}
+                        className="rounded-sm font-semibold text-leaf hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        Add a few lines
+                      </button>{" "}
+                      so people know who you are now.
+                    </p>
                   ) : aboutText ? (
                     <p className="mt-[var(--space-s)] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
                       {aboutText}
@@ -1148,40 +1172,40 @@ function CitiesPen({
   const label = places.map((p) => p.city).join(", ");
 
   return (
-    <span className="relative inline-block max-w-full align-top">
-      <Popover open={live && open} onOpenChange={onOpenChange}>
+    <Popover open={live && open} onOpenChange={onOpenChange}>
+      <PenSlot editing={live} delay={0.2} className="inline-block max-w-full">
         <PopoverTrigger
           type="button"
           disabled={!live}
           aria-label="Cities you call home"
           className={cn(
-            PEN_BOX,
-            "block max-w-full truncate text-left text-[15px] font-semibold leading-[1.35] text-foreground",
-            live &&
-              "cursor-pointer hover:border-border hover:bg-float/60 focus-visible:border-canopy/45 focus-visible:bg-float",
+            // Zero box, like every other pen: the trigger occupies exactly the
+            // text the read-only <dd> printed, so the facts row cannot change
+            // shape when the pen comes out.
+            "m-0 block max-w-full truncate border-0 bg-transparent p-0 text-left text-inherit outline-none",
+            live && "cursor-pointer",
             !label && "text-muted-foreground"
           )}
         >
-          {label || (live ? "Add a city" : " ")}
+          {label || (live ? "Add a city" : "\u00A0")}
         </PopoverTrigger>
-        <PopoverPortal>
-          <PopoverPositioner sideOffset={8} align="start" side="bottom">
-            <PopoverContent className="w-[320px]">
-              <p className="mb-2 text-[13px] font-semibold text-foreground">
-                Everywhere you call home
-              </p>
-              <LocationPicker
-                mode="multi"
-                value={places}
-                onChange={onChange}
-                placeholder="Add a city"
-                aria-label="Your cities"
-              />
-            </PopoverContent>
-          </PopoverPositioner>
-        </PopoverPortal>
-      </Popover>
-      <PenRule on={live} delay={0.2} />
-    </span>
+      </PenSlot>
+      <PopoverPortal>
+        <PopoverPositioner sideOffset={8} align="start" side="bottom">
+          <PopoverContent className="w-[320px]">
+            <p className="mb-2 text-[13px] font-semibold text-foreground">
+              Everywhere you call home
+            </p>
+            <LocationPicker
+              mode="multi"
+              value={places}
+              onChange={onChange}
+              placeholder="Add a city"
+              aria-label="Your cities"
+            />
+          </PopoverContent>
+        </PopoverPositioner>
+      </PopoverPortal>
+    </Popover>
   );
 }

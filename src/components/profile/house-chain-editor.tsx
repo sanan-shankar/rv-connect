@@ -59,10 +59,20 @@ function useWideViewport(): boolean {
   return wide;
 }
 
-/** Which pill the panel is answering. `next` is the grey one. */
+/**
+ * Which pill the panel is answering.
+ *
+ * A span is identified by the YEARS it covers, never by its index. Indices go
+ * stale the instant the chain changes shape, and adding a second house to a
+ * year is exactly that: 2014-15 stops being one span and becomes two, so an
+ * index captured before the tap points somewhere else, or past the end, and
+ * `spans[target.index]` is undefined. That was the "undefined is not an object
+ * evaluating item.kind" crash on removing a second house. A year range is
+ * stable however the houses on it are rearranged.
+ */
 type Target =
   | { kind: "next"; anchor: HTMLElement }
-  | { kind: "span"; index: number; anchor: HTMLElement };
+  | { kind: "span"; from: number; to: number; anchor: HTMLElement };
 
 export function HouseChainEditor({
   entries,
@@ -119,12 +129,23 @@ export function HouseChainEditor({
   /** The years the open panel is answering for. */
   const scope =
     target?.kind === "span"
-      ? { from: spans[target.index].fromYear, to: spans[target.index].toYear }
+      ? { from: target.from, to: target.to }
       : nextYear != null
         ? { from: nextYear, to: nextYear }
         : null;
   const scopeLabel = scope ? academicSpanLabel(scope.from, scope.to) : "";
-  const chosen = target?.kind === "span" ? housesInSpan(entries, spans[target.index]) : [];
+  const chosen =
+    scope && target?.kind === "span"
+      ? housesInSpan(entries, { fromYear: scope.from, toYear: scope.to })
+      : [];
+  /* The ring goes on every pill the open panel covers. With two houses on one
+     year that is two pills, which is the truth: both are being edited. */
+  const openIndices =
+    scope && target?.kind === "span"
+      ? spans.flatMap((sp, i) =>
+          sp.fromYear <= scope.to && sp.toYear >= scope.from ? [i] : []
+        )
+      : [];
 
   function toggle(house: string) {
     if (!scope || !target) return;
@@ -143,9 +164,9 @@ export function HouseChainEditor({
           )
         : sorted([...entries, ...yearsIn(scope).map((year) => ({ year, house }))]);
       onChange(next);
-      // Clearing the last house off a span leaves a gap, and the pill that was
-      // being edited no longer exists, so there is nothing to stay open on.
-      if (next.length < entries.length && housesInSpan(next, spans[target.index]).length === 0) {
+      // Taking the LAST house off these years leaves a gap, so the pill being
+      // edited no longer exists and there is nothing to stay open on.
+      if (housesInSpan(next, { fromYear: scope.from, toYear: scope.to }).length === 0) {
         setTarget(null);
       }
       return;
@@ -194,7 +215,9 @@ export function HouseChainEditor({
           editing
             ? (index, anchor) => {
                 setOther("");
-                setTarget({ kind: "span", index, anchor });
+                const sp = spans[index];
+                if (!sp) return;
+                setTarget({ kind: "span", from: sp.fromYear, to: sp.toYear, anchor });
               }
             : undefined
         }
@@ -214,7 +237,7 @@ export function HouseChainEditor({
                 },
               }
         }
-        openIndex={target?.kind === "span" ? target.index : null}
+        openIndices={openIndices}
       />
 
       {/* One panel, anchored to whichever pill asked for it. The anchor is the

@@ -3,73 +3,80 @@
 /* ------------------------------------------------------------------ *
  *  The pen: how a value on your own letterhead becomes typeable.
  *
- *  The whole design constraint here is the owner's (2026-08-07): "it's
- *  very important that we have a very beautiful transition from resting
- *  profile to settings ... make sure we don't have tiles resizing and so
- *  on."
+ *  Owner, 2026-08-07, on the first attempt: "a lot of the elements have
+ *  just moved since you last worked on them ... it should just look just
+ *  like it did before, but editable when you click edit. Who asked you
+ *  to move things around?"
  *
- *  So there is no swap. On your own profile every value is ALREADY an
- *  input, from first paint, sitting there `readOnly`. Turning on edit
- *  mode changes nothing about the DOM and nothing about the box model:
- *  it drops `readOnly`, and it draws a rule underneath. Nothing can
- *  reflow, because nothing moved.
+ *  Nobody did. The first version gave every field 6px of padding and a
+ *  1px border and then tried to cancel them with negative margins at
+ *  some call sites and not others, which moved the admission number 3px
+ *  up, the three fact labels 6px right, and everything below the
+ *  occupation 7px down. Measured against the pre-change component, not
+ *  guessed.
  *
- *  Three details make an always-input read as prose at rest:
- *   - The border is 1px TRANSPARENT at rest, so hover can paint it
- *     without shifting the text by a pixel. (The owner's standing rule:
- *     hovering never moves a control.)
- *   - The horizontal padding is cancelled by a matching negative margin
- *     at the call site, so the TEXT sits on the sheet's own left edge and
- *     only the invisible box hangs outside it.
- *   - `cursor: text` only arrives with edit mode; at rest the field is
- *     as inert as the paragraph it replaced.
+ *  So the rule this file now keeps, and the reason every class below is
+ *  what it is:
  *
- *  The rule itself is an absolutely positioned element scaled on X, not
- *  a text-decoration and not a border. text-decoration cannot animate at
- *  all, and a border would be 2px of layout. A transform can neither
- *  reflow nor repaint its neighbours, so a dozen of them can draw in
- *  together at 60fps.
+ *      A PEN OCCUPIES EXACTLY THE BOX ITS TEXT OCCUPIES.
+ *
+ *  No padding, no border, no margin, and typography inherited from the
+ *  wrapper rather than declared. A field is laid out exactly as the
+ *  <p> or <dd> or <h1> it stands in for, so the resting profile is
+ *  pixel-identical to the one that never had a pen, and turning the pen
+ *  on cannot move anything either.
+ *
+ *  Everything that makes a field LOOK editable is painted outside the
+ *  layout, as absolutely positioned siblings:
+ *   - the plate, a rounded rect that appears under the pointer and on
+ *     focus, inset NEGATIVELY so it surrounds the text without occupying
+ *     anything;
+ *   - the rule, a dotted canopy line that draws in on scaleX.
+ *  Neither can reflow, because neither is in flow.
  * ------------------------------------------------------------------ */
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
 
-/** Padding + the transparent border, identical on every pen so that two
- *  fields on one line can never disagree about where their text starts. */
-export const PEN_BOX =
-  "rounded-[var(--radius-sm)] border border-transparent bg-transparent px-1.5 outline-none transition-[background-color,border-color] duration-150";
+/**
+ * The field itself. Zero box in every direction.
+ *
+ * Tailwind's preflight already gives form controls `font-family`,
+ * `line-height`, `letter-spacing`, `font-weight` and `color` of `inherit`, so
+ * a field wrapped in the same classes the original element carried measures
+ * the same. The only things that have to be beaten out of the browser are the
+ * default padding, border and the focus ring.
+ */
+const PEN_FIELD =
+  "m-0 border-0 bg-transparent p-0 text-inherit outline-none disabled:cursor-default";
 
-/** What the box does once the pen is live. `read-only:` guards nothing here
- *  because the field stops being read-only in edit mode; these are applied
- *  conditionally instead, so a resting profile has no hover behaviour at all. */
-const PEN_LIVE =
-  "cursor-text placeholder:text-muted-foreground/70 hover:border-border hover:bg-float/60 focus:border-canopy/45 focus:bg-float";
+/* The plate: hover and focus, painted around the text rather than under it.
+   -inset-x-1.5 / -inset-y-1 is the padding the field deliberately does not
+   have, put back as paint. */
+const PLATE_BASE =
+  "pointer-events-none absolute -inset-x-1.5 -inset-y-1 rounded-[var(--radius-sm)] border border-transparent transition-[background-color,border-color] duration-150";
+const PLATE_LIVE =
+  "group-hover/pen:border-border group-focus-within/pen:border-canopy/45 group-focus-within/pen:bg-float";
 
-/* The rule, dotted, in canopy. Drawn as a repeating gradient rather than a
-   dotted border so its dash rhythm is ours and not the browser's, and so it
-   can live on an element that has no border of its own to style. */
+/* The rule, dotted, in canopy. A repeating gradient rather than a dotted
+   border, so the dash rhythm is ours rather than the browser's and so it can
+   live on an element with no border of its own to style. */
 const RULE_IMAGE =
   "repeating-linear-gradient(90deg, var(--color-canopy) 0 2px, transparent 2px 5px)";
 
 /**
  * The rule under a pen. Its own element, absolutely positioned, so it adds no
- * height and cannot push anything. `origin-left` plus a scaleX spring means
- * it draws in from the left the way a pen would.
+ * height and cannot push anything. `origin-left` plus a scaleX spring means it
+ * draws in from the left the way a pen would.
  */
 export function PenRule({ on, delay = 0 }: { on: boolean; delay?: number }) {
   return (
     <motion.span
       aria-hidden
-      className="pointer-events-none absolute inset-x-1.5 -bottom-0.5 h-[2px] origin-left"
+      className="pointer-events-none absolute inset-x-0 -bottom-1 h-[2px] origin-left"
       style={{ backgroundImage: RULE_IMAGE }}
       initial={false}
       animate={{ scaleX: on ? 1 : 0, opacity: on ? 0.45 : 0 }}
@@ -78,7 +85,9 @@ export function PenRule({ on, delay = 0 }: { on: boolean; delay?: number }) {
   );
 }
 
-/** The wrapper every pen shares: positions the rule against the field. */
+/** The wrapper every pen shares: the plate behind, the rule beneath, and the
+ *  field between them. `inline-block` so it sits in text flow exactly as the
+ *  span it replaces would. */
 export function PenSlot({
   editing,
   delay,
@@ -92,8 +101,9 @@ export function PenSlot({
 }) {
   return (
     <span
-      className={cn("relative inline-block max-w-full align-top", className)}
+      className={cn("group/pen relative inline-block max-w-full align-baseline", className)}
     >
+      <span aria-hidden className={cn(PLATE_BASE, editing && PLATE_LIVE)} />
       {children}
       <PenRule on={editing} delay={delay} />
     </span>
@@ -130,21 +140,23 @@ export function PenValue({
   placeholder: string;
   ariaLabel: string;
   delay?: number;
-  /** type size and weight; on the wrapper, so the mirror inherits it too */
+  /** the typography of the element being stood in for; on the wrapper, so the
+   *  mirror and the field both inherit it and cannot disagree */
   className?: string;
   inputMode?: "numeric" | "tel" | "url" | "email";
   maxLength?: number;
 }) {
   return (
     <PenSlot editing={editing} delay={delay} className={className}>
-      <span className="inline-grid max-w-full overflow-hidden align-top">
-        <span
-          aria-hidden
-          className={cn(
-            PEN_BOX,
-            "invisible col-start-1 row-start-1 whitespace-pre",
-          )}
-        >
+      {/* The mirror is in FLOW and the field is laid over it. That is what
+          makes a pen occupy exactly its text's box: the box comes from a span
+          rendering the same string in the same font, so it is by construction
+          the box the read-only span had. Sizing the field itself and letting
+          it drive the layout is what put the admission number 3px high and
+          the name 3px tall, because a control's own idea of its height is not
+          its text's line box. */}
+      <span className="relative block">
+        <span aria-hidden className="invisible block whitespace-pre">
           {value || placeholder}
         </span>
         <input
@@ -162,15 +174,12 @@ export function PenValue({
           aria-label={ariaLabel}
           inputMode={inputMode}
           maxLength={maxLength}
-          // size={1} is load-bearing. An input's default intrinsic width is
-          // about 20 characters, and in a grid cell that competes with the
-          // mirror: the column comes out 168px wide however short the text is.
           size={1}
           tabIndex={editing ? 0 : -1}
           className={cn(
-            PEN_BOX,
-            "col-start-1 row-start-1 w-full min-w-0",
-            editing && PEN_LIVE,
+            PEN_FIELD,
+            "absolute inset-0 h-full w-full",
+            editing && "cursor-text placeholder:text-muted-foreground/70"
           )}
         />
       </span>
@@ -185,7 +194,7 @@ export function PenValue({
  *  than the column just runs off the end of it, and "Sanan Shankar" came
  *  out reading "Sanan Shankaı" under the bird. The <h1> it stands in for
  *  wraps to two lines, so the typeable version has to wrap too, or it is
- *  not the same object and the transition is a lie.
+ *  not the same object.
  * ------------------------------------------------------------------ */
 export function PenBlock({
   value,
@@ -213,64 +222,39 @@ export function PenBlock({
   /**
    * Sized to the text rather than to the column.
    *
-   * A name needs this and About does not. About is a paragraph: its rule
+   * A name needs this and About does not. About is a paragraph, and its rule
    * running the width of the sheet reads as a line to write on. A name is a
-   * value, and a rule carrying on 180px past "Sanan Shankar" reads as a blank
-   * waiting to be filled in, which it is not. It also drags the verified leaf
-   * away from the last letter of the name, where it belongs.
-   *
-   * Same mirror trick as PenValue, with a WRAPPING copy instead of a
-   * `whitespace-pre` one, so the box is as wide as the longest line it needs
-   * and no wider, and still wraps when the column runs out.
+   * value, and a rule carrying on past the last letter reads as a blank
+   * waiting to be filled, which it is not.
    */
   snug?: boolean;
   maxLength?: number;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  /* Exactly as tall as its content, remeasured whenever that changes. The
-     first pass has to run before paint or the field opens at one row and
-     jumps, which is precisely the resize this whole file exists to avoid. */
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "0px";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value, placeholder, editing]);
-
   return (
     <PenSlot
       editing={editing}
       delay={delay}
-      className={cn(snug ? "block" : "block w-full", className)}
+      className={cn(snug ? "block w-fit" : "block w-full", className)}
     >
-      <span className={cn("grid max-w-full", snug ? "w-fit" : "w-full")}>
-        {snug && (
-          <span
-            aria-hidden
-            className={cn(
-              PEN_BOX,
-              "invisible col-start-1 row-start-1 whitespace-pre-wrap",
-            )}
-          >
-            {value || placeholder}
-          </span>
-        )}
+      {/* Same mirror-in-flow pattern as PenValue, with a WRAPPING copy, so a
+          long name breaks exactly where the <h1> broke and the block is
+          exactly as tall as the paragraph it stands in for. No ResizeObserver
+          and no scrollHeight: a textarea's scrollHeight overshoots its line
+          box by 3px at display size, which is enough to push every section
+          below the name down the sheet. */}
+      <span className="relative block">
+        <span aria-hidden className="invisible block whitespace-pre-wrap">
+          {value || placeholder}
+          {/* A zero-width space, so a value ending in a newline still renders
+              the empty last line the caret is sitting on. */}
+          {"\u200b"}
+        </span>
         <textarea
-          ref={ref}
           rows={1}
-          // cols={1} for the same reason PenValue passes size={1}: a textarea's
-          // intrinsic width comes from `cols`, which defaults to 20. In a w-fit
-          // grid cell that beats the mirror outright, and at display size twenty
-          // characters is most of the sheet, so the name's rule ran 175px past
-          // the last letter and dragged the verified leaf out there with it.
-          cols={1}
           value={value}
           readOnly={!editing}
           onChange={(e) =>
-            onChange(
-              singleLine ? e.target.value.replace(/\n/g, "") : e.target.value,
-            )
+            onChange(singleLine ? e.target.value.replace(/\n/g, "") : e.target.value)
           }
           onBlur={() => editing && onCommit()}
           onKeyDown={(e) => {
@@ -285,12 +269,11 @@ export function PenBlock({
           spellCheck={!singleLine}
           tabIndex={editing ? 0 : -1}
           className={cn(
-            PEN_BOX,
-            "col-start-1 row-start-1 block w-full resize-none overflow-hidden",
-            editing && PEN_LIVE,
-            // At rest an empty About still has to read as the prompt it always
-            // was, so the placeholder stays visible when the field is inert.
-            !editing && "placeholder:text-muted-foreground",
+            PEN_FIELD,
+            "absolute inset-0 h-full w-full resize-none overflow-hidden",
+            editing
+              ? "cursor-text placeholder:text-muted-foreground/70"
+              : "placeholder:text-muted-foreground"
           )}
         />
       </span>
@@ -309,9 +292,6 @@ export function PenBlock({
  *  its own blur, a spinner turns while the write is in flight, a tick
  *  says it landed, and after a few seconds the whole thing goes back to
  *  saying nothing at all, which is the honest state most of the time.
- *
- *  The mark reserves its own width whether or not it is showing anything,
- *  so the row it sits in cannot change size when a save starts.
  * ------------------------------------------------------------------ */
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
@@ -328,47 +308,38 @@ export function useAutoSave() {
     () => () => {
       if (timer.current) clearTimeout(timer.current);
     },
-    [],
+    []
   );
 
-  const run = useCallback(
-    async (fn: () => Promise<{ error?: string } | void>) => {
-      inFlight.current += 1;
-      if (timer.current) clearTimeout(timer.current);
-      setState("saving");
-      setMessage(null);
-      let failed: string | null = null;
-      try {
-        const result = await fn();
-        if (result && "error" in result && result.error) failed = result.error;
-      } catch {
-        failed = "That did not save. Check your connection.";
-      }
-      inFlight.current -= 1;
-      if (inFlight.current > 0) return;
-      if (failed) {
-        // An error stays put. It is the one state that must not time itself out,
-        // because the value on screen is not the value on file.
-        setState("error");
-        setMessage(failed);
-        return;
-      }
-      setState("saved");
-      timer.current = setTimeout(() => setState("idle"), 2400);
-    },
-    [],
-  );
+  const run = useCallback(async (fn: () => Promise<{ error?: string } | void>) => {
+    inFlight.current += 1;
+    if (timer.current) clearTimeout(timer.current);
+    setState("saving");
+    setMessage(null);
+    let failed: string | null = null;
+    try {
+      const result = await fn();
+      if (result && "error" in result && result.error) failed = result.error;
+    } catch {
+      failed = "That did not save. Check your connection.";
+    }
+    inFlight.current -= 1;
+    if (inFlight.current > 0) return;
+    if (failed) {
+      // An error stays put. It is the one state that must not time itself out,
+      // because the value on screen is not the value on file.
+      setState("error");
+      setMessage(failed);
+      return;
+    }
+    setState("saved");
+    timer.current = setTimeout(() => setState("idle"), 2400);
+  }, []);
 
   return { state, message, run };
 }
 
-export function SaveMark({
-  state,
-  message,
-}: {
-  state: SaveState;
-  message?: string | null;
-}) {
+export function SaveMark({ state, message }: { state: SaveState; message?: string | null }) {
   return (
     <span
       className="inline-flex min-h-5 items-center gap-1.5 text-[12.5px] font-semibold"
@@ -384,20 +355,12 @@ export function SaveMark({
             transition={SPRINGS.gentle}
             className={cn(
               "inline-flex items-center gap-1.5",
-              state === "error" ? "text-heart" : "text-muted-foreground",
+              state === "error" ? "text-heart" : "text-muted-foreground"
             )}
           >
-            {state === "saving" && (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-            )}
-            {state === "saved" && (
-              <Check className="h-3.5 w-3.5 text-leaf" aria-hidden />
-            )}
-            {state === "saving"
-              ? "Saving"
-              : state === "saved"
-                ? "Saved"
-                : (message ?? "Not saved")}
+            {state === "saving" && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+            {state === "saved" && <Check className="h-3.5 w-3.5 text-leaf" aria-hidden />}
+            {state === "saving" ? "Saving" : state === "saved" ? "Saved" : (message ?? "Not saved")}
           </motion.span>
         )}
       </AnimatePresence>
