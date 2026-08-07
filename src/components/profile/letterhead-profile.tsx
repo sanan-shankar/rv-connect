@@ -559,7 +559,7 @@ export function LetterheadProfile({
   ) : null;
 
   return (
-    /* Perch clearance. The bird hangs 32px above the sheet's top edge, and the
+    /* Perch clearance. The bird hangs 48px above the sheet's top edge, and the
        shell's own gutter is 40px (desktop) / 20px (mobile), so without this the
        bird's head is cut off by the top of the scroll area and, on a phone,
        painted over the sticky header. Measured, not guessed: 8px short on
@@ -1209,7 +1209,7 @@ function PerchedBird({
   return (
     /* Scaled from its FEET on phones, so the perch line stays put at both
        sizes and only one offset has to be right. */
-    <div className="absolute -top-8 right-6 z-20 origin-bottom scale-[0.8] sm:right-10 sm:scale-100">
+    <div className="absolute -top-12 right-6 z-20 origin-bottom scale-[0.8] sm:right-10 sm:scale-100">
       <button
         type="button"
         onClick={live ? onPick : tap}
@@ -1233,7 +1233,7 @@ function PerchedBird({
             "this bird does something", when what is true is that this is
             where a photograph goes.
 
-            Both live in the same 56px box and only opacity and scale change,
+            Both live in the same 80px box and only opacity and scale change,
             so the perch line holds and nothing below it moves. A dashed edge
             because it is a slot waiting to be filled; a camera because that
             is the one glyph nobody has to be taught. */}
@@ -1243,7 +1243,7 @@ function PerchedBird({
           className="relative block"
           style={{ opacity: live ? 0 : 1, pointerEvents: live ? "none" : undefined }}
         >
-          <BirdAvatar user={user} size={56} />
+          <BirdAvatar user={user} size={80} />
         </motion.span>
 
         <AnimatePresence initial={false}>
