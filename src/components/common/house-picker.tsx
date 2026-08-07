@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronDown, Plus, X } from "lucide-react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -311,26 +311,35 @@ export function HouseOptions({
                   className={cn(
                     // min-h-11 holds the owner's 44px touch floor; radius-sm
                     // (8.8px) is one rung inside the 12px panel per the radius
-                    // ladder. No idle border or fill - hover is the shared
-                    // state layer, selection is the check + canopy text below.
+                    // ladder.
                     //
-                    // state-layer, not hover:bg-accent: these 22 rows render on
-                    // a Float-white popover on desktop and on the sheet's own
-                    // surface on mobile. --accent is LIGHTER than white, so on
-                    // the desktop panel the old hover inverted (-2.42 dL*) and
-                    // the list read as having no hover at all. transition-colors
-                    // stays for the text's foreground -> canopy swap on pick;
-                    // the layer itself is a background-image and lands at once.
-                    "state-layer flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2.5 text-left text-[13.5px] transition-colors duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                    selected ? "font-semibold text-canopy" : "font-medium text-foreground"
+                    // SELECTED IS A FILL, NOT A TICK (owner, 2026-08-07: "I
+                    // don't just want a tick mark, I want it kind of coloured
+                    // in like the pill is coloured in so I can clearly see
+                    // which houses are selected. The tick mark thing isn't
+                    // good"). A 16px check against 13.5px text was carrying
+                    // the whole state on one glyph at the far left of a
+                    // two-column list. The row now reads canopy on canopy the
+                    // way the chain's own pills do, and the check is gone
+                    // along with the slot that reserved space for it.
+                    //
+                    // The selected ring is `ring-inset`, not a border: a
+                    // border would add a pixel and shift every name in the
+                    // column by one.
+                    //
+                    // HOVER IS ITS OWN CANOPY WASH, not the shared state
+                    // layer (owner, same review: "it doesn't show what you're
+                    // hovering over"). The state layer is a 6% ink tint, which
+                    // is legible on a page but not against a Float-white
+                    // popover holding 22 rows. A canopy wash at 8% both reads
+                    // clearly and previews exactly what picking will look
+                    // like.
+                    "flex min-h-11 w-full items-center rounded-[var(--radius-sm)] px-2.5 text-left text-[13.5px] transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                    selected
+                      ? "bg-canopy/[0.12] font-semibold text-canopy ring-1 ring-inset ring-canopy/35 hover:bg-canopy/[0.18]"
+                      : "font-medium text-foreground hover:bg-canopy/[0.08] hover:text-canopy"
                   )}
                 >
-                  {/* The icon slot is always reserved so a pick never nudges
-                      the name sideways; only the check inside it comes and
-                      goes. */}
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden>
-                    {selected && <Check className="h-4 w-4 text-canopy" />}
-                  </span>
                   {h}
                 </button>
               );
