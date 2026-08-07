@@ -37,6 +37,7 @@
 
 import { z } from "zod/v4";
 import { auth } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
@@ -577,6 +578,7 @@ export async function endCatchup(catchupId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    if (IS_DEMO) return { error: "Ending a Catch-up cannot be undone, so the demo keeps that one switched off." };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
 
     const ctx = await loadCatchupContext(catchupId, session.user.id);
@@ -1366,6 +1368,7 @@ export async function nudgeGroup(editionId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    if (IS_DEMO) return { error: "A nudge would notify everyone in the Catch-up, so the demo leaves it switched off." };
     if (typeof editionId !== "string" || !editionId) return { error: "Invalid request." };
 
     const edition = await loadFreshEdition(editionId);

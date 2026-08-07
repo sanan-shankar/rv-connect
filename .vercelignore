@@ -1,0 +1,22 @@
+# Never upload these to a Vercel build.
+#
+# `vercel deploy` uploads the working directory, not a git commit, so
+# .gitignore alone is not the guarantee it looks like. These are spelled out
+# explicitly because two of them are live database credentials.
+
+.env.demo
+.demo-db-password
+
+# Originals for the demo Collection. Only the generated webp under
+# public/images/collection/ is ever needed at runtime, and the originals are
+# large.
+demo-photos/
+
+# Throwaway debugging probes and local QA output.
+.scratch/
+temporary screenshots/
+
+# Local dev database and build caches.
+dev.db
+.next/
+node_modules/

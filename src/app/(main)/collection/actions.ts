@@ -3,6 +3,7 @@
 import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { putImage, delImage, getImageBuffer, delImageByKey, publicUrlForKey } from "@/lib/storage";
 import { photoSchema } from "@/lib/validators";
@@ -71,6 +72,7 @@ const includeFor = (userId: string) => ({
 export async function contributePhoto(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "The demo does not accept photo uploads. Everything already in the Collection is yours to browse." };
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
@@ -191,6 +193,7 @@ export async function contributePhotoDirect(input: {
 }) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "The demo does not accept photo uploads. Everything already in the Collection is yours to browse." };
 
   if (typeof input.key !== "string" || !COLLECTION_ORIGINAL_KEY.test(input.key)) {
     return { error: "Bad upload reference" };

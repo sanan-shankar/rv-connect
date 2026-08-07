@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { previewOf } from "@/lib/admin-threads";
 import { notifyAdmins } from "@/lib/admin-threads-server";
@@ -53,6 +54,7 @@ async function openReportThread({
 export async function reportPost(postId: string, reason: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "Reporting summons a real moderator, so the demo leaves it switched off." };
 
   const trimmed = reason?.trim() ?? "";
   if (!trimmed || trimmed.length > 500) {
@@ -94,6 +96,7 @@ export async function reportPost(postId: string, reason: string) {
 export async function reportUser(reportedUserId: string, reason: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "Reporting summons a real moderator, so the demo leaves it switched off." };
   if (reportedUserId === session.user.id) return { error: "You can't flag yourself" };
 
   const trimmed = reason?.trim() ?? "";

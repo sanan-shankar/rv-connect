@@ -71,9 +71,17 @@ temporary screenshots/
 
 # Local tooling + reference material (not part of the app)
 .claude/
-Inspiration/
+sanan's stuff/
 .codex/
 .agents/
-WhatsApp/
 recovery-codes.txt
-Razorpay Docs/
+
+# Demo photo inbox: originals live here, only the generated webp in public/ is committed
+demo-photos/
+
+# Demo database password, written by the demo setup. Never committed.
+.demo-db-password
+
+# One-off debugging probes. Throwaway by nature, never referenced by the app.
+.scratch/
+demo-photos/
