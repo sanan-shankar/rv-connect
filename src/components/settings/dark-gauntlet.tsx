@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { SPRINGS } from "@/components/common/motion";
-import { setThemePreference } from "@/app/(main)/settings/theme-actions";
+import { setThemePreference } from "@/components/settings/theme-actions";
 import { Nightfall } from "./nightfall";
 import { toast } from "sonner";
 
@@ -130,7 +130,7 @@ export function DarkGauntlet({ word }: { word: string }) {
               is a question the next few pages exist to answer.
             </p>
             <div className="flex justify-center gap-2 pt-2">
-              <Button variant="outline" onClick={() => router.push("/settings")}>
+              <Button variant="outline" onClick={() => router.back()}>
                 <ArrowLeft className="h-4 w-4" />
                 Back to settings
               </Button>
@@ -308,7 +308,7 @@ export function DarkGauntlet({ word }: { word: string }) {
             </h2>
             <div className="flex justify-center pt-2">
               <Link
-                href="/settings"
+                href="/feed"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <ArrowLeft className="h-4 w-4" />

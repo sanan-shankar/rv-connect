@@ -219,20 +219,6 @@ export const REGISTRY: LabEntry[] = [
     ],
   },
   {
-    href: "/lab/settings",
-    title: "Settings, twice",
-    group: "Delight",
-    status: "active",
-    note: "The settings page rebuilt two ways, both live and typeable: a quiet sheet you write straight into, and the profile itself with the pen handed over. Houses become a chain you build one year at a time, tapping a grey pill until there are none left.",
-    children: [
-      {
-        href: "/lab/settings/demo",
-        title: "Demo target",
-        note: "Bare render target with no lab chrome, loaded inside the room's iframes so each take is judged in a real window. Takes ?take=sheet|profile and ?state=filled|blank. Not meant to be browsed directly.",
-      },
-    ],
-  },
-  {
     href: "/lab/type",
     title: "The font question",
     group: "Second look",

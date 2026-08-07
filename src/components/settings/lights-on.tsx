@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { setThemePreference } from "@/app/(main)/settings/theme-actions";
+import { setThemePreference } from "@/components/settings/theme-actions";
 
 export function LightsOn() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export function LightsOn() {
   async function turnOff() {
     setTheme("light");
     await setThemePreference("light");
-    router.push("/settings");
+    router.back();
   }
 
   return (
