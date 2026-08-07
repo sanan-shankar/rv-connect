@@ -69,6 +69,7 @@ export function HouseChainEditor({
   onChange,
   yearJoined,
   yearLeft,
+  editing = true,
 }: {
   entries: HouseYearEntry[];
   onChange: (next: HouseYearEntry[]) => void;
@@ -76,6 +77,11 @@ export function HouseChainEditor({
    *  Correcting a year above re-lays-out the chain immediately. */
   yearJoined: number | null;
   yearLeft: number | null;
+  /** Off, this is exactly the read-only chain: no handlers, no grey pill.
+   *  The profile mounts this component in BOTH states rather than swapping
+   *  between two components, so entering edit mode cannot remount the chain
+   *  and cannot make it re-measure or re-animate. */
+  editing?: boolean;
 }) {
   const [target, setTarget] = useState<Target | null>(null);
   const [other, setOther] = useState("");
@@ -102,6 +108,7 @@ export function HouseChainEditor({
   );
 
   if (!career) {
+    if (!editing) return spans.length > 0 ? <HouseTrail spans={spans} /> : null;
     return (
       <p className="text-[13.5px] leading-relaxed text-muted-foreground">
         Fill in the years you were here and your houses appear as a chain.
@@ -183,12 +190,16 @@ export function HouseChainEditor({
     <div>
       <HouseTrail
         spans={spans}
-        onSpanClick={(index, anchor) => {
-          setOther("");
-          setTarget({ kind: "span", index, anchor });
-        }}
+        onSpanClick={
+          editing
+            ? (index, anchor) => {
+                setOther("");
+                setTarget({ kind: "span", index, anchor });
+              }
+            : undefined
+        }
         pending={
-          nextYear == null
+          !editing || nextYear == null
             ? undefined
             : {
                 label: academicSpanLabel(nextYear, nextYear),

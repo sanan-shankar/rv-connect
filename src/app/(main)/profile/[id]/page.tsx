@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, formatPhoneDisplay, parseJsonArray } from "@/lib/utils";
 import { socialHref, socialDisplay, parseUserLinks } from "@/lib/social";
-import { academicSpanLabel, parseHouseSpans } from "@/lib/house-spans";
+import { academicSpanLabel, parseHouseSpans, parseHouseYearEntries } from "@/lib/house-spans";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
 import { LetterheadProfile } from "@/components/profile/letterhead-profile";
@@ -43,10 +43,13 @@ function rvYearsLabel(yearJoined: number | null, yearLeft: number | null): strin
 
 export default async function ProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ edit?: string }>;
 }) {
   const { id } = await params;
+  const { edit } = await searchParams;
   const session = await auth();
   if (!session?.user) return null;
 
@@ -263,6 +266,41 @@ export default async function ProfilePage({
         ) : null
       }
       flagNode={!isOwnProfile ? <FlagPersonDialog userId={user.id} name={user.name} /> : null}
+      /* Only your own sheet gets a pen. `?edit=1` is how /settings hands you
+         one: that route redirects here rather than rendering a form of its
+         own, so "Settings" in the nav lands on your profile and it opens
+         already editable. */
+      draft={
+        isOwnProfile
+          ? {
+              startEditing: edit === "1",
+              name: user.name,
+              about: user.about ?? "",
+              jobTitle: user.jobTitle ?? "",
+              workplace: user.workplace ?? "",
+              batchYear: user.batchYear?.toString() ?? "",
+              yearJoined: user.yearJoined?.toString() ?? "",
+              yearLeft: user.yearLeft?.toString() ?? "",
+              admissionNumber: user.admissionNumber?.toString() ?? "",
+              places: user.places.map((p) => ({
+                placeId: p.placeId,
+                label: p.label,
+                city: p.city,
+                lat: p.lat,
+                lng: p.lng,
+              })),
+              houses: parseHouseYearEntries(user.houses),
+              contacts: {
+                displayEmail: user.displayEmail,
+                phones: phoneNumbers,
+                instagram: user.instagram,
+                linkedin: user.linkedin,
+                facebook: user.facebook,
+                links: parseUserLinks(user.links),
+              },
+            }
+          : undefined
+      }
     />
   );
 }
