@@ -1254,9 +1254,16 @@ function PerchedBird({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.72 }}
               transition={SPRINGS.snappy}
-              className="absolute inset-0 grid place-items-center rounded-full border-2 border-dashed border-canopy/40 bg-card/85 text-canopy transition-colors duration-150 group-hover/slot:border-canopy/70 group-hover/slot:bg-card"
+              className="absolute inset-0 grid place-items-center"
             >
-              <Camera className="h-7 w-7" strokeWidth={1.6} />
+              {/* Smaller than the 80px bird box it sits inside, close to the
+                  size of a bird avatar elsewhere on the page, so it does not
+                  loom in the corner the way filling the whole box did. Still
+                  centred on the same footprint, so the perch position and the
+                  bird's own size are untouched. */}
+              <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-dashed border-canopy/40 bg-card/85 text-canopy transition-colors duration-150 group-hover/slot:border-canopy/70 group-hover/slot:bg-card">
+                <Camera className="h-6 w-6" strokeWidth={1.6} />
+              </span>
             </motion.span>
           )}
         </AnimatePresence>
