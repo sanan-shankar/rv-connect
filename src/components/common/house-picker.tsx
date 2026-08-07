@@ -264,7 +264,7 @@ const TRIGGER_CLASS =
  *  no idle border, no idle fill, no per-house colour, no family grouping.
  *  Selected is the one canopy state - a small check plus canopy text, never
  *  a solid slab. */
-function HouseOptions({
+export function HouseOptions({
   value,
   onToggle,
   otherText,
