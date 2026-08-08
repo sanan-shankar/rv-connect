@@ -39,6 +39,56 @@ function srcFiles({ includeLab = false } = {}) {
   return includeLab ? out : out.filter((f) => !f.startsWith("src/app/lab/"));
 }
 
+/* Read a file as lines with every COMMENT blanked out, so a rule that greps for
+   a pattern never fires on the prose arguing about that pattern. This codebase
+   comments heavily and cites the exact things these rules ban ("--card is
+   #F5F2EA, so one row...", "a canopy OUTLINE thumb (`bg-canopy/10`) instead
+   of..."), which is the house style working as intended.
+
+   The old check was a per-line regex. It handled `//`, an inline block, and a
+   JSDoc line starting with `*`, but NOT a block comment whose continuation
+   lines are indented with plain spaces. On 2026-08-08 that was 6 of the 9
+   findings this script reported: every one of them a comment. A gate that cries
+   wolf two times out of three is a gate people learn to skim, so the state has
+   to be tracked across lines instead.
+
+   Line indices are preserved (blanked, never dropped) so violations still point
+   at the right line number. `://` is skipped so a URL is not read as a comment. */
+function codeLines(file) {
+  const out = [];
+  let inBlock = false;
+  for (const raw of readFileSync(file, "utf8").split("\n")) {
+    let res = "";
+    let i = 0;
+    while (i < raw.length) {
+      if (inBlock) {
+        const end = raw.indexOf("*/", i);
+        if (end === -1) break;
+        inBlock = false;
+        i = end + 2;
+        continue;
+      }
+      let lineC = raw.indexOf("//", i);
+      while (lineC > 0 && raw[lineC - 1] === ":") lineC = raw.indexOf("//", lineC + 2);
+      const blockC = raw.indexOf("/*", i);
+      if (blockC !== -1 && (lineC === -1 || blockC < lineC)) {
+        res += raw.slice(i, blockC);
+        inBlock = true;
+        i = blockC + 2;
+        continue;
+      }
+      if (lineC !== -1) {
+        res += raw.slice(i, lineC);
+        break;
+      }
+      res += raw.slice(i);
+      break;
+    }
+    out.push(res);
+  }
+  return out;
+}
+
 /* 1 ---------------------------------------------------------------- */
 /* Files allowed to carry raw hexes, with reasons. */
 const HEX_ALLOW = new Map([
@@ -61,6 +111,7 @@ const HEX_ALLOW = new Map([
   ["src/components/common/image-viewer.tsx", "the viewer's warm-ink backdrop + photo shadow"],
   ["src/components/ui/sonner.tsx", "toast shadow, pending tokenised shadows"],
   ["src/app/layout.tsx", "themeColor meta must be a literal; kept in lockstep with --background by hand"],
+  ["src/components/support/support-contribute.tsx", "Razorpay's checkout theme.color is read by their SDK inside an iframe on their domain, so it cannot be a CSS variable; it is Canopy, kept in lockstep with --color-canopy by hand (same reason as layout.tsx above)"],
   ["src/components/ui/dialog.tsx", "the dialog material's warm-ink scrim (#241a12), same register as the viewer backdrop"],
   ["src/components/ui/sheet.tsx", "the edge-anchored variant of the dialog material, sharing its warm-ink scrim (#241a12)"],
   ["src/components/common/bird-avatar.tsx", "glyph plumage support white"],
@@ -71,12 +122,10 @@ const HEX_RE = /#[0-9a-fA-F]{6}\b/;
 
 for (const f of srcFiles()) {
   if (HEX_ALLOW.has(f)) continue;
-  const lines = readFileSync(f, "utf8").split("\n");
-  lines.forEach((line, i) => {
-    // Comments may cite hexes when arguing for a constant; only flag live code.
-    const code = line.replace(/\/\*.*?\*\//g, "").replace(/^\s*\*.*$/, "").replace(/\/\/.*$/, "");
+  const raw = readFileSync(f, "utf8").split("\n");
+  codeLines(f).forEach((code, i) => {
     if (HEX_RE.test(code)) {
-      violations.push(`${f}:${i + 1}  raw hex in production code: ${line.trim().slice(0, 90)}`);
+      violations.push(`${f}:${i + 1}  raw hex in production code: ${raw[i].trim().slice(0, 90)}`);
     }
   });
 }
@@ -100,13 +149,13 @@ const DRAB_ALLOW = new Map([
 ]);
 
 for (const f of srcFiles()) {
-  const lines = readFileSync(f, "utf8").split("\n");
-  lines.forEach((line, i) => {
-    if (SINK_RE.test(line)) {
-      violations.push(`${f}:${i + 1}  hover sinks into tan (hover lifts, never sinks): ${line.trim().slice(0, 90)}`);
+  const raw = readFileSync(f, "utf8").split("\n");
+  codeLines(f).forEach((code, i) => {
+    if (SINK_RE.test(code)) {
+      violations.push(`${f}:${i + 1}  hover sinks into tan (hover lifts, never sinks): ${raw[i].trim().slice(0, 90)}`);
     }
-    if (DRAB_RE.test(line) && !DRAB_ALLOW.has(f)) {
-      violations.push(`${f}:${i + 1}  drab green-on-green pairing: ${line.trim().slice(0, 90)}`);
+    if (DRAB_RE.test(code) && !DRAB_ALLOW.has(f)) {
+      violations.push(`${f}:${i + 1}  drab green-on-green pairing: ${raw[i].trim().slice(0, 90)}`);
     }
   });
 }
@@ -127,10 +176,10 @@ const XL_ALLOW = new Map([
 ]);
 for (const f of srcFiles()) {
   if (XL_ALLOW.has(f)) continue;
-  const lines = readFileSync(f, "utf8").split("\n");
-  lines.forEach((line, i) => {
-    if (/rounded-(t-)?xl(?![a-z-])/.test(line)) {
-      violations.push(`${f}:${i + 1}  rounded-xl (20.8px > the 16px card) outside the hero allowlist: ${line.trim().slice(0, 90)}`);
+  const raw = readFileSync(f, "utf8").split("\n");
+  codeLines(f).forEach((code, i) => {
+    if (/rounded-(t-)?xl(?![a-z-])/.test(code)) {
+      violations.push(`${f}:${i + 1}  rounded-xl (20.8px > the 16px card) outside the hero allowlist: ${raw[i].trim().slice(0, 90)}`);
     }
   });
 }
@@ -140,13 +189,13 @@ for (const f of srcFiles()) {
    metaLine/MetaDots). String literals passed TO metaLine are fine. */
 for (const f of srcFiles()) {
   if (f === "src/lib/utils.ts") continue; // metaLine's own implementation
-  const lines = readFileSync(f, "utf8").split("\n");
-  lines.forEach((line, i) => {
+  const raw = readFileSync(f, "utf8").split("\n");
+  codeLines(f).forEach((code, i) => {
     if (
-      (/[}"]\s*·\s*[{"]|&middot;|\.join\(" · "\)/.test(line)) &&
-      !/metaLine|MetaDots|dotsep/.test(line)
+      (/[}"]\s*·\s*[{"]|&middot;|\.join\(" · "\)/.test(code)) &&
+      !/metaLine|MetaDots|dotsep/.test(code)
     ) {
-      violations.push(`${f}:${i + 1}  hand-written dot separator (use metaLine/MetaDots): ${line.trim().slice(0, 90)}`);
+      violations.push(`${f}:${i + 1}  hand-written dot separator (use metaLine/MetaDots): ${raw[i].trim().slice(0, 90)}`);
     }
   });
 }
@@ -162,10 +211,10 @@ const MODAL_ALLOW = new Set([
 ]);
 for (const f of srcFiles()) {
   if (MODAL_ALLOW.has(f)) continue;
-  const lines = readFileSync(f, "utf8").split("\n");
-  lines.forEach((line, i) => {
-    if (/aria-modal/.test(line)) {
-      violations.push(`${f}:${i + 1}  hand-rolled modal outside ui/dialog (dialogs are one material): ${line.trim().slice(0, 90)}`);
+  const raw = readFileSync(f, "utf8").split("\n");
+  codeLines(f).forEach((code, i) => {
+    if (/aria-modal/.test(code)) {
+      violations.push(`${f}:${i + 1}  hand-rolled modal outside ui/dialog (dialogs are one material): ${raw[i].trim().slice(0, 90)}`);
     }
   });
 }
