@@ -31,7 +31,7 @@ const PERSON_SELECT = {
 
 // Fields the map needs from each located alumnus. `places` (not `currentCity`)
 // drives pins: a person plots in EVERY city they list, not just a primary one
-// (owner override, see docs/planning/round6-specs/filters-rework.md).
+// (owner override).
 // lat/lng ride along because the LocationPicker already wrote exact GeoNames
 // coordinates onto every picked row; the old select dropped them, and the map
 // then re-geocoded the bare city string against the small curated table --
@@ -268,8 +268,7 @@ export default async function DirectoryPage({
     // Always the real count, even with no filter active (where degenerates to
     // just `{ isBlocked: false }` then): the mobile FilterSheet's sticky
     // "Show N people" button reads this regardless of which browse view is
-    // open, so it must never read a hardcoded 0 (see
-    // docs/planning/round6-specs/filters-rework.md sec 5.2).
+    // open, so it must never read a hardcoded 0.
     prisma.user.count({ where }),
     prisma.user.findMany({
       where: pinWhere,

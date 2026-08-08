@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------ *
  *  tour-steps.ts — the ordered stop config for the first-run product
- *  walkthrough (docs/planning/round6-specs/walkthrough.md sec 2-5). Pure
- *  data: no React, no DOM. This is the single source of truth for both
- *  the tour's order AND its copy, so the two can never drift apart.
+ *  walkthrough. Pure data: no React, no DOM. This is the single source of
+ *  truth for both the tour's order AND its copy, so the two can never
+ *  drift apart.
  *
  *  Voice: warm, plain, short sentences, no jargon, no em dashes, always
  *  "Rishi Valley" never "RV Alumni". The owner hates the word

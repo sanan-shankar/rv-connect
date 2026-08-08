@@ -56,7 +56,10 @@ Both are the POOLER, on `aws-0` (not `aws-1`, which resolves but answers
 that is IPv6-only on the free tier, confirmed by DNS lookup, and will not
 resolve from a typical machine or a Vercel build.
 
-The password is in `.demo-db-password`, mode 600, also gitignored.
+The password is embedded in the `DATABASE_URL` in `.env.demo`, which is
+gitignored. (It used to be duplicated into a separate `.demo-db-password` file;
+that was deleted on 2026-08-08, because one credential written in two places is
+one more place for it to leak from and nothing read the second copy.)
 
 Push the schema and seed it:
 
@@ -182,7 +185,7 @@ no demo.
 | Nudge the group | Would notify everybody |
 | Delete the account | It is the only persona there is |
 | Make themselves an admin, verify themselves, unblock themselves, change their email | Privilege escalation and identity takeover |
-| Reach `/admin`, `/lab`, `/copy-editor`, `/signup`, `/onboarding`, `/verify` | Not part of the product story |
+| Reach `/admin`, `/lab`, `/signup`, `/onboarding`, `/verify` | Not part of the product story |
 | Reach `/api/upload/*`, `/api/razorpay/*`, `/api/auth/*`, `/api/places/*` | Bytes, money, sessions, and a metered geocoder |
 
 ### Where each of those is enforced

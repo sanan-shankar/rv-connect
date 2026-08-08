@@ -3,7 +3,7 @@
 -- ask to unblock `prisma db push`).
 --
 -- Context: the six legacy Catch-ups tables that section 3 of
--- prisma/pending-migration.sql was written to drop (Catchup, CatchupPref,
+-- prisma/migrations-manual/2026-07-05-secondary-city.sql was written to drop (Catchup, CatchupPref,
 -- CatchupAnswer, CatchupAnswerLove, CatchupIssue, CatchupQuestion) were
 -- already gone when this ran; information_schema showed only the six live
 -- ones (CatchupSeries, CatchupEdition, CatchupPrompt, CatchupEntry,

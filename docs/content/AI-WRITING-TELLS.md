@@ -1,6 +1,6 @@
 # Telltale Signs of AI-Written Text (and our house style)
 
-A reference for SattvIQ. Purpose: so everything we publish (website, decks, emails, proposals, docs) reads like a sharp human wrote it, not a language model. These tells shift as models change, so treat this as living. Last updated 2026-06-26.
+Purpose: so everything published on Rishi Valley (site copy, emails, notifications, docs) reads like a sharp human wrote it, not a language model. These tells shift as models change, so treat this as living. Last updated 2026-06-26.
 
 House rule above all else: **no long dashes anywhere in anything we produce.** Em dash and en dash are both banned. Use a hyphen, a comma, a colon, parentheses, or two sentences.
 
@@ -45,21 +45,22 @@ contrast, easy to miss) instead of outsourcing the description to "quiet."
 24. **The summary sentence at the end of every paragraph** that repeats the paragraph's first sentence in different words.
 25. **Uniform sentence rhythm.** AI tends toward medium-length, evenly-paced sentences. Humans vary hard: a long winding sentence, then a short one. Like this.
 
-## D. Domain-specific tells for us (EPC / B2B)
+## D. Domain-specific tells for us
 
-26. **Generic benefit-speak**: "streamline your workflows", "drive efficiency", "unlock value", "transform your operations", "boost productivity". An EPC engineer's eyes glaze instantly. Say the concrete thing: "catches a datasheet that disagrees with the H&MB before it reaches the vendor".
-27. **Buzzword stacking**: "AI-powered, cloud-native, end-to-end, next-generation platform". One claim, proven, beats five adjectives.
-28. **Fake precision**: "increase efficiency by up to 10x" with no basis. We have a real number basis (engineer-hours saved on a specific deliverable). Use the real one or none.
+26. **Generic benefit-speak**: "connect with your community", "stay in touch effortlessly", "unlock your network", "reimagine alumni engagement". Nobody who went to Rishi Valley talks that way. Say the concrete thing: "the people from your year, and where they live now".
+27. **Buzzword stacking**: "a modern, seamless, all-in-one platform for alumni". One plain claim beats five adjectives.
+28. **Institutional voice**: "The Alumni Association is pleased to announce". This is a place old friends find each other, not a press office. Write like a person telling another person.
+29. **Nostalgia laid on thick**: "those magical golden days under the banyan". The valley does not need selling to people who lived there. Name the real thing (the banyan, assembly, the Rishi Konda ridge) and let it do the work.
 
 ---
 
-## How we write instead (the SattvIQ voice)
+## How we write instead
 
-- **Say what the thing is and what it does.** Do not say what it is not. ("P&IDs become structured, queryable data." Not "P&IDs as data. Not paper.")
-- **Be specific.** Name the document, the standard, the number, the saved hours. Specificity is credibility, especially to engineers.
-- **Earn every adjective.** Prefer a verb and a fact over an adjective. "Flags the line where the design pressure disagrees" beats "powerful, intelligent compliance".
+- **Say what the thing is and what it does.** Do not say what it is not. ("Every photo the valley has, in one place." Not "Not just another photo dump.")
+- **Be specific.** Name the year, the house, the place, the number. Specificity is credibility: "eleven people from '98 live in Bangalore" beats "a thriving local community".
+- **Earn every adjective.** Prefer a verb and a fact over an adjective. "Comes back every season and asks you four questions" beats "a delightful, engaging newsletter".
 - **Vary the rhythm.** Mix long and short sentences. Read it aloud; if it sounds like a brochure, cut it.
-- **Lead with the reader's problem in their words.** EPC engineers talk about checking, re-checking, version control, deviations, man-hours, schedule. Use their language.
+- **Lead with the reader's problem in their words.** Alumni talk about losing touch, not knowing who is where, missing the reunion, forgetting a name. Use their language.
 - **One claim, then the proof.** Not three claims and no proof.
 - **No long dashes. Ever.** Hyphen, comma, colon, parentheses, or a full stop.
 

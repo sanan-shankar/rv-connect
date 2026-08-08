@@ -3,8 +3,8 @@
  * composer and the Collection contribute dialog so the presign contract
  * (and its CORS-failure fallback behaviour) lives in exactly one place.
  *
- * The bucket's CORS rule is live (applied 2026-07-30, see docs/ops/r2-cors.md),
- * so this is the path a browser normally takes.
+ * The bucket's CORS rule is live (applied 2026-07-30), so this is the path a
+ * browser normally takes.
  *
  * Returns the staged object's key/publicUrl on success, or null whenever the
  * direct path is unavailable anyway: no R2 configured locally, a transient
@@ -54,8 +54,8 @@ export async function directUploadPut(
     if (!put.ok) return null;
   } catch {
     // The browser blocked the PUT, which in practice means this origin is not
-    // in the bucket's CORS rule (docs/ops/r2-cors.md). Fall back rather than
-    // strand the upload.
+    // named in the bucket's CORS allowlist. Fall back rather than strand the
+    // upload.
     return null;
   }
 

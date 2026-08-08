@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
 
-config({ path: ".env.local" });
+config({ path: ".env" });
 
 const [route, out = "shot.png", mobile] = process.argv.slice(2);
 const vp = mobile === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 };

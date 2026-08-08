@@ -242,10 +242,10 @@ function isOwnProfileEdit(operation: string, args: unknown): boolean {
  * ---------------------------------------------------------------- */
 
 /**
- * Page prefixes the demo redirects away from. Admin is obvious. `/lab` and
- * `/copy-editor` are dev scaffolding, not part of the product story and not
- * worth showing a stranger. The rest are flows that only mean anything when
- * accounts are real.
+ * Page prefixes the demo redirects away from. Admin is obvious. `/lab` is
+ * dev scaffolding, not part of the product story and not worth showing a
+ * stranger. The rest are flows that only mean anything when accounts are
+ * real.
  *
  * ENFORCEMENT LIVES IN src/proxy.ts, which cannot import this file: proxy is
  * bundled for the edge runtime and this module is reached from server-only
@@ -255,7 +255,6 @@ function isOwnProfileEdit(operation: string, args: unknown): boolean {
 export const DEMO_CLOSED_PATHS: readonly string[] = [
   "/admin",
   "/lab",
-  "/copy-editor",
   "/onboarding",
   "/signup",
   "/verify",

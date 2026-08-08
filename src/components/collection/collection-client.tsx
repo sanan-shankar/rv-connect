@@ -182,7 +182,7 @@ export function CollectionClient({
   const hasFilter = !!(area || era || search);
   // Truly empty: nothing has ever been added, no filter is even active.
   // Distinct from filtered-to-zero (photos exist, the active filters just
-  // don't match any of them) -- see docs/planning/round6-specs/filters-rework.md sec 7.
+  // don't match any of them).
   // Resolved from the server-computed `hasApprovedPhotos` prop, not the
   // client-side `photos`/`loading` fetch state: that fetch only starts after
   // mount, so gating this on it flashed the toolbar in on first paint, then
@@ -237,8 +237,7 @@ export function CollectionClient({
           desktop (few enough facets, no "More filters" toggle needed).
           When the collection is truly empty (no approved photos at all),
           none of that filter chrome has anything to act on, so only the
-          Contribute CTA renders -- see
-          docs/planning/round6-specs/filters-rework.md sec 7. */}
+          Contribute CTA renders. */}
       <div className="mb-2 flex flex-wrap items-center gap-2.5">
         {!trulyEmpty && (
           <div className="relative min-w-[200px] flex-1">

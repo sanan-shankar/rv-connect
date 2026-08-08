@@ -21,7 +21,7 @@ import { config } from "dotenv";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
-config({ path: ".env.local" });
+config({ path: ".env" });
 
 const argv = process.argv.slice(2);
 const mobile = argv.includes("--mobile");
@@ -29,7 +29,7 @@ const wantShot = argv.includes("--shot");
 const base = "http://localhost:3000";
 const adminEmail = process.env.ADMIN_EMAIL;
 if (!adminEmail) {
-  console.error("ADMIN_EMAIL missing from .env.local");
+  console.error("ADMIN_EMAIL missing from .env");
   process.exit(1);
 }
 

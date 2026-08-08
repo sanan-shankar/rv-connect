@@ -5,7 +5,7 @@
  *  product, (main) and (auth), gets exactly one entry here. This is the
  *  fix for the owner's complaint (2026-07-30): rooms under /preview/delight
  *  were invisible from /preview/delight/second-look and vice versa, and
- *  routes like /preview/logo or /copy-editor had no index at all.
+ *  routes like /preview/logo had no index at all.
  *
  *  Resolved in two steps. First `/lab` became the one index. Then the whole
  *  /preview tree was MOVED here (2026-07-30, owner: "I don't want preview to
@@ -314,13 +314,6 @@ export const REGISTRY: LabEntry[] = [
   /* ---------------------------------------------------------------- *
    *  Tools: dev-only utilities, not design rooms
    * ---------------------------------------------------------------- */
-  {
-    href: "/copy-editor",
-    title: "Copy editor workbench",
-    group: "Tools",
-    status: "active",
-    note: "Dev-only tool (404s outside NODE_ENV=development) for walking .copy-review/inventory.json string by string during the copy pass; throwaway, meant to be deleted once that pass is done.",
-  },
   {
     href: "/lab/location-picker",
     title: "Location picker harness",

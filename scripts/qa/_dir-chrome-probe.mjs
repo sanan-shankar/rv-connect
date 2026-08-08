@@ -11,9 +11,9 @@
 import puppeteer from "puppeteer";
 import { config } from "dotenv";
 
-// .env.local, not .env: ADMIN_EMAIL lives there, and `dotenv/config` reads the
+// .env, not .env: ADMIN_EMAIL lives there, and `dotenv/config` reads the
 // wrong file, which is what made the first run of this probe 403.
-config({ path: ".env.local" });
+config({ path: ".env" });
 
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const BASE = "http://localhost:3000";

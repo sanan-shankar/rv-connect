@@ -7,7 +7,7 @@
  *   node scripts/dev/run-sql.mjs --inline "SELECT count(*) FROM \"User\""
  *
  * Uses DIRECT_URL (session pooler, port 5432) like the Prisma CLI does, so DDL
- * works; falls back to DATABASE_URL. Reads .env.local then .env, never prints
+ * works; falls back to DATABASE_URL. Reads .env then .env, never prints
  * the connection string. Prints row output as JSON (capped) so it is safe to
  * pipe into logs.
  */
@@ -17,7 +17,7 @@ import pg from "pg";
 
 function loadEnv() {
   const vars = {};
-  for (const file of [".env.local", ".env"]) {
+  for (const file of [".env", ".env"]) {
     const p = resolve(process.cwd(), file);
     if (!existsSync(p)) continue;
     for (const line of readFileSync(p, "utf8").split("\n")) {
@@ -34,7 +34,7 @@ function loadEnv() {
 const env = loadEnv();
 const url = env.DIRECT_URL || env.DATABASE_URL;
 if (!url) {
-  console.error("No DIRECT_URL or DATABASE_URL found in .env.local/.env");
+  console.error("No DIRECT_URL or DATABASE_URL found in .env");
   process.exit(1);
 }
 

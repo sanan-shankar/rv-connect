@@ -11,7 +11,7 @@
  * SAFETY. This deletes every row in the database it connects to, so it
  * refuses to run unless the target proves it is the demo one:
  *   1. `.env.demo` must exist and must set DEMO_MODE=1, and
- *   2. its DATABASE_URL must differ from the one in .env/.env.local, which
+ *   2. its DATABASE_URL must differ from the one in .env, which
  *      is the real database.
  * `--i-know-what-im-doing` overrides both. A tired person running this from
  * the wrong directory should hit an error, not a production wipe.
@@ -44,7 +44,7 @@ function loadEnvFile(files: string[]): Record<string, string> {
 
 const FORCE = process.argv.includes("--i-know-what-im-doing");
 const demoEnv = loadEnvFile([".env.demo"]);
-const mainEnv = loadEnvFile([".env.local", ".env"]);
+const mainEnv = loadEnvFile([".env", ".env"]);
 
 for (const [k, v] of Object.entries(demoEnv)) process.env[k] = v;
 
@@ -69,7 +69,7 @@ if (process.env.DEMO_MODE !== "1" && !FORCE) {
 if (mainEnv.DATABASE_URL && mainEnv.DATABASE_URL === process.env.DATABASE_URL && !FORCE) {
   die(
     "Refusing to run: the demo DATABASE_URL is byte-identical to the one in\n" +
-      ".env/.env.local, which is the REAL database. The demo needs its own.",
+      ".env, which is the REAL database. The demo needs its own.",
   );
 }
 

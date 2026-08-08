@@ -7,8 +7,8 @@ import { config } from 'dotenv';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
 
-// Load .env.local for ADMIN_EMAIL
-config({ path: '.env.local' });
+// Load .env for ADMIN_EMAIL
+config({ path: '.env' });
 
 const args = process.argv.slice(2);
 const mobileFlag = args.includes('--mobile');
@@ -19,7 +19,7 @@ const label = filteredArgs[1] || '';
 
 const adminEmail = process.env.ADMIN_EMAIL;
 if (!adminEmail) {
-  console.error('Error: ADMIN_EMAIL not found in .env.local');
+  console.error('Error: ADMIN_EMAIL not found in .env');
   process.exit(1);
 }
 
