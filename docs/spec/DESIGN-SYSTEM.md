@@ -381,9 +381,15 @@ register IS the template, and it lives in exactly one file - `src/components/ui/
 ## How to use this doc
 
 Before building any UI, read this file plus the relevant `docs/spec/*` for the feature. After building,
-run the after-work checklist in `CLAUDE.md`. The automated checks (ESLint rules + PR template) enforce the
-non-negotiables — pill CTAs, no `transition-all`, no hand-typed easing, no cheap-green fills — so drift
-gets caught before it ships rather than fixed by hand afterward.
+run `npm run check`: it runs the ESLint design rules and `scripts/qa/protocol-audit.mjs` (plus types, the
+lab registry and the unit tests) and reports in one table, so drift gets caught before it ships rather
+than fixed by hand afterward.
+
+The design rules are deliberately `warn`, never `error`: they nudge, they never break the build. That is
+why they need a gate somebody actually runs. This paragraph used to cite "ESLint rules + PR template";
+the PR template was deleted on 2026-08-08 and ESLint was, in practice, never run, which is how a
+hand-typed easing curve reached the shared `Button` and `bg-white` reached the landing hero with three
+separate documents forbidding both.
 
 ---
 

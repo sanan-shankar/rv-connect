@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "mcpServers": {
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--headless",
+        "--isolated",
+        "--viewport",
+        "1440x900",
+        "-e",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "--screenshotFormat",
+        "webp",
+        "--screenshotQuality",
+        "72",
+        "--screenshotMaxWidth",
+        "1440",
+        "--usageStatistics",
+        "false"
+      ]
+    }
+  }
+}

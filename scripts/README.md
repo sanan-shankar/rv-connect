@@ -16,6 +16,7 @@ Screenshots land in `temporary screenshots/`.
 
 | Command | Does |
 |---|---|
+| `npm run check` | **The one gate.** Runs TypeScript, ESLint, `protocol-audit`, `lab-audit` and all 14 `*.test.mjs` in parallel, ~17s, no dev server needed. Prints a pass/warn/FAIL table. Add a gate name (`types`, `lint`, `protocol`, `lab`, `tests`) to run just one. Run it before every commit. |
 | `npm run screenshot <url> [label]` | Screenshot any public page. Add `--mobile` for 390x844. The workhorse. |
 | `npm run screenshot:auth <url>` | Same, but signed in as admin first. Use for anything behind login. |
 | `npm run verify:shot` | Screenshot plus a console/pageerror check, so a clean-looking page with a red console still fails. |
