@@ -13,7 +13,7 @@ import {
   ICONS,
   type NavItem,
 } from "../_shell";
-import { BATCH_2004, BURDENS, BIRDERS, PEOPLE } from "../_data";
+import { BATCH_2004, BURDENS, BIRDERS } from "../_data";
 import { Lock, Sparkles, ArrowRight, MessagesSquare, Mail } from "lucide-react";
 
 const NAV: NavItem[] = [

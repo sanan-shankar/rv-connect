@@ -189,7 +189,12 @@ export function SupportContribute() {
         transition={{ duration: 0.36, ease: EASE_OUT_SMOOTH }}
         className="flex flex-col items-start gap-[var(--space-s)]"
       >
-        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-canopy/10 text-canopy" aria-hidden>
+        {/* Leaf, not canopy: DESIGN-SYSTEM colour rule 4 kills the bg-canopy/10 +
+            text-canopy pairing for icon bubbles and keeps the canopy wash for
+            selection states only. Leaf is the approved tint here and is what a
+            success tick should read as anyway. Rule 5's AA caveat is about small
+            bold TEXT; this is a 24px glyph. */}
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-leaf/30 bg-leaf/[0.07] text-leaf" aria-hidden>
           <Check className="h-6 w-6" />
         </span>
         <p className="font-heading text-xl font-bold tracking-tight text-foreground">

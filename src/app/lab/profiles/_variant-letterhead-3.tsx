@@ -1013,7 +1013,6 @@ function Letterhead({
                       role="img"
                       aria-label={profile.name}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={profile.photoUrl ?? ""}
                         alt=""

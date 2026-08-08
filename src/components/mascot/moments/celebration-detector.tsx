@@ -70,7 +70,6 @@ export function CelebrationDetector({
       markFired(userId, POST_SIGNUP);
       enqueue("postSignupWelcome");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, isNewAccount]);
 
   useEffect(() => {
@@ -90,7 +89,6 @@ export function CelebrationDetector({
     } else if (letterCount !== baseline) {
       writeProgress(userId, FIRST_LETTER, letterCount);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, letterCount]);
 
   useEffect(() => {
@@ -111,7 +109,6 @@ export function CelebrationDetector({
     } else if (!profileComplete && seen !== 0) {
       writeProgress(userId, PROFILE_COMPLETE, 0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, profileComplete]);
 
   useEffect(() => {
@@ -129,7 +126,6 @@ export function CelebrationDetector({
       writeProgress(userId, POST_MILESTONE, floor);
       enqueue("proudMoment");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, postCount]);
 
   const playing = queue[0] ?? null;
@@ -157,6 +153,12 @@ export function CelebrationDetector({
     return () => {
       cancelled = true;
     };
+    // Keyed on the id, not the object. `playing` is a fresh object on every queue
+    // change, so depending on it would tear this poll down and restart it (retry
+    // counter and all) mid-wait every time an unrelated celebration was queued
+    // behind this one. The id identifies the celebration actually playing, and it
+    // is the only thing that should re-arm the wait.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing?.id]);
 
   if (!playing || !canRender) return null;

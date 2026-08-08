@@ -95,7 +95,6 @@ export default function ViewerRoom() {
               onClick={() => setOpenAt(i)}
               className="group overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={thumb}
                 alt={GALLERY[i].caption ?? "Collection photograph"}
@@ -117,7 +116,6 @@ export default function ViewerRoom() {
           onClick={() => setSingleOpen(true)}
           className="group mt-4 block w-56 overflow-hidden rounded-[var(--radius-md)] border border-border bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/collection/c2-thumb.webp"
             alt="A single collection photograph"
