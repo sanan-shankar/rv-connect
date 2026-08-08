@@ -1,4 +1,4 @@
-# RV Alumni — MVP Build Roadmap
+# RV Connect — MVP Build Roadmap
 
 _Synthesized by the architecture workflow (wpud23338). Source of truth for build order, decisions, component inventory, and data model. Infra, avatar, and newsletter-naming details below reflect the 2026-07-01/07-02 decisions (Vercel + Supabase Mumbai + R2; 50-species avatars; "Catch-ups"/"Round N"); see `docs/STACK_MIGRATION.md` for the infra migration runbook._
 

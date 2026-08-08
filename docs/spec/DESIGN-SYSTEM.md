@@ -14,7 +14,7 @@ interpretation and are pending a quick sign-off in chat. Everything else is lock
 
 - **User-facing name is "Rishi Valley".** We drop "Alumni" everywhere the user sees it, because the
   community includes teachers and staff, not only alumni. **(confirming)**
-- **"RV Alumni"** is internal/developer shorthand only — never shown to users.
+- **"RV Connect"** is internal/developer shorthand only — never shown to users.
 - **"Rishi Valley School"** is the institution — use only in external/legal/formal contexts.
 - **Browser tab title:** `Rishi Valley · {Section}` (e.g. `Rishi Valley · Feed`, `Rishi Valley · Directory`).
   Pages with no section show just `Rishi Valley`. No "Alumni" in the title.

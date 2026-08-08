@@ -1,4 +1,4 @@
-# RV Alumni bugs and fixes
+# RV Connect bugs and fixes
 
 The single tracker for outstanding bugs and small fixes.
 

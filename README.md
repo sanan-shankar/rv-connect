@@ -1,4 +1,4 @@
-# RV Alumni
+# RV Connect
 
 A social platform for Rishi Valley School alumni to reconnect, share stories, and find each other.
 
@@ -16,8 +16,8 @@ A social platform for Rishi Valley School alumni to reconnect, share stories, an
 
 1. **Clone the repo:**
    ```bash
-   git clone https://github.com/sanan-shankar/rv-alumni.git
-   cd rv-alumni
+   git clone https://github.com/sanan-shankar/rv-connect.git
+   cd rv-connect
    ```
 
 2. **Install dependencies:**

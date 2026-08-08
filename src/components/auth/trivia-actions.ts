@@ -86,7 +86,7 @@ const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const attempts = new Map<string, { count: number; first: number }>();
 
 function secret(): string {
-  return process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "rv-alumni-trivia-dev-secret";
+  return process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "rv-connect-trivia-dev-secret";
 }
 
 function sign(payload: string): string {
