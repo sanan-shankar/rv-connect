@@ -5,8 +5,7 @@
  *  throws in private mode, scoped per user id so switching accounts on
  *  one browser never crosses wires.
  *
- *  V1 decision (docs/planning/round6-specs/walkthrough.md sec 7):
- *  localStorage only, no User column. Key `rv:tour:<userId>`, value
+ *  V1 decision: localStorage only, no User column. Key `rv:tour:<userId>`, value
  *  "completed" or "dismissed". Losing this flag never loses real data; it
  *  only matters if the dormant automatic offer is explicitly re-enabled.
  *  The owner Admin page's "hoopoe tour" action remains a manual way back in

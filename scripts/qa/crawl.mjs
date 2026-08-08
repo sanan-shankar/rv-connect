@@ -6,10 +6,15 @@ import { fileURLToPath } from 'url';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
 
-config({ path: '.env.local' });
+config({ path: '.env' });
 const OWN = 'cmmz0vvws0000ynsg3ueb9scp';
 const OTHER = 'b9d8okmgtb1yp6a58jv3xky1';
-const routes = ['/feed','/directory','/groups','/letters','/catchups','/events','/collection','/about','/settings','/support','/donate','/admin',`/profile/${OWN}`,`/profile/${OTHER}`,'/','/login','/signup','/preview/v2','/preview/birds'];
+// Every live destination, signed in as the admin. Keep this in step with the
+// sidebar in src/components/layout/sidebar.tsx: a route that 404s here but is
+// still listed is a route somebody deleted without telling the crawler.
+// /donate is deliberately included: it survives only as a redirect to /support
+// for old links, so a 200 here is the redirect working.
+const routes = ['/feed','/directory','/letters','/catchups','/collection','/about','/support','/donate','/admin','/messages','/dark-mode',`/profile/${OWN}`,`/profile/${OTHER}`,'/','/login','/signup','/lab'];
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });

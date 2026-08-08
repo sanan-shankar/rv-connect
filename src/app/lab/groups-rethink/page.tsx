@@ -190,8 +190,9 @@ export default function GroupsRethinkIndex() {
       </Card>
 
       <p className="mt-6 text-[12.5px] italic text-muted-foreground">
-        Static previews only. Mock data, no database writes. Full write-up in
-        docs/planning/round6-specs/groups-rethink.md.
+        Static previews only. Mock data, no database writes. Four directions
+        for what could replace Groups; nothing here is built for real until
+        one is picked.
       </p>
     </PreviewShell>
   );

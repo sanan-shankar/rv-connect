@@ -1,5 +1,5 @@
-// The shared Directory + Collection filter kit. See
-// docs/planning/round6-specs/filters-rework.md sec. 4 and 9.
+// The shared Directory + Collection filter kit. Both browse pages compose
+// their filter chrome from these pieces so the two can never drift apart.
 export * from "./types";
 export * from "./pill-shell";
 export * from "./facet-select";

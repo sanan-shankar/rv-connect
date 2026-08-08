@@ -25,19 +25,31 @@ A social platform for Rishi Valley School alumni to reconnect, share stories, an
    npm install
    ```
 
-3. **Set up environment variables:**
-   ```bash
-   cp .env .env.local
-   ```
-   Edit `.env.local` and fill in:
-   - `NEXTAUTH_SECRET` — run `openssl rand -base64 32` to generate
+3. **Set up environment variables.** Create a `.env` in the repo root. That is
+   the only env file this project uses: both Next.js and the Prisma CLI read it,
+   and it is gitignored, so it never leaves your machine.
+
+   Required:
    - `DATABASE_URL` / `DIRECT_URL` — your Supabase Postgres connection strings
      (pooled port `6543` for `DATABASE_URL`, direct port `5432` for `DIRECT_URL`)
+   - `NEXTAUTH_SECRET` — run `openssl rand -base64 32` to generate
+   - `NEXTAUTH_URL` — `http://localhost:3000` locally
+   - `ADMIN_EMAIL` and `NEXT_PUBLIC_ADMIN_EMAIL` — your email (gets admin role on
+     first login; also enables the password-less admin bypass at
+     `/api/auth/admin-login`)
+
+   Optional, each degrading cleanly when absent:
    - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
-     `R2_PUBLIC_BASE_URL` — Cloudflare R2 credentials (omit locally to fall back
-     to the filesystem storage driver under `public/uploads/`)
-   - `ADMIN_EMAIL` — your email (gets admin role on first login; also enables
-     the password-less admin bypass at `/api/auth/admin-login`)
+     `R2_PUBLIC_BASE_URL` — Cloudflare R2 credentials. Omit locally to fall back
+     to the filesystem storage driver under `public/uploads/`.
+   - `RESEND_API_KEY` — transactional email.
+   - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` — the
+     Support page's payment flow.
+   - `CRON_SECRET` — authenticates the scheduled jobs declared in `vercel.json`.
+
+   The public demo build is a separate deployment with its own database and its
+   own two variables, `DEMO_MODE` and `AUTH_SECRET`. Neither belongs in a normal
+   local `.env`; see `docs/spec/demo.md` for that setup.
 
 4. **Push the database schema:**
    ```bash

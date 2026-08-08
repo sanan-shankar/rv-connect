@@ -16,7 +16,7 @@
  * app's Prisma write+read path is self-consistent, so going through `src/generated/prisma`
  * here (like the app itself does) avoids that trap entirely.
  *
- * Env is loaded by hand (.env.local then .env, same precedence as scripts/dev/run-sql.mjs)
+ * Env is loaded by hand (.env then .env, same precedence as scripts/dev/run-sql.mjs)
  * BEFORE any import that could construct a client or read R2 config, since this is a
  * standalone script — nothing auto-loads .env files the way Next.js does. The Prisma client
  * and the storage shim are pulled in via dynamic `import()` (not static imports, which are
@@ -39,12 +39,12 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-// ─── Env: load .env.local then .env into process.env, precedence matching ────
+// ─── Env: load .env then .env into process.env, precedence matching ────
 // ─── scripts/dev/run-sql.mjs, before any dynamic import touches DATABASE_URL ──
 
 function loadEnvFile(): Record<string, string> {
   const vars: Record<string, string> = {};
-  for (const file of [".env.local", ".env"]) {
+  for (const file of [".env", ".env"]) {
     const p = resolve(process.cwd(), file);
     if (!existsSync(p)) continue;
     for (const line of readFileSync(p, "utf8").split("\n")) {
@@ -66,7 +66,7 @@ for (const [k, v] of Object.entries(loadedEnv)) {
 }
 
 if (!process.env.DATABASE_URL) {
-  console.error("[seed-curated-content] No DATABASE_URL found in .env.local/.env. Aborting.");
+  console.error("[seed-curated-content] No DATABASE_URL found in .env. Aborting.");
   process.exit(1);
 }
 

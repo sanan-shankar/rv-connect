@@ -97,7 +97,6 @@ const DRAB_ALLOW = new Map([
   ["src/components/auth/signup-form.tsx", "segmented-control selected thumb"],
   ["src/components/catchups/home/keeper-settings-dialog.tsx", "segmented-control selected thumb"],
   ["src/components/catchups/home/reminder-pref-control.tsx", "segmented-control selected thumb"],
-  ["src/app/copy-editor/entry-card.tsx", "internal tool, not user-facing product"],
 ]);
 
 for (const f of srcFiles()) {

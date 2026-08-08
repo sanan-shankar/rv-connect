@@ -30,7 +30,6 @@ const IS_DEMO = process.env.DEMO_MODE === "1";
 const DEMO_CLOSED_PATHS = [
   "/admin",
   "/lab",
-  "/copy-editor",
   "/onboarding",
   "/signup",
   "/verify",
@@ -51,7 +50,6 @@ const DEMO_CLOSED_APIS = [
   "/api/razorpay",
   "/api/auth",
   "/api/places",
-  "/api/copy-review",
 ];
 
 function isUnder(pathname: string, prefixes: string[]): boolean {

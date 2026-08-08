@@ -45,7 +45,7 @@ export function AlmostReady({
     <FadeRise className={cn("mx-auto w-full max-w-3xl", className)}>
       <div className="card-elevated relative overflow-hidden rounded-[var(--radius)] border border-border bg-card">
         {/* Layered warm radial wash, so the surface has depth rather than a flat
-            fill. Kept (unlike the group-catchup-card empty state) because this
+            fill. Kept, unlike on the routine cards, because this
             is a genuine rare/hero moment -- the one full "almost here" scene a
             Catch-up shows, not a routine card repeated across a busy page --
             so a soft accent here reads as intentional rather than an

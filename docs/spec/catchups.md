@@ -866,9 +866,11 @@ staggered answer-card kit, sticky question TOC, Spotify album-art card render, `
 via `toggleEntryLove`, the future-comment slot left dormant). Depends on WP1 + WP2. This is the
 crown-jewel package; give it the most polish budget.
 
-**WP7 - Notifications + group integration + nav.** *Owns:* `src/lib/catchups-notify.ts` (builds the
-`Notification` rows for the six triggers, respecting `CatchupPref`), the notification-bell type ->
-icon/label mapping addition, `src/components/catchups/group-catchup-card.tsx`, and the wiring of
+**WP7 - Notifications + group integration + nav.** (The group integration half of this package is
+dead: Groups was removed from the product, so `/groups/[id]` and `group-catchup-card.tsx` no longer
+exist. The notification and nav half shipped and is live.) *Owns:* `src/lib/catchups-notify.ts`
+(builds the `Notification` rows for the six triggers, respecting `CatchupPref`), the
+notification-bell type -> icon/label mapping addition, and the wiring of
 `advanceDueCatchups` into the app-shell notification-count query. *Coordinated insert (not exclusive):*
 one import + one JSX block into `src/app/(main)/groups/[id]/page.tsx` to mount the group Catch-up card
 (WP7 makes exactly this one edit, at the top of the members-only branch, so it never collides with the

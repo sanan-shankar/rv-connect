@@ -107,14 +107,16 @@ plus a written spec. The build recommendation is "Gatherings," but nothing is bu
 the owner picks.
 - Size: owner decision, then a build phase.
 
-### 13. Copy rewrite pass not started (inventory is current)
-`docs/content/COPY-INVENTORY.md` and `.copy-review/inventory.json` now hold 1308 strings: the
-original 831 plus a 477-entry delta sweep (end of the 2026-07-05/06 session) covering everything
-that session built (Catch-ups incl. the 30-question library and notification templates, the feed
-rail and greeting strip, the guided welcome flow, the rebuilt composer, the mascot moment strings).
-The owner works through the dev-only `/copy-editor` UI (`src/app/copy-editor/`, reads and writes
-`.copy-review/inventory.json`; leaving a box empty keeps the current text), after which the
-replacements get applied codebase-wide and the tool plus `.copy-review/` get deleted.
+### 13. Copy rewrite pass not started
+Nobody has read the site's user-facing text end to end and rewritten it in one voice.
+
+An inventory of 1308 strings and a dev-only `/copy-editor` workbench were built for this in July.
+Both were deleted (the tool on 2026-08-07, the inventory on 2026-08-08): the tool recorded zero
+edits in a month, and the inventory had drifted badly enough to be misleading, still listing
+`/groups` and `/settings` long after both were removed.
+
+If this pass happens, regenerate the string list against the live codebase first. Do not restore
+the old snapshot from git; it describes a version of the site that no longer exists.
 - Size: owner's pass, then a codebase-wide apply.
 
 ### 14. Vercel environment variable duplicates (owner will handle)

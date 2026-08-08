@@ -11,12 +11,12 @@ import {
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
-config({ path: '.env.local' });
+config({ path: '.env' });
 
 const baseUrl = requireLoopbackBaseUrl(process.argv[2] || 'http://localhost:3000');
 const adminEmail = process.env.ADMIN_EMAIL;
 if (!adminEmail) {
-  console.error('Error: ADMIN_EMAIL not found in .env.local');
+  console.error('Error: ADMIN_EMAIL not found in .env');
   process.exit(1);
 }
 

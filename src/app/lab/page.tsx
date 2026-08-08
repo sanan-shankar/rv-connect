@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  *
  *  Fixes the owner's complaint (2026-07-30): rooms under
  *  /lab were invisible from /lab and
- *  vice versa, and routes like /lab/logo or /copy-editor had no index
+ *  vice versa, and routes like /lab/logo had no index
  *  anywhere. `scripts/qa/lab-audit.mjs` proves nothing on disk is missing
  *  from `REGISTRY`.
  *

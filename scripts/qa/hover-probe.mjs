@@ -34,7 +34,7 @@ import { config } from 'dotenv';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
-config({ path: '.env.local' });
+config({ path: '.env' });
 
 const argv = process.argv.slice(2);
 const mobile = argv.includes('--mobile');
@@ -43,7 +43,7 @@ const THEMES = themeArg ? [themeArg] : ['light', 'dark'];
 const BASE = 'http://localhost:3000';
 
 const adminEmail = process.env.ADMIN_EMAIL;
-if (!adminEmail) { console.error('ADMIN_EMAIL missing from .env.local'); process.exit(1); }
+if (!adminEmail) { console.error('ADMIN_EMAIL missing from .env'); process.exit(1); }
 
 /* ---- colour maths (same implementation used to derive the tokens) ---- */
 const lin = (c) => ((c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);

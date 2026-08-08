@@ -13,7 +13,6 @@
     "verify:shot": "node scripts/qa/verify-shot.mjs",
     "verify:crawl": "node scripts/qa/crawl.mjs",
     "dev:centroid": "node scripts/dev/centroid.mjs",
-    "dev:shot-v2": "node scripts/dev/shot-v2.mjs",
     "dev:shot-clip": "node scripts/dev/shot-clip.mjs"
   },
   "dependencies": {

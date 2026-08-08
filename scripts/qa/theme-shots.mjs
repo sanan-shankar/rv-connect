@@ -18,7 +18,7 @@ import { config } from 'dotenv';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
-config({ path: '.env.local' });
+config({ path: '.env' });
 
 const argv = process.argv.slice(2);
 const openMenu = argv.includes('--menu');

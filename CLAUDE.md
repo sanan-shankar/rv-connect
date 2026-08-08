@@ -39,6 +39,7 @@ CTAs/chips/tags are full pills. Do not use the old three-greens palette below ex
 - **Containment**: ALL commands run inside `/Users/sanan/Documents/rv-alumni/`. Never execute anything outside this folder without explicit permission.
 - **Storage**: Don't install packages >200MB without asking.
 - **Git commits**: NEVER include `Co-Authored-By`, model names, `noreply@anthropic.com`, or any AI attribution. Plain conventional commit messages only.
+- **Deploys are git-only**: NEVER run `vercel deploy`, `vercel --prod`, or any other Vercel CLI command that ships code. Both Vercel projects (production and demo) autodeploy from a push to this repo, and that push is the ONLY way anything reaches production. If a change needs to go live, commit and push; do not reach for the CLI. Project settings, env vars, and domains are managed in the Vercel dashboard by the owner, not by scripts.
 - **Mobile**: Every desktop UI change MUST be verified on mobile (390×844). Screenshot both viewports.
 - **No `transition-all`**: Only animate `transform` and `opacity`. Use spring-style easing.
 - **No default Tailwind blue/indigo**: Always use the brand palette above.
@@ -77,7 +78,7 @@ CTAs/chips/tags are full pills. Do not use the old three-greens palette below ex
 | Polishing typography, spatial layout, eliminating AI-slop | `/impeccable` — use `/audit`, `/polish`, `/typeset` |
 | Screenshotting authenticated pages | Read `.claude/skills/screenshot-auth/SKILL.md` |
 | Retroactively reviewing existing pages | Read `.claude/skills/ui-audit/SKILL.md` |
-| Starting a multi-step task or new feature | Use planning-with-files (`task_plan.md`, `findings.md`, `progress.md`) |
+| Starting a multi-step task or new feature | Use planning-with-files. Log outcomes in `progress.md`; if the skill wants scratch files, delete them when the task ships |
 | Debugging a stubborn bug (2+ attempts) | Use superpowers systematic debugging |
 | Before deploying or merging significant changes | `/simplify` then review security with VibeSec patterns |
 

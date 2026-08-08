@@ -38,8 +38,8 @@ export function YourCatchupsCard({ card }: { card: IndexCardView }) {
   return (
     <Link
       href={href}
-      // state-layer for the same reason as GroupCatchupCard's shell: a border
-      // hairline was the entire hover on a full-width card. The canopy border
+      // state-layer because a border hairline was the entire hover on a
+      // full-width card, which is far too quiet. The canopy border
       // hint and its deeper active step stay on top of the layer.
       className="card-elevated group flex flex-col gap-[var(--space-m)] rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)] transition-colors duration-150 state-layer hover:border-canopy/40 active:border-canopy/60 sm:flex-row sm:items-center sm:justify-between focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >

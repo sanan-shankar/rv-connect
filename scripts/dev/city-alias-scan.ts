@@ -13,7 +13,7 @@ import { resolve } from "node:path";
 
 function loadEnvFile(): Record<string, string> {
   const vars: Record<string, string> = {};
-  for (const file of [".env.local", ".env"]) {
+  for (const file of [".env", ".env"]) {
     const p = resolve(process.cwd(), file);
     if (!existsSync(p)) continue;
     for (const line of readFileSync(p, "utf8").split("\n")) {

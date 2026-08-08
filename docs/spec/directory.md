@@ -20,9 +20,8 @@
 >
 > Also note: every `UserAvatar` reference below (§0, §4.4, §5) points at
 > `src/components/common/user-avatar.tsx`, which **no longer exists** — it has been superseded
-> by `ProfileAvatar` / `BirdGlyphV2` per the same correction in `docs/spec/profile.md` §1 and
-> `docs/spec/ia.md` §9. Read "`UserAvatar`" below as "the shared avatar component," not a
-> literal file reference.
+> by `ProfileAvatar` / `BirdGlyphV2` per the same correction in `docs/spec/profile.md` §1.
+> Read "`UserAvatar`" below as "the shared avatar component," not a literal file reference.
 
 Confirmed: no map library installed, no geo/lat-long fields, no house/section/tags model (only `tag` on Post). The `grep` matches for "house"/"map"/"geo" are incidental (CSS, dropdown words). I now have full grounding. Here is the complete spec.
 

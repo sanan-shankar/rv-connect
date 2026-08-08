@@ -38,7 +38,7 @@ const PLACE_COLUMNS = ["id", "name", "asciiName", "altNames", "lat", "lng", "cou
 
 function loadEnv() {
   const vars = {};
-  for (const file of [".env.local", ".env"]) {
+  for (const file of [".env", ".env"]) {
     const p = resolve(process.cwd(), file);
     if (!existsSync(p)) continue;
     for (const line of readFileSync(p, "utf8").split("\n")) {
@@ -145,7 +145,7 @@ async function main() {
   const env = loadEnv();
   const url = env.DIRECT_URL || env.DATABASE_URL;
   if (!url) {
-    console.error("No DIRECT_URL or DATABASE_URL found in .env.local/.env");
+    console.error("No DIRECT_URL or DATABASE_URL found in .env");
     process.exit(1);
   }
   const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
