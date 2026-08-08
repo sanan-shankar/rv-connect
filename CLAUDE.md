@@ -27,10 +27,15 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 - **Deploys are git-only**: never run `vercel deploy`, `vercel --prod`, or any Vercel CLI command that
   ships code or edits project config. Both Vercel projects autodeploy from a push to this repo, and
   that push is the only way anything reaches production. Env vars, domains and settings are the
-  owner's, in the dashboard. Enforced by `.claude/hooks/db-guard.js`.
-- **Schema changes never use `prisma db push`**: one Supabase database backs production and local dev.
-  Edit `prisma/schema.prisma`, write a dated idempotent file in `prisma/migrations-manual/`, run
-  `npx prisma generate`, apply with `node scripts/dev/run-sql.mjs`. Also enforced by the hook above.
+  owner's, in the dashboard.
+- **Schema changes never use `prisma db push`**: there is ONE Supabase database behind both
+  production and local dev, and `prisma.config.ts` points the CLI at `DIRECT_URL`, the live session
+  pooler. `db push` diffs the schema and will try to DROP tables it considers orphaned
+  (`docs/spec/catchups.md:462`). Instead: edit `prisma/schema.prisma`, write a dated idempotent file
+  in `prisma/migrations-manual/`, run `npx prisma generate`, apply with `node scripts/dev/run-sql.mjs`.
+  Twelve migrations have shipped that way. Only `prisma generate` and `prisma studio` are
+  pre-approved in `.claude/settings.local.json`; anything destructive raises a permission prompt, and
+  the answer to that prompt is no unless the owner says otherwise in the same breath.
 - **Git commits**: never include `Co-Authored-By`, model names, or any AI attribution. Plain
   conventional commit messages.
 - **Storage**: don't install packages over 200MB without asking.
