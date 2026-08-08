@@ -418,14 +418,14 @@ Then `loadPosts` filters `groupId: null` for the main feed and `groupId: id` for
 ---
 
 Relevant existing files grounding this spec (all absolute):
-- `/Users/sanan/Documents/rv-alumni/prisma/schema.prisma`
-- `/Users/sanan/Documents/rv-alumni/src/components/posts/create-post-form.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/components/posts/post-card.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/app/(main)/feed/actions.ts`
-- `/Users/sanan/Documents/rv-alumni/src/lib/validators.ts`
-- `/Users/sanan/Documents/rv-alumni/src/components/groups/group-feed.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/app/(main)/groups/[id]/page.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/app/preview/v2/page.tsx`
+- `/Users/sanan/Documents/rv-connect/prisma/schema.prisma`
+- `/Users/sanan/Documents/rv-connect/src/components/posts/create-post-form.tsx`
+- `/Users/sanan/Documents/rv-connect/src/components/posts/post-card.tsx`
+- `/Users/sanan/Documents/rv-connect/src/app/(main)/feed/actions.ts`
+- `/Users/sanan/Documents/rv-connect/src/lib/validators.ts`
+- `/Users/sanan/Documents/rv-connect/src/components/groups/group-feed.tsx`
+- `/Users/sanan/Documents/rv-connect/src/app/(main)/groups/[id]/page.tsx`
+- `/Users/sanan/Documents/rv-connect/src/app/preview/v2/page.tsx`
 
 Letterloop research sources:
 - [letterloop.co](https://www.letterloop.co/), [How Letterloop works](https://help.letterloop.co/en/articles/12-how-letterloop-works), [Manage & Submit Questions](https://help.letterloop.co/en/articles/6-manage-and-submit-questions), [Customizing Your Issue](https://help.letterloop.co/en/articles/67-customizing-your-issue), [Send Extra Reminders](https://help.letterloop.co/en/articles/57-send-extra-reminders), [FAQs](https://www.letterloop.co/faqs), [Hands-on review (jaredsbryson.com)](https://www.jaredsbryson.com/blogs/review-group-newsletters-with-letterloop)

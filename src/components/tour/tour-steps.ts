@@ -5,7 +5,7 @@
  *  drift apart.
  *
  *  Voice: warm, plain, short sentences, no jargon, no em dashes, always
- *  "Rishi Valley" never "RV Alumni". The owner hates the word
+ *  "Rishi Valley" never "RV Connect". The owner hates the word
  *  "quiet"/"quietly" in user-facing copy; it never appears below (the
  *  spec's server-cost joke in the Feed note is rephrased without it).
  *

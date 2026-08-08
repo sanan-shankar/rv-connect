@@ -22,7 +22,7 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 
 # Hard Rules
 
-- **Containment**: all commands run inside `/Users/sanan/Documents/rv-alumni/`. Never execute anything
+- **Containment**: all commands run inside `/Users/sanan/Documents/rv-connect/`. Never execute anything
   outside it without explicit permission.
 - **Deploys are git-only**: never run `vercel deploy`, `vercel --prod`, or any Vercel CLI command that
   ships code or edits project config. Both Vercel projects autodeploy from a push to this repo, and
@@ -41,7 +41,7 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 - **Storage**: don't install packages over 200MB without asking.
 - **Mobile**: every desktop UI change is verified at 390x844 as well. Screenshot both.
 - **No `transition-all`**, no hand-typed `cubic-bezier(...)`, no default Tailwind blue/indigo, no pure
-  white surfaces, no em dashes in copy. User-facing naming is "Rishi Valley", never "RV Alumni".
+  white surfaces, no em dashes in copy. User-facing naming is "Rishi Valley", never "RV Connect".
 
 # Working agreement
 

@@ -161,7 +161,7 @@ v2's Details card has exactly three facts (House, At RV years, City) and v2's li
 5. **Based in** — `currentCity`, optionally `homeCity` if different ("Originally from / now in"), see model.
 6. **Profession** — `jobTitle` at `workplace`/industry, e.g. "Biology teacher · Education." Reuse the directory's Briefcase pattern.
 7. **Role at RV** — only for teachers: a "Taught here" / "Teacher" line, optional subject and years taught (see teacher fields in model). This is how the product distinguishes alumni from past/present teachers without a separate page.
-8. **Member since** — `createdAt` ("On RV Alumni since Mar 2026"). Low-priority, render last, optional.
+8. **Member since** — `createdAt` ("On RV Connect since Mar 2026"). Low-priority, render last, optional.
 
 **Explicitly NOT in the public Details card: `admissionNumber`.** Admission number is **private** (brief). Store it, show it only to (a) the owner on their own profile, and (b) admins via `AdminProfileTools`. It is a verification datum, not a public fact. Render it in a faint, clearly-labeled "Private to you" subgroup at the bottom of the owner's own Details card, never on others' profiles.
 
@@ -453,14 +453,14 @@ model UserMemory {       // NEW — prompted school-memories, keyed by prompt
 ---
 
 ### Files referenced (absolute paths)
-- `/Users/sanan/Documents/rv-alumni/prisma/schema.prisma`
-- `/Users/sanan/Documents/rv-alumni/src/app/(main)/profile/[id]/page.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/app/preview/v2/page.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/components/common/user-avatar.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/components/directory/profile-card.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/components/settings/settings-form.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/components/posts/post-card.tsx`
-- `/Users/sanan/Documents/rv-alumni/src/lib/validators.ts`
-- `/Users/sanan/Documents/rv-alumni/src/lib/utils.ts` (`formatBatch`, `getInitials`, `renderRichText`)
+- `/Users/sanan/Documents/rv-connect/prisma/schema.prisma`
+- `/Users/sanan/Documents/rv-connect/src/app/(main)/profile/[id]/page.tsx`
+- `/Users/sanan/Documents/rv-connect/src/app/preview/v2/page.tsx`
+- `/Users/sanan/Documents/rv-connect/src/components/common/user-avatar.tsx`
+- `/Users/sanan/Documents/rv-connect/src/components/directory/profile-card.tsx`
+- `/Users/sanan/Documents/rv-connect/src/components/settings/settings-form.tsx`
+- `/Users/sanan/Documents/rv-connect/src/components/posts/post-card.tsx`
+- `/Users/sanan/Documents/rv-connect/src/lib/validators.ts`
+- `/Users/sanan/Documents/rv-connect/src/lib/utils.ts` (`formatBatch`, `getInitials`, `renderRichText`)
 
 Key load-bearing facts discovered: `formatBatch()` ignores `batchType` and returns `Batch of 'YY` (header line is house-agnostic for free); there is **no** messaging model, so a "Message" CTA has no destination (drove the "Get in touch" recommendation); there is **no** `house`, `avatarImage`, teacher, memory, social-beyond-IG/LinkedIn, or verified field in the schema today (all are net-new in the model above); the live profile page dumps every field into one flat grid (the "exactly three vs everything" problem the Details/Contact redesign resolves).

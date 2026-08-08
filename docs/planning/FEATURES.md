@@ -1,4 +1,4 @@
-# RV Alumni — Feature Ideas & Backlog
+# RV Connect — Feature Ideas & Backlog
 
 > Parked ideas. Diff against `docs/spec/DESIGN-SYSTEM.md` and `docs/ROADMAP.md` before acting; some
 > items may already be decided/rejected.

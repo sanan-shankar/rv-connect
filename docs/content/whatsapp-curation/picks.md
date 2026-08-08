@@ -54,7 +54,7 @@ Quite serendipitous and quite lovely.
 
 A nail-biting prank in the senior hostel bathrooms—locking toilet stalls from the inside and escaping through a gap above the walls—spirals into a crisis when both a stranger and the housemother appear mid-escape. Decades later, the mystery visitor is revealed to be a friend's father, and the fear crystallizes into a cherished memory of a walk back through the dark valley. A masterwork of suspense and reflection.
 
-<!-- sourceNote: Capt (Dr) Rohit Shetty, WhatsApp "RVS Alumni" group chat, 26 December 2025, 10:12 am IST (source: "/Users/sanan/Documents/rv-alumni/WhatsApp/WhatsApp Chat - RVS Alumni/_chat.txt", lines 3534–3549). For the private record only; to be published under an Anonymous byline on the site per the owner's instruction. -->
+<!-- sourceNote: Capt (Dr) Rohit Shetty, WhatsApp "RVS Alumni" group chat, 26 December 2025, 10:12 am IST (source: "/Users/sanan/Documents/rv-connect/WhatsApp/WhatsApp Chat - RVS Alumni/_chat.txt", lines 3534–3549). For the private record only; to be published under an Anonymous byline on the site per the owner's instruction. -->
 
 That gap on top of the bathroom walls… I have a story :))
 
@@ -203,10 +203,10 @@ In December 2002, our batch met in Rishi Valley to celebrate our 25th anniversar
 A stunning 3D mural made from wood salvaged from the iconic Banyan tree, installed at the Dining Hall by an alumnus from the 2005 batch, with the entire community's participation. A living art piece that lets everyone feel the shade of the tree under which countless dreams were born.
 
 Media: 
-- /Users/sanan/Documents/rv-alumni/WhatsApp/WhatsApp Chat - RVS Alumni/00008454-PHOTO-2026-07-07-21-05-20.jpg
-- /Users/sanan/Documents/rv-alumni/WhatsApp/WhatsApp Chat - RVS Alumni/00008458-PHOTO-2026-07-07-21-06-12.jpg
-- /Users/sanan/Documents/rv-alumni/WhatsApp/WhatsApp Chat - RVS Alumni/00008510-PHOTO-2026-07-08-13-21-34.jpg
-- /Users/sanan/Documents/rv-alumni/WhatsApp/WhatsApp Chat - RVS Alumni/00008512-PHOTO-2026-07-08-13-21-35.jpg
+- /Users/sanan/Documents/rv-connect/WhatsApp/WhatsApp Chat - RVS Alumni/00008454-PHOTO-2026-07-07-21-05-20.jpg
+- /Users/sanan/Documents/rv-connect/WhatsApp/WhatsApp Chat - RVS Alumni/00008458-PHOTO-2026-07-07-21-06-12.jpg
+- /Users/sanan/Documents/rv-connect/WhatsApp/WhatsApp Chat - RVS Alumni/00008510-PHOTO-2026-07-08-13-21-34.jpg
+- /Users/sanan/Documents/rv-connect/WhatsApp/WhatsApp Chat - RVS Alumni/00008512-PHOTO-2026-07-08-13-21-35.jpg
 
 <!-- sourceNote: S Thomas, Prashant Rao, Anita Reddy, Usha K — WhatsApp Chat - RVS Alumni, 07/07/2026–08/07/2026 (lines 9676–9767 of _chat.txt); published Anonymous -->
 

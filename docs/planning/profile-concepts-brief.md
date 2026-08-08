@@ -46,7 +46,7 @@ one of them has failed regardless of how it looks.
 10. **No dead white space at any width.** Test at 1440 AND at 1920 fullscreen AND at
     390. Owner: "when you go to full screen, there's just a massive white space."
     A concept that centres one narrow column in an ocean of background has failed.
-11. **No em dashes** anywhere in copy. Say "Rishi Valley", never "RV Alumni".
+11. **No em dashes** anywhere in copy. Say "Rishi Valley", never "RV Connect".
 12. **Do not invent features.** No "write them a letter", no follower counts, no
     "following". Both were called out as confusing and unwanted.
 

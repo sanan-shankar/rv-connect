@@ -29,7 +29,7 @@ Confirmed: no map library installed, no geo/lat-long fields, no house/section/ta
 
 # The Directory + World Map
 
-## Design and architecture spec for RV Alumni
+## Design and architecture spec for RV Connect
 
 This is the core reason to join. Everything here is grounded in the real code: it extends the existing `/directory` route (`src/app/(main)/directory/page.tsx` + `directory-client.tsx`), reuses `ProfileCard` (`src/components/directory/profile-card.tsx`) and `UserAvatar` (`src/components/common/user-avatar.tsx`), and adopts the locked v2 visual language from `src/app/preview/v2/page.tsx`. No em dashes anywhere in copy.
 
@@ -364,4 +364,4 @@ Switching to **Batches** swaps the map for the existing year-tile grid (kept, bu
 
 New dependencies (all small, none paid, all well under the 200MB rule): `d3-geo`, `topojson-client`, `d3-zoom`, `supercluster`, plus a bundled world-atlas TopoJSON and a trimmed GeoNames gazetteer as static assets. MapLibre GL is deliberately deferred to a possible phase 2 and is not required for MVP.
 
-Relevant files read for grounding (all absolute): `/Users/sanan/Documents/rv-alumni/prisma/schema.prisma`, `/Users/sanan/Documents/rv-alumni/src/app/preview/v2/page.tsx`, `/Users/sanan/Documents/rv-alumni/src/app/(main)/directory/page.tsx`, `/Users/sanan/Documents/rv-alumni/src/components/directory/directory-client.tsx`, `/Users/sanan/Documents/rv-alumni/src/components/directory/profile-card.tsx`, `/Users/sanan/Documents/rv-alumni/src/components/common/user-avatar.tsx`, `/Users/sanan/Documents/rv-alumni/src/app/api/users/search/route.ts`, `/Users/sanan/Documents/rv-alumni/src/app/api/users-by-batch/route.ts`, `/Users/sanan/Documents/rv-alumni/src/lib/utils.ts`, `/Users/sanan/Documents/rv-alumni/src/lib/validators.ts`, `/Users/sanan/Documents/rv-alumni/src/app/(auth)/onboarding/page.tsx`.
+Relevant files read for grounding (all absolute): `/Users/sanan/Documents/rv-connect/prisma/schema.prisma`, `/Users/sanan/Documents/rv-connect/src/app/preview/v2/page.tsx`, `/Users/sanan/Documents/rv-connect/src/app/(main)/directory/page.tsx`, `/Users/sanan/Documents/rv-connect/src/components/directory/directory-client.tsx`, `/Users/sanan/Documents/rv-connect/src/components/directory/profile-card.tsx`, `/Users/sanan/Documents/rv-connect/src/components/common/user-avatar.tsx`, `/Users/sanan/Documents/rv-connect/src/app/api/users/search/route.ts`, `/Users/sanan/Documents/rv-connect/src/app/api/users-by-batch/route.ts`, `/Users/sanan/Documents/rv-connect/src/lib/utils.ts`, `/Users/sanan/Documents/rv-connect/src/lib/validators.ts`, `/Users/sanan/Documents/rv-connect/src/app/(auth)/onboarding/page.tsx`.

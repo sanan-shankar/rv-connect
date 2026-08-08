@@ -12,7 +12,7 @@ I now have a thorough grounding in the real codebase: the upload pipeline, image
 
 # The Photo Archive ("The Valley Collection")
 
-A design and implementation spec for the school photo archive area of RV Alumni. Grounded in the real codebase (`prisma/schema.prisma`, `src/app/api/upload/route.ts`, `src/app/(main)/feed/actions.ts`, `src/components/posts/*`, `src/app/preview/v2/page.tsx`, `.claude/skills/liftkit-spacing`). No files edited.
+A design and implementation spec for the school photo archive area of RV Connect. Grounded in the real codebase (`prisma/schema.prisma`, `src/app/api/upload/route.ts`, `src/app/(main)/feed/actions.ts`, `src/components/posts/*`, `src/app/preview/v2/page.tsx`, `.claude/skills/liftkit-spacing`). No files edited.
 
 ## 1. Name and identity
 
@@ -284,12 +284,12 @@ Honouring the "No `transition-all`, only `transform`/`opacity`, spring easing" r
 ---
 
 Files this spec is grounded in (all absolute):
-- `/Users/sanan/Documents/rv-alumni/prisma/schema.prisma` (models, conventions, string-enum + comma-join idioms)
-- `/Users/sanan/Documents/rv-alumni/src/app/api/upload/route.ts` (the sharp + storage-shim pipeline to reuse and extend to 3 variants)
-- `/Users/sanan/Documents/rv-alumni/src/lib/storage.ts` (the `putImage`/`delImage` shim: R2 in production, local filesystem in dev)
-- `/Users/sanan/Documents/rv-alumni/src/app/(main)/feed/actions.ts` (pagination `take:21/skip` idiom, `delImage` deletion to mirror for declined photos)
-- `/Users/sanan/Documents/rv-alumni/src/components/posts/create-post-form.tsx` and `post-card.tsx` (composer image handling and `loading="lazy"` rendering to reuse via `<CollectionPicker>`)
-- `/Users/sanan/Documents/rv-alumni/src/components/admin/report-management.tsx` + `src/components/profile/admin-actions.ts` (moderation queue pattern to mirror as `PhotoQueue`)
-- `/Users/sanan/Documents/rv-alumni/src/components/directory/directory-client.tsx` (URL-driven filters, debounced search, glass filter panel, empty state to mirror)
-- `/Users/sanan/Documents/rv-alumni/src/app/preview/v2/page.tsx` (locked v2 design: sidebar `NAV`, header, rail cards, `Hoopoe` easter-egg component, palette tokens)
-- `/Users/sanan/Documents/rv-alumni/src/lib/validators.ts`, `src/lib/utils.ts`, `src/components/common/user-avatar.tsx`, `src/components/layout/navbar.tsx`, `.claude/skills/liftkit-spacing/SKILL.md` (Zod style, helpers, avatar, IA, spacing tokens)
+- `/Users/sanan/Documents/rv-connect/prisma/schema.prisma` (models, conventions, string-enum + comma-join idioms)
+- `/Users/sanan/Documents/rv-connect/src/app/api/upload/route.ts` (the sharp + storage-shim pipeline to reuse and extend to 3 variants)
+- `/Users/sanan/Documents/rv-connect/src/lib/storage.ts` (the `putImage`/`delImage` shim: R2 in production, local filesystem in dev)
+- `/Users/sanan/Documents/rv-connect/src/app/(main)/feed/actions.ts` (pagination `take:21/skip` idiom, `delImage` deletion to mirror for declined photos)
+- `/Users/sanan/Documents/rv-connect/src/components/posts/create-post-form.tsx` and `post-card.tsx` (composer image handling and `loading="lazy"` rendering to reuse via `<CollectionPicker>`)
+- `/Users/sanan/Documents/rv-connect/src/components/admin/report-management.tsx` + `src/components/profile/admin-actions.ts` (moderation queue pattern to mirror as `PhotoQueue`)
+- `/Users/sanan/Documents/rv-connect/src/components/directory/directory-client.tsx` (URL-driven filters, debounced search, glass filter panel, empty state to mirror)
+- `/Users/sanan/Documents/rv-connect/src/app/preview/v2/page.tsx` (locked v2 design: sidebar `NAV`, header, rail cards, `Hoopoe` easter-egg component, palette tokens)
+- `/Users/sanan/Documents/rv-connect/src/lib/validators.ts`, `src/lib/utils.ts`, `src/components/common/user-avatar.tsx`, `src/components/layout/navbar.tsx`, `.claude/skills/liftkit-spacing/SKILL.md` (Zod style, helpers, avatar, IA, spacing tokens)
