@@ -84,7 +84,6 @@ export function useTourAnchor<T extends HTMLElement>(key: string, enabled = true
     return () => {
       if (getSpotlightEl(key) === el) clearSpotlight(key);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, enabled]);
 
   return ref;

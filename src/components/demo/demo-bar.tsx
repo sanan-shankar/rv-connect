@@ -93,9 +93,15 @@ export function DemoBar({ userId }: { userId: string }) {
             className="pointer-events-auto max-w-[19rem] rounded-2xl border border-canopy/15 bg-card p-4 shadow-[0_1px_2px_rgba(35,92,73,0.08),0_8px_24px_-8px_rgba(35,92,73,0.28)]"
           >
             <div className="flex items-start gap-3">
+              {/* Sky, not canopy: DESIGN-SYSTEM colour rule 4 retires the
+                  bg-canopy/10 + text-canopy icon bubble. Sky is the approved
+                  informational tint of the trio, and rule 4 asks the tints be
+                  rotated so one screen never repeats one -- this card's border
+                  and shadow are already canopy, so a cool pop is the reading
+                  that separates the notice from its own frame. */}
               <span
                 aria-hidden
-                className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-canopy/10 text-canopy"
+                className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-sky/35 bg-sky/[0.10] text-sky"
               >
                 <Info className="size-4" />
               </span>

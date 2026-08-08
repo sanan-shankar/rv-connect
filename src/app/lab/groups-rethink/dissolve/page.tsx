@@ -6,7 +6,6 @@ import {
   Card,
   Eyebrow,
   Chip,
-  CTA,
   AvatarStack,
   CatchupStatus,
   DecisionCard,

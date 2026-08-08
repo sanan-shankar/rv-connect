@@ -3,9 +3,12 @@
 import { Button } from "@/components/ui/button";
 
 export default function Error({
-  error,
   reset,
 }: {
+  // Next's error boundary always passes `error`; this screen deliberately does
+  // not read it. Showing a member a stack digest tells them nothing and looks
+  // broken, so the copy below stays generic. Kept in the type, not destructured,
+  // so the signature still documents what Next hands in.
   error: Error & { digest?: string };
   reset: () => void;
 }) {

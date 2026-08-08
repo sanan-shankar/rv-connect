@@ -189,7 +189,6 @@ export function LocationPicker(props: LocationPickerProps) {
       setQuery(props.value?.label ?? "");
       lastAppliedRef.current = props.value;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.mode, props.value]);
 
   const { results, loading } = usePlaceSearch(query);

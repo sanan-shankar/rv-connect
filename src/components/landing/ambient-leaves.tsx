@@ -579,7 +579,6 @@ export function AmbientLeaves() {
       window.removeEventListener("pointerout", onPointerOut);
       cleanups.forEach((c) => c());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [COUNT, PILE_CAP, isMobile]);
 
   return (

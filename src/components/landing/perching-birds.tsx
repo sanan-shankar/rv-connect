@@ -123,8 +123,17 @@ export function PerchingBirds() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const birdRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const { paused } = useMotionGovernor();
+  // Latest-value ref, written in an effect rather than during render. The rAF
+  // loop below (and the scroll pump) read `pausedRef.current` from inside their
+  // callbacks, never while rendering, so a value that lands one paint later is
+  // invisible here: pausing is a frame-scale decision, not a layout one. It was
+  // written during render until 2026-08-08, which React Compiler flags outright
+  // (react-hooks/refs) because a render-phase ref write is not safe under
+  // concurrent rendering.
   const pausedRef = useRef(paused);
-  pausedRef.current = paused;
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   // SSR-safe responsive count: desktop default until mount (no hydration mismatch).
   const [isMobile, setIsMobile] = useState(false);
@@ -588,7 +597,6 @@ export function PerchingBirds() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [COUNT, SIZE]);
 
   return (

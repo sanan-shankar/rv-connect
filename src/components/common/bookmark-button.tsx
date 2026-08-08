@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { SPRINGS, EASE_POP } from "@/components/common/motion";
+import { SPRINGS } from "@/components/common/motion";
 
 /**
  * One shared save/bookmark button for the whole app (feed posts, group posts,
