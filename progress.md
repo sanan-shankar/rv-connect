@@ -1024,3 +1024,14 @@ guessed (they chose: wings keep flapping through the landing flare; keep the pon
   arcAndLand already drives wings and bob from one clock.
 - Owner action: Cmd+ and Cmd- on /login in Safari (the one thing automation cannot press), and fly
   both CTAs to judge the new physics — the numbers can only prove coupling, not feel.
+
+## 2026-08-12 (later) - the physics pass reverted
+
+- Owner verdict on the flight physics pass (c279438): "it's made it much worse." Reverted whole,
+  no cherry-picking; the flight layer is byte-identical to its pre-pass state (verified against
+  7003690, which passed the landing check 28/28). Lesson recorded for the next attempt: the four
+  changes were all mathematically defensible and measured as intended, and the owner still hated
+  the result, so flight-feel changes must be judged by the owner WATCHING each change in isolation,
+  one at a time, not shipped as a bundle argued from mechanism. The physics commit's analysis
+  (wingbeat period mismatch, apex position, flare pitch, per-frame smoothing) survives in git if a
+  future one-at-a-time round wants the starting points.
