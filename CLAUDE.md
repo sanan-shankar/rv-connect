@@ -80,17 +80,26 @@ while iterating: `npm run check -- lint`. Details and how to read a failure: `.c
 - **`next-devtools`** talks to the running dev server. Use `get_errors` whenever a page misbehaves:
   it returns live build, runtime and type errors, which is the only thing that catches the failure
   mode in gotcha 3 below. Also `get_routes`, `get_logs`, and version-accurate Next.js docs.
-- **`chrome-devtools`** drives a real headless Chrome. Use it to **measure** (what a hover actually
-  renders in pixels, why something is slow, a performance trace) instead of writing a throwaway probe
-  script. It is configured with real Chrome, a 1440x900 viewport and WebP screenshots. It does not
-  replace the screenshot scripts, which encode the auth bypass.
+- **`chrome-devtools`** drives a real headless Chrome and **holds the page open between calls**, so
+  you can ask one question, read the number, and ask the follow-up against the same loaded state.
+  That is the point: **never hand-roll another puppeteer probe script.** Measure geometry and computed
+  styles with `evaluate_script`, drive real interaction (`click`, `hover`, `fill`, `press_key`),
+  read `list_console_messages` and `list_network_requests` without wiring listeners, and trace jank
+  with `performance_start_trace` instead of a rAF sampler. `take_screenshot` returns the image
+  inline, so a quick look costs no file.
+  - **Authed pages work here.** Once per session: `navigate_page` to `http://localhost:3000`, then
+    `evaluate_script` POSTing `{ email: ADMIN_EMAIL }` to `/api/auth/admin-login`. The cookie holds
+    for every later call. `--isolated` gives a fresh profile, so redo it if the browser restarts.
+  - First hit of a cold route outruns the 10s default. Pass `timeout: 45000`.
+  - The **scripts** still own what must repeat without you: `npm run check` gates, sweeps across many
+    routes (`verify:crawl`, `theme-shots`), and the numbered PNGs the two-round compare reads.
 
 Both load at session start. If a tool is missing, the dev server is probably not running.
 
 ## Subagents
 
-**The default is to do the work yourself.** An agent is worth spawning only when the saving is big
-and obvious: a job whose output would flood this context without teaching it anything (a screenshot
+**The default is to do the work yourself.** An agent is worth spawning only when it is materially
+useful: a job whose output would flood this context without teaching it anything (a screenshot
 pass, a crawl, a sweep across many files), or several genuinely independent jobs that can run at
 once. Anything short, or anything needing the taste and history in this session, is done better here.
 
@@ -135,6 +144,10 @@ Dev server: `npm run dev` on `http://localhost:3000`. Start it in the background
 
 Protocol: screenshot, **Read the PNG**, make fixes, re-screenshot, compare in specific numbers ("the
 heading gap is 24px, should be 16px"). Minimum two rounds, then repeat on mobile.
+
+Those numbers come from `chrome-devtools` (above), not from squinting at the PNG: `resize_page` to
+390x844 or 1440x900, then `evaluate_script` for the real rects and computed styles. The scripts are
+for the shots that go on the record and for sweeps; the MCP is for the measuring in between.
 
 **Gotchas that have bitten past sessions:**
 
