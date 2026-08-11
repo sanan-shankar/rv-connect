@@ -9,7 +9,19 @@ declare module "next-auth" {
       email: string;
       role: string;
       accountType: string;
+      /** Community standing (office list / vouching / flagged). Unrelated to
+       *  `emailVerified` below, which is only ever "did this address answer". */
       verifyState: string;
+      /** True once the person clicked the link we mailed them. Gates posting,
+       *  uploads and other members' contact details
+       *  (src/lib/email-verification.ts).
+       *
+       *  NOT called `emailVerified`: NextAuth's own adapter types already
+       *  declare that name on this user as a `Date`, and interface merging
+       *  INTERSECTS rather than overrides, so a boolean of the same name
+       *  resolves to the uninhabitable `Date & boolean`. The database column
+       *  is still `User.emailVerified`; this is the derived flag. */
+      emailConfirmed: boolean;
       batchType: string | null;
       batchYear: number | null;
       avatarColor: string | null;
