@@ -1367,12 +1367,16 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
       style={{
         overflow: "visible",
         display: "block",
-        // feed the tunable eye/brow positions to the rig CSS so gaze/blink pivots follow them
-        ["--eye-lx" as string]: `${eyeLx}px`,
-        ["--eye-rx" as string]: `${eyeRx}px`,
-        ["--eye-y" as string]: `${eyeCy}px`,
-        ["--brow-y" as string]: `${browY}px`,
-        ["--bill-y" as string]: `${billHinge}px`,
+        // feed the tunable eye/brow positions to the rig CSS so gaze/blink
+        // pivots follow them. As PERCENTAGES of the view-box, same as every
+        // fixed origin in RIG_CSS and for the same Safari-zoom reason (see the
+        // RIG_CSS header): px here would be multiplied by the page-zoom factor
+        // in WebKit and the blink/brow pivots would slide off the face.
+        ["--eye-lx" as string]: `${((eyeLx / 120) * 100).toFixed(4)}%`,
+        ["--eye-rx" as string]: `${((eyeRx / 120) * 100).toFixed(4)}%`,
+        ["--eye-y" as string]: `${((eyeCy / 152) * 100).toFixed(4)}%`,
+        ["--brow-y" as string]: `${((browY / 152) * 100).toFixed(4)}%`,
+        ["--bill-y" as string]: `${((billHinge / 152) * 100).toFixed(4)}%`,
       } as React.CSSProperties}
     >
       <style>{RIG_CSS}</style>
@@ -1467,25 +1471,52 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
 /* transform-box + transform-origin are !important so they beat motion's
    normal inline writes (motion's imperative animate() sets transform-box:
    fill-box inline, which would re-base every shared anatomical pivot to the
-   element's own bbox; an important author rule wins over normal inline). */
+   element's own bbox; an important author rule wins over normal inline).
+
+   THE ORIGINS ARE PERCENTAGES, NOT PX, AND THAT IS A SAFARI FIX (2026-08-11).
+   The owner's zoom bug (bugs.md #17) never reproduced because every probe ran
+   Chrome, and Chrome resolves a px transform-origin on an SVG child in USER
+   UNITS, zoom-independent. The owner zooms in SAFARI, and WebKit resolves the
+   same px value as zoomed CSS px: every pivot gets multiplied by the page-zoom
+   factor. At Cmd+ (~1.4x) the wing pivot "42px 85px" lands at ~(59,119), the
+   bird's bottom centre, so cover-eyes swung the wings off BESIDE the body and
+   the eyes never got covered; zoomed out it lands up by the head, which put
+   the wing over the crest. All three of the owner's screenshots reduce to
+   this one conversion.
+
+   A percentage carries no unit for zoom to scale, so it resolves as a ratio
+   of the view-box and the pivots survive any zoom.
+
+   THE MAPPING IS MEASURED, NOT TAKEN FROM THE SPEC. css-transforms-1 says the
+   view-box reference box sits at the viewBox ORIGIN, which here is y=-10
+   ("0 -10 120 152"), making y% = (y+10)/152. Chrome, measured empirically
+   (rotate a part 180deg, midpoint of the before/after boxes = the true
+   pivot), anchors percentages at 0 instead and resolves y% x 152 directly:
+   the spec mapping landed every y-pivot exactly 10 units low. So the mapping
+   is x% = x/120, y% = y/152, verified to reproduce the px pivots to within
+   0.1 user unit at zoom 1, CSS zoom 1.5 and 0.75, and a live resize. The
+   csswg thread "view-box interacts poorly with transform-origin percentages"
+   is this exact ambiguity; if a WebKit measurement ever disagrees with
+   Chrome's anchor here, that thread is why. The old px value is kept in a
+   comment on every line because the drawing is authored in user units. */
 const RIG_CSS = `
 .hoopoe-mascot [data-part]{ transform-box: view-box !important; }
 .hoopoe-mascot [data-particle]{ transform-box: fill-box !important; }
-.hoopoe-mascot [data-part=root]{ transform-origin: 60px 124px !important; }
-.hoopoe-mascot [data-part=shadow]{ transform-origin: 60px 137px !important; }
-.hoopoe-mascot [data-part=tail]{ transform-origin: 60px 116px !important; }
-.hoopoe-mascot [data-part=leftWing]{ transform-origin: 42px 85px !important; }
-.hoopoe-mascot [data-part=rightWing]{ transform-origin: 78px 85px !important; }
-.hoopoe-mascot [data-part=leftLeg]{ transform-origin: 52px 118px !important; }
-.hoopoe-mascot [data-part=rightLeg]{ transform-origin: 68px 118px !important; }
-.hoopoe-mascot [data-part=body]{ transform-origin: 60px 101px !important; }
-.hoopoe-mascot [data-part=headGaze]{ transform-origin: 60px 80px !important; }
-.hoopoe-mascot [data-part=head]{ transform-origin: 60px 80px !important; }
-.hoopoe-mascot [data-part=crest]{ transform-origin: 60px 37px !important; }
-.hoopoe-mascot [data-part=browL]{ transform-origin: var(--eye-lx,51px) var(--brow-y,50px) !important; }
-.hoopoe-mascot [data-part=browR]{ transform-origin: var(--eye-rx,69px) var(--brow-y,50px) !important; }
-.hoopoe-mascot [data-part=eyeGazeL],.hoopoe-mascot [data-part=eyeBlinkL]{ transform-origin: var(--eye-lx,51px) var(--eye-y,61px) !important; }
-.hoopoe-mascot [data-part=eyeGazeR],.hoopoe-mascot [data-part=eyeBlinkR]{ transform-origin: var(--eye-rx,69px) var(--eye-y,61px) !important; }
-.hoopoe-mascot [data-part=billGaze]{ transform-origin: 60px 62.5px !important; }
-.hoopoe-mascot [data-part=billLower]{ transform-origin: 60px var(--bill-y,74px) !important; }
+.hoopoe-mascot [data-part=root]{ transform-origin: 50% 81.5789% !important; }      /* 60 124 */
+.hoopoe-mascot [data-part=shadow]{ transform-origin: 50% 90.1316% !important; }    /* 60 137 */
+.hoopoe-mascot [data-part=tail]{ transform-origin: 50% 76.3158% !important; }      /* 60 116 */
+.hoopoe-mascot [data-part=leftWing]{ transform-origin: 35% 55.9211% !important; }  /* 42 85 */
+.hoopoe-mascot [data-part=rightWing]{ transform-origin: 65% 55.9211% !important; } /* 78 85 */
+.hoopoe-mascot [data-part=leftLeg]{ transform-origin: 43.3333% 77.6316% !important; }  /* 52 118 */
+.hoopoe-mascot [data-part=rightLeg]{ transform-origin: 56.6667% 77.6316% !important; } /* 68 118 */
+.hoopoe-mascot [data-part=body]{ transform-origin: 50% 66.4474% !important; }      /* 60 101 */
+.hoopoe-mascot [data-part=headGaze]{ transform-origin: 50% 52.6316% !important; }  /* 60 80 */
+.hoopoe-mascot [data-part=head]{ transform-origin: 50% 52.6316% !important; }      /* 60 80 */
+.hoopoe-mascot [data-part=crest]{ transform-origin: 50% 24.3421% !important; }     /* 60 37 */
+.hoopoe-mascot [data-part=browL]{ transform-origin: var(--eye-lx,42.5%) var(--brow-y,32.8947%) !important; }
+.hoopoe-mascot [data-part=browR]{ transform-origin: var(--eye-rx,57.5%) var(--brow-y,32.8947%) !important; }
+.hoopoe-mascot [data-part=eyeGazeL],.hoopoe-mascot [data-part=eyeBlinkL]{ transform-origin: var(--eye-lx,42.5%) var(--eye-y,40.1316%) !important; }
+.hoopoe-mascot [data-part=eyeGazeR],.hoopoe-mascot [data-part=eyeBlinkR]{ transform-origin: var(--eye-rx,57.5%) var(--eye-y,40.1316%) !important; }
+.hoopoe-mascot [data-part=billGaze]{ transform-origin: 50% 41.1184% !important; }  /* 60 62.5 */
+.hoopoe-mascot [data-part=billLower]{ transform-origin: 50% var(--bill-y,48.6842%) !important; } /* 60 74 */
 `;
