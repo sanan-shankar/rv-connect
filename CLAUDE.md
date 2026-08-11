@@ -17,8 +17,7 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
 - `docs/ROADMAP.md` is the phased plan. `docs/planning/bugs.md` is the bug tracker,
   `docs/planning/FEATURES.md` the parked ideas. `progress.md` is the session history; log outcomes there.
 - **`/lab` is the one index of every dev and preview room.** Nothing is browsable that is not listed
-  in `src/app/lab/_registry.ts`. (The old `/preview/*` tree was moved under `/lab` on 2026-07-30 and
-  its URLs are not redirected. `/lab/v2` is the approved look; `/lab/logo` documents the final mark.)
+  in `src/app/lab/_registry.ts`. `/lab/v2` is the approved look; `/lab/logo` documents the final mark.
 
 # Hard Rules
 
@@ -33,11 +32,23 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   pooler. `db push` diffs the schema and will try to DROP tables it considers orphaned
   (`docs/spec/catchups.md:462`). Instead: edit `prisma/schema.prisma`, write a dated idempotent file
   in `prisma/migrations-manual/`, run `npx prisma generate`, apply with `node scripts/dev/run-sql.mjs`.
-  Twelve migrations have shipped that way. Only `prisma generate` and `prisma studio` are
-  pre-approved in `.claude/settings.local.json`; anything destructive raises a permission prompt, and
+  Only `prisma generate` and `prisma studio` are pre-approved in `.claude/settings.local.json`; anything destructive raises a permission prompt, and
   the answer to that prompt is no unless the owner says otherwise in the same breath.
 - **Git commits**: never include `Co-Authored-By`, model names, or any AI attribution. Plain
   conventional commit messages.
+- **Version control is maintained, not asked for**: work on `main`, no feature branches. Commit each
+  coherent piece as it lands and passes `npm run check` — do not wait to be told, and do not let a
+  session end with a working tree full of unrelated changes. Stage the files your task touched, by
+  name; never `git add -A` or `git commit -a`, because the tree may hold work that is not yours.
+  A **push is a deploy** (see above), so committing is yours to do freely and pushing is not: ask
+  first.
+- **Another session may be working in this same tree**: several Claude sessions run against this one
+  checkout, so uncommitted changes you did not make are somebody's work in progress, not noise.
+  Never `git stash`, `git checkout -- .`, `git reset --hard`, `git clean`, or revert, rewrite or
+  amend anything you did not author. If a file you need already has unrelated edits, work around
+  them and leave them staged as you found them; if that is impossible, stop and say so. The same
+  goes for shared processes: don't kill a dev server or a background job you did not start, and
+  don't delete or move `.next` while someone else may be mid-build.
 - **Storage**: don't install packages over 200MB without asking.
 - **Mobile**: every desktop UI change is verified at 390x844 as well. Screenshot both.
 - **No `transition-all`**, no hand-typed `cubic-bezier(...)`, no default Tailwind blue/indigo, no pure
@@ -78,7 +89,17 @@ Both load at session start. If a tool is missing, the dev server is probably not
 
 ## Subagents
 
-Spawn these rather than doing the work inline; they keep the main context clean.
+**The default is to do the work yourself.** An agent is worth spawning only when the saving is big
+and obvious: a job whose output would flood this context without teaching it anything (a screenshot
+pass, a crawl, a sweep across many files), or several genuinely independent jobs that can run at
+once. Anything short, or anything needing the taste and history in this session, is done better here.
+
+**An agent's report is never the verification.** They work below the standard of this session, so
+whatever comes back is a claim, not a result: read the diff yourself, look at the screenshots
+yourself, re-run `npm run check` yourself. "Done, all passing" from an agent means nothing until you
+have seen the thing pass.
+
+These three still earn their keep:
 
 | Agent | When | Notes |
 |---|---|---|
@@ -86,8 +107,8 @@ Spawn these rather than doing the work inline; they keep the main context clean.
 | `design-protocol-auditor` | after any UI change | reads the diff against the design system, triages the gates |
 | `write-path-reviewer` | server actions, API routes, auth, uploads, schema | checks the four write-path invariants and the demo's three layers |
 
-**Model tiers**: this session orchestrates. Sonnet for implementation and review agents. Opus only
-for an ambiguous product or design call the specs do not already answer. Haiku for mechanical work.
+**Model tiers**: Sonnet for implementation and review agents, Haiku for mechanical work. Opus only
+for an ambiguous product or design call the specs do not already answer.
 
 ## Skills
 
