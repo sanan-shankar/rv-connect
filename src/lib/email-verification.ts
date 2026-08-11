@@ -1,5 +1,6 @@
 import { auth } from "./auth";
 import { IS_DEMO } from "./demo";
+import { EMAIL_UNVERIFIED } from "./email-gate-message";
 
 /* ------------------------------------------------------------------ *
  *  The confirmed-email gate.
@@ -21,15 +22,11 @@ import { IS_DEMO } from "./demo";
  *  after the authentication check.
  * ------------------------------------------------------------------ */
 
-/**
- * The string a gated action returns. The client dialog keys off this EXACT
- * value to know it should offer "resend the email" rather than print the text
- * as a plain error, so it is a constant rather than a sentence typed at each
- * call site. It also reads as a complete sentence on its own, because a
- * surface that has not been taught about the dialog will simply show it.
- */
-export const EMAIL_UNVERIFIED =
-  "Confirm your email address before you post. We sent you a link when you joined.";
+// The sentinel every gated action returns. Defined in its own dependency-free
+// file so the client dialog can match on it without importing `auth()` (and
+// with it NextAuth and Prisma) into the browser bundle. Re-exported here so
+// server callers can reach it from the module they already import.
+export { EMAIL_UNVERIFIED } from "./email-gate-message";
 
 export interface VerifiedViewer {
   id: string;

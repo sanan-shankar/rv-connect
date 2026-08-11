@@ -485,7 +485,20 @@ export default function LoginPage() {
             </div>
             {!isAdmin && (
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
+                {/* Label and the way out, on one line. The reset link belongs
+                    beside the field that is failing them, not buried under the
+                    submit button: by the time somebody is looking for it they
+                    have already typed a password that did not work, and their
+                    eyes are on this row. */}
+                <div className="flex items-baseline justify-between gap-3">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    href="/forgot-password"
+                    className="rounded-sm text-[12.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    Forgot it?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"

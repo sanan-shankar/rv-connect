@@ -34,6 +34,12 @@ const DEMO_CLOSED_PATHS = [
   "/signup",
   "/verify",
   "/catchups/join",
+  // The email flows. The demo persona has no password to reset and no mailbox
+  // to confirm (sendMail refuses outright in demo mode), so these three could
+  // only ever show a stranger a form that does nothing.
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
 ];
 
 // API routes the demo refuses outright. Each either spends real money,
@@ -138,7 +144,25 @@ export function proxy(request: NextRequest) {
   // a redirect to /login and no payment would ever be recorded when the payer
   // closed their tab. The route authenticates the request itself, by HMAC over
   // the raw body against RAZORPAY_WEBHOOK_SECRET.
-  const publicPaths = ["/", "/login", "/signup", "/api/auth", "/api/razorpay", "/lab", "/catchups/join"];
+  // "/forgot-password", "/reset-password" and "/verify-email" are public
+  // because every one of them is reached by somebody who CANNOT sign in, or is
+  // opening a link on whichever device holds their inbox rather than the one
+  // they signed up on. Gating them behind a session would bounce exactly the
+  // people they exist for. Each is guarded by its own single-use token instead
+  // (src/lib/auth-tokens.ts); /forgot-password takes only an address and
+  // answers identically whether or not it matches an account.
+  const publicPaths = [
+    "/",
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+    "/api/auth",
+    "/api/razorpay",
+    "/lab",
+    "/catchups/join",
+  ];
   const isPublic = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + "/")
   );

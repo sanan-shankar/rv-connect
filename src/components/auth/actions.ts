@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { signupSchema } from "@/lib/validators";
 import { titleCase, normalizePhone } from "@/lib/normalize";
 import { batchTypeFromLeaving } from "@/lib/utils";
+import { sendVerificationEmail } from "@/lib/verification-mail";
 import { hasPassedTrivia } from "./trivia-actions";
 
 export async function registerUser(formData: FormData) {
@@ -106,6 +107,17 @@ export async function registerUser(formData: FormData) {
     } catch (err) {
       console.error("Batch group auto-join failed", err);
     }
+  }
+
+  // The confirmation link goes out now, while they are still at the keyboard,
+  // so it is already waiting by the time they finish the setup steps. Also
+  // best-effort: an account that exists with an unsent confirmation is
+  // recoverable from the banner's resend button, whereas failing the signup
+  // over it would lose the whole form they just filled in.
+  try {
+    await sendVerificationEmail({ id: user.id, name, email: user.email });
+  } catch (err) {
+    console.error("Verification email failed", err);
   }
 
   return { success: true, email: parsed.data.email };
