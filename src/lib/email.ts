@@ -65,6 +65,31 @@ export interface MailResult {
 }
 
 /**
+ * Top-level domains that can never receive mail.
+ *
+ * `.invalid`, `.test`, `.example` and `.localhost` are reserved by RFC 2606
+ * and RFC 6761 precisely so they cannot resolve, so anything addressed to one
+ * is guaranteed to hard-bounce. Hard bounces are the single worst thing for a
+ * young sending domain's reputation, and rishivalley.space was verified on
+ * 2026-08-11 with no history to absorb them.
+ *
+ * This is not hypothetical: an end-to-end test of the reset flow on the day
+ * this shipped put two messages to `flowtest@example.invalid` through a live
+ * key, because `.env` carries the same RESEND_API_KEY production does. The
+ * seeded demo people at `@demo.valley.test` are the same hazard sitting in the
+ * data. Refused here, at the one place everything passes through, rather than
+ * trusted not to happen.
+ */
+const UNDELIVERABLE_TLDS = [".invalid", ".test", ".example", ".localhost"];
+
+function isUndeliverable(address: string): boolean {
+  const at = address.lastIndexOf("@");
+  if (at < 0) return true;
+  const domain = address.slice(at + 1).toLowerCase().trim();
+  return UNDELIVERABLE_TLDS.some((tld) => domain === tld.slice(1) || domain.endsWith(tld));
+}
+
+/**
  * Send one transactional email.
  *
  * Never throws. Every caller is a server action in the middle of something
@@ -89,6 +114,26 @@ export async function sendMail(opts: {
   // mail off a domain that does not exist, from the real sending domain,
   // which is exactly how a sender reputation gets destroyed by a showcase.
   if (IS_DEMO) return { ok: false, error: "demo mode does not send mail" };
+
+  // Guaranteed bounce. Refused before the provider ever sees it.
+  if (isUndeliverable(opts.to)) {
+    console.warn(`[email] refused undeliverable address: ${opts.to}`);
+    return { ok: false, error: "undeliverable address" };
+  }
+
+  // Development does not mail real people unless you ask it to.
+  //
+  // `.env` carries the same RESEND_API_KEY as production, so without this the
+  // ordinary act of exercising a flow on localhost sends live mail from the
+  // real domain, to whatever address happens to be in the row. Set
+  // EMAIL_DEV_SEND=1 for the deliberate case of checking how a message
+  // actually renders in an inbox.
+  if (process.env.NODE_ENV !== "production" && process.env.EMAIL_DEV_SEND !== "1") {
+    console.info(
+      `\n[email:dev] to=${opts.to}\n[email:dev] subject=${opts.subject}\n${opts.text}\n`,
+    );
+    return { ok: true };
+  }
 
   const api = resend();
 

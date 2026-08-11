@@ -43,7 +43,10 @@ const COPY: Record<Outcome, { title: string; body: string }> = {
   },
   waiting: {
     title: "Check your inbox",
-    body: "We sent you a link when you joined. Open it and this page will not be needed again. If it never arrived, look in spam, or send yourself another.",
+    // Two sentences, not four. "Open it and this page will not be needed
+    // again" told somebody standing on the page a thing they could work out,
+    // and cost a whole line to do it.
+    body: "We sent a link when you joined. If it never arrived, look in spam, or send yourself another.",
   },
 };
 

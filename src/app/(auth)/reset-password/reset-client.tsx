@@ -45,8 +45,12 @@ const DEAD_LINK: Record<string, { title: string; body: string }> = {
     body: "The email address on this account changed after the link was sent, so it no longer applies. Ask for a new one at the current address.",
   },
   unknown: {
-    title: "We do not recognise that link",
-    body: "It may have been cut in half by your email app, which happens with long links. Copy the whole thing from the message, or just ask for a new one.",
+    // Short enough to sit on ONE line at 27px in a 360px column. The longer
+    // "We do not recognise that link" wrapped with a single word stranded
+    // underneath, which is the worst possible shape for the biggest type on
+    // a page somebody has arrived at already confused.
+    title: "That link looks broken",
+    body: "Email apps sometimes cut long links in half. Copy the whole thing from the message, or ask for a new one.",
   },
 };
 
@@ -158,6 +162,11 @@ export function ResetPasswordClient({
             <AuthHeading title={DEAD_LINK[link.state].title}>
               {DEAD_LINK[link.state].body}
             </AuthHeading>
+            {/* One way out, not two. A "Back to sign in" link under this
+                button repeated the one already sitting top-left, which is the
+                same duplication the owner cut from the profile's contact
+                block. The person here needs a new link; signing in is what
+                they already could not do. */}
             <Button
               variant="primary"
               className="w-full"
@@ -166,14 +175,6 @@ export function ResetPasswordClient({
             >
               Send me a new link
             </Button>
-            <p className="mt-6 text-sm text-muted-foreground">
-              <Link
-                href="/login"
-                className="rounded-sm font-medium text-leaf hover:text-leaf-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                Back to sign in
-              </Link>
-            </p>
           </motion.div>
         ) : done ? (
           <motion.div
@@ -203,6 +204,11 @@ export function ResetPasswordClient({
             <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
               <PasswordField
                 label="New password"
+                // Not "At least 8 characters": that is what the hint below
+                // already says, and a placeholder disappears the moment you
+                // start typing, so the rule would vanish exactly when it
+                // starts being enforced. The hint carries the rule and stays.
+                placeholder="Your new password"
                 value={password}
                 onChange={(v) => {
                   setPassword(v);

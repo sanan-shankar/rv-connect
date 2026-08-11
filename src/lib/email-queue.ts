@@ -358,6 +358,29 @@ export async function drainMailQueue(): Promise<DrainReport> {
   return { sent, failed, backlog: waiting > 0 };
 }
 
+/** The daily ceiling, exported so the admin panel can show the budget rather
+ *  than a bare count with no denominator. */
+export const MAIL_DAILY_CAP = DAILY_CAP;
+
+/** Queue health for the admin panel: what today has spent, what is still
+ *  waiting on it, and what gave up. "Gave up" is the only one that needs a
+ *  human, and it is almost always a mistyped address. */
+export async function mailHealth(): Promise<{
+  sentToday: number;
+  dailyCap: number;
+  waiting: number;
+  failed: number;
+}> {
+  const [sentToday, waiting, failed] = await Promise.all([
+    prisma.outboundEmail.count({
+      where: { status: "sent", sentAt: { gte: startOfUtcDay() } },
+    }),
+    prisma.outboundEmail.count({ where: { status: { in: ["queued", "sending"] } } }),
+    prisma.outboundEmail.count({ where: { status: "failed" } }),
+  ]);
+  return { sentToday, dailyCap: DAILY_CAP, waiting, failed };
+}
+
 export type VerificationMailState =
   /** The link is in their inbox. Safe to say "go and look". */
   | { state: "sent"; at: Date }

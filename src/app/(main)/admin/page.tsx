@@ -10,7 +10,13 @@ import { UserManagement } from "@/components/admin/user-management";
 import { ReportManagement } from "@/components/admin/report-management";
 import { PhotoQueue } from "@/components/admin/photo-queue";
 import { VerificationQueue } from "@/components/admin/verification-queue";
+import {
+  VerificationOverview,
+  type EmailState,
+  type VerificationRow,
+} from "@/components/admin/verification-overview";
 import { MessageQueue } from "@/components/admin/message-queue";
+import { mailHealth } from "@/lib/email-queue";
 import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 
@@ -85,6 +91,76 @@ export default async function AdminPage({
     },
     orderBy: { createdAt: "asc" },
   });
+
+  /* ---- Verification overview: both kinds of "verified", in one place ----
+     The panel had two rows describing two different facts (did this address
+     answer, and is this really a Rishi Valley person) that never appeared
+     together, so neither could be read against the other. */
+  const [verificationUsers, mail] = await Promise.all([
+    prisma.user.findMany({
+      where: { isBlocked: false },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        photoUrl: true,
+        birdOverride: true,
+        accountType: true,
+        batchType: true,
+        batchYear: true,
+        verifyState: true,
+        emailVerified: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    mailHealth(),
+  ]);
+
+  // Mail state for the unconfirmed only. Everyone confirmed is already
+  // answered by their own row, so there is nothing to look up for them, and on
+  // a healthy day that is almost the whole membership.
+  const unconfirmedIds = verificationUsers.filter((u) => !u.emailVerified).map((u) => u.id);
+  const verifyMail = unconfirmedIds.length
+    ? await prisma.outboundEmail.findMany({
+        where: { userId: { in: unconfirmedIds }, kind: "verify" },
+        select: { userId: true, status: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+  // First row wins: the list is newest-first, so this keeps the LATEST attempt
+  // per person and ignores the history behind it.
+  const latestMail = new Map<string, string>();
+  for (const row of verifyMail) {
+    if (row.userId && !latestMail.has(row.userId)) latestMail.set(row.userId, row.status);
+  }
+
+  const verificationRows: VerificationRow[] = verificationUsers.map((u) => {
+    const status = latestMail.get(u.id);
+    const emailState: EmailState = u.emailVerified
+      ? "confirmed"
+      : status === "sent"
+        ? "waiting"
+        : status === "queued" || status === "sending"
+          ? "queued"
+          : status === "failed"
+            ? "failed"
+            : "none";
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      photoUrl: u.photoUrl,
+      birdOverride: u.birdOverride,
+      accountType: u.accountType,
+      batchType: u.batchType,
+      batchYear: u.batchYear,
+      verifyState: u.verifyState,
+      emailState,
+      confirmedAt: u.emailVerified ? u.emailVerified.toISOString() : null,
+    };
+  });
+
+  const emailPending = verificationRows.filter((r) => r.emailState !== "confirmed").length;
 
   // Member <-> admin conversations. Unanswered first, then by recency, so the
   // queue reads top-down. Capped at 40 threads (with their messages) to keep
@@ -193,6 +269,15 @@ export default async function AdminPage({
             reportedUserName: r.reportedUser?.name ?? null,
           }))}
         />
+      </AdminSection>
+
+      {/* Email and membership, side by side. Sits ABOVE the verification queue
+          below it: this is the overview, that is the action list. */}
+      <AdminSection
+        label="Email & verification"
+        count={emailPending > 0 ? emailPending : undefined}
+      >
+        <VerificationOverview rows={verificationRows} mail={mail} />
       </AdminSection>
 
       {/* Verification queue */}

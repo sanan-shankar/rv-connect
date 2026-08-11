@@ -51,7 +51,12 @@ function createPrismaClient() {
 // that lacks the new models. In production this is a no-op (one client, one
 // process) and behaves exactly as a plain `new PrismaClient()` would.
 const globalForPrismaKey = globalThis as unknown as { prismaKey: string | undefined };
-const clientKey = "labRoomState-v1";
+// Bump this in the SAME commit as any schema change. It is not decorative: a
+// running dev server keeps the old client on `globalThis`, so without a bump
+// `prisma.authToken` is simply undefined and every read through it 500s while
+// `tsc` stays perfectly happy (the generated types are new, the in-memory
+// client is not). Cost 15 minutes on 2026-08-11 adding AuthToken/OutboundEmail.
+const clientKey = "authToken-outboundEmail-v1";
 
 if (globalForPrisma.prisma && globalForPrismaKey.prismaKey !== clientKey) {
   globalForPrisma.prisma = undefined;
