@@ -158,14 +158,22 @@ scale. One compat trap found on the way, measured and documented in hoopoe.tsx: 
 percentage origins at 0, NOT at the viewBox's y=-10 origin the spec describes (the spec-faithful
 mapping landed every y-pivot exactly 10 units low), so the mapping is y% = y/152, per measurement.
 
-**Still open**: verification in actual WebKit. Chrome is verified identical to the px version
-(empirical pivot probe + the committed zoom probe + the full landing check). Safari could not be
-driven headlessly — `safaridriver` needs "Allow remote automation" enabled in Safari's Develop
-settings, which only the owner can flip. Until a Safari measurement exists, the percentage-anchor
-question (does WebKit anchor at 0 like Chrome, or at -10 like the spec?) is answered only by the
-owner looking: if the bird is correct in Safari at zoom 1 and at Cmd+/Cmd-, both bets landed. If it
-is wrong by a head's height at ALL zooms in Safari, WebKit anchors at -10 and the y-percentages
-need a WebKit-conditional or a rethink — do not guess, measure with safaridriver enabled.
+**Measured in real Safari (26.5.2, via safaridriver after the owner enabled "Allow remote
+automation", 2026-08-12):**
+- The percentage origins resolve EXACTLY right in WebKit: computed `transform-origin` reads
+  "42px 85.000069px" and the empirically measured wing pivot is (42.0, 85.0) user units. So the
+  percentage-anchor question is answered: WebKit anchors at 0, same as Chrome, NOT at the viewBox's
+  -10 the spec describes. The shipped y% = y/152 mapping is correct in both engines.
+- CSS `zoom` does NOT reproduce the Cmd+ breakage in Safari: px origins ALSO held under CSS zoom
+  1.5. So the failure is specific to real page zoom, which nothing on this machine can drive
+  (WebDriver has no zoom API; synthetic Cmd+ keystrokes need an Accessibility grant the terminal
+  does not have). Honest status therefore: the fix is PROVEN not-worse in every measurable
+  configuration of both engines, and believed correct for Cmd+ because a percentage carries no px
+  length for page zoom to scale — but the only direct test of Cmd+ itself is the owner's eyes.
+- Probe gotcha for whoever measures next: Safari does not reflect a just-written SVG child
+  `style.transform` in getBoundingClientRect synchronously. Read in the same tick and you get a
+  stale rect and garbage pivots (a first run of this measurement reported every part uniformly
+  ~100u off for exactly this reason). Wait a frame (~40ms) between the write and the read.
 
 The original investigation record follows, kept because its two disproofs (the pivots, the mobile
 fly-in path) and its probe-methodology notes are still what stops this bug from being re-theorised.
