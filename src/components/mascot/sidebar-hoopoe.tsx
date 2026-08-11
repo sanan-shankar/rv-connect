@@ -46,8 +46,8 @@ const IDLE_MAX_MS = 120_000;
 // whatever else currently owns the bird.
 const BLOCKED_RETRY_MS = 8_000;
 const RIG_SIZE = 60;
-// Dev-only summon (see the listener in the effect below). How long after a
-// manual summon activity is ignored, so the very keystroke that called the
+// Manual summon (see the Ctrl+Shift+H listener in the effect below). How long
+// after a summon activity is ignored, so the very keystroke that called the
 // bird does not immediately scare it off again. 600ms swallows the chord
 // itself plus the small pointermove of a hand coming off the keyboard, and is
 // short enough that the next deliberate mouse move still triggers the wake --
@@ -70,8 +70,7 @@ export function SidebarHoopoe() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const readyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const wrapRef = useRef<HTMLDivElement>(null);
-  // Timestamp of the last dev-only manual summon; 0 in production, where
-  // nothing writes it. See SUMMON_GRACE_MS.
+  // Timestamp of the last manual (Ctrl+Shift+H) summon. See SUMMON_GRACE_MS.
   const summonedAt = useRef(0);
 
   // Clears the deferred onReady timer if SidebarHoopoe itself ever unmounts
@@ -132,8 +131,7 @@ export function SidebarHoopoe() {
 
     function handleActivity() {
       // Inside a manual summon's grace window, ignore everything: see
-      // SUMMON_GRACE_MS. Dead code in production, where nothing ever writes
-      // summonedAt.
+      // SUMMON_GRACE_MS.
       if (performance.now() - summonedAt.current < SUMMON_GRACE_MS) return;
       const phase = phaseRef.current;
       if (phase === "waiting") {
@@ -158,28 +156,27 @@ export function SidebarHoopoe() {
     armIdle();
 
     // Ctrl+Shift+H: summon the bird NOW instead of waiting out the 90-120s
-    // idle window. Motion is the one thing a screenshot cannot review, so the
-    // only way to judge this moment is to watch it, and watching it three
-    // times in a row otherwise costs five minutes of sitting still. Gated on
-    // NODE_ENV, which is a compile-time constant, so the listener is not even
-    // registered in a production build.
+    // idle window. This began as a dev-only affordance (motion is the one
+    // thing a screenshot cannot review, and watching this moment three times
+    // otherwise costs five minutes of sitting still), but it SHIPS (owner,
+    // 2026-08-11: "I actually really like that and would want that even on the
+    // shipped website"). It is a good easter egg on its own terms: it costs
+    // one keydown listener, it is unguessable enough not to be hit by
+    // accident, and the reward is the nicest thing the rig does.
     //
     // Ctrl+Shift+H specifically: unbound in Chrome, and not the Cmd chord
     // (Cmd+Shift+H is Safari's Home). The summon writes summonedAt FIRST so
     // its own keydown falls inside the grace window above rather than being
     // read as the activity that scares the bird away.
-    let stopSummon = () => {};
-    if (process.env.NODE_ENV !== "production") {
-      const onSummon = (e: KeyboardEvent) => {
-        if (!e.ctrlKey || !e.shiftKey || e.key.toLowerCase() !== "h") return;
-        e.preventDefault();
-        summonedAt.current = performance.now();
-        clearTimeout(timerRef.current);
-        tryEnter();
-      };
-      window.addEventListener("keydown", onSummon);
-      stopSummon = () => window.removeEventListener("keydown", onSummon);
-    }
+    const onSummon = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || !e.shiftKey || e.key.toLowerCase() !== "h") return;
+      e.preventDefault();
+      summonedAt.current = performance.now();
+      clearTimeout(timerRef.current);
+      tryEnter();
+    };
+    window.addEventListener("keydown", onSummon);
+    const stopSummon = () => window.removeEventListener("keydown", onSummon);
 
     return () => {
       clearTimeout(timerRef.current);

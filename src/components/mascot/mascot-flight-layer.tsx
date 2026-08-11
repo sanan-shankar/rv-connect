@@ -112,6 +112,47 @@ const cruiseEase = (u: number) => {
 // much longer like a second animation starting after the flight already ended.
 const SETTLE_MS = 180;
 
+/* ---- the flare (owner, 2026-08-11) --------------------------------------
+ * "instead of plonking on the ground just as it's landing it slows down the
+ * landing marginally as if a real bird. So it kind of just rests down."
+ *
+ * It plonked because the cruise ended ON the perch: measured at 1440x900 the
+ * bird was covering ~12px/frame at the halfway mark and 0px/frame by 85%, so
+ * it simply arrived at pace and stopped dead, then waited to be folded up.
+ * There was no final beat at all.
+ *
+ * So the cruise now aims FLARE_LIFT_PX above the perch, and this last stretch
+ * lowers it the rest of the way on a decelerating ease — the bird comes in
+ * over the spot and sinks onto it. The lift is applied only to what is drawn,
+ * never to `smoothT`, so the cruise's convergence test still compares the
+ * real target with the real smoothed target and the landing stays pixel-exact.
+ *
+ * The wings are deliberately still flapping through all of this: `api.perch()`
+ * (which is what stops the glide and folds them) is not called until the flare
+ * has finished, so the bird brakes with its wings the way a real one does and
+ * only tucks them once it is down. That was the owner's pick of the three
+ * options put to them.
+ *
+ * 300ms over 16px is about 53px/s at the start of the flare easing to nothing:
+ * slow enough to read as settling, short enough that it is part of the landing
+ * rather than a separate animation after it. */
+const FLARE_LIFT_PX = 16;
+const FLARE_MS = 300;
+// Decelerating: fast in, nothing at the end, so the weight lands softly.
+const easeOutCubic = (u: number) => 1 - (1 - u) ** 3;
+
+/* Keep the arch inside the window (owner, 2026-08-11: "sign in hoopoe goes a
+ * bit too high. The flight path of join hoopoe is better").
+ *
+ * Both CTAs sit on the same row of the hero, so the two flights differ only in
+ * where they are going — and /login's bird perches 69px higher than /signup's
+ * (measured tops 200.6 vs 269.8 at 1440x900). The same generous arch therefore
+ * put /login's apex at -35px, i.e. 35px ABOVE the top of the screen, while
+ * /signup's peaked at +21px and read fine. So this is a ceiling, not a smaller
+ * arc everywhere: /signup's path is already what the owner wants and must not
+ * change. 12px leaves the bird visibly clear of the edge without flattening it. */
+const APEX_MIN_TOP_PX = 12;
+
 type Active = FlightLaunch & { id: number };
 
 export function MascotFlightLayer() {
@@ -231,8 +272,11 @@ export function MascotFlightLayer() {
     // THIS NUMBER IS DERIVED, NOT PICKED, and it has to be re-derived whenever
     // the cruise gets longer. It is the longest GRACEFUL path: take-off (240)
     // + the full cruise (2050) + no report ever arriving, so the flyer hovers
-    // out the whole perch timeout (2500) + settle (180) + the perch fold
-    // (~450), which sums to ~5.4s. 5800 clears that with room for a slow
+    // out the whole perch timeout (2500) + the flare (300, was 180 before the
+    // 2026-08-11 landing rework) + the perch fold (~450), which sums to ~5.5s.
+    // 5800 still clears that, but only just; anything further added to the
+    // landing needs this raised, and the destination pages' own 6000ms
+    // fallback-reveal timers raised with it. 5800 clears that with room for a slow
     // machine. Set below the real path instead, this fires mid-air and the
     // bird is deleted in front of the viewer — the exact bug the sidebar
     // bird's own deadline hit on 2026-08-03. Raised from 3900 on 2026-08-04
@@ -296,7 +340,7 @@ export function MascotFlightLayer() {
       // follow and time to follow it. The floors matter as much as the caps: a
       // short flight must not become a twitch.
       const flyMs = ms(clamp(1150 + dist * 0.9, 1150, 2050));
-      const peak = clamp(95 + dist * 0.24, 95, 280);
+      const basePeak = clamp(95 + dist * 0.24, 95, 280);
       // The body's undulation is meant to be the wingbeat showing through the
       // flight path, so it is DERIVED from the cruise length against the
       // puppet's own 0.44s wing cycle (hoopoe.tsx, glide) rather than pinned at
@@ -305,6 +349,36 @@ export function MascotFlightLayer() {
       // wings it is supposed to come from reads as a wobble.
       const flaps = Math.max(3, Math.round(flyMs / 440));
       const undAmp = 5;
+
+      // The arch that actually gets flown, fitted to the target so the bird
+      // never leaves the top of the window (see APEX_MIN_TOP_PX). Sample the
+      // path, find its highest point, and drop the peak by exactly the
+      // overshoot — the apex moves down about 1px per 1px of peak, so one pass
+      // is enough and no iteration is needed. Floored at 60 so a clamped
+      // flight still arcs instead of going flat.
+      //
+      // Recomputed per frame from the SMOOTHED target rather than once from
+      // the provisional one, and that matters: the real perch only arrives
+      // mid-cruise (the destination page has not mounted when the bird takes
+      // off), and on /login it is 41px higher than the provisional guess, so a
+      // peak fitted at take-off would be fitted to the wrong target. Driving
+      // it off `smoothT` — which already eases toward each new report — means
+      // the arch tightens as smoothly as the target does, with no kink.
+      const fitPeak = (targetTop: number) => {
+        let apexTop = Infinity;
+        for (let i = 0; i <= 24; i++) {
+          const u = i / 24;
+          const y =
+            A.y +
+            (targetTop - FLARE_LIFT_PX - A.y) * cruiseEase(u) -
+            basePeak * Math.sin(Math.PI * u) -
+            undAmp;
+          if (y < apexTop) apexTop = y;
+        }
+        return apexTop < APEX_MIN_TOP_PX
+          ? Math.max(60, basePeak - (APEX_MIN_TOP_PX - apexTop))
+          : basePeak;
+      };
       // Smoothed target so a late/corrected perch report never snaps the path.
       const smoothT = { x: aim.left, y: aim.top };
       let sc = 1;
@@ -340,10 +414,15 @@ export function MascotFlightLayer() {
           if (raw < 1) {
             const e = cruiseEase(raw);
             const arch = Math.sin(Math.PI * raw);
+            const peak = fitPeak(smoothT.y);
             cur.x = A.x + (smoothT.x - A.x) * e;
+            // Aims FLARE_LIFT_PX above the perch: the cruise brings the bird
+            // over the spot, and the flare below lowers it the rest of the
+            // way. The lift rides `e`, so it is nothing at take-off and fully
+            // applied by the end of the cruise.
             cur.y =
               A.y +
-              (smoothT.y - A.y) * e -
+              (smoothT.y - FLARE_LIFT_PX - A.y) * e -
               peak * arch - // rise then fall over the chord
               undAmp * Math.sin(2 * Math.PI * flaps * raw) * arch; // wingbeat ripple
             cur.rot = dir * 9 * arch; // bank into the arc, level at both ends
@@ -359,9 +438,10 @@ export function MascotFlightLayer() {
           // resolved on the first frame the report arrived and hard-wrote the
           // distant rect.
           if (perchReady && Math.hypot(target.left - smoothT.x, target.top - smoothT.y) < 1) {
-            // write the exact end-of-arc frame (arch and ripple are zero at t=1)
+            // write the exact end-of-arc frame (arch and ripple are zero at
+            // t=1), still holding the flare lift for the descent below
             cur.x = smoothT.x;
-            cur.y = smoothT.y;
+            cur.y = smoothT.y - FLARE_LIFT_PX;
             setTransform(cur.x, cur.y, cur.rot, sc, 1);
             return resolve();
           }
@@ -376,7 +456,9 @@ export function MascotFlightLayer() {
           const hover = Math.sin(hel / 210) * 4 * Math.min(1, hel / 400);
           cur.rot += (dir * 2 - cur.rot) * 0.16;
           cur.x = smoothT.x;
-          cur.y = smoothT.y - hover;
+          // Hovers at the flare height too, so whether or not the bird had to
+          // wait for a report it starts its descent from the same place.
+          cur.y = smoothT.y - FLARE_LIFT_PX - hover;
           setTransform(cur.x, cur.y, cur.rot, sc, 1);
           rafRef.current = requestAnimationFrame(step);
         };
@@ -384,32 +466,30 @@ export function MascotFlightLayer() {
       });
       if (abortRef.current) return;
 
-      // Phase 2 — settle onto the reported perch. The cruise above ends within
-      // ~1px of the target (or on the provisional spot if no report ever came),
-      // so this is a finishing flare, not a correction: tween any residual —
-      // the hover bob offset, the residual bank, the last sub-pixel of drift —
-      // over SETTLE_MS instead of hard-writing the rect (the hard write is what
-      // used to read as the bird teleporting onto the perch).
+      // Phase 2 — the flare. The cruise leaves the bird hovering FLARE_LIFT_PX
+      // over the perch (plus whatever bob and residual bank it had), so this is
+      // a real, visible final beat rather than the sub-pixel correction it used
+      // to be: it sinks the last stretch on a decelerating ease and comes to
+      // rest, which is the "slows down ... so it kind of just rests down" the
+      // owner asked for. The wings are still flapping the whole way through —
+      // api.perch() below is what stops the glide — so the bird brakes with
+      // them and only tucks once it is down.
       const finalPerch = getLatestPerch() ?? prov;
       const fs = finalPerch.width / size || 1;
-      const settleGap = Math.hypot(finalPerch.left - cur.x, finalPerch.top - cur.y);
-      if (settleGap > 1 || Math.abs(cur.rot) > 0.5) {
-        const from = { x: cur.x, y: cur.y, rot: cur.rot, sc };
-        await tween(ms(SETTLE_MS), (t) => {
-          const e = smoother(t);
-          setTransform(
-            from.x + (finalPerch.left - from.x) * e,
-            from.y + (finalPerch.top - from.y) * e,
-            from.rot * (1 - e),
-            from.sc + (fs - from.sc) * e,
-            1,
-          );
-        });
-        if (abortRef.current) return;
-      } else {
-        // already there: a sub-pixel alignment write, not a visible move
-        setTransform(finalPerch.left, finalPerch.top, 0, fs, 1);
-      }
+      const from = { x: cur.x, y: cur.y, rot: cur.rot, sc };
+      await tween(ms(FLARE_MS), (t) => {
+        const e = easeOutCubic(t);
+        setTransform(
+          from.x + (finalPerch.left - from.x) * e,
+          from.y + (finalPerch.top - from.y) * e,
+          from.rot * (1 - e),
+          from.sc + (fs - from.sc) * e,
+          1,
+        );
+      });
+      if (abortRef.current) return;
+      // Land exactly, in case the ease left a sub-pixel behind.
+      setTransform(finalPerch.left, finalPerch.top, 0, fs, 1);
       await api.perch(); // fold wings + cushion squash = the land/settle beat
       if (abortRef.current) return;
 
