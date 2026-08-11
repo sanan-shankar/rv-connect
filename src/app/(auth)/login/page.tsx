@@ -233,7 +233,26 @@ export default function LoginPage() {
   // `perchWatchStop` lets the handoff reveal below drop the listeners the
   // moment they stop mattering.
   const perchWatchStop = useRef<(() => void) | null>(null);
-  useLayoutEffect(() => {
+  // A passive effect, deliberately NOT useLayoutEffect (changed 2026-08-11).
+  //
+  // reportPerchRect reads getBoundingClientRect and getComputedStyle, and a
+  // layout effect runs synchronously inside React's commit, BEFORE first
+  // paint. So this forced a full synchronous layout of a page that had only
+  // just mounted, inside the commit task: a performance trace of the landing
+  // -> /login flight attributed 81ms of forced reflow to this exact callback.
+  // That lands while the bird is mid-cruise, and the flight layer drives its
+  // arc from requestAnimationFrame, so the whole stall comes out of the
+  // flight: the bird freezes and then jumps to where the clock says it should
+  // be. That is the owner's "it jerks slightly when the sign in content comes
+  // in" (2026-08-11).
+  //
+  // Running after paint costs the report a single frame, which the flyer does
+  // not care about (it retargets every frame across a ~2s cruise, and the
+  // reason this report exists at all is that the OLD one waited ~2s for the
+  // entrance spring). In exchange the browser does its layout in its own
+  // phase, and the read here then hits a clean layout tree instead of forcing
+  // one. The perch geometry is identical either way.
+  useEffect(() => {
     if (!arrivedViaFlight) return;
     reportPerchRect();
     const el = hoopoeBoxRef.current;
