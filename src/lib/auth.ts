@@ -93,6 +93,8 @@ const nextAuth = NextAuth({
             role: true,
             accountType: true,
             verifyState: true,
+            emailVerified: true,
+            email: true,
             batchType: true,
             batchYear: true,
             name: true,
@@ -105,6 +107,13 @@ const nextAuth = NextAuth({
           session.user.role = dbUser.role;
           session.user.accountType = dbUser.accountType;
           session.user.verifyState = dbUser.verifyState;
+          // Read fresh from the row rather than carried on the JWT, so the
+          // moment someone clicks the link in their inbox the gate opens on
+          // their next request. A token-carried flag would keep them locked
+          // out until the JWT next rotated, which is the failure that makes a
+          // verification flow feel broken.
+          session.user.emailConfirmed = dbUser.emailVerified != null;
+          session.user.email = dbUser.email;
           session.user.batchType = dbUser.batchType;
           session.user.batchYear = dbUser.batchYear;
           session.user.name = dbUser.name;
@@ -177,6 +186,12 @@ async function demoSession(): Promise<Session | null> {
       ...user,
       role: "member",
       verifyState: "verified",
+      // The demo has no mailbox and cannot send mail, so the persona is born
+      // confirmed. The gate short-circuits on IS_DEMO anyway
+      // (src/lib/email-verification.ts); this keeps the client chrome, which
+      // reads the session rather than calling the gate, from showing a nag bar
+      // nobody on that deployment could ever clear.
+      emailConfirmed: true,
     },
     expires: new Date(Date.now() + 86_400_000).toISOString(),
   } as Session;

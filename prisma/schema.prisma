@@ -64,6 +64,8 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+  authTokens    AuthToken[]
+  outboundMail  OutboundEmail[]
   bookmarks     Bookmark[]
   groupMemberships GroupMember[]
   createdGroups    Group[]
@@ -224,6 +226,97 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ─── Email tokens: password reset and address confirmation ───────────────────
+// One row per link we mail out. NOT NextAuth's VerificationToken above, which
+// belongs to the (unused) email provider and stores its token in the clear.
+//
+// `tokenHash` is a SHA-256 of the random token, and the raw token exists in
+// exactly one place: the URL in the person's inbox. So a leaked database
+// backup, a stray log line, or a read-only SQL injection cannot be turned into
+// an account takeover, which a plaintext reset table hands over outright. The
+// hash is the primary lookup key, so verifying a link is one indexed read and
+// the raw value is never sent to Postgres at all.
+//
+// `usedAt` rather than a delete: a consumed row is kept so a second click on
+// the same link can say "this link was already used" instead of the identical
+// "invalid link" a missing row would produce. Those are different problems for
+// the person reading the screen, and telling them apart is most of what makes
+// this flow survivable for someone who is not good with computers.
+model AuthToken {
+  id     String @id @default(cuid())
+  userId String
+  // "reset" (set a new password) | "verify" (confirm this address is yours).
+  // Checked on consume, so a confirmation link can never be replayed as a
+  // password reset even if the two ever shared a token space.
+  kind      String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  // The address the link was sent to. Kept so a reset issued before someone
+  // changes their email cannot be redeemed afterwards, and so the "we sent it
+  // to a****@gmail.com" line can be rebuilt without a second lookup.
+  sentTo    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The rate-limit read: "how many of this kind has this user asked for
+  // recently". Ordered so the count is an index-only scan.
+  @@index([userId, kind, createdAt])
+  // The sweep read: expired rows are deleted opportunistically on mint.
+  @@index([expiresAt])
+}
+
+// ─── The outbound mail queue ─────────────────────────────────────────────────
+// Resend's free plan sends 100 messages a day. Launch is expected to put more
+// than 100 signups through in the first day (owner, 2026-08-11), so mail is
+// NOT sent inline from the action that triggers it. Every message becomes a
+// row here and a drain pass sends what the day's budget allows, oldest first
+// within priority. The rest wait for tomorrow.
+//
+// Two decisions in this shape are worth keeping:
+//
+// 1. The message is stored as its INGREDIENTS (`payload`), not as rendered
+//    HTML. A template fix therefore reaches everything still queued, and the
+//    table stays small enough to ignore.
+// 2. Nothing here holds a token. The AuthToken is minted by the drain, at the
+//    moment of sending. A verify link minted at signup and posted two days
+//    later would arrive already dead, which is the exact failure a queue
+//    introduces if you are not looking for it.
+model OutboundEmail {
+  id     String  @id @default(cuid())
+  userId String?
+  to     String
+  // "verify" | "reset" | "password-changed". Decides which template renders
+  // and which token, if any, gets minted at send time.
+  kind String
+  // Template inputs as JSON (a name, an address). Never a token, never a
+  // password, never anything that would matter if this table leaked.
+  payload String?
+  // Lower sends first. A password reset is somebody locked out RIGHT NOW; a
+  // welcome confirmation can wait a day without anyone being stuck.
+  priority Int @default(100)
+
+  status    String    @default("queued") // queued | sending | sent | failed
+  attempts  Int       @default(0)
+  lastError String?
+  createdAt DateTime  @default(now())
+  // Set while a drain pass owns this row, so two concurrent page views cannot
+  // both send it. A row stuck in "sending" past the stale window is reclaimed.
+  claimedAt DateTime?
+  sentAt    DateTime?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The drain read: the next thing to send.
+  @@index([status, priority, createdAt])
+  // The budget read: how many went out since midnight UTC.
+  @@index([sentAt])
+  // "Has this person's confirmation actually left yet?", which is what decides
+  // whether the app may tell them to go and look in their inbox.
+  @@index([userId, kind, status])
 }
 
 model Post {
