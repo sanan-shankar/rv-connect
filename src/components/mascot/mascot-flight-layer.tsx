@@ -141,6 +141,48 @@ const FLARE_MS = 300;
 // Decelerating: fast in, nothing at the end, so the weight lands softly.
 const easeOutCubic = (u: number) => 1 - (1 - u) ** 3;
 
+/* ---- the physics pass (owner, 2026-08-11: "make the physics and realism
+ * better ... a bunch of marginal changes that add up") ------------------
+ *
+ * WINGBEAT_MS is the puppet's own flap cycle (hoopoe.tsx, glide: 0.44s per
+ * full up-down-up), and the cruise's altitude ripple is now derived from it
+ * DIRECTLY, in elapsed milliseconds. It used to round the ripple to a whole
+ * number of cycles over the cruise (`flaps = round(flyMs / 440)`), which
+ * made its period flyMs/flaps — up to ±11% off the true 440ms, enough to
+ * drift fully out of phase with the wings by mid-flight. A body that rises
+ * while the wings are recovering is the exact "the translation isn't
+ * related to the actions it's making" the owner named. The phase works out
+ * with no offset term: glide() is called at cruise start, its first half
+ * cycle is the downstroke, and sin peaks a quarter period in — so peak lift
+ * lands mid-downstroke, where a real wingbeat puts it. The integer rounding
+ * existed to zero the ripple at the endpoints, which the arch factor
+ * already does.
+ *
+ * ARCH_APEX_SHAPE skews the flight arc. sin(π·u) put the apex at exactly
+ * half way, and a symmetric arc reads as a thrown ball, not a bird: birds
+ * spend effort climbing steeply and then come down on a long shallow glide.
+ * sin(π·u^0.85) moves the apex to ~44% of the cruise, so the descent gets
+ * the longer, flatter tail. This is also most of the sign-in/join gap the
+ * owner felt: the join perch sits ~70px lower, so its longer descent
+ * arrived steepest of all, and it is precisely the stretch this flattens.
+ *
+ * FLARE_PITCH_DEG rears the bird nose-up through the flare — rotation
+ * opposite the direction of travel, peaking mid-flare and gone by
+ * touchdown. Braking flat is what machines do; a bird trades speed for a
+ * moment of lift by pitching back. 7° is deliberately under the 9° cruise
+ * bank so the flare reads as a gesture, not a somersault.
+ *
+ * SMOOTH_TAU_MS replaces the per-FRAME lerp factor (0.16/frame) on the
+ * retarget smoothing. A per-frame factor makes the path a function of the
+ * display's refresh rate — visibly lazier at 30fps, twitchier at 120 — so
+ * the smoothing is now exponential in real time: 1 - exp(-dt/τ), with τ
+ * chosen to match the old feel at 60fps (0.16/frame @16.7ms ≈ τ 96ms). */
+const WINGBEAT_MS = 440;
+const ARCH_APEX_SHAPE = 0.85;
+const archOf = (u: number) => Math.sin(Math.PI * u ** ARCH_APEX_SHAPE);
+const FLARE_PITCH_DEG = 7;
+const SMOOTH_TAU_MS = 96;
+
 /* Keep the arch inside the window (owner, 2026-08-11: "sign in hoopoe goes a
  * bit too high. The flight path of join hoopoe is better").
  *
@@ -347,8 +389,10 @@ export function MascotFlightLayer() {
       // a constant. Left at the old hard-coded 4 the two drifted apart the
       // moment the cruise got longer, and a ripple running slower than the
       // wings it is supposed to come from reads as a wobble.
-      const flaps = Math.max(3, Math.round(flyMs / 440));
-      const undAmp = 5;
+      // A touch more ripple than the old 5: the bob is now genuinely in phase
+      // with the wingbeat (see the physics block above), and a coupled beat
+      // is worth letting the eye actually catch.
+      const undAmp = 6;
 
       // The arch that actually gets flown, fitted to the target so the bird
       // never leaves the top of the window (see APEX_MIN_TOP_PX). Sample the
@@ -371,7 +415,7 @@ export function MascotFlightLayer() {
           const y =
             A.y +
             (targetTop - FLARE_LIFT_PX - A.y) * cruiseEase(u) -
-            basePeak * Math.sin(Math.PI * u) -
+            basePeak * archOf(u) -
             undAmp;
           if (y < apexTop) apexTop = y;
         }
@@ -391,14 +435,20 @@ export function MascotFlightLayer() {
 
       await new Promise<void>((resolve) => {
         const start = performance.now();
+        let lastNow = start;
         const step = (now: number) => {
           if (abortRef.current) return resolve();
           const el = now - start;
+          // Real-time smoothing factor (see SMOOTH_TAU_MS): the same τ at any
+          // refresh rate, instead of a per-frame constant that made the path
+          // depend on the display.
+          const k = 1 - Math.exp(-(now - lastNow) / SMOOTH_TAU_MS);
+          lastNow = now;
           const target = getLatestPerch() ?? prov;
           // ease the target itself toward the newest report (kills retarget snap)
-          smoothT.x += (target.left - smoothT.x) * 0.16;
-          smoothT.y += (target.top - smoothT.y) * 0.16;
-          sc += ((target.width / size || 1) - sc) * 0.16;
+          smoothT.x += (target.left - smoothT.x) * k;
+          smoothT.y += (target.top - smoothT.y) * k;
+          sc += ((target.width / size || 1) - sc) * k;
 
           const raw = el / flyMs;
           // Landing gear down mid-descent: begin the leg unfold at 70% of the
@@ -413,7 +463,7 @@ export function MascotFlightLayer() {
 
           if (raw < 1) {
             const e = cruiseEase(raw);
-            const arch = Math.sin(Math.PI * raw);
+            const arch = archOf(raw); // apex ~44% in: climb with effort, glide down long
             const peak = fitPeak(smoothT.y);
             cur.x = A.x + (smoothT.x - A.x) * e;
             // Aims FLARE_LIFT_PX above the perch: the cruise brings the bird
@@ -424,7 +474,11 @@ export function MascotFlightLayer() {
               A.y +
               (smoothT.y - FLARE_LIFT_PX - A.y) * e -
               peak * arch - // rise then fall over the chord
-              undAmp * Math.sin(2 * Math.PI * flaps * raw) * arch; // wingbeat ripple
+              // The wingbeat showing through the path: true 440ms period in
+              // real elapsed time, phase-locked to glide's own loop (see the
+              // physics block above). Not scaled by `speed` because the
+              // puppet's wingbeat is not either.
+              undAmp * Math.sin((2 * Math.PI * el) / WINGBEAT_MS) * arch;
             cur.rot = dir * 9 * arch; // bank into the arc, level at both ends
             setTransform(cur.x, cur.y, cur.rot, sc, 1);
             rafRef.current = requestAnimationFrame(step);
@@ -454,7 +508,7 @@ export function MascotFlightLayer() {
           if (hoverFrom < 0) hoverFrom = el;
           const hel = el - hoverFrom;
           const hover = Math.sin(hel / 210) * 4 * Math.min(1, hel / 400);
-          cur.rot += (dir * 2 - cur.rot) * 0.16;
+          cur.rot += (dir * 2 - cur.rot) * k;
           cur.x = smoothT.x;
           // Hovers at the flare height too, so whether or not the bird had to
           // wait for a report it starts its descent from the same place.
@@ -482,7 +536,10 @@ export function MascotFlightLayer() {
         setTransform(
           from.x + (finalPerch.left - from.x) * e,
           from.y + (finalPerch.top - from.y) * e,
-          from.rot * (1 - e),
+          // The flare pitch: nose-up against the direction of travel, peaking
+          // mid-flare, gone by touchdown (see FLARE_PITCH_DEG). Braking flat
+          // is what a machine does; this is the bird trading speed for lift.
+          from.rot * (1 - e) - dir * FLARE_PITCH_DEG * Math.sin(Math.PI * e),
           from.sc + (fs - from.sc) * e,
           1,
         );
