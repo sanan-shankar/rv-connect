@@ -880,3 +880,47 @@ Headline changes:
   was listed as approved when `/preview/logo` is the shipped mark.
 - **`docs/ops/r2-cors.md`** written: exact dashboard steps and the admin-token alternative for the
   one thing still blocking full-resolution uploads.
+
+## 2026-08-11 - Forgot password, email confirmation, and a send queue
+
+- **Forgot password**, end to end. `/forgot-password` takes an address and answers identically
+  whether or not it matches an account (a version that said "no such account" turns the form into a
+  membership checker for a private community); the "check your inbox" screen masks the address the
+  VISITOR TYPED rather than one from the server, so it can help with a typo without leaking anything.
+  `/reset-password` judges the link server-side before painting, so a dead link never shows a form
+  that fails after you have chosen a password. Dead links split by cause - expired, used, stale,
+  unrecognised - because the four need different next steps. On success the person is signed in with
+  the password they just chose rather than sent to a login screen to retype it.
+- **Email confirmation**, on the owner's "middle" call: read everything freely, confirm to write.
+  Gated server-side at posts, letters, publishing a draft, edits, comments, all three upload routes,
+  Collection contributions, Catch-up creation/prompts/entries/member-adds, and other members'
+  contact details. Presign matters most: what it returns writes straight into the bucket with no
+  further pass through our code. Contacts are decided BEFORE the list is built, not by hiding the
+  button, because everything on a profile is serialized to the browser. Likes, bookmarks, drafts and
+  reports stay open.
+- **The 100-a-day problem.** Resend's free plan sends 100 messages a day and launch is expected to
+  exceed that in signups alone, so nothing sends inline: every message is an `OutboundEmail` row and
+  a drain pass sends what the day's budget allows. Three things this had to get right. Resets sort
+  first AND hold a reserved 20 of the 95, so nobody locked out is stuck behind a hundred welcome
+  emails. Tokens are minted BY THE DRAIN at the moment of sending, so a confirmation that waited two
+  days still arrives with its full day of life. And the app never says "check your inbox" for a
+  message still queued - `verificationMailState` distinguishes sent from queued and the banner,
+  dialog and verify page all say different things for the two.
+- **Security**: reset tokens stored as a SHA-256 hash and never in the clear, single-use, claimed by
+  a conditional update so two clicks cannot both win. `sendVerificationEmail` deliberately lives in
+  `lib/` rather than the `"use server"` file: exported from there it would be an unauthenticated
+  "mail anyone from hello@rishivalley.space" relay.
+- **Admin**: `Email & verification` puts the two different meanings of "verified" side by side
+  (did the address answer / is this really an RV person), over the three queue numbers - sent today
+  out of 95, waiting, gave up.
+- **Three bugs found by running it, not by reading it.** `prisma.ts`'s dev singleton key was not
+  bumped with the schema, so a live dev server held a client with no `authToken` delegate and every
+  read 500'd while `tsc` stayed clean (gotcha 3, again). A reset only drained when somebody happened
+  to be browsing. And `.env` carries the production `RESEND_API_KEY`, so an end-to-end test sent two
+  live messages to a `.invalid` address: `sendMail` now refuses reserved TLDs outright and
+  development does not mail real people without `EMAIL_DEV_SEND=1`.
+- Migration `2026-08-11-auth-tokens.sql` applied (AuthToken, OutboundEmail); the 37 existing members
+  were grandfathered as confirmed rather than locked out of posting by a feature added after them.
+- Owner action: set `APP_URL=https://rishivalley.space` on Vercel. Emailed links are deliberately
+  NOT built from `AUTH_URL`/`NEXTAUTH_URL`, which bugs.md #15 suspects still points at the old
+  vercel.app host.
