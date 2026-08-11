@@ -998,3 +998,29 @@ guessed (they chose: wings keep flapping through the landing flare; keep the pon
   swallows exactly the first, programmatic focus; a person focusing the field still gets the look.
 - Owner action: either flip Safari's "Allow remote automation" (Develop settings) so the WebKit fix
   can be measured with safaridriver, or just Cmd+/Cmd- on /login and say what the bird does.
+
+## 2026-08-12 - Safari measured for real, and the flight physics pass
+
+- **The zoom fix verified in actual Safari** (26.5.2, safaridriver, after the owner flipped "Allow
+  remote automation"): the percentage origins resolve to exactly the right pivots in WebKit too
+  (computed "42px 85.000069px", empirical wing pivot (42.0, 85.0)), settling the anchor question:
+  WebKit anchors percentage origins at 0 like Chrome, not at the viewBox's -10 like the spec. Two
+  humbling findings recorded in bugs.md #17 for the next prober: CSS `zoom` does NOT reproduce the
+  Cmd+ breakage in Safari (so the px bug is specific to real page zoom, which no automation on this
+  machine can drive), and Safari does not reflect a just-written SVG child transform in
+  getBoundingClientRect synchronously (a probe that reads in the same tick gets garbage; the first
+  run reported every pivot uniformly ~100u off for exactly that reason). Final confirmation of
+  Cmd+ itself remains the owner's eyes, said plainly.
+- **The flight physics pass** (owner: sign-in ok, join worse, "doesn't feel like the hoopoe
+  translation is related to the actions it's making"). Four corrections, all in the flight layer:
+  the altitude ripple was rounded to whole cycles per cruise and drifted up to half a wingbeat out
+  of phase with the wings by mid-flight — it now runs at the puppet's exact 440ms period,
+  phase-locked to the downstroke; the symmetric sine arch became sin(pi*u^0.85) so the apex sits at
+  ~44% and the descent is a long shallow glide (measured on join: 48% of the flight's time over the
+  last 28% of its ground — join gains most, its perch being 70px lower); the flare now pitches
+  nose-up against travel (-6.9 deg measured, level by touchdown); and the retarget smoothing is
+  exponential in real time instead of per-frame, so the path no longer depends on refresh rate.
+  Landing check 28/28, dx=dy=0.00px. The in-SVG flights (sidebar, mobile fly-in) were left alone:
+  arcAndLand already drives wings and bob from one clock.
+- Owner action: Cmd+ and Cmd- on /login in Safari (the one thing automation cannot press), and fly
+  both CTAs to judge the new physics — the numbers can only prove coupling, not feel.
