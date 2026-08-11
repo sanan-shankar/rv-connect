@@ -259,4 +259,10 @@ export const DEMO_CLOSED_PATHS: readonly string[] = [
   "/signup",
   "/verify",
   "/catchups/join",
+  // The email flows. The demo persona has no password to reset and no mailbox
+  // to confirm (sendMail refuses outright in demo mode), so these three could
+  // only ever show a stranger a form that does nothing.
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
 ];
