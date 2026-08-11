@@ -924,3 +924,46 @@ Headline changes:
 - Owner action: set `APP_URL=https://rishivalley.space` on Vercel. Emailed links are deliberately
   NOT built from `AUTH_URL`/`NEXTAUTH_URL`, which bugs.md #15 suspects still points at the old
   vercel.app host.
+
+## 2026-08-11 (later) - the hoopoe round: five bugs traced, one measured down, one disproved
+
+Owner reported eight things about the mascot in one go, with the standing instruction not to
+restructure the rig: "i want the same behaviour i have with the bugs fixed." So every fix below is
+the smallest one that removes the cause, and the two design calls were put to the owner rather than
+guessed (they chose: wings keep flapping through the landing flare; keep the ponder and reset after).
+
+- **The idle bird that could not be shooed away** was the one worth the most care. The idle effect
+  re-runs whenever the tab is hidden and shown again, and it restarted the ambient breathe
+  unconditionally. That writes `PARTS.body {scaleY,y}` over `arcAndLand`'s own AWAITED body
+  animation, and a superseded animation's `.finished` never resolves in motion v12, so `flyIn()`
+  hung: the bird landed, never reached `sleep()`, and the `flyTo()` the next mouse move enqueued sat
+  behind a step that could never finish. One condition (`if (!damper.active)`) fixes it, which is
+  what the damper was always for. Guarded by the new `scripts/qa/hoopoe-idle-check.mjs`; on the
+  unfixed code the exit flight never writes a single transform (`rootTransform: "none"`).
+- **The celebration left the face dirty.** `react("thinking")` cocks the head 10 degrees and biases
+  the gaze and nothing put either back, so the quick check celebrated side-on and kept that head
+  afterwards; it also kept the `happy` arc eyeshape, which has no pupil, which is what the owner was
+  seeing as eyes that never came back to normal before the wings covered them. `celebrate()` now
+  levels the head, clears the gaze and hands the round eyes back. Verified on the real signup flow:
+  head 9-10 degrees during the ponder, 0 from the moment the celebration starts, round eyes at 2.5s.
+- **The arc flew off the top of the screen.** Both hero CTAs sit on one row, but /login's bird
+  perches 69px higher than /signup's, so one formula put the login apex at -35px (above the viewport)
+  while signup peaked at +21px and read fine. The arch is now fitted per flight to the smoothed
+  target, so it is a ceiling on the flights that need one and leaves the path the owner likes alone.
+  Login apex -35px -> +7px.
+- **The landing plonked** because the cruise ended ON the perch at pace and stopped dead. It now aims
+  16px high and sinks the rest on a decelerating ease with the wings still beating. Final approach
+  3.42px/frame -> 0.42px/frame.
+- **The flight jerk is a stall, not a reposition**, which measuring settled quickly: the perch rect
+  never drifts vertically mid-flight (y=0.0px). A performance trace found two forced reflows stacking
+  in the destination's commit; one was `reportPerchRect` running from `useLayoutEffect`, i.e. reading
+  geometry synchronously inside React's commit before first paint. Made passive, and it leaves the
+  trace's reflow list. The other is inside React's own `commitMount` and was left alone, so this
+  REDUCES the jerk rather than removing it. Said so to the owner rather than claiming the fix.
+- **Ctrl+Shift+H now ships.** It was a dev-only review aid; the owner asked for it on the live site.
+- **Browser zoom (bugs.md #17) still does not reproduce**, now with both flaws in the old probe
+  corrected: real viewport+DPR zoom instead of CSS `zoom`, and empirical pivot measurement (rotate
+  180 degrees, midpoint of the before/after boxes) instead of reading computed style, which only
+  says what the CSS declares. Every pivot correct to within 0.5 user units at five zoom levels and
+  on a live resize. Third disproof; recorded in bugs.md so nobody spends a fourth session on it, and
+  the next step is a screenshot from the owner rather than more code.
