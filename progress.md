@@ -967,3 +967,34 @@ guessed (they chose: wings keep flapping through the landing flare; keep the pon
   says what the CSS declares. Every pivot correct to within 0.5 user units at five zoom levels and
   on a live resize. Third disproof; recorded in bugs.md so nobody spends a fourth session on it, and
   the next step is a screenshot from the owner rather than more code.
+
+## 2026-08-11 (later still) - the zoom bug was Safari all along, and the jerk was three layouts deep
+
+- **Bugs.md #17 root-caused by the owner's screenshots.** The one variable three investigations
+  missed was the browser: every probe ran Chrome, the owner zooms Safari (the menu bar was in the
+  screenshot; they then confirmed Chrome and Brave are fine). Chrome resolves px transform-origins
+  on SVG children in user units; WebKit multiplies them by the page-zoom factor, so every pivot
+  slid by the zoom and the wings swung from the bird's bottom centre instead of its shoulders.
+  Fixed by converting every RIG_CSS origin to view-box percentages, which carry no unit to scale.
+  On the way, measured that Chrome anchors percentage origins at 0 rather than the viewBox's y=-10
+  the spec describes (the spec mapping put every y-pivot exactly 10 units low), so the shipped
+  mapping is y% = y/152 per measurement; hoopoe.tsx documents it. Chrome verified byte-equivalent
+  (empirical pivots within 0.25u, committed probe passes unmodified, landing check 28/28). WebKit
+  still unmeasured: safaridriver needs the owner to flip "Allow remote automation" in Safari's
+  Develop settings; bugs.md says exactly what to look at either way.
+- **The remaining flight jerk was three stacked forced layouts, whack-a-moled one trace at a
+  time.** The ~85ms bill for laying out the just-mounted auth page lands on whoever reads geometry
+  first inside the commit: first autoFocus (react-dom's in-commit focus()), then Next's
+  post-navigation scroll walk (shouldSkipElement), then our own perch report. All three are gone:
+  a new useDeferredAutofocus hook focuses the same field two frames later on a clean tree (login
+  email, trivia gate, signup first name), the flight navigation pushes with scroll:false, and the
+  perch report's explicit mount call is deleted in favour of the ResizeObserver's guaranteed
+  initial delivery, which the platform runs AFTER layout. The ForcedReflow insight is now absent
+  from the flight trace entirely; what remains is the browser's one unavoidable rendering-phase
+  layout, which rAF outruns by construction.
+- **One regression caught by the guards, not by eyes**: the gate's deferred focus fires late enough
+  that the rig is live, so its curious-on-focus expression queued ahead of the mobile fly-in and
+  the veil lifted on a seated bird (landing check: first visible frame mid-viewport). The gate now
+  swallows exactly the first, programmatic focus; a person focusing the field still gets the look.
+- Owner action: either flip Safari's "Allow remote automation" (Develop settings) so the WebKit fix
+  can be measured with safaridriver, or just Cmd+/Cmd- on /login and say what the bird does.
