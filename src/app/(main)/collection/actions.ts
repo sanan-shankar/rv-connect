@@ -10,6 +10,7 @@ import { photoSchema } from "@/lib/validators";
 import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/lib/upload-shared";
 import { eraFromYear } from "@/lib/collection";
 import { notifyAdminNote } from "@/lib/admin-note";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 import { revalidatePath } from "next/cache";
 
 const PAGE_SIZE = 24;
@@ -73,6 +74,12 @@ export async function contributePhoto(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
   if (IS_DEMO) return { error: "The demo does not accept photo uploads. Everything already in the Collection is yours to browse." };
+
+  // A contributed photograph is bytes into a bucket, credited to a name, shown
+  // to the whole community. Of everything an account can do this is the one
+  // with a real cost attached, so it waits for a confirmed address.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) return { error: gate.error };
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
@@ -194,6 +201,12 @@ export async function contributePhotoDirect(input: {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
   if (IS_DEMO) return { error: "The demo does not accept photo uploads. Everything already in the Collection is yours to browse." };
+
+  // A contributed photograph is bytes into a bucket, credited to a name, shown
+  // to the whole community. Of everything an account can do this is the one
+  // with a real cost attached, so it waits for a confirmed address.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) return { error: gate.error };
 
   if (typeof input.key !== "string" || !COLLECTION_ORIGINAL_KEY.test(input.key)) {
     return { error: "Bad upload reference" };

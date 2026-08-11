@@ -19,10 +19,17 @@ export function AppShell({
   user,
   unreadCount,
   demo = false,
+  notice,
   children,
 }: {
   user: SidebarUser;
   unreadCount: number;
+  /** A bar above the page content, inside the column so it lines up with the
+   *  title beneath it. Today this is only the confirm-your-email notice; it is
+   *  a slot rather than that component so the shell does not have to know
+   *  about auth. Null for everyone whose address is confirmed, which is
+   *  everybody after their first day. */
+  notice?: React.ReactNode;
   /** True on the demo deployment. Passed down as a prop rather than read
    *  from `IS_DEMO`, because `DEMO_MODE` has no NEXT_PUBLIC_ prefix and so
    *  inlines as undefined in a client bundle: the Sidebar below is a client
@@ -53,7 +60,10 @@ export function AppShell({
         {/* Padding rule (owner, 2026-07-30): the title's distance from the
             left edge EQUALS its distance from the top, at every breakpoint. */}
         <main className="w-full flex-1 p-5 sm:p-7 lg:p-10">
-          <ContentColumn>{children}</ContentColumn>
+          <ContentColumn>
+            {notice}
+            {children}
+          </ContentColumn>
         </main>
       </div>
     </div>

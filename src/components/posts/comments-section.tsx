@@ -15,6 +15,7 @@ import {
   adminRemoveComment,
 } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
+import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { motion } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 
@@ -66,6 +67,9 @@ export function CommentsSection({
   const [focused, setFocused] = useState(false);
   // The comment currently targeted by the admin moderation dialog, if any.
   const [moderatingId, setModeratingId] = useState<string | null>(null);
+  // `createComment` refuses an unconfirmed address server-side; this turns that
+  // into a dialog with the fix in it.
+  const emailGate = useEmailGate();
 
   // The panel animates to (and then tracks) the real height of its content. A single
   // ResizeObserver is the ONE clock: the initial open, the comments arriving from the
@@ -104,7 +108,9 @@ export function CommentsSection({
 
     const result = await createComment(formData);
     if (result.error) {
-      toast.error(result.error);
+      // An unconfirmed address gets the dialog, which explains and offers to
+      // send the link again; everything else is still a toast.
+      if (!emailGate.handled(result.error)) toast.error(result.error);
     } else {
       const updated = await loadComments(postId);
       setComments(updated);
@@ -145,6 +151,12 @@ export function CommentsSection({
   // The measured content: divider, the thread, and the composer. List sits on top, the
   // input always sits on the bottom, so the reveal order is the same every single time.
   const body = (
+    <>
+    {/* Outside `contentRef` on purpose: that element's height is the accordion's
+        one clock (see the ResizeObserver above), and nothing that is not the
+        comment list belongs inside the thing being measured. The dialog renders
+        nothing inline anyway, since it portals to the body when open. */}
+    {emailGate.dialog}
     <div ref={contentRef} className="flex flex-col gap-4 px-0.5 pb-1 pt-3">
       <div className="border-t border-border/70" />
 
@@ -291,6 +303,7 @@ export function CommentsSection({
         />
       )}
     </div>
+    </>
   );
 
   // Letters: permanently expanded, no accordion (avoids a stray open animation on page load).

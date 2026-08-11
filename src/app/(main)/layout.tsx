@@ -1,8 +1,12 @@
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
+import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
+import { maskEmail } from "@/lib/mask-email";
+import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { TourProvider } from "@/components/tour/tour-provider";
 import { IS_DEMO } from "@/lib/demo";
 import { DemoBar } from "@/components/demo/demo-bar";
@@ -25,15 +29,37 @@ export default async function MainLayout({
   // internally (including a missing Catch-up table pre-migration) and never
   // throws, but it also runs concurrently with (not blocking) the count
   // query, so a slow or stale advance can never hold up page render.
-  const [unreadCount] = await Promise.all([
+  const [unreadCount, mailState] = await Promise.all([
     prisma.notification.count({
       where: {
         userId: session.user.id,
         read: false,
       },
     }),
+    // Only asked for when it can change what the banner says. A confirmed
+    // account never queries the queue at all.
+    session.user.emailConfirmed
+      ? Promise.resolve(null)
+      : verificationMailState(session.user.id),
     advanceDueCatchups(session.user.id),
   ]);
+
+  // The mail queue's tick. There is no cron on this project, so the queue is
+  // drained by whoever happens to load a page, the same lazy pattern
+  // `advanceDueCatchups` above uses.
+  //
+  // Inside `after()`, unlike the catch-up advance, because this one makes
+  // network calls to Resend: it must run AFTER the response has been streamed,
+  // or every page in the app would wait on somebody else's welcome email. It
+  // swallows its own errors and claims rows before sending, so a hundred
+  // simultaneous page views cannot mail the same person a hundred times.
+  after(async () => {
+    try {
+      await drainMailQueue();
+    } catch (err) {
+      console.error("[email] drain failed", err);
+    }
+  });
 
   return (
     // The tour auto-offers itself on the demo and nowhere else. A visitor
@@ -55,6 +81,19 @@ export default async function MainLayout({
         }}
         unreadCount={unreadCount}
         demo={IS_DEMO}
+        notice={
+          mailState ? (
+            <VerifyEmailBanner
+              initial={
+                mailState.state === "sent"
+                  ? { state: "sent", sentTo: maskEmail(session.user.email) }
+                  : mailState.state === "queued"
+                    ? { state: "queued", aheadOfYou: mailState.aheadOfYou }
+                    : { state: "none", sentTo: maskEmail(session.user.email) }
+              }
+            />
+          ) : null
+        }
       >
         {children}
         {IS_DEMO && <DemoBar userId={session.user.id} />}

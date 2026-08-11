@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { directUploadAvailable, presignImagePut } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 
 /**
  * Step one of the direct-to-R2 upload path. Vercel caps serverless request
@@ -34,6 +35,15 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // The most important of the three upload gates. What this route hands back
+  // is a signed URL that writes DIRECTLY into the bucket with no further pass
+  // through our code, so it is the last point at which we get a say. An
+  // unconfirmed account must never be issued one.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: 403 });
   }
 
   let body: { kind?: string; contentType?: string; bytes?: number };

@@ -234,6 +234,7 @@ export function LetterheadProfile({
   batchLabel,
   houseSpans,
   contactMethods,
+  contactsLocked = false,
   vcard,
   postCount,
   letterCount,
@@ -255,6 +256,10 @@ export function LetterheadProfile({
   batchLabel: string | null;
   houseSpans: HouseSpan[];
   contactMethods: ContactMethod[];
+  /** True when the VIEWER has not confirmed their own email, so this person's
+   *  details were deliberately never serialized. Distinct from an empty
+   *  `contactMethods`, which means the member shared nothing. */
+  contactsLocked?: boolean;
   vcard: string;
   postCount: number;
   letterCount: number;
@@ -554,6 +559,19 @@ export function LetterheadProfile({
         {live ? "Done" : "Edit profile"}
       </Button>
     </div>
+  ) : contactsLocked ? (
+    // The viewer's own email is not confirmed yet, so this person's details
+    // were never sent to the browser (see profile/[id]/page.tsx). The control
+    // still appears, because a missing button reads as "they shared nothing"
+    // and this is a different fact with a different fix.
+    <GetInTouch
+      name={user.name}
+      methods={[]}
+      vcard={vcard}
+      showSave={false}
+      size="default"
+      lockedReason="Confirm your email to see how to reach people."
+    />
   ) : contactMethods.length > 0 ? (
     <GetInTouch name={user.name} methods={contactMethods} vcard={vcard} showSave={false} size="default" />
   ) : null;

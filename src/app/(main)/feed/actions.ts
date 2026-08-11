@@ -10,6 +10,7 @@ import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { PUBLISHED_ONLY } from "@/lib/posts";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
  *  never as a throw: a post with a corrupt column should still delete, and
@@ -43,6 +44,13 @@ const searchInsensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
 export async function createPost(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // Posts and letters both come through here, and both put something in front
+  // of the whole community under a name. That waits for a confirmed address.
+  // The client shows the rule before you hit it (VerifyEmailDialog), but THIS
+  // is what makes it true: the composer could be bypassed, this cannot.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) return { error: gate.error };
 
   // Parse poll options from JSON string if present
   const pollOptionsRaw = formData.get("pollOptions") as string | null;
@@ -171,6 +179,12 @@ export async function createPost(formData: FormData) {
 export async function publishDraft(postId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // The moment a draft letter becomes visible to everyone. Drafts themselves
+  // stay ungated on purpose: writing privately harms nobody, and somebody
+  // waiting on a confirmation email should not lose what they were working on.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) return { error: gate.error };
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -327,6 +341,12 @@ export async function editPost(postId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  // Editing is publishing again: the body, the images and the audience can all
+  // change. Gated on the same footing as creating, or an account could write
+  // an empty post before confirming and fill it in afterwards.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) return { error: gate.error };
+
   const post = await prisma.post.findUnique({
     where: { id: postId },
     select: { authorId: true, kind: true, groupId: true, status: true },
@@ -457,6 +477,11 @@ export async function toggleBookmark(postId: string) {
 export async function createComment(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // A comment is public writing under your name on somebody else's post, and
+  // it raises a notification on their account. Same gate as a post.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) return { error: gate.error };
 
   const raw = {
     content: formData.get("content") as string,
