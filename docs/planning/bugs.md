@@ -166,6 +166,28 @@ the owner's display. Next step is to look at it in a real zoomed browser rather 
 again. Low priority, owner: "if that's tough to fix never mind, we can push it down the road."
 - Size: investigation.
 
+**3. Not the geometry, measured properly (2026-08-11).** The owner re-reported this, so it was
+re-investigated with the two flaws in the probe above corrected, and it still does not reproduce:
+
+- The committed probe fakes zoom with CSS `zoom`, which is not what Cmd+ does. Cmd+ shrinks the
+  LAYOUT VIEWPORT in CSS px and raises `devicePixelRatio`. Reproduced faithfully as
+  `setViewport({ width: 1440/z, height: 900/z, deviceScaleFactor: z })`.
+- The committed probe READS the computed `transform-box`/`transform-origin`, which only says what
+  the CSS declares, not where the element actually turns. Measured EMPIRICALLY instead: rotate a
+  part 180 degrees and take the midpoint of its bounding box before and after, which for a pure
+  rotation is exactly the centre of rotation.
+
+At z = 1, 1.1, 1.25, 1.5 and 2 every pivot came back on its RIG_CSS value to within 0.5 user units
+(leftWing 42,85 / rightWing 78,85 / crest 60,37 / head 60,80 / eyeBlinkL 51,61), and the same held
+when the viewport was resized LIVE on an already-loaded page, which is how the owner actually hits
+it. So the rig's geometry is zoom-invariant and the pivots are not what is wrong.
+
+That is now three disproofs of the transform-origin theory. Do not spend a fourth session on it.
+What has NOT been done is the one thing bugs.md has asked for twice: someone looking at it on the
+owner's own screen and saying concretely what looks wrong, since "body parts are weird" may well be
+describing clipping, rasterisation or the flight pose rather than pivots. Get a screenshot from the
+owner at zoom before writing any more code.
+
 ---
 
 ## Settled, do not re-open

@@ -164,7 +164,12 @@ export default function SignupPage() {
   // `perchWatchStop` lets the handoff reveal below drop the listeners the
   // moment they stop mattering.
   const perchWatchStop = useRef<(() => void) | null>(null);
-  useLayoutEffect(() => {
+  // Passive, not a layout effect — see the long note on the identical effect in
+  // (auth)/login/page.tsx. Reading geometry inside React's commit forces a full
+  // synchronous layout of a just-mounted page (81ms, measured on the /login
+  // twin), which lands mid-cruise and comes straight out of the flight's rAF
+  // budget. After paint the same read is cheap and the rect is identical.
+  useEffect(() => {
     if (!arrivedViaFlight) return;
     reportPerchRect();
     const el = hoopoeBoxRef.current;
