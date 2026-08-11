@@ -140,7 +140,35 @@ the `<Analytics />` component only reports in a deployed Vercel environment; not
 Vercel dashboard until the round-6 branch is deployed to production.
 - Size: none, informational (owner deploys).
 
-### 17. The hoopoe misbehaves at browser zoom (reproduced only by the owner)
+### 17. The hoopoe misbehaves at browser zoom — ROOT CAUSE FOUND: it is Safari
+
+**2026-08-11, solved by the owner's screenshots.** The variable every probe missed was the
+BROWSER: all three investigations ran Chrome (headless, DevTools MCP), where the geometry is
+provably zoom-invariant, and the owner zooms in SAFARI (visible in the screenshots' menu bar; the
+owner then confirmed Chrome and Brave do NOT break). The rig's pivots were written in px
+(`transform-origin: 42px 85px` with `transform-box: view-box`): Chrome resolves those in SVG user
+units, zoom-independent, but WebKit multiplies px lengths by the page-zoom factor, so at Cmd+ every
+pivot slides down-right and at Cmd- up-left. At ~1.4x the wing pivot lands at the bird's bottom
+centre, which is why cover-eyes swung the wings off BESIDE the body ("the eyes don't close
+anymore"); zoomed out it lands up by the head, the owner's wing-over-the-crest screenshot; the
+detached feet are the 138° flight tuck about the same wrong point.
+
+**Fix shipped**: RIG_CSS origins converted to view-box percentages, which carry no unit for zoom to
+scale. One compat trap found on the way, measured and documented in hoopoe.tsx: Chrome anchors
+percentage origins at 0, NOT at the viewBox's y=-10 origin the spec describes (the spec-faithful
+mapping landed every y-pivot exactly 10 units low), so the mapping is y% = y/152, per measurement.
+
+**Still open**: verification in actual WebKit. Chrome is verified identical to the px version
+(empirical pivot probe + the committed zoom probe + the full landing check). Safari could not be
+driven headlessly — `safaridriver` needs "Allow remote automation" enabled in Safari's Develop
+settings, which only the owner can flip. Until a Safari measurement exists, the percentage-anchor
+question (does WebKit anchor at 0 like Chrome, or at -10 like the spec?) is answered only by the
+owner looking: if the bird is correct in Safari at zoom 1 and at Cmd+/Cmd-, both bets landed. If it
+is wrong by a head's height at ALL zooms in Safari, WebKit anchors at -10 and the y-percentages
+need a WebKit-conditional or a rethink — do not guess, measure with safaridriver enabled.
+
+The original investigation record follows, kept because its two disproofs (the pivots, the mobile
+fly-in path) and its probe-methodology notes are still what stops this bug from being re-theorised.
 Owner, 2026-08-04, on Cmd+ page zoom: "the eyes don't close anymore and the wings pivot about a
 weird point." Real report, cause not yet found. Two obvious explanations were tested and BOTH are
 wrong, so do not spend the time again:
