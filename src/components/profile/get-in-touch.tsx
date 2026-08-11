@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Phone, Instagram, Linkedin, Globe, Download } from "lucide-react";
+import Link from "next/link";
+import { Mail, Phone, Instagram, Linkedin, Globe, Download, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,15 +49,22 @@ export function GetInTouch({
   vcard,
   showSave = true,
   size = "sm",
+  lockedReason,
 }: {
   name: string;
   methods: ContactMethod[];
   vcard: string;
   showSave?: boolean;
   size?: "sm" | "default";
+  /** Set when the details were withheld from the VIEWER rather than never
+   *  shared by the member. Opens a dialog that says which, because "they have
+   *  not shared anything" and "you have not confirmed your email" send a person
+   *  looking in completely different places. */
+  lockedReason?: string;
 }) {
   const [open, setOpen] = useState(false);
   const firstName = name.split(" ")[0];
+  const locked = !!lockedReason;
   const hasMethods = methods.length > 0;
 
   function saveContact() {
@@ -72,17 +80,24 @@ export function GetInTouch({
   return (
     <>
       <div className="flex gap-2">
+        {/* Locked stays PRESSABLE. A disabled control with a tooltip is the
+            wrong shape here: the person can fix this in about a minute, and a
+            dead button tells them nothing about how. */}
         <Button
           size={size}
           className="rounded-full"
           onClick={() => setOpen(true)}
-          disabled={!hasMethods}
-          title={hasMethods ? undefined : "This member hasn't shared contact details yet."}
+          disabled={!hasMethods && !locked}
+          title={hasMethods || locked ? undefined : "This member hasn't shared contact details yet."}
         >
-          <Mail className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
+          {locked ? (
+            <Lock className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
+          ) : (
+            <Mail className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
+          )}
           Get in touch
         </Button>
-        {showSave && (
+        {showSave && !locked && (
           <Button variant="outline" size={size} className="rounded-full" onClick={saveContact}>
             <Download className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
             Save contact
@@ -93,16 +108,34 @@ export function GetInTouch({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Reach {firstName}</DialogTitle>
+            <DialogTitle>{locked ? "Confirm your email first" : `Reach ${firstName}`}</DialogTitle>
             <DialogDescription>
-              {firstName} chose to share these ways to connect.
+              {locked
+                ? lockedReason
+                : `${firstName} chose to share these ways to connect.`}
             </DialogDescription>
           </DialogHeader>
+
+          {locked && (
+            <>
+              <p className="text-[13.5px] leading-relaxed text-muted-foreground">
+                Members shared their phone numbers and addresses with the
+                community, not with the internet, so we ask everyone to confirm
+                who they are first. Click the link we emailed you and this opens
+                for good.
+              </p>
+              <div className="flex justify-end pt-1">
+                <Button nativeButton={false} render={<Link href="/verify-email" />}>
+                  I never got the email
+                </Button>
+              </div>
+            </>
+          )}
           {/* One tile per shared method. Every tile is the same shape: 12px
               radius (a step inside the dialog's own corner, per the nesting
               rule), one border weight, one 8px gap. */}
           <div className="space-y-2">
-            {methods.map((m) => {
+            {!locked && methods.map((m) => {
               const Icon = ICONS[m.kind];
               return (
                 <a
@@ -127,12 +160,14 @@ export function GetInTouch({
           </div>
           {/* The material's one footer shape: a right-aligned action row
               (no full-width buttons in dialogs; the X handles close). */}
-          <div className="flex justify-end pt-1">
-            <Button variant="secondary" onClick={saveContact}>
-              <Download className="h-4 w-4" />
-              Save contact card
-            </Button>
-          </div>
+          {!locked && (
+            <div className="flex justify-end pt-1">
+              <Button variant="secondary" onClick={saveContact}>
+                <Download className="h-4 w-4" />
+                Save contact card
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

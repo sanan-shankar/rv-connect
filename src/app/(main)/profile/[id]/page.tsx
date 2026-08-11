@@ -12,6 +12,7 @@ import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
 import { LetterheadProfile } from "@/components/profile/letterhead-profile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
 import { PUBLISHED_ONLY } from "@/lib/posts";
+import { viewerMaySeeContacts } from "@/lib/email-verification";
 
 export async function generateMetadata({
   params,
@@ -124,6 +125,17 @@ export default async function ProfilePage({
   const parsedPhones = parseJsonArray(user.phones);
   const phoneNumbers = parsedPhones.length > 0 ? parsedPhones : user.phone ? [user.phone] : [];
 
+  // Contact details are the one thing on this page that is a real person's
+  // private information rather than their public presence, so an account whose
+  // own address is not confirmed does not get them (owner, 2026-08-11).
+  //
+  // Decided HERE, before the list is built, rather than by hiding the button.
+  // Everything below is serialized into the page and shipped to the browser,
+  // so a phone number withheld in CSS is a phone number sitting in view-source.
+  // Your own sheet is always visible: withholding somebody's details from
+  // themselves protects nobody and would make the edit form unusable.
+  const maySeeContacts = isOwnProfile || (await viewerMaySeeContacts());
+
   // Every way of reaching someone, in ONE place: the Get in touch sheet.
   //
   // Instagram and LinkedIn used to ALSO sit on the surface in a "Find them"
@@ -132,7 +144,7 @@ export default async function ProfilePage({
   // inside the Get in touch") and liked the reveal-on-ask pattern enough to
   // want it everywhere, so the surface now shows no contact details at all and
   // this list carries the lot, custom links included.
-  const methods: ContactMethod[] = [
+  const methods: ContactMethod[] = !maySeeContacts ? [] : [
     { kind: "email" as const, label: "Email", value: contactEmail, href: `mailto:${contactEmail}` },
     ...phoneNumbers.map((p, i) => ({
       kind: "phone" as const,
@@ -190,16 +202,19 @@ export default async function ProfilePage({
       ? "; Houses: " +
         houseSpans.map((h) => `${h.house} ${academicSpanLabel(h.fromYear, h.toYear)}`).join(", ")
       : "";
+  // The vCard carries the same details in a second format, so it is gated on
+  // the same fact. An unconfirmed viewer gets a card with a name and a batch
+  // on it and nothing to dial.
   const vcard = [
     "BEGIN:VCARD",
     "VERSION:3.0",
     `FN:${user.name}`,
-    `EMAIL:${contactEmail}`,
-    ...phoneNumbers.map((p) => `TEL:${p}`),
+    maySeeContacts ? `EMAIL:${contactEmail}` : null,
+    ...(maySeeContacts ? phoneNumbers.map((p) => `TEL:${p}`) : []),
     occupation ? `TITLE:${occupation}` : null,
     ...cityLabels.map((c) => `ADR:;;${c};;;;`),
-    user.instagram ? `URL:${socialHref("instagram", user.instagram)}` : null,
-    user.linkedin ? `URL:${socialHref("linkedin", user.linkedin)}` : null,
+    maySeeContacts && user.instagram ? `URL:${socialHref("instagram", user.instagram)}` : null,
+    maySeeContacts && user.linkedin ? `URL:${socialHref("linkedin", user.linkedin)}` : null,
     `NOTE:${batchLine(user)}, Rishi Valley community${houseNote}`,
     "END:VCARD",
   ]
@@ -249,6 +264,7 @@ export default async function ProfilePage({
       batchLabel={user.batchYear ? String(user.batchYear) : null}
       houseSpans={houseSpans}
       contactMethods={methods}
+      contactsLocked={!maySeeContacts}
       vcard={vcard}
       postCount={postCount}
       letterCount={letterCount}

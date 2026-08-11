@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { ERAS, PHOTO_YEAR_MIN, eraLabel } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
 import { directUploadPut } from "@/lib/upload-client";
@@ -64,6 +65,9 @@ export function ContributeDialog({
   const [monthChoice, setMonthChoice] = useState<string>(NO_MONTH);
   const [decade, setDecade] = useState<string>("unknown");
   const [submitting, setSubmitting] = useState(false);
+  // Uploading is the costliest thing an account can do, so it is gated on a
+  // confirmed address at the presign route, the finalize route and the action.
+  const emailGate = useEmailGate();
 
   function reset() {
     setFile(null);
@@ -154,7 +158,9 @@ export function ContributeDialog({
     }
     setSubmitting(false);
     if (result.error) {
-      toast.error(result.error);
+      // An unconfirmed address is refused by both the presign route and the
+      // contribute action; the dialog carries the fix, everything else is a toast.
+      if (!emailGate.handled(result.error)) toast.error(result.error);
       return;
     }
     toast.success(
@@ -168,6 +174,8 @@ export function ContributeDialog({
   }
 
   return (
+    <>
+    {emailGate.dialog}
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
@@ -306,5 +314,6 @@ export function ContributeDialog({
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

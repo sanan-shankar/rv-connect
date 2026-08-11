@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { putImage } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/lib/upload-shared";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 
 const MAX_FILES = 3;
 
@@ -11,6 +12,16 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Storage costs money and a bucket full of somebody else's images is not
+  // undoable, so writing bytes waits for a confirmed address. Checked at the
+  // ROUTE, not only in the actions that call it: this endpoint accepts a
+  // multipart body from any signed-in session and would otherwise be reachable
+  // straight from a console regardless of what the composer allows.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: 403 });
   }
 
   let formData: FormData;

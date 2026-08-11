@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { getImageBuffer, putImage, delImageByKey } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, describeProcessingError } from "@/lib/upload-shared";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 
 /**
  * Step two of the direct-to-R2 POST-image path: the browser has PUT the
@@ -24,6 +25,16 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Presign already refuses an unconfirmed account, so nothing it could name
+  // here should exist. Gated anyway: this route reads an object out of the
+  // bucket and writes a new one back, and it names the source by key from the
+  // request body, so it is its own write path rather than a continuation of
+  // the last one.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: 403 });
   }
 
   let body: { keys?: string[] };

@@ -6,6 +6,7 @@ import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2, Check } from "
 import { motion, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
@@ -178,6 +179,10 @@ export function CreatePostForm({
   // top-level composer, never a group's or a letter's.
   const isFeedComposer = resolvedScope === "post" && !groupId;
   const tourAnchorRef = useTourAnchor<HTMLButtonElement>("feed-composer", isFeedComposer);
+  // An unconfirmed address is refused by createPost/editPost/publishDraft on
+  // the server. This turns that refusal into a dialog with the fix in it,
+  // instead of a toast that slides away while you are still reading it.
+  const emailGate = useEmailGate();
   const [content, setContent] = useState(initialContent ?? "");
   const [kind, setKind] = useState<"post" | "letter">(defaultLetter ? "letter" : "post");
   const [title, setTitle] = useState(initialTitle ?? "");
@@ -575,14 +580,16 @@ export function CreatePostForm({
     if (postId) {
       const editResult = await editPost(postId, formData);
       if (editResult.error) {
-        toast.error(editResult.error);
+        // An unconfirmed address gets the dialog, which has the fix in it,
+        // rather than a toast that slides away mid-sentence.
+        if (!emailGate.handled(editResult.error)) toast.error(editResult.error);
       } else if (saveAsDraft) {
         toast.success("Draft saved");
         onAutosaveState?.("saved");
       } else {
         const pub = await publishDraft(postId);
         if ("error" in pub && pub.error) {
-          toast.error(pub.error);
+          if (!emailGate.handled(pub.error)) toast.error(pub.error);
         } else {
           toast.success("Your letter is published");
           onPosted?.();
@@ -595,7 +602,7 @@ export function CreatePostForm({
 
     const result = await createPost(formData);
     if (result.error) {
-      toast.error(result.error);
+      if (!emailGate.handled(result.error)) toast.error(result.error);
     } else if (saveAsDraft && onDraftSaved && result.postId) {
       /* First save of a fresh letter on the immersive page: hand the new
          draft's id to the page (it adopts the row and moves to the edit
@@ -1160,6 +1167,8 @@ export function CreatePostForm({
   // arrival), and its natural height flows on its own.
   if (defaultLetter) {
     return (
+      <>
+      {emailGate.dialog}
       <div
         ref={rootRef}
         data-composer
@@ -1184,6 +1193,7 @@ export function CreatePostForm({
           </motion.div>
         </div>
       </div>
+      </>
     );
   }
 
@@ -1204,6 +1214,8 @@ export function CreatePostForm({
        Background and border fade on the global 120ms colour transition; the
        shadow is simply present while expanded, which nothing can catch during
        a 300ms spring. */
+    <>
+    {emailGate.dialog}
     <motion.div
       ref={rootRef}
       data-composer
@@ -1284,5 +1296,6 @@ export function CreatePostForm({
         </motion.div>
       </div>
     </motion.div>
+    </>
   );
 }

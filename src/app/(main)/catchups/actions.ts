@@ -39,6 +39,7 @@ import { z } from "zod/v4";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 import { revalidatePath } from "next/cache";
 import {
   addCadenceGap,
@@ -381,6 +382,11 @@ export async function createCatchupWithPeople(input: {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
+    // Starting a Catch-up enrols other named people and notifies every one of
+    // them. That is reaching real members, so it waits for a confirmed address.
+    const gate = await requireVerifiedEmail();
+    if (!gate.ok) return { error: gate.error };
+
     const parsed = createCatchupWithPeopleSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const { name, memberIds, cadence } = parsed.data;
@@ -627,6 +633,11 @@ export async function submitPrompt(input: {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+
+    // A question put to a whole Round, under your name or anonymously. Same
+    // footing as a post.
+    const gate = await requireVerifiedEmail();
+    if (!gate.ok) return { error: gate.error };
 
     const parsed = submitPromptSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -1043,6 +1054,12 @@ export async function submitEntry(input: {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
+    // An answer carries prose and images into a Round that gets published to
+    // everyone in it. The upload routes are gated too, so the images could not
+    // have been produced by an unconfirmed account either.
+    const gate = await requireVerifiedEmail();
+    if (!gate.ok) return { error: gate.error };
+
     const parsed = submitEntrySchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const { promptId } = parsed.data;
@@ -1213,6 +1230,11 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+
+    // Enrols other people and notifies each of them. Reaching real members
+    // waits for a confirmed address.
+    const gate = await requireVerifiedEmail();
+    if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
     const parsed = z.array(z.string().min(1)).min(1).max(500).safeParse(userIds);
     if (!parsed.success) return { error: "Pick at least one person." };
