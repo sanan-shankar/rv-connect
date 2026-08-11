@@ -190,7 +190,12 @@ export function AuthHeading({
       <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
         {title}
       </h1>
-      <p className="mx-auto mt-2 mb-7 max-w-[32ch] text-sm leading-relaxed text-muted-foreground">
+      {/* 34ch, not /login's 30. These pages carry more to say than "sign in"
+          does (what a link does, how long it lasts, where to look if it did
+          not arrive), and at 30ch that ran to four lines with a two-word
+          orphan on the last. 34 is still inside a comfortable measure and
+          breaks the same copy into three balanced lines. */}
+      <p className="mx-auto mt-2 mb-7 max-w-[34ch] text-sm leading-relaxed text-muted-foreground">
         {children}
       </p>
     </>

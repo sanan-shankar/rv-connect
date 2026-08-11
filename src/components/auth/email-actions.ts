@@ -1,12 +1,12 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { IS_DEMO } from "@/lib/demo";
 import { maskEmail } from "@/lib/email";
 import { burnTokens, readToken } from "@/lib/auth-tokens";
-import { enqueueMail, verificationMailState } from "@/lib/email-queue";
+import { drainMailQueue, enqueueMail, verificationMailState } from "@/lib/email-queue";
 import { sendVerificationEmail } from "@/lib/verification-mail";
 
 /* ------------------------------------------------------------------ *
@@ -64,12 +64,13 @@ export async function resendVerification(): Promise<{
   // Nudge the queue rather than waiting for the next page view. On an ordinary
   // day this sends it before the button finishes its press, which is what
   // makes a queue invisible to everyone except the launch-day crowd it exists
-  // for. Failure here is fine: the row is written, and the next drain gets it.
+  // for. Awaited, unlike the reset nudge above, because the answer this
+  // returns depends on whether it went out: the button must not say "check
+  // your inbox" for a message still sitting in the queue.
   try {
-    const { drainMailQueue } = await import("@/lib/email-queue");
     await drainMailQueue();
   } catch {
-    // the queue keeps the row; nothing to recover here
+    // the queue keeps the row; the next drain gets it
   }
 
   const state = await verificationMailState(session.user.id);
@@ -170,6 +171,28 @@ export async function requestPasswordReset(formData: FormData): Promise<{ ok: tr
     to: user.email,
     userId: user.id,
     payload: { name: user.name },
+  });
+
+  // Send it NOW rather than waiting for the queue's usual tick.
+  //
+  // That tick lives in the authenticated layout, so it only fires when
+  // somebody is browsing the site. Every other message here can wait for that
+  // quite happily; a password reset cannot. The person asking for one is
+  // locked out at this moment, and on a community site at three in the morning
+  // there may be no signed-in traffic for hours. Requiring another member to
+  // load a page before you can get back into your own account is not a queue,
+  // it is a lottery.
+  //
+  // Inside `after()` so the network call to Resend happens once the response
+  // has gone: the visitor sees "check your inbox" immediately either way, and
+  // the drain claims rows before sending, so this racing the layout's tick is
+  // already safe.
+  after(async () => {
+    try {
+      await drainMailQueue();
+    } catch (err) {
+      console.error("[email] reset drain failed", err);
+    }
   });
 
   // The return value carries NOTHING about whether that address has an

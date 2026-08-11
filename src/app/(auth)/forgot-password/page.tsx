@@ -80,8 +80,8 @@ export default function ForgotPasswordPage() {
             transition={SPRINGS.gentle}
           >
             <AuthHeading title="Forgot your password?">
-              Type the address you signed up with and we will send you a link to
-              set a new one.
+              Type the address you signed up with and we will email a link to set
+              a new one.
             </AuthHeading>
 
             <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
