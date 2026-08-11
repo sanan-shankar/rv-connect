@@ -230,7 +230,16 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
             } catch {
               // Private-mode / storage-disabled: fall back to no entry animation.
             }
-            router.push(target === "signup" ? "/signup" : "/login");
+            // scroll: false, and it is a flight-smoothness call, not a scroll
+            // preference. On navigation the app router walks the new tree
+            // deciding what to focus and scroll to, reading geometry mid-commit
+            // (`shouldSkipElement`), which forces a synchronous layout of the
+            // just-mounted page — traced at ~80ms, and the hoopoe's rAF-driven
+            // cruise eats every one of those milliseconds as skipped frames.
+            // There is nothing for that walk to do here: both the hero and the
+            // auth pages sit at scroll top, and the destination focuses its own
+            // first field (use-deferred-autofocus.ts) after paint.
+            router.push(target === "signup" ? "/signup" : "/login", { scroll: false });
           }
         }}
       >

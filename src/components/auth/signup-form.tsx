@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
+import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { registerUser } from "./actions";
 
 // keep the gaze sweep bounded to [-1, 1] as the field fills
@@ -133,6 +134,11 @@ export function SignupForm({
   const [accountType, setAccountType] = useState<"alumnus" | "teacher">("alumnus");
   const isAlum = accountType === "alumnus";
   const [showPw, setShowPw] = useState(false);
+  // Focus after paint, not via `autoFocus`: this form mounts at the gate-pass
+  // moment, while the hoopoe's celebrate(2) hop is still playing, and
+  // autoFocus's in-commit focus() forced a layout that stalled that animation.
+  // See use-deferred-autofocus.ts for the measurements.
+  const firstNameFocusRef = useDeferredAutofocus<HTMLInputElement>();
 
   // Phone, collected right here at the first step so it never feels like a
   // later afterthought. Country code defaults to +91 but is a free, editable
@@ -268,7 +274,7 @@ export function SignupForm({
             placeholder="Your first name"
             required
             minLength={1}
-            autoFocus
+            ref={firstNameFocusRef}
             onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
           />
         </div>

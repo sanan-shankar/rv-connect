@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
+import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { getTriviaQuestion, checkTrivia } from "./trivia-actions";
 
 export function TriviaGate({
@@ -21,6 +22,20 @@ export function TriviaGate({
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
   const [passed, setPassed] = useState(false);
+  // Focus after paint, not via `autoFocus`: this gate mounts while the signup
+  // hoopoe is mid-flight, and autoFocus's in-commit focus() forced a layout
+  // that stalled the bird for a couple of frames. See use-deferred-autofocus.ts.
+  const answerFocusRef = useDeferredAutofocus<HTMLInputElement>();
+  // The curious look on focus is for a PERSON focusing the field. The deferred
+  // autofocus above also fires onFocus, ~2 frames after mount — late enough
+  // that the rig is live, so without this guard it enqueued express("curious")
+  // AHEAD of the mobile fly-in, which then warped the bird off-screen only
+  // after the reveal had already shown it seated (caught by
+  // hoopoe-landing-check: first visible frame mid-viewport instead of above
+  // it). The old in-commit autoFocus never had the problem only because the
+  // rig was not yet ready to hear the call. Swallow exactly that first,
+  // programmatic focus; every later one is a real visitor.
+  const programmaticFocus = useRef(true);
 
   useEffect(() => {
     getTriviaQuestion().then(setQuestion);
@@ -78,9 +93,13 @@ export function TriviaGate({
             hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 18) * 2 - 1)));
           }}
           onFocus={() => {
+            if (programmaticFocus.current) {
+              programmaticFocus.current = false;
+              return;
+            }
             if (!passed) hoopoe.express("curious");
           }}
-          autoFocus
+          ref={answerFocusRef}
           className="text-center"
         />
         {error && <p className="text-center text-sm text-destructive">{error}</p>}

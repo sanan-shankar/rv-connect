@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, LOGIN_TRANSITION_FLAG } from "@/components/landing/hero-photo";
 import { reportPerch, onHandoff, FLIGHT_FLAG, PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
 import { nextPathFromLocation } from "@/lib/next-path";
+import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -133,6 +134,12 @@ export default function LoginPage() {
   // render it unconditionally.
   const [hoopoeShown, setHoopoeShown] = useState(!arrivedViaFlight);
 
+  // Focus after paint, never during the commit: the `autoFocus` attribute this
+  // replaces forced a synchronous layout inside React's commit, which stalled
+  // the hoopoe's rAF-driven flight for a couple of frames right as this page's
+  // content slid in. See use-deferred-autofocus.ts for the measurements.
+  const emailFocusRef = useDeferredAutofocus<HTMLInputElement>();
+
   // Mobile fly-in, part 1: the pre-flight veil. Rendered on the bird's OUTER
   // box (the inner box carries an inline opacity, which would beat any class)
   // as `max-lg:opacity-0`, so on a phone the seated bird is invisible from the
@@ -233,28 +240,29 @@ export default function LoginPage() {
   // `perchWatchStop` lets the handoff reveal below drop the listeners the
   // moment they stop mattering.
   const perchWatchStop = useRef<(() => void) | null>(null);
-  // A passive effect, deliberately NOT useLayoutEffect (changed 2026-08-11).
+  // THE MOUNT-TIME REPORT IS THE ResizeObserver'S OWN INITIAL DELIVERY, and
+  // that is a flight-smoothness decision, not an accident (2026-08-11).
   //
-  // reportPerchRect reads getBoundingClientRect and getComputedStyle, and a
-  // layout effect runs synchronously inside React's commit, BEFORE first
-  // paint. So this forced a full synchronous layout of a page that had only
-  // just mounted, inside the commit task: a performance trace of the landing
-  // -> /login flight attributed 81ms of forced reflow to this exact callback.
-  // That lands while the bird is mid-cruise, and the flight layer drives its
-  // arc from requestAnimationFrame, so the whole stall comes out of the
-  // flight: the bird freezes and then jumps to where the clock says it should
-  // be. That is the owner's "it jerks slightly when the sign in content comes
-  // in" (2026-08-11).
+  // reportPerchRect reads getBoundingClientRect and getComputedStyle. This
+  // effect used to also CALL it directly, first as a layout effect and then as
+  // a passive one, and in both schedulings it ran before the just-mounted
+  // page's first layout, so the read forced a full synchronous layout of a
+  // dirty tree — traced at ~85ms, billed to whichever code touches geometry
+  // first (this callback, or `autoFocus`, or the router's scroll walk; fixing
+  // one just moved the bill to the next). The flight layer drives the bird's
+  // cruise from requestAnimationFrame, so those milliseconds came out of the
+  // flight as skipped frames: the owner's "it jerks slightly when the sign in
+  // content comes in".
   //
-  // Running after paint costs the report a single frame, which the flyer does
-  // not care about (it retargets every frame across a ~2s cruise, and the
-  // reason this report exists at all is that the OLD one waited ~2s for the
-  // entrance spring). In exchange the browser does its layout in its own
-  // phase, and the read here then hits a clean layout tree instead of forcing
-  // one. The perch geometry is identical either way.
+  // A ResizeObserver is the one scheduling the platform guarantees to be
+  // clean: its callbacks run in the rendering phase AFTER layout, and
+  // observe() always produces an initial delivery. So the observer alone
+  // reports the perch in the first rendered frame, off a freshly computed
+  // layout, forcing nothing — the explicit call added no earliness worth one
+  // whole forced layout. The flyer retargets smoothly every frame across a
+  // ~2s cruise, so frame-one is early by a mile anyway.
   useEffect(() => {
     if (!arrivedViaFlight) return;
-    reportPerchRect();
     const el = hoopoeBoxRef.current;
     const ro = new ResizeObserver(reportPerchRect);
     if (el) ro.observe(el);
@@ -499,7 +507,7 @@ export default function LoginPage() {
                   hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 22) * 2 - 1)));
                 }}
                 required
-                autoFocus
+                ref={emailFocusRef}
               />
             </div>
             {!isAdmin && (
