@@ -896,6 +896,26 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
       celebrateAt.current = now;
       damper.suspend();
       try {
+        // Celebrate FACE-ON, and hand the face back the way we found it.
+        //
+        // A celebration is nearly always preceded by something that posed the
+        // head: the quick check runs react("thinking") first, whose
+        // EXPRESSIONS.curious cocks the head 10 degrees and biases the gaze,
+        // and nothing downstream ever put either back. So the bird celebrated
+        // with its head on one side and then simply kept it there — for the
+        // password step and every step after (owner, 2026-08-11: "it turns its
+        // head before celebrating. Why turn head ... by default this hoopoe is
+        // now with its head turned right").
+        //
+        // Levelling here rather than in react("thinking") keeps the ponder
+        // intact (it is a liked beat) while making the celebration the thing
+        // that clears it, which is also correct for every other caller: none of
+        // them want to inherit whatever pose happened to precede the moment.
+        // Fire-and-forget, so the head levels INTO the opening hop rather than
+        // gating it; nothing else writes PARTS.head here, so there is no
+        // supersede to strand.
+        gazeTo(0);
+        void A(PARTS.head, { rotate: 0, y: 0 }, SPRINGS.gentle);
         setEye("happy");
         const dur = level >= 3 ? 1.3 : 0.85;
         const hop1 = level >= 3 ? -38 : -24;
@@ -909,6 +929,14 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
           burstParticles(level >= 3 ? 9 : level === 2 ? 6 : 3),
         ]);
         await A(PARTS.crest, { scaleX: 1, scaleY: 1 }, SPRINGS.settle).finished;
+        // Round eyes back, exactly the way peckRaw hands its happy eyes back.
+        // Without this the `happy` arc survived the celebration, and the arc is
+        // a stroked curve with no pupil (see EXPRESSIONS.love in hoopoe-kit for
+        // why that matters), so the quick check's next step tucked the wings
+        // over a face that had never returned to normal (owner, 2026-08-11:
+        // "it closes its eyes ... but the eyes are still in love, they're not
+        // back to normal. They should be back to normal before closing").
+        setEye("round");
       } finally {
         damper.resume();
       }
@@ -1239,7 +1267,26 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
     };
     const stopBreathe = () => breatheCtl?.stop();
     damper.bind(stopBreathe, startBreathe);
-    startBreathe();
+    // ONLY when nothing is holding the stage, and that condition is the whole
+    // fix for the sidebar bird that could not be shooed away (owner,
+    // 2026-08-11: "sometimes it's just standing there and no website
+    // interaction makes it go away ... only way to get rid of it is reload").
+    //
+    // This effect re-runs whenever `paused` flips, i.e. every time the tab is
+    // hidden and shown again — which is overwhelmingly likely during the
+    // 90-120s the idle bird waits out. An unconditional restart here writes
+    // PARTS.body {scaleY,y} straight over whatever verb is mid-flight, and
+    // arcAndLand AWAITS a body write of its own (`{rotate, scaleY, y}`). A
+    // superseded animation's `.finished` never resolves in motion v12 (the
+    // abort-token note at the top of this file), so the breathe silently
+    // wedged flyIn's promise: the bird landed on the rail, the chain never
+    // reached sleep(), the queue never drained, and the flyTo that the next
+    // mouse move enqueued sat behind a step that could never finish.
+    //
+    // damper.resume() already starts the breathe when the verb hands the stage
+    // back, so skipping it here loses nothing — a damped bird is one that is
+    // deliberately not breathing yet.
+    if (!damper.active) startBreathe();
 
     let blinkT: ReturnType<typeof setTimeout>;
     const scheduleBlink = () => {
