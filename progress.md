@@ -1035,3 +1035,22 @@ guessed (they chose: wings keep flapping through the landing flare; keep the pon
   one at a time, not shipped as a bundle argued from mechanism. The physics commit's analysis
   (wingbeat period mismatch, apex position, flare pitch, per-frame smoothing) survives in git if a
   future one-at-a-time round wants the starting points.
+
+## 2026-08-12 (later still) - descenders in the name field
+
+- Owner: a name with letters that go under the line "cuts off". Real, and only on your own profile:
+  the read-only `<h1>` clips nothing (the nearest overflow ancestor is the card, 336px below), but
+  the editable name is a textarea, which is a scroll container and clips at its own box. That box is
+  the mirror's, set at line-height 1.05, while Libre Baskerville's content area is 1.226em — so
+  0.09em of the font hangs outside the line box at each end. Measured at 41.6px: the tail of the j in
+  "Sananjjy" lost 3.1px off the bottom, and the accent on a capital ("Śrī", "Ñ") lost 4.0px off the
+  top. Nothing else on the sheet is set that tight, so nothing else was losing anything.
+- Fix: the clip box grows 0.12em past the line box at both ends, pulled up by 0.12em with the same
+  0.12em handed back as padding, so the text does not move by a pixel and the mirror still owns the
+  height. Verified: mirror 43.67px unchanged and the Batch row still at y=227, room 4.98px each side
+  against 4.02 needed at top and 3.14 at bottom; at 390px it scales with the clamp (4.19px room
+  against 3.03 and 2.92). The mirror also gained `break-words` to match the UA's own wrapping on a
+  textarea, or a name with no space in it for 60 characters would wrap in the field but not in the
+  mirror and show a sliver of a second line through the newly taller clip box.
+- The j tails now cross the dotted pen rule by 1.1px, which is what writing on a ruled line does.
+  Checked at 2.6x: terminals whole, macron and acute whole. Desktop and 390x844 both shot.
