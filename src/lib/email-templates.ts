@@ -10,23 +10,35 @@
  *  for Libre Baskerville (the nearest serif present on essentially every
  *  machine, and the same substitution the type ladder falls back to).
  *
- *  The rules that carry over from the app: warm surfaces and never pure
- *  white, one Canopy pill for the one action, cinnamon as the second
- *  accent, no em dashes in the copy.
+ *  The rules that carry over from the app: warm paper and never pure
+ *  white, one Canopy pill for the one action, no em dashes in the copy.
+ *
+ *  Restraint is the whole design here (owner, 2026-08-12), but restraint
+ *  is not the same as blankness. The character that survives is carried
+ *  by four things and no more: the mark, the serif, the warm paper, and
+ *  a first line written by a person. Everything that was decoration
+ *  rather than one of those is gone.
  * ------------------------------------------------------------------ */
 
 /** Copied from globals.css. Duplicated on purpose: an email cannot read a
- *  CSS custom property, and a hex typed inline is the only thing that ships. */
+ *  CSS custom property, and a hex typed inline is the only thing that ships.
+ *
+ *  Five values, down from eight. The page/card pair, the mist well and the
+ *  cinnamon rule all went with the layout they belonged to (see `shell`). */
 const C = {
-  page: "#E4E1D5",
-  card: "#F5F2EA",
+  paper: "#F5F2EA",
   ink: "#23241E",
   muted: "#5F6359",
   canopy: "#235C49",
-  cinnamon: "#C2622F",
   border: "#DFD8CB",
-  mist: "#ECE8DD",
 } as const;
+
+/** The app mark, as a PNG on the production domain. Hard-coded to the
+ *  canonical origin rather than built from `appUrl()`: the file is identical in
+ *  every environment, and a localhost src would render as a broken image in a
+ *  real person's inbox. Regenerate with `node scripts/dev/email-mark.mjs` if
+ *  src/app/icon.svg ever changes. */
+const MARK_SRC = "https://rishivalley.space/images/email/mark.png";
 
 const SERIF = "Georgia, 'Times New Roman', serif";
 const SANS =
@@ -72,67 +84,126 @@ function shell(opts: {
 <meta name="supported-color-schemes" content="light">
 <title>${escapeHtml(opts.heading)}</title>
 </head>
-<body style="margin:0;padding:0;background-color:${C.page};">
-<div style="display:none;font-size:1px;color:${C.page};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${escapeHtml(
+<body style="margin:0;padding:0;background-color:${C.paper};">
+<div style="display:none;font-size:1px;color:${C.paper};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${escapeHtml(
     opts.preheader,
   )}${"&#8203;".repeat(60)}</div>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${C.page};">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${C.paper};">
   <tr>
-    <td align="center" style="padding:32px 16px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:520px;">
+    <td align="center" style="padding:40px 20px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:480px;">
 
-        <!-- Masthead. A typographic lockup, not the PeaksMark: the mark is an
-             SVG and Gmail deletes SVG outright, so an image-based logo here
-             would be a hole in the top of every message. The cinnamon rule is
-             the brand cue that survives. -->
+        <!-- ONE surface, left aligned, in one column.
+             The previous version was a warm page holding a bordered card
+             holding a recessed well, plus a centred masthead with a cinnamon
+             rule over it and a tagline under it: five background regions and
+             three dividers to carry two sentences and a button (owner,
+             2026-08-12: "so many elements no cohesion ... so many boxes
+             background divisions elements"). Everything now sits directly on
+             the paper. The only rule in the message is the one above the small
+             print, which is the only place a division means anything.
+
+             What is left of the brand is deliberate and quiet: the warm paper,
+             the serif, and the Canopy button. A typographic wordmark rather
+             than the PeaksMark, because Gmail deletes SVG outright and an
+             image logo would be a hole at the top of every message. -->
+        <!-- The mark and the name, as one lockup. A PNG rasterised from
+             src/app/icon.svg (scripts/dev/email-mark.mjs), because Gmail
+             deletes SVG outright; 88px for a 44px slot so it stays crisp on a
+             phone. Always the production URL, never appUrl(): the asset is
+             identical everywhere, and a localhost src in a real inbox is a
+             broken image.
+
+             Images are blocked by default in a lot of clients, so the name
+             beside it carries the message on its own and the alt text is
+             empty rather than a duplicate of the words next to it. -->
         <tr>
-          <td align="center" style="padding:0 0 22px 0;">
-            <div style="font-family:${SERIF};font-size:19px;letter-spacing:0.02em;color:${C.canopy};">Rishi Valley</div>
-            <div style="width:34px;height:2px;background-color:${C.cinnamon};margin:9px auto 0 auto;font-size:0;line-height:0;">&nbsp;</div>
+          <td style="padding:0 0 30px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:0 11px 0 0;" valign="middle">
+                  <!-- No border-radius: icon.svg already carries its own
+                       rounded tile (rx 96 on a 512 box), so the corners are
+                       baked into the PNG. Outlook drops the property on an
+                       image anyway, which would have made the two disagree. -->
+                  <img src="${MARK_SRC}" width="44" height="44" alt="" style="display:block;width:44px;height:44px;border:0;">
+                </td>
+                <td valign="middle" style="font-family:${SERIF};font-size:18px;letter-spacing:0.01em;color:${C.canopy};white-space:nowrap;">
+                  Rishi Valley
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
 
         <tr>
-          <td style="background-color:${C.card};border:1px solid ${C.border};border-radius:16px;padding:32px 28px;">
-            <h1 style="margin:0 0 14px 0;font-family:${SERIF};font-size:24px;line-height:1.25;font-weight:normal;color:${C.ink};letter-spacing:-0.01em;">${escapeHtml(
-              opts.heading,
-            )}</h1>
-            <div style="font-family:${SANS};font-size:15px;line-height:1.65;color:${C.ink};">${opts.body}</div>
+          <td style="padding:0 0 12px 0;font-family:${SERIF};font-size:22px;line-height:1.3;color:${C.ink};">
+            ${escapeHtml(opts.heading)}
+          </td>
+        </tr>
 
-            <!-- The action. A table cell rather than a padded <a>, because
-                 Outlook's Word renderer drops padding on inline-block anchors
-                 and the button collapses to bare underlined text. The anchor
-                 fills the cell so the whole pill is clickable. -->
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0 0;">
+        <tr>
+          <td style="font-family:${SANS};font-size:15px;line-height:1.6;color:${C.ink};">
+            ${opts.body}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:28px 0 0 0;">
+            <!-- A table cell rather than a padded anchor: Outlook's Word
+                 renderer drops padding on an inline-block anchor and the
+                 button collapses to bare underlined text. display:block plus
+                 text-align makes the label sit centred in the pill however the
+                 client decides to size it.
+                 (No backticks in this comment: it lives inside a JS template
+                 literal, and one would close it.) -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td align="center" bgcolor="${C.canopy}" style="border-radius:999px;">
-                  <a href="${opts.ctaHref}" style="display:inline-block;padding:13px 30px;font-family:${SANS};font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:999px;">${escapeHtml(
+                <td bgcolor="${C.canopy}" style="border-radius:999px;">
+                  <a href="${opts.ctaHref}" style="display:block;padding:12px 26px;font-family:${SANS};font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;text-align:center;">${escapeHtml(
                     opts.ctaLabel,
                   )}</a>
                 </td>
               </tr>
             </table>
+          </td>
+        </tr>
 
-            <!-- The same link as plain text. This is not redundancy: a fair
-                 number of alumni here read mail on old clients or with images
-                 and styles off, where the pill above renders as nothing at
-                 all. Something they can copy is what keeps that person from
-                 being stuck. Sits in a recessed well so it reads as reference
-                 material rather than a second thing to decide about. -->
-            <div style="margin:22px 0 0 0;padding:12px 14px;background-color:${C.mist};border-radius:12px;">
-              <div style="font-family:${SANS};font-size:12px;line-height:1.5;color:${C.muted};margin-bottom:5px;">If the button does nothing, copy this into your browser:</div>
-              <div style="font-family:${SANS};font-size:12px;line-height:1.5;word-break:break-all;"><a href="${opts.ctaHref}" style="color:${C.canopy};text-decoration:underline;">${escapeHtml(
-                opts.ctaHref,
-              )}</a></div>
-            </div>
-
-            <div style="margin:22px 0 0 0;padding:16px 0 0 0;border-top:1px solid ${C.border};font-family:${SANS};font-size:13px;line-height:1.6;color:${C.muted};">${opts.footnote}</div>
+        <!-- The same link as plain text, on the paper rather than in a tinted
+             well. Not redundancy: plenty of people here read mail on old
+             clients or with styles off, where the pill above renders as
+             nothing at all, and something they can copy is what keeps that
+             person from being stuck. -->
+        <tr>
+          <td style="padding:24px 0 0 0;font-family:${SANS};font-size:13px;line-height:1.6;color:${C.muted};">
+            Or paste this link into your browser:<br>
+            <a href="${opts.ctaHref}" style="color:${C.canopy};text-decoration:underline;word-break:break-all;">${escapeHtml(
+              opts.ctaHref,
+            )}</a>
           </td>
         </tr>
 
         <tr>
-          <td align="center" style="padding:20px 8px 0 8px;font-family:${SANS};font-size:12px;line-height:1.6;color:${C.muted};">
-            Rishi Valley, a place for the people who grew up under the same trees.
+          <td style="padding:26px 0 0 0;">
+            <div style="height:1px;background-color:${C.border};font-size:0;line-height:0;">&nbsp;</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:16px 0 0 0;font-family:${SANS};font-size:13px;line-height:1.6;color:${C.muted};">
+            ${opts.footnote}
+          </td>
+        </tr>
+
+        <!-- Who sent this, as a fact rather than a slogan. The line that used
+             to sit here ("a place for the people who grew up under the same
+             trees") was the owner's "cringe tagline": a mission statement at
+             the foot of a password reset. A named sender and a domain is what
+             a person actually scans for when deciding whether an email is
+             real, and it is what every serious sender puts here. -->
+        <tr>
+          <td style="padding:22px 0 0 0;font-family:${SANS};font-size:12px;line-height:1.6;color:${C.muted};">
+            <a href="https://rishivalley.space" style="color:${C.muted};text-decoration:none;">rishivalley.space</a>
           </td>
         </tr>
 
@@ -173,16 +244,18 @@ export function verifyEmailTemplate(opts: {
     subject: "Confirm your email for Rishi Valley",
     html: shell({
       preheader: "Confirm your address to start posting.",
-      heading: `Welcome, ${first}.`,
-      body: `<p style="margin:0;">Confirm your email to post, upload photos and see contact details.</p>`,
+      // No full stop: the other two headings do not take one either, and a
+      // heading is a label rather than a sentence.
+      heading: `Welcome, ${first}`,
+      body: `<p style="margin:0;">You're in. Confirm your email and you can post, upload photos and see how to reach people.</p>`,
       ctaLabel: "Confirm my email",
       ctaHref: opts.url,
       footnote: `This link expires in ${opts.hours} hours. If you did not sign up at Rishi Valley, ignore this email.`,
     }),
     text: [
-      `Welcome, ${first}.`,
+      `Welcome, ${first}`,
       "",
-      "Confirm your email to post, upload photos and see contact details.",
+      "You're in. Confirm your email and you can post, upload photos and see how to reach people.",
       "",
       opts.url,
       "",
