@@ -84,8 +84,8 @@ export function VerifyEmailDialog({
     // nothing in their inbox to go and look at yet.
     setFlash(
       result.state === "sent"
-        ? `Sent to ${result.sentTo}. Look in spam if it is not there in a minute.`
-        : "Written down. We send these in batches, so it may take up to a day to arrive.",
+        ? `Sent to ${result.sentTo}. Check your spam folder if it does not arrive.`
+        : "You are in the queue. It can take up to a day to arrive.",
     );
     router.refresh();
   }
@@ -93,19 +93,16 @@ export function VerifyEmailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[400px]">
+        {/* Title and one sentence. The paragraph that used to sit here
+            explained the policy at length to somebody who just wanted to
+            press Post; the reason is not what they need, the next step is
+            (owner, 2026-08-12: "just be straightforward"). */}
         <DialogHeader>
-          <DialogTitle>Confirm your email first</DialogTitle>
+          <DialogTitle>Confirm your email</DialogTitle>
           <DialogDescription>
-            One click on the link we sent you, and this opens for good.
+            Click the link we sent you and posting opens straight away.
           </DialogDescription>
         </DialogHeader>
-
-        <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-          We ask before anyone posts, uploads a photograph, or looks up how to
-          reach somebody. It is what keeps this a room full of people who
-          actually went to Rishi Valley, and it is the only way we can get you
-          back in if you ever forget your password.
-        </p>
 
         {flash && (
           <p className="flex items-start gap-2 rounded-[var(--radius-md)] border border-leaf/30 bg-leaf/[0.07] px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground">

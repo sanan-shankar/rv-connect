@@ -519,8 +519,18 @@ export default function LoginPage() {
                     eyes are on this row. */}
                 <div className="flex items-baseline justify-between gap-3">
                   <Label htmlFor="password">Password</Label>
+                  {/* Carries whatever is already in the email box. By the time
+                      somebody clicks this they have typed their address and had
+                      a password rejected; making them type it again ten seconds
+                      later, on the screen they reached because something went
+                      wrong, reads as an app that is not paying attention
+                      (owner, 2026-08-12). */}
                   <Link
-                    href="/forgot-password"
+                    href={
+                      email.trim()
+                        ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
+                        : "/forgot-password"
+                    }
                     className="rounded-sm text-[12.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     Forgot it?

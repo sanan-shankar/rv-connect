@@ -20,33 +20,33 @@ import { resendVerification, type ConfirmOutcome } from "@/components/auth/email
 
 type Outcome = ConfirmOutcome | "waiting";
 
+/* One short sentence each. An earlier draft explained the reasoning behind the
+   policy on every outcome; somebody who has just clicked a link wants to know
+   what happened and what to do, not why the rule exists (owner, 2026-08-12). */
 const COPY: Record<Outcome, { title: string; body: string }> = {
   confirmed: {
     title: "You're confirmed",
-    body: "That is your address, and everything is open now. Post, write a letter, add photographs to the Collection, and see how to reach the people you find.",
+    body: "Everything is open. You can post, upload photos and see contact details.",
   },
   already: {
     title: "Already confirmed",
-    body: "This address was confirmed earlier, so there is nothing left to do. You can carry on where you left off.",
+    body: "This address was confirmed earlier. Nothing left to do.",
   },
   expired: {
-    title: "That link has run out",
-    body: "Confirmation links last a day. Nothing is wrong with your account and nothing is lost, you just need a fresh one.",
+    title: "That link has expired",
+    body: "Confirmation links last a day. Get a new one and you are set.",
   },
   stale: {
     title: "That link is out of date",
-    body: "The email address on this account changed after the link was sent, so it no longer applies. Ask for a new one and it will go to the current address.",
+    body: "Your email address changed after this was sent. Get a new link and it will go to the current one.",
   },
   unknown: {
-    title: "We do not recognise that link",
-    body: "Long links sometimes get cut in half by email apps. Try copying the whole thing from the message, or ask for a new one.",
+    title: "That link looks broken",
+    body: "Email apps sometimes cut long links in half. Copy the whole thing, or get a new one.",
   },
   waiting: {
-    title: "Check your inbox",
-    // Two sentences, not four. "Open it and this page will not be needed
-    // again" told somebody standing on the page a thing they could work out,
-    // and cost a whole line to do it.
-    body: "We sent a link when you joined. If it never arrived, look in spam, or send yourself another.",
+    title: "Check your email",
+    body: "We sent you a link when you joined. Check your spam folder if you cannot find it.",
   },
 };
 
@@ -134,9 +134,8 @@ export function VerifyEmailClient({
             // beside "we just sent it" invites a second press, which the rate
             // limit would refuse and which would read as the page ignoring them.
             <p className="rounded-[var(--radius-md)] border border-leaf/30 bg-leaf/[0.07] px-4 py-3 text-[13.5px] leading-relaxed text-foreground">
-              Sent. Look for a message from hello@rishivalley.space at{" "}
-              <span className="font-medium">{resent}</span>, and check spam if it
-              is not there in a minute.
+              Sent to <span className="font-medium">{resent}</span>. Check your
+              spam folder if it does not arrive.
             </p>
           ) : (
             <Button

@@ -47,7 +47,7 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
     }
     if (result.state === "sent") {
       setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
-      setFlash("Sent. Look in your inbox, and in spam if it is not there.");
+      setFlash("Sent. Check your spam folder if it does not arrive.");
     } else {
       setState({ state: "queued", aheadOfYou: 0 });
       setFlash("");
@@ -74,17 +74,14 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
       <p className="min-w-0 flex-1 text-[13.5px] leading-snug text-foreground">
         {queued ? (
           <>
-            <span className="font-medium">Your confirmation link is on its way.</span>{" "}
-            <span className="text-muted-foreground">
-              We send these in batches, so it can take up to a day. Everything
-              opens as soon as you click it.
-            </span>
+            <span className="font-medium">Your link is on its way.</span>{" "}
+            <span className="text-muted-foreground">It can take up to a day.</span>
           </>
         ) : (
           <>
             <span className="font-medium">Confirm your email</span>{" "}
             <span className="text-muted-foreground">
-              to post, add photographs, and see how to reach the people you find.
+              to post, upload photos and see contact details.
               {state.state === "sent" && (
                 <>
                   {" "}
