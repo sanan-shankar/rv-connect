@@ -117,19 +117,11 @@ export function GetInTouch({
           </DialogHeader>
 
           {locked && (
-            <>
-              <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                Members shared their phone numbers and addresses with the
-                community, not with the internet, so we ask everyone to confirm
-                who they are first. Click the link we emailed you and this opens
-                for good.
-              </p>
-              <div className="flex justify-end pt-1">
-                <Button nativeButton={false} render={<Link href="/verify-email" />}>
-                  I never got the email
-                </Button>
-              </div>
-            </>
+            <div className="flex justify-end pt-1">
+              <Button nativeButton={false} render={<Link href="/verify-email" />}>
+                I never got the email
+              </Button>
+            </div>
           )}
           {/* One tile per shared method. Every tile is the same shape: 12px
               radius (a step inside the dialog's own corner, per the nesting

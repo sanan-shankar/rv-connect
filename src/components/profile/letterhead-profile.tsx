@@ -570,7 +570,7 @@ export function LetterheadProfile({
       vcard={vcard}
       showSave={false}
       size="default"
-      lockedReason="Confirm your email to see how to reach people."
+      lockedReason="Click the link we sent you and contact details open straight away."
     />
   ) : contactMethods.length > 0 ? (
     <GetInTouch name={user.name} methods={contactMethods} vcard={vcard} showSave={false} size="default" />

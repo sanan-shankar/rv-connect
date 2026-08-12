@@ -172,25 +172,21 @@ export function verifyEmailTemplate(opts: {
   return {
     subject: "Confirm your email for Rishi Valley",
     html: shell({
-      preheader: "One tap confirms your address and opens up posting.",
+      preheader: "Confirm your address to start posting.",
       heading: `Welcome, ${first}.`,
-      body: `<p style="margin:0 0 12px 0;">You are in. One thing left: confirm this is an address you actually read.</p>
-<p style="margin:0;">It is how your batchmates reach you, how a Catch-up finds you, and how you get back in if you ever forget your password. Until it is confirmed you can look around all you like, but posting, letters and photographs stay locked.</p>`,
+      body: `<p style="margin:0;">Confirm your email to post, upload photos and see contact details.</p>`,
       ctaLabel: "Confirm my email",
       ctaHref: opts.url,
-      footnote: `This link works for ${opts.hours} hours. If you did not sign up at Rishi Valley, ignore this message and nothing happens.`,
+      footnote: `This link expires in ${opts.hours} hours. If you did not sign up at Rishi Valley, ignore this email.`,
     }),
     text: [
       `Welcome, ${first}.`,
       "",
-      "You are in. One thing left: confirm this is an address you actually read.",
+      "Confirm your email to post, upload photos and see contact details.",
       "",
-      "It is how your batchmates reach you, how a Catch-up finds you, and how you get back in if you ever forget your password. Until it is confirmed you can look around all you like, but posting, letters and photographs stay locked.",
-      "",
-      "Confirm your email:",
       opts.url,
       "",
-      `This link works for ${opts.hours} hours. If you did not sign up at Rishi Valley, ignore this message and nothing happens.`,
+      `This link expires in ${opts.hours} hours. If you did not sign up at Rishi Valley, ignore this email.`,
     ].join("\n"),
   };
 }
@@ -214,28 +210,25 @@ export function resetPasswordTemplate(opts: {
   return {
     subject: "Reset your Rishi Valley password",
     html: shell({
-      preheader: "A link to choose a new password, good for one hour.",
-      heading: "Let's get you back in.",
-      body: `<p style="margin:0 0 12px 0;">Hello ${escapeHtml(
+      preheader: "Your password reset link, good for one hour.",
+      heading: "Reset your password",
+      body: `<p style="margin:0;">Hello ${escapeHtml(
         first,
-      )}. Someone asked to reset the password for <strong style="color:${C.ink};">${escapeHtml(
+      )}. Set a new password for <strong style="color:${C.ink};">${escapeHtml(
         opts.email,
-      )}</strong>.</p>
-<p style="margin:0;">If that was you, pick a new one here. It takes about ten seconds and you will be signed in straight after.</p>`,
-      ctaLabel: "Choose a new password",
+      )}</strong> below. You will be signed in straight after.</p>`,
+      ctaLabel: "Set a new password",
       ctaHref: opts.url,
-      footnote: `This link works for ${opts.minutes} minutes and only once. If you did not ask for it, you can safely delete this message: your password stays exactly as it is until someone opens the link.`,
+      footnote: `This link expires in ${opts.minutes} minutes and works once. If you did not ask for it, ignore this email. Your password will not change.`,
     }),
     text: [
-      "Let's get you back in.",
+      "Reset your password",
       "",
-      `Hello ${first}. Someone asked to reset the password for ${opts.email}.`,
-      "",
-      "If that was you, pick a new one here. It takes about ten seconds and you will be signed in straight after.",
+      `Hello ${first}. Set a new password for ${opts.email} here. You will be signed in straight after.`,
       "",
       opts.url,
       "",
-      `This link works for ${opts.minutes} minutes and only once. If you did not ask for it, you can safely delete this message: your password stays exactly as it is until someone opens the link.`,
+      `This link expires in ${opts.minutes} minutes and works once. If you did not ask for it, ignore this email. Your password will not change.`,
     ].join("\n"),
   };
 }
@@ -256,25 +249,22 @@ export function passwordChangedTemplate(opts: { name: string }): BuiltEmail {
   return {
     subject: "Your Rishi Valley password was changed",
     html: shell({
-      preheader: "Confirming a password change on your account.",
-      heading: "Your password was changed.",
-      body: `<p style="margin:0 0 12px 0;">Hello ${escapeHtml(
+      preheader: "Your Rishi Valley password was just changed.",
+      heading: "Your password was changed",
+      body: `<p style="margin:0;">Hello ${escapeHtml(
         first,
-      )}. The password on your Rishi Valley account was just changed, and you are signed in on the device that did it.</p>
-<p style="margin:0;">If that was you, there is nothing to do.</p>`,
-      ctaLabel: "Reach out to us",
+      )}. The password on your Rishi Valley account was just changed. If that was you, there is nothing to do.</p>`,
+      ctaLabel: "This wasn't me",
       ctaHref: reach,
       footnote:
-        "If it was not you, someone has access to this inbox or to your old password. Tell us straight away and we will lock the account while you sort it out.",
+        "If it was not you, someone has your old password or access to this inbox. Tell us and we will lock the account.",
     }),
     text: [
-      "Your password was changed.",
+      "Your password was changed",
       "",
-      `Hello ${first}. The password on your Rishi Valley account was just changed, and you are signed in on the device that did it.`,
+      `Hello ${first}. The password on your Rishi Valley account was just changed. If that was you, there is nothing to do.`,
       "",
-      "If that was you, there is nothing to do.",
-      "",
-      "If it was not you, someone has access to this inbox or to your old password. Tell us straight away and we will lock the account while you sort it out:",
+      "If it was not you, someone has your old password or access to this inbox. Tell us and we will lock the account:",
       reach,
     ].join("\n"),
   };
