@@ -238,7 +238,13 @@ export function PenBlock({
           box by 3px at display size, which is enough to push every section
           below the name down the sheet. */}
       <span className="relative block">
-        <span aria-hidden className="invisible block whitespace-pre-wrap">
+        {/* `break-words` matches the UA's own `overflow-wrap: break-word` on a
+            textarea, so a name with no space in it for 60 characters breaks in
+            the mirror on the same character it breaks on in the field. Without
+            it the mirror keeps one long line, the field wraps to two, and the
+            clip box -- which now reaches 0.12em past the line box -- shows a
+            sliver of a second line the mirror never made room for. */}
+        <span aria-hidden className="invisible block whitespace-pre-wrap break-words">
           {value || placeholder}
           {/* A zero-width space, so a value ending in a newline still renders
               the empty last line the caret is sitting on. */}
@@ -265,7 +271,26 @@ export function PenBlock({
           tabIndex={editing ? 0 : -1}
           className={cn(
             PEN_FIELD,
-            "absolute inset-0 h-full w-full resize-none overflow-hidden",
+            /* The clip box is grown past the line box at both ends, because a
+               textarea is a scroll container and clips at its own edges.
+
+               The name is set at line-height 1.05, and Libre Baskerville's
+               content area is 1.226em, so 0.09em of the font hangs outside the
+               line box at each end. Measured at 41.6px, the largest the name
+               gets: the tail of the j in "Sananjjy" lost 3.1px off the bottom,
+               and the accent on a capital -- "Śrī", "Ñ" -- lost 4.0px off the
+               top. Nothing else on the sheet is set this tight, so nothing else
+               was losing anything.
+
+               The TEXT must not move: the box is pulled up 0.12em and the same
+               0.12em handed back as padding, so the first line still starts
+               exactly where the mirror's does and the <h1> this stands in for
+               is still what you see. It is absolute, so none of it is layout --
+               the mirror above still owns the height. 0.12em rather than the
+               0.09em the metrics ask for, since an accent can overshoot the
+               content area itself, and it still leaves 3px of the 8px colophon
+               gap above untouched. */
+            "absolute left-0 top-[-0.12em] h-[calc(100%+0.24em)] w-full resize-none overflow-hidden pt-[0.12em]",
             editing
               ? "cursor-text placeholder:text-muted-foreground/70"
               : "placeholder:text-muted-foreground"
