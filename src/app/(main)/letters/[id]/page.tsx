@@ -71,7 +71,7 @@ export default async function LetterPage({
       author: {
         select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, accountType: true, batchType: true, batchYear: true },
       },
-      _count: { select: { comments: { where: { isHidden: false } }, likes: true } },
+      _count: { select: { comments: { where: { isHidden: false, deletedAt: null } }, likes: true } },
       likes: { where: { userId: session.user.id }, select: { id: true } },
       bookmarks: { where: { userId: session.user.id }, select: { id: true } },
     },

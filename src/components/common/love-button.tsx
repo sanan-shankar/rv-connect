@@ -14,18 +14,29 @@ const LEAF_FLECKS = [
 ];
 
 /**
- * ONE heart, ONE size. There used to be an `sm` variant at 12px against the
- * `md` 18px, and it spread: comments took it, and every profile concept took
- * it, so the same heart showed up at two thirds the ink depending on where you
- * met it. The owner's read, seeing them side by side: "what's this sudden habit
- * of all the heart icons being half the size it should be?"
- *
- * The love button is already pinned to one colour on purpose (#E03A33, see
- * below). Pinning the size too is the same argument: it is a single recognisable
- * mark, not a scalable decoration. If a future surface genuinely needs a smaller
- * heart, change it here, once, rather than reintroducing a per-call-site knob.
+ * ONE heart, TWO sizes, both owned here. The history, because it has swung
+ * both ways: an early free-for-all `sm` (12px) spread to every surface and
+ * the owner killed it ("what's this sudden habit of all the heart icons being
+ * half the size it should be?") — the answer then was one 18px heart
+ * everywhere. Then the comments row, a 12px-text meta line, wore that 18px
+ * heart for a month and the owner called that too ("the size of the heart in
+ * the comments section is too big. it looks off. it's totally out of place",
+ * 2026-08-13). Both complaints are the same principle: the heart is sized to
+ * the ROW it lives in, and the sizes live HERE as named variants, never as a
+ * caller's className hack. `md` (18px) is for post/photo action rows set in
+ * text-sm; `sm` (14px) is for dense text-xs meta lines — comments today.
+ * 14 not 12: the icon stays a whisker taller than the 12px type beside it,
+ * which is how the big platforms set a comment heart, and it never reads as
+ * "half" of the post heart the way 12 did.
  */
-const HEART = { icon: 18, gap: "gap-1.5", padding: "px-2.5 py-1.5" } as const;
+const HEART = {
+  md: { icon: 18, gap: "gap-1.5", padding: "px-2.5 py-1.5", text: "text-sm" },
+  // py-0.5, not py-1: the 14px icon plus 2px+2px of padding makes an 18px
+  // button, which sits INSIDE the comments' 20px (h-5) meta row. At py-1 the
+  // button measured 22px and its hover pill bled past the row again — the
+  // exact overflow the md variant's history warns about.
+  sm: { icon: 14, gap: "gap-1", padding: "px-1.5 py-0.5", text: "text-xs" },
+} as const;
 
 /**
  * One shared love/like button for the whole app (feed posts, comments, the Collection,
@@ -44,6 +55,7 @@ export function LoveButton({
   showCount = true,
   className = "",
   label,
+  size = "md",
 }: {
   liked: boolean;
   count: number;
@@ -52,9 +64,11 @@ export function LoveButton({
   showCount?: boolean;
   className?: string;
   label?: string;
+  /** Named variants only (see HEART above): `md` for post rows, `sm` for dense meta lines. */
+  size?: keyof typeof HEART;
 }) {
   const [animate, setAnimate] = useState(false);
-  const { icon, gap, padding } = HEART;
+  const { icon, gap, padding, text } = HEART[size];
 
   function handleClick() {
     if (!liked) {
@@ -79,7 +93,7 @@ export function LoveButton({
       // same weight in the photo viewer and the Collection, which sit on
       // different surfaces. It paints a background-IMAGE, so it composites
       // over the card instead of replacing it, and it cannot touch the heart.
-      className={`state-layer inline-flex items-center ${gap} rounded-full ${padding} text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+      className={`state-layer inline-flex items-center ${gap} rounded-full ${padding} ${text} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
         liked ? "text-heart" : "hover:text-foreground"
       } ${className}`}
     >

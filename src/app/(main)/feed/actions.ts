@@ -497,9 +497,14 @@ export async function createComment(formData: FormData) {
   if (parentId) {
     const parent = await prisma.comment.findUnique({
       where: { id: parentId },
-      select: { parentId: true },
+      select: { parentId: true, deletedAt: true, isHidden: true },
     });
-    if (parent?.parentId) {
+    // The UI offers no reply button on a "[deleted]" stub, so this only fires
+    // when the target was deleted between render and submit.
+    if (!parent || parent.deletedAt || parent.isHidden) {
+      return { error: "That comment is gone" };
+    }
+    if (parent.parentId) {
       parentId = parent.parentId; // reply to the root comment instead
     }
   }
@@ -510,6 +515,21 @@ export async function createComment(formData: FormData) {
       postId: parsed.data.postId,
       authorId: session.user.id,
       parentId,
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          avatarColor: true,
+          photoUrl: true,
+          birdOverride: true,
+          accountType: true,
+          verifyState: true,
+          batchType: true,
+          batchYear: true,
+        },
+      },
     },
   });
 
@@ -554,24 +574,53 @@ export async function createComment(formData: FormData) {
   }
 
   revalidatePath("/feed");
-  return { success: true, commentId: comment.id };
+  // The full mapped comment, so the client can slot it into the thread
+  // locally: with the thread paginated, "refetch everything" is no longer a
+  // cheap way to make a fresh comment appear.
+  return {
+    success: true,
+    commentId: comment.id,
+    comment: {
+      id: comment.id,
+      content: comment.content,
+      parentId: comment.parentId,
+      createdAt: comment.createdAt.toISOString(),
+      author: comment.author,
+      likeCount: 0,
+      liked: false,
+      deleted: false,
+      isOwn: true,
+      viewerIsAdmin: session.user.role === "admin",
+    },
+  };
 }
 
+/**
+ * Author's (or an admin's) delete. SOFT, never `comment.delete`: replies key
+ * off parentId and the FK is SetNull, so a row delete silently promoted every
+ * reply to a top-level comment (owner hit this live on 2026-08-13 — deleting
+ * a parent appeared to take the reply with it while the count still included
+ * it). The row stays as structure: content blanked, deletedAt stamped. Counts
+ * and fetches exclude it; if replies survive it renders as a "[deleted]" stub.
+ */
 export async function deleteComment(commentId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
-    select: { authorId: true },
+    select: { authorId: true, deletedAt: true },
   });
 
-  if (!comment) return { error: "Comment not found" };
+  if (!comment || comment.deletedAt) return { error: "Comment not found" };
   if (comment.authorId !== session.user.id && session.user.role !== "admin") {
     return { error: "Not authorized" };
   }
 
-  await prisma.comment.delete({ where: { id: commentId } });
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: { deletedAt: new Date(), content: "" },
+  });
   revalidatePath("/feed");
   return { success: true };
 }
@@ -722,7 +771,7 @@ export async function loadPosts(opts?: {
         batchYear: true,
       },
     },
-    _count: { select: { comments: { where: { isHidden: false } }, likes: true } },
+    _count: { select: { comments: { where: { isHidden: false, deletedAt: null } }, likes: true } },
     likes: { where: { userId: session.user.id }, select: { id: true } },
     bookmarks: { where: { userId: session.user.id }, select: { id: true } },
     pollOptions: {
@@ -859,7 +908,7 @@ export async function loadSavedPosts() {
               batchYear: true,
             },
           },
-          _count: { select: { comments: { where: { isHidden: false } }, likes: true } },
+          _count: { select: { comments: { where: { isHidden: false, deletedAt: null } }, likes: true } },
           likes: { where: { userId }, select: { id: true } },
           bookmarks: { where: { userId }, select: { id: true } },
           pollOptions: {
@@ -951,13 +1000,57 @@ export async function toggleCommentLike(commentId: string) {
   return { success: true, liked: !existing };
 }
 
-export async function loadComments(postId: string) {
-  const session = await auth();
-  const userId = session?.user?.id;
-  const viewerIsAdmin = session?.user?.role === "admin";
+/** A comment row still shown to readers: neither admin-hidden nor self-deleted. */
+const VISIBLE_COMMENT = { isHidden: false, deletedAt: null } as const;
 
-  const comments = await prisma.comment.findMany({
-    where: { postId, isHidden: false },
+/**
+ * One page of a post's thread. Pagination walks TOP-LEVEL comments only
+ * (keyset on (createdAt, id), oldest first); each page carries every visible
+ * reply of its parents, so a parent can never be sliced away from its thread.
+ *
+ * A deleted or admin-hidden parent whose replies survive is still returned,
+ * as a content-free stub (`deleted: true`, no author) — the client renders
+ * "[deleted]" and the replies keep their place. Without the stub the replies
+ * silently vanished from the UI while `_count.comments` still included them.
+ */
+export async function loadComments(
+  postId: string,
+  opts?: { cursor?: string | null; take?: number }
+) {
+  // Comments were readable signed-out before; nothing else on the feed is.
+  const session = await auth();
+  if (!session?.user?.id) return { comments: [], nextCursor: null, hasMore: false };
+  const userId = session.user.id;
+  const viewerIsAdmin = session.user.role === "admin";
+
+  const take = Math.min(Math.max(opts?.take ?? 10, 1), 50);
+
+  // A top-level row earns a slot on the page if it is itself visible, or if
+  // it must stand in as the anchor for visible replies.
+  const roots = await prisma.comment.findMany({
+    where: {
+      postId,
+      parentId: null,
+      OR: [VISIBLE_COMMENT, { replies: { some: VISIBLE_COMMENT } }],
+    },
+    select: { id: true, createdAt: true },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: take + 1,
+    ...(opts?.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
+  });
+
+  const hasMore = roots.length > take;
+  const pageRoots = hasMore ? roots.slice(0, take) : roots;
+  const nextCursor = hasMore ? pageRoots[pageRoots.length - 1].id : null;
+  const rootIds = pageRoots.map((r) => r.id);
+
+  const rows = await prisma.comment.findMany({
+    where: {
+      OR: [
+        { id: { in: rootIds }, ...VISIBLE_COMMENT },
+        { parentId: { in: rootIds }, ...VISIBLE_COMMENT },
+      ],
+    },
     include: {
       author: {
         select: {
@@ -972,29 +1065,45 @@ export async function loadComments(postId: string) {
           batchYear: true,
         },
       },
-      _count: {
-        select: { commentLikes: true },
-      },
-      ...(userId
-        ? {
-            commentLikes: {
-              where: { userId },
-              select: { id: true },
-            },
-          }
-        : {}),
+      _count: { select: { commentLikes: true } },
+      commentLikes: { where: { userId }, select: { id: true } },
     },
     orderBy: { createdAt: "asc" },
   });
 
-  return comments.map((c) => ({
-    id: c.id,
-    content: c.content,
-    parentId: c.parentId,
-    createdAt: c.createdAt.toISOString(),
-    author: c.author,
-    likeCount: c._count.commentLikes,
-    liked: "commentLikes" in c ? (c.commentLikes as unknown[]).length > 0 : false,
-    viewerIsAdmin,
-  }));
+  const visibleIds = new Set(rows.map((r) => r.id));
+  const stubs = pageRoots
+    .filter((r) => !visibleIds.has(r.id))
+    .map((r) => ({
+      id: r.id,
+      content: "",
+      parentId: null as string | null,
+      createdAt: r.createdAt.toISOString(),
+      author: null,
+      likeCount: 0,
+      liked: false,
+      deleted: true,
+      isOwn: false,
+      viewerIsAdmin,
+    }));
+
+  return {
+    comments: [
+      ...rows.map((c) => ({
+        id: c.id,
+        content: c.content,
+        parentId: c.parentId,
+        createdAt: c.createdAt.toISOString(),
+        author: c.author,
+        likeCount: c._count.commentLikes,
+        liked: c.commentLikes.length > 0,
+        deleted: false,
+        isOwn: c.author.id === userId,
+        viewerIsAdmin,
+      })),
+      ...stubs,
+    ],
+    nextCursor,
+    hasMore,
+  };
 }
