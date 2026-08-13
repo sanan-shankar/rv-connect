@@ -118,7 +118,12 @@ export function AnswerExperience({
         {othersAnsweredCount > 0 && clusterPeople.length > 0 && (
           <span className="mr-0.5 flex -space-x-2">
             {clusterPeople.map((p) => (
-              <BirdAvatar key={p.id} user={p} size={22} className="ring-2 ring-card" />
+              // rounded-full is load-bearing: the ring is a box-shadow drawn
+              // on THIS element's border box, and the avatar root is not
+              // itself rounded, so without it each bird sat in a square
+              // card-coloured frame (owner, 2026-08-13: "white boxes around
+              // the birds").
+              <BirdAvatar key={p.id} user={p} size={22} className="rounded-full ring-2 ring-card" />
             ))}
           </span>
         )}
