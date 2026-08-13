@@ -1379,15 +1379,17 @@ function PerchedBird({
                     (owner kept this sweep, not the flatter redraw), with the
                     whole svg translated up so the curve's departure point --
                     viewBox y=14.5 in a 16-tall box, i.e. 6.5px below the
-                    box's centre -- sits exactly on the middle of the text
-                    height that items-center pins the box centre to. */}
+                    box's centre -- sits a hair BELOW the middle of the text
+                    height that items-center pins the box centre to: -6.5px
+                    was the exact midline, and the owner asked for very
+                    slightly lower, so 1.5px of that translate comes back. */}
                 <svg
                   width="30"
                   height="16"
                   viewBox="0 0 30 16"
                   fill="none"
                   className="text-foreground/40"
-                  style={{ transform: "translateY(-6.5px)" }}
+                  style={{ transform: "translateY(-5px)" }}
                   aria-hidden
                 >
                   <path
@@ -1396,8 +1398,14 @@ function PerchedBird({
                     strokeWidth="1.3"
                     strokeLinecap="round"
                   />
+                  {/* Open-V head, derived, not eyeballed: the curve's exit
+                      direction at its endpoint is (7,-6.5) (the P3-P2 tangent,
+                      ~43° up-right), and both barbs sit at exactly 28° either
+                      side of it, length 5, vertex ON the endpoint. The old
+                      hand-placed head had one barb 50° off the shaft and the
+                      other 24°, which is the unevenness the owner saw. */}
                   <path
-                    d="M22.8 2.6 L 27.4 3.2 L 25.6 7.4"
+                    d="M22.2 4.8 L 27 3.5 L 25.4 8.2"
                     stroke="currentColor"
                     strokeWidth="1.3"
                     strokeLinecap="round"
