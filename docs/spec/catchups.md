@@ -272,8 +272,14 @@ the reader.
 lists every prompt as a row with a check state and a small progress ring at top ("4 of 7 shared").
 The **main pane** shows **one prompt at a time** as a large, calm, ruled-sheet answer card, with a
 quiet filmstrip of upcoming prompts beneath it. Advancing a prompt slides the next one in
-(transform/opacity only, `EASE_SPRING`). **Mobile:** the rail becomes a slim sticky progress bar at
-the top; prompts stack one per screen with "Next" / "Back".
+(transform/opacity only, `EASE_SPRING`). **Mobile:** the rail becomes a slim sticky bar of one
+numbered, tappable dot per prompt (filled = shared, ring = where you are) with a compact "n/m"
+count; prompts stack one per screen with "Next" / "Back". The dots ARE the navigation — a
+read-only fill left mobile unable to move between questions (owner, 2026-08-13).
+
+**Advance order:** "Next" is linear. Leaving the LAST prompt (its button reads "Share") sweeps
+back to the first prompt still unanswered rather than the completion card, because people answer
+out of order; the completion moment shows only when nothing is left unanswered.
 
 Each answer card contains, in this order:
 

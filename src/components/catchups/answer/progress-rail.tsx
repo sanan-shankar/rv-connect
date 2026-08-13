@@ -110,34 +110,74 @@ export function ProgressRail({
   );
 }
 
+/**
+ * The phone's version of the rail. It used to be a read-only count over a
+ * scaleX fill, which left mobile with NO way to move between questions except
+ * the card's own linear Back/Next (owner, 2026-08-13: "can't navigate between
+ * questions well"). The fill is gone: one numbered, tappable dot per prompt
+ * now carries BOTH the progress (filled = shared, exactly the rail's check
+ * state) and the navigation, with the "n of m" count keeping the words.
+ *
+ * 28px dots inside a p-1 SpringPress make a ~36px touch target, the same
+ * order as the 40px controls in the header band; question text rides along
+ * as the accessible name so a screen reader hears the question, not "3".
+ */
 export function MobileProgressBar({
-  done,
-  total,
+  prompts,
+  answeredIds,
+  currentIndex,
+  onJump,
   className,
 }: {
-  done: number;
-  total: number;
+  prompts: AnswerPromptData[];
+  answeredIds: Set<string>;
+  currentIndex: number;
+  onJump: (index: number) => void;
   className?: string;
 }) {
-  const pct = total > 0 ? Math.min(1, done / total) : 0;
   return (
-    <div
+    <nav
+      aria-label="Questions in this Round"
       className={cn(
-        "glass sticky top-14 z-[var(--z-elevated)] rounded-[var(--radius-md)] border border-border/70 px-4 py-2.5",
+        "glass sticky top-14 z-[var(--z-elevated)] flex items-center gap-2 rounded-[var(--radius-md)] border border-border/70 px-3 py-1.5",
         className
       )}
     >
-      <p className="text-xs font-semibold text-muted-foreground">
-        {done} of {total} shared
-      </p>
-      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-mist">
-        <motion.div
-          className="h-full w-full origin-left rounded-full bg-canopy"
-          initial={false}
-          animate={{ scaleX: pct }}
-          transition={SPRINGS.gentle}
-        />
+      <div className="flex flex-1 flex-wrap items-center gap-0.5">
+        {prompts.map((p, i) => {
+          const done = answeredIds.has(p.id);
+          const active = i === currentIndex;
+          return (
+            <SpringPress
+              key={p.id}
+              as="button"
+              onClick={() => onJump(i)}
+              whileTap={{ scale: 0.92 }}
+              aria-label={`Question ${i + 1}: ${p.text}`}
+              className="grid place-items-center rounded-full p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              {...({ type: "button", "aria-current": active ? "step" : undefined } as object)}
+            >
+              <span
+                className={cn(
+                  "grid h-7 w-7 place-items-center rounded-full border text-xs font-semibold transition-colors duration-150",
+                  done
+                    ? "border-canopy bg-canopy text-white"
+                    : "border-border bg-card text-muted-foreground",
+                  // The ring marks WHERE YOU ARE; fill keeps marking what is
+                  // shared, so the two states stay legible in combination.
+                  active && "outline-2 outline-offset-2 outline-canopy"
+                )}
+                style={active ? { outlineStyle: "solid" } : undefined}
+              >
+                {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
+              </span>
+            </SpringPress>
+          );
+        })}
       </div>
-    </div>
+      <p className="shrink-0 text-xs font-semibold text-muted-foreground">
+        {answeredIds.size}/{prompts.length}
+      </p>
+    </nav>
   );
 }
