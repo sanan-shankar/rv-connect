@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { prisma } from "./prisma";
 import { IS_DEMO } from "./demo";
 import { appUrl, sendMail } from "./email";
@@ -194,7 +195,44 @@ export async function enqueueMail(input: {
     },
     select: { id: true },
   });
+
+  // Send it NOW. The queue exists to survive the 100-a-day ceiling, not to
+  // hold mail back for its own sake, so the default is immediate and the only
+  // thing that ever defers a message is the budget genuinely being spent.
+  //
+  // This used to be left to the lazy tick in the authenticated layout, which
+  // meant a signup at 06:05 sat unsent until somebody happened to load a page
+  // five hours later (owner, 2026-08-12: Nirad's confirmation, then Sanjula's
+  // still queued with the day's budget barely touched). Nudging from here
+  // rather than from each caller is what stops the next new send path from
+  // quietly reintroducing the same wait.
+  scheduleDrain();
+
   return { queued: true, id: row.id };
+}
+
+/**
+ * Run a drain pass without making the caller wait for it.
+ *
+ * `after()` is the right tool inside a request: the person gets their response
+ * and the mail goes out immediately behind it. Outside one (a script, a test,
+ * the seed) `after()` throws, so this falls back to firing the promise off
+ * directly. Either way nothing here is awaited and nothing here can fail the
+ * action that triggered it.
+ */
+function scheduleDrain(): void {
+  const run = async () => {
+    try {
+      await drainMailQueue();
+    } catch (err) {
+      console.error("[email] drain failed", err);
+    }
+  };
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
 }
 
 /** Build the actual message, minting whatever token it needs right now. */
@@ -255,6 +293,23 @@ export interface DrainReport {
 export async function drainMailQueue(): Promise<DrainReport> {
   if (IS_DEMO) return { sent: 0, failed: 0, backlog: false };
   if (!process.env.RESEND_API_KEY && process.env.NODE_ENV === "production") {
+    return { sent: 0, failed: 0, backlog: false };
+  }
+
+  // A development machine does NOT touch the queue unless it is genuinely
+  // sending.
+  //
+  // This database is shared by production and local dev (AGENTS.md), so the
+  // rows in here belong to real members. With `sendMail` suppressing sends in
+  // development but still reporting success, a drain on localhost marked real
+  // people's mail as sent while only printing it to a terminal: Nirad's
+  // confirmation was swallowed exactly that way on 2026-08-12, and because
+  // "sent" is terminal it would never have been retried. Anyone running the
+  // app locally was silently eating production mail.
+  //
+  // So the rule is now all-or-nothing: either this process really sends, or it
+  // leaves the queue completely alone for one that does.
+  if (process.env.NODE_ENV !== "production" && process.env.EMAIL_DEV_SEND !== "1") {
     return { sent: 0, failed: 0, backlog: false };
   }
 
@@ -381,11 +436,26 @@ export async function mailHealth(): Promise<{
   return { sentToday, dailyCap: DAILY_CAP, waiting, failed };
 }
 
+/**
+ * When the daily budget refills, i.e. the earliest a message deferred by the
+ * cap could go out. Resend's window is UTC, so this is the next UTC midnight.
+ *
+ * Returned as a Date and formatted in the BROWSER's timezone by whoever shows
+ * it. "It will go out tomorrow" is the kind of vague reassurance that reads as
+ * a brush-off; a real clock time is a promise somebody can check.
+ */
+export function nextBudgetResetAt(): Date {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+  );
+}
+
 export type VerificationMailState =
   /** The link is in their inbox. Safe to say "go and look". */
   | { state: "sent"; at: Date }
   /** Written down, not yet sent. Say it is coming; do NOT say check your inbox. */
-  | { state: "queued"; aheadOfYou: number }
+  | { state: "queued"; aheadOfYou: number; sendingAt: Date }
   /** Tried and gave up (a bad address, usually). Offer to try again. */
   | { state: "failed" }
   /** Nothing on file. Offer to send one. */
@@ -422,5 +492,5 @@ export async function verificationMailState(userId: string): Promise<Verificatio
       ],
     },
   });
-  return { state: "queued", aheadOfYou };
+  return { state: "queued", aheadOfYou, sendingAt: nextBudgetResetAt() };
 }
