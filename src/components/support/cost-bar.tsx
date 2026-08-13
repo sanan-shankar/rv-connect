@@ -38,14 +38,11 @@ const SEGMENTS = [
 ];
 const MONTHLY_TOTAL = SEGMENTS.reduce((sum, s) => sum + s.value, 0);
 
-/* The one-time cost of designing and building the site, and how much of it has
-   come back so far. Still a figure the owner edits by hand, but no longer
-   because nothing tracks contributions: since Razorpay replaced the UPI QR
-   (2026-08-05) every paid contribution is a Contribution row, so this can
-   become SUM(amount) WHERE status = 'paid' whenever the owner wants it live
-   rather than curated. */
+/* The one-time cost of designing and building the site. The amount recovered
+   against it is no longer a hand-edited constant: the server page sums the
+   paid, live-mode Contribution rows and passes the figure in as a prop, so
+   the bar moves on its own as money arrives and stops moving at this total. */
 const BUILD_COST = 400000;
-const BUILD_RECOVERED = 0;
 
 /* Both bars use a 20px track with a 4px inset, leaving a 12px fill. The fund
    fill's minimum width matches that fill height so its zero-state remains a
@@ -125,12 +122,14 @@ function useCountUpOnView(target: number) {
   return { ref, shown, value };
 }
 
-export function CostBar() {
+export function CostBar({ recoveredPaise }: { recoveredPaise: number }) {
   const { ref, shown, value } = useCountUpOnView(MONTHLY_TOTAL);
-  // Only the on-view flag is wanted here now; there is no figure left to count.
-  const { ref: fundRef, shown: fundShown } = useCountUpOnView(BUILD_RECOVERED);
+  // Only the on-view flag is wanted here; the fund section shows no figure
+  // (owner, 2026-08-04), so there is nothing to count.
+  const { ref: fundRef, shown: fundShown } = useCountUpOnView(0);
 
-  const fundPct = Math.min(100, (BUILD_RECOVERED / BUILD_COST) * 100);
+  // Paise in (the unit the Contribution table counts in), rupees only here.
+  const fundPct = Math.min(100, (recoveredPaise / 100 / BUILD_COST) * 100);
 
   return (
     <div
