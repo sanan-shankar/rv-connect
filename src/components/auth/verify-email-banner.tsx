@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { MailWarning, Check, Clock } from "lucide-react";
 import { resendVerification } from "./email-actions";
@@ -25,17 +25,37 @@ import { resendVerification } from "./email-actions";
 
 export type BannerState =
   | { state: "sent"; sentTo: string }
-  /** `sendingAt` is an ISO string, formatted in the browser's own timezone
-   *  below. The server cannot know where the reader is, and "sometime
-   *  tomorrow" is the kind of vague reassurance that reads as a brush-off. */
+  /** In another process's hands right now, or seconds from a retry. */
+  | { state: "imminent" }
+  /** Genuinely deferred: the day's budget is spent. The ONLY state whose copy
+   *  may mention the email limit; `sendingAt` (ISO) is when it refills. */
   | { state: "queued"; sendingAt: string }
   | { state: "none"; sentTo: string };
 
-/** "5:30 am" in the reader's timezone. */
-function clockTime(iso: string): string {
-  return new Date(iso)
+/**
+ * "tomorrow at 5:30 am", or "at 5:30 am" when the refill lands later the same
+ * local day. Formatted in the BROWSER's timezone: the server cannot know where
+ * the reader is, and "sometime tomorrow" is the kind of vague reassurance that
+ * reads as a brush-off. Exported for the dialog, so the two never phrase the
+ * same moment two ways.
+ */
+export function sendTimeLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const time = d
     .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
     .toLowerCase();
+  const sameLocalDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  return sameLocalDay ? `at ${time}` : `tomorrow at ${time}`;
+}
+
+/** A store that never notifies: the "external" value here is the browser's
+ *  locale, which does not change within a page's lifetime. */
+function subscribeNever(): () => void {
+  return () => {};
 }
 
 export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
@@ -58,11 +78,11 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
     if (result.state === "sent") {
       setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
       setFlash("Sent. Check your spam folder if it does not arrive.");
+    } else if (result.state === "queued" && result.sendingAt) {
+      setState({ state: "queued", sendingAt: result.sendingAt });
+      setFlash("");
     } else {
-      setState({
-        state: "queued",
-        sendingAt: result.sendingAt ?? new Date().toISOString(),
-      });
+      setState({ state: "imminent" });
       setFlash("");
     }
     // The gate is read server-side, so a confirmation that landed while this
@@ -71,7 +91,23 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
   }
 
   const queued = state.state === "queued";
-  const Icon = queued ? Clock : MailWarning;
+  const imminent = state.state === "imminent";
+  const Icon = queued || imminent ? Clock : MailWarning;
+
+  // The refill time is formatted ONLY in the browser. sendTimeLabel reads the
+  // reader's locale, and the server's locale is not the reader's: SSR said
+  // "5:30 am" where a 24-hour browser said "5:30", and React threw a
+  // hydration mismatch over the difference (caught live, 2026-08-13).
+  // useSyncExternalStore is the sanctioned tool for a value that legitimately
+  // differs between server and client: the server snapshot is empty (both
+  // sides hydrate on the bare "tomorrow"), and the client snapshot formats in
+  // the reader's own locale on the very next render.
+  const sendingAtIso = state.state === "queued" ? state.sendingAt : null;
+  const timeLabel = useSyncExternalStore(
+    subscribeNever,
+    () => (sendingAtIso ? sendTimeLabel(sendingAtIso) : ""),
+    () => "",
+  );
 
   return (
     <div
@@ -86,14 +122,26 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
 
       <p className="min-w-0 flex-1 text-[13.5px] leading-snug text-foreground">
         {queued ? (
+          // The one place the limit may be named, and only reachable when the
+          // day's count is genuinely at the cap (verificationMailState sends
+          // the mail itself in every other case, so this state cannot render
+          // otherwise). Names the refill time instead of "up to a day".
           <>
             <span className="font-medium">
               We have hit today&apos;s email limit.
             </span>{" "}
             <span className="text-muted-foreground">
-              Your link goes out at{" "}
-              {clockTime((state as { sendingAt: string }).sendingAt)}. Nothing
-              else to do.
+              Your link goes out {timeLabel || "tomorrow"}. Nothing you need to
+              do.
+            </span>
+          </>
+        ) : imminent ? (
+          // Mid-send or seconds from a retry. No deadline named, because there
+          // is not one; no button, because there is nothing for them to do.
+          <>
+            <span className="font-medium">Your link is on its way.</span>{" "}
+            <span className="text-muted-foreground">
+              Give it a minute, then check your spam folder.
             </span>
           </>
         ) : (
@@ -119,9 +167,9 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
         )}
       </p>
 
-      {/* No button while it is queued: there is nothing to send again, and a
-          control that cannot help is worse than no control. */}
-      {!queued && (
+      {/* No button while it is queued or in flight: there is nothing to send
+          again, and a control that cannot help is worse than no control. */}
+      {!queued && !imminent && (
         <button
           type="button"
           onClick={handleSend}

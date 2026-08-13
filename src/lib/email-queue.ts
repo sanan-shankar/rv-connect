@@ -33,15 +33,19 @@ import { TOKEN_TTL_MINUTES, mintToken } from "./auth-tokens";
  *     the queue row stores template ingredients rather than a finished
  *     message.
  *
- *  3. The app must not tell somebody to check an inbox we have not
- *     written to yet. `verificationMailState` below is what the banner
- *     reads, and it distinguishes "sent, go and look" from "queued, it
- *     is coming" in as many words.
+ *  3. The app must not lie about where a message is. `verificationMail-
+ *     State` below is what the banner reads, and it does not merely
+ *     report: with budget available it SENDS the pending row before
+ *     answering, so "we've hit today's email limit" is impossible to
+ *     render on a day that has budget left. That closes the 2026-08-13
+ *     incident, where a fresh signup was shown the limit message as the
+ *     third email of a ninety-five-email day.
  *
- *  There is no cron on this project. The drain is called opportunis-
- *  tically from the authenticated layout, the same lazy-tick pattern
- *  `advanceDueCatchups` already uses, and runs inside `after()` so it
- *  never delays a page.
+ *  There is no cron on this project. Sends are triggered at enqueue
+ *  time (`scheduleDrain`), at first page view (`verificationMailState`),
+ *  and by the authenticated layout's `after()` backstop, in that order
+ *  of likelihood; the claim in `claimAndSend` is what lets all three
+ *  race safely.
  * ------------------------------------------------------------------ */
 
 export type MailKind = "verify" | "reset" | "password-changed";
@@ -97,6 +101,111 @@ const MAX_ATTEMPTS = 4;
 function startOfUtcDay(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+/**
+ * True when THIS process is allowed to move mail out of the queue.
+ *
+ * All or nothing: a process that cannot genuinely send (the demo, a dev
+ * machine without EMAIL_DEV_SEND=1, production missing its key) must not touch
+ * queued rows at all, because a drain that "sends" without sending is how real
+ * members' mail got marked sent off a console.log (2026-08-12).
+ *
+ * Production without a key logs an error EVERY time it declines, rather than
+ * returning quietly. The quiet version meant a misnamed Vercel env var
+ * produced no sends and no evidence: the queue just grew, and the first
+ * symptom anyone saw was a member asking where their email was.
+ */
+function queueIsSendable(): boolean {
+  if (IS_DEMO) return false;
+  if (process.env.NODE_ENV === "production") {
+    if (!process.env.RESEND_API_KEY) {
+      console.error(
+        "[email] RESEND_API_KEY is not set in this environment; queued mail cannot send. " +
+          "Check the Vercel env var is named exactly RESEND_API_KEY and redeploy.",
+      );
+      return false;
+    }
+    return true;
+  }
+  return process.env.EMAIL_DEV_SEND === "1";
+}
+
+/** The fields `claimAndSend` needs off a queue row. */
+interface QueueRow {
+  id: string;
+  kind: string;
+  to: string;
+  userId: string | null;
+  payload: string | null;
+}
+
+type SendOutcome = "sent" | "requeued" | "failed" | "lost-claim";
+
+/**
+ * Claim one queued row and send it, atomically enough to be called from
+ * anywhere: the claim is a conditional update, so of two processes racing for
+ * the same row exactly one sends and the other reports "lost-claim". This is
+ * the ONE piece of code that moves a row out of "queued" - the drain loop and
+ * the page-load self-heal both go through it, so there is no second copy of
+ * the bookkeeping to drift.
+ */
+async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
+  const claimed = await prisma.outboundEmail.updateMany({
+    where: { id: row.id, status: "queued" },
+    data: { status: "sending", claimedAt: new Date(), attempts: { increment: 1 } },
+  });
+  if (claimed.count === 0) return "lost-claim";
+
+  // Read back the incremented count so a failure below can decide between
+  // another try and giving up. A row on its last attempt stops being retried,
+  // so one bad address cannot keep spending budget other people are waiting on.
+  const attempted = await prisma.outboundEmail.findUnique({
+    where: { id: row.id },
+    select: { attempts: true },
+  });
+  const spent = attempted?.attempts ?? MAX_ATTEMPTS;
+  const afterFailure = spent >= MAX_ATTEMPTS ? "failed" : "queued";
+
+  try {
+    const built = await render(row);
+
+    if ("skip" in built) {
+      // Nothing to send and nothing wrong (token rate limit, usually). Retire
+      // the row rather than leave it to retry against a shared budget.
+      await prisma.outboundEmail.update({
+        where: { id: row.id },
+        data: { status: "failed", lastError: built.skip },
+      });
+      return "failed";
+    }
+
+    const result = await sendMail({ to: row.to, ...built });
+
+    if (result.ok) {
+      await prisma.outboundEmail.update({
+        where: { id: row.id },
+        data: { status: "sent", sentAt: new Date(), claimedAt: null, lastError: null },
+      });
+      return "sent";
+    }
+
+    await prisma.outboundEmail.update({
+      where: { id: row.id },
+      data: { status: afterFailure, claimedAt: null, lastError: result.error ?? "send failed" },
+    });
+    return afterFailure === "failed" ? "failed" : "requeued";
+  } catch (err) {
+    await prisma.outboundEmail.update({
+      where: { id: row.id },
+      data: {
+        status: afterFailure,
+        claimedAt: null,
+        lastError: err instanceof Error ? err.message : "unknown",
+      },
+    });
+    return afterFailure === "failed" ? "failed" : "requeued";
+  }
 }
 
 export interface Budget {
@@ -291,27 +400,12 @@ export interface DrainReport {
  * cannot mail the same person a hundred times.
  */
 export async function drainMailQueue(): Promise<DrainReport> {
-  if (IS_DEMO) return { sent: 0, failed: 0, backlog: false };
-  if (!process.env.RESEND_API_KEY && process.env.NODE_ENV === "production") {
-    return { sent: 0, failed: 0, backlog: false };
-  }
-
-  // A development machine does NOT touch the queue unless it is genuinely
-  // sending.
-  //
-  // This database is shared by production and local dev (AGENTS.md), so the
-  // rows in here belong to real members. With `sendMail` suppressing sends in
-  // development but still reporting success, a drain on localhost marked real
-  // people's mail as sent while only printing it to a terminal: Nirad's
-  // confirmation was swallowed exactly that way on 2026-08-12, and because
-  // "sent" is terminal it would never have been retried. Anyone running the
-  // app locally was silently eating production mail.
-  //
-  // So the rule is now all-or-nothing: either this process really sends, or it
-  // leaves the queue completely alone for one that does.
-  if (process.env.NODE_ENV !== "production" && process.env.EMAIL_DEV_SEND !== "1") {
-    return { sent: 0, failed: 0, backlog: false };
-  }
+  // All-or-nothing (see queueIsSendable): either this process really sends, or
+  // it leaves the queue completely alone for one that does. This database is
+  // shared by production and local dev, so the rows here belong to real
+  // members; a process that half-participates is how a localhost drain once
+  // marked a real member's mail sent off a console.log.
+  if (!queueIsSendable()) return { sent: 0, failed: 0, backlog: false };
 
   // Reclaim anything a dead process left mid-flight.
   await prisma.outboundEmail.updateMany({
@@ -345,68 +439,11 @@ export async function drainMailQueue(): Promise<DrainReport> {
     });
     if (!next) break;
 
-    // Claim it. Conditional on still being queued, so of two racing drains
-    // exactly one gets the row and the other moves on.
-    const claimed = await prisma.outboundEmail.updateMany({
-      where: { id: next.id, status: "queued" },
-      data: { status: "sending", claimedAt: new Date(), attempts: { increment: 1 } },
-    });
-    if (claimed.count === 0) continue;
-
-    // Read back the incremented count so a failure below can decide between
-    // another try and giving up, without re-deriving it from the pre-claim row.
-    const attempted = await prisma.outboundEmail.findUnique({
-      where: { id: next.id },
-      select: { attempts: true },
-    });
-    const spent = attempted?.attempts ?? MAX_ATTEMPTS;
-    // A row that has used its last attempt stops being retried, so one bad
-    // address cannot keep spending a budget other people are waiting on.
-    const afterFailure = spent >= MAX_ATTEMPTS ? "failed" : "queued";
-
-    try {
-      const built = await render(next);
-
-      if ("skip" in built) {
-        // Nothing to send and nothing wrong. Retire the row rather than leave
-        // it to be retried against a budget other people need.
-        await prisma.outboundEmail.update({
-          where: { id: next.id },
-          data: { status: "failed", lastError: built.skip },
-        });
-        continue;
-      }
-
-      const result = await sendMail({ to: next.to, ...built });
-
-      if (result.ok) {
-        await prisma.outboundEmail.update({
-          where: { id: next.id },
-          data: { status: "sent", sentAt: new Date(), claimedAt: null, lastError: null },
-        });
-        sent++;
-      } else {
-        failed++;
-        await prisma.outboundEmail.update({
-          where: { id: next.id },
-          data: {
-            status: afterFailure,
-            claimedAt: null,
-            lastError: result.error ?? "send failed",
-          },
-        });
-      }
-    } catch (err) {
-      failed++;
-      await prisma.outboundEmail.update({
-        where: { id: next.id },
-        data: {
-          status: afterFailure,
-          claimedAt: null,
-          lastError: err instanceof Error ? err.message : "unknown",
-        },
-      });
-    }
+    const outcome = await claimAndSend(next);
+    if (outcome === "sent") sent++;
+    else if (outcome === "requeued" || outcome === "failed") failed++;
+    // lost-claim: another process took the row between our read and our claim;
+    // nothing to count, the loop just looks for the next one.
   }
 
   const waiting = await prisma.outboundEmail.count({ where: { status: "queued" } });
@@ -454,43 +491,86 @@ export function nextBudgetResetAt(): Date {
 export type VerificationMailState =
   /** The link is in their inbox. Safe to say "go and look". */
   | { state: "sent"; at: Date }
-  /** Written down, not yet sent. Say it is coming; do NOT say check your inbox. */
-  | { state: "queued"; aheadOfYou: number; sendingAt: Date }
+  /** Being sent right now, or seconds from a retry. Say it is on its way;
+   *  never name a deadline, because there isn't one. */
+  | { state: "imminent" }
+  /** Genuinely deferred: today's budget is SPENT. This is the only state that
+   *  may mention the email limit, and `sendingAt` is when it refills. */
+  | { state: "queued"; sendingAt: Date }
   /** Tried and gave up (a bad address, usually). Offer to try again. */
   | { state: "failed" }
   /** Nothing on file. Offer to send one. */
   | { state: "none" };
 
 /**
- * Has this person's confirmation actually left the building?
+ * Has this person's confirmation actually left the building? And if it has
+ * not, WHY not - because the answer decides what the banner may claim.
  *
- * The owner's instruction, verbatim: they should be "asked to verify only
- * after the email is definitely sent". So the banner, the dialog and the
- * verify page all read this rather than assuming that signing up means a
- * message exists. Telling somebody to check an inbox we have not written to
- * yet is how a working queue reads as a broken product.
+ * This function does not merely report; it repairs. A queued row with budget
+ * available is sent HERE, synchronously, before the state is returned. That
+ * choice comes from a production incident (2026-08-13): a fresh signup's row
+ * sat queued because the fire-and-forget drain never ran on Vercel, and the
+ * old version of this function answered "queued" for every unsent row - which
+ * the banner then explained as "we've hit today's email limit", to a member
+ * who was the third email of a ninety-five-email day. Two lies stacked: the
+ * mail had not been deferred, and the limit had nothing to do with it.
+ *
+ * Sending from the read path makes the invariant structural: by the time an
+ * unconfirmed member sees any page, their mail has either really gone (state
+ * "sent"), is in another process's hands this second ("imminent"), or the
+ * budget is arithmetically exhausted ("queued", the only state whose copy may
+ * mention the limit, with the refill time attached). There is no code path
+ * that can show the limit message while the day still has budget in it.
+ *
+ * Cost: one Resend call inside one page load, once, for the member whose mail
+ * is pending. Every later read takes the "sent" fast path.
  */
 export async function verificationMailState(userId: string): Promise<VerificationMailState> {
   const row = await prisma.outboundEmail.findFirst({
     where: { userId, kind: "verify" },
     orderBy: { createdAt: "desc" },
-    select: { status: true, sentAt: true, priority: true, createdAt: true },
+    select: {
+      id: true,
+      kind: true,
+      to: true,
+      userId: true,
+      payload: true,
+      status: true,
+      sentAt: true,
+    },
   });
 
   if (!row) return { state: "none" };
   if (row.status === "sent" && row.sentAt) return { state: "sent", at: row.sentAt };
   if (row.status === "failed") return { state: "failed" };
 
-  // Queued or sending. How many are in front of them, so the wait can be
-  // described honestly instead of as an indefinite "soon".
-  const aheadOfYou = await prisma.outboundEmail.count({
-    where: {
-      status: { in: ["queued", "sending"] },
-      OR: [
-        { priority: { lt: row.priority } },
-        { priority: row.priority, createdAt: { lt: row.createdAt } },
-      ],
-    },
+  // Queued or sending. A process that cannot send (a dev machine without
+  // EMAIL_DEV_SEND, production missing its key) reports the only thing it can
+  // see honestly: the message is written down and a sending process will pick
+  // it up. Never the budget message - the budget is not the reason.
+  if (!queueIsSendable()) return { state: "imminent" };
+
+  const budget = await dailyBudget();
+  if (budget.verifyRemaining <= 0) {
+    return { state: "queued", sendingAt: nextBudgetResetAt() };
+  }
+
+  // Budget is available, so nothing may sit queued: send it now. "lost-claim"
+  // means a concurrent drain beat us to this exact row, which is fine - the
+  // re-read below sees whatever it did with it.
+  if (row.status === "queued") {
+    const outcome = await claimAndSend(row);
+    if (outcome === "sent") return { state: "sent", at: new Date() };
+  }
+
+  const fresh = await prisma.outboundEmail.findUnique({
+    where: { id: row.id },
+    select: { status: true, sentAt: true },
   });
-  return { state: "queued", aheadOfYou, sendingAt: nextBudgetResetAt() };
+  if (fresh?.status === "sent") return { state: "sent", at: fresh.sentAt ?? new Date() };
+  if (fresh?.status === "failed") return { state: "failed" };
+
+  // Mid-flight in another process, or our own attempt hit a transient error
+  // and requeued for the next pass. Either way it is minutes, not tomorrow.
+  return { state: "imminent" };
 }

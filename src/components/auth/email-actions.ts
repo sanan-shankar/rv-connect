@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { maskEmail } from "@/lib/email";
 import { burnTokens, readToken } from "@/lib/auth-tokens";
-import { drainMailQueue, enqueueMail, verificationMailState } from "@/lib/email-queue";
+import { enqueueMail, verificationMailState } from "@/lib/email-queue";
 import { sendVerificationEmail } from "@/lib/verification-mail";
 
 /* ------------------------------------------------------------------ *
@@ -36,14 +36,13 @@ const MIN_PASSWORD = 8;
  */
 export async function resendVerification(): Promise<{
   ok: boolean;
-  /** "sent" means it is genuinely in their inbox; "queued" means we have
-   *  written it down and it goes out when the day's budget allows. The caller
-   *  MUST say different things for the two, per the owner's instruction that
-   *  nobody is told to check an inbox we have not written to yet. */
-  state?: "sent" | "queued";
+  /** "sent": genuinely accepted by the provider. "imminent": in flight or
+   *  seconds from a retry. "queued": the day's budget is truly spent, and
+   *  `sendingAt` names the refill. The caller says different things for each,
+   *  and only "queued" may mention the email limit. */
+  state?: "sent" | "imminent" | "queued";
   sentTo?: string;
-  /** ISO. Only set when deferred: the clock time the budget refills, so the
-   *  caller can name it rather than say "sometime tomorrow". */
+  /** ISO. Only set with state "queued". */
   sendingAt?: string;
   error?: string;
 }> {
@@ -63,44 +62,23 @@ export async function resendVerification(): Promise<{
     return { ok: false, error: "We could not do that just now. Try again in a minute." };
   }
 
-  // Nudge the queue rather than waiting for the next page view. On an ordinary
-  // day this sends it before the button finishes its press, which is what
-  // makes a queue invisible to everyone except the launch-day crowd it exists
-  // for. Awaited, unlike the reset nudge above, because the answer this
-  // returns depends on whether it went out: the button must not say "check
-  // your inbox" for a message still sitting in the queue.
-  try {
-    await drainMailQueue();
-  } catch {
-    // the queue keeps the row; the next drain gets it
-  }
-
+  // `verificationMailState` is the sender, not just the reader: with budget
+  // available it puts the row through Resend before answering, so by the time
+  // this returns "sent" the provider has genuinely accepted the message. One
+  // send path for the button, the page load and the drain (claimAndSend), so
+  // there is no second copy of the bookkeeping to disagree.
   const state = await verificationMailState(session.user.id);
   return {
     ok: true,
-    state: state.state === "sent" ? "sent" : "queued",
+    state:
+      state.state === "sent"
+        ? "sent"
+        : state.state === "queued"
+          ? "queued"
+          : "imminent",
     sentTo: maskEmail(session.user.email),
     sendingAt: state.state === "queued" ? state.sendingAt.toISOString() : undefined,
   };
-}
-
-/** What the banner and the verify page read to decide what to SAY. Exported as
- *  an action so a client component can refresh it after pressing resend. */
-export async function myVerificationMailState(): Promise<
-  | { state: "verified" }
-  | { state: "sent" }
-  | { state: "queued"; sendingAt: string }
-  | { state: "none" }
-> {
-  const session = await auth();
-  if (!session?.user?.id) return { state: "none" };
-  if (session.user.emailConfirmed) return { state: "verified" };
-
-  const mail = await verificationMailState(session.user.id);
-  if (mail.state === "sent") return { state: "sent" };
-  if (mail.state === "queued")
-    return { state: "queued", sendingAt: mail.sendingAt.toISOString() };
-  return { state: "none" };
 }
 
 export type ConfirmOutcome = "confirmed" | "already" | "expired" | "unknown" | "stale";
@@ -145,13 +123,10 @@ export async function confirmEmailToken(token: string): Promise<ConfirmOutcome> 
 /**
  * Step one: somebody typed their address.
  *
- * ALWAYS returns the same shape, whether or not an account exists. The screen
- * that follows says "if that address has an account, the link is on its way",
- * because a version that said "no such account" would turn this form into a
- * membership checker: type an address, learn whether that person is a Rishi
- * Valley alumnus. For a private community that is precisely the fact worth
- * protecting, and it is the reason the copy is phrased the way it is rather
- * than more warmly.
+ * ALWAYS returns the same bare `{ ok: true }`, whether or not an account
+ * exists. Anything else turns this form into a membership checker: type an
+ * address, read the response, learn whether that person went to Rishi Valley.
+ * For a private community that is precisely the fact worth protecting.
  */
 export async function requestPasswordReset(formData: FormData): Promise<{ ok: true }> {
   const raw = ((formData.get("email") as string) ?? "").trim().toLowerCase();
@@ -182,12 +157,9 @@ export async function requestPasswordReset(formData: FormData): Promise<{ ok: tr
 
 
   // The return value carries NOTHING about whether that address has an
-  // account. An earlier draft returned the masked address when the row existed
-  // and null when it did not, which handed the caller the exact fact this
-  // whole function is shaped to withhold: type an address, read the response,
-  // learn whether that person went to Rishi Valley. The screen that follows
-  // masks the address the VISITOR TYPED, which is honest, useful for spotting
-  // your own typo, and says nothing we did not already receive from them.
+  // account (see the function comment). The screen that follows echoes back
+  // the address the VISITOR TYPED, which helps them catch a typo and tells
+  // them nothing we did not already receive from them.
   return { ok: true };
 }
 
