@@ -17,21 +17,15 @@
  *  saved draft with no reset effects needed.
  * ------------------------------------------------------------------ */
 
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
+import { RichTextArea } from "@/components/common/rich-text-area";
 import { PhotoAttachments } from "./photo-attachments";
 import { SongNameField } from "./song-attachment";
 import type { AnswerEntryDraft, AnswerPromptData } from "./types";
 
 const MIN_TEXTAREA_HEIGHT = 168;
-
-/** Size the writing surface to its content, never below the resting height. */
-function growToFit(el: HTMLTextAreaElement | null) {
-  if (!el) return;
-  el.style.height = "auto";
-  el.style.height = `${Math.max(el.scrollHeight, MIN_TEXTAREA_HEIGHT)}px`;
-}
 
 export function AnswerCard({
   prompt,
@@ -57,17 +51,13 @@ export function AnswerCard({
   const [body, setBody] = useState(entry.body);
   const savedRef = useRef(entry.body);
 
-  // A callback ref rather than an effect: it runs on mount (this card
-  // remounts per question), so a saved draft opens at its full height
-  // instead of scrolling inside the resting box.
-  const attachTextarea = useCallback((el: HTMLTextAreaElement | null) => {
-    growToFit(el);
-  }, []);
-
-  function flushBody() {
-    if (body.trim() === savedRef.current.trim()) return;
-    savedRef.current = body;
-    onBodyBlur(body);
+  // `latest` covers the blur path, where the setBody from the same event has
+  // not re-rendered yet; the advance buttons call it bare and use state.
+  function flushBody(latest?: string) {
+    const value = latest ?? body;
+    if (value.trim() === savedRef.current.trim()) return;
+    savedRef.current = value;
+    onBodyBlur(value);
   }
 
   const hasContent =
@@ -94,17 +84,23 @@ export function AnswerCard({
         {prompt.kind === "text" && (
           <>
             <div className="overflow-hidden rounded-[var(--radius-input)] border border-border hover:border-leaf/40 focus-within:border-leaf/60 focus-within:ring-2 focus-within:ring-leaf/30">
-              <textarea
-                ref={attachTextarea}
-                value={body}
-                aria-label={prompt.text}
-                onChange={(e) => {
-                  setBody(e.target.value);
-                  growToFit(e.target);
+              {/* The same writing surface as the composer (owner, 2026-08-13:
+                  "bold italics etc in every text box... not just the feed"):
+                  a contentEditable on the shared markdown primitives, so
+                  Cmd/Ctrl+B/I/U and the phone's selection bar format live.
+                  It grows with its content on its own; the old textarea
+                  needed a measure-and-set effect for that. */}
+              <RichTextArea
+                key={prompt.id}
+                initialValue={entry.body}
+                ariaLabel={prompt.text}
+                onChange={setBody}
+                onBlur={(markdown) => {
+                  setBody(markdown);
+                  flushBody(markdown);
                 }}
-                onBlur={flushBody}
-                className="block w-full resize-none bg-card px-4 py-3.5 font-heading text-[17px] leading-[1.7] text-foreground focus:outline-none"
-                style={{ minHeight: MIN_TEXTAREA_HEIGHT }}
+                className="bg-card px-4 py-3.5 font-heading text-[17px] leading-[1.7]"
+                minHeight={MIN_TEXTAREA_HEIGHT}
               />
             </div>
             <PhotoAttachments images={entry.images} onChange={onImagesChange} />

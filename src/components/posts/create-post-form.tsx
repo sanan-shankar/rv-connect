@@ -15,6 +15,11 @@ import { downscaleImage } from "@/lib/image-downscale";
 import { directUploadPut } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import { cn, renderRichText } from "@/lib/utils";
+import {
+  FORMAT_SHORTCUTS,
+  computeMentionRange,
+  serializeEditableToMarkdown,
+} from "@/lib/rich-text-editing";
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
 import { useTourAnchor } from "@/components/tour/tour-anchors";
@@ -41,60 +46,9 @@ import { useTourAnchor } from "@/components/tour/tour-anchors";
  *  storage/rendering/search never change. Mentions stay a literal
  *  "@[Name](id) " text insertion.
  * ------------------------------------------------------------------ */
-function isBoldNode(el: HTMLElement) {
-  return el.tagName === "B" || el.tagName === "STRONG" || el.style.fontWeight === "bold" || el.style.fontWeight === "700";
-}
-function isItalicNode(el: HTMLElement) {
-  return el.tagName === "I" || el.tagName === "EM" || el.style.fontStyle === "italic";
-}
-function isUnderlineNode(el: HTMLElement) {
-  const deco = el.style.textDecorationLine || el.style.textDecoration || "";
-  return el.tagName === "U" || deco.includes("underline");
-}
-function isStrikeNode(el: HTMLElement) {
-  const deco = el.style.textDecorationLine || el.style.textDecoration || "";
-  return el.tagName === "S" || el.tagName === "STRIKE" || el.tagName === "DEL" || deco.includes("line-through");
-}
-
-function serializeNode(node: ChildNode): string {
-  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
-  if (node.nodeType !== Node.ELEMENT_NODE) return "";
-  const el = node as HTMLElement;
-  if (el.tagName === "BR") return "\n";
-  let inner = Array.from(el.childNodes).map(serializeNode).join("");
-  if (inner && isBoldNode(el)) inner = `**${inner}**`;
-  if (inner && isItalicNode(el)) inner = `*${inner}*`;
-  if (inner && isUnderlineNode(el)) inner = `__${inner}__`;
-  if (inner && isStrikeNode(el)) inner = `~~${inner}~~`;
-  if (el.tagName === "DIV" || el.tagName === "P") return "\n" + inner;
-  return inner;
-}
-
-/** Walk a contentEditable root and serialize its live formatting back to markdown. */
-function serializeEditableToMarkdown(root: HTMLElement): string {
-  return Array.from(root.childNodes)
-    .map(serializeNode)
-    .join("")
-    .replace(/^\n/, "");
-}
-
-/** If the caret sits right after an "@partial" run in a single text node, return the
- *  Range spanning it (for the mention dropdown) plus the partial query text. */
-function computeMentionRange(): { range: Range; query: string } | null {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return null;
-  const range = sel.getRangeAt(0);
-  const container = range.startContainer;
-  if (container.nodeType !== Node.TEXT_NODE) return null;
-  const text = container.textContent ?? "";
-  const before = text.slice(0, range.startOffset);
-  const match = before.match(/@(\w*)$/);
-  if (!match) return null;
-  const mentionRange = document.createRange();
-  mentionRange.setStart(container, range.startOffset - match[0].length);
-  mentionRange.setEnd(container, range.startOffset);
-  return { range: mentionRange, query: match[1] };
-}
+/* The DOM<->markdown helpers and format shortcuts moved to
+   src/lib/rich-text-editing.ts (2026-08-13) so every writing surface -- this
+   composer, the catch-up answer card, the edit dialog -- shares one story. */
 
 /** Where the composer is posting. Drives the placeholder and the available affordances. */
 export type ComposerScope = "post" | "group" | "letter";
@@ -109,15 +63,6 @@ const COLLAPSED_H = 44;
 const LETTER_NUDGE_LEN = 600;
 
 const UPLOAD_TIMEOUT_MS = 60_000;
-
-// The keyboard path to formatting, now that the toolbar is gone. Same keys
-// every editor uses; strikethrough has no agreed shortcut, so it stays a
-// markdown ("~~struck~~") and phone-selection-bar affordance.
-const FORMAT_SHORTCUTS: Record<string, string> = {
-  b: "bold",
-  i: "italic",
-  u: "underline",
-};
 
 const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   // Owner's wording, 2026-08-04: no "sighting", and the community rather than

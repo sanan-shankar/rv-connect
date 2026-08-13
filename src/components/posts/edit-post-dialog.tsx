@@ -7,8 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { RichTextArea } from "@/components/common/rich-text-area";
 import { toast } from "sonner";
 import { editPost } from "@/app/(main)/feed/actions";
 
@@ -78,11 +78,18 @@ export function EditPostDialog({
               className="w-full bg-transparent font-heading text-xl font-bold tracking-[-0.01em] text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none"
             />
           )}
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            maxLength={isLetter ? 20000 : 5000}
-            rows={isLetter ? 10 : 5}
+          {/* The same live-formatting surface as the composer that wrote the
+              post: editing used to reopen a plain textarea, which put the raw
+              **markers** in front of exactly the person who typed them as
+              Bold. Remounts per open so a reopened dialog starts from the
+              post's current text. */}
+          <RichTextArea
+            key={open ? postId : `${postId}-closed`}
+            initialValue={initialContent}
+            onChange={setContent}
+            ariaLabel={isLetter ? "Edit your letter" : "Edit your post"}
+            className="rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7]"
+            minHeight={isLetter ? 240 : 120}
           />
 
           <div className="flex justify-end gap-2">
