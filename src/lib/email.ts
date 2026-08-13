@@ -42,11 +42,19 @@ const FROM = process.env.EMAIL_FROM ?? "Rishi Valley <hello@rishivalley.space>";
  * in development. Same constant as CANONICAL_ORIGIN in src/proxy.ts.
  */
 export function appUrl(path = "/"): string {
+  // The localhost base exists for ONE case: development with sending
+  // suppressed, where the message is printed to the terminal and a clickable
+  // local link is the convenience. The moment a dev machine really sends
+  // (EMAIL_DEV_SEND=1), its links go to real inboxes on other people's
+  // devices, where localhost is this machine, not ours: a member's
+  // confirmation went out carrying http://localhost:3000 on 2026-08-13
+  // because this branch keyed off NODE_ENV alone. Tokens live in the shared
+  // database, so a canonical link minted here redeems anywhere.
+  const reallySending =
+    process.env.NODE_ENV === "production" || process.env.EMAIL_DEV_SEND === "1";
   const base =
     process.env.APP_URL?.replace(/\/+$/, "") ??
-    (process.env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : "https://rishivalley.space");
+    (reallySending ? "https://rishivalley.space" : "http://localhost:3000");
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
