@@ -4,6 +4,7 @@ import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { SupportContribute } from "@/components/support/support-contribute";
 import { CostBar } from "@/components/support/cost-bar";
 import { BirdGlyphV2, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -13,9 +14,8 @@ export const metadata: Metadata = {
 // The owner opted into publishing the one-time build cost: it runs as the
 // second section of CostBar's card, a sibling of the monthly breakdown
 // rather than a note nested inside it (see cost-bar.tsx). The amount
-// recovered is still a hand-maintained constant in cost-bar.tsx; the
-// Contribution table added with Razorpay (2026-08-05) now holds the real
-// figure, so that constant can become a query whenever the owner wants it to.
+// recovered is live (owner, 2026-08-13): summed here from the Contribution
+// table on every view, so the bar advances on its own as money arrives.
 
 // A hand-picked set of species for the reward preview: colourful and visibly
 // different from one another (not the first N indices), because the point of
@@ -30,7 +30,20 @@ const REWARD_SPECIES = [5, 4, 9, 20, 22, 26, 37, 41, 43, 44].map((i) => ({
   name: SPECIES_FULL_NAMES[i],
 }));
 
-export default function SupportPage() {
+export default async function SupportPage() {
+  // Real rupees only: `livemode` filters out the test payments a developer's
+  // localhost click lands in this same shared table (see schema.prisma), and
+  // `paid` is the only status where money actually moved. A failed sum falls
+  // back to the zero-state bar rather than taking the page down; the figure
+  // is a nicety, the page is not.
+  const recoveredPaise = await prisma.contribution
+    .aggregate({
+      _sum: { amount: true },
+      where: { status: "paid", livemode: true },
+    })
+    .then((r) => r._sum.amount ?? 0)
+    .catch(() => 0);
+
   return (
     <div className="pb-[var(--space-xl)]">
       {/* Hero */}
@@ -85,7 +98,7 @@ export default function SupportPage() {
           for keeping the site running, and the one-time cost that went into
           designing and building it.
         </p>
-        <CostBar />
+        <CostBar recoveredPaise={recoveredPaise} />
       </section>
 
       {/* The one perk for chipping in, shown before the ask so the reward is
