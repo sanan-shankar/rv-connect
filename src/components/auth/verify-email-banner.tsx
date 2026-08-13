@@ -25,8 +25,18 @@ import { resendVerification } from "./email-actions";
 
 export type BannerState =
   | { state: "sent"; sentTo: string }
-  | { state: "queued"; aheadOfYou: number }
+  /** `sendingAt` is an ISO string, formatted in the browser's own timezone
+   *  below. The server cannot know where the reader is, and "sometime
+   *  tomorrow" is the kind of vague reassurance that reads as a brush-off. */
+  | { state: "queued"; sendingAt: string }
   | { state: "none"; sentTo: string };
+
+/** "5:30 am" in the reader's timezone. */
+function clockTime(iso: string): string {
+  return new Date(iso)
+    .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+    .toLowerCase();
+}
 
 export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
   const router = useRouter();
@@ -49,7 +59,10 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
       setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
       setFlash("Sent. Check your spam folder if it does not arrive.");
     } else {
-      setState({ state: "queued", aheadOfYou: 0 });
+      setState({
+        state: "queued",
+        sendingAt: result.sendingAt ?? new Date().toISOString(),
+      });
       setFlash("");
     }
     // The gate is read server-side, so a confirmation that landed while this
@@ -74,8 +87,14 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
       <p className="min-w-0 flex-1 text-[13.5px] leading-snug text-foreground">
         {queued ? (
           <>
-            <span className="font-medium">Your link is on its way.</span>{" "}
-            <span className="text-muted-foreground">It can take up to a day.</span>
+            <span className="font-medium">
+              We have hit today&apos;s email limit.
+            </span>{" "}
+            <span className="text-muted-foreground">
+              Your link goes out at{" "}
+              {clockTime((state as { sendingAt: string }).sendingAt)}. Nothing
+              else to do.
+            </span>
           </>
         ) : (
           <>

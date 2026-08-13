@@ -132,7 +132,12 @@ export async function sendMail(opts: {
     console.info(
       `\n[email:dev] to=${opts.to}\n[email:dev] subject=${opts.subject}\n${opts.text}\n`,
     );
-    return { ok: true };
+    // NOT `ok: true`. Printing a message to a terminal is not sending it, and
+    // reporting otherwise is what let a localhost drain mark a real member's
+    // confirmation as sent on 2026-08-12: "sent" is terminal, so the message
+    // was never retried and never arrived. Nothing may record a send on the
+    // strength of a console.log.
+    return { ok: false, error: "suppressed in development" };
   }
 
   const api = resend();

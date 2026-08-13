@@ -1,7 +1,6 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { maskEmail } from "@/lib/email";
@@ -43,6 +42,9 @@ export async function resendVerification(): Promise<{
    *  nobody is told to check an inbox we have not written to yet. */
   state?: "sent" | "queued";
   sentTo?: string;
+  /** ISO. Only set when deferred: the clock time the budget refills, so the
+   *  caller can name it rather than say "sometime tomorrow". */
+  sendingAt?: string;
   error?: string;
 }> {
   const session = await auth();
@@ -78,13 +80,17 @@ export async function resendVerification(): Promise<{
     ok: true,
     state: state.state === "sent" ? "sent" : "queued",
     sentTo: maskEmail(session.user.email),
+    sendingAt: state.state === "queued" ? state.sendingAt.toISOString() : undefined,
   };
 }
 
 /** What the banner and the verify page read to decide what to SAY. Exported as
  *  an action so a client component can refresh it after pressing resend. */
 export async function myVerificationMailState(): Promise<
-  { state: "verified" } | { state: "sent" } | { state: "queued"; aheadOfYou: number } | { state: "none" }
+  | { state: "verified" }
+  | { state: "sent" }
+  | { state: "queued"; sendingAt: string }
+  | { state: "none" }
 > {
   const session = await auth();
   if (!session?.user?.id) return { state: "none" };
@@ -92,7 +98,8 @@ export async function myVerificationMailState(): Promise<
 
   const mail = await verificationMailState(session.user.id);
   if (mail.state === "sent") return { state: "sent" };
-  if (mail.state === "queued") return { state: "queued", aheadOfYou: mail.aheadOfYou };
+  if (mail.state === "queued")
+    return { state: "queued", sendingAt: mail.sendingAt.toISOString() };
   return { state: "none" };
 }
 
@@ -161,11 +168,11 @@ export async function requestPasswordReset(formData: FormData): Promise<{ ok: tr
   // Same answer either way.
   if (!user?.password) return { ok: true };
 
-  // Queued, not sent. The drain mints the token at the moment it actually
-  // sends, so a reset that waits behind a launch-day backlog still arrives
-  // with its full hour ahead of it. Resets sit at the front of the queue and
-  // have a reserved slice of the daily budget (src/lib/email-queue.ts), so in
-  // practice this leaves within seconds even on the worst day.
+  // `enqueueMail` writes the row and sends it immediately (it schedules its own
+  // drain), so this leaves within seconds. The row exists first so that if the
+  // send fails the message is not simply lost, and so the token is minted at
+  // the moment of sending rather than here: a reset that did have to wait
+  // still arrives with its full hour ahead of it.
   await enqueueMail({
     kind: "reset",
     to: user.email,
@@ -173,27 +180,6 @@ export async function requestPasswordReset(formData: FormData): Promise<{ ok: tr
     payload: { name: user.name },
   });
 
-  // Send it NOW rather than waiting for the queue's usual tick.
-  //
-  // That tick lives in the authenticated layout, so it only fires when
-  // somebody is browsing the site. Every other message here can wait for that
-  // quite happily; a password reset cannot. The person asking for one is
-  // locked out at this moment, and on a community site at three in the morning
-  // there may be no signed-in traffic for hours. Requiring another member to
-  // load a page before you can get back into your own account is not a queue,
-  // it is a lottery.
-  //
-  // Inside `after()` so the network call to Resend happens once the response
-  // has gone: the visitor sees "check your inbox" immediately either way, and
-  // the drain claims rows before sending, so this racing the layout's tick is
-  // already safe.
-  after(async () => {
-    try {
-      await drainMailQueue();
-    } catch (err) {
-      console.error("[email] reset drain failed", err);
-    }
-  });
 
   // The return value carries NOTHING about whether that address has an
   // account. An earlier draft returned the masked address when the row existed
