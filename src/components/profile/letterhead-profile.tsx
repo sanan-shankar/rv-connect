@@ -80,6 +80,8 @@ import { ProfileAuthorFeed } from "@/components/profile/profile-author-feed";
 import { SavedPostsFeed } from "@/components/profile/saved-posts-feed";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { SPRINGS, EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
+import { birdFor, speciesForMember } from "@/lib/avatar";
+import { resolveBirdOverride, speciesNameFor } from "@/components/common/bird-avatar-v2";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import {
   updateUserPlaces,
@@ -1173,8 +1175,14 @@ function SectionLabel({ children }: { children: string }) {
 /* ------------------------------------------------------------------ *
  *  The bird, perched on the sheet's own top edge so it costs the
  *  masthead no vertical space. It does not bob (owner: "don't keep
- *  moving the bird") and carries no species label. Pressing it chirps,
- *  because that only happens when someone asks for it.
+ *  moving the bird"). Pressing it chirps, because that only happens
+ *  when someone asks for it.
+ *
+ *  The species name shows in a chip over the bird on hover/focus, and
+ *  rides along with a chirp for a beat on touch (owner, 2026-08-13:
+ *  "add bird name when you hover or somehow when on someone's
+ *  profile") -- the same warm opaque chip the lab's ProfileAvatar
+ *  settled on after the see-through variants failed over cover photos.
  * ------------------------------------------------------------------ */
 /* The pause between the tap and the bird answering it (owner, 2026-08-04:
    "when you tap it, it'll trigger something that starts a beat later"). The
@@ -1199,11 +1207,31 @@ function PerchedBird({
   onPick?: () => void;
 }) {
   const [chirp, setChirp] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [named, setNamed] = useState(false);
   const controls = useAnimationControls();
   const lastChirp = useRef(0);
   const beat = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const nameTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  useEffect(() => () => clearTimeout(beat.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(beat.current);
+      clearTimeout(nameTimer.current);
+    },
+    []
+  );
+
+  /* The same resolution chain as BirdAvatar itself (override > pin > hash),
+     so the chip can never name a different bird than the one drawn. The pose
+     comes from the same hash: pose >= 2 is the mirrored glyph, and the call
+     arcs below follow it -- they were hard-coded to the upper-right, so a
+     mirrored bird chirped out of the back of its head (owner, 2026-08-13). */
+  const seed = user.id || user.name || "valley";
+  const species = speciesNameFor(seed, speciesForMember(seed, resolveBirdOverride(user.id, user.birdOverride)));
+  const flipped = birdFor(seed).pose >= 2;
+
+  const showName = !live && (hovered || named);
 
   function tap() {
     const now = Date.now();
@@ -1212,6 +1240,10 @@ function PerchedBird({
     clearTimeout(beat.current);
     beat.current = setTimeout(async () => {
       setChirp((c) => c + 1); // arcs go out on the same beat as the movement
+      // The name rides the chirp (the touch path has no hover to reveal it).
+      setNamed(true);
+      clearTimeout(nameTimer.current);
+      nameTimer.current = setTimeout(() => setNamed(false), 1700);
       /* Out and back on two soft springs, driven by controls rather than a
          key-remount. The old version remounted the element ALREADY displaced
          to scale 1.1 and snapped it home on the stiffest spring we have, so
@@ -1231,10 +1263,14 @@ function PerchedBird({
       <button
         type="button"
         onClick={live ? onPick : tap}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
         aria-label={
           live
             ? "Add a profile photo"
-            : `${user.name}'s bird. Tap for a chirp.`
+            : `${user.name}'s bird, a ${species}. Tap for a chirp.`
         }
         /* No press sink and no transition on this control (owner: "I don't
            want to depress when you press it down ... that itself is a bad way
@@ -1287,10 +1323,15 @@ function PerchedBird({
         </AnimatePresence>
 
         {chirp > 0 && (
+          /* Anchored to whichever side the beak actually faces: the glyph
+             mirrors when its pose says so, and a scaleX(-1) on this anchor
+             mirrors the whole emission with it, so the call always leaves
+             the front of the bird. */
           <span
             key={`arcs-${chirp}`}
             aria-hidden
-            className="pointer-events-none absolute right-[-2px] top-[22px]"
+            className={`pointer-events-none absolute top-[22px] ${flipped ? "left-[-2px]" : "right-[-2px]"}`}
+            style={flipped ? { transform: "scaleX(-1)" } : undefined}
           >
             {[0, 1, 2].map((n) => {
               const s = 13 + n * 9;
@@ -1307,6 +1348,36 @@ function PerchedBird({
             })}
           </span>
         )}
+
+        {/* Species chip, BELOW the bird (the bird perches on the page's top
+            edge, so a chip above it starts at viewport y≈-27 and is simply
+            never seen; below it lands on the sheet's own paper). Opaque warm
+            ink with a layered shadow. w-max + a wrap cap, because full common
+            names ("Orange-breasted Green-Pigeon") overflow a nowrap pill on
+            a 390px viewport. */}
+        <span
+          className="pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-[3] -translate-x-1/2"
+          aria-hidden
+        >
+          <AnimatePresence>
+            {showName && (
+              <motion.span
+                className="relative block w-max max-w-[168px] whitespace-normal rounded-2xl bg-foreground px-3 py-1.5 text-center text-[11px] font-bold leading-snug text-background"
+                style={{
+                  boxShadow:
+                    "0 1px 2px rgba(35,36,30,0.28), 0 10px 24px -12px rgba(35,36,30,0.7)",
+                }}
+                initial={{ opacity: 0, y: -6, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                transition={SPRINGS.snappy}
+              >
+                {species}
+                <span className="absolute bottom-full left-1/2 -mb-1 -ml-1 h-2 w-2 rotate-45 rounded-[1px] bg-foreground" />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </span>
       </button>
 
       {/* A soft contact shadow on the paper: what makes it read as perched on
