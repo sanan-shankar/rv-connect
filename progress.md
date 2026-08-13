@@ -1,5 +1,39 @@
 # Progress Log
 
+## Session 2026-08-14 — Signup goes calm (Revolut reference) + landing frost timing
+Owner asked for the join page to stop feeling crowded and daunting, retitled to "A bit about
+yourself", subtitle gone, and sent the Revolut "bank account details" reel as the target: soft
+filled boxes, label inside, nothing else. Shipped in `886fbab`:
+- **`FloatField`** (`src/components/common/float-field.tsx`): 56px paper-filled borderless field,
+  12px radius, label floats up on focus/fill/autofill via transform-only translate+scale (0.72 =
+  11.5px rendered; base stays 16px so iOS never zooms). Placeholder hints exist but appear only
+  while focused ("2014", "8+ characters"). Recorded in DESIGN-SYSTEM.md §3 as the second
+  sanctioned input material for calm forms; bordered `Input` stays the default elsewhere.
+- **Register step rework** (`signup-form.tsx`): role segmented control first, full width, no
+  "I am a..." label; alumni years (Joined/Left/Batch, 3-up, InfoTip inside the batch box) appear
+  directly below it; Confirm Password deleted (eye toggle covers it; server never read it);
+  phone is one composite box, "+91" fades in on wake, "Optional" hint inside, helper line gone;
+  auto-animate slides the conditional rows. Every permanent grey helper paragraph is gone.
+- **The toggle jump is dead structurally**: the entrance column is `mt-[8vh] mb-auto` instead of
+  `my-auto` (page.tsx), so the alumnus/teacher flip changes height only BELOW the control
+  (measured 0px movement; before: 151px scroll-clamp leap on mobile). Whole form now fits both
+  1440x900 and 390x844 with zero scroll (was 995px tall). Bird + title are pixel-identical
+  across the trivia->register swap now, so the step change no longer re-centers anything.
+- **Trivia step harmonized**: same paper 56px answer box (plain input on `FIELD_SHELL`, not an
+  `Input` override), `size="lg"` Check to match Join, 16px pre-CTA gap on both steps.
+- QA: 2 screenshot-qa agents + design-protocol-auditor. Auditor's real catch: I had duplicated
+  and orphaned `YearInput`; it now renders through FloatField so signup consumes it again.
+  Flagged for a future owner call: SegmentedPills' 32px tap target (app-wide control, iOS wants
+  44), the 20px-tall Back link (shared with /login), and /login still on bordered inputs while
+  its sibling signup went paper (deliberate scope, worth harmonizing later).
+- **Landing frost fix** (`071323d`): the hero Sign in pill's backdrop blur popped in a beat
+  after load, because an ancestor fading below opacity 1 forms a backdrop root and the pill
+  couldn't sample the photo mid-entrance. Middle block now animates transform only; the fade
+  lives on the headline wrapper and each CTA (`MotionLink`) individually with identical
+  timings. Frame-sampled 241 frames: blur(8px) active on every frame including the first,
+  middle never dips below 1; sign-in exit choreography re-verified intact.
+- Before/after shots in `docs/planning/shots/signup-{before,after}-*.png` (untracked).
+
 ## Session 2026-06-29 — Bird avatars reborn: 37 real Rishi Valley birds, colour, no background
 Final count is **37** (started at 26; owner named more birds they remember from school, all added:
 Paradise Flycatcher, Pond Heron, Little Cormorant, Golden Oriole, Cattle Egret, Verditer Flycatcher,
