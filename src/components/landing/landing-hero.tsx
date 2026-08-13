@@ -37,6 +37,11 @@ import { launchFlight, FLIGHT_FLAG, type FlightTarget } from "@/components/masco
 
 type Phase = "loading" | "shown" | "exiting";
 
+// Next's Link, animatable, so each CTA can run its own fade (the Sign in
+// pill's backdrop blur needs to be the animating element itself - see the
+// middleVariants note). Created once at module level, never inside render.
+const MotionLink = motion.create(Link);
+
 const REVEAL_STAGGER = 0.07;
 
 // The Hoopoe loader's own exit-fade length. Reused as the content-entrance
@@ -68,14 +73,32 @@ const brandVariants: Variants = {
   exiting: { opacity: 1, y: 0 }, // persists across the handoff (same lockup sits on /login)
 };
 
+// Split on purpose: the block carries only TRANSFORM (slide in, slide out)
+// and the fade lives on its children, with each CTA fading as its own
+// element. An ancestor animating opacity below 1 becomes a grouping
+// backdrop root, and the Sign in pill's backdrop-filter cannot see the
+// photo behind it until the fade lands on exactly 1 - which is why the
+// frost used to pop in a beat after load. An element's OWN opacity does
+// not gate its own backdrop-filter, so with the fade moved onto the pill
+// itself the blur is live from the first semi-transparent frame and
+// simply arrives with the button. The timings below are byte-identical
+// to what the block used to run, so the entrance reads the same.
 const middleVariants: Variants = {
-  loading: { opacity: 0, y: 16 },
-  shown: { opacity: 1, y: 0, transition: SPRINGS.gentle },
+  loading: { y: 16 },
+  shown: { y: 0, transition: SPRINGS.gentle },
   exiting: {
-    opacity: 0,
     x: -84,
     // Leaves on the same curve as the photo, just a touch quicker, so the
     // headline clears the frame before the photo finishes travelling.
+    transition: { duration: AUTH_SLIDE_SECONDS * 0.72, ease: EASE_IN_OUT_SCENE },
+  },
+};
+
+const middleFadeVariants: Variants = {
+  loading: { opacity: 0 },
+  shown: { opacity: 1, transition: SPRINGS.gentle },
+  exiting: {
+    opacity: 0,
     transition: { duration: AUTH_SLIDE_SECONDS * 0.72, ease: EASE_IN_OUT_SCENE },
   },
 };
@@ -318,12 +341,18 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
         <div className="w-full -translate-y-[20px] px-8 sm:-translate-y-[26px] lg:-translate-y-[33px] lg:px-16">
           <div className="lg:grid lg:grid-cols-[88px_1fr] lg:gap-x-2.5">
             <div className="lg:col-start-2">
-              <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl lg:whitespace-nowrap">
-                Welcome back to the valley.
-              </h1>
-              <p className="mt-4 max-w-[42ch] text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg lg:max-w-none lg:whitespace-nowrap">
-                A space for the Rishi Valley community to stay connected.
-              </p>
+              {/* Headline + subtitle fade as one (they used to inherit the
+                  block's fade); the CTAs below fade individually so the
+                  Sign in pill's frost rides its own opacity - see the
+                  middleVariants note. */}
+              <motion.div variants={middleFadeVariants}>
+                <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl lg:whitespace-nowrap">
+                  Welcome back to the valley.
+                </h1>
+                <p className="mt-4 max-w-[42ch] text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg lg:max-w-none lg:whitespace-nowrap">
+                  A space for the Rishi Valley community to stay connected.
+                </p>
+              </motion.div>
               {/* Same 16px step as the subtitle above (owner, 2026-08-04: the
                   three blocks "should be equally spaced ... the gap between
                   the first two is fine"). Equal MARGINS also come out as equal
@@ -331,7 +360,8 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
                   subtitle's half-leading is the only thing between the two
                   gaps, and it sits on the inside of each. Was mt-9. */}
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Link
+                <MotionLink
+                  variants={middleFadeVariants}
                   href="/signup"
                   onClick={(e) => startExit(e, "signup")}
                   /* eslint-disable-next-line no-restricted-syntax -- "surfaces are never pure
@@ -344,14 +374,15 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
                   className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-[colors,transform] duration-200 hover:bg-white/90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   Join the community
-                </Link>
-                <Link
+                </MotionLink>
+                <MotionLink
+                  variants={middleFadeVariants}
                   href="/login"
                   onClick={(e) => startExit(e, "login")}
                   className="inline-flex items-center justify-center rounded-full border border-white/55 bg-white/10 px-6 py-2.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   Sign in
-                </Link>
+                </MotionLink>
               </div>
             </div>
           </div>
