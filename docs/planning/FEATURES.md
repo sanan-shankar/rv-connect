@@ -89,6 +89,10 @@ Legend: [have] exists today · [ask] you asked for · [idea] my suggestion · (s
 - ~~[idea] Weekly digest email ("what you missed in the valley").~~ REJECTED (locked decision):
   explicitly "NO weekly digest email."
 - [idea] Mention, reply, RSVP, and new-letter notifications.
+- [idea] An `actor {id, name}` field on Notification, so the row can show the person's bird and
+  link their name to their profile. Today the name is baked into the message string
+  (`"X liked your comment"`), which is why notification rows were the one identity surface the
+  2026-08-13 clickable-avatars pass could not link.
 
 ## 11. Delight & identity (the "feels like RV" layer)
 - [idea] The hoopoe as a recurring motif (mark, empty states, loading).

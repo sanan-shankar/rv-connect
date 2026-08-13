@@ -1107,3 +1107,53 @@ guessed (they chose: wings keep flapping through the landing flare; keep the pon
 - The new key is full-access (old was send-only), so sent-message bodies are now auditable via the
   API - used today to prove Nirad's re-sent link carried rishivalley.space on every href (the
   localhost one he saw was the pre-fix 04:22 message threaded above it in Gmail).
+
+## 2026-08-13 - The owner's thirteen-item punchlist
+
+One session, eleven commits, every item from the owner's list landed and verified in the running app:
+
+- **Letters**: drafts are deletable (the `deleteDraft` action existed with zero callers; the strip
+  grew a trash button - confirm, optimistic removal, auto-animate). Tested end to end on the real
+  "t4wt" junk draft. "Something's broken" is now "Bug report" everywhere the bug kind speaks.
+- **Comments, the big one**: deletion is soft (`deletedAt`, content blanked) so deleting a parent
+  no longer takes its replies - they anchor to a quiet "[deleted]" stub (feather in a mist circle).
+  Authors delete their own comments from a hover-revealed "..." menu (owner mid-session: "would
+  Instagram do it like that?"), never a bare Delete button. All four `_count.comments` sites
+  exclude deleted rows, so the count can no longer include invisible comments. `loadComments` is
+  keyset-paginated (5 on open, 10 per scroll page, replies always travel with their parent) with an
+  auth check the security audit had flagged. The comment heart is a named `sm` variant (14px in the
+  12px meta row, button 18px inside the 20px row - the love-button doc comment records both owner
+  rulings). The open animation no longer overshoots on empty threads: the skeleton is sized from
+  the count the card already knows. Verified with a seeded 55-comment thread: opens with 15, loads
+  the rest only on scroll; parent-delete/stub/count all proven against the DB.
+- **Notifications**: the bell pages by keyset (20 at a time; row 21 used to be unreachable),
+  refetches its first page on every open (was once per mount, went stale), infinite-scrolls inside
+  its own box, and prunes each account to its newest 100 on open (no cron, same lazy pattern as the
+  mail drain). New `(userId, createdAt)` index. NOTE: my prune test seeded 130 fake rows dated 30
+  days back, which pushed the owner's 13 oldest real notifications (all read, >30d old) past the
+  cap and deleted them - a testing mistake, disclosed. 30 real notifications remain.
+- **Catch-ups**: mobile gets one numbered, tappable dot per prompt in the sticky bar (filled =
+  shared, ring = current) - phones previously had no way to jump between questions. "Share" on the
+  last prompt sweeps to the first unanswered prompt instead of the completion card (verified on the
+  live Round: Share on Q11 with Q7/Q9 blank lands on Q7). Spec 3.4 updated. Also fixed the square
+  "white boxes" behind the answered-cluster birds (ring-2 on an unrounded box) - owner spotted it
+  in a screenshot mid-session.
+- **Rich text everywhere**: the composer's DOM<->markdown helpers moved to
+  `src/lib/rich-text-editing.ts`; a shared `<RichTextArea>` now powers the catch-up answer box and
+  the quick-edit dialog (which used to reopen rich posts as raw markdown). The round reader and
+  comments render markdown via `renderRichText` instead of printing markers. Verified: bold in a
+  catch-up answer round-trips to `**markdown**` in the DB (then restored the owner's answer).
+- **Profile bird**: hovering/focusing/tapping the perched bird shows the species chip (below the
+  bird - above it starts at viewport y=-27 and is never seen), resolved through the same
+  override>pin>hash chain as the glyph. The chirp arcs follow the pose: a mirrored bird used to
+  call out of the back of its head. Verified on Shrey's left-facing Black Eagle.
+- **Clickable identity**: audit of every BirdAvatar site; linked the photo-viewer byline, four
+  catch-up "asked by" lines, the masthead contributor strip, the answered cluster, and the people
+  panel rosters. Notification rows can't link their actor yet (name is baked into the message
+  string) - parked in FEATURES as "actor field on Notification".
+- Two schema columns/indexes via manual idempotent SQL (`2026-08-13-comment-deleted-at.sql`,
+  `2026-08-13-notification-created-index.sql`), both applied. Dev server restarted once: the
+  running Turbopack held the pre-`deletedAt` Prisma client and 500'd the feed until restart.
+- Separately: Shrey is a Black Eagle (`birdOverride`), and the /support build-fund bar now sums
+  real paid live-mode Contributions (Rs 3,530 so far of the Rs 4L build cost) - committed and
+  PUSHED earlier at the owner's request; everything after that push is committed but NOT pushed.
