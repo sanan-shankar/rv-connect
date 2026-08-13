@@ -26,7 +26,7 @@ export const MAX_NEW_THREADS_PER_HOUR = 5;
 export const MAX_MESSAGES_PER_HOUR = 40;
 
 const KIND_CHIP_LABEL: Record<string, string> = {
-  bug: "Something's broken",
+  bug: "Bug report",
   idea: "An idea",
   message: "Something else",
   notice: "From the admins",
@@ -47,7 +47,7 @@ export function threadTitle(thread: { kind: string; subject: string | null }): s
   if (thread.kind === "notice") return "Notes from the admins";
   if (thread.subject?.trim()) return thread.subject.trim();
   if (thread.kind === "report") return "Something you reported";
-  if (thread.kind === "bug") return "Something that's broken";
+  if (thread.kind === "bug") return "A bug report";
   if (thread.kind === "idea") return "An idea you sent";
   return "A message to the admins";
 }
