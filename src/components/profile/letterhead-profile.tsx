@@ -1366,32 +1366,36 @@ function PerchedBird({
           <AnimatePresence>
             {showName && (
               <motion.span
-                className="flex w-max items-end gap-1 whitespace-nowrap font-heading text-[13.5px] italic leading-none tracking-[0.01em] text-foreground/75"
+                className="flex w-max items-center gap-1 whitespace-nowrap font-heading text-[13.5px] italic leading-none tracking-[0.01em] text-foreground/75"
                 initial={{ opacity: 0, x: 6 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 4 }}
                 transition={SPRINGS.snappy}
               >
                 {species}
-                {/* The annotating stroke: one gentle pencil curve up toward
-                    the bird, open arrowhead, no fill. Fades with the words
-                    (opacity only; nothing draws itself on). */}
+                {/* The annotating stroke: one gentle pencil curve toward the
+                    bird, open arrowhead, no fill. It LEAVES from the svg's
+                    vertical centre, which items-center pins to the middle of
+                    the text height (owner: the earlier curve started at the
+                    baseline and read as hanging off the bottom of the word).
+                    Fades with the words (opacity only; nothing draws itself
+                    on). */}
                 <svg
                   width="30"
-                  height="16"
-                  viewBox="0 0 30 16"
+                  height="18"
+                  viewBox="0 0 30 18"
                   fill="none"
-                  className="mb-[1px] text-foreground/40"
+                  className="text-foreground/40"
                   aria-hidden
                 >
                   <path
-                    d="M1.5 14.5 C 10 14, 20 10, 27 3.5"
+                    d="M1.5 9 C 10 9, 19 7.5, 26.5 3"
                     stroke="currentColor"
                     strokeWidth="1.3"
                     strokeLinecap="round"
                   />
                   <path
-                    d="M22.8 2.6 L 27.4 3.2 L 25.6 7.4"
+                    d="M22.4 2 L 26.9 2.8 L 25.2 7"
                     stroke="currentColor"
                     strokeWidth="1.3"
                     strokeLinecap="round"
