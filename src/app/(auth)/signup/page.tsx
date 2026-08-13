@@ -315,7 +315,14 @@ export default function SignupPage() {
 
         <motion.div
           ref={entranceRef}
-          className="my-auto w-full max-w-[400px] self-center text-center"
+          // Top-anchored, not centred: `my-auto` re-centred the column every
+          // time its height changed, so flipping Alumnus/Teacher moved the
+          // very control being clicked (and on mobile the shrinking page
+          // yanked the scroll position with it - the owner's "scrolling keeps
+          // repositioning" bug). A fixed top edge means the bird and title
+          // never move across the trivia -> register swap either; the form
+          // only ever grows downward, where growth is expected.
+          className="mt-[8vh] mb-auto w-full max-w-[400px] self-center text-center"
           initial={{ opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
@@ -363,12 +370,12 @@ export default function SignupPage() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={SPRINGS.gentle}
               >
+                {/* No subtitle: the fields say everything the old grey line
+                    said, and the calm is the point (owner reference:
+                    Revolut's one-heading form, 2026-08-14). */}
                 <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
-                  Join the community
+                  A bit about yourself
                 </h1>
-                <p className="mx-auto mb-6 mt-2 max-w-[34ch] text-sm leading-relaxed text-muted-foreground">
-                  Tell us a bit about yourself so your batchmates can find you.
-                </p>
                 <SignupForm
                   hoopoe={hoopoe}
                   /* ?next= rides on to /welcome so it survives onboarding
