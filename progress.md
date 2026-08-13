@@ -1095,3 +1095,15 @@ guessed (they chose: wings keep flapping through the landing flare; keep the pon
   into CostBar; the bar completes at the Rs 4,00,000 build cost. Failed sum falls back to the
   zero-state bar. Verified live: fill renders max(0.8825%, 12px), exactly 3,530/4,00,000.
   Committed faa41af.
+
+## 2026-08-13 (later) - Production sends its own mail, verified
+
+- The owner re-created the Resend key under the exact name RESEND_API_KEY on Vercel (the old var
+  could not be renamed), added APP_URL, and pushed; the redeploy made the env change take effect.
+- Verified from the outside, not assumed: drove https://rishivalley.space/forgot-password in a real
+  browser with the local dev server DOWN. The shared-DB row went queued -> sent in 0.64 seconds and
+  Resend's own record shows the message, created by the deployment. First email Vercel has ever
+  sent; the laptop is no longer load-bearing.
+- The new key is full-access (old was send-only), so sent-message bodies are now auditable via the
+  API - used today to prove Nirad's re-sent link carried rishivalley.space on every href (the
+  localhost one he saw was the pre-fix 04:22 message threaded above it in Gmail).
