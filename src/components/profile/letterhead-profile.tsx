@@ -1349,36 +1349,55 @@ function PerchedBird({
           </span>
         )}
 
-        {/* Species bubble, BESIDE the bird, on the sheet's top edge. The two
-            obvious placements both fail here: above the bird starts at
-            viewport y≈-27 (never seen), and below it lands on the Get in
-            touch pill (owner, 2026-08-13: "it kinda covers the cta ...
-            cluttering"). To the bird's LEFT runs the one stretch of the
-            masthead that is reliably empty paper, so the name sits there as
-            a small speech bubble, tail toward the bird, vertically centred
-            on it -- the bird answering with its name rather than a tooltip
-            covering the page. Serif italic, like a caption in a field guide.
-            nowrap is safe on this axis: even "Orange-breasted Green-Pigeon"
-            fits the ~300px of clear edge at 390px wide. */}
+        {/* Species name as a NATURALIST'S ANNOTATION: fine italic ink written
+            straight on the sheet, a thin hand-curved arrow rising toward the
+            bird -- a field-guide specimen label, not a tooltip. This is the
+            third shape this has worn in one day: below the bird it covered
+            the Get in touch pill, and the ink speech bubble that replaced it
+            was called out too ("the pill and arrow shape ... seems a bit
+            janky"). No box at all now -- a box must earn its border, and on
+            the sheet's own paper plain ink needs none. Sits at the bird's
+            lower-left, nudged below the sheet's top rule so the words always
+            land on paper, never on the cover behind the edge. */}
         <span
-          className="pointer-events-none absolute right-[calc(100%+12px)] top-1/2 z-[3] -translate-y-1/2"
+          className="pointer-events-none absolute right-[calc(100%+8px)] top-[calc(50%+20px)] z-[3] -translate-y-1/2"
           aria-hidden
         >
           <AnimatePresence>
             {showName && (
               <motion.span
-                className="relative block w-max whitespace-nowrap rounded-full bg-foreground py-1.5 pl-3.5 pr-3 font-heading text-[12.5px] italic leading-none text-background"
-                style={{
-                  boxShadow:
-                    "0 1px 2px rgba(35,36,30,0.28), 0 10px 24px -12px rgba(35,36,30,0.7)",
-                }}
-                initial={{ opacity: 0, x: 8, scale: 0.94 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 6, scale: 0.96 }}
+                className="flex w-max items-end gap-1 whitespace-nowrap font-heading text-[13.5px] italic leading-none tracking-[0.01em] text-foreground/75"
+                initial={{ opacity: 0, x: 6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 4 }}
                 transition={SPRINGS.snappy}
               >
                 {species}
-                <span className="absolute left-full top-1/2 -ml-1 -mt-1 h-2 w-2 rotate-45 rounded-[1px] bg-foreground" />
+                {/* The annotating stroke: one gentle pencil curve up toward
+                    the bird, open arrowhead, no fill. Fades with the words
+                    (opacity only; nothing draws itself on). */}
+                <svg
+                  width="30"
+                  height="16"
+                  viewBox="0 0 30 16"
+                  fill="none"
+                  className="mb-[1px] text-foreground/40"
+                  aria-hidden
+                >
+                  <path
+                    d="M1.5 14.5 C 10 14, 20 10, 27 3.5"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M22.8 2.6 L 27.4 3.2 L 25.6 7.4"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </motion.span>
             )}
           </AnimatePresence>
