@@ -71,6 +71,7 @@ There were also **photo-sharing "doc guidelines"** written up early on (a Google
 - **The RV Storybook** — an existing SoundCloud project with recordings like the singing assembly: `soundcloud.com/the-rv-storybook/sets/singing-assembly` (shared by Mallik Manem RV). Audio/oral-history angle.
 - **"Classroom With a View"** — a professionally-produced RV book; ~90% of photos contributed by alumni, compiled by **S. Thomas** over a 6-year project (lead photographers incl. B.R. Venkatesh & Santharam Sir). Not free to reuse, but the compiler and photographers are exactly the network you'd want.
 - **Alumni database** — being built from a Google Form; consolidated by **Vibhu** and **T.K. Ramkumar**. If you need a batch-tagged member list, this is the canonical source to ask about (don't rebuild it).
+- **RiVAA** – https://www.rivaa.org/events
 
 ---
 
