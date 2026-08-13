@@ -58,6 +58,33 @@ export function AnswerExperience({
     setIndex(Math.max(0, Math.min(total, next)));
   }
 
+  /**
+   * The Next/Share/Skip advance. Linear until the LAST prompt; leaving that
+   * one sweeps back to the first prompt still unanswered instead of the
+   * completion card, because people answer out of order (owner, 2026-08-13:
+   * finishing question three of four jumped him to "back to the Catch-up"
+   * with question one still blank). Only when nothing is left does the
+   * completion card show — which is also what the spec always said
+   * ("a soft completion moment when the last prompt is answered").
+   *
+   * The current prompt is excluded from the sweep rather than trusted:
+   * its just-flushed body reaches this component's state one render late,
+   * so answeredIds cannot say yet whether it was answered or skipped —
+   * and either way, forward is the honest direction for it.
+   */
+  function advance() {
+    if (index === total - 1) {
+      const firstUnanswered = prompts.findIndex(
+        (p, i) => i !== index && !answeredIds.has(p.id)
+      );
+      if (firstUnanswered !== -1) {
+        goTo(firstUnanswered, -1);
+        return;
+      }
+    }
+    goTo(index + 1, 1);
+  }
+
   function updateEntry(promptId: string, patch: Partial<AnswerEntryDraft>) {
     setEntries((prev) => ({ ...prev, [promptId]: { ...prev[promptId], ...patch } }));
   }
@@ -109,8 +136,10 @@ export function AnswerExperience({
           height) it would never actually stick. Here its parent is the whole
           experience and it rides the scroll. */}
       <MobileProgressBar
-        done={answeredIds.size}
-        total={total}
+        prompts={prompts}
+        answeredIds={answeredIds}
+        currentIndex={index}
+        onJump={(i) => goTo(i, i > index ? 1 : -1)}
         className="mb-[var(--space-m)] lg:hidden"
       />
 
@@ -144,7 +173,7 @@ export function AnswerExperience({
                   onBodyBlur={(body) => handleBodyBlur(current.id, body)}
                   onImagesChange={(images) => handleImagesChange(current.id, images)}
                   onBack={() => goTo(index - 1, -1)}
-                  onAdvance={() => goTo(index + 1, 1)}
+                  onAdvance={advance}
                 />
               </motion.div>
             ) : (
