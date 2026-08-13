@@ -3,16 +3,24 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, Info } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { YearInput } from "@/components/common/year-input";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { SPRINGS } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
+import {
+  FloatField,
+  FIELD_SHELL,
+  FIELD_PAD,
+  FLOAT_LABEL_BASE,
+  FLOAT_LABEL_REST,
+  FLOAT_LABEL_UP,
+} from "@/components/common/float-field";
+import { YearInput } from "@/components/common/year-input";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
+import { cn } from "@/lib/utils";
 import { registerUser } from "./actions";
 
 // keep the gaze sweep bounded to [-1, 1] as the field fills
@@ -122,6 +130,93 @@ function InfoTip({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+/**
+ * The phone field, one calm box like every other field. At rest it says
+ * only "Phone" with a small "Optional" at its right edge. Wake it (focus
+ * or a saved value) and the label floats up while the country code fades
+ * in as a prefix, already filled with +91 and still editable. The reveal
+ * is opacity-only; nothing in the row moves, because the digits input
+ * always starts after the code slot.
+ */
+function PhoneField({
+  countryCode,
+  onCountryCode,
+  digits,
+  onDigits,
+}: {
+  countryCode: string;
+  onCountryCode: (v: string) => void;
+  digits: string;
+  onDigits: (v: string) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const digitsRef = useRef<HTMLInputElement>(null);
+  const active = focused || digits.trim() !== "";
+
+  return (
+    <div
+      className={cn(
+        FIELD_SHELL,
+        "relative focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring"
+      )}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocused(false);
+      }}
+      // A resting click can land on the shell, the row or the (hidden) code
+      // slot rather than an input; hand anything that is not an input to the
+      // digits field so the whole box is one target.
+      onClick={(e) => {
+        if (!(e.target instanceof HTMLInputElement)) digitsRef.current?.focus();
+      }}
+    >
+      <div className={cn("flex h-full items-stretch", FIELD_PAD)}>
+        <input
+          aria-label="Country code"
+          value={countryCode}
+          onChange={(e) => onCountryCode(e.target.value.slice(0, 5))}
+          inputMode="tel"
+          tabIndex={active ? 0 : -1}
+          // Sized to its content (ch tracks the widest tel glyphs closely
+          // enough) so "+91" sits right beside the number the way a dialled
+          // prefix reads, while a longer code still fits.
+          style={{ width: `${Math.max(countryCode.length, 2) + 0.75}ch` }}
+          className={cn(
+            "shrink-0 bg-transparent text-base text-foreground outline-none transition-opacity duration-200",
+            active ? "opacity-100" : "pointer-events-none opacity-0"
+          )}
+        />
+        <input
+          ref={digitsRef}
+          id="phoneDigits"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
+          placeholder="98765 43210"
+          value={digits}
+          onChange={(e) => onDigits(e.target.value)}
+          className="min-w-0 flex-1 bg-transparent pl-1.5 text-base text-foreground outline-none placeholder:text-muted-foreground/70 placeholder:opacity-0 placeholder:transition-opacity placeholder:duration-200 focus:placeholder:opacity-100"
+        />
+      </div>
+      <label
+        htmlFor="phoneDigits"
+        className={cn(FLOAT_LABEL_BASE, active ? FLOAT_LABEL_UP : FLOAT_LABEL_REST)}
+      >
+        Phone
+      </label>
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground/70 transition-opacity duration-200",
+          active && "opacity-0"
+        )}
+      >
+        Optional
+      </span>
+    </div>
+  );
+}
+
 export function SignupForm({
   hoopoe,
   onSuccess,
@@ -140,6 +235,10 @@ export function SignupForm({
   // See use-deferred-autofocus.ts for the measurements.
   const firstNameFocusRef = useDeferredAutofocus<HTMLInputElement>();
 
+  // The one list-like container here: the years row and the error line come
+  // and go, and auto-animate slides their neighbours instead of snapping.
+  const [formRef] = useAutoAnimate<HTMLFormElement>();
+
   // Phone, collected right here at the first step so it never feels like a
   // later afterthought. Country code defaults to +91 but is a free, editable
   // field; the number is digits-only. Optional. Combined into one value for the
@@ -148,9 +247,9 @@ export function SignupForm({
   const [phoneDigits, setPhoneDigits] = useState("");
   const phoneValue = phoneDigits.trim() ? `${countryCode} ${phoneDigits}`.trim() : "";
 
-  // The batch is asked directly now ("the year your class finished 12th"),
+  // The batch is asked directly ("the year your class finished 12th"),
   // alongside the two plain years someone joined and left. All controlled so we
-  // can validate before submit.
+  // can validate before submit; YearInput owns the digits-only rule.
   const [yearJoined, setYearJoined] = useState("");
   const [yearLeft, setYearLeft] = useState("");
   const [batchYear, setBatchYear] = useState("");
@@ -189,14 +288,6 @@ export function SignupForm({
     const formData = new FormData(e.currentTarget);
 
     const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      hoopoe.react("error");
-      setLoading(false);
-      return;
-    }
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
@@ -264,206 +355,139 @@ export function SignupForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 text-left">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">First name</Label>
-          <Input
-            id="firstName"
-            name="firstName"
-            placeholder="Your first name"
-            required
-            minLength={1}
-            ref={firstNameFocusRef}
-            onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Surname</Label>
-          <Input
-            id="lastName"
-            name="lastName"
-            placeholder="Your surname"
-            required
-            minLength={1}
-            onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="you@example.com"
-          required
-          onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 26))}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            name="password"
-            type={showPw ? "text" : "password"}
-            placeholder="At least 8 characters"
-            required
-            minLength={8}
-            className="pr-10"
-            onChange={(e) => {
-              // the bird follows what you type whether peeking or covered
-              // (its head tracks behind the wings when its eyes are hidden)
-              hoopoe.gaze(gazeFor(e.target.value.length, 16));
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPw((s) => !s)}
-            aria-label={showPw ? "Hide password" : "Show password"}
-            className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          placeholder="Confirm your password"
-          required
-          minLength={8}
-        />
-      </div>
-
-      {/* Phone, right here at the first step. Optional, never verified. */}
-      <input type="hidden" name="phone" value={phoneValue} />
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5">
-          <Label htmlFor="phoneDigits">Phone</Label>
-          <span className="text-[12px] font-normal text-muted-foreground">(optional)</span>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            aria-label="Country code"
-            value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value)}
-            inputMode="tel"
-            className="w-16 shrink-0 text-center"
-          />
-          <Input
-            id="phoneDigits"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel-national"
-            placeholder="e.g. 98765 43210"
-            value={phoneDigits}
-            onChange={(e) => setPhoneDigits(e.target.value)}
-            className="flex-1"
-          />
-        </div>
-        <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-          Shown only to fellow Rishi Valley members once they sign in. Never public.
-        </p>
-      </div>
-
-      {/* Account type */}
+    <form ref={formRef} onSubmit={handleSubmit} className="mt-5 space-y-3 text-left">
+      {/* Who you are comes first, and the choice needs no caption: the two
+          answers say it themselves. The fields it governs appear directly
+          below it, so cause and effect share a sightline, and everything
+          above the years row never moves when it flips. */}
       <input type="hidden" name="accountType" value={accountType} />
-      <div className="space-y-2">
-        <Label>I am a...</Label>
-        <div className="flex items-center gap-2">
-          {/* Canopy-filled thumb, same control as the profile Writing switcher
-              (owner, 2026-08-02): this used to draw a canopy OUTLINE thumb, the
-              odd one out next to profile's fill. `fill` keeps it stretching to
-              half of this row (`flex-1`) beside the InfoTip, as before. */}
-          <SegmentedPills
-            ariaLabel="I am a..."
-            layoutId="signupAccountType"
-            role="radiogroup"
-            fill
-            segments={ACCOUNT_TYPES.map((t) => ({ key: t.value, label: t.label }))}
-            value={accountType}
-            onChange={setAccountType}
-            className="flex-1 bg-paper"
-          />
-          <InfoTip label="What if I used to teach?">
-            Taught at Rishi Valley at any point? Choose Teacher, it includes
-            teachers who have since moved on too.
-          </InfoTip>
-        </div>
-      </div>
-
-      {!isAlum && (
-        <p className="rounded-lg bg-paper px-3 py-2 text-[13px] leading-relaxed text-muted-foreground">
-          No batch needed for teachers. You can add one later if you studied here too.
-        </p>
-      )}
+      <SegmentedPills
+        ariaLabel="Alumnus or teacher"
+        layoutId="signupAccountType"
+        role="radiogroup"
+        fill
+        segments={ACCOUNT_TYPES.map((t) => ({ key: t.value, label: t.label }))}
+        value={accountType}
+        onChange={setAccountType}
+        className="bg-paper"
+      />
 
       {isAlum && (
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <Label htmlFor="batchYear">Which batch are you in?</Label>
+        <div className="grid grid-cols-3 gap-3">
+          <YearInput
+            id="yearJoined"
+            name="yearJoined"
+            label="Joined"
+            focusHint="2014"
+            value={yearJoined}
+            onValueChange={setYearJoined}
+            required={isAlum}
+          />
+          <YearInput
+            id="yearLeft"
+            name="yearLeft"
+            label="Left"
+            focusHint="2021"
+            value={yearLeft}
+            onValueChange={setYearLeft}
+            required={isAlum}
+          />
+          <YearInput
+            id="batchYear"
+            name="batchYear"
+            label="Batch"
+            focusHint="2023"
+            value={batchYear}
+            onValueChange={setBatchYear}
+            required={isAlum}
+            trailing={
               <InfoTip label="What does batch mean?">
                 Your batch is the year your class finished 12th grade at Rishi
                 Valley, even if you left earlier. Left after 10th in 2021? Your
                 batch is still 2023.
               </InfoTip>
-            </div>
-            <YearInput
-              id="batchYear"
-              name="batchYear"
-              placeholder="e.g. 2023"
-              value={batchYear}
-              onValueChange={setBatchYear}
-              required={isAlum}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="yearJoined">Year you joined</Label>
-              <YearInput
-                id="yearJoined"
-                name="yearJoined"
-                placeholder="e.g. 2014"
-                value={yearJoined}
-                onValueChange={setYearJoined}
-                required={isAlum}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="yearLeft">Year you left</Label>
-              <YearInput
-                id="yearLeft"
-                name="yearLeft"
-                placeholder="e.g. 2021"
-                value={yearLeft}
-                onValueChange={setYearLeft}
-                required={isAlum}
-              />
-            </div>
-          </div>
+            }
+          />
         </div>
       )}
 
+      <div className="grid grid-cols-2 gap-3">
+        <FloatField
+          id="firstName"
+          name="firstName"
+          label="First name"
+          autoComplete="given-name"
+          required
+          minLength={1}
+          ref={firstNameFocusRef}
+          onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
+        />
+        <FloatField
+          id="lastName"
+          name="lastName"
+          label="Surname"
+          autoComplete="family-name"
+          required
+          minLength={1}
+          onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
+        />
+      </div>
+
+      <FloatField
+        id="email"
+        name="email"
+        type="email"
+        label="Email"
+        autoComplete="email"
+        required
+        onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 26))}
+      />
+
+      <FloatField
+        id="password"
+        name="password"
+        type={showPw ? "text" : "password"}
+        label="Password"
+        focusHint="8+ characters"
+        autoComplete="new-password"
+        required
+        minLength={8}
+        onChange={(e) => {
+          // the bird follows what you type whether peeking or covered
+          // (its head tracks behind the wings when its eyes are hidden)
+          hoopoe.gaze(gazeFor(e.target.value.length, 16));
+        }}
+        trailing={
+          <button
+            type="button"
+            onClick={() => setShowPw((s) => !s)}
+            aria-label={showPw ? "Hide password" : "Show password"}
+            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </button>
+        }
+      />
+
+      {/* Optional, never verified; the value the server reads. */}
+      <input type="hidden" name="phone" value={phoneValue} />
+      <PhoneField
+        countryCode={countryCode}
+        onCountryCode={setCountryCode}
+        digits={phoneDigits}
+        onDigits={setPhoneDigits}
+      />
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button
-        type="submit"
-        variant="primary"
-        className="w-full"
-        disabled={loading}
-      >
-        {loading ? "Creating account..." : "Join"}
-      </Button>
+      {/* 12 from the list + 4 here = 16 before the CTA, the same breath the
+          trivia step gives its Check button, and one step up from the 12px
+          field rhythm (the action is related to the fields, not one of them). */}
+      <div className="pt-1">
+        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={loading}>
+          {loading ? "Joining..." : "Join"}
+        </Button>
+      </div>
     </form>
   );
 }

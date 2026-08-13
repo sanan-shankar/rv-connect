@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/ui/input";
+import { FIELD_SHELL } from "@/components/common/float-field";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { getTriviaQuestion, checkTrivia } from "./trivia-actions";
@@ -84,7 +85,15 @@ export function TriviaGate({
         {question?.question ?? "..."}
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
+        {/* The same calm material as the register step's FloatFields (56px
+            paper, no hairline), built as a plain input on the shared shell
+            rather than overriding ui/Input: stacking border-none over its
+            baked-in border renders right but is one careless edit from a
+            hairline coming back, and its md:text-sm would undo the 16px
+            no-iOS-zoom guarantee. The question above is this box's label; the
+            placeholder stays because centred text with no label needs the
+            invitation. */}
+        <input
           placeholder="Your answer..."
           value={answer}
           onChange={(e) => {
@@ -100,12 +109,19 @@ export function TriviaGate({
             if (!passed) hoopoe.express("curious");
           }}
           ref={answerFocusRef}
-          className="text-center"
+          className={cn(
+            FIELD_SHELL,
+            "px-4 text-center text-base text-foreground outline-none",
+            "placeholder:text-muted-foreground",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-paper)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]"
+          )}
         />
         {error && <p className="text-center text-sm text-destructive">{error}</p>}
         <Button
           type="submit"
           variant="primary"
+          size="lg"
           className="w-full"
           disabled={!question || checking || passed}
         >

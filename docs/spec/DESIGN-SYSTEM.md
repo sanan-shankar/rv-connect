@@ -199,6 +199,12 @@ small-label use — a good default rotation whenever a short label needs a colou
   is slightly smaller (e.g. 16px container → 12px inner). This keeps nested corners from looking wrong.
 - **Text fields / inputs: 12px** (slightly less round than cards — a quiet signal that it's an input).
   **Exception:** the feed composer's inline post box stays a **full pill**.
+  **Second input material (calm forms, 2026-08-14):** the signup flow's fields are 56px,
+  paper-filled and **borderless**, with the label floating inside the box (`FloatField`,
+  `src/components/common/float-field.tsx`; owner reference: Revolut's one-text-per-box form).
+  Definition comes from the paper fill (~+6 dL* on the page) and the one leaf focus ring, not a
+  hairline — do not "fix" a border back onto these. Use this material when the page IS a form
+  (the auth steps); the bordered 40px `Input` stays the default inside cards and settings rows.
 - **Avatars: full circle.**
 
 ### The radius ladder (shape protocol, 2026-07-30)
