@@ -1,14 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Reply, ArrowUp, X, ShieldAlert, Feather } from "lucide-react";
+import { Reply, ArrowUp, X, ShieldAlert, Feather, MoreHorizontal, Trash2 } from "lucide-react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
 import { LoveButton } from "@/components/common/love-button";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import Link from "next/link";
-import { formatTimeAgo } from "@/lib/utils";
+import { formatTimeAgo, renderRichText } from "@/lib/utils";
 import {
   createComment,
   deleteComment,
@@ -552,7 +558,7 @@ function CommentItem({
   }
 
   return (
-    <div className="flex items-start gap-2.5">
+    <div className="group flex items-start gap-2.5">
       {/* No top margin: the avatar (34px) pairs visually with the name line right beside it,
           the same way it always has. Widening the meta line's gap below (see -mt-0.5 below)
           grew the two-line cluster to ~41px measured top-of-name to bottom-of-meta, a few px
@@ -579,7 +585,11 @@ function CommentItem({
             in line, the text flows straight after it. No boxy bubble; it wraps for long comments. */}
         <p className="text-[14px] leading-relaxed text-foreground [overflow-wrap:anywhere]">
           <PersonName user={author} className="mr-1.5 align-baseline" />
-          {comment.content}
+          {/* Same renderer as posts and letters (escape-then-emphasise), so
+              **bold** typed in the comment box reads as bold here, not as
+              asterisks. The input stays a plain single-line field; markdown
+              is the phone-friendly way in. */}
+          <span dangerouslySetInnerHTML={{ __html: renderRichText(comment.content) }} />
         </p>
         {/* Measured (not guessed) with a pixel probe on the rendered page: this cluster's own
             leading-relaxed bottom half-leading plus a raw Tailwind margin only ever gets you
@@ -618,12 +628,24 @@ function CommentItem({
             className="-ml-1 font-medium [&>span]:leading-[14px]"
           />
           {comment.isOwn && (
-            <button
-              onClick={onDelete}
-              className="rounded-sm font-medium transition-opacity duration-150 hover:text-destructive active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              Delete
-            </button>
+            <DropdownMenu>
+              {/* The way every platform hides this: a quiet "..." at the row's
+                  end, invisible until the pointer is over the comment (or the
+                  trigger itself has focus / its menu is open), always present
+                  on touch, where there is no hover to reveal it (owner,
+                  2026-08-13: "would Instagram do it like that?"). Same menu
+                  material and destructive item as the post card's own menu. */}
+              <DropdownMenuTrigger className="state-layer ml-auto rounded-md p-1 text-muted-foreground opacity-0 transition-opacity duration-150 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 [@media(pointer:coarse)]:opacity-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                <MoreHorizontal className="h-3.5 w-3.5" />
+                <span className="sr-only">Comment options</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onDelete} variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {viewerIsAdmin && !comment.isOwn && (
             <button
