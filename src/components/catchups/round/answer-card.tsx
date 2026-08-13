@@ -28,7 +28,7 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { SpotifyCard } from "@/components/catchups/round/spotify-card";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import type { CatchupEntryView, CatchupSongView, PromptKind } from "@/lib/catchups-types";
-import { cn } from "@/lib/utils";
+import { cn, renderRichText } from "@/lib/utils";
 
 export type RoundEntry = CatchupEntryView & { authorMeta: string };
 
@@ -97,9 +97,13 @@ export function AnswerCard({ entry, kind = "text" }: { entry: RoundEntry; kind?:
       ) : (
         <>
           {hasBody && (
-            <p className="mt-[var(--space-s)] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground">
-              {entry.body}
-            </p>
+            /* renderRichText, same as posts/letters/comments: the answer box
+               formats live now, so the reader has to honour the markers
+               instead of printing them. */
+            <p
+              className="mt-[var(--space-s)] whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground"
+              dangerouslySetInnerHTML={{ __html: renderRichText(entry.body ?? "") }}
+            />
           )}
           {hasPhotos && <AnswerPhotos images={entry.images} />}
           {song && <SpotifyCard song={song} />}
