@@ -1373,29 +1373,31 @@ function PerchedBird({
                 transition={SPRINGS.snappy}
               >
                 {species}
-                {/* The annotating stroke: one gentle pencil curve toward the
-                    bird, open arrowhead, no fill. It LEAVES from the svg's
-                    vertical centre, which items-center pins to the middle of
-                    the text height (owner: the earlier curve started at the
-                    baseline and read as hanging off the bottom of the word).
-                    Fades with the words (opacity only; nothing draws itself
-                    on). */}
+                {/* The annotating stroke: one gentle pencil curve up toward
+                    the bird, open arrowhead, no fill, fading with the words
+                    (opacity only; nothing draws itself on). The FULL curve
+                    (owner kept this sweep, not the flatter redraw), with the
+                    whole svg translated up so the curve's departure point --
+                    viewBox y=14.5 in a 16-tall box, i.e. 6.5px below the
+                    box's centre -- sits exactly on the middle of the text
+                    height that items-center pins the box centre to. */}
                 <svg
                   width="30"
-                  height="18"
-                  viewBox="0 0 30 18"
+                  height="16"
+                  viewBox="0 0 30 16"
                   fill="none"
                   className="text-foreground/40"
+                  style={{ transform: "translateY(-6.5px)" }}
                   aria-hidden
                 >
                   <path
-                    d="M1.5 9 C 10 9, 19 7.5, 26.5 3"
+                    d="M1.5 14.5 C 10 14, 20 10, 27 3.5"
                     stroke="currentColor"
                     strokeWidth="1.3"
                     strokeLinecap="round"
                   />
                   <path
-                    d="M22.4 2 L 26.9 2.8 L 25.2 7"
+                    d="M22.8 2.6 L 27.4 3.2 L 25.6 7.4"
                     stroke="currentColor"
                     strokeWidth="1.3"
                     strokeLinecap="round"
