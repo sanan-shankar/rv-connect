@@ -17,6 +17,7 @@ import {
   Flag,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,6 +97,9 @@ export function NotificationBell({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [loaded, setLoaded] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const loadingMoreRef = useRef(false);
   // Bumping this key re-mounts the motion shake so it replays the keyframes.
   // It only ever rises when the unread count climbs, so the bell gives one
   // gentle decaying shake per new notification, never on decrement or hover.
@@ -128,11 +132,29 @@ export function NotificationBell({
   };
 
   async function handleOpen() {
-    if (!loaded) {
-      const data = await getNotifications();
-      setNotifications(data);
-      setLoaded(true);
-    }
+    // Refresh the first page on EVERY open, not once per mount: the old
+    // `if (!loaded)` guard meant the panel showed the session's first fetch
+    // forever, going quietly stale while new notifications arrived. The stale
+    // list stays on screen while the fresh page loads, so a reopen never
+    // flashes back to "Loading...".
+    const data = await getNotifications();
+    setNotifications(data.notifications);
+    setNextCursor(data.nextCursor);
+    setHasMore(data.hasMore);
+    setLoaded(true);
+  }
+
+  async function handleLoadMore() {
+    if (loadingMoreRef.current || !hasMore) return;
+    loadingMoreRef.current = true;
+    const data = await getNotifications({ cursor: nextCursor });
+    setNotifications((prev) => {
+      const seen = new Set(prev.map((n) => n.id));
+      return [...prev, ...data.notifications.filter((n) => !seen.has(n.id))];
+    });
+    setNextCursor(data.nextCursor);
+    setHasMore(data.hasMore);
+    loadingMoreRef.current = false;
   }
 
   async function handleClickNotification(notif: Notification) {
@@ -196,6 +218,8 @@ export function NotificationBell({
           notifications={notifications}
           loaded={loaded}
           unreadCount={unreadCount}
+          hasMore={hasMore}
+          onLoadMore={handleLoadMore}
           onMarkAllRead={handleMarkAllRead}
           onClickNotification={handleClickNotification}
         />
@@ -248,6 +272,8 @@ export function NotificationBell({
         notifications={notifications}
         loaded={loaded}
         unreadCount={unreadCount}
+        hasMore={hasMore}
+        onLoadMore={handleLoadMore}
         onMarkAllRead={handleMarkAllRead}
         onClickNotification={handleClickNotification}
       />
@@ -259,15 +285,41 @@ function NotificationPanel({
   notifications,
   loaded,
   unreadCount,
+  hasMore,
+  onLoadMore,
   onMarkAllRead,
   onClickNotification,
 }: {
   notifications: Notification[];
   loaded: boolean;
   unreadCount: number;
+  hasMore: boolean;
+  onLoadMore: () => void;
   onMarkAllRead: () => void;
   onClickNotification: (notif: Notification) => void;
 }) {
+  // The panel's own scroll box is the observer root (the page never scrolls
+  // this list), so the sentinel fires as the READER nears the bottom of the
+  // box, a page before they need it. Rows arriving from a later page animate
+  // in through auto-animate rather than popping the scroll height.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [listRef] = useAutoAnimate();
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const rootEl = scrollRef.current;
+    const el = sentinelRef.current;
+    if (!rootEl || !el || !hasMore) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) onLoadMore();
+      },
+      { root: rootEl, rootMargin: "120px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, onLoadMore]);
+
   return (
     <DropdownMenuContent align="end" className="w-80">
       <div className="flex items-center justify-between px-3 py-2">
@@ -283,7 +335,7 @@ function NotificationPanel({
         )}
       </div>
       <Separator />
-      <div className="max-h-80 overflow-y-auto">
+      <div ref={scrollRef} className="max-h-80 overflow-y-auto">
         {notifications.length === 0 && loaded && (
           <div className="px-3 py-6 text-center text-sm text-muted-foreground">
             No notifications yet
@@ -294,6 +346,7 @@ function NotificationPanel({
             Loading...
           </div>
         )}
+        <div ref={listRef}>
         {notifications.map((notif) => {
           const { icon: Icon, heart, label } = notificationIconMeta(notif.type);
           return (
@@ -333,6 +386,15 @@ function NotificationPanel({
             </DropdownMenuItem>
           );
         })}
+        </div>
+        {/* Sentinel: a slim shimmer row while more pages exist; unmounts with
+            the last page so the list simply ends. */}
+        {hasMore && (
+          <div ref={sentinelRef} className="flex items-center gap-2.5 px-3 py-2" aria-hidden>
+            <div className="skeleton-warm h-6 w-6 shrink-0 rounded-full" />
+            <div className="skeleton-warm h-3 w-40 rounded-full" />
+          </div>
+        )}
       </div>
     </DropdownMenuContent>
   );
