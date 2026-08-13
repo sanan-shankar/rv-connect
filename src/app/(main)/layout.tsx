@@ -87,9 +87,11 @@ export default async function MainLayout({
               initial={
                 mailState.state === "sent"
                   ? { state: "sent", sentTo: maskEmail(session.user.email) }
-                  : mailState.state === "queued"
-                    ? { state: "queued", sendingAt: mailState.sendingAt.toISOString() }
-                    : { state: "none", sentTo: maskEmail(session.user.email) }
+                  : mailState.state === "imminent"
+                    ? { state: "imminent" }
+                    : mailState.state === "queued"
+                      ? { state: "queued", sendingAt: mailState.sendingAt.toISOString() }
+                      : { state: "none", sentTo: maskEmail(session.user.email) }
               }
             />
           ) : null

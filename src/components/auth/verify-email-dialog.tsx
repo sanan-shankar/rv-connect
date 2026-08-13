@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { EMAIL_UNVERIFIED } from "@/lib/email-gate-message";
 import { resendVerification } from "./email-actions";
+import { sendTimeLabel } from "./verify-email-banner";
 
 /* ------------------------------------------------------------------ *
  *  What an unconfirmed account sees when it tries to post.
@@ -79,13 +80,16 @@ export function VerifyEmailDialog({
       setFlash(result.error ?? "That did not work. Try again in a minute.");
       return;
     }
-    // The two states get different sentences, because one of them is a lie if
-    // you use it for the other: on a day when the queue is backed up there is
-    // nothing in their inbox to go and look at yet.
+    // Three states, three sentences, because each is a lie if used for the
+    // others: "sent" means the provider accepted it, "imminent" means it is in
+    // flight, and only "queued" - the budget genuinely spent - may mention the
+    // limit, with the refill time named rather than "up to a day".
     setFlash(
       result.state === "sent"
         ? `Sent to ${result.sentTo}. Check your spam folder if it does not arrive.`
-        : "You are in the queue. It can take up to a day to arrive.",
+        : result.state === "queued" && result.sendingAt
+          ? `We have hit today's email limit. Your link goes out ${sendTimeLabel(result.sendingAt)}.`
+          : "Your link is on its way. Give it a minute, then check spam.",
     );
     router.refresh();
   }
