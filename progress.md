@@ -1082,3 +1082,16 @@ guessed (they chose: wings keep flapping through the landing flare; keep the pon
   canonical-origin links, old tokens burned.
 - NEEDS DEPLOY, and on the dashboard: confirm the Vercel env var is literally RESEND_API_KEY.
   Until both, this laptop remains the only machine that can send.
+
+## 2026-08-13 - Shrey's Black Eagle, and the build-fund bar goes live
+
+- Set Shrey Davuluri's `birdOverride` to `black-eagle` (valid slug, not a reserved species), same
+  run-sql path as Sanjula's Purple Sunbird.
+- Answered "how much have we received via Razorpay": Rs 3,530 across 2 real paid contributions
+  (Rs 100 Sanan 2026-08-05, Rs 3,430 Shrey 2026-08-13). 17 live `created` rows are abandoned
+  checkouts, not money.
+- The "Recovering what it cost to build" bar on /support now reads the real figure instead of a
+  hand-edited constant: the page sums paid live-mode Contribution rows per view and passes paise
+  into CostBar; the bar completes at the Rs 4,00,000 build cost. Failed sum falls back to the
+  zero-state bar. Verified live: fill renders max(0.8825%, 12px), exactly 3,530/4,00,000.
+  Committed faa41af.
