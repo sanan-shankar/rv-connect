@@ -1054,3 +1054,31 @@ guessed (they chose: wings keep flapping through the landing flare; keep the pon
   mirror and show a sliver of a second line through the newly taller clip box.
 - The j tails now cross the dotted pen rule by 1.1px, which is what writing on a ruled line does.
   Checked at 2.6x: terminals whole, macron and acute whole. Desktop and 390x844 both shot.
+
+## 2026-08-13 - The email queue stops lying
+
+- A fresh signup was told "we've hit today's email limit, your link goes out at 8pm" as the third
+  email of a 95-email day. Root causes, all three now structural rather than patched: the
+  fire-and-forget drain never ran on the deployment (nothing has EVER sent from Vercel; every
+  message in the Resend dashboard so far left this laptop - check the env var is named exactly
+  RESEND_API_KEY and redeploy); `verificationMailState` answered "queued" for every unsent row and
+  the banner explained it with the only reason it knew; and `appUrl` built links against localhost
+  whenever NODE_ENV=development, so the one working sender mailed a member a link to a laptop.
+- The shape now: `claimAndSend` is the single code path that moves a row out of the queue (drain
+  loop, resend button, page-load read all go through it). `verificationMailState` repairs instead
+  of reporting - a queued row with budget available is sent synchronously inside the page load, so
+  "we've hit today's email limit" is IMPOSSIBLE to render while the day has budget left; the state
+  is sent | imminent | queued-with-refill-time | failed | none, and only queued may mention the
+  limit. Deferral names the moment ("tomorrow at 5:30 am"), formatted in the reader's locale via
+  useSyncExternalStore because SSR's locale is not the reader's (found as a live hydration
+  mismatch). A really-sent email never carries a localhost link.
+- Proven against the running app, not asserted: a signup-shaped account with a stranded queued row
+  logged in through the real form; first page load sent the mail (Resend-accepted, token minted
+  with its full day) and showed "we sent a link". With 95 sends recorded today, the same load
+  showed the limit banner with the refill time and no button. next-devtools reported zero errors.
+  Test rows and fillers torn down; baseline verified (0 queued, 40 users).
+- The three real members affected were all put right: Shrey's stranded mail was flushed (he
+  confirmed himself despite the localhost origin), and Sanjula and Nirad were re-sent
+  canonical-origin links, old tokens burned.
+- NEEDS DEPLOY, and on the dashboard: confirm the Vercel env var is literally RESEND_API_KEY.
+  Until both, this laptop remains the only machine that can send.
