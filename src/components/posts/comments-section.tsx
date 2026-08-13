@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Reply, ArrowUp, X, ShieldAlert } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Reply, ArrowUp, X, ShieldAlert, Feather } from "lucide-react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { PersonName } from "@/components/common/person-name";
 import { LoveButton } from "@/components/common/love-button";
@@ -10,6 +11,7 @@ import Link from "next/link";
 import { formatTimeAgo } from "@/lib/utils";
 import {
   createComment,
+  deleteComment,
   loadComments,
   toggleCommentLike,
   adminRemoveComment,
@@ -19,6 +21,18 @@ import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { motion } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 
+interface CommentAuthor {
+  id: string;
+  name: string;
+  avatarColor: string | null;
+  photoUrl: string | null;
+  birdOverride?: string | null;
+  accountType?: string | null;
+  verifyState?: string | null;
+  batchType: string | null;
+  batchYear: number | null;
+}
+
 interface CommentData {
   id: string;
   content: string;
@@ -26,18 +40,20 @@ interface CommentData {
   createdAt: string;
   likeCount: number;
   liked: boolean;
-  author: {
-    id: string;
-    name: string;
-    avatarColor: string | null;
-    photoUrl: string | null;
-    birdOverride?: string | null;
-    accountType?: string | null;
-    verifyState?: string | null;
-    batchType: string | null;
-    batchYear: number | null;
-  };
+  /** A deleted (or admin-hidden) comment kept only as the anchor for its replies. */
+  deleted?: boolean;
+  /** The viewer wrote this one, so they may delete it. */
+  isOwn?: boolean;
+  author: CommentAuthor | null;
 }
+
+/* The thread loads in pages of top-level comments: a short first page so the
+   panel opens light, then bigger pages as the reader actually scrolls (the
+   sentinel below the list triggers the next fetch just before they reach the
+   end). Replies always arrive with their parent, so a page boundary can never
+   split a thread. */
+const FIRST_PAGE = 5;
+const NEXT_PAGE = 10;
 
 // Renders the comment thread for a post. Feed/group cards toggle it open as an accordion
 // (one coordinated open/close timeline); Letters pass `alwaysOpen` to render it expanded.
@@ -47,18 +63,29 @@ export function CommentsSection({
   onCommentRemoved,
   alwaysOpen = false,
   viewerIsAdmin = false,
+  expectedCount,
 }: {
   postId: string;
   onCommentAdded: () => void;
-  /** Fired after an admin's removal is confirmed, so the post's visible comment count drops too. */
+  /** Fired after a removal is confirmed, so the post's visible comment count drops too. */
   onCommentRemoved?: () => void;
   /** Letters render the thread permanently expanded, so they skip the open/close accordion. */
   alwaysOpen?: boolean;
   /** Site admin viewing this thread: shows the "Remove" moderation control on every comment. */
   viewerIsAdmin?: boolean;
+  /**
+   * The comment count the card already knows, BEFORE the thread loads. It sizes
+   * the loading state: zero renders the empty line immediately (a two-row
+   * skeleton springing open and then shrinking onto a one-line "No comments
+   * yet" was the panel's overshoot bug), and one renders one skeleton row.
+   */
+  expectedCount?: number;
 }) {
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const loadingMoreRef = useRef(false);
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(
     null
@@ -70,6 +97,9 @@ export function CommentsSection({
   // `createComment` refuses an unconfirmed address server-side; this turns that
   // into a dialog with the fix in it.
   const emailGate = useEmailGate();
+  // Mandatory on a list that adds and removes rows: pages appending, a
+  // deleted comment leaving, all close their gaps on the same animation.
+  const [listRef] = useAutoAnimate();
 
   // The panel animates to (and then tracks) the real height of its content. A single
   // ResizeObserver is the ONE clock: the initial open, the comments arriving from the
@@ -77,6 +107,7 @@ export function CommentsSection({
   // instead of a second, jumpy re-open. (Letters skip this: they are always expanded.)
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (alwaysOpen) return;
@@ -89,12 +120,57 @@ export function CommentsSection({
     return () => ro.disconnect();
   }, [alwaysOpen]);
 
+  /** Merge a page into the thread, deduping against rows already present
+   *  (the reader's own fresh comment may reappear in a later page). */
+  const mergeComments = useCallback((incoming: CommentData[]) => {
+    setComments((prev) => {
+      const seen = new Set(prev.map((c) => c.id));
+      return [...prev, ...incoming.filter((c) => !seen.has(c.id))];
+    });
+  }, []);
+
   useEffect(() => {
-    loadComments(postId).then((data) => {
-      setComments(data);
+    let cancelled = false;
+    loadComments(postId, { take: FIRST_PAGE }).then((data) => {
+      if (cancelled) return;
+      setComments(data.comments);
+      setNextCursor(data.nextCursor);
+      setHasMore(data.hasMore);
       setLoading(false);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [postId]);
+
+  // Infinite scroll: the sentinel sits under the last loaded comment, and the
+  // page (not the panel -- the panel clips but does not scroll) carries it
+  // into view. rootMargin starts the fetch a couple of rows early, so in the
+  // common case the next page is in place before the reader arrives and the
+  // list just grows -- no spinner moment, no jump.
+  useEffect(() => {
+    if (!hasMore || loading) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      async (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        if (loadingMoreRef.current) return;
+        loadingMoreRef.current = true;
+        const data = await loadComments(postId, {
+          cursor: nextCursor,
+          take: NEXT_PAGE,
+        });
+        mergeComments(data.comments);
+        setNextCursor(data.nextCursor);
+        setHasMore(data.hasMore);
+        loadingMoreRef.current = false;
+      },
+      { rootMargin: "160px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, loading, nextCursor, postId, mergeComments]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -112,8 +188,10 @@ export function CommentsSection({
       // send the link again; everything else is still a toast.
       if (!emailGate.handled(result.error)) toast.error(result.error);
     } else {
-      const updated = await loadComments(postId);
-      setComments(updated);
+      // The action returns the finished comment, so it slots straight into
+      // the loaded thread. No refetch: with the thread paginated, a refetch
+      // would throw away every page the reader has scrolled in.
+      if (result.comment) mergeComments([result.comment]);
       setNewComment("");
       setReplyTo(null);
       onCommentAdded();
@@ -127,18 +205,58 @@ export function CommentsSection({
     );
   }
 
+  /** Take a comment out of the visible thread the same way the server does:
+   *  drop it outright, unless replies still hang off it, in which case it
+   *  stays as a "[deleted]" stub so the replies keep their anchor. */
+  function removeLocally(id: string) {
+    setComments((prev) => {
+      const hasReplies = prev.some((c) => c.parentId === id && !c.deleted);
+      const next = hasReplies
+        ? prev.map((c) =>
+            c.id === id
+              ? { ...c, deleted: true, content: "", author: null, isOwn: false, likeCount: 0, liked: false }
+              : c
+          )
+        : prev.filter((c) => c.id !== id);
+      // A stub exists only to anchor replies: if this removal took the last
+      // reply out from under one, the stub goes with it (exactly what the
+      // server would return on the next load).
+      return next.filter(
+        (c) =>
+          !c.deleted ||
+          next.some((r) => r.parentId === c.id && !r.deleted)
+      );
+    });
+    onCommentRemoved?.();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this comment? This cannot be undone.")) return;
+    const result = await deleteComment(id);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    removeLocally(id);
+  }
+
   async function handleModerationConfirm(note: string) {
     if (!moderatingId) return { error: "Nothing selected" };
     const result = await adminRemoveComment(moderatingId, note || undefined);
     if (!result.error) {
-      setComments((prev) => prev.filter((c) => c.id !== moderatingId));
-      onCommentRemoved?.();
+      removeLocally(moderatingId);
     }
     return result;
   }
 
   // Organise: top-level comments first, replies grouped under their parent.
-  const topLevel = comments.filter((c) => !c.parentId);
+  // Sorted at render (oldest first, the load order), because a fresh own
+  // comment is appended to state whenever it was written.
+  const byAge = (a: CommentData, b: CommentData) =>
+    a.createdAt === b.createdAt
+      ? a.id.localeCompare(b.id)
+      : a.createdAt.localeCompare(b.createdAt);
+  const topLevel = comments.filter((c) => !c.parentId).sort(byAge);
   const repliesMap = new Map<string, CommentData[]>();
   for (const c of comments) {
     if (c.parentId) {
@@ -147,6 +265,11 @@ export function CommentsSection({
       repliesMap.set(c.parentId, existing);
     }
   }
+  for (const list of repliesMap.values()) list.sort(byAge);
+
+  // The loading rows mirror what is actually coming: none for a post the card
+  // already knows has no comments, one for one, two for anything more.
+  const skeletonRows = Math.min(expectedCount ?? 2, 2);
 
   // The measured content: divider, the thread, and the composer. List sits on top, the
   // input always sits on the bottom, so the reveal order is the same every single time.
@@ -160,9 +283,9 @@ export function CommentsSection({
     <div ref={contentRef} className="flex flex-col gap-4 px-0.5 pb-1 pt-3">
       <div className="border-t border-border/70" />
 
-      {loading ? (
+      {loading && skeletonRows > 0 ? (
         <div className="flex flex-col gap-4" aria-hidden>
-          {[0, 1].map((i) => (
+          {Array.from({ length: skeletonRows }, (_, i) => (
             <div key={i} className="flex items-start gap-2.5">
               <div className="skeleton-warm size-7 shrink-0 rounded-full" />
               <div className="flex-1 space-y-2 pt-1">
@@ -181,6 +304,7 @@ export function CommentsSection({
         </p>
       ) : (
         <motion.ul
+          ref={listRef}
           className="flex flex-col gap-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -190,15 +314,20 @@ export function CommentsSection({
             const replies = repliesMap.get(comment.id);
             return (
               <li key={comment.id}>
-                <CommentItem
-                  comment={comment}
-                  onReply={() =>
-                    setReplyTo({ id: comment.id, name: comment.author.name })
-                  }
-                  onLikeToggle={handleLikeToggle}
-                  viewerIsAdmin={viewerIsAdmin}
-                  onModerate={() => setModeratingId(comment.id)}
-                />
+                {comment.deleted ? (
+                  <DeletedComment />
+                ) : (
+                  <CommentItem
+                    comment={comment}
+                    onReply={() =>
+                      setReplyTo({ id: comment.id, name: comment.author!.name })
+                    }
+                    onLikeToggle={handleLikeToggle}
+                    viewerIsAdmin={viewerIsAdmin}
+                    onModerate={() => setModeratingId(comment.id)}
+                    onDelete={() => handleDelete(comment.id)}
+                  />
+                )}
                 {replies && replies.length > 0 && (
                   <ul className="mt-4 flex flex-col gap-4 border-l border-border/70 pl-4 [margin-left:13px]">
                     {replies.map((reply) => (
@@ -207,13 +336,18 @@ export function CommentsSection({
                           comment={reply}
                           onReply={() =>
                             setReplyTo({
-                              id: comment.id,
-                              name: reply.author.name,
+                              // Replying under a deleted parent targets the
+                              // REPLY (still alive, so the server accepts it
+                              // and reparents to the root as usual); a
+                              // deleted id would be refused.
+                              id: comment.deleted ? reply.id : comment.id,
+                              name: reply.author!.name,
                             })
                           }
                           onLikeToggle={handleLikeToggle}
                           viewerIsAdmin={viewerIsAdmin}
                           onModerate={() => setModeratingId(reply.id)}
+                          onDelete={() => handleDelete(reply.id)}
                         />
                       </li>
                     ))}
@@ -223,6 +357,22 @@ export function CommentsSection({
             );
           })}
         </motion.ul>
+      )}
+
+      {/* The infinite-scroll sentinel. Rendered only while there is more to
+          load; when the last page lands it unmounts and the thread simply
+          ends. Inside contentRef, so its removal shrinks the panel on the
+          same height spring as everything else. */}
+      {hasMore && !loading && (
+        <div ref={sentinelRef} className="flex flex-col gap-4" aria-hidden>
+          <div className="flex items-start gap-2.5">
+            <div className="skeleton-warm size-7 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-2 pt-1">
+              <div className="skeleton-warm h-3 w-28 rounded-full" />
+              <div className="skeleton-warm h-3 w-3/5 rounded-full" />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Composer. Always mounted at the bottom, so it appears together with the thread. */}
@@ -344,12 +494,39 @@ export function CommentsSection({
   );
 }
 
+/**
+ * The stub a deleted comment leaves behind, kept only because replies still
+ * hang off it. Everything personal is gone (the server never sends author or
+ * content for one of these); what remains is quiet, unclickable structure: a
+ * mist circle with a feather where the bird sat, and a plain statement of
+ * what happened. No Reply, no heart, no menu.
+ */
+function DeletedComment() {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span
+        className="grid size-[34px] shrink-0 place-items-center rounded-full bg-mist text-muted-foreground/60"
+        aria-hidden
+      >
+        <Feather className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1 pt-1.5">
+        <p className="text-[14px] leading-relaxed text-muted-foreground">
+          <span className="mr-1.5 font-semibold">[deleted]</span>
+          <span className="italic">This comment was deleted.</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function CommentItem({
   comment,
   onReply,
   onLikeToggle,
   viewerIsAdmin = false,
   onModerate,
+  onDelete,
 }: {
   comment: CommentData;
   onReply: () => void;
@@ -357,7 +534,11 @@ function CommentItem({
   /** Site admin viewing this thread: shows the "Remove" moderation control. */
   viewerIsAdmin?: boolean;
   onModerate?: () => void;
+  /** Own comments only: the author deleting their own words. */
+  onDelete?: () => void;
 }) {
+  const author = comment.author!;
+
   async function handleLike() {
     const newLiked = !comment.liked;
     const newCount = newLiked ? comment.likeCount + 1 : comment.likeCount - 1;
@@ -379,16 +560,16 @@ function CommentItem({
           sitting only ~3px above the cluster's dead centre, not visibly off; re-check with a
           screenshot if the meta line's gap changes again. */}
       <Link
-        href={`/profile/${comment.author.id}`}
-        aria-label={comment.author.name}
+        href={`/profile/${author.id}`}
+        aria-label={author.name}
         className="shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <BirdAvatar
           user={{
-            id: comment.author.id,
-            name: comment.author.name,
-            photoUrl: comment.author.photoUrl,
-            birdOverride: comment.author.birdOverride,
+            id: author.id,
+            name: author.name,
+            photoUrl: author.photoUrl,
+            birdOverride: author.birdOverride,
           }}
           size={34}
         />
@@ -397,7 +578,7 @@ function CommentItem({
         {/* Clean inline comment (derived from the delight demo): the author's name sits bold and
             in line, the text flows straight after it. No boxy bubble; it wraps for long comments. */}
         <p className="text-[14px] leading-relaxed text-foreground [overflow-wrap:anywhere]">
-          <PersonName user={comment.author} className="mr-1.5 align-baseline" />
+          <PersonName user={author} className="mr-1.5 align-baseline" />
           {comment.content}
         </p>
         {/* Measured (not guessed) with a pixel probe on the rendered page: this cluster's own
@@ -428,18 +609,23 @@ function CommentItem({
             onToggle={handleLike}
             showCount={comment.likeCount > 0}
             label="Like this comment"
-            /* LoveButton's count `<span>` is plain text, so it inherits text-sm's 20px
-               line-height while the icon-only span next to it sizes to the 12px heart glyph.
-               That mismatch made the WHOLE BUTTON (an `items-center` flex row) grow ~8px the
-               instant a like made the count mount, which grew this row (and the comment) on
-               like, and previously required an under-sized h-5 clamp that let the button's own
-               hover pill / focus ring bleed upward into the text above. Pinning both of the
-               button's direct-child spans to a 12px line box (matching the icon's actual
-               height) makes the button genuinely 20px tall (12px content + 4px+4px py-1
-               padding) in EITHER state, so nothing needs to be clamped or can overflow. */
-            className="-ml-1 font-medium [&>span]:leading-[12px]"
+            size="sm"
+            /* Same trick as ever, retuned for the sm heart: LoveButton's count
+               `<span>` is plain text and would inherit a 16px line box (text-xs)
+               while the icon span sizes to the 14px glyph. Pinning both direct
+               children to a 14px line box keeps the button the same height in
+               both states, so a first like can never grow the row. */
+            className="-ml-1 font-medium [&>span]:leading-[14px]"
           />
-          {viewerIsAdmin && (
+          {comment.isOwn && (
+            <button
+              onClick={onDelete}
+              className="rounded-sm font-medium transition-opacity duration-150 hover:text-destructive active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              Delete
+            </button>
+          )}
+          {viewerIsAdmin && !comment.isOwn && (
             <button
               onClick={onModerate}
               aria-label="Remove comment (admin)"

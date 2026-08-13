@@ -99,6 +99,7 @@ export function LetterEngagement({
         onCommentRemoved={() => setCommentCount((c) => Math.max(0, c - 1))}
         alwaysOpen
         viewerIsAdmin={viewerIsAdmin}
+        expectedCount={commentCount}
       />
 
       {viewerIsAdmin && (

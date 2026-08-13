@@ -368,7 +368,14 @@ model Comment {
   postId    String
   parentId  String?
   isHidden  Boolean  @default(false) // admin soft-hide (moderation); matches Post.isHidden / Photo.isHidden
-  createdAt DateTime @default(now())
+  // Author's own delete. Soft, never a row delete: replies key off parentId,
+  // so a hard delete would orphan them (the FK is SetNull, which silently
+  // promotes replies to top level) and the thread would lie about its shape.
+  // Content is blanked at delete time; the row survives only as structure.
+  // Every count and every fetch excludes deleted rows; a deleted parent with
+  // surviving replies renders as a "[deleted]" stub.
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   post         Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -422,6 +429,9 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+  // The bell's page walk: newest-first keyset per user. Also what the
+  // 100-per-user prune sorts by to find its cutoff.
+  @@index([userId, createdAt])
 }
 
 // ─── Messages between a member and the admins ────────────────────────────────

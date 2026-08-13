@@ -436,6 +436,7 @@ export function PostCard({
               onCommentAdded={() => setCommentCount((c) => c + 1)}
               onCommentRemoved={() => setCommentCount((c) => Math.max(0, c - 1))}
               viewerIsAdmin={post.viewerIsAdmin}
+              expectedCount={commentCount}
             />
           )}
         </AnimatePresence>
