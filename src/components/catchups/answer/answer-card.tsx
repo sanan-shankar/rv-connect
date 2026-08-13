@@ -18,6 +18,7 @@
  * ------------------------------------------------------------------ */
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
 import { RichTextArea } from "@/components/common/rich-text-area";
@@ -75,8 +76,22 @@ export function AnswerCard({
 
       {prompt.asker && (
         <div className="mt-[var(--space-s)] flex items-center gap-2">
-          <BirdAvatar user={prompt.asker} size={22} />
-          <span className="text-xs font-medium text-muted-foreground">asked by {prompt.asker.name}</span>
+          <Link
+            href={`/profile/${prompt.asker.id}`}
+            aria-label={prompt.asker.name}
+            className="shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <BirdAvatar user={prompt.asker} size={22} />
+          </Link>
+          <span className="text-xs font-medium text-muted-foreground">
+            asked by{" "}
+            <Link
+              href={`/profile/${prompt.asker.id}`}
+              className="rounded-sm transition-colors duration-150 hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              {prompt.asker.name}
+            </Link>
+          </span>
         </div>
       )}
 

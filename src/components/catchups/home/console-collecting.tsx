@@ -14,6 +14,7 @@
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ArrowUp, ArrowDown, ArrowRight, X } from "lucide-react";
 import { toast } from "sonner";
@@ -327,7 +328,13 @@ function QuestionRow({
     >
       <div className="flex min-w-0 items-start gap-2.5">
         {prompt.author ? (
-          <BirdAvatar user={prompt.author} size={28} />
+          <Link
+            href={`/profile/${prompt.author.id}`}
+            aria-label={prompt.author.name}
+            className="shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <BirdAvatar user={prompt.author} size={28} />
+          </Link>
         ) : (
           <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
             ?

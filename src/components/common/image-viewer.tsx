@@ -348,19 +348,39 @@ export function ImageViewer({
           style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
           onClick={(e) => e.stopPropagation()}
         >
-          {current.author && (
-            <span className="flex min-w-0 items-center gap-2.5">
-              <BirdAvatar user={current.author} size={30} />
-              <span className="min-w-0 leading-tight">
-                <span className="block truncate text-[13px] font-semibold text-white">
-                  {current.author.name}
+          {current.author &&
+            // The byline walks to the author's profile when we know who they
+            // are (id is optional on AvatarUser); navigating naturally closes
+            // the viewer with the page. One link here covers feed photos,
+            // letter plates and the Collection at once.
+            (current.author.id ? (
+              <Link
+                href={`/profile/${current.author.id}`}
+                className="flex min-w-0 items-center gap-2.5 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+              >
+                <BirdAvatar user={current.author} size={30} />
+                <span className="min-w-0 leading-tight">
+                  <span className="block truncate text-[13px] font-semibold text-white">
+                    {current.author.name}
+                  </span>
+                  {current.date && (
+                    <span className="block text-[11.5px] text-white/65">{current.date}</span>
+                  )}
                 </span>
-                {current.date && (
-                  <span className="block text-[11.5px] text-white/65">{current.date}</span>
-                )}
+              </Link>
+            ) : (
+              <span className="flex min-w-0 items-center gap-2.5">
+                <BirdAvatar user={current.author} size={30} />
+                <span className="min-w-0 leading-tight">
+                  <span className="block truncate text-[13px] font-semibold text-white">
+                    {current.author.name}
+                  </span>
+                  {current.date && (
+                    <span className="block text-[11.5px] text-white/65">{current.date}</span>
+                  )}
+                </span>
               </span>
-            </span>
-          )}
+            ))}
           {hasCaption && (
             <button
               type="button"

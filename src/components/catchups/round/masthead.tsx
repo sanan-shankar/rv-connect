@@ -14,6 +14,7 @@
  *     and no decorative perch wire.
  * ------------------------------------------------------------------ */
 
+import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { roundLabel } from "@/lib/catchups";
 import { metaLine } from "@/lib/utils";
@@ -69,7 +70,16 @@ export function RoundMasthead({
         {shown.length > 0 && (
           <div className="flex flex-wrap items-center gap-1">
             {shown.map((c) => (
-              <BirdAvatar key={c.id} user={c} size="xs" />
+              // Each contributor walks to their profile; the aria-label is the
+              // name the strip itself never prints past three.
+              <Link
+                key={c.id}
+                href={`/profile/${c.id}`}
+                aria-label={c.name}
+                className="shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <BirdAvatar user={c} size="xs" />
+              </Link>
             ))}
             {overflow > 0 && (
               <span className="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[11px] font-semibold text-muted-foreground">
