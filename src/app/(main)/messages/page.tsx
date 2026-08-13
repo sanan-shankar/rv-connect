@@ -62,7 +62,7 @@ export default async function MessagesPage() {
     <div>
       <PageHeader
         title="Reach out"
-        subtitle="Something broken, an idea, a question. Write a line and someone will read it."
+        subtitle="A bug, an idea, a question. Write a line and someone will read it."
       />
 
       <section
