@@ -26,6 +26,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import {
   Check,
   Copy,
@@ -204,8 +205,15 @@ function PersonPill({
         dim && "grayscale-[0.35]"
       )}
     >
-      <BirdAvatar user={person} size="xs" />
-      <span className="min-w-0 flex-1 truncate">{person.name}</span>
+      {/* The identity half of the pill is a link to the person; the Keeper
+          mark stays outside it so its own title keeps working. */}
+      <Link
+        href={`/profile/${person.id}`}
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <BirdAvatar user={person} size="xs" />
+        <span className="min-w-0 flex-1 truncate">{person.name}</span>
+      </Link>
       {person.isKeeper && (
         // Its own title, so hovering the symbol itself says the word (owner,
         // 2026-08-06). The pill's outer title still covers the rest of the row.
@@ -350,10 +358,21 @@ function PersonRow({
 
   return (
     <li className="flex items-center gap-[var(--space-s)] rounded-[var(--radius-md)] px-1.5 py-1.5">
-      <BirdAvatar user={person} size="xs" />
+      <Link
+        href={`/profile/${person.id}`}
+        aria-label={person.name}
+        className="shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <BirdAvatar user={person} size="xs" />
+      </Link>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14px] font-medium text-foreground">
-          {person.name}
+          <Link
+            href={`/profile/${person.id}`}
+            className="rounded-sm transition-opacity duration-150 hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {person.name}
+          </Link>
           {you && <span className="ml-1.5 text-[12px] text-muted-foreground">you</span>}
         </p>
         {person.isKeeper && (

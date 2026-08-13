@@ -12,6 +12,7 @@
  * ------------------------------------------------------------------ */
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
@@ -119,11 +120,18 @@ export function AnswerExperience({
           <span className="mr-0.5 flex -space-x-2">
             {clusterPeople.map((p) => (
               // rounded-full is load-bearing: the ring is a box-shadow drawn
-              // on THIS element's border box, and the avatar root is not
+              // on the avatar's border box, and the avatar root is not
               // itself rounded, so without it each bird sat in a square
               // card-coloured frame (owner, 2026-08-13: "white boxes around
               // the birds").
-              <BirdAvatar key={p.id} user={p} size={22} className="rounded-full ring-2 ring-card" />
+              <Link
+                key={p.id}
+                href={`/profile/${p.id}`}
+                aria-label={p.name ?? "Member profile"}
+                className="rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <BirdAvatar user={p} size={22} className="rounded-full ring-2 ring-card" />
+              </Link>
             ))}
           </span>
         )}

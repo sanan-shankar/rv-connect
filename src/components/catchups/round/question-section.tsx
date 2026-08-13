@@ -92,8 +92,19 @@ export function QuestionSection({
         <IdentityRow
           user={prompt.asker}
           avatarSize="xs"
+          avatarHref={`/profile/${prompt.asker.id}`}
           className="mt-[var(--space-s)]"
-          name={<span className="text-[13px] text-muted-foreground">asked by {prompt.asker.name}</span>}
+          name={
+            <span className="text-[13px] text-muted-foreground">
+              asked by{" "}
+              <Link
+                href={`/profile/${prompt.asker.id}`}
+                className="rounded-sm transition-colors duration-150 hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {prompt.asker.name}
+              </Link>
+            </span>
+          }
         />
       )}
 

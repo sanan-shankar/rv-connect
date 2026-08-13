@@ -79,7 +79,13 @@ export function ConsoleAnswering({
                 className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-border/70 bg-background/40 p-[var(--space-s)]"
               >
                 {p.author ? (
-                  <BirdAvatar user={p.author} size={28} />
+                  <Link
+                    href={`/profile/${p.author.id}`}
+                    aria-label={p.author.name}
+                    className="shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <BirdAvatar user={p.author} size={28} />
+                  </Link>
                 ) : (
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
                     ?
