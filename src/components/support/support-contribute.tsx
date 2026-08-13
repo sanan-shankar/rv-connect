@@ -29,6 +29,7 @@ const SUGGESTIONS = [
   { label: "₹500", amount: 500 },
   { label: "₹1,000", amount: 1000 },
   { label: "₹2,000", amount: 2000 },
+  { label: "₹3,430", amount: 3430 },
   { label: "₹5,000", amount: 5000 },
   { label: "Other", amount: null },
 ] as const;
