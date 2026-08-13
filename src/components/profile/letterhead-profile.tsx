@@ -1366,7 +1366,7 @@ function PerchedBird({
           <AnimatePresence>
             {showName && (
               <motion.span
-                className="flex w-max items-center gap-1 whitespace-nowrap font-heading text-[13.5px] italic leading-none tracking-[0.01em] text-foreground/75"
+                className="flex w-max items-center gap-2 whitespace-nowrap font-heading text-[13.5px] italic leading-none tracking-[0.01em] text-foreground/75"
                 initial={{ opacity: 0, x: 6 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 4 }}
