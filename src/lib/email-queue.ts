@@ -187,6 +187,15 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
         where: { id: row.id },
         data: { status: "sent", sentAt: new Date(), claimedAt: null, lastError: null },
       });
+      // One line of record per real send, with the ORIGIN its links were built
+      // against (never the token). Exists because "which link did Nirad's
+      // email actually carry" took a forensic reconstruction on 2026-08-13:
+      // the Resend key is send-only, so the provider cannot answer, and the
+      // row does not store the rendered body. With this, the answer is one
+      // grep of the server logs.
+      console.info(
+        `[email] sent kind=${row.kind} to=${row.to} origin=${appUrl("/")} row=${row.id}`,
+      );
       return "sent";
     }
 
