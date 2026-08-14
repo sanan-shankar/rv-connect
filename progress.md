@@ -1,5 +1,32 @@
 # Progress Log
 
+## Session 2026-08-14 (round 3) — No rings on boxes; the whole auth family swept; mobile keeps its keyboard
+Owner notes on round 2, shipped in `7a505a7` / `094a540`:
+- **The leaf focus ring is OFF every calm-form box** (owner: "I don't want the green outline
+  on boxes. it still shows on phone"): inputs match :focus-visible even on tap, so the ring
+  flashed green on every touch. The caret + floating label are the field's focus state now.
+  Buttons and links KEEP their rings (keyboard travel); the round-2 outline-solid fix still
+  matters there. FloatField, trivia box and the phone shell all cleaned.
+- **Autofocus is desktop-only**: useDeferredAutofocus gates on `(hover:hover) and
+  (pointer:fine)`, so phones never get the keyboard summoned on arrival (owner: "the keyboard
+  takes up half a page"). Covers login, signup, trivia, forgot (its raw autoFocus converted to
+  the hook), reset. Composer/menus/lab autofocts untouched (post-tap, wanted).
+- **Batch InfoTip stacking fixed** (owner: "the i to explain batches goes behind the UI"):
+  every form row is a transformed motion.div = its own stacking context, so later rows painted
+  over the bubble regardless of z-index. The years row now carries `relative z-10`; verified
+  via elementFromPoint at the bubble's center.
+- **Forgot + reset password swept into the calm form** (owner: "do a thorough job like the
+  forgot password page... look through and make sure"): PasswordField rebuilt on FloatField
+  (8-char rule as focus hint, not a grey line), reset's two fields ride it (reset KEEPS its
+  confirm field - choosing an unseen new password is where confirm earns its place),
+  forgot's email is a FloatField and its ask-subtitle died, AuthPanel widened 360->400,
+  AuthHeading paragraph optional (kept where it informs: sent-to address, dead-link reasons,
+  reset account). verify-email checked: no inputs, no work needed. Onboarding (/welcome) is a
+  different surface, not swept - flag if wanted.
+- All verified live at 1440x900 + 390x844 (rings gone while focused, tip above rows, zero
+  autofocus under touch emulation, dead-link state, forgot both viewports). `npm run check`
+  green. Not pushed.
+
 ## Session 2026-08-14 (round 2) — Login joins the calm form; toggle animates both ways; mist
 Owner follow-ups on the signup redesign, shipped in `e555fde` / `4c931a2` / `12a1bac`:
 - **The expand snap is fixed.** auto-animate FLIPs siblings on row REMOVAL but drops them
