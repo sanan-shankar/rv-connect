@@ -79,12 +79,13 @@ export function FloatField({
         className={cn(
           FIELD_SHELL,
           FIELD_PAD,
+          // No focus ring, on purpose (owner, 2026-08-14: "I don't want the
+          // green outline on boxes" - inputs match :focus-visible even on a
+          // tap, so the ring flashed on every touch). The field's focus
+          // state is the caret plus the label floating up; buttons and links
+          // keep their rings for keyboard travel.
           "peer min-w-0 text-base text-foreground outline-none",
           "placeholder:text-muted-foreground/70 placeholder:opacity-0 placeholder:transition-opacity placeholder:duration-200 focus:placeholder:opacity-100",
-          // outline-solid is load-bearing: `outline-none` above kills the v4
-          // --tw-outline-style variable and `outline-2` only restores width
-          // (see button.tsx for the full note).
-          "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
           "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-mist)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]",
           trailing && "pr-11",
           className

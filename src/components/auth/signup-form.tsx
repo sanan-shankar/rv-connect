@@ -154,10 +154,9 @@ function PhoneField({
 
   return (
     <div
-      className={cn(
-        FIELD_SHELL,
-        "relative focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring"
-      )}
+      // No focus-within ring: same owner call as FloatField. The label
+      // floating and the +91 fading in are this box's focus state.
+      className={cn(FIELD_SHELL, "relative")}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocused(false);
@@ -389,7 +388,12 @@ export function SignupForm({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ ...SPRINGS.snappy, ...rowTransition }}
-            className="grid grid-cols-3 gap-3"
+            // z-10: every row here is a motion.div, and a transformed sibling
+            // forms its own stacking context, so later rows painted OVER the
+            // batch InfoTip's bubble no matter its z-index (owner: "the i to
+            // explain batches goes behind the UI"). Lifting the whole years
+            // row wins against the z-auto siblings below it.
+            className="relative z-10 grid grid-cols-3 gap-3"
           >
             <YearInput
             id="yearJoined"

@@ -33,6 +33,17 @@ import { useEffect, useRef } from "react";
 export function useDeferredAutofocus<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   useEffect(() => {
+    // DESKTOP ONLY (owner, 2026-08-14): on a phone, focusing a field summons
+    // the keyboard over half the page before the visitor has asked for
+    // anything ("it's annoying when it randomly gets summoned"). A device
+    // with a real pointer just gets a ready caret; touch devices wait for a
+    // tap. Same `(hover: hover) and (pointer: fine)` gate the InfoTip uses
+    // to tell the two input worlds apart.
+    try {
+      if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    } catch {
+      return;
+    }
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => ref.current?.focus({ preventScroll: true }));

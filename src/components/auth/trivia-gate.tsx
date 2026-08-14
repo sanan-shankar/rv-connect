@@ -113,9 +113,10 @@ export function TriviaGate({
           ref={answerFocusRef}
           className={cn(
             FIELD_SHELL,
+            // No focus ring, same owner call as FloatField: the caret is the
+            // focus state on a text box.
             "px-4 text-center text-base text-foreground outline-none",
             "placeholder:text-muted-foreground",
-            "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-mist)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]"
           )}
         />
