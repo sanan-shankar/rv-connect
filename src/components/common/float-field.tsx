@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
  *  <FloatField> - the calm signup field (owner reference: Revolut's
  *  "bank account details" form, 2026-08-14). One piece of text per box:
  *  the label lives INSIDE the field and floats up small once the field
- *  is focused or filled, so a resting form shows nothing but soft paper
+ *  is focused or filled, so a resting form shows nothing but soft mist
  *  boxes that each say one thing. No external labels, no permanent
  *  placeholder text, no helper paragraphs.
  *
  *  Geometry: 56px box, 12px input radius (the system's input rung),
- *  paper fill with no border (the hairline earns nothing on a filled
+ *  mist fill with no border (the hairline earns nothing on a filled
  *  field; focus draws the one leaf ring instead). The float is
  *  TRANSFORM-ONLY (translate + scale about the left-center origin), so
  *  it honours "only transform and opacity animate": the label never
@@ -24,13 +24,17 @@ import { cn } from "@/lib/utils";
  *  "has a value"), and on :autofill - Chrome fills saved details
  *  without firing focus, and a filled value under a resting label reads
  *  as two texts collided. Same reason the autofill background is pinned
- *  back to paper: the default yellow wash breaks the one-material row.
+ *  back to mist: the default yellow wash breaks the one-material row.
  * ------------------------------------------------------------------ */
 
 /** Shared shell for FloatField and bespoke composites (the signup phone
- *  field builds on these so both stay one material). */
+ *  field builds on these so both stay one material). Mist, not paper: the
+ *  owner's read of the paper version was "the white typing box", and the
+ *  ladder agrees - paper is a card surface, mist is the well you put
+ *  something into. On the page background mist sits +2.6 dL*, clearly a
+ *  box, without the white-slab glare (2026-08-14). */
 export const FIELD_SHELL =
-  "h-14 w-full rounded-[var(--radius-input)] bg-paper";
+  "h-14 w-full rounded-[var(--radius-input)] bg-mist";
 
 /** Label base: absolute, vertically centred, ready to transform. */
 export const FLOAT_LABEL_BASE =
@@ -77,8 +81,11 @@ export function FloatField({
           FIELD_PAD,
           "peer min-w-0 text-base text-foreground outline-none",
           "placeholder:text-muted-foreground/70 placeholder:opacity-0 placeholder:transition-opacity placeholder:duration-200 focus:placeholder:opacity-100",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-          "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-paper)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]",
+          // outline-solid is load-bearing: `outline-none` above kills the v4
+          // --tw-outline-style variable and `outline-2` only restores width
+          // (see button.tsx for the full note).
+          "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+          "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-mist)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]",
           trailing && "pr-11",
           className
         )}

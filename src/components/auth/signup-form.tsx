@@ -6,7 +6,6 @@ import { Eye, EyeOff, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { SPRINGS } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import {
@@ -235,9 +234,17 @@ export function SignupForm({
   // See use-deferred-autofocus.ts for the measurements.
   const firstNameFocusRef = useDeferredAutofocus<HTMLInputElement>();
 
-  // The one list-like container here: the years row and the error line come
-  // and go, and auto-animate slides their neighbours instead of snapping.
-  const [formRef] = useAutoAnimate<HTMLFormElement>();
+  // The years row and the error line come and go, and their neighbours must
+  // glide both ways. auto-animate only managed one: it FLIPs remaining
+  // siblings when a row is REMOVED, but on insertion it drops them straight
+  // at their new positions (measured: shrink eased over ~250ms, expand
+  // jumped 68px in one frame). So the choreography is Motion's instead:
+  // every row below the toggle carries `layout`, and the conditional rows
+  // mount through AnimatePresence in popLayout mode, which lifts the
+  // exiting row out of flow so the siblings' slide and its fade happen
+  // together - the same simultaneous feel in both directions, transforms
+  // and opacity only.
+  const rowTransition = { layout: SPRINGS.snappy };
 
   // Phone, collected right here at the first step so it never feels like a
   // later afterthought. Country code defaults to +91 but is a free, editable
@@ -355,7 +362,8 @@ export function SignupForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="mt-5 space-y-3 text-left">
+    // `relative` anchors popLayout's absolutely-positioned exiting rows.
+    <form onSubmit={handleSubmit} className="relative mt-5 space-y-3 text-left">
       {/* Who you are comes first, and the choice needs no caption: the two
           answers say it themselves. The fields it governs appear directly
           below it, so cause and effect share a sightline, and everything
@@ -369,12 +377,21 @@ export function SignupForm({
         segments={ACCOUNT_TYPES.map((t) => ({ key: t.value, label: t.label }))}
         value={accountType}
         onChange={setAccountType}
-        className="bg-paper"
+        className="bg-mist"
       />
 
-      {isAlum && (
-        <div className="grid grid-cols-3 gap-3">
-          <YearInput
+      <AnimatePresence mode="popLayout" initial={false}>
+        {isAlum && (
+          <motion.div
+            key="years"
+            layout
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ ...SPRINGS.snappy, ...rowTransition }}
+            className="grid grid-cols-3 gap-3"
+          >
+            <YearInput
             id="yearJoined"
             name="yearJoined"
             label="Joined"
@@ -408,10 +425,11 @@ export function SignupForm({
               </InfoTip>
             }
           />
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="grid grid-cols-2 gap-3">
+      <motion.div layout transition={rowTransition} className="grid grid-cols-2 gap-3">
         <FloatField
           id="firstName"
           name="firstName"
@@ -431,20 +449,23 @@ export function SignupForm({
           minLength={1}
           onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
         />
-      </div>
+      </motion.div>
 
-      <FloatField
-        id="email"
-        name="email"
-        type="email"
-        label="Email"
-        autoComplete="email"
-        required
-        onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 26))}
-      />
+      <motion.div layout transition={rowTransition}>
+        <FloatField
+          id="email"
+          name="email"
+          type="email"
+          label="Email"
+          autoComplete="email"
+          required
+          onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 26))}
+        />
+      </motion.div>
 
-      <FloatField
-        id="password"
+      <motion.div layout transition={rowTransition}>
+        <FloatField
+          id="password"
         name="password"
         type={showPw ? "text" : "password"}
         label="Password"
@@ -462,32 +483,52 @@ export function SignupForm({
             type="button"
             onClick={() => setShowPw((s) => !s)}
             aria-label={showPw ? "Hide password" : "Show password"}
-            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            // state-layer, matching /login's reveal button: an ink darkening
+            // alone is easy to miss on a 32px target, and the same class
+            // carries the press state.
+            className="state-layer grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
           </button>
         }
       />
+      </motion.div>
 
       {/* Optional, never verified; the value the server reads. */}
       <input type="hidden" name="phone" value={phoneValue} />
-      <PhoneField
-        countryCode={countryCode}
-        onCountryCode={setCountryCode}
-        digits={phoneDigits}
-        onDigits={setPhoneDigits}
-      />
+      <motion.div layout transition={rowTransition}>
+        <PhoneField
+          countryCode={countryCode}
+          onCountryCode={setCountryCode}
+          digits={phoneDigits}
+          onDigits={setPhoneDigits}
+        />
+      </motion.div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <AnimatePresence mode="popLayout" initial={false}>
+        {error && (
+          <motion.p
+            key="error"
+            layout
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ ...SPRINGS.snappy, ...rowTransition }}
+            className="text-sm text-destructive"
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {/* 12 from the list + 4 here = 16 before the CTA, the same breath the
           trivia step gives its Check button, and one step up from the 12px
           field rhythm (the action is related to the fields, not one of them). */}
-      <div className="pt-1">
+      <motion.div layout transition={rowTransition} className="pt-1">
         <Button type="submit" variant="primary" size="lg" className="w-full" disabled={loading}>
           {loading ? "Joining..." : "Join"}
         </Button>
-      </div>
+      </motion.div>
     </form>
   );
 }
