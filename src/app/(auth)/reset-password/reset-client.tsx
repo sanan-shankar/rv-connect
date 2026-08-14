@@ -169,6 +169,7 @@ export function ResetPasswordClient({
                 they already could not do. */}
             <Button
               variant="primary"
+              size="lg"
               className="w-full"
               nativeButton={false}
               render={<Link href="/forgot-password" />}
@@ -201,14 +202,13 @@ export function ResetPasswordClient({
               Pick something you will remember.
             </AuthHeading>
 
-            <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
+            <form onSubmit={handleSubmit} className="space-y-3 text-left">
+              {/* The 8-character rule rides the focus hint ("8+ characters",
+                  the PasswordField default): it appears exactly when the
+                  caret does, instead of sitting under the field as a
+                  permanent grey line. */}
               <PasswordField
                 label="New password"
-                // Not "At least 8 characters": that is what the hint below
-                // already says, and a placeholder disappears the moment you
-                // start typing, so the rule would vanish exactly when it
-                // starts being enforced. The hint carries the rule and stays.
-                placeholder="Your new password"
                 value={password}
                 onChange={(v) => {
                   setPassword(v);
@@ -216,11 +216,10 @@ export function ResetPasswordClient({
                 }}
                 onRevealChange={onReveal}
                 autoFocus
-                hint="At least 8 characters."
               />
               <PasswordField
                 label="Type it again"
-                placeholder="The same one"
+                focusHint="The same one"
                 value={confirm}
                 onChange={(v) => {
                   setConfirm(v);
@@ -229,14 +228,17 @@ export function ResetPasswordClient({
                 onRevealChange={onReveal}
               />
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button
-                type="submit"
-                variant="primary"
-                className="mt-2 w-full"
-                disabled={busy}
-              >
-                {busy ? "Saving..." : "Save and sign me in"}
-              </Button>
+              <div className="pt-1">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  disabled={busy}
+                >
+                  {busy ? "Saving..." : "Save and sign me in"}
+                </Button>
+              </div>
             </form>
           </motion.div>
         )}
