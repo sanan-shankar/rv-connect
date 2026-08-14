@@ -55,7 +55,14 @@ const buttonVariants = cva(
   // and would show a wrong-coloured halo on the other two. The gap matters
   // because a green ring drawn straight onto a canopy-filled button is 1.78:1
   // against its own fill; the transparent 2px gap is what separates them.
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-pop focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  // focus-visible:outline-solid is load-bearing, not belt-and-suspenders: in
+  // Tailwind v4 `outline-none` zeroes the --tw-outline-style custom property
+  // on the element itself, and `focus-visible:outline-2` only restores the
+  // WIDTH (its style reads that same variable). Without the explicit solid,
+  // the focus ring resolves 2px of leaf at the right offset and a style of
+  // `none`, i.e. keyboard focus is invisible - which it silently was on every
+  // Button until 2026-08-14.
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-pop focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
