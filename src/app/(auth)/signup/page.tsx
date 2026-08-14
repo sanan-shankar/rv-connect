@@ -315,14 +315,21 @@ export default function SignupPage() {
 
         <motion.div
           ref={entranceRef}
-          // Top-anchored, not centred: `my-auto` re-centred the column every
+          // Anchoring is per step. The short trivia step centres (`my-auto`);
+          // one fixed anchor for both left it hanging high over a void, the
+          // owner's "spaced weird, not in the middle". The register step is
+          // top-anchored, because `my-auto` there re-centred the column every
           // time its height changed, so flipping Alumnus/Teacher moved the
           // very control being clicked (and on mobile the shrinking page
-          // yanked the scroll position with it - the owner's "scrolling keeps
-          // repositioning" bug). A fixed top edge means the bird and title
-          // never move across the trivia -> register swap either; the form
-          // only ever grows downward, where growth is expected.
-          className="mt-[8vh] mb-auto w-full max-w-[400px] self-center text-center"
+          // yanked the scroll with it). `layout="position"` glides the column
+          // between the two anchors at the step swap - position only, never
+          // size, which is the stretch-free variant - so the bird rises to
+          // make room for the form instead of teleporting.
+          layout="position"
+          className={cn(
+            "w-full max-w-[400px] self-center text-center",
+            step === "trivia" ? "my-auto" : "mt-[8vh] mb-auto"
+          )}
           initial={{ opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
@@ -354,12 +361,11 @@ export default function SignupPage() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={SPRINGS.gentle}
               >
+                {/* No subtitle here either (owner, 2026-08-14): the question
+                    IS the explanation. */}
                 <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
                   First, a quick check
                 </h1>
-                <p className="mx-auto mb-6 mt-2 max-w-[32ch] text-sm leading-relaxed text-muted-foreground">
-                  Answer this to prove you&apos;re one of us.
-                </p>
                 <TriviaGate hoopoe={hoopoe} onPass={() => setStep("register")} />
               </motion.div>
             ) : (

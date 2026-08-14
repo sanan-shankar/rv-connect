@@ -81,12 +81,14 @@ export function TriviaGate({
 
   return (
     <div>
-      <p className="mb-4 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
+      {/* mt-5 = the same 20px the register step puts between its title and
+          form, now that the subtitle between them is gone. */}
+      <p className="mt-5 mb-4 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
         {question?.question ?? "..."}
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* The same calm material as the register step's FloatFields (56px
-            paper, no hairline), built as a plain input on the shared shell
+            mist, no hairline), built as a plain input on the shared shell
             rather than overriding ui/Input: stacking border-none over its
             baked-in border renders right but is one careless edit from a
             hairline coming back, and its md:text-sm would undo the 16px
@@ -113,8 +115,8 @@ export function TriviaGate({
             FIELD_SHELL,
             "px-4 text-center text-base text-foreground outline-none",
             "placeholder:text-muted-foreground",
-            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-paper)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]"
+            "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            "autofill:[-webkit-box-shadow:0_0_0_1000px_var(--color-mist)_inset] autofill:[-webkit-text-fill-color:var(--color-foreground)]"
           )}
         />
         {error && <p className="text-center text-sm text-destructive">{error}</p>}
