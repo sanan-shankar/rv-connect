@@ -1,5 +1,36 @@
 # Progress Log
 
+## Session 2026-08-14 (round 2) — Login joins the calm form; toggle animates both ways; mist
+Owner follow-ups on the signup redesign, shipped in `e555fde` / `4c931a2` / `12a1bac`:
+- **The expand snap is fixed.** auto-animate FLIPs siblings on row REMOVAL but drops them
+  straight to place on INSERTION (frame-sampled: shrink eased ~250ms, expand jumped 68px in one
+  frame). Replaced with Motion layout rows + `AnimatePresence mode="popLayout"` for the years
+  row and error line: both directions now interpolate identically (28 frames each way, snappy
+  spring), segmented control still moves 0px. Same choreography on login's admin-hide and error.
+- **Trivia step re-centred** (owner: "spaced weird, not in the middle"): anchoring is per step
+  now - trivia `my-auto`, register `mt-[8vh]` - with `layout="position"` gliding the column
+  between anchors at the swap (bird eases 279->118 over ~23 frames, no teleport). Trivia's
+  "Answer this to prove you're one of us." deleted; question sits mt-5 under the title.
+- **Paper -> mist everywhere in the calm forms** (owner: "not liking the white typing box"):
+  `FIELD_SHELL`, segmented track, autofill inset shadows. Mist is +2.6 dL* on the page (auditor
+  corrected my +3.5 claim), the well-you-type-into rung, no white-slab glare. DESIGN-SYSTEM.md
+  §3 updated.
+- **/login rebuilt on FloatField** (`4c931a2`): no subtitle, two mist wells, 400px column
+  matching signup, "Forgot it?" right-aligned under the password box, lg canopy CTA, popLayout
+  rows. Flight/perch/admin machinery untouched; admin bypass, wrong-password error and
+  forgot-password email carry all re-verified live.
+- **App-wide a11y catch** (`12a1bac`): keyboard focus rings on every `Button` and `Input` were
+  INVISIBLE - Tailwind v4's `outline-none` zeroes `--tw-outline-style` and
+  `focus-visible:outline-2` only restores width, so rings resolved 2px leaf with style:none.
+  Screenshot-qa caught it probing computed styles; fixed with `focus-visible:outline-solid` on
+  both primitives + FloatField + trivia input. NOTE for a future sweep: any other element
+  pairing `outline-none` with `focus-visible:outline-*` outside these primitives has the same
+  dead ring.
+- QA: 2 screenshot-qa (login desktop/mobile) + design-protocol-auditor, all findings applied
+  (dL* figure, stale paper comments, line-height slack on Forgot-it). `npm run check` green.
+- Still parked for owner calls: SegmentedPills 32px tap target, 20px Back link, login/signup
+  CTA at 44px vs 56px fields.
+
 ## Session 2026-08-14 — Signup goes calm (Revolut reference) + landing frost timing
 Owner asked for the join page to stop feeling crowded and daunting, retitled to "A bit about
 yourself", subtitle gone, and sent the Revolut "bank account details" reel as the target: soft
