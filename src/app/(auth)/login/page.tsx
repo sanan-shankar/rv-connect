@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatField } from "@/components/common/float-field";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
@@ -27,6 +26,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPw, setShowPw] = useState(false);
+  // Same row choreography as the signup form: rows glide on the snappy
+  // spring when a sibling appears or leaves.
+  const rowTransition = { layout: SPRINGS.snappy };
 
   // One-shot flag: the landing "Sign in" transition sets this session flag
   // right before it pushes here, purely so the handoff machinery below can
@@ -461,7 +463,8 @@ export default function LoginPage() {
 
         <motion.div
           ref={entranceRef}
-          className="my-auto w-full max-w-[360px] self-center text-center"
+          // 400px, matching /signup, so the two auth pages are one column.
+          className="my-auto w-full max-w-[400px] self-center text-center"
           initial={{ opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
@@ -486,20 +489,24 @@ export default function LoginPage() {
               <Hoopoe ref={hoopoeRef} size={102} onReady={onHoopoeReady} idle={hoopoeShown} />
             </div>
           </div>
+          {/* No subtitle: same calm-form language as /signup (owner,
+              2026-08-14) - one heading, fields that say their own names,
+              no grey prose. */}
           <h1 className="font-heading text-[27px] leading-tight tracking-tight text-foreground">
             Welcome back
           </h1>
-          <p className="mx-auto mt-2 mb-7 max-w-[30ch] text-sm leading-relaxed text-muted-foreground">
-            Sign in to reconnect with the people who grew up under the same trees.
-          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
+          {/* `relative` anchors popLayout's exiting rows; rows carry `layout`
+              so the password block vanishing (admin email) and the error line
+              arriving glide their neighbours instead of snapping - the same
+              choreography as the signup form. */}
+          <form onSubmit={handleSubmit} className="relative mt-5 space-y-3 text-left">
+            <motion.div layout transition={rowTransition}>
+              <FloatField
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                label="Email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -509,38 +516,22 @@ export default function LoginPage() {
                 required
                 ref={emailFocusRef}
               />
-            </div>
-            {!isAdmin && (
-              <div className="space-y-1.5">
-                {/* Label and the way out, on one line. The reset link belongs
-                    beside the field that is failing them, not buried under the
-                    submit button: by the time somebody is looking for it they
-                    have already typed a password that did not work, and their
-                    eyes are on this row. */}
-                <div className="flex items-baseline justify-between gap-3">
-                  <Label htmlFor="password">Password</Label>
-                  {/* Carries whatever is already in the email box. By the time
-                      somebody clicks this they have typed their address and had
-                      a password rejected; making them type it again ten seconds
-                      later, on the screen they reached because something went
-                      wrong, reads as an app that is not paying attention
-                      (owner, 2026-08-12). */}
-                  <Link
-                    href={
-                      email.trim()
-                        ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
-                        : "/forgot-password"
-                    }
-                    className="rounded-sm text-[12.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    Forgot it?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Input
+            </motion.div>
+            <AnimatePresence mode="popLayout" initial={false}>
+              {!isAdmin && (
+                <motion.div
+                  key="password"
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ ...SPRINGS.snappy, ...rowTransition }}
+                >
+                  <FloatField
                     id="password"
                     type={showPw ? "text" : "password"}
-                    placeholder="Your password"
+                    label="Password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
@@ -550,31 +541,65 @@ export default function LoginPage() {
                     }}
                     required
                     minLength={8}
-                    className="pr-10"
+                    trailing={
+                      <button
+                        type="button"
+                        onClick={() => setShowPw((s) => !s)}
+                        aria-label={showPw ? "Hide password" : "Show password"}
+                        // state-layer gives the reveal button the fill it never had:
+                        // an ink darkening alone is easy to miss on a 32px target,
+                        // and the same class carries the press state.
+                        className="state-layer grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
+                    }
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((s) => !s)}
-                    aria-label={showPw ? "Hide password" : "Show password"}
-                    // state-layer gives the reveal button the fill it never had:
-                    // an ink darkening alone is easy to miss on a 32px target,
-                    // and the same class carries the press state.
-                    className="state-layer absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-            )}
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button
-              type="submit"
-              variant="primary"
-              className="mt-2 w-full"
-              disabled={loading}
-            >
-              {loading ? "Signing in..." : "Sign in"}
-            </Button>
+                  {/* The way out sits right under the field that is failing
+                      them: by the time somebody wants this they have typed a
+                      password that did not work, and their eyes are here (the
+                      floating label leaves no label row for it to share).
+                      Carries whatever is already in the email box - retyping
+                      an address ten seconds after a rejection reads as an app
+                      that is not paying attention (owner, 2026-08-12). */}
+                  {/* leading-none trims the inherited 24px line box around a
+                      12.5px link, which was adding ~4px of phantom air to the
+                      coded 6px gap above it. */}
+                  <div className="mt-1.5 text-right leading-none">
+                    <Link
+                      href={
+                        email.trim()
+                          ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
+                          : "/forgot-password"
+                      }
+                      className="rounded-sm text-[12.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      Forgot it?
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <AnimatePresence mode="popLayout" initial={false}>
+              {error && (
+                <motion.p
+                  key="error"
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ ...SPRINGS.snappy, ...rowTransition }}
+                  className="text-sm text-destructive"
+                >
+                  {error}
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <motion.div layout transition={rowTransition} className="pt-1">
+              <Button type="submit" variant="primary" size="lg" className="w-full" disabled={loading}>
+                {loading ? "Signing in..." : "Sign in"}
+              </Button>
+            </motion.div>
           </form>
 
           <p className="mt-6 text-sm text-muted-foreground">
