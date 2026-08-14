@@ -156,7 +156,9 @@ export function AuthPanel({
         </Link>
 
         <motion.div
-          className="my-auto w-full max-w-[360px] self-center text-center"
+          // 400px, the shared auth column: /login and /signup moved there
+          // with the calm-form redesign, and these three ride along.
+          className="my-auto w-full max-w-[400px] self-center text-center"
           initial={{ opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
@@ -183,7 +185,12 @@ export function AuthHeading({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  /** Optional since the calm-form pass: a page whose fields already say
+   *  everything passes no children and gets just the title. The paragraph
+   *  survives where it carries REAL information (where a link went, why a
+   *  link died, whose account is being reset) - that is content, not the
+   *  decorative subtitle the owner removed from /signup and /login. */
+  children?: React.ReactNode;
 }) {
   return (
     <>
@@ -195,9 +202,11 @@ export function AuthHeading({
           not arrive), and at 30ch that ran to four lines with a two-word
           orphan on the last. 34 is still inside a comfortable measure and
           breaks the same copy into three balanced lines. */}
-      <p className="mx-auto mt-2 mb-7 max-w-[34ch] text-sm leading-relaxed text-muted-foreground">
-        {children}
-      </p>
+      {children && (
+        <p className="mx-auto mt-2 mb-7 max-w-[34ch] text-sm leading-relaxed text-muted-foreground">
+          {children}
+        </p>
+      )}
     </>
   );
 }

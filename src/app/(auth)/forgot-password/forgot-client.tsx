@@ -4,8 +4,8 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatField } from "@/components/common/float-field";
+import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { AuthHeading, AuthPanel } from "@/components/auth/auth-panel";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
@@ -39,6 +39,10 @@ export function ForgotPasswordClient({ initialEmail }: { initialEmail: string })
   const [email, setEmail] = useState(initialEmail);
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  // Desktop-only deferred focus; attached only when the box arrived empty.
+  // Arriving from sign-in it is already filled, and stealing focus there
+  // would put a caret in a field nobody needs to touch.
+  const emailFocusRef = useDeferredAutofocus<HTMLInputElement>();
 
   // Arrival: the bird leans in, crest up. `curious` is the listening pose, and
   // this page's whole content is one question put to the visitor.
@@ -84,43 +88,41 @@ export function ForgotPasswordClient({ initialEmail }: { initialEmail: string })
             exit={{ opacity: 0, y: -8 }}
             transition={SPRINGS.gentle}
           >
-            <AuthHeading title="Forgot your password?">
-              Enter your email and we will send you a link to reset it.
-            </AuthHeading>
+            {/* No subtitle (the calm-form language): the Email box and the
+                "Send reset link" button say the whole sentence the old grey
+                line said. */}
+            <AuthHeading title="Forgot your password?" />
 
-            <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  autoComplete="email"
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    // The bird follows the address as it is typed, the same
-                    // gesture the sign-in form uses, so the two pages feel like
-                    // one continuous animal rather than two mascots.
-                    hoopoe.gaze(
-                      Math.max(-1, Math.min(1, (e.target.value.length / 22) * 2 - 1)),
-                    );
-                  }}
-                  required
-                  // Focus the box only when it is empty. Arriving from sign-in
-                  // it is already filled, and stealing focus there would put a
-                  // caret in a field nobody needs to touch.
-                  autoFocus={initialEmail === ""}
-                />
+            <form onSubmit={handleSubmit} className="mt-5 space-y-3 text-left">
+              <FloatField
+                id="email"
+                type="email"
+                label="Email"
+                value={email}
+                autoComplete="email"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // The bird follows the address as it is typed, the same
+                  // gesture the sign-in form uses, so the two pages feel like
+                  // one continuous animal rather than two mascots.
+                  hoopoe.gaze(
+                    Math.max(-1, Math.min(1, (e.target.value.length / 22) * 2 - 1)),
+                  );
+                }}
+                required
+                ref={initialEmail === "" ? emailFocusRef : undefined}
+              />
+              <div className="pt-1">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  disabled={sending}
+                >
+                  {sending ? "Sending..." : "Send reset link"}
+                </Button>
               </div>
-              <Button
-                type="submit"
-                variant="primary"
-                className="mt-2 w-full"
-                disabled={sending}
-              >
-                {sending ? "Sending..." : "Send reset link"}
-              </Button>
             </form>
 
             <p className="mt-6 text-sm text-muted-foreground">

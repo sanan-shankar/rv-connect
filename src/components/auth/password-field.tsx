@@ -2,45 +2,48 @@
 
 import { useId, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatField } from "@/components/common/float-field";
+import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 
 /**
- * A password input with the reveal toggle, in the register /login already
- * uses. Extracted so the reset page cannot drift from it: same 12px field,
- * same 32px reveal button carrying the state layer, same right padding so the
- * text never runs under the eye.
+ * A password box in the calm-form material: the label floats inside the
+ * mist field, the reveal toggle sits in its right edge, and any rule worth
+ * stating ("8+ characters") appears as the focus-time hint instead of a
+ * permanent grey line. Extracted so the reset page cannot drift from what
+ * /login and /signup draw.
  *
  * `onRevealChange` is what the hoopoe listens to. The bird's wings are driven
  * by whether the password is VISIBLE, not by focus or by typing, so the
  * component reports that one fact and the page decides what the mascot does
  * with it.
+ *
+ * `autoFocus` goes through useDeferredAutofocus: it never forces a layout in
+ * the commit, and it only fires on devices with a real pointer - a phone
+ * waits for the tap instead of summoning the keyboard (owner, 2026-08-14).
  */
 export function PasswordField({
   label,
   value,
   onChange,
   onRevealChange,
-  placeholder = "At least 8 characters",
+  focusHint = "8+ characters",
   autoComplete = "new-password",
   autoFocus,
   minLength = 8,
-  hint,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   onRevealChange?: (revealed: boolean) => void;
-  placeholder?: string;
+  /** Shown as the placeholder only while the field is focused and empty. */
+  focusHint?: string;
   autoComplete?: string;
   autoFocus?: boolean;
   minLength?: number;
-  /** Small line under the field. Used for the strength floor, so the rule is
-   *  stated before it is enforced rather than as an error after a failed try. */
-  hint?: string;
 }) {
   const id = useId();
   const [shown, setShown] = useState(false);
+  const focusRef = useDeferredAutofocus<HTMLInputElement>();
 
   function toggle() {
     const next = !shown;
@@ -49,33 +52,29 @@ export function PasswordField({
   }
 
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="relative">
-        <Input
-          id={id}
-          type={shown ? "text" : "password"}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          autoComplete={autoComplete}
-          autoFocus={autoFocus}
-          required
-          minLength={minLength}
-          className="pr-10"
-        />
+    <FloatField
+      id={id}
+      type={shown ? "text" : "password"}
+      label={label}
+      focusHint={focusHint}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      autoComplete={autoComplete}
+      ref={autoFocus ? focusRef : undefined}
+      required
+      minLength={minLength}
+      trailing={
         <button
           type="button"
           onClick={toggle}
           aria-label={shown ? "Hide password" : "Show password"}
           // state-layer, matching /login: an ink darkening alone is easy to
           // miss on a 32px target, and the same class carries the press.
-          className="state-layer absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="state-layer grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {shown ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </button>
-      </div>
-      {hint && <p className="text-[12.5px] leading-snug text-muted-foreground">{hint}</p>}
-    </div>
+      }
+    />
   );
 }
