@@ -129,6 +129,13 @@ export function overdueEditionWhere(now: Date) {
  * Deliberately six `count()`s and not one clever aggregate: they hit six
  * different tables, they run concurrently, and each one is an index lookup.
  * The thing this replaces fetched every row of three of them.
+ *
+ * On the Overview route these six counts run alongside `loadWorklist()`, which
+ * queries the same six predicates for rows. That overlap is deliberate and is
+ * the cheaper of the two options: the alternative is for every one of the
+ * other ten admin routes to fetch worklist ROWS just so the rail can report a
+ * length, which would trade six index counts for six `findMany`s on every
+ * page. The rail is fed by the layout because the rail is in the layout.
  */
 export async function worklistCounts(): Promise<WorklistCounts> {
   const now = new Date();

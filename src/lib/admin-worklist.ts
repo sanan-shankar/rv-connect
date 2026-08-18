@@ -1,5 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-
 /** One thing waiting for you, whatever kind of thing it is. */
 export interface WorkItem {
   key: string;
@@ -35,5 +33,3 @@ export const QUEUE_TONE: Record<WorkItem["queue"], "warn" | "bad" | "info"> = {
   mail: "bad",
   catchup: "warn",
 };
-
-export type QueueIcons = Record<WorkItem["queue"], LucideIcon>;

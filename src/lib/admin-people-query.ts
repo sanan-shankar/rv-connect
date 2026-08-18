@@ -36,7 +36,6 @@ const ROW_SELECT = {
   role: true,
   verifyState: true,
   isBlocked: true,
-  adminNote: true,
   emailVerified: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;
@@ -98,7 +97,6 @@ export async function loadPeoplePage(
       role: u.role,
       verifyState: u.verifyState,
       isBlocked: u.isBlocked,
-      hasNote: Boolean(u.adminNote?.trim()),
       emailState: u.emailVerified ? "confirmed" : mailState(latest.get(u.id)),
       createdAt: u.createdAt.toISOString(),
     })),

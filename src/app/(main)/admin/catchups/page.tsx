@@ -51,7 +51,6 @@ export default async function AdminCatchupsPage() {
         title: true,
         status: true,
         cadence: true,
-        nextOpensAt: true,
         group: { select: { name: true, _count: { select: { members: true } } } },
         createdBy: { select: { id: true, name: true } },
         editions: {
