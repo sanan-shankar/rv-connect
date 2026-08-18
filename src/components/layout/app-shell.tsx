@@ -1,7 +1,6 @@
 import { Sidebar, type SidebarUser } from "./sidebar";
 import { KonamiEggs } from "./konami-eggs";
 import { ContentColumn } from "./content-column";
-import { SupportWoodMount } from "@/components/support/wood-mount";
 
 /**
  * AppShell: flush full-height sidebar + a warm content column with a faint
@@ -58,11 +57,6 @@ export function AppShell({
       <Sidebar user={user} unreadCount={unreadCount} demo={demo} />
       {/* pb on mobile clears the fixed bottom tab bar */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
-        {/* /support's bird field, mounted here rather than in the page so the
-            template's entrance transform never becomes its containing block
-            (see wood-mount.tsx). Renders null everywhere else. isAdmin only
-            feeds the temporary backdrop A/B button. */}
-        <SupportWoodMount isAdmin={user.role === "admin"} />
         {/* Padding rule (owner, 2026-07-30): the title's distance from the
             left edge EQUALS its distance from the top, at every breakpoint.
 

@@ -1639,3 +1639,24 @@ renders its field again (91 birds); mobile 390 clean. npm run check green throug
   (owner: the hoopoe "shouldn't be above the top of Support").
 - **Temporary backdrop A/B chip** (admin-only, bottom-right on /support): flips live between
   "solid + birds" and "valley photo, no birds". Marked for deletion once he calls the winner.
+
+# Session close — tree and no birds ships; the aviary parks in the lab
+
+The owner called it after the A/B: /support ships with the valley photo and no bird field. The
+solid-plus-birds design is PARKED, not deleted, per his ask that reviving it later must not mean
+re-tuning density and sizes:
+
+- The A/B chip and the wood's shell mount are gone entirely (his follow-up: parked code should not
+  ride in bundles it is not used by). wood.tsx's only consumer is now the lab reference at
+  /lab/support-ideas?v=aviary, so it tree-shakes out of every (main) page.
+- wood.tsx keeps every tuned number as parked (82-114px birds, fixed-density auto-fill cells,
+  arrangement seed 3, the clear reading lane, the title clearance) and its header carries the full
+  revival recipe, including the load-bearing lesson: mount from the APP SHELL, never the page,
+  because the page-transition template's transform becomes the containing block for an absolute
+  field and causes the re-anchor flash. The registry note on the lab room says the same.
+
+What /support ships as after today, in sum: the tree-photo backdrop, his pledge paragraph, the
+restored CostBar with the live recovery fill, the fourteen-bird plate with the spotlight, minimum
+contribution ₹500, payment success walking straight into /pick-bird (the /birds layout with
+selection and the sticky confirm), the pay-again-pick-again ledger on birdPickedAt, and the
+admin-only Change bird test door.

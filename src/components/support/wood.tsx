@@ -1,6 +1,27 @@
 "use client";
 
-/* The aviary behind /support, and behind the lab room it was promoted from:
+/* PARKED (owner, 2026-08-18). After a live A/B, /support ships with the
+ * valley photo and no birds; this field survives untouched because he wants
+ * the option back without re-tuning ("I should be able to get it to look
+ * like it does now"). Today its ONLY consumer is the lab reference at
+ * /lab/support-ideas?v=aviary, so it costs the app bundle nothing.
+ *
+ * TO REVIVE on /support, mount it from the APP SHELL, not from the page:
+ * in app-shell.tsx, first child of the `relative z-10` content div, render
+ * (behind a small usePathname === "/support" client wrapper):
+ *
+ *   <style>{`.valley-tree { display: none; }`}</style>   // solid backdrop
+ *   <SupportWood />
+ *
+ * The shell placement is load-bearing: (main)/template.tsx animates a
+ * TRANSFORM for the page entrance, and a transformed ancestor becomes the
+ * containing block for absolutely-positioned descendants, so mounted from
+ * the page this field spends the entrance trapped in the 768px column and
+ * visibly re-anchors when the transform clears. Every tuned number below
+ * (bird size, fixed-density cells, the arrangement seed, the clear lane,
+ * the title clearance) is current as parked.
+ *
+ * The aviary behind /support, and behind the lab room it was promoted from:
  * a fixed field of the site's own bird glyphs that the page scrolls over,
  * the same register as the valley photo every (main) page already has.
  *
