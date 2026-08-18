@@ -854,10 +854,25 @@ export function LetterheadProfile({
                         className="mt-[var(--lh-gap)] font-heading font-bold tracking-[-0.03em] text-foreground"
                         style={{ fontSize: "var(--lh-name)", lineHeight: 1.05 }}
                       >
-                        {user.name}
-                        <span className="ml-2.5 inline-flex align-baseline">
-                          <VerifiedMark user={user} size={16} />
-                        </span>
+                        {/* The leaf rides in a no-wrap group with the name's
+                            LAST word: a long name used to push just the leaf
+                            onto a line of its own under itself. Now the pair
+                            wraps together or not at all. */}
+                        {(() => {
+                          const words = user.name.trim().split(/\s+/);
+                          const last = words.pop();
+                          return (
+                            <>
+                              {words.length > 0 && `${words.join(" ")} `}
+                              <span className="whitespace-nowrap">
+                                {last}
+                                <span className="ml-2.5 inline-flex align-baseline">
+                                  <VerifiedMark user={user} size={16} />
+                                </span>
+                              </span>
+                            </>
+                          );
+                        })()}
                       </h1>
                     )}
                   </div>
