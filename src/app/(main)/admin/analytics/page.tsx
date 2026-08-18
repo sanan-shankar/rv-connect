@@ -66,7 +66,7 @@ const PLANNED: { question: string; source: string; ready: boolean }[] = [
  */
 export default function AdminAnalyticsPage() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <PageHeader title="Analytics" />
 
       <p className="max-w-2xl text-[14px] leading-relaxed text-foreground">

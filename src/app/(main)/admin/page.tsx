@@ -19,7 +19,7 @@ import { mailHealth } from "@/lib/email-queue";
 import { loadWorklist } from "@/lib/admin-worklist-query";
 import { QUEUE_LABEL, QUEUE_TONE, type WorkItem } from "@/lib/admin-worklist";
 import { Chip } from "@/components/admin/admin-chip";
-import { AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
+import { ADMIN_MEASURE, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
 import { ADMIN_NAV } from "@/components/admin/admin-nav";
 import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
 import { formatTimeAgo } from "@/lib/utils";
@@ -77,7 +77,7 @@ export default async function AdminOverviewPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={`flex flex-col gap-6 ${ADMIN_MEASURE}`}>
       <PageHeader
         title="Admin"
         actions={isOwner(session.email) ? <TakeTourAgainButton /> : undefined}
@@ -122,9 +122,18 @@ export default async function AdminOverviewPage() {
         </StatStrip>
       </AdminSection>
 
-      {/* The rail carries these on a desktop, but a phone's rail is behind a
-          hamburger, so the sections have to be reachable from the page too. */}
-      <AdminSection label="Everything else" className="md:hidden">
+      {/* On a phone the rail is behind a hamburger, so the sections have to be
+          reachable from the page itself. On a desktop the rail already carries
+          them, so this is redundant on a busy day and hidden.
+
+          The exception is the day the worklist is empty, which is the day this
+          page is otherwise 290px of content in a 900px window. Then the same
+          list earns its place: it fills the room with the panel's own
+          navigation rather than with something invented to fill it. */}
+      <AdminSection
+        label="Everything else"
+        className={work.length === 0 ? undefined : "md:hidden"}
+      >
         <div className="flex flex-col gap-1.5">
           {ADMIN_NAV.flatMap((g) => g.sections)
             .filter((s) => s.href !== "/admin")

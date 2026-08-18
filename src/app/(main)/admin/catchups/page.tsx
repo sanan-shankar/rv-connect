@@ -3,12 +3,19 @@ import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { overdueEditionWhere } from "@/lib/admin";
-import { AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
+import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { Chip, type ChipTone } from "@/components/admin/admin-chip";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Catch-ups",
+};
+
+/* The Catch-up's own state, as opposed to its current Round's. Raw, these
+   render as lowercase "paused" and "ended", which is the column talking. */
+const SERIES_STATUS: Record<string, string> = {
+  paused: "Paused",
+  ended: "Ended",
 };
 
 /* The five states a Round moves through, in the words a person would use. */
@@ -113,7 +120,9 @@ export default async function AdminCatchupsPage() {
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-1">
-            {c.status !== "active" && <Chip label={c.status} tone="idle" />}
+            {c.status !== "active" && (
+              <Chip label={SERIES_STATUS[c.status] ?? c.status} tone="idle" />
+            )}
             {status && <Chip label={status.label} tone={isStuck ? "bad" : status.tone} />}
           </div>
         </div>
@@ -139,7 +148,7 @@ export default async function AdminCatchupsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={`flex flex-col gap-6 ${ADMIN_MEASURE}`}>
       <PageHeader title="Catch-ups" />
 
       <AdminSection label="Past its date" count={stuck.length}>
