@@ -301,17 +301,39 @@ export function SignupForm({
       mounted.current = true;
       let cancelled = false;
       const started = performance.now();
-      const tryTuck = () => {
+      const tuck = () => {
+        if (showPwRef.current) hoopoe.peek();
+        else hoopoe.coverEyes();
+      };
+      // Phase 1 waits for the first quiet moment to tuck. Phase 2 keeps
+      // watch: if ANYTHING animates the bird after the tuck (a flight
+      // handoff's late greet, a queued celebration, whatever a browser's
+      // timing lets through), the pose is re-asserted the moment that
+      // intruder finishes, so a stranded wing can survive at most one
+      // poll tick. The watch ends at 15s: by then the only writers left
+      // are the ambient breathe/blink/crest loop, which never touches
+      // wings. Re-tucking is idempotent — springs to values already held
+      // move nothing.
+      let tucked = false;
+      let sawBusySinceTuck = false;
+      const tick = () => {
         if (cancelled) return;
         const waited = performance.now() - started;
-        if ((waited >= 340 && !hoopoe.isBusy()) || waited > 8000) {
-          if (showPwRef.current) hoopoe.peek();
-          else hoopoe.coverEyes();
-          return;
+        const busy = hoopoe.isBusy();
+        if (!tucked) {
+          if ((waited >= 340 && !busy) || waited > 8000) {
+            tuck();
+            tucked = true;
+          }
+        } else if (busy) {
+          sawBusySinceTuck = true;
+        } else if (sawBusySinceTuck) {
+          sawBusySinceTuck = false;
+          tuck();
         }
-        timer = setTimeout(tryTuck, 120);
+        if (waited < 15000) timer = setTimeout(tick, tucked ? 250 : 120);
       };
-      let timer = setTimeout(tryTuck, 340);
+      let timer = setTimeout(tick, 340);
       return () => {
         cancelled = true;
         clearTimeout(timer);
