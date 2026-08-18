@@ -40,9 +40,14 @@ export default async function PickBirdPage() {
   ]);
 
   // Admins are let through without paying so the owner can walk the exact
-  // supporter flow at will; chooseBird carries the same exception. Everyone
-  // else arrives here only off the post-payment redirect.
-  if (session.user.role !== "admin" && myPaidPaise < PERK_MIN_PAISE) redirect("/support");
+  // supporter flow at will; chooseBird carries the same exception. Members
+  // need the paid sum, and once their one pick is spent (birdOverride set)
+  // the room is closed to them too: pay-now-pick-later stays possible for as
+  // long as the pick is unspent, and not a moment after. The real
+  // enforcement of both rules lives in chooseBird; this redirect only
+  // decides what a visitor sees.
+  const isAdmin = session.user.role === "admin";
+  if (!isAdmin && (myPaidPaise < PERK_MIN_PAISE || me?.birdOverride)) redirect("/support");
 
   const current = me?.birdOverride ?? null;
 

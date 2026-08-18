@@ -202,16 +202,30 @@ export async function chooseBird(slug: string): Promise<{ ok: true } | { error: 
     return { error: "That bird is not available." };
   }
 
-  // Admins walk the supporter path without paying: the owner has to be able
-  // to test the exact flow a contributor gets (and re-test it after every
-  // change) without sending himself money. Everyone else pays.
+  // Admins walk the supporter path without paying or being limited to one
+  // pick: the owner has to be able to test the exact flow repeatedly without
+  // sending himself money. Members face both gates.
   if (session.user.role !== "admin") {
-    const paid = await prisma.contribution.aggregate({
-      _sum: { amount: true },
-      where: { userId: session.user.id, status: "paid", livemode: razorpayLivemode() },
-    });
+    const [paid, me] = await Promise.all([
+      prisma.contribution.aggregate({
+        _sum: { amount: true },
+        where: { userId: session.user.id, status: "paid", livemode: razorpayLivemode() },
+      }),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { birdOverride: true },
+      }),
+    ]);
     if ((paid._sum.amount ?? 0) < PERK_MIN_PAISE) {
       return { error: "Picking a bird opens after a contribution of ₹500 or more." };
+    }
+    // ONE pick, ever (owner, 2026-08-18: "if they change it once, will they
+    // still be able to change it again, I don't want that"). A set override
+    // is a used pick. Known edge, accepted: an override an admin assigned by
+    // hand also counts as used, and freeing such a member is an admin task,
+    // because the column does not record who set it.
+    if (me?.birdOverride) {
+      return { error: "You have already picked your bird." };
     }
   }
 
