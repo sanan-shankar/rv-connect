@@ -1317,3 +1317,43 @@ deleted through its own delete-account flow.
   p-6, at every size (owner preference). Remaining single re-flow sits exactly at the 768px
   sidebar collapse; collapsing the sidebar at 1024 instead would make even that monotonic but
   changes every page's 768-1024 layout - offered, not taken unilaterally.
+
+### Same day, round 3 - the valley gets its own pin, teachers get their own word
+
+- **Owner asked why Kartik Kalyanram sat under Madanapalle** when his city reads Rishi Valley.
+  Not a data fault: the map buckets every location onto a 0.1-degree grid (~11 km) so one city
+  cannot split into two stacked dots, Rishi Valley is 10.4 km from Madanapalle, and both round
+  into the same square `78.5,13.6`. A square takes the name of the FIRST member drawn into it and
+  the pin query orders `batchYear desc`, so two 2023 members in Madanapalle claimed the square
+  before the 1978 arrival ever reached it. Adding Rishi Valley to the gazetteer late had nothing
+  to do with it - `city-coords.ts` already carried the string, and a fully linked row lands in the
+  same square anyway. Only the map merged them; the Directory city facet always listed both.
+- **Fix**: `OWN_PIN_CITIES` in `city-coords.ts`, an opt-out keyed by name rather than by square,
+  with Rishi Valley in it. Both still plot at exact coordinates, so `maxUsefulZoom` and the
+  supercluster do the rest - merged at world zoom, resolving to "Madanapalle - 2 members" and
+  "Rishi Valley - 1 member" as you drill in, which is what the grid was standing in for. Grid
+  stays the default everywhere else. Verified by drilling the real map to the split and opening
+  the drilldown (Kartik, Batch of '78, Doctor); both viewports.
+- **Data touched at the owner's direction**: Ananya Parthasarathy's workplace `Gnlu` -> `GNLU`;
+  Kartik's houses JSON `(raavi)`/`(kailash)` -> `(Raavi)`/`(Kailash)` (free-text parentheticals,
+  not canonical `houses.ts` entries); Kartik's UserPlace relinked from free-typed to the curated
+  Rishi Valley row (placeId 900000001, exact lat/lng); Mini Muralidas's subject `Evs` -> `EVS`.
+  Note the signup form title-cases what people type, which is where every one of these came from.
+- **Teachers in "New in the directory"**: the last byline still calling `formatBatch`, which takes
+  batchType and batchYear and therefore cannot see accountType. Teachers have no batch year, so
+  they rendered with a blank line. Moved to `batchLine` (already says "Teacher"/"Former teacher")
+  and gave it `blankWhenUnknown` so the rail keeps its deliberate blank for batch-less alumni
+  rather than gaining "Member" filler. The sidebar account chip already routed through
+  `batchLine` and needed no change - verified the chain auth.ts:108 -> layout.tsx:83 -> chip by
+  reading it, NOT on screen: admin-login is locked to ADMIN_EMAIL so the teacher pill cannot be
+  photographed without flipping the owner's own accountType in the shared production DB. Said so
+  rather than claiming it.
+- **Subject vs Subjects**: the profile fact was always plural, so a teacher of one read
+  "Subjects: EVS". Pluralised off the comma list in both the read-only sheet and the editor, the
+  same `> 1` rule the City/Cities fact beside it already follows. Plural branch verified by
+  briefly setting two subjects on Mini's row, screenshotting, and reverting (confirmed back to
+  `EVS`).
+- `batchLine` now has unit tests (teacher, ex_teacher, blankWhenUnknown, anonymous, full year).
+- **Left alone, flagged**: `src/components/admin/user-management.tsx:86` is the one remaining
+  `formatBatch` call and shows the same blank for teachers. It needs accountType threaded through
+  its server page, and it is an admin surface the owner did not name.
