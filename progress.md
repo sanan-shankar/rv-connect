@@ -68,7 +68,7 @@ to play with and worth sending to people.
   `/lab/hoopoe` is unchanged: proportion sliders, tail compare, matrix and sequence builder all
   still live there. The public page carries no readouts, no code output and no API names.
 - **The playground is the tile, expanded**: a scene that scales its bird off a ResizeObserver
-  (150-280px), click-the-sky-to-fly, click-the-butterfly-to-be-pointed-at, gaze that follows the
+  (150-280px), tap-anywhere-to-fly, gaze that follows the
   pointer and hands back to the ambient wander on leave, a day/dusk sky mixed from `--sky` /
   `--canopy` / `--cinnamon` (dusk is how you actually see `sleep()` land), and 36 verbs on a
   labelled rail in plain English. "Surprise me" plays one of six named four-beat routines; the
@@ -78,13 +78,16 @@ to play with and worth sending to people.
   any click in the top 45% of the sky (targets are clamped into the frame, and the marker shows
   the clamped point), and `rest()` restores the POSE but never the POSITION, so a bird flown into
   a corner could not come home. "Settle down" now flies it back to the rig anchor
-  ((101+10)/152 down its own box) before settling. Finding the rig by `PARTS.root` and walking up
-  to its `<svg>` matters: the scene's first `<svg>` is the butterfly icon.
+  ((101+10)/152 down its own box) before settling. The rig is found by `PARTS.root` and walked up
+  to its `<svg>`, not by asking the scene for its first `<svg>`, which any icon would satisfy.
 - **Sticky scene** on both viewports so the toy never scrolls off while you use the rail; it
   needed `bg-card` or the chips read straight through the caption text.
 - Public in `src/proxy.ts` (reads nothing, writes nothing) and in `PRODUCT_ROUTES` in
   `scripts/qa/lab-audit.mjs`. Verified at 1440x900 and 390x844 with fly, settle, surprise, dusk,
   sleep and the password toggle driven live. `npm run check` green. Not pushed.
+- **Owner round 1** (same session): the intro paragraph and the butterfly prop are gone, the
+  caption is just "Tap to see it fly.", and the show/hide password icons were inverted against
+  the house convention (`src/components/auth/password-field.tsx:75`: shown = Eye, hidden = EyeOff).
 
 ## Session 2026-08-14 (round 3) — No rings on boxes; the whole auth family swept; mobile keeps its keyboard
 Owner notes on round 2, shipped in `7a505a7` / `094a540`:
