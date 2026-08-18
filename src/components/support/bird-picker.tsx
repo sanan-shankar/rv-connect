@@ -49,10 +49,14 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
       }
       toast.success(`You are now the ${choice.name}.`);
       setSelected(null);
-      // The page re-reads birdOverride server-side, so the check badge, the
-      // sidebar avatar and everything else move together with no client-side
-      // bookkeeping to drift out of date.
+      // Back to Support, done. The pick is spent, so this page's own gate
+      // would bounce a member on the next visit anyway; walking them out
+      // deliberately reads as completion rather than expulsion. refresh()
+      // rides along so the sidebar avatar and the support page both show the
+      // new bird immediately. (Admins are exempt from the gate and can
+      // return to re-test.)
       router.refresh();
+      router.push("/support");
     });
   }
 
@@ -71,11 +75,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
         {WEARABLE_SPECIES.map(({ index, name, slug }) => {
           const isCurrent = slug === currentSlug;
           const isSelected = slug === selected;
-          // The spotlight follows the pointer; with nothing under the
-          // pointer it falls back to the selection, so a chosen bird keeps
-          // the stage while the cursor is off in the margin.
-          const focus = over ?? selected;
-          const dimmed = focus !== null && focus !== slug;
+          const hovered = over === slug;
           return (
             <li key={slug}>
               <motion.button
@@ -92,24 +92,20 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                   "flex w-full flex-col items-center rounded-[var(--radius-md)] p-[var(--space-s)] text-center",
                   "transition-[background-color] duration-150 ease-out",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  // Hover paints NOTHING here: the spotlight (everyone else
-                  // dims, the name appears) is the entire hover story, exactly
-                  // the fourteen-bird plate's treatment. A state-layer tint was
-                  // tried and the grey box behind the bird cheapened it
-                  // (owner: "just copy exactly what you did in the lab").
-                  // Selection alone gets the canopy wash, the app's one green
-                  // state.
-                  isSelected && "bg-canopy/10"
+                  // NO dimming of the others here: with forty-nine birds it
+                  // made comparing and choosing annoying (owner). Hover is
+                  // the app's standard story instead: the state-layer tint on
+                  // the cell you are over plus the name stepping up to the
+                  // reading colour, which together say "clickable" without
+                  // touching the rest of the grid. The fourteen-bird plate on
+                  // /support keeps its spotlight; that page is a preview, not
+                  // a choice among fifty. Selection stays the canopy wash.
+                  isSelected ? "bg-canopy/10" : "state-layer"
                 )}
               >
                 <span
                   className="relative inline-grid shrink-0 place-items-center"
-                  style={{
-                    width: 96,
-                    height: 96,
-                    opacity: dimmed ? 0.3 : 1,
-                    transition: "opacity 620ms var(--ease-out-smooth)",
-                  }}
+                  style={{ width: 96, height: 96 }}
                 >
                   <BirdGlyphV2 seed={seedFacingRight(index)} px={96} speciesOverride={index} />
                   {isCurrent && (
@@ -122,21 +118,12 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                   )}
                 </span>
                 {/* The /birds caption, always visible; it steps up to the
-                    reading colour under the spotlit bird and canopy once
-                    selected, and dims with its bird like everything else. */}
+                    reading colour on hover and canopy once selected. */}
                 <span
                   className={cn(
-                    "mt-[var(--space-xs)] text-[13px] font-medium leading-snug",
-                    isSelected
-                      ? "text-canopy"
-                      : focus === slug
-                        ? "text-foreground"
-                        : "text-muted-foreground"
+                    "mt-[var(--space-xs)] text-[13px] font-medium leading-snug transition-colors duration-150 ease-out",
+                    isSelected ? "text-canopy" : hovered ? "text-foreground" : "text-muted-foreground"
                   )}
-                  style={{
-                    opacity: dimmed ? 0.3 : 1,
-                    transition: "opacity 620ms var(--ease-out-smooth)",
-                  }}
                 >
                   {name}
                 </span>
@@ -178,7 +165,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {choice.slug === currentSlug
                   ? "This is already your bird."
-                  : "This becomes your avatar everywhere on the site."}
+                  : "This becomes your avatar everywhere on the site. You pick once, so make it count."}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-[var(--space-xs)]">

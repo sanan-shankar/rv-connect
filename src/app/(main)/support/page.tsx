@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SupportWood } from "@/components/support/wood";
 import { CostsCard } from "@/components/support/costs-card";
 import { BirdPlate } from "@/components/support/bird-plate";
 import { SupportContribute } from "@/components/support/support-contribute";
@@ -46,12 +45,11 @@ export default async function SupportPage() {
 
   return (
     <div className="pb-[var(--space-xl)]">
-      {/* The owner's pick (2026-08-18): SOLID page behind this one route,
-          birds kept. The valley photo competes with the wood's glyphs, and
-          on a flat page they read as birds instead of texture. The style tag
-          scopes the hide to /support: every other route keeps the photo. */}
-      <style>{`.valley-tree { display: none; }`}</style>
-      <SupportWood />
+      {/* The bird field and the solid backdrop mount from the APP SHELL
+          (wood-mount.tsx), not here: the page transition template animates a
+          transform, which would trap an absolutely-positioned field inside
+          the reading column for the entrance and cause the rearrange-on-load
+          the owner reported. */}
 
       {/* Hero: the shipped header, unchanged (owner: "let it look like how it
           did in the shipped version"). The pledge below runs the full column

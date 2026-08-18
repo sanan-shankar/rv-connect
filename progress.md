@@ -1595,3 +1595,29 @@ renders its field again (91 birds); mobile 390 clean. npm run check green throug
   /pick-bird added to WIDE_ROUTES with a comment tying the two.
 - The owner picked the backdrop: SOLID page on /support, birds kept, valley photo hidden for this
   one route (scoped style tag). Preview flags deleted.
+
+# Session — no dim on the picker, 50% bigger field, three root causes, one-pick policy
+
+- **/pick-bird hover**: the dim is gone ("annoying to look and choose" among fifty). Hover is the
+  app's standard story: state-layer tint on the hovered cell + the name stepping up to the reading
+  colour. The plate on /support keeps its spotlight; it is a preview, not a choice.
+- **Field birds 50% bigger** (120px base, 82-114px, constant), and the layout finally holds three
+  invariants at once after three separate owner complaints proved they interlock:
+    size constant (fixed px base) + density constant (auto-fill 170px-minimum cells, replacing
+    viewport-fraction columns whose 385px cells on a 27" made the bald gutters in his screenshot) +
+    no overlap (34-66% jitter keeps a 114px bird's 84px reach under half the minimum cell).
+- **The rearrange-on-load root cause**: (main)/template.tsx animates a TRANSFORM for the page
+  entrance, and a transformed ancestor is the containing block for absolute descendants, so the
+  wood spent the entrance anchored to the 768px column and snapped wide when the transform
+  cleared. Moved the mount to the APP SHELL (wood-mount.tsx, usePathname === /support), outside
+  the template; measured identical bird rects at first paint and after settle. The solid-backdrop
+  style hide moved with it.
+- **No birds behind bare text**: the centre lane is fully transparent again (not 40%), which the
+  fixed-density gutters now afford; phones keep whisper edges via the media-query mask.
+- **The perk policy, asked and answered**: (1) no cheating a pick — the page gate is a curtain,
+  chooseBird re-checks auth, demo, allowlist, the Razorpay-signature-backed paid sum, and now the
+  unspent-pick rule on every call; (2) pay now, pick later works — eligibility is a standing sum
+  and /pick-bird stays open until the pick is spent; (3) one pick EVER — a set birdOverride
+  refuses further picks for members (admin exempt for testing; an admin-assigned override counts
+  as spent, noted as accepted edge). After a successful pick the member is walked back to
+  /support; the confirm strip says "You pick once, so make it count."
