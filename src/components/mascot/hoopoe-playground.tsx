@@ -23,7 +23,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Eye, EyeOff, Moon, Sun } from "lucide-react";
-import { Butterfly } from "@phosphor-icons/react/dist/ssr";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { PARTS, type Expression, type Step } from "@/components/mascot/hoopoe-kit";
@@ -101,11 +100,6 @@ export function HoopoePlayground() {
             <h1 className="mt-1.5 font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
               Meet the hoopoe
             </h1>
-            <p className="mt-2.5 max-w-[56ch] text-[0.95rem] leading-relaxed text-muted-foreground">
-              The valley&apos;s bird, drawn once and rigged like a puppet, so it can walk, fly,
-              point, sulk, preen and show off. It lives on the alumni site. Press anything below
-              and it will do it.
-            </p>
           </header>
         </FadeRise>
 
@@ -133,7 +127,6 @@ export function HoopoePlayground() {
 function Playground() {
   const { ref: birdRef, ...h } = useHoopoe();
   const sceneRef = useRef<HTMLDivElement>(null);
-  const flowerRef = useRef<HTMLButtonElement>(null);
   const [dusk, setDusk] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -158,9 +151,6 @@ function Playground() {
 
   const flyToPointer = useCallback(
     (ev: React.MouseEvent<HTMLDivElement>) => {
-      // The props inside the scene are their own controls; a click on one of
-      // them means "point at this", not "fly here".
-      if (ev.target instanceof HTMLElement && ev.target.closest("[data-scene-prop]")) return;
       const rect = sceneRef.current?.getBoundingClientRect();
       if (!rect) return;
       /* Keep the landing inside the frame. A flyTo target is where the bird's
@@ -194,9 +184,9 @@ function Playground() {
      to achieve nothing. */
   function settle() {
     h.cancel();
-    // Find the rig by its root PART and walk up to the <svg> it belongs to.
-    // Asking the scene for its first <svg> finds the BUTTERFLY, which is an
-    // svg icon and sits earlier in the DOM.
+    // Find the rig by its root PART and walk up to the <svg> it belongs to,
+    // rather than asking the scene for its first <svg>: any icon dropped into
+    // the scene later would be an <svg> too, and could sit earlier in the DOM.
     const root = sceneRef.current?.querySelector(PARTS.root);
     const svg = root?.closest("svg");
     if (svg && root) {
@@ -243,16 +233,6 @@ function Playground() {
               style={{ bottom: `calc(50% - ${(birdSize * RIG_ASPECT) / 2}px)` }}
             />
 
-            <button
-              ref={flowerRef}
-              data-scene-prop
-              onClick={() => h.point(flowerRef.current, { label: "a butterfly" })}
-              aria-label="Make the hoopoe point at the butterfly"
-              className="absolute right-6 top-8 rounded-full p-1.5 text-cinnamon outline-none transition-colors duration-150 hover:text-canopy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.94] sm:right-10 sm:top-10"
-            >
-              <Butterfly weight="duotone" className="size-7 sm:size-8" />
-            </button>
-
             <Hoopoe ref={birdRef} size={birdSize} />
 
             {mark && (
@@ -273,7 +253,7 @@ function Playground() {
               {note ? (
                 <span className="font-semibold text-cinnamon">{note}</span>
               ) : (
-                "Click the sky and it flies there. Click the butterfly and it points."
+                "Tap to see it fly."
               )}
             </p>
             <Button
@@ -421,7 +401,7 @@ function PeekABoo() {
             aria-label={shown ? "Hide the password" : "Show the password"}
             className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground"
           >
-            {shown ? <EyeOff /> : <Eye />}
+            {shown ? <Eye /> : <EyeOff />}
           </Button>
         </div>
       </div>
