@@ -131,6 +131,11 @@ export interface ProfileDraft {
   batchYear: string;
   yearJoined: string;
   yearLeft: string;
+  /** The teacher tenure pair; empty strings on an alumnus draft. */
+  taughtFrom: string;
+  taughtUntil: string;
+  /** Teacher subjects comma list; empty on an alumnus draft. */
+  subjects: string;
   admissionNumber: string;
   /** "dark" or anything else. Not a profile field, but its tile lives under
    *  the contact rows now that there is no settings page to hold it. */
@@ -234,6 +239,7 @@ export function LetterheadProfile({
   cities,
   rvYears,
   batchLabel,
+  subjects,
   houseSpans,
   contactMethods,
   contactsLocked = false,
@@ -256,6 +262,8 @@ export function LetterheadProfile({
   cities: string[];
   rvYears: string | null;
   batchLabel: string | null;
+  /** Teacher subjects comma list; null for alumni. */
+  subjects?: string | null;
   houseSpans: HouseSpan[];
   contactMethods: ContactMethod[];
   /** True when the VIEWER has not confirmed their own email, so this person's
@@ -286,6 +294,10 @@ export function LetterheadProfile({
    *  editable AND currently turned on.
    * ---------------------------------------------------------------- */
   const editable = Boolean(draft);
+  // Teachers (current and former) carry tenure and subjects where an alumnus
+  // carries batch, admission number and houses; every fork below hangs off
+  // this one flag.
+  const isTeacher = user.accountType === "teacher" || user.accountType === "ex_teacher";
   const [live, setLive] = useState(draft?.startEditing ?? false);
   const [form, setForm] = useState(() => ({
     name: draft?.name ?? "",
@@ -295,6 +307,9 @@ export function LetterheadProfile({
     batchYear: draft?.batchYear ?? "",
     yearJoined: draft?.yearJoined ?? "",
     yearLeft: draft?.yearLeft ?? "",
+    taughtFrom: draft?.taughtFrom ?? "",
+    taughtUntil: draft?.taughtUntil ?? "",
+    subjects: draft?.subjects ?? "",
     admissionNumber: draft?.admissionNumber ?? "",
   }));
   const [places, setPlaces] = useState<PlaceSelection[]>(draft?.places ?? []);
@@ -408,35 +423,58 @@ export function LetterheadProfile({
   const facts: { label: string; value: ReactNode; wide?: boolean; pen?: boolean }[] = [];
 
   if (editable) {
-    facts.push({
-      label: "Batch",
-      pen: true,
-      value: (
-        <PenValue
-          value={form.batchYear}
-          onChange={(v) => setField("batchYear", digits(v, 4))}
-          onCommit={() => commitField("batchYear")}
-          editing={live}
-          placeholder="0000"
-          ariaLabel="Which batch you are in"
-          delay={0.1}
-          className="tabular-nums"
-          inputMode="numeric"
-        />
-      ),
-    });
+    if (isTeacher) {
+      facts.push({
+        label: "Subjects",
+        pen: true,
+        // Wide for the same reason Cities is: a comma list is the kind of
+        // fact that runs long, and truncating someone's second subject to
+        // fit a column is a ranking nobody chose.
+        wide: true,
+        value: (
+          <PenValue
+            value={form.subjects}
+            onChange={(v) => setField("subjects", v)}
+            onCommit={() => commitField("subjects")}
+            editing={live}
+            placeholder="Physics, Theatre"
+            ariaLabel="Subjects you taught"
+            delay={0.1}
+            maxLength={200}
+          />
+        ),
+      });
+    } else {
+      facts.push({
+        label: "Batch",
+        pen: true,
+        value: (
+          <PenValue
+            value={form.batchYear}
+            onChange={(v) => setField("batchYear", digits(v, 4))}
+            onCommit={() => commitField("batchYear")}
+            editing={live}
+            placeholder="0000"
+            ariaLabel="Which batch you are in"
+            delay={0.1}
+            className="tabular-nums"
+            inputMode="numeric"
+          />
+        ),
+      });
+    }
     facts.push({
       label: "In the valley",
       pen: true,
       value: (
         <span className="inline-flex items-center">
           <PenValue
-            value={form.yearJoined}
-            onChange={(v) => setField("yearJoined", digits(v, 4))}
-            onCommit={() => commitField("yearJoined")}
+            value={isTeacher ? form.taughtFrom : form.yearJoined}
+            onChange={(v) => setField(isTeacher ? "taughtFrom" : "yearJoined", digits(v, 4))}
+            onCommit={() => commitField(isTeacher ? "taughtFrom" : "yearJoined")}
             editing={live}
             placeholder="0000"
-            ariaLabel="Year you joined"
+            ariaLabel={isTeacher ? "Year you started teaching" : "Year you joined"}
             delay={0.14}
             className="tabular-nums"
             inputMode="numeric"
@@ -446,12 +484,20 @@ export function LetterheadProfile({
               "2014 to 2023" and pushed the fact 30px wider. */}
           <span>&ndash;</span>
           <PenValue
-            value={form.yearLeft}
-            onChange={(v) => setField("yearLeft", digits(v, 4))}
-            onCommit={() => commitField("yearLeft")}
+            value={isTeacher ? form.taughtUntil : form.yearLeft}
+            onChange={(v) => setField(isTeacher ? "taughtUntil" : "yearLeft", digits(v, 4))}
+            onCommit={() => commitField(isTeacher ? "taughtUntil" : "yearLeft")}
             editing={live}
-            placeholder="0000"
-            ariaLabel="Year you left"
+            // "now", not "0000": for a teacher the empty slot is a statement
+            // (still at the school, the sheet reads "to present"), and the
+            // placeholder is where that is said. Typing the year they finish
+            // is the whole of "I'm done teaching" — the byline flips to
+            // Former teacher on its own, and clearing it flips it back.
+            placeholder={isTeacher ? "now" : "0000"}
+            restText={isTeacher ? "present" : undefined}
+            ariaLabel={
+              isTeacher ? "Year you stopped teaching, blank if you still do" : "Year you left"
+            }
             delay={0.18}
             className="tabular-nums"
             inputMode="numeric"
@@ -481,6 +527,7 @@ export function LetterheadProfile({
     });
   } else {
     if (batchLabel) facts.push({ label: "Batch", value: batchLabel });
+    if (isTeacher && subjects) facts.push({ label: "Subjects", wide: true, value: subjects });
     if (rvYears) facts.push({ label: "In the valley", value: rvYears });
     if (cities.length > 0) {
       facts.push({
@@ -710,10 +757,13 @@ export function LetterheadProfile({
                     {/* A block-level row, not inline-flex: an inline box would
                         add its line's leading under the mark and quietly turn
                         the 8px step into 14.5px. */}
-                    {editable ? (
+                    {editable && !isTeacher ? (
                       /* The mark, then the number as a field. The stamp easter
                          egg still fires from the mark itself, so pressing it
-                         keeps working while the digits are typeable. */
+                         keeps working while the digits are typeable. Teachers
+                         never had an admission number, so their editable sheet
+                         gets the bare mark below instead of an empty field
+                         asking for one. */
                       /* Byte-for-byte the read-only lockup below, with the
                          number swapped for a field: same row height, same
                          gap, same 13px caps, same paint-only nudge. */
@@ -841,7 +891,20 @@ export function LetterheadProfile({
                       delay={0.06}
                       maxLength={120}
                     />
-                    <span className="whitespace-pre"> at </span>
+                    {/* The read-only sheet only prints "at" between two real
+                        halves; the resting editable sheet follows the same
+                        rule, or a brand-new profile opens with a lone "at"
+                        floating under the name. With the pen out both holes
+                        are visible, so the word returns to hold their shape. */}
+                    <span
+                      className={cn(
+                        "whitespace-pre",
+                        !live && !(form.jobTitle.trim() && form.workplace.trim()) && "hidden"
+                      )}
+                    >
+                      {" "}
+                      at{" "}
+                    </span>
                     <PenValue
                       value={form.workplace}
                       onChange={(v) => setField("workplace", v)}
@@ -951,7 +1014,10 @@ export function LetterheadProfile({
               </FadeRise>
             )}
 
-            {editable ? (
+            {/* Houses are a student record; a teacher's sheet has no Houses
+                section in either state, the same way their onboarding skips
+                the Houses step. */}
+            {editable && !isTeacher ? (
               <FadeRise delay={0.09}>
                 <section className="mt-[var(--space-l)]">
                   <SectionLabel>Houses</SectionLabel>
@@ -994,6 +1060,7 @@ export function LetterheadProfile({
                 </section>
               </FadeRise>
             ) : (
+              !isTeacher &&
               houseSpans.length > 0 && (
                 <FadeRise delay={0.09}>
                   <section className="mt-[var(--space-l)]">

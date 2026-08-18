@@ -78,6 +78,9 @@ export default async function MainLayout({
           birdOverride: session.user.birdOverride,
           batchType: session.user.batchType,
           batchYear: session.user.batchYear,
+          // Without this the account chip's batchLine falls back to the
+          // generic "Member" for teachers, who have no batch year to show.
+          accountType: session.user.accountType,
         }}
         unreadCount={unreadCount}
         demo={IS_DEMO}

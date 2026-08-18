@@ -44,7 +44,17 @@ function useHoverCapable() {
  * (gated on :focus-visible so a mouse click does not double-fire with the tap
  * handler). Closes on blur, outside click/tap, or Escape.
  */
-function InfoTip({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoTip({
+  label,
+  children,
+  fit = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  /** Size the bubble to its longest line instead of the fixed w-64. For the
+   *  short two-line notes; the batch explainer keeps the full measure. */
+  fit?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const hoverCapable = useHoverCapable();
   const wrapRef = useRef<HTMLSpanElement>(null);
@@ -119,7 +129,10 @@ function InfoTip({ label, children }: { label: string; children: React.ReactNode
             exit={{ opacity: 0, scale: 0.96, y: -2 }}
             transition={SPRINGS.snappy}
             style={{ left: tipLeft ?? undefined, right: tipLeft == null ? 0 : undefined }}
-            className="absolute top-full z-30 mt-2 w-64 max-w-[80vw] rounded-[var(--radius-md)] border border-border bg-paper px-3.5 py-2.5 text-[12.5px] leading-relaxed text-foreground shadow-lg"
+            className={cn(
+              "absolute top-full z-30 mt-2 max-w-[80vw] rounded-[var(--radius-md)] border border-border bg-paper px-3.5 py-2.5 text-[12.5px] leading-relaxed text-foreground shadow-lg",
+              fit ? "w-max" : "w-64"
+            )}
           >
             {children}
           </motion.div>
@@ -329,19 +342,23 @@ export function SignupForm({
       return;
     }
 
-    if (isAlum) {
-      if (!yearJoined || !yearLeft || !batchYear) {
-        setError("Please fill in the years you joined and left, and your batch.");
-        hoopoe.react("error");
-        setLoading(false);
-        return;
-      }
-      if (Number(yearLeft) < Number(yearJoined)) {
-        setError("The year you left cannot be before the year you joined.");
-        hoopoe.react("error");
-        setLoading(false);
-        return;
-      }
+    if (isAlum && (!yearJoined || !yearLeft || !batchYear)) {
+      setError("Please fill in the years you joined and left, and your batch.");
+      hoopoe.react("error");
+      setLoading(false);
+      return;
+    }
+    if (!isAlum && !yearJoined) {
+      setError("Please add the year you joined.");
+      hoopoe.react("error");
+      setLoading(false);
+      return;
+    }
+    if (yearJoined && yearLeft && Number(yearLeft) < Number(yearJoined)) {
+      setError("The year you left cannot be before the year you joined.");
+      hoopoe.react("error");
+      setLoading(false);
+      return;
     }
 
     try {
@@ -406,31 +423,34 @@ export function SignupForm({
         className="bg-mist"
       />
 
-      <AnimatePresence mode="popLayout" initial={false}>
-        {isAlum && (
-          <motion.div
-            key="years"
-            layout
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ ...SPRINGS.snappy, ...rowTransition }}
-            // z-10: every row here is a motion.div, and a transformed sibling
-            // forms its own stacking context, so later rows painted OVER the
-            // batch InfoTip's bubble no matter its z-index (owner: "the i to
-            // explain batches goes behind the UI"). Lifting the whole years
-            // row wins against the z-auto siblings below it.
-            className="relative z-10 grid grid-cols-3 gap-3"
-          >
-            <YearInput
+      {/* The years row never leaves: both kinds of member have a joined and a
+          left year (a teacher's pair is their tenure, mapped server-side to
+          taughtFrom/taughtUntil). Only Batch is a student fact, so flipping to
+          Teacher removes that one cell and Joined/Left glide from a third of
+          the row to half of it.
+
+          z-10: every row here is a motion.div, and a transformed sibling forms
+          its own stacking context, so later rows painted OVER the InfoTip
+          bubbles no matter their z-index (owner: "the i to explain batches
+          goes behind the UI"). Lifting the whole years row wins against the
+          z-auto siblings below it. */}
+      <motion.div
+        layout
+        transition={rowTransition}
+        className={cn("relative z-10 grid gap-3", isAlum ? "grid-cols-3" : "grid-cols-2")}
+      >
+        <motion.div layout transition={rowTransition}>
+          <YearInput
             id="yearJoined"
             name="yearJoined"
             label="Joined"
             focusHint="2014"
             value={yearJoined}
             onValueChange={setYearJoined}
-            required={isAlum}
+            required
           />
+        </motion.div>
+        <motion.div layout transition={rowTransition}>
           <YearInput
             id="yearLeft"
             name="yearLeft"
@@ -439,26 +459,52 @@ export function SignupForm({
             value={yearLeft}
             onValueChange={setYearLeft}
             required={isAlum}
-          />
-          <YearInput
-            id="batchYear"
-            name="batchYear"
-            label="Batch"
-            focusHint="2023"
-            value={batchYear}
-            onValueChange={setBatchYear}
-            required={isAlum}
             trailing={
-              <InfoTip label="What does batch mean?">
-                Your batch is the year your class finished 12th grade at Rishi
-                Valley, even if you left earlier. Left after 10th in 2021? Your
-                batch is still 2023.
-              </InfoTip>
+              !isAlum ? (
+                // The same circled-i the Batch cell carries, because the same
+                // question needs answering: what do I put here? For a teacher
+                // the answer is "maybe nothing", and blank has a meaning.
+                <InfoTip label="Still at Rishi Valley?" fit>
+                  {/* Each sentence is its own line ON PURPOSE: left to wrap
+                      naturally in the w-64 bubble, the second sentence broke
+                      after "this" and stranded "blank." alone on line two. */}
+                  <span className="block">Still teaching at Rishi Valley?</span>
+                  <span className="block">Leave this blank.</span>
+                </InfoTip>
+              ) : undefined
             }
           />
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>
+        <AnimatePresence mode="popLayout" initial={false}>
+          {isAlum && (
+            <motion.div
+              key="batch"
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ ...SPRINGS.snappy, ...rowTransition }}
+            >
+              <YearInput
+                id="batchYear"
+                name="batchYear"
+                label="Batch"
+                focusHint="2023"
+                value={batchYear}
+                onValueChange={setBatchYear}
+                required={isAlum}
+                trailing={
+                  <InfoTip label="What does batch mean?">
+                    Your batch is the year your class finished 12th grade at Rishi
+                    Valley, even if you left earlier. Left after 10th in 2021? Your
+                    batch is still 2023.
+                  </InfoTip>
+                }
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
       <motion.div layout transition={rowTransition} className="grid grid-cols-2 gap-3">
         <FloatField

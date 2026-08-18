@@ -33,10 +33,12 @@ export async function registerUser(formData: FormData) {
     password,
     phone: rawPhone.trim() || undefined,
     accountType,
-    // Alumni give their batch directly plus the two plain years they joined and
-    // left; the board credential is derived below. Teachers send none of these.
-    yearJoined: isAlum ? num("yearJoined") : undefined,
-    yearLeft: isAlum ? num("yearLeft") : undefined,
+    // Alumni give their batch directly plus the two plain years they joined
+    // and left; the board credential is derived below. Teachers give the same
+    // two years (their tenure, stored as taughtFrom/taughtUntil instead) and
+    // no batch; a blank "left" means they are still at the school.
+    yearJoined: num("yearJoined"),
+    yearLeft: num("yearLeft"),
     batchYear: isAlum ? num("batchYear") : undefined,
   };
 
@@ -45,7 +47,11 @@ export async function registerUser(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  if (isAlum && parsed.data.yearLeft! < parsed.data.yearJoined!) {
+  if (
+    parsed.data.yearJoined != null &&
+    parsed.data.yearLeft != null &&
+    parsed.data.yearLeft < parsed.data.yearJoined
+  ) {
     return { error: "The year you left cannot be before the year you joined." };
   }
 
@@ -81,19 +87,34 @@ export async function registerUser(formData: FormData) {
   // an optional leading "+" so every stored number reads the same way.
   const phone = parsed.data.phone ? normalizePhone(parsed.data.phone) : null;
 
+  // A teacher's "left" year decides which of the two teacher account types
+  // this is: filled in means their time at the school is behind them
+  // (ex_teacher, "Former teacher" everywhere batchLine renders), blank means
+  // they are still there and the profile reads "to present". The signup
+  // toggle only says "Teacher"; nobody is asked to self-classify.
+  const storedAccountType = isAlum
+    ? "alumnus"
+    : parsed.data.yearLeft != null
+      ? "ex_teacher"
+      : "teacher";
+
   // Create the user. gradeJoined is deliberately not written here: sign-up now
-  // takes the batch directly, so that column stays untouched.
+  // takes the batch directly, so that column stays untouched. The two year
+  // columns are strictly student facts; a teacher's years land in the tenure
+  // pair instead so neither reading ever has to guess what a column means.
   const user = await prisma.user.create({
     data: {
       name,
       email: parsed.data.email,
       password: hashedPassword,
       phone,
-      accountType: parsed.data.accountType,
+      accountType: storedAccountType,
       batchType,
       batchYear,
-      yearJoined: parsed.data.yearJoined ?? null,
-      yearLeft: parsed.data.yearLeft ?? null,
+      yearJoined: isAlum ? (parsed.data.yearJoined ?? null) : null,
+      yearLeft: isAlum ? (parsed.data.yearLeft ?? null) : null,
+      taughtFrom: isAlum ? null : (parsed.data.yearJoined ?? null),
+      taughtUntil: isAlum ? null : (parsed.data.yearLeft ?? null),
     },
   });
 
