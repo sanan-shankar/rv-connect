@@ -139,6 +139,11 @@ export function proxy(request: NextRequest) {
   // because neither equals "/catchups/join" nor starts with "/catchups/join/".
   // The page itself shows a stranger only the Catch-up's name, its Keeper and
   // a member count, never anything anyone wrote.
+  // "/hoopoe" is the mascot playground, a link handed to people who do not
+  // have an account and are being shown the character rather than the site.
+  // Gating it behind a session would defeat the only reason it exists. It
+  // reads nothing and writes nothing: the page is one client component
+  // driving the SVG rig, with no database call anywhere behind it.
   // "/api/razorpay" is public because Razorpay's webhook is a server-to-server
   // POST with no session cookie -- gated, every webhook would be answered with
   // a redirect to /login and no payment would ever be recorded when the payer
@@ -162,6 +167,7 @@ export function proxy(request: NextRequest) {
     "/api/razorpay",
     "/lab",
     "/catchups/join",
+    "/hoopoe",
   ];
   const isPublic = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + "/")

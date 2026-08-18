@@ -15,7 +15,8 @@ only (not in the member avatar pool).
 - `src/components/mascot/hoopoe-kit.ts` — springs (gentle / snappy / settle / soft), the `PARTS` selector map, types (`HoopoeApi`, `Expression`, `Step`), the `EXPRESSIONS` chord table, `useValleyMotion` (visibility only), the idle `makeDamper`.
 - `src/components/mascot/hoopoe.tsx` — the rig art + continuous gaze + idle system + the queued controller + the `<Hoopoe>` component (forwardRef, exposes `HoopoeApi`).
 - `src/components/mascot/use-hoopoe.ts` — `useHoopoe()`, an ergonomic wrapper returning `{ ref, ...methods }`.
-- `src/app/preview/delight/hoopoe/page.tsx` — the Delight Labs control room (stage, every verb, tail-or-no-tail compare, sequence builder, expression matrix, password/gaze demo, size variants). The judging surface.
+- `src/app/preview/delight/hoopoe/page.tsx` — the Delight Labs control room (stage, every verb, tail-or-no-tail compare, sequence builder, expression matrix, password/gaze demo, size variants). The judging surface. Now at `src/app/lab/hoopoe/page.tsx`.
+- `src/app/hoopoe/page.tsx` + `src/components/mascot/hoopoe-playground.tsx` — the PUBLIC playground at `/hoopoe`, the link to hand somebody who has never seen the site. One big scene (click the sky to fly there, click the butterfly to be pointed at, the gaze follows the pointer, a day/dusk switch), every verb on a labelled rail in plain English, six named "Surprise me" routines, and the sign-in peek-a-boo underneath. Wears the app's tokens, not the lab's palette; carries no readouts, sliders or code output. The lab room stays the judging surface, this is the showing-off one. Public in `src/proxy.ts`, and listed in `PRODUCT_ROUTES` in `scripts/qa/lab-audit.mjs` so it is not mistaken for a stranded lab page.
 
 ## Using it
 
