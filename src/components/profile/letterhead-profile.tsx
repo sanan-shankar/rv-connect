@@ -1497,12 +1497,23 @@ function PerchedBird({
         >
           <AnimatePresence>
             {showName && (
+              /* Opacity only, on a short tween, and deliberately NOT a spring.
+                 The 6px slide meant this label animated a TRANSFORM, which put
+                 it on its own composited layer right where the bird's blurred
+                 contact shadow is drawn; the shadow re-rasterised under it and
+                 read as a faint second shadow appearing on hover (owner,
+                 2026-08-18). A spring made that worse: springs settle
+                 asymptotically, so the layer outlived the visible fade by the
+                 better part of a second, which is why the extra shadow hung
+                 around after the pointer had left. The same reasoning already
+                 took the press sink off the button above. 150/120ms is the
+                 house pair for a label that must not out-linger the pointer. */
               <motion.span
                 className="flex w-max items-center gap-2 whitespace-nowrap font-heading text-[13.5px] italic leading-none tracking-[0.01em] text-foreground/75"
-                initial={{ opacity: 0, x: 6 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 4 }}
-                transition={SPRINGS.snappy}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.12, ease: EASE_OUT_SMOOTH } }}
+                transition={{ duration: 0.15, ease: EASE_OUT_SMOOTH }}
               >
                 {species}
                 {/* The annotating stroke: one gentle pencil curve up toward
