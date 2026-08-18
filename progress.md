@@ -1357,3 +1357,24 @@ deleted through its own delete-account flow.
 - **Left alone, flagged**: `src/components/admin/user-management.tsx:86` is the one remaining
   `formatBatch` call and shows the same blank for teachers. It needs accountType threaded through
   its server page, and it is an admin surface the owner did not name.
+
+## Round 4 — Kartik's Pitta, and a teacher's city already filled in
+
+- **Kartik Kalyanram is an Indian Pitta.** Data only: `User.birdOverride = 'indian-pitta'`, applied
+  with `scripts/dev/run-sql.mjs`. The slug resolves through `resolveBirdOverride`
+  (bird-avatar-v2.tsx:1743); Pitta is not one of the two reserved species (Hoopoe, Indian Roller),
+  so it takes effect immediately. Verified on his profile — hero avatar and post byline both show
+  the green back, buff underparts, azure wing patch.
+- **A current teacher's city starts as Rishi Valley.** The onboarding register step already
+  pre-fills Occupation and Organisation for `accountType === "teacher"`; the city chip list now
+  joins them, seeded with the curated gazetteer row (placeId 900000001, "Rishi Valley, Andhra
+  Pradesh") when they have no saved places. It is an ordinary pill: removable, and the box below
+  still adds as many more cities as they want. Former teachers and alumni are untouched, and
+  anyone with saved cities keeps exactly what they saved.
+  - Verified by temporarily forcing `accountType: "teacher"` and `places: []` in welcome/page.tsx,
+    shooting `/welcome?step=register` at 1440x900 and 390x844, then reverting the file. The chip
+    fits the card at 390 with room to spare.
+  - **Not done, deliberately**: "Skip for now" still writes nothing, so a teacher who skips the
+    step keeps a blank city. Mini Muralidas is the one current teacher on the site today and has
+    no places; if she has already been through onboarding she will never see this default, and
+    her row would need setting by hand.
