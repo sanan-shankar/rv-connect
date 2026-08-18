@@ -1,163 +1,152 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
-import { SupportContribute } from "@/components/support/support-contribute";
-import { CostBar } from "@/components/support/cost-bar";
-import { BirdGlyphV2, SPECIES_FULL_NAMES } from "@/components/common/bird-avatar-v2";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { razorpayLivemode } from "@/lib/razorpay";
+import { SupportWood } from "@/components/support/wood";
+import { CostsCard } from "@/components/support/costs-card";
+import { BirdPlate } from "@/components/support/bird-plate";
+import { BirdPicker } from "@/components/support/bird-picker";
+import { SupportContribute } from "@/components/support/support-contribute";
+import { PERK_MIN_PAISE } from "@/components/support/plate-data";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Support",
-  description: "Help keep the Rishi Valley community running.",
+  description: "Help keep the site running.",
 };
 
-// The owner opted into publishing the one-time build cost: it runs as the
-// second section of CostBar's card, a sibling of the monthly breakdown
-// rather than a note nested inside it (see cost-bar.tsx). The amount
-// recovered is live (owner, 2026-08-13): summed here from the Contribution
-// table on every view, so the bar advances on its own as money arrives.
+/* The aviary layout, promoted from /lab/support-ideas (owner pick,
+   2026-08-18): the site's own birds as a fixed field behind the page, the
+   readable sections floating over them on glass. The header is NOT a card --
+   the owner struck that -- so the wood keeps a clear lane behind the content
+   column (see wood.tsx) and bare text never sits on a bird.
 
-// A hand-picked set of species for the reward preview: colourful and visibly
-// different from one another (not the first N indices), because the point of
-// this row is to show the collection's variety, not just that it exists.
-// Names are read out of SPECIES_FULL_NAMES rather than typed here, so this row can never end up
-// captioning one bird with another's name (it did: index 3 kept the label "Indian Roller" after the
-// Roller was reserved and the Laughing Dove took that slot).
-//
-// The Roller itself is deliberately absent. It is the one bird no contribution can earn.
-const REWARD_SPECIES = [5, 4, 9, 20, 22, 26, 37, 41, 43, 44].map((i) => ({
-  i,
-  name: SPECIES_FULL_NAMES[i],
-}));
+   One heading register: the page title, then a 20px card title per section,
+   then body. That rule is the whole redesign; the old page had twelve text
+   sizes and no order. */
+
+/* The one shared card: glass over the wood, the standard card radius, and the
+   --space-l padding every shipped support card already used. */
+function Card({
+  title,
+  aside,
+  children,
+}: {
+  title: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="glass card-elevated rounded-[var(--radius)] border border-border p-[var(--space-l)]">
+      <div className="flex flex-wrap items-center justify-between gap-x-[var(--space-m)] gap-y-[var(--space-xs)]">
+        <h2 className="font-heading text-xl leading-tight tracking-[-0.02em] text-foreground">
+          {title}
+        </h2>
+        {aside}
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export default async function SupportPage() {
-  // Real rupees only: `livemode` filters out the test payments a developer's
-  // localhost click lands in this same shared table (see schema.prisma), and
-  // `paid` is the only status where money actually moved. A failed sum falls
-  // back to the zero-state bar rather than taking the page down; the figure
-  // is a nicety, the page is not.
-  const recoveredPaise = await prisma.contribution
-    .aggregate({
-      _sum: { amount: true },
-      where: { status: "paid", livemode: true },
-    })
-    .then((r) => r._sum.amount ?? 0)
-    .catch(() => 0);
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  // Three reads, one round trip. The public figure (the recovery bar) only
+  // ever counts real money: status paid AND livemode true, so a developer's
+  // localhost test click can never inch the public bar forward. The perk sum
+  // filters on the CURRENT key mode instead, so against test keys a test
+  // payment opens the picker for testing, and against live keys only real
+  // money does. A failed read falls back to the zero state rather than taking
+  // the page down; the figures are a nicety, the page is not.
+  const [recoveredPaise, myPaidPaise, me] = await Promise.all([
+    prisma.contribution
+      .aggregate({
+        _sum: { amount: true },
+        where: { status: "paid", livemode: true },
+      })
+      .then((r) => r._sum.amount ?? 0)
+      .catch(() => 0),
+    userId
+      ? prisma.contribution
+          .aggregate({
+            _sum: { amount: true },
+            where: { userId, status: "paid", livemode: razorpayLivemode() },
+          })
+          .then((r) => r._sum.amount ?? 0)
+          .catch(() => 0)
+      : Promise.resolve(0),
+    userId
+      ? prisma.user
+          .findUnique({ where: { id: userId }, select: { birdOverride: true } })
+          .catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  const canPickBird = myPaidPaise >= PERK_MIN_PAISE;
+
+  const seeAll = (
+    <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/birds" />}>
+      See all 50
+    </Button>
+  );
 
   return (
     <div className="pb-[var(--space-xl)]">
-      {/* Hero */}
+      <SupportWood />
+
+      {/* Bare on the page, not a card (owner). The pledge is one paragraph in
+          the reading colour at the body size: it is the reason the page
+          exists, not a subtitle. */}
       <header className="mb-[var(--space-xl)]">
-        <style>{`
-          @keyframes support-sway {
-            0%, 100% { transform: rotate(-2deg); }
-            50% { transform: rotate(2deg); }
-          }
-        `}</style>
-        {/* Motif and title share one line (owner, 2026-08-02: "move that
-            support to the right of the icon, the same height where the icon is
-            in that line"). items-center rather than baseline-align: the motif
-            is a 48px tile, not a glyph, so it has no baseline to share, and
-            optical centring is what actually reads as "the same line". */}
         <div className="flex items-center gap-[var(--space-s)]">
           <span
-            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-leaf/10 text-leaf"
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-leaf/30 bg-leaf/[0.07] text-leaf"
             aria-hidden
           >
-            <span
-              className="support-motif inline-flex"
-              style={{ animation: "support-sway 6s ease-in-out infinite", transformOrigin: "50% 80%" }}
-            >
-              <Tree size={28} weight="duotone" />
-            </span>
+            <Tree size={26} weight="duotone" />
           </span>
-          {/* Same weight and size as every other page title (PageHeader's h1);
-              this one keeps its own element because it sits beside the motif
-              rather than in the shared header block. */}
           <h1 className="font-heading text-[30px] leading-none tracking-[-0.02em] text-foreground">
             Support
           </h1>
         </div>
-        <p className="mt-[var(--space-s)] text-lg leading-relaxed text-muted-foreground">
-          Rishi Valley runs on a small monthly bill. If it has helped you find an
-          old friend or a lost batchmate, you can help keep it going. The site
-          is always free to use.
+        <p className="mt-[var(--space-m)] max-w-[62ch] text-base leading-relaxed text-foreground">
+          This site will always be free to use. It is not for profit. Donations go towards
+          maintaining and running it. Anything beyond that goes to the school.
         </p>
       </header>
 
-      {/* Honest cost breakdown, led by the colorful bar rather than a ledger */}
-      <section aria-labelledby="costs-heading" className="mb-[var(--space-xl)]">
-        <h2
-          id="costs-heading"
-          className="mb-[var(--space-s)] font-heading text-xl font-bold tracking-tight text-foreground"
-        >
-          What it actually costs
-        </h2>
-        <p className="leading-relaxed text-foreground">
-          Two numbers, in rupees, exactly as they are. The small monthly bill
-          for keeping the site running, and the one-time cost that went into
-          designing and building it.
-        </p>
-        <CostBar recoveredPaise={recoveredPaise} />
-      </section>
+      <div className="flex flex-col gap-[var(--space-l)]">
+        <Card title="Costs">
+          <CostsCard recoveredPaise={recoveredPaise} />
+        </Card>
 
-      {/* The one perk for chipping in, shown before the ask so the reward is
-          seen before the QR code, not after it */}
-      <section aria-labelledby="perk-heading" className="mb-[var(--space-xl)]">
-        <h2
-          id="perk-heading"
-          className="mb-[var(--space-s)] font-heading text-xl font-bold tracking-tight text-foreground"
-        >
-          A little something back
-        </h2>
-        <p className="leading-relaxed text-foreground">
-          Anyone who chips in gets to pick their own bird, instead of the one
-          you were given at random.
-        </p>
-        <ul className="mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-s)] gap-y-[var(--space-m)] sm:grid-cols-5">
-          {REWARD_SPECIES.map(({ i, name }) => (
-            <li key={i}>
-              {/* A bare 72px grid cell, no disc behind the glyph: the mist
-                  circle read as a border drawn around every bird, and a box
-                  must earn its border (owner, 2026-07-30). The span survives
-                  purely to carry the accessible name and hold the cell size. */}
-              <span
-                className="inline-grid place-items-center"
-                style={{ width: 72, height: 72 }}
-                role="img"
-                aria-label={name}
-              >
-                <BirdGlyphV2 seed={`birds-gallery-${i}`} px={72} speciesOverride={i} />
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-[var(--space-m)] leading-relaxed text-foreground">
-          Choose any species from the{" "}
-          <Link
-            href="/birds"
-            className="rounded-[2px] font-medium text-canopy underline decoration-canopy/40 underline-offset-2 transition-opacity duration-150 ease-out hover:decoration-canopy active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            full collection
-          </Link>{" "}
-          of 50, to wear as your avatar across the site.
-        </p>
-      </section>
+        {canPickBird ? (
+          <Card title="Pick your bird" aside={seeAll}>
+            <BirdPicker currentSlug={me?.birdOverride ?? null} />
+          </Card>
+        ) : (
+          <Card title="Pick your bird" aside={seeAll}>
+            <p className="mt-[var(--space-xs)] max-w-[54ch] leading-relaxed text-foreground">
+              Anyone who contributes picks their own bird, instead of the one they were given.
+            </p>
+            <BirdPlate />
+          </Card>
+        )}
 
-      {/* Contribution panel, sitting over the fixed background via .glass */}
-      <section aria-labelledby="contribute-heading" className="mb-[var(--space-xl)]">
-        <h2
-          id="contribute-heading"
-          className="mb-[var(--space-s)] font-heading text-xl font-bold tracking-tight text-foreground"
-        >
-          Chip in
-        </h2>
-        <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-l)]">
-          <SupportContribute />
-        </div>
-      </section>
+        <Card title="Contribute">
+          <div className="mt-[var(--space-m)]">
+            <SupportContribute />
+          </div>
+        </Card>
+      </div>
 
-      <p className="leading-relaxed text-foreground">Thank you for your support.</p>
+      <p className="mt-[var(--space-xl)] leading-relaxed text-foreground">
+        Thank you for your support.
+      </p>
     </div>
   );
 }

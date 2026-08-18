@@ -14,17 +14,22 @@
    validated and clamped here, and is converted to paise exactly once. */
 
 import { createId } from "@paralleldrive/cuid2";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { createOrder, razorpayKeyId, razorpayLivemode, verifyPaymentSignature } from "@/lib/razorpay";
+import { PERK_MIN_PAISE, WEARABLE_SLUGS } from "@/components/support/plate-data";
 
 /* Floor and ceiling on a single contribution, in rupees. Razorpay's own floor
-   is ₹1; ₹100 is ours, because below it the processor's cut is most of the
-   gift and a stray ₹1 order is more likely a probe than a thank-you. The
-   ceiling is not a policy about generosity -- it is the blast radius of a
-   typo, in either direction, on a page whose largest chip is ₹5,000. */
-const MIN_RUPEES = 100;
+   is ₹1; ₹500 is ours (owner, 2026-08-18, raised from ₹100): below it the
+   processor's cut is a real slice of the gift, a stray tiny order is more
+   likely a probe than a thank-you, and ₹500 is also the bird-picker
+   threshold, so one number answers both "what is the minimum" and "what
+   unlocks the perk". The ceiling is not a policy about generosity -- it is
+   the blast radius of a typo, in either direction, on a page whose largest
+   chip is ₹5,000. */
+const MIN_RUPEES = 500;
 const MAX_RUPEES = 500_000;
 
 export type StartResult =
@@ -166,5 +171,50 @@ export async function confirmContribution(input: {
     });
   }
 
+  return { ok: true };
+}
+
+/**
+ * The perk: a supporter picks the bird they wear everywhere.
+ *
+ * Four gates, in order of who they protect. Auth, because birdOverride is a
+ * column on the caller's own row and nobody else's. The demo guard, because
+ * the demo's write path is default-deny and this is a write. The slug
+ * allowlist, because User.birdOverride is trusted downstream: only a slug
+ * from WEARABLE_SLUGS may be stored, which structurally excludes the reserved
+ * Hoopoe and Roller (resolveBirdOverride would ignore those anyway, but a row
+ * should never hold a value the renderer has to refuse). And the payment
+ * gate: the member's PAID contributions, in the current key mode, must reach
+ * the perk threshold. Mode-filtered the same way the public recovered figure
+ * is, so a developer's test payment unlocks the picker against test keys and
+ * never against live ones.
+ *
+ * Re-picking is allowed indefinitely. The perk is standing, and the write is
+ * idempotent, so there is nothing to meter and no state to corrupt by
+ * clicking twice.
+ */
+export async function chooseBird(slug: string): Promise<{ ok: true } | { error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "This is a demo, so bird picking is switched off." };
+
+  if (typeof slug !== "string" || !WEARABLE_SLUGS.has(slug)) {
+    return { error: "That bird is not available." };
+  }
+
+  const paid = await prisma.contribution.aggregate({
+    _sum: { amount: true },
+    where: { userId: session.user.id, status: "paid", livemode: razorpayLivemode() },
+  });
+  if ((paid._sum.amount ?? 0) < PERK_MIN_PAISE) {
+    return { error: "Picking a bird opens after a contribution of ₹500 or more." };
+  }
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { birdOverride: slug },
+  });
+
+  revalidatePath("/support");
   return { ok: true };
 }

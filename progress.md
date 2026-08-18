@@ -1480,3 +1480,49 @@ unchanged pending his pick.
   changed how the thing looks and moves, and the owner had to catch them. The artifact does not
   appear in a headless capture — asking for his screenshot earlier would have found the real cause
   in one step instead of three.
+
+# Session — Aviary ships as /support, with the bird picker
+
+The owner picked Aviary from /lab/support-ideas and asked for the ship, with rounds:
+
+- **Header not in a tile.** The title and pledge sit bare on the page; the wood (see below) keeps a
+  clear lane behind the content column so bare text never lands on a bird. Pledge is his exact
+  paragraph, one para, body size, reading colour.
+- **Costs, Revolut register.** Third rebuild of this card and the one that stuck: the ₹2,290
+  headline leads at the type scale's h2 with the old card's count-up kept, an 8px segmented strip
+  under it, then a receipt — one row per cost with a DOTTED LEADER carrying the eye from name to
+  amount. The dots are the answer to both earlier failures (the fat labelled bar, and the
+  right-aligned list whose label sat 500px from its number). Recovery bar: live sum from the
+  Contribution table (paid + livemode, same as before), no figures at either end — the ₹4,00,000
+  never prints.
+- **The wood** (`wood.tsx`): fixed field of ~75 glyphs on a jittered responsive grid (4/6/8 cols),
+  clear lane behind the 768px column via a CSS mask so it tracks every width; on phones the lane
+  becomes an edge-whisper at 45% instead (no gutters exist there). left offset 248px so it never
+  paints across the sidebar; -z-10 inside the shell's z-10 context so it sits above the valley
+  photo and under everything readable. Counted 8 birds per gutter in a 1440 viewport — no bald sides.
+- **Min contribution ₹500** (was ₹100), server-clamped, and it doubles as the perk threshold so one
+  number answers "minimum" and "what unlocks the picker".
+- **The bird picker** (`bird-picker.tsx` + `chooseBird` in actions.ts): members whose PAID
+  contributions (current key mode) reach ₹500 see the full wearable collection — all fifty minus
+  the reserved Hoopoe and Roller — in place of the fourteen-bird plate. Tap selects (canopy wash,
+  the app's one green state); a confirm strip rises with the bird, its name and "This becomes your
+  avatar everywhere on the site."; only "Make it my bird" writes. Re-pickable forever; current bird
+  wears a canopy check. Verified LIVE end to end on the shared DB with the owner's own account:
+  picked the Verditer Flycatcher, watched the sidebar avatar change on refresh, then restored
+  birdOverride to NULL by targeted UPDATE (guarded on the test value).
+- **Write path reviewed** (write-path-reviewer, then spot-checked its claims by hand): auth +
+  own-row-only write, IS_DEMO guard, server-side slug allowlist (WEARABLE_SLUGS, reserved birds
+  excluded, resolveBirdOverride as independent second enforcement), eligibility summed server-side
+  from rows only a valid Razorpay signature can mark paid. Demo backstop confirmed personally:
+  Contribution is not in ALLOWED_WRITE_MODELS and birdOverride is own-profile-scoped.
+- **Contribute panel**: "Contribute ₹1,000" with a word space (no middle dot), "PICK AN AMOUNT"
+  eyebrow removed, one-time line folded into the shield note, success copy now points at the picker
+  ("the bird picker just above is now yours") and router.refresh() makes that true.
+- cost-bar.tsx retired; plate data (arranged order + facing seeds) extracted to
+  `plate-data.ts`, shared by plate, picker and the lab room's record.
+- `npm run check` green; console clean; verified at 1440 and 390 (record shots
+  `temporary screenshots/support-ship-{desktop,mobile}.png`).
+
+Loose end noted, not mine: `scripts/demo/verify-guard.mts` fails to start under
+`--experimental-strip-types` (ERR_MODULE_NOT_FOUND src/lib/prisma.js) — pre-existing tooling issue,
+unrelated to this diff, flagged by the write-path review.

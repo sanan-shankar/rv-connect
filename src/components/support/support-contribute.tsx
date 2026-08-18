@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, IndianRupee, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -38,10 +39,10 @@ const SUGGESTIONS = [
 const DEFAULT_INDEX = 1;
 
 // Mirrors MIN_RUPEES in the Support actions. Duplicated deliberately: this copy
-// exists to say "₹100 minimum" before the payer submits, the server's copy is
+// exists to say "₹500 minimum" before the payer submits, the server's copy is
 // the one that decides. If they ever disagree, the server wins and the payer
 // sees its message.
-const MIN_RUPEES = 100;
+const MIN_RUPEES = 500;
 
 const CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
@@ -94,6 +95,7 @@ export function SupportContribute() {
   const [working, setWorking] = useState(false);
   const [paidAmount, setPaidAmount] = useState<number | null>(null);
   const customRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const isOther = SUGGESTIONS[selected].amount === null;
   const amount = isOther ? Number(custom) : SUGGESTIONS[selected].amount;
@@ -165,6 +167,11 @@ export function SupportContribute() {
           return;
         }
         setPaidAmount(amount as number);
+        // The perk is granted server-side the moment the row is paid. A
+        // refresh re-renders /support with the picker in place of the
+        // fourteen-bird preview, so "pick your bird above" below is true by
+        // the time the payer reads it.
+        router.refresh();
       },
       modal: {
         // Fires when the payer closes the modal without paying. Nothing to
@@ -203,7 +210,7 @@ export function SupportContribute() {
         </p>
         <p className="leading-relaxed text-muted-foreground" role="status">
           {inr(paidAmount)} received. A receipt is on its way to your email from
-          Razorpay. We will be in touch about picking your bird.
+          Razorpay, and the bird picker just above is now yours.
         </p>
       </motion.div>
     );
@@ -212,10 +219,10 @@ export function SupportContribute() {
   return (
     <div className="flex flex-col gap-[var(--space-m)]">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
-          Pick an amount
-        </p>
-        <div className="mt-[var(--space-xs)] flex flex-wrap gap-[var(--space-xs)]">
+        {/* No "PICK AN AMOUNT" eyebrow: the card is titled Contribute and the
+            row is five rupee figures, so a label above it was the same fact a
+            third time (owner's hierarchy complaint, 2026-08-18). */}
+        <div className="flex flex-wrap gap-[var(--space-xs)]">
           {SUGGESTIONS.map((s, i) => {
             const on = selected === i;
             return (
@@ -299,9 +306,7 @@ export function SupportContribute() {
           )}
         </AnimatePresence>
 
-        <p className="mt-[var(--space-s)] text-sm leading-relaxed text-muted-foreground">
-          A one-time thank-you, however much feels right. Never a subscription.
-        </p>
+
       </div>
 
       {/* The single primary action, in office blue */}
@@ -312,10 +317,13 @@ export function SupportContribute() {
         onFocus={warm}
         disabled={!amountValid || working}
         className={cn(
-          // gap-xxs, not the -s the old "Open my UPI app" button used: the
-          // middot already separates label from amount, and at -s beside a
-          // one-word label the two halves stopped reading as one phrase.
-          "inline-flex h-12 w-full items-center justify-center gap-[var(--space-xxs)] rounded-full bg-sky px-[var(--space-l)] text-[15px] font-semibold text-white sm:w-auto sm:self-start",
+          // The gap is a word space (~0.35em at 15px): the label reads as the
+          // one phrase "Contribute ₹1,000". It carried a middle dot for a
+          // while, but the dot is the app's separator for meta segments with
+          // no grammar between them, and a verb and its object are not that
+          // (owner, 2026-08-18: "add a space between the contribute and
+          // money").
+          "inline-flex h-12 w-full items-center justify-center gap-[0.35em] rounded-full bg-sky px-[var(--space-l)] text-[15px] font-semibold text-white sm:w-auto sm:self-start",
           "shadow-[0_6px_16px_-12px_var(--color-sky)]",
           "transition-[transform,filter,opacity] duration-150 ease-out",
           "hover:brightness-[1.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky",
@@ -332,7 +340,7 @@ export function SupportContribute() {
         ) : (
           <>
             Contribute
-            {amountValid && <span className="tabular-nums opacity-90">· {inr(amount as number)}</span>}
+            {amountValid && <span className="tabular-nums">{inr(amount as number)}</span>}
           </>
         )}
       </button>
@@ -340,8 +348,8 @@ export function SupportContribute() {
       <p className="flex items-start gap-[var(--space-xs)] text-xs leading-relaxed text-muted-foreground">
         <ShieldCheck className="mt-[0.15em] h-3.5 w-3.5 shrink-0" aria-hidden />
         <span>
-          Payment is handled by Razorpay. UPI, cards, netbanking and wallets all
-          work, from India or abroad. We never see your card or UPI details.
+          A single payment, nothing recurring. Razorpay handles it, so UPI, cards, netbanking and
+          wallets all work from India or abroad, and we never see your details.
         </span>
       </p>
     </div>
