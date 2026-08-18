@@ -1421,3 +1421,10 @@ deleted through its own delete-account flow.
 - Verified the reveal still lands in the same place at 1440 (pixel-diffed hover against rest: the
   only pixels that change are the label's own) and the perch is unchanged at 390. `npm run check`
   green.
+- **Round 5b, the actual cause.** The first fix was aimed at the wrong thing. His screenshots showed
+  it: in the hovered frame the contact shadow is a hard-edged RECTANGLE, in the resting frame it is
+  a soft ellipse. That is a `filter: blur(3px)` being re-rastered and clipped to its filter box when
+  the hover reveal next door promotes a layer. Repainted the shadow as a radial gradient instead:
+  no filter, nothing to re-raster, no box to clip to. Geometry and weight matched to the blur it
+  replaces (52x14, centre back on the button's bottom edge; darkest pixel 211 against the old 212,
+  measured on the same crop). Verified at rest and hovered at 1440 and at 390.
