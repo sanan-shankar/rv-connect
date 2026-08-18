@@ -4,6 +4,8 @@ import test from "node:test";
 
 const aboutPagePath = new URL("../../app/(main)/about/page.tsx", import.meta.url);
 const adminPagePath = new URL("../../app/(main)/admin/page.tsx", import.meta.url);
+const adminLayoutPath = new URL("../../app/(main)/admin/layout.tsx", import.meta.url);
+const adminGuardPath = new URL("../../lib/admin.ts", import.meta.url);
 const tourButtonPath = new URL("./take-tour-again-button.tsx", import.meta.url);
 const tourStepsPath = new URL("./tour-steps.ts", import.meta.url);
 
@@ -21,20 +23,32 @@ test("About is a minimal, generously spaced placeholder", async () => {
 });
 
 test("Admin exposes the tour action only to the configured owner email", async () => {
-  const source = await readFile(adminPagePath, "utf8");
+  // The 2026-08-19 rebuild split /admin into nine sections. Two things moved,
+  // and this test moved with them rather than being deleted:
+  //
+  //   The role guard is now in the admin LAYOUT, so it covers all eleven
+  //   routes instead of being repeated on each one and eventually forgotten
+  //   on one. It lives in requireAdminPage() (src/lib/admin.ts).
+  //
+  //   The owner check is isOwner(), for the same reason: it was an inline
+  //   ADMIN_EMAIL comparison that only the old single page performed.
+  //
+  // What has NOT changed, and is what this test actually protects: the tour
+  // trigger is on the admin Overview, and only the configured owner sees it,
+  // because tour-steps.ts ends by telling them to come back here for it.
+  const layout = await readFile(adminLayoutPath, "utf8");
+  assert.match(layout, /await requireAdminPage\(\)/);
 
+  const guard = await readFile(adminGuardPath, "utf8");
+  assert.match(guard, /session\.user\.role !== "admin"/);
+  assert.match(guard, /redirect\("\/feed"\)/);
+  assert.match(guard, /const ownerEmail = process\.env\.ADMIN_EMAIL;/);
+  assert.match(guard, /return Boolean\(ownerEmail\) && email === ownerEmail;/);
+
+  const source = await readFile(adminPagePath, "utf8");
   assert.match(
     source,
-    /session\.user\.role !== "admin"\) \{\s*redirect\("\/feed"\);\s*\}/
-  );
-  assert.match(source, /const ownerEmail = process\.env\.ADMIN_EMAIL;/);
-  assert.match(
-    source,
-    /const showTour = Boolean\(ownerEmail\) && session\.user\.email === ownerEmail;/
-  );
-  assert.match(
-    source,
-    /<PageHeader\s+title="Admin Panel"\s+actions=\{showTour \? <TakeTourAgainButton \/> : undefined\}\s+\/>/
+    /actions=\{isOwner\(session\.email\) \? <TakeTourAgainButton \/> : undefined\}/
   );
 });
 

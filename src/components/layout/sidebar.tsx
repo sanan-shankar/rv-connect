@@ -16,6 +16,7 @@ import {
   MessageSquareText,
   Menu,
   X,
+  ArrowLeft,
 } from "lucide-react";
 import { Tree as PhosphorTree } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -30,6 +31,13 @@ import { AnimatePresence, motion } from "motion/react";
 import { NAV_MARKER_SPRING, SPRINGS } from "@/components/common/motion";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine } from "@/lib/utils";
+import {
+  ADMIN_NAV,
+  isAdminRoute,
+  isAdminSectionActive,
+  type AdminCountKey,
+} from "@/components/admin/admin-nav";
+import { useAdminCounts } from "@/components/admin/admin-counts";
 import { NotificationBell } from "./notification-bell";
 import { LogoFact } from "./logo-fact";
 import { Wordmark } from "./peaks-mark";
@@ -87,11 +95,11 @@ function isActive(pathname: string, href: string) {
  *  return to a main surface. It is one indicator for one sidebar rather
  *  than a nav marker plus a separate idea of "the menu is open".
  * ------------------------------------------------------------------ */
-function accountNav(userId: string, isAdmin: boolean) {
+function accountNav(userId: string, showAdmin: boolean) {
   return [
     { href: `/profile/${userId}`, label: "My profile", icon: UserIcon },
     { href: "/messages", label: "Reach out", icon: MessageSquareText },
-    ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
+    ...(showAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
   ];
 }
 
@@ -177,6 +185,7 @@ function NavRow({
   markerId,
   onNavigate,
   staggered,
+  count,
 }: {
   href: string;
   label: string;
@@ -185,6 +194,8 @@ function NavRow({
   markerId: string;
   onNavigate?: () => void;
   staggered?: boolean;
+  /** Admin rows only. Rendered when > 0; a standing `0` is noise, not news. */
+  count?: number;
 }) {
   const Row = staggered ? motion.div : "div";
   return (
@@ -248,6 +259,19 @@ function NavRow({
         >
           {label}
         </motion.span>
+        {count !== undefined && count > 0 && (
+          /* Tabular so a queue ticking 9 -> 10 does not shove the label, and
+             right-aligned so the nine rows share one column of figures you
+             can read straight down. Idle rows carry it in the rail's own
+             muted ink; the active row inherits the lit foreground. */
+          <span
+            className={`ml-auto shrink-0 text-[12px] font-semibold tabular-nums ${
+              active ? "text-sidebar-accent-foreground" : "text-sidebar-foreground-idle"
+            }`}
+          >
+            {count}
+          </span>
+        )}
       </Row>
     </Link>
   );
@@ -287,6 +311,84 @@ function NavLinks({
   );
 }
 
+/* ------------------------------------------------------------------ *
+ *  THE ADMIN NAV.
+ *
+ *  Under /admin the rail swaps its whole list for this one. The owner asked
+ *  for "some non just scrolling form of navigation" and flagged a second rail
+ *  beside the first as "a bit janky", which it is: two vertical navs on one
+ *  screen, and 180px of a 1192px content column spent on the smaller of them.
+ *
+ *  Swapping instead costs nothing and buys the choreography for free. These
+ *  rows are the SAME NavRow in the SAME marker group as Feed and Directory,
+ *  so the cinnamon edge and its pill glide out of the account section's Admin
+ *  row and up into this list on the way in, and back down on the way out. The
+ *  rail says where you are with the one indicator it has always had.
+ *
+ *  The cost, stated plainly: while you are in here, Directory is two clicks
+ *  away rather than one. That is the standard drill-in trade, and the back
+ *  row is the first thing in the list precisely because of it.
+ * ------------------------------------------------------------------ */
+function AdminNavLinks({
+  pathname,
+  onNavigate,
+  markerId,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+  markerId: string;
+}) {
+  const counts = useAdminCounts();
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Not a NavRow: this is a way OUT, not a place, and giving it the row
+          treatment would put a tenth destination in a list of nine. Lighter
+          ink, no icon box, and it can never hold the marker. */}
+      <Link
+        href="/feed"
+        onClick={onNavigate}
+        className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-[13px] font-medium text-sidebar-foreground-idle transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
+      >
+        <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={2} />
+        Rishi Valley
+      </Link>
+
+      {ADMIN_NAV.map((group) => (
+        <div key={group.label} className="flex flex-col gap-0.5">
+          {/* 11px, and the one place in the rebuild where small uppercase ink
+              is still right: this IS a label over a group, which is what the
+              type scale documents the register for. The panel's old headings
+              were the same treatment doing a heading's job. */}
+          <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-sidebar-foreground-idle/70">
+            {group.label}
+          </p>
+          {group.sections.map((s) => (
+            <NavRow
+              key={s.href}
+              href={s.href}
+              label={s.label}
+              icon={s.icon}
+              active={isAdminSectionActive(pathname, s.href)}
+              markerId={markerId}
+              onNavigate={onNavigate}
+              count={s.countKey ? countFor(counts, s.countKey) : undefined}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function countFor(
+  counts: ReturnType<typeof useAdminCounts>,
+  key: AdminCountKey
+): number | undefined {
+  if (!counts) return undefined;
+  return counts[key];
+}
+
 /**
  * The account section: the rows, then the pill that opens them.
  *
@@ -314,7 +416,12 @@ function AccountSection({
   onNavigate?: () => void;
   demo?: boolean;
 }) {
-  const rows = accountNav(user.id, user.role === "admin");
+  /* The Admin row is dropped WHILE you are in admin, for two reasons. It is a
+     duplicate (the nav above is already the admin sections), and it is a bug:
+     `isActive` prefix-matches, so on /admin/people this row and the People row
+     would both be `active` and both would claim the one marker layoutId, which
+     tears the cinnamon edge between two places on the same paint. */
+  const rows = accountNav(user.id, user.role === "admin" && !isAdminRoute(pathname));
   const onAccountRoute = rows.some((r) => isActive(pathname, r.href));
   const [open, setOpen] = useState(onAccountRoute);
 
@@ -458,6 +565,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const inAdmin = user.role === "admin" && isAdminRoute(pathname);
 
   return (
     <>
@@ -493,14 +601,27 @@ export function Sidebar({
               <LogoFact />
             </LogoEasterEgg>
           </div>
-          <NavLinks
-            pathname={pathname}
-            markerId="nav-desktop"
-            hideCatchups={user.accountType === "teacher" || user.accountType === "ex_teacher"}
-          />
+          {/* min-h-0 + overflow-y-auto: the app's seven rows always fit, but
+              the admin swap puts nine rows, three group labels and a back row
+              in the same space, which does not fit a short window. The nav
+              gives up the room rather than the account block, the same rule
+              the mobile drawer already follows. */}
+          <div className="-mx-3 min-h-0 flex-1 overflow-y-auto px-3">
+            {inAdmin ? (
+              <AdminNavLinks pathname={pathname} markerId="nav-desktop" />
+            ) : (
+              <NavLinks
+                pathname={pathname}
+                markerId="nav-desktop"
+                hideCatchups={
+                  user.accountType === "teacher" || user.accountType === "ex_teacher"
+                }
+              />
+            )}
+          </div>
           {/* relative anchor for the idle-rest hoopoe, which perches just above
               this section (see sidebar-hoopoe.tsx) */}
-          <div className="relative mt-auto">
+          <div className="relative">
             <SidebarHoopoe />
             <AccountSection user={user} pathname={pathname} markerId="nav-desktop" demo={demo} />
           </div>
@@ -555,14 +676,22 @@ export function Sidebar({
                 same puts the marker inside the clip with 4px to spare, while
                 every row stays exactly where it was. */}
             <div className="-mx-3 min-h-0 flex-1 overflow-y-auto px-3">
-              <NavLinks
-                pathname={pathname}
-                onNavigate={() => setOpen(false)}
-                markerId="nav-mobile"
-                hideCatchups={
-                  user.accountType === "teacher" || user.accountType === "ex_teacher"
-                }
-              />
+              {inAdmin ? (
+                <AdminNavLinks
+                  pathname={pathname}
+                  onNavigate={() => setOpen(false)}
+                  markerId="nav-mobile"
+                />
+              ) : (
+                <NavLinks
+                  pathname={pathname}
+                  onNavigate={() => setOpen(false)}
+                  markerId="nav-mobile"
+                  hideCatchups={
+                    user.accountType === "teacher" || user.accountType === "ex_teacher"
+                  }
+                />
+              )}
             </div>
             {/* The SAME AccountSection the desktop rail uses, not a flat list of
                 the same destinations (owner, 2026-08-04: "we need to incorporate

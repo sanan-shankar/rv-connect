@@ -1,25 +1,14 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { requireAdminAction, type AdminActionResult } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { noteOnReportThread } from "@/lib/admin-threads-server";
 import { revalidatePath } from "next/cache";
 
-/** Shared shape for every admin action below. Explicit (rather than inferred)
- *  so the `error`/`success` branches stay mutually accessible without
- *  narrowing at call sites, matching how these actions were consumed before
- *  the shared `requireAdmin()` guard was extracted. */
-type AdminActionResult = { error: string; success?: undefined } | { success: boolean; error?: undefined };
-
-/** Every admin action opens with this guard; centralised so the check (and
- *  its error copy) can't drift between actions. */
-async function requireAdmin(): Promise<{ error: string; success?: undefined } | null> {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" as const };
-  }
-  return null;
-}
+/* The guard and the result shape moved to src/lib/admin.ts on 2026-08-19, when
+   the admin rebuild added a second and third file of these actions. One copy,
+   so the check and its error copy cannot drift across three files. */
+const requireAdmin = requireAdminAction;
 
 export async function adminBlockUser(userId: string, block: boolean): Promise<AdminActionResult> {
   const denied = await requireAdmin();
@@ -52,7 +41,7 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
   }
 
   revalidatePath("/directory");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return { success: true };
 }
 
@@ -93,7 +82,7 @@ export async function adminVerifyUser(
     },
   });
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   revalidatePath(`/profile/${userId}`);
   return { success: true };
 }
@@ -107,7 +96,7 @@ export async function adminUnverifyUser(userId: string): Promise<AdminActionResu
     data: { verifyState: "unverified", verifyMethod: null, verifiedAt: null },
   });
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   revalidatePath(`/profile/${userId}`);
   return { success: true };
 }
@@ -122,7 +111,7 @@ export async function adminHidePost(postId: string): Promise<AdminActionResult> 
   });
 
   revalidatePath("/feed");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return { success: true };
 }
 
@@ -141,7 +130,7 @@ export async function adminDismissReport(reportId: string): Promise<AdminActionR
     "An admin read this and decided to leave it as it is. Thank you for flagging it anyway. If there's more to it, write back here."
   );
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return { success: true };
 }
 
@@ -159,6 +148,6 @@ export async function adminResolveReport(reportId: string): Promise<AdminActionR
     "An admin looked at this and has dealt with it. Thank you for flagging it."
   );
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return { success: true };
 }

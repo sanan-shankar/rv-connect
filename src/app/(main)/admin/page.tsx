@@ -1,324 +1,174 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { PageHeader } from "@/components/layout/page-header";
-import { Users, FileText, AlertTriangle, UserPlus, Images, Mail } from "lucide-react";
-import { AdminSection } from "@/components/admin/admin-section";
-import { AdminStats } from "@/components/admin/admin-stats";
-import { UserManagement } from "@/components/admin/user-management";
-import { ReportManagement } from "@/components/admin/report-management";
-import { PhotoQueue } from "@/components/admin/photo-queue";
-import { VerificationQueue } from "@/components/admin/verification-queue";
+import Link from "next/link";
 import {
-  VerificationOverview,
-  type EmailState,
-  type VerificationRow,
-} from "@/components/admin/verification-overview";
-import { MessageQueue } from "@/components/admin/message-queue";
+  CalendarDays,
+  Flag,
+  IndianRupee,
+  Inbox,
+  Images,
+  Mail,
+  Send,
+  ShieldQuestion,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { prisma } from "@/lib/prisma";
+import { isOwner, requireAdminPage } from "@/lib/admin";
 import { mailHealth } from "@/lib/email-queue";
+import { loadWorklist } from "@/lib/admin-worklist-query";
+import { QUEUE_LABEL, QUEUE_TONE, type WorkItem } from "@/lib/admin-worklist";
+import { Chip } from "@/components/admin/admin-chip";
+import { AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
+import { ADMIN_NAV } from "@/components/admin/admin-nav";
 import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
-import { PUBLISHED_ONLY } from "@/lib/posts";
+import { formatTimeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Admin",
+  title: "Overview",
 };
 
-export default async function AdminPage({
-  searchParams,
-}: {
-  // ?thread=<id> comes from the notification an admin gets when a member
-  // writes in, so the row they were told about opens straight away.
-  searchParams: Promise<{ thread?: string }>;
-}) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    redirect("/feed");
-  }
+const QUEUE_ICON = {
+  message: Inbox,
+  report: Flag,
+  photo: Images,
+  flagged: ShieldQuestion,
+  mail: Mail,
+  catchup: CalendarDays,
+} as const;
 
-  const ownerEmail = process.env.ADMIN_EMAIL;
-  const showTour = Boolean(ownerEmail) && session.user.email === ownerEmail;
-  const { thread: openThreadId } = await searchParams;
+/**
+ * What needs you, then how the place is doing. In that order.
+ *
+ * The page this replaces opened with six stat tiles that were not clickable,
+ * three of which were repeated as section headings two inches below them, and
+ * then stacked five queues down 2901px of scroll. So the first thing you saw
+ * was a scoreboard, and the thing you actually came for was somewhere under
+ * it.
+ *
+ * The worklist inverts that: every waiting item from every queue, mixed,
+ * newest first, each one a link to where it gets dealt with. The numbers come
+ * after, and every one of them is a link into the section that owns it.
+ */
+export default async function AdminOverviewPage() {
+  const session = await requireAdminPage();
 
+  // One clock read for the whole render. `Date.now()` inline in the query
+  // tripped the react-hooks/purity rule, and it was also two different "now"s
+  // in one page: the month boundary and the week boundary were read a few
+  // microseconds apart for no reason.
   const now = new Date();
+  const monthStart = new Date(now);
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [totalUsers, totalPosts, newSignups, pendingReports, pendingPhotos] =
-    await Promise.all([
-      prisma.user.count({ where: { isBlocked: false } }),
-      // Drafts are unpublished, private letters -- don't count them toward
-      // the sitewide "Total Posts" stat.
-      prisma.post.count({ where: { ...PUBLISHED_ONLY } }),
-      prisma.user.count({
-        where: { createdAt: { gte: weekAgo } },
-      }),
-      prisma.report.count({ where: { status: "pending" } }),
-      prisma.photo.findMany({
-        where: { approved: false, isHidden: false },
-        include: { uploader: { select: { name: true } } },
-        orderBy: { createdAt: "asc" },
-      }),
-    ]);
-
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      batchType: true,
-      batchYear: true,
-      role: true,
-      isBlocked: true,
-      createdAt: true,
-      adminNote: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const pendingVerification = await prisma.user.findMany({
-    where: { isBlocked: false, verifyState: { in: ["unverified", "pending", "flagged"] } },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      accountType: true,
-      verifyState: true,
-      batchType: true,
-      batchYear: true,
-      admissionNumber: true,
-      yearJoined: true,
-      yearLeft: true,
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  /* ---- Verification overview: both kinds of "verified", in one place ----
-     The panel had two rows describing two different facts (did this address
-     answer, and is this really a Rishi Valley person) that never appeared
-     together, so neither could be read against the other. */
-  const [verificationUsers, mail] = await Promise.all([
-    prisma.user.findMany({
-      where: { isBlocked: false },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        photoUrl: true,
-        birdOverride: true,
-        accountType: true,
-        batchType: true,
-        batchYear: true,
-        verifyState: true,
-        emailVerified: true,
-      },
-      orderBy: { createdAt: "desc" },
+  const [work, members, newThisWeek, mail, given] = await Promise.all([
+    loadWorklist(),
+    prisma.user.count({ where: { isBlocked: false } }),
+    prisma.user.count({
+      where: { createdAt: { gte: weekAgo } },
     }),
     mailHealth(),
+    prisma.contribution.aggregate({
+      _sum: { amount: true },
+      where: { status: "paid", livemode: true, paidAt: { gte: monthStart } },
+    }),
   ]);
 
-  // Mail state for the unconfirmed only. Everyone confirmed is already
-  // answered by their own row, so there is nothing to look up for them, and on
-  // a healthy day that is almost the whole membership.
-  const unconfirmedIds = verificationUsers.filter((u) => !u.emailVerified).map((u) => u.id);
-  const verifyMail = unconfirmedIds.length
-    ? await prisma.outboundEmail.findMany({
-        where: { userId: { in: unconfirmedIds }, kind: "verify" },
-        select: { userId: true, status: true, createdAt: true },
-        orderBy: { createdAt: "desc" },
-      })
-    : [];
-  // First row wins: the list is newest-first, so this keeps the LATEST attempt
-  // per person and ignores the history behind it.
-  const latestMail = new Map<string, string>();
-  for (const row of verifyMail) {
-    if (row.userId && !latestMail.has(row.userId)) latestMail.set(row.userId, row.status);
-  }
-
-  const verificationRows: VerificationRow[] = verificationUsers.map((u) => {
-    const status = latestMail.get(u.id);
-    const emailState: EmailState = u.emailVerified
-      ? "confirmed"
-      : status === "sent"
-        ? "waiting"
-        : status === "queued" || status === "sending"
-          ? "queued"
-          : status === "failed"
-            ? "failed"
-            : "none";
-    return {
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      photoUrl: u.photoUrl,
-      birdOverride: u.birdOverride,
-      accountType: u.accountType,
-      batchType: u.batchType,
-      batchYear: u.batchYear,
-      verifyState: u.verifyState,
-      emailState,
-      confirmedAt: u.emailVerified ? u.emailVerified.toISOString() : null,
-    };
-  });
-
-  const emailPending = verificationRows.filter((r) => r.emailState !== "confirmed").length;
-
-  // Member <-> admin conversations. Unanswered first, then by recency, so the
-  // queue reads top-down. Capped at 40 threads (with their messages) to keep
-  // this one page query honest as the archive grows.
-  const messageThreads = await prisma.adminThread.findMany({
-    orderBy: [{ adminUnread: "desc" }, { lastMessageAt: "desc" }],
-    take: 40,
-    select: {
-      id: true,
-      subject: true,
-      kind: true,
-      status: true,
-      adminUnread: true,
-      lastMessageAt: true,
-      member: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
-      messages: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          body: true,
-          imageUrl: true,
-          fromAdmin: true,
-          createdAt: true,
-          author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
-        },
-      },
-    },
-  });
-  const unansweredMessages = messageThreads.filter((t) => t.adminUnread).length;
-
-  const reports = await prisma.report.findMany({
-    where: { status: "pending" },
-    include: {
-      reporter: { select: { name: true } },
-      post: {
-        select: {
-          id: true,
-          content: true,
-          author: { select: { name: true } },
-        },
-      },
-      reportedUser: { select: { id: true, name: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // Short labels: each one now has a sixth of the width rather than a quarter,
-  // and "Total" said nothing that the number beside it did not.
-  const stats = [
-    { label: "Members", value: totalUsers, icon: Users },
-    { label: "Posts", value: totalPosts, icon: FileText },
-    { label: "New this week", value: newSignups, icon: UserPlus },
-    { label: "Awaiting reply", value: unansweredMessages, icon: Mail },
-    { label: "Reports", value: pendingReports, icon: AlertTriangle },
-    { label: "Photos", value: pendingPhotos.length, icon: Images },
-  ];
-
   return (
-    // space-y-5, not space-y-8: five sections down one page were paying 32px
-    // each to be told apart, on a surface whose whole problem was scrolling.
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <PageHeader
-        title="Admin Panel"
-        actions={showTour ? <TakeTourAgainButton /> : undefined}
+        title="Admin"
+        actions={isOwner(session.email) ? <TakeTourAgainButton /> : undefined}
       />
 
-      <AdminStats stats={stats} />
-
-      {/* Messages from members (the in-app replacement for the old Tally form) */}
-      <AdminSection
-        id="messages"
-        label="Messages"
-        count={unansweredMessages > 0 ? unansweredMessages : undefined}
-      >
-        <MessageQueue
-          initialOpenId={openThreadId}
-          threads={messageThreads.map((t) => ({
-            id: t.id,
-            subject: t.subject,
-            kind: t.kind,
-            status: t.status,
-            adminUnread: t.adminUnread,
-            lastMessageAt: t.lastMessageAt.toISOString(),
-            member: t.member,
-            messages: t.messages.map((m) => ({
-              ...m,
-              createdAt: m.createdAt.toISOString(),
-            })),
-          }))}
-        />
+      <AdminSection label="Waiting on you" count={work.length}>
+        {work.length === 0 ? (
+          /* One line, no card. There is nothing to do, and a bordered empty
+             state saying so is the panel's old habit of paying 80px to say
+             nothing. */
+          <p className="px-0.5 py-1 text-[13px] text-muted-foreground">
+            Nothing is waiting. No messages, no reports, no photos to look at, nobody flagged,
+            and the mail is going out.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {work.map((item) => (
+              <WorkRow key={item.key} item={item} />
+            ))}
+          </div>
+        )}
       </AdminSection>
 
-      {/* Reported Posts */}
-      <AdminSection label="Reported posts" count={pendingReports}>
-        <ReportManagement
-          reports={reports.map((r) => ({
-            id: r.id,
-            reason: r.reason,
-            createdAt: r.createdAt.toISOString(),
-            reporterName: r.reporter.name,
-            targetType: r.targetType,
-            postId: r.post?.id ?? null,
-            postContent: r.post ? r.post.content.slice(0, 200) : null,
-            postAuthor: r.post?.author.name ?? null,
-            reportedUserId: r.reportedUser?.id ?? null,
-            reportedUserName: r.reportedUser?.name ?? null,
-          }))}
-        />
+      <AdminSection label="The place">
+        <StatStrip>
+          <StatTile label="Members" value={members} icon={Users} href="/admin/people" />
+          <StatTile label="New this week" value={newThisWeek} icon={UserPlus} href="/admin/people" />
+          <StatTile
+            label="Mail sent today"
+            value={mail.sentToday}
+            suffix={`/ ${mail.dailyCap}`}
+            icon={Send}
+            href="/admin/mail"
+            tone={mail.failed > 0 ? "bad" : "plain"}
+          />
+          <StatTile
+            label="Given this month"
+            value={`Rs ${Math.round((given._sum.amount ?? 0) / 100).toLocaleString("en-IN")}`}
+            icon={IndianRupee}
+            href="/admin/support"
+          />
+        </StatStrip>
       </AdminSection>
 
-      {/* Email and membership, side by side. Sits ABOVE the verification queue
-          below it: this is the overview, that is the action list. */}
-      <AdminSection
-        label="Email & verification"
-        count={emailPending > 0 ? emailPending : undefined}
-      >
-        <VerificationOverview rows={verificationRows} mail={mail} />
-      </AdminSection>
-
-      {/* Verification queue */}
-      <AdminSection label="Verification" count={pendingVerification.length}>
-        <VerificationQueue users={pendingVerification} />
-      </AdminSection>
-
-      {/* Photo queue */}
-      <AdminSection label="Photos to review" count={pendingPhotos.length}>
-        <PhotoQueue
-          photos={pendingPhotos.map((p) => ({
-            id: p.id,
-            thumbUrl: p.thumbUrl,
-            caption: p.caption,
-            subject: p.subject ? p.subject.split(",").filter(Boolean) : [],
-            area: p.area,
-            era: p.era,
-            freeTags: p.freeTags
-              ? p.freeTags.split(",").map((t) => t.trim()).filter(Boolean)
-              : [],
-            uploaderName: p.uploader.name,
-            createdAt: p.createdAt.toISOString(),
-          }))}
-        />
-      </AdminSection>
-
-      {/* User Management */}
-      <AdminSection label="Users" count={users.length}>
-        <UserManagement
-          users={users.map((u) => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            batchType: u.batchType,
-            batchYear: u.batchYear,
-            role: u.role,
-            isBlocked: u.isBlocked,
-            createdAt: u.createdAt.toISOString(),
-          }))}
-        />
+      {/* The rail carries these on a desktop, but a phone's rail is behind a
+          hamburger, so the sections have to be reachable from the page too. */}
+      <AdminSection label="Everything else" className="md:hidden">
+        <div className="flex flex-col gap-1.5">
+          {ADMIN_NAV.flatMap((g) => g.sections)
+            .filter((s) => s.href !== "/admin")
+            .map((s) => (
+              <Link
+                key={s.href}
+                href={s.href}
+                className="state-layer flex items-start gap-2.5 rounded-[var(--radius)] border border-border bg-card p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <s.icon className="mt-0.5 size-4 shrink-0 text-leaf" strokeWidth={2} aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-[13.5px] font-semibold text-foreground">{s.label}</p>
+                  <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">
+                    {s.blurb}
+                  </p>
+                </div>
+              </Link>
+            ))}
+        </div>
       </AdminSection>
     </div>
+  );
+}
+
+function WorkRow({ item }: { item: WorkItem }) {
+  const Icon = QUEUE_ICON[item.queue];
+  return (
+    <Link
+      href={item.href}
+      className="state-layer flex items-start gap-3 rounded-[var(--radius)] border border-border bg-card p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    >
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" strokeWidth={2} aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13.5px] font-medium text-foreground">{item.title}</p>
+        {item.detail && (
+          <p className="truncate text-[12.5px] text-muted-foreground">{item.detail}</p>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Chip label={QUEUE_LABEL[item.queue]} tone={QUEUE_TONE[item.queue]} />
+        <span className="hidden text-[11.5px] tabular-nums text-muted-foreground sm:inline">
+          {formatTimeAgo(new Date(item.at))}
+        </span>
+      </div>
+    </Link>
   );
 }
