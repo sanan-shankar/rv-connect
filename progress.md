@@ -1,5 +1,31 @@
 # Progress Log
 
+## Session 2026-08-19 — The hoopoe gets a public playground at `/hoopoe`
+Owner's ask: lift the lab's hoopoe room out to `/hoopoe`, keep the lab version untouched, and on
+the public one keep only the first tile and the password/gaze demo, expanded into something easy
+to play with and worth sending to people.
+- **New public route** `src/app/hoopoe/page.tsx` + `src/components/mascot/hoopoe-playground.tsx`.
+  `/lab/hoopoe` is unchanged: proportion sliders, tail compare, matrix and sequence builder all
+  still live there. The public page carries no readouts, no code output and no API names.
+- **The playground is the tile, expanded**: a scene that scales its bird off a ResizeObserver
+  (150-280px), click-the-sky-to-fly, click-the-butterfly-to-be-pointed-at, gaze that follows the
+  pointer and hands back to the ambient wander on leave, a day/dusk sky mixed from `--sky` /
+  `--canopy` / `--cinnamon` (dusk is how you actually see `sleep()` land), and 36 verbs on a
+  labelled rail in plain English. "Surprise me" plays one of six named four-beat routines; the
+  name shows in the caption while it runs.
+- **Three geometry fixes found by measuring, not by eye**: the horizon was 24px below the bird's
+  feet (it is now derived from the rig's 152/120 box), an unclamped fly-to cropped the crest on
+  any click in the top 45% of the sky (targets are clamped into the frame, and the marker shows
+  the clamped point), and `rest()` restores the POSE but never the POSITION, so a bird flown into
+  a corner could not come home. "Settle down" now flies it back to the rig anchor
+  ((101+10)/152 down its own box) before settling. Finding the rig by `PARTS.root` and walking up
+  to its `<svg>` matters: the scene's first `<svg>` is the butterfly icon.
+- **Sticky scene** on both viewports so the toy never scrolls off while you use the rail; it
+  needed `bg-card` or the chips read straight through the caption text.
+- Public in `src/proxy.ts` (reads nothing, writes nothing) and in `PRODUCT_ROUTES` in
+  `scripts/qa/lab-audit.mjs`. Verified at 1440x900 and 390x844 with fly, settle, surprise, dusk,
+  sleep and the password toggle driven live. `npm run check` green. Not pushed.
+
 ## Session 2026-08-14 (round 3) — No rings on boxes; the whole auth family swept; mobile keeps its keyboard
 Owner notes on round 2, shipped in `7a505a7` / `094a540`:
 - **The leaf focus ring is OFF every calm-form box** (owner: "I don't want the green outline
