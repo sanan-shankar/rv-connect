@@ -202,12 +202,17 @@ export async function chooseBird(slug: string): Promise<{ ok: true } | { error: 
     return { error: "That bird is not available." };
   }
 
-  const paid = await prisma.contribution.aggregate({
-    _sum: { amount: true },
-    where: { userId: session.user.id, status: "paid", livemode: razorpayLivemode() },
-  });
-  if ((paid._sum.amount ?? 0) < PERK_MIN_PAISE) {
-    return { error: "Picking a bird opens after a contribution of ₹500 or more." };
+  // Admins walk the supporter path without paying: the owner has to be able
+  // to test the exact flow a contributor gets (and re-test it after every
+  // change) without sending himself money. Everyone else pays.
+  if (session.user.role !== "admin") {
+    const paid = await prisma.contribution.aggregate({
+      _sum: { amount: true },
+      where: { userId: session.user.id, status: "paid", livemode: razorpayLivemode() },
+    });
+    if ((paid._sum.amount ?? 0) < PERK_MIN_PAISE) {
+      return { error: "Picking a bird opens after a contribution of ₹500 or more." };
+    }
   }
 
   await prisma.user.update({
@@ -216,5 +221,6 @@ export async function chooseBird(slug: string): Promise<{ ok: true } | { error: 
   });
 
   revalidatePath("/support");
+  revalidatePath("/pick-bird");
   return { ok: true };
 }

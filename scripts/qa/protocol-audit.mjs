@@ -145,6 +145,7 @@ const DRAB_ALLOW = new Map([
   ["src/components/messages/thread-list.tsx", "selected thread row (selection state)"],
   ["src/components/posts/post-feed.tsx", "pressed feed filter (selection state)"],
   ["src/components/posts/edit-post-dialog.tsx", "selected tag (selection state)"],
+  ["src/components/support/bird-picker.tsx", "selected bird cell on /pick-bird (selection state)"],
   ["src/components/auth/signup-form.tsx", "segmented-control selected thumb"],
   ["src/components/catchups/home/keeper-settings-dialog.tsx", "segmented-control selected thumb"],
   ["src/components/catchups/home/reminder-pref-control.tsx", "segmented-control selected thumb"],

@@ -1,24 +1,31 @@
 "use client";
 
-/* The aviary behind /support: a fixed field of bird glyphs the page scrolls
- * over, the same register as the valley photo every (main) page already has,
- * just made of the site's own birds.
+/* The aviary behind /support, and behind the lab room it was promoted from:
+ * a fixed field of the site's own bird glyphs that the page scrolls over,
+ * the same register as the valley photo every (main) page already has.
  *
- * Layout is a JITTERED GRID, not a random scatter. Random placement clumps: a
- * few birds land on top of each other and leave bald patches everywhere else.
- * A grid with each bird nudged inside its own cell fills the viewport evenly
- * with no overlaps ever, because a bird is 42% of its cell and its centre
- * never leaves the middle 42%, so two neighbours cannot reach each other. And
- * because cells are viewport fractions, a phone gets four fat columns rather
- * than the miniscule pinned-pixel birds a first cut had.
+ * The owner's brief, assembled over three rounds: like the lab version.
+ * Dense, birds on the sides AND behind the panels (the glass blurs them),
+ * never massive, never overlapping, "random but a bit more evenly
+ * distributed", and explicitly not reading as a grid.
  *
- * The middle stays clear of the words. A CSS mask cuts a soft vertical lane
- * out of the field exactly where the content column sits (bare header text
- * over birds was tried and the verdict was "ruins readability"), while the
- * side gutters run at full density, so the page reads as a clearing in a wood
- * rather than a wall of wallpaper. The mask, not per-bird math, is what makes
- * the lane track every viewport width. On phones there are no gutters, so the
- * lane instead fades the whole field down to a whisper at the edges.
+ * So the field is a fine JITTERED GRID wearing a random face. Small cells
+ * (7/10/14 columns as the viewport grows) each hold at most one bird, nudged
+ * to a hashed point inside its cell: even coverage with no clumps, which is
+ * what plain Math.random cannot do, while the jitter, the one-in-seven empty
+ * cells and the size spread keep any grid alignment from surfacing. The bird
+
+ * itself is sized by the viewport with pixel caps at both ends: an earlier
+ * cut scaled purely with the cell and turned into 120px giants on a wide
+ * monitor ("massive"), and the over-correction shrank to 26px "specks". The
+ * clamp in the render is the truce: the lab room's look on a laptop, held
+ * inside 40-84px everywhere.
+ *
+ * Behind the content column the field drops to under half strength via a CSS
+ * mask, so bare text stays readable, but it never goes to zero: a fully
+ * cleared lane read as "zero birds next to the column" the moment the
+ * viewport grew. The mask, not per-bird math, is what makes the attenuation
+ * track every width.
  *
  * Deterministic by construction: positions come from a fixed integer hash and
  * every number is rounded before it reaches a style attribute, because React
@@ -28,22 +35,25 @@
  * over half a minute on its own clock. */
 
 import { BirdGlyphV2, GALLERY_SPECIES } from "@/components/common/bird-avatar-v2";
+import { cn } from "@/lib/utils";
 
 const round = (n: number, places = 2) => Number(n.toFixed(places));
 
-/* 90 cells: at the widest grid (8 columns on a 1192px main, 149px cells) that
-   is 11 rows, which outruns any viewport height the fixed layer can show. What
-   runs past the bottom is clipped and costs nothing. */
-const WOOD = Array.from({ length: 90 }, (_, i) => {
+/* 160 cells: at 8 columns that is 20 rows, roughly 3,000px of page at a
+   desktop cell size, which covers the support page top to bottom. Whatever
+   runs past the content's height is clipped and costs nothing. */
+const WOOD = Array.from({ length: 160 }, (_, i) => {
   const h = (n: number) => (Math.sin((i + 1) * n) + 1) / 2;
   return {
     key: i,
-    // Roughly one cell in six sits empty so the wood has clearings.
-    empty: h(91.7) < 0.17,
+    // One cell in seven sits empty: enough irregularity to break the grid,
+    // not enough to open a bald patch.
+    empty: h(91.7) < 0.14,
     species: GALLERY_SPECIES[(i * 13) % GALLERY_SPECIES.length].index,
-    // Percent of the cell; 29-71 keeps a 42%-wide bird fully inside it.
-    x: round(29 + h(78.233) * 42),
-    y: round(29 + h(12.9898) * 42),
+    // Percent of the cell. 32-68 keeps even the largest bird essentially
+    // inside its own cell, so neighbours never overlap at any width.
+    x: round(32 + h(78.233) * 36),
+    y: round(32 + h(12.9898) * 36),
     scale: round(0.72 + h(43.7) * 0.42, 3),
     opacity: round(0.2 + h(19.31) * 0.14, 3),
     duration: round(26 + h(31.7) * 16, 1),
@@ -51,71 +61,72 @@ const WOOD = Array.from({ length: 90 }, (_, i) => {
   };
 });
 
-export function SupportWood() {
+/* `inset` is the shipped /support shape: the field starts past the 248px
+   sidebar rail and wears the column-attenuation mask. The lab room renders
+   full-bleed with no mask (its header sits on glass, so nothing bare needs
+   the protection). */
+export function SupportWood({ inset = true }: { inset?: boolean }) {
   return (
     <>
-      <style>{`
-        @keyframes support-wood-drift {
-          0%   { transform: translate3d(0, 0, 0); }
-          50%  { transform: translate3d(4%, -6%, 0); }
-          100% { transform: translate3d(0, 0, 0); }
-        }
-        /* The clear lane. The wood spans the main area (viewport minus the
-           248px rail), and the 768px content column is centred in that same
-           area, so "behind the words" is simply the middle of this element.
-           The column's half-width is 384px; clear to 396 and fade out by 500
-           so the lane has no visible edge. */
-        .support-wood {
-          mask-image: linear-gradient(
-            to right,
-            black,
-            black calc(50% - 500px),
-            transparent calc(50% - 396px),
-            transparent calc(50% + 396px),
-            black calc(50% + 500px),
-            black
-          );
-          -webkit-mask-image: linear-gradient(
-            to right,
-            black,
-            black calc(50% - 500px),
-            transparent calc(50% - 396px),
-            transparent calc(50% + 396px),
-            black calc(50% + 500px),
-            black
-          );
-        }
-        /* No gutters on a phone: the column is the whole screen. Instead of a
-           lane, the field survives only at the screen's edges and at less than
-           half strength, so the birds are present without sitting under a
-           single line of copy. */
-        @media (max-width: 767px) {
-          .support-wood {
+      {inset && (
+        <style>{`
+          /* Not a clearing, a thinning: the centre stays at 40% strength so
+             there are always birds behind the panels (the glass blurs them
+             into atmosphere), while the fade to full strength at the sides is
+             wide enough that no edge ever shows. The content column is 768px,
+             centred in this same element, so "behind the words" is simply the
+             middle. */
+          .support-wood-inset {
             mask-image: linear-gradient(
               to right,
-              rgb(0 0 0 / 0.45),
-              transparent 88px,
-              transparent calc(100% - 88px),
-              rgb(0 0 0 / 0.45)
+              black,
+              black calc(50% - 520px),
+              rgb(0 0 0 / 0.4) calc(50% - 360px),
+              rgb(0 0 0 / 0.4) calc(50% + 360px),
+              black calc(50% + 520px),
+              black
             );
             -webkit-mask-image: linear-gradient(
               to right,
-              rgb(0 0 0 / 0.45),
-              transparent 88px,
-              transparent calc(100% - 88px),
-              rgb(0 0 0 / 0.45)
+              black,
+              black calc(50% - 520px),
+              rgb(0 0 0 / 0.4) calc(50% - 360px),
+              rgb(0 0 0 / 0.4) calc(50% + 360px),
+              black calc(50% + 520px),
+              black
             );
           }
+        `}</style>
+      )}
+      <style>{`
+        @keyframes support-wood-drift {
+          0%   { transform: translate3d(0, 0, 0); }
+          50%  { transform: translate3d(4px, -6px, 0); }
+          100% { transform: translate3d(0, 0, 0); }
         }
       `}</style>
 
-      {/* -z-10 keeps it under the page content inside the shell's own z-10
-          stacking context while still painting over the fixed valley photo
-          (z-0, one context down). left offset matches the fixed sidebar rail
-          so the wood never paints across it. Weather, not content: aria-hidden
-          and inert to the pointer. */}
+      {/* ABSOLUTE, not fixed: the birds scroll with the page, the way the
+          approved lab room's field did (owner: "the birds were scrolling with
+          the content in lab. I'd like it like that"). With no positioned
+          element between the page and the app shell's content div, inset-0
+          resolves against that div, which is the full content height and
+          spans EXACTLY the area right of the 248px rail: the field
+          structurally cannot paint over the sidebar, at any width or scroll
+          position. The md:pl-6 keeps even a first-column bird from visually
+          butting against the rail's edge. In the lab room the same element
+          resolves against the room's own relative root, full-bleed, which is
+          the original lab behaviour.
+
+          -z-10 keeps it under the page content inside the nearest stacking
+          context (the shell's z-10 content div; the lab room isolates
+          itself), still above the fixed valley photo one context down.
+          Weather, not content: aria-hidden and inert to the pointer. */}
       <div
-        className="support-wood pointer-events-none fixed inset-y-0 left-0 right-0 -z-10 grid grid-cols-4 overflow-hidden sm:grid-cols-6 md:left-[248px] lg:grid-cols-8"
+        className={cn(
+          "pointer-events-none absolute inset-0 -z-10 grid grid-cols-4 overflow-hidden sm:grid-cols-6 lg:grid-cols-8",
+          inset && "support-wood-inset md:pl-6"
+        )}
         aria-hidden
       >
         {WOOD.map((b) =>
@@ -124,21 +135,33 @@ export function SupportWood() {
           ) : (
             <div key={b.key} className="relative aspect-square">
               {/* Two nested spans on purpose: the outer owns the centring
-                  translate, the inner owns the drift keyframes, because one
-                  animation setting `transform` would wipe the centring out and
-                  drop every bird a half-cell down and right. */}
+                  translate and the pixel-capped size, the inner owns the
+                  drift keyframes, because one animation setting `transform`
+                  would wipe the centring out and drop every bird a half-cell
+                  down and right. */}
               <span
-                className="absolute block w-[42%] -translate-x-1/2 -translate-y-1/2"
-                style={{ left: `${b.x}%`, top: `${b.y}%`, opacity: b.opacity }}
+                className="absolute block -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  left: `${b.x}%`,
+                  top: `${b.y}%`,
+                  // The lab field's presence, pixel-capped at the extreme:
+                  // 5vw tracks the cell so a laptop reads exactly like the
+                  // approved lab room (roughly 50-80px birds), the 40px floor
+                  // keeps a phone from getting specks, and the 84px ceiling
+                  // keeps a 5K display from getting a mural. An earlier
+                  // 26-56px clamp read as "specks, so unpleasant" and is why
+                  // this comment is this long.
+                  width: `calc(clamp(40px, 5vw, 84px) * ${b.scale})`,
+                  opacity: b.opacity,
+                }}
               >
                 <span
                   className="block aspect-square w-full [&>svg]:h-full [&>svg]:w-full"
                   style={{
-                    transform: `scale(${b.scale})`,
                     animation: `support-wood-drift ${b.duration}s ease-in-out ${b.delay}s infinite`,
                   }}
                 >
-                  <BirdGlyphV2 seed={`wood-${b.key}`} px={64} speciesOverride={b.species} />
+                  <BirdGlyphV2 seed={`wood-${b.key}`} px={56} speciesOverride={b.species} />
                 </span>
               </span>
             </div>

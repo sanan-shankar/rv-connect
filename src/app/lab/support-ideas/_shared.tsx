@@ -37,10 +37,9 @@ import { cn } from "@/lib/utils";
    is why "and it is not for profit" was cut loose into its own sentence rather
    than left hanging off the first. It is a better line on its own anyway. */
 export const PLEDGE = [
-  "This site is free to use, and always will be.",
-  "It is not for profit.",
-  "Donations go towards building and running it.",
-  "Anything beyond that goes to the school.",
+  "This site is not for profit and will always be free to use.",
+  "Donations are much appreciated and go towards running and improving it for everyone.",
+  "Anything left over goes to the school.",
 ];
 
 export const SEGMENTS = [
