@@ -1,5 +1,65 @@
 # Progress Log
 
+## Session 2026-08-19 — The admin panel, rebuilt as nine sections
+Owner's ask: "completely redo admin... it follows no design principles, no UI, no UX, it's just a
+mess." Three specific complaints: no navigation other than scrolling, the bird/name/subtitle row
+done "in a billion different ways", and "so much grey text". Spec written and approved first at
+`docs/spec/admin.md`.
+
+- **Measured before touching anything.** At 1440x900 the panel was 2901px tall (3.2 screens), 70%
+  of that a 49-row users table; 203 interactive elements; 128 of 242 text nodes (53%) grey; 23
+  elements below the type scale's smallest documented step, 18 of them also grey; ~15 database
+  round trips per load including THREE separate scans of the User table; and a `min-w-[640px]`
+  table inside a 460px scroller, so on a phone block and delete were off-screen behind a
+  horizontal scroll with no affordance.
+- **Nine sections in three groups, behind a swapped sidebar.** Entering `/admin` replaces the
+  main rail's nav with the admin sections. Same `NavRow`, same marker group, so the cinnamon edge
+  GLIDES out of the account section and up into the list. A second rail beside the first was
+  offered and rejected as janky by the owner, correctly: two vertical navs and 180px of a 1192px
+  column. Eleven routes, each loading only its own data.
+- **People replaces three sections** that all described the same 51 members (Users, Verification,
+  and Email & verification, whose fourth filter was literally labelled "Everyone" and listed all
+  of them two inches above a section that listed all of them). Uses the shared filter kit rather
+  than the bare pill row that reinvented it. Three-up from `xl` at the owner's ask: 51 people in
+  1640px, where the old table needed 2032px for 49 with no avatars at all.
+- **One person row, and it refuses a `meta` prop.** `IdentityRow` is shared GEOMETRY, not shared
+  content, which is why adopting it never made two screens agree: every caller passes its own
+  subtitle. `AdminPersonRow` has nowhere to put a different one. Fixes the last `formatBatch`
+  call in the app (`user-management.tsx:86`), which rendered blank for every teacher and was
+  flagged in round 3 as "an admin surface the owner did not name".
+- **Twelve capabilities the code supported and the panel could not reach**: contributions ledger
+  (with the livemode split, so a dev's test click cannot inch the real total), a content desk over
+  posts/letters/comments/photos, admin notes (stored AND fetched on every load, then dropped),
+  `photoTrusted` and role (columns with no UI anywhere in the app), editing a member's
+  name/batch/cities/bird instead of hand-writing SQL, account merging, a blocked list, report
+  history, per-message mail failures with the stored `lastError` and a retry, Catch-up rounds past
+  their date, and a stubbed Analytics room.
+- **Two owner notes pulled against each other and the later one won.** 2026-08-04 asked for more
+  density; 2026-08-19 asked for "no overcrowded elements, everything well spaced". The answer was
+  not tighter rows but FEWER THINGS PER ROW: at most one chip and one button, and a chip only for
+  something a human must act on. "Email not confirmed" was showing on seven of eighteen rows for
+  a state this codebase's own taxonomy calls "not a problem"; it is gone. "Unverified" is gone
+  because the Verify button beside it already said so.
+- **One click target per row.** The first cut had the card going to the admin record and the name,
+  on top of it, going to the public profile, which needed a stretched overlay, a pointer-events
+  dance and a breakpoint. It is now one plain link, and where a Verify button exists the link
+  stops short of it so the hover tint ends exactly where the link does.
+- **After**: no admin screen over 1.8 screens, grey down to 34% on the densest one, ZERO elements
+  below the type scale, no horizontal scroll at 390px, every destructive action reachable on a
+  phone.
+- **Gotcha 3, again, and the owner caught it before I did.** `people-list.tsx` (client) imported
+  the facet OPTIONS from a module that also imported `prisma`, which dragged `pg` and its
+  `require("dns")` into the browser bundle. `tsc` was perfectly happy. Same bug `admin-threads.ts`
+  hit and documented earlier; the fix is the same split, now applied three times and commented in
+  each. Types and constants in `admin-*.ts`, database in `admin-*-query.ts`.
+- **Also**: `docs/spec/person-row-audit.md` written (four components, ten subtitle formulas across
+  the app, plus two live bugs found on the way: the mention dropdown hand-writes the batch line so
+  teachers read wrong, and `IdentityRow`'s default meta style is 10.5px, below the scale). The app
+  outside `/admin` was deliberately not touched. The tour trigger stays on Overview and its test
+  followed the guard into the layout rather than being deleted.
+- Commits: `f31a448` spec, `ae7d9c4` the rebuild, `41d5011` the spacing and clarity pass,
+  `cba56e0` simplify. Not pushed.
+
 ## Session 2026-08-19 — The hoopoe gets a public playground at `/hoopoe`
 Owner's ask: lift the lab's hoopoe room out to `/hoopoe`, keep the lab version untouched, and on
 the public one keep only the first tile and the password/gaze demo, expanded into something easy
