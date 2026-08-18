@@ -122,18 +122,16 @@ export default async function AdminOverviewPage() {
         </StatStrip>
       </AdminSection>
 
-      {/* On a phone the rail is behind a hamburger, so the sections have to be
-          reachable from the page itself. On a desktop the rail already carries
-          them, so this is redundant on a busy day and hidden.
+      {/* MOBILE ONLY, at every worklist length. On a phone the rail is behind a
+          hamburger and the sections have to be reachable from the page itself.
 
-          The exception is the day the worklist is empty, which is the day this
-          page is otherwise 290px of content in a 900px window. Then the same
-          list earns its place: it fills the room with the panel's own
-          navigation rather than with something invented to fill it. */}
-      <AdminSection
-        label="Everything else"
-        className={work.length === 0 ? undefined : "md:hidden"}
-      >
+          It was briefly shown on desktop too whenever the worklist was empty,
+          to fill the ~600px of room that leaves. That was wrong: it is eight
+          cards restating the rail two inches to its right, which is exactly
+          the "overcrowded" the owner asked to be rid of. An admin panel whose
+          front page says nothing is waiting SHOULD be a short page. The empty
+          state is the good news, not a hole to fill. */}
+      <AdminSection label="Everything else" className="md:hidden">
         <div className="flex flex-col gap-1.5">
           {ADMIN_NAV.flatMap((g) => g.sections)
             .filter((s) => s.href !== "/admin")
