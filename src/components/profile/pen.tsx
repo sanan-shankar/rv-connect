@@ -126,6 +126,7 @@ export function PenValue({
   className,
   inputMode,
   maxLength,
+  restText,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -140,6 +141,10 @@ export function PenValue({
   className?: string;
   inputMode?: "numeric" | "tel" | "url" | "email";
   maxLength?: number;
+  /** What an EMPTY slot says while the pen is away, for the one field whose
+   *  blank is a statement: a teacher's open-ended tenure reads "present" at
+   *  rest and only becomes an empty year box when editing. */
+  restText?: string;
 }) {
   return (
     <PenSlot editing={editing} delay={delay} className={className}>
@@ -151,8 +156,17 @@ export function PenValue({
           the name 3px tall, because a control's own idea of its height is not
           its text's line box. */}
       <span className="relative block">
-        <span aria-hidden className="invisible block whitespace-pre">
-          {value || placeholder}
+        {/* The mirror doubles as the rest-state text when restText applies:
+            it is already the exact box the value would occupy, so showing it
+            costs no layout and the pen-out swap happens in place. */}
+        <span
+          aria-hidden
+          className={cn(
+            "block whitespace-pre",
+            !editing && !value && restText ? undefined : "invisible"
+          )}
+        >
+          {!editing && !value && restText ? restText : value || placeholder}
         </span>
         <input
           value={value}

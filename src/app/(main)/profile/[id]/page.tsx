@@ -42,6 +42,21 @@ function rvYearsLabel(yearJoined: number | null, yearLeft: number | null): strin
   return null;
 }
 
+/**
+ * A teacher's years in the valley, from the tenure pair. The one difference
+ * from the student label: a current teacher ("teacher", no until-year) reads
+ * "2005–present", because for them a missing end is a fact, not a gap. A
+ * former teacher missing an end year just gets "From 1990" like anyone else.
+ */
+function taughtYearsLabel(
+  taughtFrom: number | null,
+  taughtUntil: number | null,
+  accountType: string | null
+): string | null {
+  if (taughtFrom && !taughtUntil && accountType === "teacher") return `${taughtFrom}–present`;
+  return rvYearsLabel(taughtFrom, taughtUntil);
+}
+
 export default async function ProfilePage({
   params,
   searchParams,
@@ -63,6 +78,7 @@ export default async function ProfilePage({
   const isOwnProfile = session.user.id === user.id;
   const isAdmin = session.user.role === "admin";
   const firstName = user.name.split(" ")[0];
+  const isTeacher = user.accountType === "teacher" || user.accountType === "ex_teacher";
 
   // Same visibility contract as loadPosts()'s authorId path (feed/actions.ts):
   // never surface another member's private-group posts on their public
@@ -260,8 +276,13 @@ export default async function ProfilePage({
       admissionNumber={user.admissionNumber ?? null}
       about={user.about}
       cities={cities}
-      rvYears={rvYearsLabel(user.yearJoined, user.yearLeft)}
+      rvYears={
+        isTeacher
+          ? taughtYearsLabel(user.taughtFrom, user.taughtUntil, user.accountType)
+          : rvYearsLabel(user.yearJoined, user.yearLeft)
+      }
       batchLabel={user.batchYear ? String(user.batchYear) : null}
+      subjects={isTeacher ? user.subjects : null}
       houseSpans={houseSpans}
       contactMethods={methods}
       contactsLocked={!maySeeContacts}
@@ -297,6 +318,9 @@ export default async function ProfilePage({
               batchYear: user.batchYear?.toString() ?? "",
               yearJoined: user.yearJoined?.toString() ?? "",
               yearLeft: user.yearLeft?.toString() ?? "",
+              taughtFrom: user.taughtFrom?.toString() ?? "",
+              taughtUntil: user.taughtUntil?.toString() ?? "",
+              subjects: user.subjects ?? "",
               admissionNumber: user.admissionNumber?.toString() ?? "",
               theme: user.theme ?? null,
               places: user.places.map((p) => ({

@@ -36,7 +36,13 @@ export const signupSchema = z
       message: "Alumni need the year they joined, the year they left, and their batch.",
       path: ["batchYear"],
     }
-  );
+  )
+  // Teachers give the year they started; the year they stopped is optional
+  // because leaving it blank is how "still at Rishi Valley" is said.
+  .refine((d) => d.accountType === "alumnus" || d.yearJoined != null, {
+    message: "Please add the year you joined.",
+    path: ["yearJoined"],
+  });
 
 // Settings uses the same direct-batch model as sign-up: batchYear is entered
 // directly, alongside the plain yearJoined/yearLeft. batchType is derived

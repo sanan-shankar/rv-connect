@@ -34,7 +34,10 @@ export type ProfileField =
   | "batchYear"
   | "yearJoined"
   | "yearLeft"
-  | "admissionNumber";
+  | "admissionNumber"
+  | "subjects"
+  | "taughtFrom"
+  | "taughtUntil";
 
 export async function updateProfileField(field: ProfileField, raw: string) {
   const session = await auth();
@@ -72,9 +75,20 @@ export async function updateProfileField(field: ProfileField, raw: string) {
       data.admissionNumber = n;
       break;
     }
+    case "subjects": {
+      // A teacher's comma list ("Physics, Astronomy Club"), each entry
+      // title-cased on its own, same as the onboarding save.
+      if (value.length > 200) return { error: "That is longer than Subjects allows." };
+      data.subjects = value
+        ? value.split(",").map((s) => titleCase(s)).filter(Boolean).join(", ") || null
+        : null;
+      break;
+    }
     default: {
-      // The three years. An empty field clears it rather than failing: people
-      // delete a wrong year before typing the right one.
+      // The year fields, student and teacher tenure alike. An empty field
+      // clears it rather than failing: people delete a wrong year before
+      // typing the right one, and an empty taughtUntil MEANS still teaching
+      // ("to present" on the sheet).
       if (!value) {
         data[field] = null;
         break;
@@ -83,6 +97,26 @@ export async function updateProfileField(field: ProfileField, raw: string) {
       if (!Number.isInteger(n) || n < YEAR_MIN || n > YEAR_MAX)
         return { error: `A year between ${YEAR_MIN} and ${YEAR_MAX}, please.` };
       data[field] = n;
+    }
+  }
+
+  /* The three teacher-only fields are gated by the ROW's account type, the
+     same rule the UI renders by, so a hand-crafted call from an alumnus
+     session cannot leave stray tenure data on a student profile. For
+     taughtUntil, the teacher/ex_teacher split is then derived the same way
+     it is at signup: the "until" year IS the "I'm done teaching" control.
+     Typing one flips the byline to "Former teacher"; clearing it flips back
+     to "Teacher" and the sheet reads "to present" again. */
+  if (field === "subjects" || field === "taughtFrom" || field === "taughtUntil") {
+    const current = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { accountType: true },
+    });
+    const rowIsTeacher =
+      current?.accountType === "teacher" || current?.accountType === "ex_teacher";
+    if (!rowIsTeacher) return { error: "That field belongs to teacher accounts." };
+    if (field === "taughtUntil") {
+      data.accountType = data.taughtUntil != null ? "ex_teacher" : "teacher";
     }
   }
 
