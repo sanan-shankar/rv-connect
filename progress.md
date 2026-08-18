@@ -1569,3 +1569,18 @@ his named fixes, not a new design. Ten corrections, all landed:
 Verified: hover dim measured at 0.3 on /support and /pick-bird; wood scrolls with content (bird
 rect moved exactly the scroll delta); zero bird pixels left of x=281 at 1440 and 2560; lab room
 renders its field again (91 birds); mobile 390 clean. npm run check green throughout.
+
+# Session — /pick-bird unified with /birds; constant bird size; backdrop choice staged
+
+- **/pick-bird now wears the Birds of the Valley layout exactly**: same 2/3/4/5 columns, same 96px
+  glyphs, same 13px muted names, title only (owner: "why have two separate layouts"). What it adds
+  is behaviour alone: the plate's spotlight dim, the press sink, canopy selection wash, sticky
+  confirm bar. /birds also drops its subtitle; both pages are title + grid, one look. Cross-refs in
+  both files so the grids cannot drift silently.
+- **Wood birds no longer scale with the window** (owner: resizing shrank them to specs while text
+  stayed put). Fixed 64px base × 0.68-0.95 → every bird is 44-61px on a phone, laptop and 5K alike;
+  the column count is what adapts. The 0.95 ceiling is load-bearing: a 61px bird at max jitter
+  stays inside a 97px four-column phone cell. Measured 44-61px at 390 and 1440.
+- **Backdrop decision staged, not made**: /support?bg=solid (photo hidden, birds kept) and
+  ?bg=plain (photo and birds both hidden) render live against the default shipped look. Temporary
+  decision aid; hard-code the winner and delete the param once he picks.

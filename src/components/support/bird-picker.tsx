@@ -58,9 +58,15 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
 
   return (
     <div>
+      {/* THE /birds LAYOUT, exactly: same columns, same gaps, same 96px
+          glyph, same 13px muted name under every bird (owner: "use the birds
+          of the valley layout... why have two separate layouts"). What this
+          page adds on top is only behaviour: the plate's spotlight dim, the
+          press sink, selection and the confirm bar. If the grid classes
+          change in src/app/(main)/birds/page.tsx, change them here. */}
       <ul
         onPointerLeave={() => setOver(null)}
-        className="grid grid-cols-3 gap-x-[var(--space-l)] gap-y-[var(--space-xl)] sm:grid-cols-4 md:grid-cols-5"
+        className="grid grid-cols-2 gap-x-[var(--space-m)] gap-y-[var(--space-l)] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
       >
         {WEARABLE_SPECIES.map(({ index, name, slug }) => {
           const isCurrent = slug === currentSlug;
@@ -83,7 +89,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                 whileTap={{ scale: 0.93 }}
                 transition={SPRINGS.snappy}
                 className={cn(
-                  "flex w-full flex-col items-center gap-[var(--space-xs)] rounded-[var(--radius-md)] p-[var(--space-s)] text-center",
+                  "flex w-full flex-col items-center rounded-[var(--radius-md)] p-[var(--space-s)] text-center",
                   "transition-[background-color] duration-150 ease-out",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   // Hover paints NOTHING here: the spotlight (everyone else
@@ -97,15 +103,15 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                 )}
               >
                 <span
-                  className="relative block w-full max-w-[96px]"
+                  className="relative inline-grid shrink-0 place-items-center"
                   style={{
+                    width: 96,
+                    height: 96,
                     opacity: dimmed ? 0.3 : 1,
                     transition: "opacity 620ms var(--ease-out-smooth)",
                   }}
                 >
-                  <span className="block aspect-square w-full [&>svg]:h-full [&>svg]:w-full">
-                    <BirdGlyphV2 seed={seedFacingRight(index)} px={96} speciesOverride={index} />
-                  </span>
+                  <BirdGlyphV2 seed={seedFacingRight(index)} px={96} speciesOverride={index} />
                   {isCurrent && (
                     <span
                       className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-canopy text-white shadow-[0_4px_10px_-6px_var(--color-canopy)]"
@@ -115,21 +121,21 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                     </span>
                   )}
                 </span>
-                {/* The name materialises only under the bird that has the
-                    stage, the way the fourteen-bird plate names the one under
-                    the pointer: at rest the grid is pure plumage, no label
-                    noise ("that fat and close together with their names...
-                    downright ugly"). The line box is always reserved, so
-                    naming a bird never reflows the grid, and the current or
-                    selected bird keeps its name without the pointer. */}
+                {/* The /birds caption, always visible; it steps up to the
+                    reading colour under the spotlit bird and canopy once
+                    selected, and dims with its bird like everything else. */}
                 <span
                   className={cn(
-                    "h-[1.2em] text-[13px] font-medium leading-snug",
-                    isSelected ? "text-canopy" : "text-foreground"
+                    "mt-[var(--space-xs)] text-[13px] font-medium leading-snug",
+                    isSelected
+                      ? "text-canopy"
+                      : focus === slug
+                        ? "text-foreground"
+                        : "text-muted-foreground"
                   )}
                   style={{
-                    opacity: focus === slug || (focus === null && isCurrent) ? 1 : 0,
-                    transition: "opacity 300ms var(--ease-out-smooth)",
+                    opacity: dimmed ? 0.3 : 1,
+                    transition: "opacity 620ms var(--ease-out-smooth)",
                   }}
                 >
                   {name}

@@ -24,11 +24,23 @@ export const metadata: Metadata = {
    payment redirects there, and everyone else sees the fourteen-bird plate
    with its point-to-name interaction, eligible or not. */
 
-export default async function SupportPage() {
+export default async function SupportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bg?: string }>;
+}) {
   // Only read to decide whether to show the admin's test door below; the
   // page renders identically for everyone else.
   const session = await auth();
   const isAdmin = session?.user?.role === "admin";
+
+  // DECISION AID, not a feature (owner, 2026-08-18: "let's see it with a
+  // solid background like in lab... I wanna choose"). ?bg=solid hides the
+  // valley photo and keeps the birds; ?bg=plain hides both. Default is the
+  // shipped look. Once he picks, hard-code the winner and delete this.
+  const { bg } = await searchParams;
+  const hidePhoto = bg === "solid" || bg === "plain";
+  const hideBirds = bg === "plain";
 
   // The public figure (the recovery bar) only ever counts real money: status
   // paid AND livemode true, so a developer's localhost test click can never
@@ -46,7 +58,8 @@ export default async function SupportPage() {
 
   return (
     <div className="pb-[var(--space-xl)]">
-      <SupportWood />
+      {hidePhoto && <style>{`.valley-tree { display: none; }`}</style>}
+      {!hideBirds && <SupportWood />}
 
       {/* Hero: the shipped header, unchanged (owner: "let it look like how it
           did in the shipped version"). The pledge below runs the full column
