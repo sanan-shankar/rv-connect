@@ -31,6 +31,11 @@ const registerStepSchema = z.object({
   admissionNumber: z.number().int().min(0).max(10000).optional(),
   workplace: z.string().trim().max(100).optional(),
   jobTitle: z.string().trim().max(100).optional(),
+  // Teacher accounts only; the comma list the schema already stores
+  // ("Physics, Astronomy Club"). Omitted entirely (undefined) by alumni
+  // saves, which must not touch the column. 200 matches the settings
+  // validator's ceiling for the same field.
+  subjects: z.string().trim().max(200).optional(),
   places: z.array(placeSchema).max(20).default([]),
 });
 
@@ -49,6 +54,17 @@ export async function saveOnboardingRegister(input: RegisterStepInput) {
   const { admissionNumber, places } = parsed.data;
   const workplace = parsed.data.workplace ? titleCase(parsed.data.workplace) : null;
   const jobTitle = parsed.data.jobTitle ? titleCase(parsed.data.jobTitle) : null;
+  // undefined = field not shown (alumni), leave the column alone; "" = teacher
+  // cleared it. Each comma-separated entry is title-cased on its own so
+  // "physics, nature club" stores as "Physics, Nature Club".
+  const subjects =
+    parsed.data.subjects === undefined
+      ? undefined
+      : parsed.data.subjects
+          .split(",")
+          .map((s) => titleCase(s))
+          .filter(Boolean)
+          .join(", ") || null;
 
   // A free-typed place (no gazetteer id) gets title-cased; a gazetteer hit is
   // already formatted, so it is left exactly as the picker returned it.
@@ -66,6 +82,7 @@ export async function saveOnboardingRegister(input: RegisterStepInput) {
         admissionNumber: admissionNumber ?? null,
         workplace,
         jobTitle,
+        subjects,
         // Legacy single-column city, kept in sync with the first place.
         currentCity: primaryLabel,
       },
