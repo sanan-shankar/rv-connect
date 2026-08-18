@@ -54,9 +54,10 @@ hand-typed pixel values rather than size tokens.
 
 ## 3. Two bugs the audit turned up
 
-**Both FIXED on 2026-08-19 (`07e28d8`).** Kept here with their diagnosis, because
-each explains a trap the next person can fall into. The sweep in section 4 is
-still not started.
+**3.1 is FIXED (`07e28d8`). 3.2 was fixed and then REVERTED by the owner the same day**, and is
+now a recorded exception rather than an outstanding bug. Both are kept here with their diagnosis,
+because each explains a trap the next person can fall into. The sweep in section 4 is still not
+started.
 
 ### 3.1 The mention dropdown hand-wrote the batch line (fixed)
 
@@ -77,22 +78,27 @@ the endpoint return `accountType` so the row is right on its own terms.
 Same class as the bug the admin rebuild closed (`user-management.tsx:86`, the last `formatBatch`
 call, blank for every teacher). Both call sites are now gone.
 
-### 3.2 `IdentityRow`'s default meta style was below the type scale (fixed)
+### 3.2 `IdentityRow`'s default meta style is below the type scale (NOT A BUG, owner call)
 
-`META_CLASS` was `text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground`.
-Both the size and the tracking sat under the smallest documented step (`label 0.75rem` at
-0.08-0.16em). Seven surfaces inherited it: the feed byline, the letters index and reader, a
+`META_CLASS` is `text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground`.
+Both the size and the tracking sit under the smallest documented step (`label 0.75rem` at
+0.08-0.16em). Seven surfaces inherit it: the feed byline, the letters index and reader, a
 Collection photo, the map drilldown and the feed rail.
 
-Now `text-[12px] font-medium uppercase tracking-[0.08em]`, the floor exactly. The weight went with
-the size: at 12px the old semibold brought the byline close enough to the 14px name above it that
-the card read bottom-heavy, because uppercase has no descenders to lighten its band.
+It was raised to `text-[12px] font-medium uppercase tracking-[0.08em]` on 2026-08-19 and
+**reverted the same day** on the owner seeing it: "revert bug two. it's fine how it was before."
 
-The sidebar's own 11px override is left alone: a deliberate owner tuning for the dark rail.
+**This is now a decision, not drift.** The scale's floor is a floor for text that has to be READ;
+this line is glanced at, under a name that has already said who somebody is, and at 10.5px it
+stays a texture rather than becoming a second line competing with the name. The reasoning lives in
+a comment on the constant itself, because anyone re-deriving it from the scale will arrive at 12px
+again and think they have found a bug.
 
-**Still below the scale, and NOT part of this fix** because they are each their own component
-rather than `IdentityRow`'s shared default: the letter card's `LETTER · 3 MIN READ` eyebrow and
-the feed rail's `Did you know` heading, both 10.5px. Worth a sweep of their own.
+The sidebar's own 11px override stands for the same reason: a deliberate owner tuning.
+
+By the same call, the letter card's `LETTER · 3 MIN READ` eyebrow and the feed rail's
+`Did you know` heading stay at 10.5px too. They were flagged as a follow-up sweep; that sweep is
+cancelled.
 
 ---
 
@@ -141,16 +147,20 @@ Retire the hand-typed pixel values (34, 36) in favour of the tokens (`xs` 28, `s
 
 ## 5. Order, and what it costs
 
-1. Fix §3.1, the mention-dropdown teacher bug. Ten minutes, and it is a live wrong-output bug
-   regardless of whether the sweep ever happens.
-2. Fix §3.2, `IdentityRow`'s default meta to 12px. One line, but it changes eight surfaces at once
-   and needs screenshots at both viewports.
+1. ~~Fix §3.1~~ **Done** (`07e28d8`).
+2. ~~Fix §3.2~~ **Cancelled.** Tried, reverted, and now a recorded exception. Do not revisit.
 3. Build the three wrappers, convert surface by surface, screenshotting each.
 4. Delete the direct `IdentityRow` calls and the bespoke `ProfileCard` lockup.
 
-Steps 1 and 2 are worth doing on their own merits. Step 3 is the sweep and needs the owner's
-go-ahead, because it touches the feed, the directory, comments, messages, letters, the Collection,
-Catch-ups and the map in one pass, and those are most of the surfaces members actually look at.
+Which leaves steps 3 and 4 as the actual sweep, and they still need the owner's go-ahead.
+
+Step 3 is the sweep proper. It needs the owner's go-ahead, because it touches the feed, the
+directory, comments, messages, letters, the Collection, Catch-ups and the map in one pass, and
+those are most of the surfaces members actually look at.
+
+**And it inherits the lesson from §3.2: a rule in the design system is not a mandate to change
+something that already works.** The sweep's job is to make the subtitles agree on WHAT THEY SAY.
+It should carry the existing type treatment across unchanged.
 
 **The directory's density measurements must survive it.** `directory/profile-card.tsx` carries a
 measured argument for its lockup (people per 1000px of column, at 1440 and at 390, across four

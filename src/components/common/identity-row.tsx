@@ -12,19 +12,20 @@ const IDENTITY_COPY_NUDGE_Y_PX = 0; // Negative moves text up; positive moves it
 /* The byline register: small caps under a name, used by the feed, the letters
    index and reader, a Collection photo, the map drilldown and the feed rail.
 
-   It was `text-[10.5px] ... tracking-[0.07em]`. Both numbers sat just under
-   the type scale's smallest documented step, which is `label 0.75rem` (12px)
-   at 0.08-0.16em (docs/spec/DESIGN-SYSTEM.md section 5). 12px / 0.08em is
-   that floor exactly, and nothing above it moved.
+   DO NOT "FIX" THIS TO 12px. It is 1.5px under the type scale's smallest
+   documented step (`label 0.75rem` at 0.08-0.16em, DESIGN-SYSTEM.md section
+   5), and that is a deliberate exception, not drift.
 
-   The weight drops 600 -> 500 in the same change, and that is not cosmetic
-   tidying. At 10.5px a semibold byline sat clearly under the 14px name above
-   it; at 12px the same weight brings the two close enough that the card reads
-   bottom-heavy, because uppercase has no descenders to lighten its band. 500
-   restores the gap the size increase closed, so this is a legibility fix that
-   does not become a loudness one. */
+   It was raised to 12px / 0.08em / weight 500 on 2026-08-19, on the strength
+   of the scale alone, and the owner reverted it on sight the same day: "it's
+   fine how it was before." The rule it appeared to break is a floor for text
+   that has to be READ. This line is not read, it is glanced at: it sits under
+   a name that has already told you who somebody is, and at this size it stays
+   a texture rather than becoming a second line competing with the name above
+   it. Anyone re-deriving this from the scale will arrive at 12px again, which
+   is why the reasoning is written here rather than in a changelog. */
 const META_CLASS =
-  "text-[12px] font-medium uppercase tracking-[0.08em] text-muted-foreground";
+  "text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground";
 
 type IdentityRowProps = {
   user: AvatarUser;
