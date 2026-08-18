@@ -211,11 +211,29 @@ export function batchLine(
  * Pass every candidate; empty ones vanish and take their dot with them.
  * The repo had converged on this shape independently three times (masthead,
  * image-viewer, alumni-map) before it was extracted here.
+ *
+ * A segment that repeats one already on the line vanishes the same way (owner,
+ * 2026-08-18, on seeing "TEACHER · TEACHER" in the map drilldown). A current
+ * teacher's `batchLine` is "Teacher" and their occupation is, reasonably,
+ * "Teacher" — two independently correct values that no call site should have
+ * to know can collide, and the same trap waits wherever a role label meets a
+ * free-typed field. The comparison ignores case and surrounding space so
+ * "teacher" typed by hand collapses too; the FIRST spelling is the one kept,
+ * because the leading segment is the one the layout was ordered around.
  */
 export function metaLine(
   ...parts: Array<string | null | undefined | false>
 ): string {
-  return parts.filter(Boolean).join(" · ")
+  const seen = new Set<string>()
+  const kept: string[] = []
+  for (const part of parts) {
+    if (!part) continue
+    const key = part.trim().toLowerCase()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    kept.push(part)
+  }
+  return kept.join(" · ")
 }
 
 /**
