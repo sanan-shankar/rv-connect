@@ -24,6 +24,16 @@ type Step = "trivia" | "register";
 export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("trivia");
+  // Read by runIntro below, which fires from flight-handoff / fly-in
+  // callbacks whose closures were captured long before the step could
+  // change; the ref always answers with the step on screen NOW. Synced in
+  // an effect (not during render, which the refs lint rightly rejects);
+  // every reader is itself an async callback that runs strictly after the
+  // commit that changed the step, so the effect is never stale for them.
+  const stepRef = useRef<Step>("trivia");
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
 
   // ONE hoopoe, hoisted here and handed to both steps, so the same bird greets
   // you, quizzes you (reacting to a right or wrong answer), then watches you
@@ -119,8 +129,17 @@ export default function SignupPage() {
   // for a fourth pose. If a curious beat is ever wanted back, it belongs
   // INSIDE the greet sequence, not called alongside it.
   function runIntro(api: HoopoeApi) {
-    api.react("greet");
+    // A greet belongs to the trivia step it was aimed at. On a flight
+    // arrival the handoff can land AFTER a fast visitor has already
+    // answered the question, and greeting then is worse than pointless:
+    // the form's mount effect has tucked the wings over the (hidden)
+    // password by the time the greet's wave runs, and the wave writes the
+    // wing rotations right over the tuck, stranding the wings half-hung at
+    // the bird's sides (owner's Safari screenshots, 2026-08-18). If the
+    // moment has passed, let it pass; the tuck is the correct pose now.
     introDone.current = true;
+    if (stepRef.current !== "trivia") return;
+    api.react("greet");
   }
 
   function onHoopoeReady(api: HoopoeApi) {
