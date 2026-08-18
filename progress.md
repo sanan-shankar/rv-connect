@@ -1249,3 +1249,52 @@ One session, eleven commits, every item from the owner's list landed and verifie
 - Separately: Shrey is a Black Eagle (`birdOverride`), and the /support build-fund bar now sums
   real paid live-mode Contributions (Rs 3,530 so far of the Rs 4L build cost) - committed and
   PUSHED earlier at the owner's request; everything after that push is committed but NOT pushed.
+
+## 2026-08-18 - Teachers become first-class: onboarding, signup tenure, profile
+
+Owner request thread: remove admission number and houses for teacher signups; make city picks
+commit to a pill immediately; add optional subjects; then a full teacher pass (tenure years at
+signup, "years in the valley" with "present", subjects on the profile like batch, clear editing).
+Four commits, all gates green, verified end-to-end with a real teacher signup that was then
+deleted through its own delete-account flow.
+
+- **Onboarding**: teachers (accountType != alumnus) get a four-step wizard - Houses is a student
+  record and never renders; the register step swaps Admission number for a subjects field and the
+  copy says "old students", not "batchmates". Deep link ?step=houses on a teacher lands on
+  register.
+- **City picker**: the register step always uses the multi chip list now. A tapped result becomes
+  a sky pill at once, the popup closes and the input blurs (the old single-then-"Add another
+  city" toggle left the pick as plain text). LocationPicker's keep-popup-open-across-picks multi
+  behaviour is gone everywhere - a pick finishes the gesture, tapping the box starts the next.
+- **New `<TagInput>`** (`src/components/common/tag-input.tsx`): type-to-chip for short lists.
+  Enter/comma/blur commit (blur matters on phones), backspace on empty removes the last chip,
+  dedupe case-insensitive, pasted comma lists split. Chips byte-identical to the city pills;
+  the input is the shared `<Input>` (protocol auditor caught my hand-rolled first draft
+  reverting the 12a1bac focus-outline fix). Subjects title-case as they become pills.
+- **Signup**: Teacher keeps Joined/Left at half-width each (Batch alone leaves, popLayout);
+  Left is optional and its fit-to-content InfoTip says "Still teaching at Rishi Valley? / Leave
+  this blank." - two forced lines, no orphan (owner rejected two longer drafts and a w-64 bubble
+  with dead space; InfoTip grew a `fit` prop). Server maps the pair to taughtFrom/taughtUntil
+  and derives teacher vs ex_teacher from whether Left was given; year order validated for both
+  account types; accountType from the client is never stored raw.
+- **Profile**: teachers show Subjects (wide fact) where alumni show Batch, "In the valley" from
+  tenure with "2005-present" while current; no admission number (colophon shows the bare mark in
+  edit mode too), no Houses in either state. Editing: the until-slot reads "present" at rest
+  (PenValue grew `restText`), placeholder "now" while editing; typing a finish year flips the
+  byline to "Former teacher" live, clearing it flips back - the year IS the control, no toggle.
+  Teacher-only fields also gated by row accountType server-side (write-path reviewer's finding).
+  Sidebar chip finally receives accountType, so teachers read "Teacher" not "Member". A profile
+  with no occupation no longer shows a hanging "at" under the name (rest-state only; the holes
+  return with the pen).
+- **Hoopoe wing fix** (signup): answering the trivia fast stranded the wings half-raised - the
+  unqueued coverEyes fired mid celebrate(2), then the interrupted greet's leftover wave wrote
+  rotate back over the tuck's translate ("wrong pivot"). The mount tuck now polls isBusy()
+  (340ms minimum settle, 8s cap past the flight failsafe) so it always lands after the whole
+  queue drains. Measured the wing transforms through the fast path: flap clean, tuck settles at
+  the exact login-page pose. Owner kept seeing the bug in a stale tab - a hard refresh shows it
+  fixed.
+- Write-path reviewer also surfaced (pre-existing, NOT from this diff): the demo database never
+  got `2026-08-13-comment-deleted-at.sql`, so `scripts/demo/verify-guard.mts` fails on the
+  comment step until that file is applied to the demo DB. Parked for a follow-up.
+- Owner feedback logged to memory: full-page screenshots are not enough - zoom into every
+  touched state and catch orphaned words, oversized bubbles and stray connectives before he does.
