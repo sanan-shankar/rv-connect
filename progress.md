@@ -1374,7 +1374,11 @@ deleted through its own delete-account flow.
   - Verified by temporarily forcing `accountType: "teacher"` and `places: []` in welcome/page.tsx,
     shooting `/welcome?step=register` at 1440x900 and 390x844, then reverting the file. The chip
     fits the card at 390 with room to spare.
-  - **Not done, deliberately**: "Skip for now" still writes nothing, so a teacher who skips the
-    step keeps a blank city. Mini Muralidas is the one current teacher on the site today and has
-    no places; if she has already been through onboarding she will never see this default, and
-    her row would need setting by hand.
+  - **Still true**: "Skip for now" writes nothing, so a teacher who skips the step keeps a blank
+    city. The default only lands if they save the step.
+- **Mini Muralidas set by hand** (owner: "set her place to RV"). She is the one current teacher on
+  the site and had already been past onboarding, so the new default could never reach her. One
+  `UserPlace` row inserted against the curated Rishi Valley entry (placeId 900000001, exact
+  lat/lng, `position` 0), with the legacy `User.currentCity` column set to the same label the way
+  `saveOnboardingRegister` keeps it in sync. Her profile now reads CITY: Rishi Valley, and she
+  plots inside the valley's own pin.
