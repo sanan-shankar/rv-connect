@@ -874,48 +874,69 @@ export function LetterheadProfile({
                 {editable ? (
                   /* The sentence the sheet prints, with two holes in it. Each
                      hole is exactly as wide as what is in it, so "Student" is
-                     never followed by 100px of nothing before the word "at". */
-                  /* The same <p> the read-only sheet prints, with two holes
-                     in it. "at" carries ONE space each side and no padding:
-                     the first version put px-1 on it and 6px of pen padding
-                     on both fields, so "Student at Imperial" arrived spaced
-                     out like a shop sign. */
-                  <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
-                    <PenValue
-                      value={form.jobTitle}
-                      onChange={(v) => setField("jobTitle", v)}
-                      onCommit={() => commitField("jobTitle")}
-                      editing={live}
-                      placeholder="what you do"
-                      ariaLabel="What you do"
-                      delay={0.06}
-                      maxLength={120}
-                    />
-                    {/* The read-only sheet only prints "at" between two real
-                        halves; the resting editable sheet follows the same
-                        rule, or a brand-new profile opens with a lone "at"
-                        floating under the name. With the pen out both holes
-                        are visible, so the word returns to hold their shape. */}
-                    <span
-                      className={cn(
-                        "whitespace-pre",
-                        !live && !(form.jobTitle.trim() && form.workplace.trim()) && "hidden"
-                      )}
-                    >
-                      {" "}
-                      at{" "}
-                    </span>
-                    <PenValue
-                      value={form.workplace}
-                      onChange={(v) => setField("workplace", v)}
-                      onCommit={() => commitField("workplace")}
-                      editing={live}
-                      placeholder="where"
-                      ariaLabel="Where you work or study"
-                      delay={0.08}
-                      maxLength={120}
-                    />
-                  </p>
+                     never followed by 100px of nothing before the word "at"
+                     ("at" itself carries ONE space each side and no padding:
+                     px-1 plus pen padding once spaced it out like a shop
+                     sign).
+
+                     The LINE only exists when it has something to say: at
+                     rest with both halves empty it is not an empty row of
+                     invisible mirrors under the name, it is gone, exactly
+                     like the read-only sheet. The pen coming out grows the
+                     row in with the same height+fade the Houses hint uses,
+                     the one sanctioned height animation on this sheet,
+                     because the alternative is the line popping in a frame. */
+                  <AnimatePresence initial={false}>
+                    {(live || Boolean(form.jobTitle.trim() || form.workplace.trim())) && (
+                      <motion.div
+                        key="occupation"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={SPRINGS.gentle}
+                        className="overflow-hidden"
+                      >
+                        <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
+                          <PenValue
+                            value={form.jobTitle}
+                            onChange={(v) => setField("jobTitle", v)}
+                            onCommit={() => commitField("jobTitle")}
+                            editing={live}
+                            placeholder="what you do"
+                            ariaLabel="What you do"
+                            delay={0.06}
+                            maxLength={120}
+                          />
+                          {/* The read-only sheet only prints "at" between two
+                              real halves; the resting editable sheet follows
+                              the same rule. With the pen out both holes are
+                              visible, so the word returns to hold their
+                              shape. */}
+                          <span
+                            className={cn(
+                              "whitespace-pre",
+                              !live &&
+                                !(form.jobTitle.trim() && form.workplace.trim()) &&
+                                "hidden"
+                            )}
+                          >
+                            {" "}
+                            at{" "}
+                          </span>
+                          <PenValue
+                            value={form.workplace}
+                            onChange={(v) => setField("workplace", v)}
+                            onCommit={() => commitField("workplace")}
+                            editing={live}
+                            placeholder="where"
+                            ariaLabel="Where you work or study"
+                            delay={0.08}
+                            maxLength={120}
+                          />
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 ) : (
                   occupation && (
                     <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
