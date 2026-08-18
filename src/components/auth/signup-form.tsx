@@ -268,14 +268,41 @@ export function SignupForm({
 
   useEffect(() => {
     if (!mounted.current) {
-      // arriving from the trivia step: let the panel settle, then tuck the wings
-      // over the (hidden) password so it reads as the same bird following you in.
+      // Arriving from the trivia step: tuck the wings over the (hidden)
+      // password so it reads as the same bird following you in. But not on a
+      // fixed delay: this form mounts while the gate-pass celebrate(2) hop is
+      // still playing, and coverEyes is deliberately unqueued, so firing it
+      // mid-hop had both animations writing the same wing transforms and the
+      // last writer won: answer the trivia fast and the wings stranded
+      // half-raised until the next show/hide toggle re-posed them. So wait
+      // for the bird to actually be idle (isBusy covers the queue and every
+      // live animation), keep the old 340ms as the minimum settle, and cap
+      // the wait so a stuck animation can never hold the tuck hostage (a
+      // superseded animation's .finished never resolves in motion v12, so a
+      // live-set entry CAN wedge open forever). The cap sits past the
+      // flight layer's 5800ms failsafe: a shorter cap could fire mid
+      // mobile-fly-in and recreate the very mid-animation strand this
+      // waits out. The between-verb gaps of a react() sequence are
+      // microtask-sized, and this poll is a macrotask, so it can never
+      // slip a tuck inside a running chain.
       mounted.current = true;
-      const t = setTimeout(() => {
-        if (showPwRef.current) hoopoe.peek();
-        else hoopoe.coverEyes();
-      }, 340);
-      return () => clearTimeout(t);
+      let cancelled = false;
+      const started = performance.now();
+      const tryTuck = () => {
+        if (cancelled) return;
+        const waited = performance.now() - started;
+        if ((waited >= 340 && !hoopoe.isBusy()) || waited > 8000) {
+          if (showPwRef.current) hoopoe.peek();
+          else hoopoe.coverEyes();
+          return;
+        }
+        timer = setTimeout(tryTuck, 120);
+      };
+      let timer = setTimeout(tryTuck, 340);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
     }
     if (showPw) hoopoe.peek();
     else hoopoe.coverEyes();
