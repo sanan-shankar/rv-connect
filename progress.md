@@ -1428,3 +1428,61 @@ deleted through its own delete-account flow.
   no filter, nothing to re-raster, no box to clip to. Geometry and weight matched to the blur it
   replaces (52x14, centre back on the button's bottom edge; darkest pixel 211 against the old 212,
   measured on the same crop). Verified at rest and hovered at 1440 and at 390.
+
+# Session — Support page redesign, four concepts in /lab
+
+The Support page had barely been touched in months and the owner called it the weakest part of the
+site: "a heading, then grey text, then subheading, then regular text, then boxes with the same
+cluttered hierarchy, then the chip in box with totally different stuff going on." Counted twelve
+distinct text sizes on one page. He redirected the work into `/lab` rather than straight onto the
+route, and asked for one calm version plus creative alternatives.
+
+**New room: `/lab/support-ideas`, "Four ways to ask"** (registered in `_registry.ts`, group Delight).
+Four full rebuilds sharing one `_shared.tsx`: same words, same rupees, same fourteen birds, so any
+difference between them is a design decision. `?v=plate|aviary|days|stamps` deep-links a concept.
+
+- **Plate** — the calm one. Every section is a card, every card opens with the same line, nothing
+  outside a card is a heading. Three type levels and no more.
+- **Aviary** — his own idea. 156 bird glyphs on a responsive CSS grid behind the whole page, with
+  every readable thing on glass.
+- **Days** — the bill as ₹76 a day and thirty marks. Pick an amount and watch it fill some of them
+  in, in cinnamon. You see what your money buys before reading a word.
+- **Stamps** — two rows of seven is a sheet of stamps. Perforation is a real SVG path
+  (`mask-composite` is still uneven across browsers). Click one and the button says which bird you
+  are claiming, so the reward stops being a sentence.
+
+**Copy, all his:** no "actually" before costs; the site is "this site", never "Rishi Valley"; struck
+"A few people chipping in comfortably covers the whole month", "If it has helped you find an old
+friend...", "Fourteen of the fifty" and "One time, never a subscription". The pledge is four short
+LINES, not a paragraph — as prose it broke mid-thought, and every line now fits a 390px screen
+without wrapping. CTA is "Contribute ₹1,000": formal, and no middle dot, because the dot is the
+app's separator for meta segments with no grammar between them and this is one verb phrase.
+
+**The bird arrangement** got real work after he asked for it to "reveal the true variety and beauty".
+Read the fourteen discs' actual hex off the rendered glyphs, then used the one fact that matters in a
+two-row grid: cells touch exactly when their columns are less than two apart, rows are irrelevant.
+Spread the three greens, three teal-to-blues, three reds and two pale ones across columns ≥2 apart.
+Result: no two neighbours share a hue, every column pairs warm with cool, three columns land on near
+complementaries. Facing is composed too — it is seed-derived, so `seedFacingRight()` walks
+`plate-<i>-<k>` until the pose lands right. All fourteen face one way like a field-guide plate; the
+head-on Spotted Owlet is the one bird looking back at you.
+
+**His rounds on it:**
+- Cost tile "poor use of space" → rebuilt twice. A right-aligned list was worse (label and number
+  500px apart). Landed on the bar carrying its own biggest label: Hosting is 85% of the bill, so at
+  44px tall it holds "Hosting ₹1,950" in white (7.78:1). Domain and Photos cannot — 78px and 28px
+  wide, and white on cinnamon is 4.13:1 — so they are named underneath. The asymmetry is the finding.
+- Second bar unclear → now "Recovering what it cost to build" / "₹0 of ₹4,00,000".
+- Aviary birds "waaay too small on mobile" → moved from absolutely-positioned clamped pixels to a
+  responsive CSS grid, 4/6/9 columns, bird at 42% of its cell. Scales with the screen, cannot overlap.
+- "No birds behind text ruins readability" → every panel is glass including the title, so the wood
+  runs at full strength and nothing is read off bare background.
+- Hover dim "fast and almost jittery", twice → 150ms to 620ms. Measured: 1.0 → 0.64 → 0.36 → 0.30.
+
+Hydration note worth keeping: positions from a fixed hash are not enough on their own. React compares
+the server's style string to the client's numbers, so `20.359622773614056%` against `20.3596%` is a
+mismatch. Every generated number is rounded before it reaches a style attribute.
+
+`npm run check` green throughout. Verified at 1440 and 390 with chrome-devtools, including a real
+hover to confirm the dim curve. Nothing under `(main)/support` was touched: the shipped page is
+unchanged pending his pick.
