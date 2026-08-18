@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { IdentityRow } from "@/components/common/identity-row";
+import { batchLine } from "@/lib/utils";
 
 interface MentionUser {
   id: string;
@@ -9,7 +10,11 @@ interface MentionUser {
   avatarColor: string | null;
   photoUrl?: string | null;
   birdOverride?: string | null;
-  batchYear: number;
+  /* Nullable, because the COLUMN is. Typing it `number` did not make it one:
+     it just stopped TypeScript from noticing that the line below fed `null`
+     into a string. */
+  batchYear: number | null;
+  accountType?: string | null;
 }
 
 interface MentionDropdownProps {
@@ -90,7 +95,17 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
               textClassName="flex-1 gap-0.5"
               name={user.name}
               nameClassName="truncate text-sm font-medium leading-none text-foreground"
-              meta={`Batch of '${String(user.batchYear).slice(-2)}`}
+              /* `batchLine`, not a hand-rolled template. The hand-rolled one
+                 did `String(user.batchYear).slice(-2)`, and for anybody with
+                 no batch year that is `String(null).slice(-2)`, i.e. "ll", so
+                 the row read "Batch of 'll". Live example: the Anonymous
+                 account, which every curated story is posted as, and which
+                 therefore came up for anybody typing "@anon".
+
+                 `blankWhenUnknown` because this is a compact picker row: a
+                 manufactured "Member" under a name is filler, and an empty
+                 return takes its own separator with it. */
+              meta={batchLine(user, { blankWhenUnknown: true })}
               metaClassName="leading-none"
             />
           </button>
