@@ -209,7 +209,17 @@ const COLOPHON = {
 const IDENTITY_VARS = {
   "--lh-colophon": "1rem", // the colophon row's fixed height: 16px
   "--lh-gap": "0.5rem", // colophon -> name: 8px
-  "--lh-name": "clamp(1.9rem, 7vw, 2.6rem)",
+  // cqi, not vw (changed 2026-08-18, owner: "it wraps, then unwraps and then
+  // wraps"). The old 7vw sized the name against the VIEWPORT while the column
+  // it sits in steps discretely (the sidebar collapse alone hands it ~220px
+  // at once), so narrowing the window wrapped, unwrapped and re-wrapped the
+  // name. Sized against the sheet itself (the @container on the padded
+  // wrapper), characters-per-line is CONSTANT while the clamp is between its
+  // bounds: a name that fits keeps fitting through the whole scaling band,
+  // and wrapping happens once, at the floor, instead of flickering. 6cqi
+  // reaches the 2.6rem cap at a 693px content box, so the full-width sheet
+  // renders exactly as before.
+  "--lh-name": "clamp(1.9rem, 6cqi, 2.6rem)",
   "--lh-head": "calc(var(--lh-colophon) + var(--lh-gap) + var(--lh-name) * 1.05)",
   // Centre a 40px (h-10) pill on the name's first line.
   "--lh-cta-top":
@@ -669,7 +679,12 @@ export function LetterheadProfile({
             )}
           </AnimatePresence>
 
-          <div className="relative p-6 sm:p-10">
+          {/* ONE padding at every size (owner, 2026-08-18: "I prefer the
+              smaller margins"): the old p-6 sm:p-10 step was one of the two
+              discontinuities that made the name wrap, unwrap and re-wrap
+              while a window narrowed. @container makes this box the measure
+              the name's cqi type reads. */}
+          <div className="@container relative p-6">
             <FadeRise>
               <header>
                 <div className="flex items-start gap-[var(--space-m)]">
