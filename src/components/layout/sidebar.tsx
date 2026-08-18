@@ -257,16 +257,22 @@ function NavLinks({
   pathname,
   onNavigate,
   markerId,
+  hideCatchups = false,
 }: {
   pathname: string;
   onNavigate?: () => void;
   // Each rendered nav list owns its own marker group, so the desktop rail and
   // the open mobile drawer never try to share (and fight over) one indicator.
   markerId: string;
+  /** Catch-ups is an alumni feature (owner, 2026-08-18: "remove catch ups
+   *  for teachers"); teacher accounts never see the row. The /catchups
+   *  routes themselves redirect too, so this is presentation, not the gate. */
+  hideCatchups?: boolean;
 }) {
+  const nav = hideCatchups ? NAV.filter((n) => n.href !== "/catchups") : NAV;
   return (
     <nav className="flex flex-col gap-0.5">
-      {NAV.map((n) => (
+      {nav.map((n) => (
         <NavRow
           key={n.href}
           href={n.href}
@@ -487,7 +493,11 @@ export function Sidebar({
               <LogoFact />
             </LogoEasterEgg>
           </div>
-          <NavLinks pathname={pathname} markerId="nav-desktop" />
+          <NavLinks
+            pathname={pathname}
+            markerId="nav-desktop"
+            hideCatchups={user.accountType === "teacher" || user.accountType === "ex_teacher"}
+          />
           {/* relative anchor for the idle-rest hoopoe, which perches just above
               this section (see sidebar-hoopoe.tsx) */}
           <div className="relative mt-auto">
@@ -549,6 +559,9 @@ export function Sidebar({
                 pathname={pathname}
                 onNavigate={() => setOpen(false)}
                 markerId="nav-mobile"
+                hideCatchups={
+                  user.accountType === "teacher" || user.accountType === "ex_teacher"
+                }
               />
             </div>
             {/* The SAME AccountSection the desktop rail uses, not a flat list of

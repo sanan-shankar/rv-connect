@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Mail, Phone, Instagram, Linkedin, Globe, Download, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { VerifyEmailDialog } from "@/components/auth/verify-email-dialog";
 
 export interface ContactMethod {
   kind: "email" | "phone" | "instagram" | "linkedin" | "website";
@@ -105,29 +105,29 @@ export function GetInTouch({
         )}
       </div>
 
+      {/* Locked, this is not a variant of the Reach dialog at all: it IS the
+          one shared confirm-email card (verify-email-dialog.tsx), the same
+          component posting and commenting open, resend button and all. One
+          component means the wording can never drift between surfaces
+          (owner, 2026-08-18: "make all the confirm email alerts look the
+          same"). */}
+      {locked ? (
+        <VerifyEmailDialog open={open} onOpenChange={setOpen} />
+      ) : (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>{locked ? "Confirm your email first" : `Reach ${firstName}`}</DialogTitle>
+            <DialogTitle>{`Reach ${firstName}`}</DialogTitle>
             <DialogDescription>
-              {locked
-                ? lockedReason
-                : `${firstName} chose to share these ways to connect.`}
+              {`${firstName} chose to share these ways to connect.`}
             </DialogDescription>
           </DialogHeader>
 
-          {locked && (
-            <div className="flex justify-end pt-1">
-              <Button nativeButton={false} render={<Link href="/verify-email" />}>
-                I never got the email
-              </Button>
-            </div>
-          )}
           {/* One tile per shared method. Every tile is the same shape: 12px
               radius (a step inside the dialog's own corner, per the nesting
               rule), one border weight, one 8px gap. */}
           <div className="space-y-2">
-            {!locked && methods.map((m) => {
+            {methods.map((m) => {
               const Icon = ICONS[m.kind];
               return (
                 <a
@@ -152,16 +152,15 @@ export function GetInTouch({
           </div>
           {/* The material's one footer shape: a right-aligned action row
               (no full-width buttons in dialogs; the X handles close). */}
-          {!locked && (
-            <div className="flex justify-end pt-1">
-              <Button variant="secondary" onClick={saveContact}>
-                <Download className="h-4 w-4" />
-                Save contact card
-              </Button>
-            </div>
-          )}
+          <div className="flex justify-end pt-1">
+            <Button variant="secondary" onClick={saveContact}>
+              <Download className="h-4 w-4" />
+              Save contact card
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
+      )}
     </>
   );
 }

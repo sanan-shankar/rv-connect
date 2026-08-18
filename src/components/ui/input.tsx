@@ -9,11 +9,18 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        // focus-visible:outline-solid: `outline-none` kills the v4
-        // --tw-outline-style variable and `outline-2` only restores width,
-        // so without the explicit solid the ring never paints (see the same
-        // note in button.tsx).
-        "h-10 w-full min-w-0 rounded-[var(--radius-input)] border border-input bg-transparent px-3 py-2 text-base transition-colors outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        // Focus is the BOX lighting up — border to ring-leaf plus the soft
+        // 3px halo — the same material ComboboxInputGroup already wears, so
+        // a form that mixes a search box with plain inputs (the onboarding
+        // register card) shows ONE focus treatment. It replaced an
+        // offset-2 outline that floated a rectangle 2px outside the box
+        // and only on :focus-visible, which sat next to the combobox's
+        // snug any-focus glow and read as two different systems (owner,
+        // 2026-08-18: "the green outline isn't the box outline but
+        // actually bigger than the box outline"). Plain `focus:` so mouse
+        // and keyboard light it alike, exactly as focus-within does on the
+        // combobox.
+        "h-10 w-full min-w-0 rounded-[var(--radius-input)] border border-input bg-transparent px-3 py-2 text-base transition-colors outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-[3px] focus:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         className
       )}
       {...props}

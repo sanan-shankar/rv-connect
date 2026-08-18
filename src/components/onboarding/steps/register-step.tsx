@@ -43,8 +43,16 @@ export function RegisterStep({
   const [subjects, setSubjects] = useState<string[]>(
     (user.subjects ?? "").split(",").map((s) => s.trim()).filter(Boolean)
   );
-  const [jobTitle, setJobTitle] = useState(user.jobTitle ?? "");
-  const [workplace, setWorkplace] = useState(user.workplace ?? "");
+  // A CURRENT teacher's occupation and organisation are not really open
+  // questions, so both arrive pre-filled (owner, 2026-08-18) and editable.
+  // Former teachers work elsewhere now; they start blank like anyone else.
+  const isCurrentTeacher = user.accountType === "teacher";
+  const [jobTitle, setJobTitle] = useState(
+    user.jobTitle ?? (isCurrentTeacher ? "Teacher" : "")
+  );
+  const [workplace, setWorkplace] = useState(
+    user.workplace ?? (isCurrentTeacher ? "Rishi Valley School" : "")
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -112,9 +120,6 @@ export function RegisterStep({
               placeholder="e.g. Physics"
               aria-label="Subjects"
             />
-            <p className="text-[12.5px] text-muted-foreground">
-              Press enter after each one. Clubs count too.
-            </p>
           </div>
         ) : (
           <div className="space-y-2">

@@ -393,12 +393,18 @@ export async function createCatchupWithPeople(input: {
     const creatorId = session.user.id;
 
     // The creator is always in, and never twice. Anyone who is not a real,
-    // unblocked user is dropped rather than failing the whole creation: the
-    // picker can go stale between rendering and submitting.
+    // unblocked, non-teacher user is dropped rather than failing the whole
+    // creation: the picker can go stale between rendering and submitting,
+    // and Catch-ups is an alumni feature, so a hand-crafted call must not
+    // be able to add a teacher the picker would never have offered.
     const invitedIds = [...new Set(memberIds.filter((id) => id !== creatorId))];
     const realMembers = invitedIds.length
       ? await prisma.user.findMany({
-          where: { id: { in: invitedIds }, isBlocked: false },
+          where: {
+            id: { in: invitedIds },
+            isBlocked: false,
+            accountType: { notIn: ["teacher", "ex_teacher"] },
+          },
           select: { id: true },
         })
       : [];
@@ -470,6 +476,14 @@ export async function joinCatchupByToken(token: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Catch-ups is an alumni feature; an invite link forwarded to a teacher
+    // must not enrol an account that cannot open the section.
+    if (
+      session.user.accountType === "teacher" ||
+      session.user.accountType === "ex_teacher"
+    ) {
+      return { error: "Catch-ups are for the old students." };
+    }
     if (typeof token !== "string" || !/^[a-f0-9]{32}$/.test(token)) {
       return { error: "That invite link is not valid." };
     }
@@ -1244,8 +1258,14 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     const { catchup } = scope;
     if (catchup.status === "ended") return { error: "This Catch-up has ended." };
 
+    // Same alumni-only rule as creation: the picker never offers a teacher,
+    // so a raw call must not be able to enrol one either.
     const real = await prisma.user.findMany({
-      where: { id: { in: [...new Set(parsed.data)] }, isBlocked: false },
+      where: {
+        id: { in: [...new Set(parsed.data)] },
+        isBlocked: false,
+        accountType: { notIn: ["teacher", "ex_teacher"] },
+      },
       select: { id: true },
     });
     if (real.length === 0) return { error: "No one to add." };

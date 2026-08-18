@@ -375,9 +375,16 @@ export function LocationPicker(props: LocationPickerProps) {
                       );
                     }}
                   </ComboboxList>
-                  <ComboboxEmpty>
-                    {query.trim() ? "No matches yet -- keep typing" : "Start typing a city or town"}
-                  </ComboboxEmpty>
+                  {/* Only in the tree when there is truly nothing to list:
+                      rendered unconditionally, Base UI kept the element
+                      mounted beside real results, and its py-6 padding sat
+                      under the rows as a blank white band (owner: "massive
+                      white space under the rishi valley place"). */}
+                  {options.length === 0 && (
+                    <ComboboxEmpty>
+                      {query.trim() ? "No matches yet -- keep typing" : "Start typing a city or town"}
+                    </ComboboxEmpty>
+                  )}
                 </>
               )}
             </ComboboxPopup>
