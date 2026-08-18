@@ -1551,11 +1551,26 @@ function PerchedBird({
       </button>
 
       {/* A soft contact shadow on the paper: what makes it read as perched on
-          the edge rather than pasted over it. */}
+          the edge rather than pasted over it.
+
+          `willChange: filter` is not a performance hint here, it is the fix for
+          a real artifact (owner, 2026-08-18, with two screenshots): hovering the
+          bird mounts the name label, and repainting that corner invalidated a
+          RECTANGLE that cut through this blur. A blur repainted inside a dirty
+          rect gets no pixels from outside it, so the soft ellipse came back with
+          a hard vertical edge through it, and it stayed wrong until the next
+          full repaint about a second later. Promoted, this span owns its raster
+          and no neighbour's invalidation can slice it. Nothing about how it
+          looks changes: same bar, same 3px blur, same 0.14. */}
       <span
         aria-hidden
         className="mx-auto -mt-1 block h-2 w-11 rounded-full"
-        style={{ background: "var(--color-ink)", opacity: 0.14, filter: "blur(3px)" }}
+        style={{
+          background: "var(--color-ink)",
+          opacity: 0.14,
+          filter: "blur(3px)",
+          willChange: "filter",
+        }}
       />
     </div>
   );

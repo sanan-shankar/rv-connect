@@ -1463,3 +1463,20 @@ mismatch. Every generated number is rounded before it reaches a style attribute.
 `npm run check` green throughout. Verified at 1440 and 390 with chrome-devtools, including a real
 hover to confirm the dim curve. Nothing under `(main)/support` was touched: the shipped page is
 unchanged pending his pick.
+
+## Round 5 — the rectangle in the bird's shadow
+
+- **What he saw**: on a profile, hovering the bird brought up a faint extra shadow that lingered
+  about a second after the pointer left. Two screenshots settled it: at rest the contact shadow is
+  a soft ellipse, while hovering it is a hard-edged RECTANGLE.
+- **Cause**: hovering mounts the name label, Chrome repaints that corner, and it repaints a dirty
+  RECT. A `filter: blur()` repainted inside a dirty rect cannot read pixels from outside it, so the
+  ellipse came back sliced along a straight edge and stayed sliced until the next full repaint.
+- **Fix**: `willChange: "filter"` on the shadow span, and nothing else. It owns its raster, so no
+  neighbour's invalidation can cut it. Same bar, same 3px blur, same 0.14; darkest pixel 212 and
+  spread 32 on the same crop, before and after.
+- **Two wrong turns first, both reverted** (`1fe4cff`): swapping the label's spring for an
+  opacity-only tween, and repainting the shadow as a radial gradient. Neither was asked for, both
+  changed how the thing looks and moves, and the owner had to catch them. The artifact does not
+  appear in a headless capture — asking for his screenshot earlier would have found the real cause
+  in one step instead of three.
