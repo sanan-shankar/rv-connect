@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
-import { formatBatch, metaLine } from "@/lib/utils";
+import { batchLine, metaLine } from "@/lib/utils";
 import { shortPlaceLabel } from "@/lib/normalize";
 import { RailCard } from "./rail-card";
 
@@ -21,7 +21,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
       name: true,
       photoUrl: true,
       birdOverride: true,
-      batchType: true,
+      accountType: true,
       batchYear: true,
       currentCity: true,
     },
@@ -49,11 +49,13 @@ export async function DirectoryModule({ userId }: { userId: string }) {
               </Link>
             }
             meta={
-              /* metaLine: formatBatch is deliberately blank for members with
-                 no batch year (a compact rail, no "Member" filler wanted), and
-                 the blank must take its dot with it or the row reads "· City". */
+              /* metaLine: blankWhenUnknown keeps this deliberately blank for
+                 members with no batch year (a compact rail, no "Member" filler
+                 wanted), and the blank must take its dot with it or the row
+                 reads "· City". batchLine, not formatBatch, so a teacher reads
+                 "Teacher" here rather than falling through to that same blank. */
               metaLine(
-                formatBatch(m.batchType, m.batchYear),
+                batchLine(m, { blankWhenUnknown: true }),
                 m.currentCity && shortPlaceLabel(m.currentCity)
               )
             }

@@ -431,12 +431,17 @@ export function LetterheadProfile({
      because a fact that appears the moment you type into it would be a row
      arriving mid-transition, which is exactly the resizing this is avoiding. */
   const liveCities = editable ? places.map((p) => p.city) : cities;
+  /* "Subject" for one, "Subjects" for more, the same rule the City/Cities
+     fact beside it follows. Counted off the comma list because that is how
+     subjects are stored, and blanks are dropped so a trailing comma mid-typing
+     does not pluralise a single subject. */
+  const subjectCount = (raw: string) => raw.split(",").filter((s) => s.trim()).length;
   const facts: { label: string; value: ReactNode; wide?: boolean; pen?: boolean }[] = [];
 
   if (editable) {
     if (isTeacher) {
       facts.push({
-        label: "Subjects",
+        label: subjectCount(form.subjects) > 1 ? "Subjects" : "Subject",
         pen: true,
         // Wide for the same reason Cities is: a comma list is the kind of
         // fact that runs long, and truncating someone's second subject to
@@ -540,7 +545,12 @@ export function LetterheadProfile({
     });
   } else {
     if (batchLabel) facts.push({ label: "Batch", value: batchLabel });
-    if (isTeacher && subjects) facts.push({ label: "Subjects", wide: true, value: subjects });
+    if (isTeacher && subjects)
+      facts.push({
+        label: subjectCount(subjects) > 1 ? "Subjects" : "Subject",
+        wide: true,
+        value: subjects,
+      });
     if (rvYears) facts.push({ label: "In the valley", value: rvYears });
     if (cities.length > 0) {
       facts.push({
