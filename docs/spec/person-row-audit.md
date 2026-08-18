@@ -54,27 +54,45 @@ hand-typed pixel values rather than size tokens.
 
 ## 3. Two bugs the audit turned up
 
-Both are real and both are cheap. Neither is fixed here.
+**Both FIXED on 2026-08-19 (`07e28d8`).** Kept here with their diagnosis, because
+each explains a trap the next person can fall into. The sweep in section 4 is
+still not started.
 
-### 3.1 The mention dropdown hand-writes the batch line
+### 3.1 The mention dropdown hand-wrote the batch line (fixed)
 
-`posts/mention-dropdown.tsx:93` builds `` `Batch of '${String(user.batchYear).slice(-2)}` `` by hand
-instead of calling `batchLine()`. So a **teacher** in the mention list reads `Batch of 'ed` (from
-`undefined`) or an empty line, depending on the value, rather than "Teacher". `batchLine()` exists
-precisely to know about `accountType` and is already unit-tested for exactly this case.
+`posts/mention-dropdown.tsx` built `` `Batch of '${String(user.batchYear).slice(-2)}` `` by hand
+instead of calling `batchLine()`.
 
-This is the same class of bug as the one the admin rebuild just closed
-(`user-management.tsx:86`, the last `formatBatch` call, which rendered blank for every teacher).
-One call site left.
+**Correction to this document's first draft**, which said teachers were the victims: they are not,
+because `/api/users/search` excludes them outright. The real trigger is any account with no batch
+year at all, where `String(null).slice(-2)` is `"ll"` and the row reads **"Batch of 'll"**.
+Reproduced against the live database: the **Anonymous** account, which every curated story is
+posted as, so it came up for anybody typing `@anon`.
 
-### 3.2 `IdentityRow`'s default meta style is below the type scale
+Two things let it through. `MentionUser` typed `batchYear` as `number` while the column is `Int?`,
+so TypeScript never saw `null` reach a string. And the component's correctness depended on a
+`where` clause in a different file. The fix calls `batchLine()`, types the field nullably, and has
+the endpoint return `accountType` so the row is right on its own terms.
 
-`identity-row.tsx:12` sets `META_CLASS` to
-`text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground`.
+Same class as the bug the admin rebuild closed (`user-management.tsx:86`, the last `formatBatch`
+call, blank for every teacher). Both call sites are now gone.
 
-10.5px is below the design system's smallest documented step (`label 0.75rem` = 12px). Every caller
-that does not override `metaClassName` inherits it. This was 18 of the elements measured on the old
-admin panel and is the reason `AdminPersonRow` overrides it.
+### 3.2 `IdentityRow`'s default meta style was below the type scale (fixed)
+
+`META_CLASS` was `text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground`.
+Both the size and the tracking sat under the smallest documented step (`label 0.75rem` at
+0.08-0.16em). Seven surfaces inherited it: the feed byline, the letters index and reader, a
+Collection photo, the map drilldown and the feed rail.
+
+Now `text-[12px] font-medium uppercase tracking-[0.08em]`, the floor exactly. The weight went with
+the size: at 12px the old semibold brought the byline close enough to the 14px name above it that
+the card read bottom-heavy, because uppercase has no descenders to lighten its band.
+
+The sidebar's own 11px override is left alone: a deliberate owner tuning for the dark rail.
+
+**Still below the scale, and NOT part of this fix** because they are each their own component
+rather than `IdentityRow`'s shared default: the letter card's `LETTER · 3 MIN READ` eyebrow and
+the feed rail's `Did you know` heading, both 10.5px. Worth a sweep of their own.
 
 ---
 
