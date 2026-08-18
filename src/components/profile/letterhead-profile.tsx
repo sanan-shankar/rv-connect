@@ -1562,11 +1562,29 @@ function PerchedBird({
       </button>
 
       {/* A soft contact shadow on the paper: what makes it read as perched on
-          the edge rather than pasted over it. */}
+          the edge rather than pasted over it.
+
+          Painted as a radial gradient, NOT as a `filter: blur()` on a solid
+          bar, which is what it used to be. A blur is a filter, a filter gets
+          its own raster, and that raster is only as big as the box Chrome
+          decided to give it: the moment the hover reveal next door promoted a
+          layer, this one was re-rastered and the blur came back clipped to a
+          hard-edged rectangle sitting under the bird (owner, 2026-08-18, with
+          the two screenshots). A gradient is just paint. There is nothing to
+          re-raster and no box to clip to, so it looks the same in every state.
+
+          Geometry matched to the blur it replaces: the old bar was 44x8 with a
+          3px blur, so its visible extent was ~50x14 with the softness carried
+          in the outer 3px on each side. 52x14 with a closest-side falloff is
+          that shape, and -mt-[7px] puts the ellipse's CENTRE back on the
+          button's bottom edge, exactly where -mt-1 put the old 8px bar's. */}
       <span
         aria-hidden
-        className="mx-auto -mt-1 block h-2 w-11 rounded-full"
-        style={{ background: "var(--color-ink)", opacity: 0.14, filter: "blur(3px)" }}
+        className="mx-auto -mt-[7px] block h-[14px] w-[52px]"
+        style={{
+          background:
+            "radial-gradient(closest-side, rgb(var(--shadow-ink) / 0.13), rgb(var(--shadow-ink) / 0.07) 55%, rgb(var(--shadow-ink) / 0) 100%)",
+        }}
       />
     </div>
   );
