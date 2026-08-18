@@ -34,7 +34,8 @@ import type { PlaceSearchResult } from "@/app/api/places/search/route";
  * Two modes, one shared search/keyboard-nav/loading-shimmer implementation:
  * - `mode="single"`: one selection. The input itself shows the chosen label.
  * - `mode="multi"`: an ordered, unlimited, removable chip list (used for a
- *   person's list of cities) plus a persistent "add another" input.
+ *   person's list of cities). A pick commits to a chip and puts the field
+ *   down (popup closed, focus released); tapping the box starts the next one.
  *
  * Wiring to onboarding / settings / directory happens in a later phase; this
  * file is deliberately standalone with no page-specific knowledge.
@@ -179,6 +180,7 @@ export function LocationPicker(props: LocationPickerProps) {
   const initialQuery = props.mode === "single" ? (props.value?.label ?? "") : "";
   const [query, setQuery] = useState(initialQuery);
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const lastAppliedRef = useRef<PlaceSelection | null>(props.mode === "single" ? props.value : null);
 
   // Keep the input text in sync when the caller resets/changes `value` from
@@ -229,15 +231,9 @@ export function LocationPicker(props: LocationPickerProps) {
     [props.mode]
   );
 
-  const handleOpenChange = useCallback(
-    (nextOpen: boolean, eventDetails: { reason?: string }) => {
-      // Multi mode keeps the popup open across consecutive picks so adding
-      // several cities in a row doesn't require re-opening each time.
-      if (props.mode === "multi" && !nextOpen && eventDetails.reason === "item-press") return;
-      setOpen(nextOpen);
-    },
-    [props.mode]
-  );
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+  }, []);
 
   const handlePick = useCallback(
     (option: PlaceOption | null) => {
@@ -253,6 +249,12 @@ export function LocationPicker(props: LocationPickerProps) {
       // here too. Also covers a duplicate pick, which adds no chip and would
       // otherwise leave the box stuck on a label that finds nothing.
       setQuery("");
+      // A pick finishes the gesture: the chip is the confirmation, and the
+      // field goes quiet until deliberately tapped again. The blur is what
+      // drops the mobile keyboard; without it the cleared, still-focused box
+      // reads as "now type your next city", which nobody asked it to do.
+      // rAF so it lands after Base UI's own focus handling on popup close.
+      requestAnimationFrame(() => inputRef.current?.blur());
       if (!props.value.some((existing) => isSameSelection(existing, selection))) {
         props.onChange([...props.value, selection]);
       }
@@ -326,6 +328,7 @@ export function LocationPicker(props: LocationPickerProps) {
         <ComboboxInputGroup>
           <SearchIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <ComboboxInput
+            ref={inputRef}
             id={id}
             placeholder={
               placeholder ?? (props.mode === "single" ? "Search for a city or town" : "Add a city or town")

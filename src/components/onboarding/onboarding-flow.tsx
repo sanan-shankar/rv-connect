@@ -3,7 +3,9 @@
 /* ------------------------------------------------------------------ *
  *  OnboardingFlow — the post-signup guided setup. Five steps: Welcome,
  *  The register (admission number, city, profession), Houses (year by
- *  year), Photo, Done. Every data step is individually skippable (its
+ *  year), Photo, Done. Teacher accounts get four: Houses is a student
+ *  record, so their order skips it and the register step hides the
+ *  admission field. Every data step is individually skippable (its
  *  own "Skip for now" advances without saving) and "Finish later" is
  *  always visible in the header, dropping straight back to /feed at any
  *  point. Nothing here is a hard gate: a member can use the whole site
@@ -54,7 +56,9 @@ export interface OnboardingUser {
   photoUrl: string | null;
   avatarColor: string | null;
   birdOverride: string | null;
+  accountType: string; // "alumnus" | "teacher" | "ex_teacher"
   admissionNumber: number | null;
+  subjects: string | null;
   places: PlaceSelection[];
   workplace: string | null;
   jobTitle: string | null;
@@ -80,7 +84,17 @@ export function OnboardingFlow({
   celebration: React.ReactNode;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<OnboardingStepId>(initialStep);
+  // Teachers have no admission number and no houses: both are student-record
+  // facts, so their wizard drops the Houses step entirely (and the register
+  // step hides its admission field). Derived from the same accountType the
+  // signup form collected.
+  const isTeacher = user.accountType !== "alumnus";
+  const stepOrder = isTeacher ? STEP_ORDER.filter((id) => id !== "houses") : STEP_ORDER;
+  const [step, setStep] = useState<OnboardingStepId>(
+    // A ?step=houses deep link on a teacher account has no screen to land on;
+    // the register step is the nearest real one.
+    stepOrder.includes(initialStep) ? initialStep : "register"
+  );
   // Deep links (?step=...) render immediately; a bare "welcome" arrival
   // waits the one tick the mount effect below needs to decide whether to
   // bounce an already-onboarded visitor away, so that never flashes first.
@@ -128,15 +142,15 @@ export function OnboardingFlow({
 
   if (!ready) return null;
 
-  const index = STEP_ORDER.indexOf(step);
-  const dotSteps = STEP_ORDER.slice(0, -1); // "done" has no dot of its own
+  const index = stepOrder.indexOf(step);
+  const dotSteps = stepOrder.slice(0, -1); // "done" has no dot of its own
 
   function goNext() {
-    const next = STEP_ORDER[STEP_ORDER.indexOf(step) + 1];
+    const next = stepOrder[stepOrder.indexOf(step) + 1];
     if (next) setStep(next);
   }
   function goBack() {
-    const prev = STEP_ORDER[STEP_ORDER.indexOf(step) - 1];
+    const prev = stepOrder[stepOrder.indexOf(step) - 1];
     if (prev) setStep(prev);
   }
   function finishLater() {
