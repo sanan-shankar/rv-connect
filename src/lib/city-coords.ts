@@ -146,3 +146,31 @@ export function cityNameVariants(raw: string | null | undefined): string[] {
   }
   return [...variants];
 }
+
+/**
+ * Places that keep a pin of their own, whatever the grid says.
+ *
+ * buildPins buckets every location onto a ~0.1-degree grid so one city cannot
+ * split into two stacked dots. That grid is 11 km wide, which is coarser than
+ * the gap between Rishi Valley and Madanapalle (10.4 km), so the two shared a
+ * square -- and because a square takes the name of the first member drawn into
+ * it, and the map draws newest batch first, two 2023 members in Madanapalle
+ * were naming the pin that residents of the valley landed in. The school is
+ * the one place on this map that has to be able to speak for itself.
+ *
+ * A city listed here is keyed by name instead of by square. It still plots at
+ * its exact coordinates, so the two pins land 10.4 km apart and the map's
+ * existing supercluster merges them at low zoom and splits them as you zoom
+ * in, which is the behaviour the grid was standing in for anyway.
+ *
+ * Keys are normalizeCity() output. Add to this only for a place whose identity
+ * matters more than its distance from the nearest town; the grid is the right
+ * default for everywhere else.
+ */
+export const OWN_PIN_CITIES = new Set(["rishi valley"]);
+
+/** True when this city gets a pin of its own rather than sharing a grid square. */
+export function hasOwnPin(raw: string | null | undefined): boolean {
+  if (!raw) return false;
+  return OWN_PIN_CITIES.has(normalizeCity(raw));
+}
