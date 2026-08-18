@@ -29,6 +29,20 @@ const TONE: Record<string, ChipTone> = {
   failed: "bad",
 };
 
+/* The column values are `sent | queued | sending | failed`. Rendering those
+   raw put a lowercase "sent" on the page, which is the database talking
+   rather than the interface. */
+const STATUS_LABEL: Record<string, string> = {
+  sent: "Sent",
+  queued: "Waiting for the budget",
+  sending: "Going out now",
+  failed: "Gave up",
+};
+
+export function mailStatusLabel(status: string): string {
+  return STATUS_LABEL[status] ?? status;
+}
+
 /** What the template is FOR, in the words of the person receiving it. */
 export function mailKindLabel(kind: string): string {
   switch (kind) {
@@ -67,11 +81,11 @@ export function MailRows({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {rows.map((r) => (
         <div
           key={r.id}
-          className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border bg-card px-3 py-2"
+          className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border bg-card px-3.5 py-3"
         >
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] font-medium text-foreground">
@@ -87,7 +101,7 @@ export function MailRows({
               )}
               <Chip label={mailKindLabel(r.kind)} tone="info" />
               {r.status !== "sent" && (
-                <Chip label={r.status} tone={TONE[r.status] ?? "idle"} />
+                <Chip label={mailStatusLabel(r.status)} tone={TONE[r.status] ?? "idle"} />
               )}
             </p>
             <p className="mt-0.5 truncate text-[12px] text-muted-foreground">

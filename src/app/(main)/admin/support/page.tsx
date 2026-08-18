@@ -3,12 +3,20 @@ import Link from "next/link";
 import { AlertTriangle, CalendarDays, IndianRupee, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
-import { AdminEmpty, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
+import { ADMIN_MEASURE, AdminEmpty, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
 import { Chip } from "@/components/admin/admin-chip";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Support",
+};
+
+/* `created` is an order that was opened and never came back, which is what a
+   closed Razorpay modal leaves behind. It is not a failure and should not
+   read like one. */
+const STATUS_LABEL: Record<string, string> = {
+  created: "Never finished",
+  failed: "Failed",
 };
 
 /** Paise to a readable rupee figure. Rupees exist only in the UI. */
@@ -74,7 +82,7 @@ export default async function AdminSupportPage() {
   const notPaid = rows.filter((r) => r.status !== "paid");
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={`flex flex-col gap-6 ${ADMIN_MEASURE}`}>
       <PageHeader title="Support" />
 
       <StatStrip>
@@ -133,11 +141,11 @@ type LedgerRow = {
 
 function Ledger({ rows }: { rows: LedgerRow[] }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {rows.map((r) => (
         <div
           key={r.id}
-          className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border bg-card px-3 py-2"
+          className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border bg-card px-3.5 py-3"
         >
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] font-medium text-foreground">
@@ -156,7 +164,10 @@ function Ledger({ rows }: { rows: LedgerRow[] }) {
               )}
               {!r.livemode && <Chip label="Test" tone="info" />}
               {r.status !== "paid" && (
-                <Chip label={r.status} tone={r.status === "failed" ? "bad" : "warn"} />
+                <Chip
+                  label={STATUS_LABEL[r.status] ?? r.status}
+                  tone={r.status === "failed" ? "bad" : "warn"}
+                />
               )}
             </p>
             <p className="mt-0.5 text-[12px] text-muted-foreground">

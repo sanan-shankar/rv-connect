@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
-import { AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
+import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { ReportList, type ReportRow } from "@/components/admin/reports/report-list";
 
 export const metadata: Metadata = {
@@ -88,7 +88,7 @@ export default async function AdminReportsPage() {
   });
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={`flex flex-col gap-6 ${ADMIN_MEASURE}`}>
       <PageHeader title="Reports" />
 
       <AdminSection label="Waiting on you" count={pending.length}>

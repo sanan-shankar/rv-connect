@@ -5,10 +5,19 @@ import { cn } from "@/lib/utils";
 /* ------------------------------------------------------------------ *
  *  Admin page furniture.
  *
- *  The panel is a TOOL, and density stays the feature (owner, 2026-08-04:
- *  "everything in the admin panel can be more dense, very feature rich. So
- *  sparsely populated."). Nothing here loosens it. What changed is WHERE the
- *  density lives: nine screens that each fit, instead of one 2901px page.
+ *  Two owner notes govern the spacing here, and the later one wins where
+ *  they pull against each other.
+ *
+ *  2026-08-04: "everything in the admin panel can be more dense, very feature
+ *  rich. So sparsely populated." That was about the old panel's giant tiles
+ *  and its four-column stat cards, and it is why nothing in here is a hero.
+ *
+ *  2026-08-19: "I want simple beautiful intuitive UI. no overcrowded
+ *  elements. everything well spaced." So the answer to the first note is NOT
+ *  tighter rows. It is FEWER THINGS PER ROW, given room. A person row carries
+ *  an avatar, a name, one subtitle, at most one chip and at most one button,
+ *  at 14px padding with 12px between rows. Density came from splitting one
+ *  2901px page into nine screens that each fit, not from squeezing.
  *
  *  The old section label was 11px uppercase tracked `text-muted-foreground`,
  *  repeated six times down one page, because it was doing navigation's job.
@@ -41,7 +50,7 @@ export function AdminSection({
   className?: string;
 }) {
   return (
-    <section className={cn("flex flex-col gap-2", className)}>
+    <section className={cn("flex flex-col gap-2.5", className)}>
       <div className="flex items-center gap-2 px-0.5">
         <h2 className="text-[13px] font-semibold text-foreground">{label}</h2>
         {count !== undefined && count > 0 && (
@@ -114,7 +123,7 @@ export function StatTile({
     </>
   );
 
-  const shell = "bg-card px-3 py-2.5";
+  const shell = "bg-card px-3.5 py-3";
 
   return href ? (
     <Link
@@ -159,6 +168,23 @@ export function StatStrip({
 }
 
 /**
+ * The measure a SINGLE-COLUMN admin list reads at.
+ *
+ * /admin takes the wide column (content-column.tsx), which is right for the
+ * two surfaces that fill it with a two-up grid, People and Messages. It is
+ * wrong for the lists that are one column of rows: at 1192px a content row's
+ * words ended around 900px and its menu sat at 1900px, with a thousand pixels
+ * of nothing in between, which is the same wasted width the two-column grid
+ * was introduced to fix.
+ *
+ * 1024px is a measure, not a page width. The design system allows exactly
+ * this ("a page may still set a narrower READING measure inside the column,
+ * which is a typographic choice, not a layout one"), and these rows are
+ * reading material: a sentence somebody wrote, an amount, an error.
+ */
+export const ADMIN_MEASURE = "w-full max-w-5xl";
+
+/**
  * The two-column grid every admin queue uses.
  *
  * At 1192px a single-column list gives a name and one truncated sentence an
@@ -168,4 +194,22 @@ export function StatStrip({
  * same height, so a two-line row beside a three-line one reads as a pair
  * rather than a step.
  */
-export const ADMIN_GRID = "grid grid-cols-1 gap-2 sm:grid-cols-2";
+export const ADMIN_GRID = "grid grid-cols-1 gap-3 sm:grid-cols-2";
+
+/**
+ * People goes one further (owner, 2026-08-19: "People can have three columns
+ * instead of two for more compact layout").
+ *
+ * Three only from `xl` (1280px viewport), not from `lg`. The content column
+ * is the window minus the 248px rail minus the shell's padding, so at 1024px
+ * three columns would be ~232px each, which is narrower than a name plus a
+ * batch line and would truncate the email to nothing. At 1280 it is ~309px,
+ * at 1536 ~395px. The email truncates on the narrow end of that, which is the
+ * right thing to give up: you scan this list by name.
+ *
+ * People can take it and the message queue cannot, which is why this is a
+ * second constant rather than a change to the one above: a thread row carries
+ * a subject AND a preview line, and those need the width.
+ */
+export const ADMIN_GRID_3 =
+  "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3";

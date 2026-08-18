@@ -3,7 +3,7 @@ import { AlertTriangle, Clock, Send } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { mailHealth, nextBudgetResetAt } from "@/lib/email-queue";
-import { AdminEmpty, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
+import { ADMIN_MEASURE, AdminEmpty, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
 import { MailRows, type MailRow } from "@/components/admin/mail/mail-rows";
 
 export const metadata: Metadata = {
@@ -63,7 +63,7 @@ export default async function AdminMailPage() {
   const resetAt = nextBudgetResetAt();
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={`flex flex-col gap-6 ${ADMIN_MEASURE}`}>
       <PageHeader title="Mail" />
 
       <StatStrip columns={3}>
@@ -102,21 +102,22 @@ export default async function AdminMailPage() {
         </p>
       )}
 
-      <AdminSection label="Gave up" count={failed.length}>
-        {failed.length === 0 ? (
-          <AdminEmpty>Nothing has failed. Every message got through.</AdminEmpty>
-        ) : (
+      {/* Both of these sections VANISH when empty rather than showing an empty
+          state. The strip above already says "Gave up 0" and "Waiting to go
+          0", so a heading plus a line of reassurance underneath is the same
+          fact a third time, and stacking those was most of what made the old
+          panel long. A section here means there is something in it. */}
+      {failed.length > 0 && (
+        <AdminSection label="Gave up" count={failed.length}>
           <MailRows rows={failed.map(toRow)} showActions />
-        )}
-      </AdminSection>
+        </AdminSection>
+      )}
 
-      <AdminSection label="Waiting to go" count={queued.length}>
-        {queued.length === 0 ? (
-          <AdminEmpty>The queue is empty.</AdminEmpty>
-        ) : (
+      {queued.length > 0 && (
+        <AdminSection label="Waiting to go" count={queued.length}>
           <MailRows rows={queued.map(toRow)} />
-        )}
-      </AdminSection>
+        </AdminSection>
+      )}
 
       <AdminSection label="Recently sent">
         {recent.length === 0 ? (

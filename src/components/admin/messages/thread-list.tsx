@@ -40,34 +40,54 @@ export interface ThreadRow {
 export function ThreadList({ threads }: { threads: ThreadRow[] }) {
   return (
     <div className={ADMIN_GRID}>
-      {threads.map((t) => (
-        <div
-          key={t.id}
-          className="flex flex-col gap-2 rounded-[var(--radius)] border border-border bg-card p-3"
-        >
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <Chip label={kindLabel(t.kind)} tone="info" />
-            {t.adminUnread && <Chip label="New" tone="warn" />}
-            <span className="ml-auto shrink-0 text-[11.5px] text-muted-foreground">
-              {formatTimeAgo(new Date(t.lastMessageAt))}
-            </span>
-          </div>
+      {threads.map((t) => {
+        const title = threadTitle(t);
+        // A "notice" thread's title IS its kind ("Notes from the admins"),
+        // which the chip beside it already says. Showing both puts the same
+        // four words on the card twice.
+        const titleRepeatsKind = title === kindLabel(t.kind) || t.kind === "notice";
 
-          <AdminPersonRow person={t.member} className="border-0 bg-transparent p-0" />
-
-          <Link
-            href={`/admin/messages/${t.id}`}
-            className="state-layer -mx-1 rounded-[var(--radius-md)] px-1 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        return (
+          <div
+            key={t.id}
+            className="state-layer relative flex flex-col gap-2 rounded-[var(--radius)] border border-border bg-card p-3"
           >
-            <p className="truncate text-[13px] font-medium text-foreground">
-              {threadTitle(t)}
-            </p>
-            {t.preview && (
-              <p className="truncate text-[12.5px] text-muted-foreground">{t.preview}</p>
-            )}
-          </Link>
-        </div>
-      ))}
+            {/* The whole card opens the thread, as a stretched overlay rather
+                than a wrapper. A wrapper would put the member's name link
+                inside another anchor, which is invalid HTML and which Safari
+                resolves by dropping the inner one, silently breaking the one
+                click the owner asked for ("click on their name to view
+                profile"). The overlay sits at z-0; everything real sits above
+                it. */}
+            <Link
+              href={`/admin/messages/${t.id}`}
+              aria-label={`Open: ${title}`}
+              className="absolute inset-0 z-0 rounded-[var(--radius)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            />
+
+            <div className="relative z-[1] flex flex-wrap items-center gap-x-1.5 gap-y-1">
+              <Chip label={kindLabel(t.kind)} tone="info" />
+              {t.adminUnread && <Chip label="New" tone="warn" />}
+              <span className="ml-auto shrink-0 text-[11.5px] text-muted-foreground">
+                {formatTimeAgo(new Date(t.lastMessageAt))}
+              </span>
+            </div>
+
+            <div className="pointer-events-none relative z-[1] [&_a]:pointer-events-auto">
+              <AdminPersonRow person={t.member} className="border-0 bg-transparent p-0" />
+            </div>
+
+            <div className="relative z-[1] min-w-0">
+              {!titleRepeatsKind && (
+                <p className="truncate text-[13px] font-medium text-foreground">{title}</p>
+              )}
+              {t.preview && (
+                <p className="truncate text-[12.5px] text-muted-foreground">{t.preview}</p>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

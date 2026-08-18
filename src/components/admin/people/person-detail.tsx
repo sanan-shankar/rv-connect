@@ -41,6 +41,7 @@ import {
   adminUpdatePlaces,
 } from "@/app/(main)/admin/people/actions";
 import { retryMail } from "@/app/(main)/admin/mail/actions";
+import { mailKindLabel, mailStatusLabel } from "@/components/admin/mail/mail-rows";
 
 /* ------------------------------------------------------------------ *
  *  One person, everything about them, everything you can do to them.
@@ -181,7 +182,7 @@ export function PersonDetail({
           <DetailsCard person={person} />
           <PlacesCard person={person} />
           <NoteCard person={person} />
-          <MailCard mail={mail} personId={person.id} onDone={() => router.refresh()} />
+          <MailCard mail={mail} onDone={() => router.refresh()} />
         </div>
 
         {/* ---- right: the things you decide ---- */}
@@ -621,11 +622,9 @@ function NoteCard({ person }: { person: DetailPerson }) {
 
 function MailCard({
   mail,
-  personId,
   onDone,
 }: {
   mail: DetailMail[];
-  personId: string;
   onDone: () => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
@@ -670,7 +669,7 @@ function MailCard({
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                 {mailKindLabel(m.kind)}
-                <Chip label={m.status} tone={MAIL_TONE[m.status] ?? "idle"} />
+                <Chip label={mailStatusLabel(m.status)} tone={MAIL_TONE[m.status] ?? "idle"} />
               </p>
               <p className="mt-0.5 text-[12px] text-muted-foreground">
                 {metaLine(
@@ -699,22 +698,8 @@ function MailCard({
           </div>
         ))}
       </div>
-      <p className="sr-only">Mail history for member {personId}</p>
     </AdminSection>
   );
-}
-
-function mailKindLabel(kind: string): string {
-  switch (kind) {
-    case "verify":
-      return "Confirm your address";
-    case "reset":
-      return "Password reset";
-    case "password-changed":
-      return "Password changed";
-    default:
-      return kind;
-  }
 }
 
 /* ---------------------------------------------------------------- *

@@ -31,7 +31,7 @@ export default async function AdminPeoplePage({
   ]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <PageHeader title="People" />
       <PeopleList
         // Keyed on the filters so a navigation resets the accumulated

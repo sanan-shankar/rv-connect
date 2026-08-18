@@ -3,18 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import {
-  BadgeCheck,
-  Ban,
-  Clock,
-  MailCheck,
-  MailQuestion,
-  MailX,
-  Search,
-  Shield,
-  ShieldQuestion,
-  StickyNote,
-} from "lucide-react";
+import { BadgeCheck, Ban, MailX, Search, Shield, ShieldQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,8 +16,8 @@ import {
   type SentenceToken,
 } from "@/components/common/filters";
 import { AdminPersonRow } from "@/components/admin/admin-person-row";
-import { Chip, type ChipTone } from "@/components/admin/admin-chip";
-import { ADMIN_GRID, AdminEmpty } from "@/components/admin/admin-chrome";
+import { Chip } from "@/components/admin/admin-chip";
+import { ADMIN_GRID_3, AdminEmpty } from "@/components/admin/admin-chrome";
 import { adminVerifyUser } from "@/components/profile/admin-actions";
 import { loadMorePeople } from "@/app/(main)/admin/people/actions";
 import {
@@ -36,40 +25,24 @@ import {
   STATE_OPTIONS,
   kindLabel,
   stateLabel,
-  type EmailState,
   type PersonRow,
 } from "@/lib/admin-people";
 
 /* ------------------------------------------------------------------ *
  *  Everyone here, in one list.
  *
- *  THE CHIP RULE, which is what makes this readable at 49 people and would
- *  have made the old panel readable too: a chip appears only when the state
- *  is NOT the settled one. Somebody who has confirmed their address and is a
- *  verified member shows no chips at all.
+ *  THE CHIP RULE, which is what makes this readable at 51 people and would
+ *  have made the old panel readable too: a row shows AT MOST ONE chip, and
+ *  only when something is unsettled. Somebody who has confirmed their address
+ *  and is a verified member shows nothing at all.
  *
- *  The alternative, which the surface this replaces used, is two chips on
- *  every row saying "Confirmed" and "Verified" 47 times so that the two rows
- *  that need something can say otherwise. That is 94 pieces of ink to carry
- *  two facts, it makes every row 76px instead of 54, and it trains the eye to
- *  skip exactly the column the section exists for. Silence means settled.
+ *  The surface this replaces did the opposite: two chips on every row saying
+ *  "Confirmed" and "Verified" 47 times, so that the two rows which needed
+ *  something could say otherwise. That is 94 pieces of ink to carry two
+ *  facts, and it trains the eye to skip exactly the column the section exists
+ *  for. Silence means settled, and a page of quiet rows is what a healthy
+ *  membership should look like.
  * ------------------------------------------------------------------ */
-
-const EMAIL_CHIP: Record<
-  Exclude<EmailState, "confirmed">,
-  { label: string; tone: ChipTone; icon: typeof MailCheck }
-> = {
-  waiting: { label: "Link sent", tone: "idle", icon: Clock },
-  queued: { label: "Queued to send", tone: "warn", icon: MailQuestion },
-  failed: { label: "Send failed", tone: "bad", icon: MailX },
-  none: { label: "No link sent", tone: "warn", icon: MailQuestion },
-};
-
-const MEMBER_CHIP: Record<string, { label: string; tone: ChipTone }> = {
-  pending: { label: "Pending", tone: "warn" },
-  unverified: { label: "Unverified", tone: "idle" },
-  flagged: { label: "Flagged", tone: "bad" },
-};
 
 export function PeopleList({
   initial,
@@ -183,8 +156,8 @@ export function PeopleList({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1 sm:max-w-xs">
             <Search
@@ -251,7 +224,7 @@ export function PeopleList({
         </AdminEmpty>
       ) : (
         <>
-          <div ref={listRef} className={ADMIN_GRID}>
+          <div ref={listRef} className={ADMIN_GRID_3}>
             {rows.map((p) => (
               <PersonCard key={p.id} person={p} onVerify={() => verify(p.id)} />
             ))}
@@ -269,6 +242,45 @@ export function PeopleList({
   );
 }
 
+/**
+ * A chip ONLY for something a human has to do something about.
+ *
+ * Three cuts got here. The first stacked an email chip and a member chip on
+ * every row, plus a role chip and a note icon. The second collapsed those to
+ * one chip. That was better and still wrong: "Email not confirmed" then
+ * appeared on seven of the eighteen rows on screen, which is a lot of ink for
+ * a state this file's own taxonomy calls "the commonest state, and not a
+ * problem". Somebody who has not clicked their link yet is not your job. It
+ * resolves itself, and if it does not, the send FAILING is the thing worth
+ * saying.
+ *
+ * What is left is the four states that genuinely want a person:
+ *
+ *   Blocked     you did this, and it is worth seeing that you did
+ *   Flagged     somebody in the community raised a hand
+ *   Bounced     the address is wrong and they cannot confirm at all
+ *   Admin       not a problem, but worth knowing at a glance
+ *
+ * Deliberately NOT here: "Unverified". The row already carries a Verify
+ * button when that is true, and a chip beside it saying the same word is the
+ * label and the button both claiming the same job. The button IS the
+ * indicator. To see them as a group, the Standing filter has "Not a verified
+ * member".
+ *
+ * The result is a page of quiet rows with two or three marks on it, which is
+ * the honest picture of a healthy membership, and it means a mark actually
+ * catches the eye when one appears.
+ */
+function statusChip(p: PersonRow) {
+  if (p.isBlocked) return <Chip label="Blocked" tone="bad" icon={Ban} />;
+  if (p.verifyState === "flagged") return <Chip label="Flagged" tone="bad" icon={ShieldQuestion} />;
+  if (p.emailState === "failed") return <Chip label="Email bounced" tone="bad" icon={MailX} />;
+  // Last, because it is a fact rather than a problem: it only ever shows on a
+  // row that has nothing more pressing to say.
+  if (p.role === "admin") return <Chip label="Admin" tone="info" icon={Shield} />;
+  return null;
+}
+
 function PersonCard({
   person,
   onVerify,
@@ -276,38 +288,11 @@ function PersonCard({
   person: PersonRow;
   onVerify: () => void;
 }) {
-  const email = person.emailState === "confirmed" ? null : EMAIL_CHIP[person.emailState];
-  const member = person.verifyState === "verified" ? null : MEMBER_CHIP[person.verifyState];
-
   return (
     <AdminPersonRow
       person={person}
       href={`/admin/people/${person.id}`}
-      chips={
-        <div className="flex flex-wrap items-center justify-end gap-1">
-          {person.hasNote && (
-            <StickyNote
-              className="size-3.5 text-muted-foreground"
-              strokeWidth={2}
-              aria-label="Has an admin note"
-            />
-          )}
-          {person.role === "admin" && <Chip label="Admin" tone="info" icon={Shield} />}
-          {/* Blocked supersedes the verification chips: what a blocked account
-              has or has not confirmed is moot, and three chips on one row is
-              the noise this rule exists to prevent. */}
-          {person.isBlocked ? (
-            <Chip label="Blocked" tone="bad" icon={Ban} />
-          ) : (
-            <>
-              {email && <Chip label={email.label} tone={email.tone} icon={email.icon} />}
-              {member && (
-                <Chip label={member.label} tone={member.tone} icon={ShieldQuestion} />
-              )}
-            </>
-          )}
-        </div>
-      }
+      chip={statusChip(person)}
       action={
         !person.isBlocked && person.verifyState !== "verified" ? (
           <Button size="xs" variant="primary" onClick={onVerify}>

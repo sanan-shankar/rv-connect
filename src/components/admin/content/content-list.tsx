@@ -3,10 +3,16 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, ExternalLink, EyeOff, Search, Trash2, X } from "lucide-react";
+import { Check, ExternalLink, EyeOff, MoreHorizontal, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   FacetSelect,
   FilterButton,
@@ -234,11 +240,11 @@ export function ContentList({
           {hasFilter ? "Nothing matches that." : "Nobody has posted anything yet."}
         </AdminEmpty>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {items.map((item) => (
             <div
               key={`${item.kind}-${item.id}`}
-              className="flex gap-3 rounded-[var(--radius)] border border-border bg-card p-3"
+              className="flex gap-3 rounded-[var(--radius)] border border-border bg-card p-3.5"
             >
               {item.thumbUrl && (
                 /* eslint-disable-next-line @next/next/no-img-element */
@@ -272,12 +278,23 @@ export function ContentList({
                 )}
                 <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-foreground">
                   {item.excerpt || (
-                    <span className="text-muted-foreground">No caption</span>
+                    <span className="text-muted-foreground">
+                      {item.kind === "photo" ? "No caption" : "A picture, no words"}
+                    </span>
                   )}
                 </p>
               </div>
 
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
+              {/* A ROW, not a column. Stacked, these two buttons were the
+                  tallest thing in the card and set a ~100px row height for a
+                  single line of text. There are only ever two. */}
+              {/* A photo in the queue is the one row with a JOB attached, so
+                  its two answers are real buttons. Everything else is
+                  something you are browsing, and its actions live behind the
+                  same "..." menu the feed's own post card uses. Two buttons
+                  on every row made the list read as a page of controls with
+                  some text between them (owner: "no overcrowded elements"). */}
+              <div className="flex shrink-0 items-start gap-1.5">
                 {item.approved === false && !item.isHidden ? (
                   <>
                     <Button
@@ -302,27 +319,32 @@ export function ContentList({
                     </Button>
                   </>
                 ) : (
-                  <>
-                    {item.href && (
-                      <Link href={item.href}>
-                        <Button size="xs" variant="outline">
-                          <ExternalLink className="size-3" strokeWidth={2} />
-                          See it
-                        </Button>
-                      </Link>
-                    )}
-                    {!item.isHidden && (
-                      <Button
-                        size="xs"
-                        variant="destructive"
-                        disabled={busy === item.id}
-                        onClick={() => setRemoving(item)}
-                      >
-                        <Trash2 className="size-3" strokeWidth={2} />
-                        Remove
-                      </Button>
-                    )}
-                  </>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      aria-label={`What to do with this ${KIND_LABEL[item.kind].toLowerCase()}`}
+                      className="state-layer grid size-8 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      <MoreHorizontal className="size-4" strokeWidth={2} />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {item.href && (
+                        <DropdownMenuItem render={<Link href={item.href} />}>
+                          <ExternalLink className="mr-2 size-4" strokeWidth={2} />
+                          See it on the site
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem render={<Link href={`/admin/content?author=${item.authorId}`} />}>
+                        <Search className="mr-2 size-4" strokeWidth={2} />
+                        Everything by {item.authorName.split(" ")[0]}
+                      </DropdownMenuItem>
+                      {!item.isHidden && (
+                        <DropdownMenuItem variant="destructive" onClick={() => setRemoving(item)}>
+                          <Trash2 className="mr-2 size-4" strokeWidth={2} />
+                          Take it down
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             </div>

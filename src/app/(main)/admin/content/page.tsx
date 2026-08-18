@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { readContentFilters, CONTENT_PAGE_SIZE } from "@/lib/admin-content";
 import { loadContent } from "@/lib/admin-content-query";
+import { ADMIN_MEASURE } from "@/components/admin/admin-chrome";
 import { ContentList } from "@/components/admin/content/content-list";
 
 export const metadata: Metadata = {
@@ -35,7 +36,7 @@ export default async function AdminContentPage({
   ]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={`flex flex-col gap-5 ${ADMIN_MEASURE}`}>
       <PageHeader title="Content" />
       <ContentList
         key={`${filters.q}|${filters.type}|${filters.authorId}|${filters.includeHidden}`}
