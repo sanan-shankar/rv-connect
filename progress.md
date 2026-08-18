@@ -1382,3 +1382,26 @@ deleted through its own delete-account flow.
   lat/lng, `position` 0), with the legacy `User.currentCity` column set to the same label the way
   `saveOnboardingRegister` keeps it in sync. Her profile now reads CITY: Rishi Valley, and she
   plots inside the valley's own pin.
+
+## Round 5 — "TEACHER · TEACHER"
+
+- **The bug the owner caught**: the map drilldown read `Mini Muralidas / TEACHER · TEACHER`. Two
+  independently correct values collided — `batchLine` returns "Teacher" for a current teacher, and
+  her occupation is, reasonably, "Teacher". The directory card had it too
+  (`Teacher · Teacher · Rishi Valley`), and it only appeared at all because her city was set an
+  hour earlier; before that she was not on the map and her card had no third segment.
+- **Fix in `metaLine`, not at the two call sites.** A segment repeating one already on the line now
+  vanishes the way an empty one does, comparison case- and space-insensitive, first spelling kept.
+  Both surfaces that pair a role label with a free-typed field
+  (`directory/profile-card.tsx:66`, `directory/alumni-map.tsx:666`) are fixed by it, and so is any
+  future one — no call site should have to know its two inputs can collide.
+- **Swept for the rest**: those two are the only places in the app that render `batchLine`
+  alongside `jobTitle`. Every other `metaLine` call pairs things that cannot be equal (name +
+  batch, batch + date, email + batch). `MetaDots`, the styled twin, was left alone deliberately:
+  its two call sites are batch+date and a list of houses, which are already distinct, and its
+  parts are ReactNodes with nothing to compare.
+- Four `metaLine` tests added to `batch-line.test.mjs` (repeat, case/space, order preserved, empty
+  segments). 10/10 in that file, `npm run check` green.
+- **Verified on screen, not by reasoning**: drove the real map with chrome-devtools, zoomed to the
+  valley and opened the pin — `Mini Muralidas / TEACHER`, `Kartik Kalyanram / BATCH OF '78 ·
+  DOCTOR`. Directory card reads `Teacher · Rishi Valley` at 1440 and 390.
