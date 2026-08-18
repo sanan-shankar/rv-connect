@@ -1298,3 +1298,22 @@ deleted through its own delete-account flow.
   comment step until that file is applied to the demo DB. Parked for a follow-up.
 - Owner feedback logged to memory: full-page screenshots are not enough - zoom into every
   touched state and catch orphaned words, oversized bubbles and stray connectives before he does.
+
+### Same day, round 2 - owner-reported polish and the flight-path hoopoe
+
+- **Hoopoe, actually closed**: the owner's Safari screenshots showed the true repro was the
+  LANDING -> flight -> fast trivia path, which the direct-load test never exercised. The flight
+  handoff's greet could land after the form had already tucked the wings; its wave then wrote
+  rotate over the tuck (the "hanging arms"). Two layers: runIntro now lets the greet lapse if the
+  trivia step is already gone, and the form keeps a 15s watch that re-asserts the tucked pose the
+  moment any other animation finishes - a stranded wing survives at most one 250ms tick, whatever
+  path or browser timing lets a writer through. Verified live on the full landing->flight->fast
+  path: pose byte-stable for 12s.
+- **Letterhead**: empty occupation line takes NO space at rest and grows in with the pen (the
+  Houses-hint height pattern); the verified leaf rides a no-wrap group with the name's last word
+  (never orphaned on its own line); the name's type is 6cqi against the sheet's own @container
+  instead of 7vw (owner: "it wraps, then unwraps and then wraps") so characters-per-line holds
+  through the scaling band and wrapping is one event; the sheet keeps ONE padding, the smaller
+  p-6, at every size (owner preference). Remaining single re-flow sits exactly at the 768px
+  sidebar collapse; collapsing the sidebar at 1024 instead would make even that monotonic but
+  changes every page's 768-1024 layout - offered, not taken unilaterally.
