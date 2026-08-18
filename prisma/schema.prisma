@@ -23,6 +23,7 @@ model User {
   houses        String?   // JSON string of [{year, house}]; canonical house list in src/lib/houses.ts
   displayEmail  String?   // profile may show a different email than the sign-in one
   birdOverride  String?   // manual bird-species slug override (admin assignment + supporter perk)
+  birdPickedAt  DateTime? // when the supporter last spent a pick; a paid contribution NEWER than this grants another (see chooseBird)
   workplace     String?
   jobTitle      String?
   phone         String?

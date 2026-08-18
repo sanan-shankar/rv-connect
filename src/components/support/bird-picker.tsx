@@ -165,7 +165,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {choice.slug === currentSlug
                   ? "This is already your bird."
-                  : "This becomes your avatar everywhere on the site. You pick once, so make it count."}
+                  : "This becomes your avatar everywhere on the site. Changing it again takes another contribution."}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-[var(--space-xs)]">

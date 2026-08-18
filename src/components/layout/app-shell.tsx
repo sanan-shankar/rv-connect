@@ -60,8 +60,9 @@ export function AppShell({
       <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
         {/* /support's bird field, mounted here rather than in the page so the
             template's entrance transform never becomes its containing block
-            (see wood-mount.tsx). Renders null everywhere else. */}
-        <SupportWoodMount />
+            (see wood-mount.tsx). Renders null everywhere else. isAdmin only
+            feeds the temporary backdrop A/B button. */}
+        <SupportWoodMount isAdmin={user.role === "admin"} />
         {/* Padding rule (owner, 2026-07-30): the title's distance from the
             left edge EQUALS its distance from the top, at every breakpoint.
 
