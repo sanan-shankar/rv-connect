@@ -99,6 +99,12 @@ export async function GET(req: NextRequest) {
        ${altNamesClause}
     ORDER BY
       (lower("name") = ${lowerQuery} OR lower("asciiName") = ${lowerQuery}) DESC,
+      -- A prefix hit on the place's own name outranks an altNames-contains
+      -- hit regardless of population: typing "rishi" must surface Rishi
+      -- Valley (pop. 1,500) above metros whose foreign-language altNames
+      -- happen to contain the letters (Tbilisi et al. did exactly that).
+      (lower("asciiName") LIKE lower(${prefixPattern}) ESCAPE '\\'
+        OR lower("name") LIKE lower(${prefixPattern}) ESCAPE '\\') DESC,
       population DESC
     LIMIT 8
   `);

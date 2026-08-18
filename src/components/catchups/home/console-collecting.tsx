@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { FadeRise } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
+import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { curatePrompt, openAnswering, submitPrompt } from "@/app/(main)/catchups/actions";
 import type { PromptCategory } from "@/lib/catchups-types";
 import { LibraryPickerDialog } from "./library-picker-dialog";
@@ -87,6 +88,9 @@ function SubmissionPanel({
   const [showAsker, setShowAsker] = useState(true);
   const [busy, setBusy] = useState(false);
   const firstName = viewerName.split(" ")[0] || viewerName;
+  // The unconfirmed-email refusal opens the one shared confirm-email card,
+  // same as posting and commenting, instead of a toast reciting the rule.
+  const emailGate = useEmailGate();
 
   function handlePick(pickedText: string, pickedCategory: string) {
     setText(pickedText);
@@ -103,7 +107,7 @@ function SubmissionPanel({
     const result = await submitPrompt({ editionId, text: trimmed, category, showAsker });
     setBusy(false);
     if (result && "error" in result) {
-      toast.error(result.error);
+      if (!emailGate.handled(result.error)) toast.error(result.error);
       return;
     }
     // Always "added": since 2026-08-05 nothing waits on a Keeper.

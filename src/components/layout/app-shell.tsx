@@ -57,27 +57,16 @@ export function AppShell({
       <Sidebar user={user} unreadCount={unreadCount} demo={demo} />
       {/* pb on mobile clears the fixed bottom tab bar */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
-        {/* Two paddings with two jobs (owner, 2026-08-18).
+        {/* Padding rule (owner, 2026-07-30): the title's distance from the
+            left edge EQUALS its distance from the top, at every breakpoint.
 
-            SIDES are fluid: the gap beside the tile used to shrink (auto
-            margins), stall at a breakpoint padding, jump, and stall again;
-            a clamp glides between the same endpoints (40px wide, 20px
-            phones) so the gap narrows continuously to its floor and holds.
-            3.5vw, not 3vw: the first rate had already dropped to ~34px at a
-            ~1150px window, which read plainly tighter than the 40px that
-            width always had ("even the sides are so small"). At 3.5vw the
-            cap holds to ~1140px, so ordinary desktop windows keep their
-            full gutter and the glide only begins once space is genuinely
-            short.
-
-            TOP AND BOTTOM keep the original stepped scale untouched: a first
-            fluid pass shrank them too, which pulled every page's content up
-            and clipped the profile bird overhanging its sheet ("even the
-            freaking bird is cut off. keep the top margins as it was"). The
-            2026-07-30 left-equals-top rule still holds where windows actually
-            rest (both read 40px at lg+, 20px on phones); mid-resize the sides
-            are allowed to glide while the top stands still. */}
-        <main className="w-full flex-1 px-[clamp(1.25rem,3.5vw,2.5rem)] py-5 sm:py-7 lg:py-10">
+            This is the ORIGINAL stepped scale, restored in full. A fluid
+            vw-clamp gutter was tried on 2026-08-18 to smooth the gap's
+            shrink while a window narrows; it rendered near-zero margins on
+            the owner's machine and was rejected outright ("revert all your
+            changes to the margin between the tile and the sidebar"). Do not
+            reintroduce viewport-unit padding here. */}
+        <main className="w-full flex-1 p-5 sm:p-7 lg:p-10">
           <ContentColumn>
             {notice}
             {children}

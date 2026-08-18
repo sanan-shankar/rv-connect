@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { MailWarning, Check, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { resendVerification } from "./email-actions";
 
 /* ------------------------------------------------------------------ *
@@ -58,8 +59,23 @@ function subscribeNever(): () => void {
   return () => {};
 }
 
+/**
+ * The two rail pages (Feed, Catch-ups). On these, at the widths where the
+ * 318px rail actually renders (>= 1180px, rail-grid.ts), the chip floats in
+ * the rail's top-right corner instead of sitting in flow: centred above the
+ * page it pushed the whole feed down, which read as the page starting in
+ * the wrong place (owner, 2026-08-18: "move to the right of new post above
+ * from the collection... I dont want the feed to start below it"). Other
+ * pages have no rail to borrow, so they keep the in-flow chip.
+ */
+const RAIL_FLOAT_ROUTES = ["/feed", "/catchups"];
+
 export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const floated = RAIL_FLOAT_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(`${r}/`)
+  );
   const [state, setState] = useState<BannerState>(initial);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState("");
@@ -77,7 +93,7 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
     }
     if (result.state === "sent") {
       setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
-      setFlash("Sent. Check your spam folder if it does not arrive.");
+      setFlash(`Sent to ${result.sentTo ?? "your address"}.`);
     } else if (result.state === "queued" && result.sendingAt) {
       setState({ state: "queued", sendingAt: result.sendingAt });
       setFlash("");
@@ -110,15 +126,43 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
   );
 
   return (
+    // The outer div is the rail-float anchor: zero-height and relative from
+    // 1180px on the rail pages, so the chip inside pins to the column's
+    // top-right while the page's own content starts at the very top,
+    // unpushed. On every other page it is inert.
+    <div className={cn(floated && "min-[1180px]:relative min-[1180px]:z-20 min-[1180px]:h-0")}>
     <div
-      className={
+      className={cn(
         // The cinnamon tint trio from the colour protocol (rule 4): an
         // informational chip, not an error. Red here would say something has
         // gone wrong, and nothing has: they joined a minute ago.
-        "mb-[var(--space-m)] flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-md)] border border-cinnamon/30 bg-cinnamon/[0.07] px-3.5 py-2.5"
-      }
+        // A chip sized to its sentence, not a full-width bar (owner,
+        // 2026-08-18: "make the orange alert rectangle smaller to fit the
+        // text"): w-fit hugs the line, mx-auto keeps it composed over the
+        // centered onboarding column, max-w-full lets the longer resend
+        // state wrap instead of overflowing. px-3 py-2 and the 16px icon
+        // are the same trim from the earlier pass.
+        "mx-auto mb-[var(--space-m)] flex w-fit max-w-full flex-wrap items-center gap-x-2.5 gap-y-2 rounded-[var(--radius-md)] border border-cinnamon/30 bg-cinnamon/[0.07] px-3 py-2",
+        // Floated over the rail at rail widths: exactly the rail card's
+        // 318px, so it reads as the rail's first card and never reaches far
+        // enough left to touch the New post button.
+        floated &&
+          "min-[1180px]:absolute min-[1180px]:top-0 min-[1180px]:right-0 min-[1180px]:mx-0 min-[1180px]:mb-0 min-[1180px]:w-[318px]"
+      )}
     >
-      <Icon className="h-[18px] w-[18px] shrink-0 text-cinnamon" aria-hidden />
+      {/* After a resend, the confirmation IS the chip: one check, one line.
+          The first draft appended it under the normal content, which inside
+          the rail's 318px stacked three wrapped lines around a floating
+          button (owner: "this doesn't render right"). There is nothing left
+          to do after sending, so nothing else earns the room. */}
+      {flash ? (
+        <p className="flex min-w-0 items-center gap-1.5 text-[13.5px] leading-snug text-cinnamon">
+          <Check className="h-4 w-4 shrink-0" aria-hidden />
+          {flash}
+        </p>
+      ) : (
+        <>
+      <Icon className="h-4 w-4 shrink-0 text-cinnamon" aria-hidden />
 
       <p className="min-w-0 flex-1 text-[13.5px] leading-snug text-foreground">
         {queued ? (
@@ -136,34 +180,27 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
             </span>
           </>
         ) : imminent ? (
-          // Mid-send or seconds from a retry. No deadline named, because there
-          // is not one; no button, because there is nothing for them to do.
-          <>
-            <span className="font-medium">Your link is on its way.</span>{" "}
-            <span className="text-muted-foreground">
-              Give it a minute, then check your spam folder.
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="font-medium">Confirm your email</span>{" "}
-            <span className="text-muted-foreground">
-              to post, upload photos and see contact details.
-              {state.state === "sent" && (
-                <>
-                  {" "}
-                  We sent a link to{" "}
-                  <span className="text-foreground">{state.sentTo}</span>.
-                </>
-              )}
-            </span>
-          </>
-        )}
-        {flash && (
-          <span className="mt-1 flex items-center gap-1.5 text-[12.5px] text-cinnamon">
-            <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {flash}
+          // Mid-send or seconds from a retry. One plain sentence and nothing
+          // else (owner, 2026-08-18: no spam-folder aside, and the bolding
+          // came off on second look); no button, because there is nothing
+          // for them to do.
+          <span>
+            A link has been sent to your email. Tap on it to verify your
+            account.
           </span>
+        ) : (
+          // Two short facts and nothing else (owner, 2026-08-18: the "to
+          // post, upload photos..." feature list came off).
+          <>
+            <span className="font-medium">Confirm your email.</span>
+            {state.state === "sent" && (
+              <span className="text-muted-foreground">
+                {" "}
+                We sent a link to{" "}
+                <span className="text-foreground">{state.sentTo}</span>.
+              </span>
+            )}
+          </>
         )}
       </p>
 
@@ -179,6 +216,9 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
           {busy ? "Sending..." : state.state === "sent" ? "Send it again" : "Send me the link"}
         </button>
       )}
+        </>
+      )}
+    </div>
     </div>
   );
 }

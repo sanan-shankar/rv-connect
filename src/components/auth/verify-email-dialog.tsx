@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -96,17 +95,24 @@ export function VerifyEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        {/* Title and one sentence. The paragraph that used to sit here
-            explained the policy at length to somebody who just wanted to
-            press Post; the reason is not what they need, the next step is
-            (owner, 2026-08-12: "just be straightforward"). */}
+      {/* The ONE shape every confirm-email refusal takes (owner, 2026-08-18:
+          "make all the confirm email alerts... look the same"): a 320px
+          card, a title, ONE six-word line that says exactly what to do, and
+          a pill that names what it sends. Earlier drafts here failed in both
+          directions: a policy paragraph ("overcrowded"), then title+button
+          alone ("send WHAT again"). The "More help" button is gone because
+          it led to a page whose one function - resending - is this dialog's
+          own button. The locked Get-in-touch path renders THIS component,
+          so the card cannot drift apart across surfaces. */}
+      <DialogContent className="sm:max-w-[320px]">
         <DialogHeader>
-          <DialogTitle>Confirm your email</DialogTitle>
-          <DialogDescription>
-            Click the link we sent you and posting opens straight away.
-          </DialogDescription>
+          <DialogTitle>Confirm your email first</DialogTitle>
+          <DialogDescription>Tap the link we emailed you.</DialogDescription>
         </DialogHeader>
+
+        <Button onClick={handleResend} disabled={busy} className="w-fit">
+          {busy ? "Sending..." : "Resend the link"}
+        </Button>
 
         {flash && (
           <p className="flex items-start gap-2 rounded-[var(--radius-md)] border border-leaf/30 bg-leaf/[0.07] px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground">
@@ -114,20 +120,6 @@ export function VerifyEmailDialog({
             {flash}
           </p>
         )}
-
-        {/* The material's one footer shape: a right-aligned action row. */}
-        <div className="flex justify-end gap-2 pt-1">
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/verify-email" />}
-          >
-            More help
-          </Button>
-          <Button onClick={handleResend} disabled={busy}>
-            {busy ? "Sending..." : "Send it again"}
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   );

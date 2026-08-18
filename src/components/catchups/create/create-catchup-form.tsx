@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CadenceControl } from "./cadence-control";
 import { PeoplePicker, type PickedPerson } from "./people-picker";
+import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { createCatchupWithPeople } from "@/app/(main)/catchups/actions";
 import type { Cadence } from "@/lib/catchups-types";
 
@@ -55,6 +56,9 @@ export function CreateCatchupForm({
   const [people, setPeople] = useState<PickedPerson[]>(initialPeople);
   const [cadence, setCadence] = useState<Cadence>("monthly");
   const [submitting, setSubmitting] = useState(false);
+  // The unconfirmed-email refusal opens the one shared dialog, the same
+  // card posting and commenting use, instead of a toast reciting the rule.
+  const emailGate = useEmailGate();
 
   const trimmedName = name.trim();
 
@@ -71,7 +75,7 @@ export function CreateCatchupForm({
     });
 
     if ("error" in result) {
-      toast.error(result.error);
+      if (!emailGate.handled(result.error)) toast.error(result.error);
       setSubmitting(false);
       return;
     }
@@ -130,6 +134,7 @@ export function CreateCatchupForm({
           {submitting ? "Starting..." : "Start the first Round"}
         </Button>
       </div>
+      {emailGate.dialog}
     </div>
   );
 }
