@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { DirectoryClient } from "@/components/directory/directory-client";
-import { cityCoords } from "@/lib/city-coords";
+import { cityCoords, hasOwnPin, normalizeCity } from "@/lib/city-coords";
 import { resolvePlacesFromGazetteer } from "@/lib/geocode";
 import { buildDirectoryWhere, directoryOrderBy } from "./where";
 import type { CityPin, PinPerson } from "@/components/directory/alumni-map";
@@ -133,7 +133,12 @@ function buildPins(
       // 77.59, and exact keys would split one city into two stacked pins.
       // 0.1 degrees merges that noise while keeping real neighbours (Delhi
       // 77.21 vs Gurgaon 77.03) distinct. Display coords stay exact.
-      const key = `${coords[0].toFixed(1)},${coords[1].toFixed(1)}`;
+      // A place in OWN_PIN_CITIES opts out and is keyed by name, because the
+      // grid is wider than its gap to the next town (Rishi Valley sits 10.4 km
+      // from Madanapalle and was being absorbed by it). See city-coords.ts.
+      const key = hasOwnPin(place.city)
+        ? `named:${normalizeCity(place.city)}`
+        : `${coords[0].toFixed(1)},${coords[1].toFixed(1)}`;
       if (!resolvedByKey.has(key)) resolvedByKey.set(key, { city: place.city, coords });
     }
     const allMappedCities = [...resolvedByKey.values()].map((r) => r.city);
