@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, IndianRupee, Loader2, ShieldCheck } from "lucide-react";
+import { IndianRupee, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EASE_OUT_SMOOTH } from "@/components/common/motion";
@@ -90,10 +90,9 @@ export function SupportContribute() {
   const [selected, setSelected] = useState<number>(DEFAULT_INDEX);
   const [custom, setCustom] = useState("");
   // "working" covers everything from the click to the modal appearing, and
-  // again from the modal closing to the server confirming. Both are moments
-  // where a second click would open a second order.
+  // again from the modal closing to the redirect after the server confirms.
+  // All are moments where a second click would open a second order.
   const [working, setWorking] = useState(false);
-  const [paidAmount, setPaidAmount] = useState<number | null>(null);
   const customRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -161,17 +160,21 @@ export function SupportContribute() {
       theme: { color: "#235C49" },
       handler: async (res: RazorpaySuccess) => {
         const confirmed = await confirmContribution(res);
-        setWorking(false);
         if ("error" in confirmed) {
+          setWorking(false);
           toast.error(confirmed.error);
           return;
         }
-        setPaidAmount(amount as number);
-        // The perk is granted server-side the moment the row is paid. A
-        // refresh re-renders /support with the picker in place of the
-        // fourteen-bird preview, so "pick your bird above" below is true by
-        // the time the payer reads it.
+        // Straight to the picker (owner: "after you contribute and if it's
+        // successful, you're taken to another page"). The perk was granted
+        // server-side the moment the row went paid, so /pick-bird admits
+        // them, and its own copy does the thanking. router.refresh() rides
+        // along so /support's recovery bar shows the new money when they
+        // come back to it. `working` stays true through the navigation: the
+        // button must not reactivate in the beat before the redirect lands.
+        toast.success(`${inr(amount as number)} received. A receipt is on its way from Razorpay.`);
         router.refresh();
+        router.push("/pick-bird");
       },
       modal: {
         // Fires when the payer closes the modal without paying. Nothing to
@@ -187,33 +190,6 @@ export function SupportContribute() {
     });
 
     rzp.open();
-  }
-
-  if (paidAmount !== null) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.36, ease: EASE_OUT_SMOOTH }}
-        className="flex flex-col items-start gap-[var(--space-s)]"
-      >
-        {/* Leaf, not canopy: DESIGN-SYSTEM colour rule 4 kills the bg-canopy/10 +
-            text-canopy pairing for icon bubbles and keeps the canopy wash for
-            selection states only. Leaf is the approved tint here and is what a
-            success tick should read as anyway. Rule 5's AA caveat is about small
-            bold TEXT; this is a 24px glyph. */}
-        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-leaf/30 bg-leaf/[0.07] text-leaf" aria-hidden>
-          <Check className="h-6 w-6" />
-        </span>
-        <p className="font-heading text-xl font-bold tracking-tight text-foreground">
-          Thank you, truly.
-        </p>
-        <p className="leading-relaxed text-muted-foreground" role="status">
-          {inr(paidAmount)} received. A receipt is on its way to your email from
-          Razorpay, and the bird picker just above is now yours.
-        </p>
-      </motion.div>
-    );
   }
 
   return (
@@ -317,13 +293,12 @@ export function SupportContribute() {
         onFocus={warm}
         disabled={!amountValid || working}
         className={cn(
-          // The gap is a word space (~0.35em at 15px): the label reads as the
-          // one phrase "Contribute ₹1,000". It carried a middle dot for a
-          // while, but the dot is the app's separator for meta segments with
-          // no grammar between them, and a verb and its object are not that
-          // (owner, 2026-08-18: "add a space between the contribute and
-          // money").
-          "inline-flex h-12 w-full items-center justify-center gap-[0.35em] rounded-full bg-sky px-[var(--space-l)] text-[15px] font-semibold text-white sm:w-auto sm:self-start",
+          // gap-2, the same 8px the shared Button primitive puts between its
+          // own segments: a clearly visible word space. 0.35em was tried and
+          // the owner read it as no space at all. No middle dot: the dot is
+          // the app's separator for meta segments with no grammar between
+          // them, and a verb and its object are not that.
+          "inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-sky px-[var(--space-l)] text-[15px] font-semibold text-white sm:w-auto sm:self-start",
           "shadow-[0_6px_16px_-12px_var(--color-sky)]",
           "transition-[transform,filter,opacity] duration-150 ease-out",
           "hover:brightness-[1.06] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky",

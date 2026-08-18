@@ -1,22 +1,24 @@
 "use client";
 
-/* The supporter's bird picker on /support.
+/* The picker on /pick-bird: the whole wearable collection, given room.
  *
- * Appears in place of the fourteen-bird preview once a member's paid
- * contributions reach the perk threshold, and shows the WHOLE wearable
- * collection: all fifty minus the two reserved (the mascot Hoopoe and the
- * owner's Roller), every glyph with its name, the same presentation as the
- * public /birds gallery so nothing here reads like a different product.
+ * The first cut of this lived inside a card on /support, 49 birds in seven
+ * cramped columns; the owner's verdict was "one soup, can't really
+ * appreciate each one because the one next to it is crowding it". So the
+ * grid here runs at the /birds gallery's own scale, five columns at most
+ * with 96px glyphs and a name under each, and it borrows the interaction he
+ * singled out as "so nice" on the fourteen-bird plate: pointing at one bird
+ * slowly dims the rest, so the one under the cursor gets the whole stage.
  *
- * Choosing is two deliberate steps, because an avatar change lands everywhere
- * at once and a stray tap must not do that. Tapping a bird only SELECTS it:
- * the cell takes the canopy selection wash (the app's one green state) and a
- * confirmation strip rises below the grid with the bird at full size, its
- * name, and what confirming means. Only "Make it my bird" writes anything.
- * Tapping the selected bird again, or "Never mind", puts the strip away.
- *
- * The member's current bird is marked "Yours" and they can re-pick any time;
- * the perk is standing, not one-shot, so there is nothing to meter. */
+ * Choosing is two deliberate steps, because an avatar change lands
+ * everywhere at once and a stray tap must not do that. Tapping a bird only
+ * SELECTS it (the canopy wash, the app's one green state, plus the press
+ * sink every control in this app answers a tap with); a confirmation bar
+ * then sticks to the bottom of the viewport with the bird, its name, and
+ * what confirming means, so it stays reachable however far down the grid
+ * the choice was made. Only "Make it my bird" writes. The member's current
+ * bird wears a canopy check, and re-picking is allowed forever: the perk is
+ * standing, so there is nothing to meter. */
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -32,9 +34,9 @@ import { WEARABLE_SPECIES, seedFacingRight } from "./plate-data";
 export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const current = WEARABLE_SPECIES.find((s) => s.slug === currentSlug) ?? null;
   const choice = WEARABLE_SPECIES.find((s) => s.slug === selected) ?? null;
 
   function confirm() {
@@ -47,7 +49,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
       }
       toast.success(`You are now the ${choice.name}.`);
       setSelected(null);
-      // The page re-reads birdOverride server-side, so the "Yours" mark, the
+      // The page re-reads birdOverride server-side, so the check badge, the
       // sidebar avatar and everything else move together with no client-side
       // bookkeeping to drift out of date.
       router.refresh();
@@ -56,40 +58,53 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
 
   return (
     <div>
-      <p className="mt-[var(--space-xs)] max-w-[54ch] leading-relaxed text-foreground">
-        {current ? (
-          <>
-            You are wearing the <span className="font-medium">{current.name}</span>. Pick a
-            different bird whenever you like.
-          </>
-        ) : (
-          <>Thank you for contributing. Pick any bird in the collection to wear as your avatar.</>
-        )}
-      </p>
-
-      <ul className="mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-xs)] gap-y-[var(--space-s)] sm:grid-cols-5 md:grid-cols-7">
+      <ul
+        onPointerLeave={() => setOver(null)}
+        className="grid grid-cols-3 gap-x-[var(--space-l)] gap-y-[var(--space-xl)] sm:grid-cols-4 md:grid-cols-5"
+      >
         {WEARABLE_SPECIES.map(({ index, name, slug }) => {
           const isCurrent = slug === currentSlug;
           const isSelected = slug === selected;
+          // The spotlight follows the pointer; with nothing under the
+          // pointer it falls back to the selection, so a chosen bird keeps
+          // the stage while the cursor is off in the margin.
+          const focus = over ?? selected;
+          const dimmed = focus !== null && focus !== slug;
           return (
             <li key={slug}>
-              <button
+              <motion.button
                 type="button"
                 aria-pressed={isSelected}
                 aria-label={isCurrent ? `${name} (your current bird)` : name}
                 onClick={() => setSelected(isSelected ? null : slug)}
+                onPointerEnter={() => setOver(slug)}
+                // The press sink every control in the app answers a tap
+                // with; hover never moves it.
+                whileTap={{ scale: 0.93 }}
+                transition={SPRINGS.snappy}
                 className={cn(
-                  "flex w-full flex-col items-center gap-[var(--space-xxs)] rounded-[var(--radius-md)] p-[var(--space-xs)] text-center",
+                  "flex w-full flex-col items-center gap-[var(--space-xs)] rounded-[var(--radius-md)] p-[var(--space-s)] text-center",
                   "transition-[background-color] duration-150 ease-out",
-                  "active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  // Selection is the app's one canopy wash; everything idle
-                  // hovers through the state layer like any other control.
-                  isSelected ? "bg-canopy/10" : "state-layer"
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  // Hover paints NOTHING here: the spotlight (everyone else
+                  // dims, the name appears) is the entire hover story, exactly
+                  // the fourteen-bird plate's treatment. A state-layer tint was
+                  // tried and the grey box behind the bird cheapened it
+                  // (owner: "just copy exactly what you did in the lab").
+                  // Selection alone gets the canopy wash, the app's one green
+                  // state.
+                  isSelected && "bg-canopy/10"
                 )}
               >
-                <span className="relative block w-full max-w-[72px]">
+                <span
+                  className="relative block w-full max-w-[96px]"
+                  style={{
+                    opacity: dimmed ? 0.3 : 1,
+                    transition: "opacity 620ms var(--ease-out-smooth)",
+                  }}
+                >
                   <span className="block aspect-square w-full [&>svg]:h-full [&>svg]:w-full">
-                    <BirdGlyphV2 seed={seedFacingRight(index)} px={72} speciesOverride={index} />
+                    <BirdGlyphV2 seed={seedFacingRight(index)} px={96} speciesOverride={index} />
                   </span>
                   {isCurrent && (
                     <span
@@ -100,31 +115,43 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                     </span>
                   )}
                 </span>
+                {/* The name materialises only under the bird that has the
+                    stage, the way the fourteen-bird plate names the one under
+                    the pointer: at rest the grid is pure plumage, no label
+                    noise ("that fat and close together with their names...
+                    downright ugly"). The line box is always reserved, so
+                    naming a bird never reflows the grid, and the current or
+                    selected bird keeps its name without the pointer. */}
                 <span
                   className={cn(
-                    "text-[12px] leading-snug",
-                    isSelected ? "font-medium text-canopy" : "text-muted-foreground"
+                    "h-[1.2em] text-[13px] font-medium leading-snug",
+                    isSelected ? "text-canopy" : "text-foreground"
                   )}
+                  style={{
+                    opacity: focus === slug || (focus === null && isCurrent) ? 1 : 0,
+                    transition: "opacity 300ms var(--ease-out-smooth)",
+                  }}
                 >
                   {name}
                 </span>
-              </button>
+              </motion.button>
             </li>
           );
         })}
       </ul>
 
-      {/* The are-you-sure. Nothing has happened yet when this is visible; the
-          strip exists so the write is always its own deliberate click. */}
+      {/* The are-you-sure, stuck to the bottom of the viewport while a bird
+          is selected so it is reachable from any row of the grid. Nothing
+          has been written while this is visible. */}
       <AnimatePresence initial={false}>
         {choice && (
           <motion.div
             key="confirm"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.24, ease: EASE_OUT_SMOOTH }}
-            className="mt-[var(--space-m)] flex flex-wrap items-center gap-[var(--space-m)] rounded-[var(--radius-md)] bg-mist p-[var(--space-m)]"
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.26, ease: EASE_OUT_SMOOTH }}
+            className="glass card-elevated sticky bottom-[var(--space-m)] z-10 mt-[var(--space-l)] flex flex-wrap items-center gap-[var(--space-m)] rounded-[var(--radius-lg)] border border-border p-[var(--space-m)]"
           >
             <motion.span
               key={choice.slug}

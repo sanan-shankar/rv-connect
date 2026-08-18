@@ -1526,3 +1526,46 @@ The owner picked Aviary from /lab/support-ideas and asked for the ship, with rou
 Loose end noted, not mine: `scripts/demo/verify-guard.mts` fails to start under
 `--experimental-strip-types` (ERR_MODULE_NOT_FOUND src/lib/prisma.js) — pre-existing tooling issue,
 unrelated to this diff, flagged by the write-path review.
+
+# Session — the owner's corrections round on /support (same day, after the first ship)
+
+He reviewed the first ship and rejected most of my re-derivations: he wanted the LAB aviary, with
+his named fixes, not a new design. Ten corrections, all landed:
+
+- **Picker off /support** ("the support page should be the support page"): now at /pick-bird, whose
+  only member entry is the post-payment redirect. No standing door on /support; the "Choose your
+  bird" CTA he saw existed because his account holds old test-mode payments ≥₹500, and it is gone.
+- **/pick-bird rebuilt from his verdicts**: at rest the grid is pure plumage, no labels ("fat and
+  close together with their names... downright ugly"). Hover = the plate's spotlight exactly: others
+  dim to 0.3 over 620ms, the name materialises under the focused bird; the state-layer hover tint
+  was removed after he compared it to lab ("just copy exactly what you did in the lab"). Tap sinks
+  (SpringPress), selection = canopy wash, sticky bottom confirm bar so the write is its own click.
+- **Costs restored to the shipped CostBar structure** he called "at least an efficient design":
+  "Where the monthly bill goes" + counted-up ₹2,290/month, the 20px segmented bar, pill legend
+  (upgraded to exact rupees), then "Recovering what it cost to build" (his exact old label; my
+  longer rewrite reverted) with the SAME 20px bar so the two match. Fill is live from the paid+
+  livemode Contribution sum; no figures at either end, the ₹4,00,000 never prints.
+- **The wood scrolls with the content** like the lab original: absolute against the shell's content
+  div, not fixed. That anchor spans exactly the area right of the 248px rail, so it structurally
+  cannot paint over the sidebar (his "birds in the sidebar", three times); md:pl-6 keeps even a
+  first-column bird 30px+ clear of the rail edge. Bird size is clamp(40px,5vw,84px)×scale: the lab
+  presence at a laptop, no specks (his word for the 26px cut), no murals on wide screens.
+- **One wood, two callers**: lab aviary imports SupportWood(inset=false). Its birds vanished at
+  first because the lab room root is not a stacking context, so -z-10 slid behind the room's own
+  opaque background; `isolate` on the root fixed it. Density fixes can no longer land in one place
+  and not the other (they did; he noticed).
+- **Pledge**: his new copy, one full-width paragraph: "This site is not for profit and will always
+  be free to use. Donations are much appreciated and go towards running and improving it for
+  everyone. Anything left over goes to the school." (Grammar fix + "anything left over" in place of
+  "100% of any money not used for the site"; offered him the explicit variant if he wants it back.)
+- **Header icon**: shipped original restored exactly (rounded-lg, bg-leaf/10, no border, sway).
+- **Section headings** back to the site's text-xl font-bold register. **"See all 50"** is a filled
+  secondary pill at full control height ("barely a button").
+- **Contribute button**: gap-2, the Button primitive's own 8px, after two smaller gaps read as none.
+- **Admin test door**: "Change bird" beside the Contribute heading, admin-only; /pick-bird and
+  chooseBird both carry a role==="admin" exception so the owner can walk the exact supporter flow
+  without paying. Members still need the paid sum; the server action re-checks it.
+
+Verified: hover dim measured at 0.3 on /support and /pick-bird; wood scrolls with content (bird
+rect moved exactly the scroll delta); zero bird pixels left of x=281 at 1440 and 2560; lab room
+renders its field again (91 birds); mobile 390 clean. npm run check green throughout.
