@@ -27,7 +27,17 @@ import { usePathname } from "next/navigation";
  * ------------------------------------------------------------------ */
 
 /** Route prefixes that take the wide column. Everything else is centered. */
-const WIDE_ROUTES = ["/feed", "/directory", "/collection", "/catchups", "/admin", "/birds"];
+const WIDE_ROUTES = [
+  "/feed",
+  "/directory",
+  "/collection",
+  "/catchups",
+  "/admin",
+  "/birds",
+  // The picker is the bird gallery with behaviour on top; same grid, so it
+  // must get the same column or the two pages stop being one layout.
+  "/pick-bird",
+];
 
 /**
  * Single-column surfaces that happen to live under a wide section, and so

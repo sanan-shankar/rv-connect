@@ -124,7 +124,7 @@ export function SupportWood({ inset = true }: { inset?: boolean }) {
           Weather, not content: aria-hidden and inert to the pointer. */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-0 -z-10 grid grid-cols-4 overflow-hidden sm:grid-cols-6 lg:grid-cols-8",
+          "pointer-events-none absolute inset-0 -z-10 grid grid-cols-3 overflow-hidden sm:grid-cols-5 lg:grid-cols-8",
           inset && "support-wood-inset md:pl-6"
         )}
         aria-hidden
@@ -148,13 +148,14 @@ export function SupportWood({ inset = true }: { inset?: boolean }) {
                   // resized the window and watched the birds shrink to specks
                   // while the text stayed put ("I don't understand why the
                   // bird size would change when all the text is the same
-                  // size"). So a bird is 44-61px on a phone, a laptop and a
+                  // size"). So a bird is 54-76px on a phone, a laptop and a
                   // 5K display alike; what adapts to the width is the COLUMN
                   // COUNT, the same way text reflows without resizing. The
-                  // 0.95 scale ceiling is load-bearing on phones: a 61px bird
-                  // at maximum jitter stays inside a 97px four-column cell,
-                  // anything larger can graze its neighbour.
-                  width: `calc(64px * ${b.scale})`,
+                  // base was 64px and he still read it as too small; 80px is
+                  // paired with the 3/5/8 column split below, which keeps a
+                  // 76px bird at maximum jitter inside even a phone's 130px
+                  // cell.
+                  width: `calc(80px * ${b.scale})`,
                   opacity: b.opacity,
                 }}
               >

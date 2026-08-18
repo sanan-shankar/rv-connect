@@ -1584,3 +1584,14 @@ renders its field again (91 birds); mobile 390 clean. npm run check green throug
 - **Backdrop decision staged, not made**: /support?bg=solid (photo hidden, birds kept) and
   ?bg=plain (photo and birds both hidden) render live against the default shipped look. Temporary
   decision aid; hard-code the winner and delete the param once he picks.
+
+# Session — plate on mount, bigger wood, /pick-bird truly matches /birds, solid backdrop chosen
+
+- The fourteen-bird plate animates in on MOUNT with its stagger, not on scroll-into-view.
+- Background birds up to an 80px base (54-76px, constant at every width) after 44-61 still read
+  small; columns went 3/5/8 so a max bird at max jitter stays inside even a phone cell.
+- The real layout gap between /birds and /pick-bird found and answered directly: identical grids,
+  but content-column.tsx assigns /birds the WIDE column and /pick-bird defaulted to centered 768px.
+  /pick-bird added to WIDE_ROUTES with a comment tying the two.
+- The owner picked the backdrop: SOLID page on /support, birds kept, valley photo hidden for this
+  one route (scoped style tag). Preview flags deleted.

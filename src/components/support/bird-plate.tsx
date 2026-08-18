@@ -30,9 +30,11 @@ export function BirdPlate() {
         {PLATE.map(({ name, index, seed }, i) => (
           <motion.li
             key={index}
+            // On mount, not on scroll-into-view (owner: both rows appear
+            // straight away). The stagger stays: fourteen arrivals 30ms
+            // apart still read as one gesture settling.
             initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRINGS.gentle, delay: i * 0.03 }}
             onPointerEnter={() => setOver(i)}
           >
