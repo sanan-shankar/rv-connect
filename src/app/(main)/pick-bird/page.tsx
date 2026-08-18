@@ -35,19 +35,37 @@ export default async function PickBirdPage() {
       .then((r) => r._sum.amount ?? 0)
       .catch(() => 0),
     prisma.user
-      .findUnique({ where: { id: session.user.id }, select: { birdOverride: true } })
+      .findUnique({
+        where: { id: session.user.id },
+        select: { birdOverride: true, birdPickedAt: true },
+      })
       .catch(() => null),
   ]);
 
   // Admins are let through without paying so the owner can walk the exact
-  // supporter flow at will; chooseBird carries the same exception. Members
-  // need the paid sum, and once their one pick is spent (birdOverride set)
-  // the room is closed to them too: pay-now-pick-later stays possible for as
-  // long as the pick is unspent, and not a moment after. The real
-  // enforcement of both rules lives in chooseBird; this redirect only
-  // decides what a visitor sees.
+  // supporter flow at will; chooseBird carries the same exception. A member
+  // is admitted while they hold an unspent pick: the ₹500 floor for the
+  // first, and after that a paid contribution newer than their last pick
+  // (pay again, pick again). The real enforcement lives in chooseBird; this
+  // redirect only decides what a visitor sees.
   const isAdmin = session.user.role === "admin";
-  if (!isAdmin && (myPaidPaise < PERK_MIN_PAISE || me?.birdOverride)) redirect("/support");
+  if (!isAdmin) {
+    if (myPaidPaise < PERK_MIN_PAISE) redirect("/support");
+    if (me?.birdPickedAt) {
+      const fresh = await prisma.contribution
+        .findFirst({
+          where: {
+            userId: session.user.id,
+            status: "paid",
+            livemode: razorpayLivemode(),
+            paidAt: { gt: me.birdPickedAt },
+          },
+          select: { id: true },
+        })
+        .catch(() => null);
+      if (!fresh) redirect("/support");
+    }
+  }
 
   const current = me?.birdOverride ?? null;
 

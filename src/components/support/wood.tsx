@@ -42,13 +42,21 @@ const round = (n: number, places = 2) => Number(n.toFixed(places));
 /* 320 cells: a 27" display fits 13 auto-fill columns, so this is still 24
    rows there, roughly 4,000px of page. Whatever runs past the content's
    height is clipped and costs nothing; empty cells are just a div. */
+/* Which of the (deterministic) arrangements the field wears. The layout is a
+   pure function of cell index, so this one number is the reroll knob: bump it
+   and every position, size and clearing re-deals while server and client
+   still agree. 0 was the original; the owner disliked its two empty gaps at
+   laptop width and asked for a different deal. */
+const ARRANGEMENT = 3;
+
 const WOOD = Array.from({ length: 320 }, (_, i) => {
-  const h = (n: number) => (Math.sin((i + 1) * n) + 1) / 2;
+  const h = (n: number) => (Math.sin((i + 1 + ARRANGEMENT * 137) * n) + 1) / 2;
   return {
     key: i,
-    // One cell in seven sits empty: enough irregularity to break the grid,
-    // not enough to open a bald patch.
-    empty: h(91.7) < 0.14,
+    // One cell in nine sits empty: enough irregularity to break the grid,
+    // not enough to open a bald patch (1-in-7 clustered into the double gap
+    // the owner photographed).
+    empty: h(91.7) < 0.11,
     species: GALLERY_SPECIES[(i * 13) % GALLERY_SPECIES.length].index,
     // Percent of the cell. 34-66 keeps even the largest bird inside its own
     // cell at the 170px cell minimum, so neighbours never overlap.
@@ -160,7 +168,12 @@ export function SupportWood({ inset = true }: { inset?: boolean }) {
              the same arithmetic as before: a 114px bird at maximum jitter
              (site 34-66%) reaches 84px from centre, under half the minimum
              cell. */
-          "pointer-events-none absolute inset-0 -z-10 grid [grid-template-columns:repeat(auto-fill,minmax(170px,1fr))] overflow-hidden",
+          /* pt-16: the field begins below the page title's line, never above
+             it (owner: the top-left bird "shouldn't be above the top of
+             Support"). With the 34% jitter floor, the earliest possible bird
+             top lands at 64 + 0.34x170 - 57 = 65px, under the title's own
+             top at every cell size. */
+          "pointer-events-none absolute inset-0 -z-10 grid [grid-template-columns:repeat(auto-fill,minmax(170px,1fr))] overflow-hidden pt-16",
           inset && "support-wood-inset md:pl-6"
         )}
         aria-hidden

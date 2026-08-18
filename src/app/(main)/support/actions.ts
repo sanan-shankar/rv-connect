@@ -202,9 +202,9 @@ export async function chooseBird(slug: string): Promise<{ ok: true } | { error: 
     return { error: "That bird is not available." };
   }
 
-  // Admins walk the supporter path without paying or being limited to one
-  // pick: the owner has to be able to test the exact flow repeatedly without
-  // sending himself money. Members face both gates.
+  // Admins walk the supporter path without paying or spending picks: the
+  // owner has to be able to test the exact flow repeatedly without sending
+  // himself money. Members face the payment ledger.
   if (session.user.role !== "admin") {
     const [paid, me] = await Promise.all([
       prisma.contribution.aggregate({
@@ -213,25 +213,38 @@ export async function chooseBird(slug: string): Promise<{ ok: true } | { error: 
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { birdOverride: true },
+        select: { birdPickedAt: true },
       }),
     ]);
     if ((paid._sum.amount ?? 0) < PERK_MIN_PAISE) {
       return { error: "Picking a bird opens after a contribution of ₹500 or more." };
     }
-    // ONE pick, ever (owner, 2026-08-18: "if they change it once, will they
-    // still be able to change it again, I don't want that"). A set override
-    // is a used pick. Known edge, accepted: an override an admin assigned by
-    // hand also counts as used, and freeing such a member is an admin task,
-    // because the column does not record who set it.
-    if (me?.birdOverride) {
-      return { error: "You have already picked your bird." };
+    // One pick per contribution (owner, 2026-08-18): a pick is SPENT when
+    // used (birdPickedAt) and REGRANTED by any paid contribution newer than
+    // the last spend. So the first pick needs only the ₹500 floor above,
+    // changing your mind costs another contribution, and paying again after
+    // picking opens exactly one more pick. paidAt is written by the same
+    // signature-verified paths that set status, so this ledger cannot be
+    // forged from a browser.
+    if (me?.birdPickedAt) {
+      const fresh = await prisma.contribution.findFirst({
+        where: {
+          userId: session.user.id,
+          status: "paid",
+          livemode: razorpayLivemode(),
+          paidAt: { gt: me.birdPickedAt },
+        },
+        select: { id: true },
+      });
+      if (!fresh) {
+        return { error: "You have already picked your bird. A new contribution opens another pick." };
+      }
     }
   }
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { birdOverride: slug },
+    data: { birdOverride: slug, birdPickedAt: new Date() },
   });
 
   revalidatePath("/support");

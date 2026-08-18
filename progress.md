@@ -1621,3 +1621,21 @@ renders its field again (91 birds); mobile 390 clean. npm run check green throug
   refuses further picks for members (admin exempt for testing; an admin-assigned override counts
   as spent, noted as accepted edge). After a successful pick the member is walked back to
   /support; the confirm strip says "You pick once, so make it count."
+
+# Session — pay-again-pick-again, a new deal of the field, the backdrop A/B chip
+
+- **The pick ledger got its column**: `User.birdPickedAt` (schema + dated idempotent SQL in
+  prisma/migrations-manual, applied via run-sql.mjs; never db push). The rule the owner actually
+  wanted: a pick is SPENT when used and REGRANTED by any paid contribution newer than the last
+  spend. First pick needs the ₹500 floor; changing your mind costs another contribution. paidAt is
+  only ever written by the signature-verified paths, so the ledger cannot be forged. Enforced in
+  chooseBird, mirrored by the /pick-bird gate, said in the confirm strip ("Changing it again takes
+  another contribution.").
+- **The field re-dealt**: ARRANGEMENT constant folds into the position hash, so one number rerolls
+  the whole layout deterministically. Seed 3 replaces the original after his laptop-width
+  screenshot showed two clustered gaps; clearings also thinned 1-in-7 -> 1-in-9. Verified even
+  gutters at 1512.
+- **pt-16 on the field**: the earliest possible bird top now lands below the page title's own top
+  (owner: the hoopoe "shouldn't be above the top of Support").
+- **Temporary backdrop A/B chip** (admin-only, bottom-right on /support): flips live between
+  "solid + birds" and "valley photo, no birds". Marked for deletion once he calls the winner.
