@@ -13,6 +13,21 @@ import { saveOnboardingRegister } from "../actions";
 import type { OnboardingUser } from "../onboarding-flow";
 
 /**
+ * Rishi Valley itself, as the location picker's gazetteer knows it. The row is
+ * the curated one seeded by prisma/migrations-manual/2026-08-18-rishi-valley-place.sql
+ * (id 900000001, pinned far outside GeoNames' range precisely so it can be
+ * named), which is why the fields can be spelled out
+ * here instead of calling /api/places/search just to pre-fill a form.
+ */
+const RISHI_VALLEY: PlaceSelection = {
+  placeId: 900000001,
+  label: "Rishi Valley, Andhra Pradesh",
+  city: "Rishi Valley",
+  lat: 13.6299,
+  lng: 78.4661,
+};
+
+/**
  * Step 2: "The register" — current city (or cities), admission number,
  * occupation and organisation. City sits first, then the admission number,
  * per the field order the owner asked for. Every field is optional; "Skip for
@@ -34,8 +49,17 @@ export function RegisterStep({
   onSkip: () => void;
 }) {
   const isTeacher = user.accountType !== "alumnus";
+  // A CURRENT teacher lives in the valley; a former one moved on years ago.
+  // That split decides all three pre-filled fields below.
+  const isCurrentTeacher = user.accountType === "teacher";
   const [saving, setSaving] = useState(false);
-  const [places, setPlaces] = useState<PlaceSelection[]>(user.places ?? []);
+  // Rishi Valley is already on the chip list for a current teacher who has not
+  // saved a city yet (owner, 2026-08-18) — it is a pill like any other, so it
+  // can be removed, and the box below it still adds however many more they
+  // want. Anyone with saved cities keeps exactly what they saved.
+  const [places, setPlaces] = useState<PlaceSelection[]>(
+    user.places?.length ? user.places : isCurrentTeacher ? [RISHI_VALLEY] : []
+  );
   const [admissionNumber, setAdmissionNumber] = useState(
     user.admissionNumber?.toString() ?? ""
   );
@@ -46,7 +70,6 @@ export function RegisterStep({
   // A CURRENT teacher's occupation and organisation are not really open
   // questions, so both arrive pre-filled (owner, 2026-08-18) and editable.
   // Former teachers work elsewhere now; they start blank like anyone else.
-  const isCurrentTeacher = user.accountType === "teacher";
   const [jobTitle, setJobTitle] = useState(
     user.jobTitle ?? (isCurrentTeacher ? "Teacher" : "")
   );
