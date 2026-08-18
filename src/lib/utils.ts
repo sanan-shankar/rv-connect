@@ -184,12 +184,23 @@ export function batchLine(
    * in the feed, the directory and comments keep the elided form: they sit in a
    * dot-separated meta row where two extra digits per row is noise.
    */
-  opts?: { fullYear?: boolean }
+  opts?: {
+    fullYear?: boolean
+    /**
+     * Return "" instead of the "Member" fallback when there is no batch year.
+     * For the compact rail modules, where a manufactured word under a name is
+     * filler rather than information; paired with `metaLine` the blank takes
+     * its separator with it. Teachers still get their role label, which is the
+     * point: the rail used to call `formatBatch` to get this blank and that
+     * helper cannot see accountType, so every teacher there read as nothing.
+     */
+    blankWhenUnknown?: boolean
+  }
 ): string {
   if (user.id === "anonymous") return ""
   if (user.accountType === "teacher") return "Teacher"
   if (user.accountType === "ex_teacher") return "Former teacher"
-  if (user.batchYear == null) return "Member"
+  if (user.batchYear == null) return opts?.blankWhenUnknown ? "" : "Member"
   if (opts?.fullYear) return `Batch of ${user.batchYear}`
   return `Batch of '${String(user.batchYear).slice(-2)}`
 }
