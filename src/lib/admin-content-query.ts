@@ -10,6 +10,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { PUBLISHED_ONLY } from "@/lib/posts";
+import { plainExcerpt } from "@/lib/utils";
 import {
   CONTENT_PAGE_SIZE,
   type ContentFilters,
@@ -17,16 +18,6 @@ import {
 } from "@/lib/admin-content";
 
 const EXCERPT = 240;
-
-function plain(markdown: string): string {
-  // Enough to stop a row rendering raw syntax; the real reader is elsewhere.
-  return markdown
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/[*_`>#]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 /**
  * One page of content, newest first, across up to four models.
@@ -77,7 +68,7 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             id: p.id,
             kind: (p.kind === "letter" ? "letter" : "post") as ContentItem["kind"],
             title: p.title,
-            excerpt: plain(p.content).slice(0, EXCERPT),
+            excerpt: plainExcerpt(p.content, EXCERPT),
             thumbUrl: null,
             authorId: p.author.id,
             authorName: p.author.name,
@@ -115,7 +106,7 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             id: c.id,
             kind: "comment" as const,
             title: null,
-            excerpt: plain(c.content).slice(0, EXCERPT),
+            excerpt: plainExcerpt(c.content, EXCERPT),
             thumbUrl: null,
             authorId: c.author.id,
             authorName: c.author.name,
@@ -157,7 +148,7 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             id: p.id,
             kind: "photo" as const,
             title: null,
-            excerpt: p.caption ? plain(p.caption).slice(0, EXCERPT) : "",
+            excerpt: p.caption ? plainExcerpt(p.caption, EXCERPT) : "",
             thumbUrl: p.thumbUrl,
             authorId: p.uploader.id,
             authorName: p.uploader.name,

@@ -166,7 +166,6 @@ export interface PersonRow {
   role: string;
   verifyState: string;
   isBlocked: boolean;
-  hasNote: boolean;
   emailState: EmailState;
   createdAt: string;
 }

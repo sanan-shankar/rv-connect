@@ -357,12 +357,31 @@ export function letterTitle(
 }
 
 /**
+ * Paise to a rupee figure people read.
+ *
+ * Razorpay counts in paise and `Contribution.amount` stores what Razorpay
+ * says, so every display of a contribution is a division. Doing it inline
+ * meant the admin Overview and the admin ledger each carried their own copy
+ * of the same expression, and they had already drifted on the currency mark.
+ * Indian grouping (lakh, crore) comes from the locale, not from us.
+ */
+export function formatPaise(paise: number): string {
+  return `\u20B9${Math.round(paise / 100).toLocaleString("en-IN")}`
+}
+
+/**
  * Plain-text excerpt of a post/letter body: markdown syntax stripped,
  * whitespace collapsed, truncated to `maxLen` characters. Used by the feed
  * rail's Letters module for its compact teaser.
  */
 export function plainExcerpt(content: string, maxLen = 160): string {
   const plain = content
+    // Images go entirely, alt text included. They used to fall through to the
+    // link rule below and leave a stray "!" in front of the alt ("!banyan"),
+    // which read as a typo wherever a teaser quoted a post that opened with a
+    // photo. Must run BEFORE the link rule, since an image is a link with a
+    // bang on the front.
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\s+/g, " ")
     .trim()

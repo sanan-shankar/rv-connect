@@ -23,7 +23,6 @@ export interface ThreadRow {
     batchYear: number | null;
   };
   preview: string;
-  messageCount: number;
 }
 
 /**

@@ -22,7 +22,7 @@ import { Chip } from "@/components/admin/admin-chip";
 import { ADMIN_MEASURE, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
 import { ADMIN_NAV } from "@/components/admin/admin-nav";
 import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
-import { formatTimeAgo } from "@/lib/utils";
+import { formatPaise, formatTimeAgo } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Overview",
@@ -115,7 +115,7 @@ export default async function AdminOverviewPage() {
           />
           <StatTile
             label="Given this month"
-            value={`Rs ${Math.round((given._sum.amount ?? 0) / 100).toLocaleString("en-IN")}`}
+            value={formatPaise(given._sum.amount ?? 0)}
             icon={IndianRupee}
             href="/admin/support"
           />

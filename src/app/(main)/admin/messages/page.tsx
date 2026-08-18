@@ -47,7 +47,6 @@ export default async function AdminMessagesPage() {
         take: 1,
         select: { body: true, fromAdmin: true },
       },
-      _count: { select: { messages: true } },
     },
   });
 
@@ -62,7 +61,6 @@ export default async function AdminMessagesPage() {
     preview: t.messages[0]
       ? `${t.messages[0].fromAdmin ? "You: " : ""}${t.messages[0].body}`
       : "",
-    messageCount: t._count.messages,
   }));
 
   const live = rows.filter((t) => t.status !== "closed");

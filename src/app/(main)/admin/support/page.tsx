@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
 import { Chip } from "@/components/admin/admin-chip";
-import { formatDisplayDate, metaLine } from "@/lib/utils";
+import { formatDisplayDate, formatPaise, metaLine } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -18,11 +18,6 @@ const STATUS_LABEL: Record<string, string> = {
   created: "Never finished",
   failed: "Failed",
 };
-
-/** Paise to a readable rupee figure. Rupees exist only in the UI. */
-function rupees(paise: number): string {
-  return `Rs ${Math.round(paise / 100).toLocaleString("en-IN")}`;
-}
 
 /**
  * The contributions ledger.
@@ -86,10 +81,10 @@ export default async function AdminSupportPage() {
       <PageHeader title="Support" />
 
       <StatStrip>
-        <StatTile label="Given, all time" value={rupees(all._sum.amount ?? 0)} icon={IndianRupee} />
+        <StatTile label="Given, all time" value={formatPaise(all._sum.amount ?? 0)} icon={IndianRupee} />
         <StatTile
           label="This month"
-          value={rupees(thisMonth._sum.amount ?? 0)}
+          value={formatPaise(thisMonth._sum.amount ?? 0)}
           icon={CalendarDays}
         />
         <StatTile label="People who gave" value={givers} icon={Users} />
@@ -185,7 +180,7 @@ function Ledger({ rows }: { rows: LedgerRow[] }) {
             )}
           </div>
           <p className="shrink-0 text-[14px] font-semibold tabular-nums text-foreground">
-            {rupees(r.amount)}
+            {formatPaise(r.amount)}
           </p>
         </div>
       ))}

@@ -67,7 +67,6 @@ export interface DetailPerson {
   yearJoined: number | null;
   yearLeft: number | null;
   admissionNumber: number | null;
-  currentCity: string | null;
   role: string;
   verifyState: string;
   verifyMethod: string | null;
