@@ -61,9 +61,14 @@ export function AppShell({
 
             SIDES are fluid: the gap beside the tile used to shrink (auto
             margins), stall at a breakpoint padding, jump, and stall again;
-            clamp(1.25rem, 3vw, 2.5rem) glides between the same endpoints
-            (40px wide, 20px phones) so the gap narrows continuously to its
-            floor and holds.
+            a clamp glides between the same endpoints (40px wide, 20px
+            phones) so the gap narrows continuously to its floor and holds.
+            3.5vw, not 3vw: the first rate had already dropped to ~34px at a
+            ~1150px window, which read plainly tighter than the 40px that
+            width always had ("even the sides are so small"). At 3.5vw the
+            cap holds to ~1140px, so ordinary desktop windows keep their
+            full gutter and the glide only begins once space is genuinely
+            short.
 
             TOP AND BOTTOM keep the original stepped scale untouched: a first
             fluid pass shrank them too, which pulled every page's content up
@@ -72,7 +77,7 @@ export function AppShell({
             2026-07-30 left-equals-top rule still holds where windows actually
             rest (both read 40px at lg+, 20px on phones); mid-resize the sides
             are allowed to glide while the top stands still. */}
-        <main className="w-full flex-1 px-[clamp(1.25rem,3vw,2.5rem)] py-5 sm:py-7 lg:py-10">
+        <main className="w-full flex-1 px-[clamp(1.25rem,3.5vw,2.5rem)] py-5 sm:py-7 lg:py-10">
           <ContentColumn>
             {notice}
             {children}
