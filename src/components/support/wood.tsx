@@ -54,7 +54,7 @@ const WOOD = Array.from({ length: 160 }, (_, i) => {
     // inside its own cell, so neighbours never overlap at any width.
     x: round(32 + h(78.233) * 36),
     y: round(32 + h(12.9898) * 36),
-    scale: round(0.72 + h(43.7) * 0.42, 3),
+    scale: round(0.68 + h(43.7) * 0.27, 3),
     opacity: round(0.2 + h(19.31) * 0.14, 3),
     duration: round(26 + h(31.7) * 16, 1),
     delay: round(h(53.1) * -24, 1),
@@ -144,14 +144,17 @@ export function SupportWood({ inset = true }: { inset?: boolean }) {
                 style={{
                   left: `${b.x}%`,
                   top: `${b.y}%`,
-                  // The lab field's presence, pixel-capped at the extreme:
-                  // 5vw tracks the cell so a laptop reads exactly like the
-                  // approved lab room (roughly 50-80px birds), the 40px floor
-                  // keeps a phone from getting specks, and the 84px ceiling
-                  // keeps a 5K display from getting a mural. An earlier
-                  // 26-56px clamp read as "specks, so unpleasant" and is why
-                  // this comment is this long.
-                  width: `calc(clamp(40px, 5vw, 84px) * ${b.scale})`,
+                  // A FIXED base, deliberately not viewport units: the owner
+                  // resized the window and watched the birds shrink to specks
+                  // while the text stayed put ("I don't understand why the
+                  // bird size would change when all the text is the same
+                  // size"). So a bird is 44-61px on a phone, a laptop and a
+                  // 5K display alike; what adapts to the width is the COLUMN
+                  // COUNT, the same way text reflows without resizing. The
+                  // 0.95 scale ceiling is load-bearing on phones: a 61px bird
+                  // at maximum jitter stays inside a 97px four-column cell,
+                  // anything larger can graze its neighbour.
+                  width: `calc(64px * ${b.scale})`,
                   opacity: b.opacity,
                 }}
               >

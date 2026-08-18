@@ -48,14 +48,10 @@ export default async function PickBirdPage() {
 
   return (
     <div className="pb-[var(--space-xl)]">
-      <PageHeader
-        title="Pick your bird"
-        subtitle={
-          current
-            ? "Pick a different bird whenever you like. The one you choose is your avatar everywhere."
-            : "Thank you for contributing. Any bird in the collection can be yours."
-        }
-      />
+      {/* Title only, matching /birds (owner: one layout for both pages, no
+          subtitles). The confirm bar carries everything a picker needs to
+          know before the write. */}
+      <PageHeader title="Pick your bird" />
       <BirdPicker currentSlug={current} />
     </div>
   );
