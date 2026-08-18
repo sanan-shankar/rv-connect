@@ -57,19 +57,22 @@ export function AppShell({
       <Sidebar user={user} unreadCount={unreadCount} demo={demo} />
       {/* pb on mobile clears the fixed bottom tab bar */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
-        {/* Padding rule (owner, 2026-07-30): the title's distance from the
-            left edge EQUALS its distance from the top, at every size.
+        {/* Two paddings with two jobs (owner, 2026-08-18).
 
-            One fluid value, not p-5 sm:p-7 lg:p-10 (owner, 2026-08-18: the
-            gap beside the tile "shrinks with the window then stays constant
-            then again shrinks"; every breakpoint step was one of those
-            stalls). The column's own auto margins shrink continuously while
-            the window is wide; once they run out this padding IS the gap,
-            and 3vw keeps it gliding smoothly from the old lg 40px down to
-            the old mobile 20px floor instead of stepping through 28 on the
-            way. The endpoints match the old scale exactly: >=1333px windows
-            read 2.5rem (p-10), <=667px read 1.25rem (p-5). */}
-        <main className="w-full flex-1 p-[clamp(1.25rem,3vw,2.5rem)]">
+            SIDES are fluid: the gap beside the tile used to shrink (auto
+            margins), stall at a breakpoint padding, jump, and stall again;
+            clamp(1.25rem, 3vw, 2.5rem) glides between the same endpoints
+            (40px wide, 20px phones) so the gap narrows continuously to its
+            floor and holds.
+
+            TOP AND BOTTOM keep the original stepped scale untouched: a first
+            fluid pass shrank them too, which pulled every page's content up
+            and clipped the profile bird overhanging its sheet ("even the
+            freaking bird is cut off. keep the top margins as it was"). The
+            2026-07-30 left-equals-top rule still holds where windows actually
+            rest (both read 40px at lg+, 20px on phones); mid-resize the sides
+            are allowed to glide while the top stands still. */}
+        <main className="w-full flex-1 px-[clamp(1.25rem,3vw,2.5rem)] py-5 sm:py-7 lg:py-10">
           <ContentColumn>
             {notice}
             {children}
