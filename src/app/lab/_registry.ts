@@ -191,6 +191,13 @@ export const REGISTRY: LabEntry[] = [
     note: "A progress bar drawn near-flat against its own card, animated with a count-up that counts to zero, above a caption saying it does not matter if it never fills.",
   },
   {
+    href: "/lab/support-ideas",
+    title: "Four ways to ask",
+    group: "Delight",
+    status: "active",
+    note: "Four full rebuilds of the Support page (Plate, Aviary, Days, Stamps) sharing one set of words, rupees and birds; append ?v=<key> to deep-link a concept.",
+  },
+  {
     href: "/lab/everything",
     title: "Everything else",
     group: "Second look",
