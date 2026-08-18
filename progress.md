@@ -1406,29 +1406,6 @@ deleted through its own delete-account flow.
   valley and opened the pin — `Mini Muralidas / TEACHER`, `Kartik Kalyanram / BATCH OF '78 ·
   DOCTOR`. Directory card reads `Teacher · Rishi Valley` at 1440 and 390.
 
-## Round 5 — the second shadow under the perched bird
-
-- **What he saw**: on a profile, hovering the bird names it (good), but a very faint extra shadow
-  came up with the name and hung around about a second after the pointer left.
-- **Where it came from**: the species label animated `x: 6 -> 0` on `SPRINGS.snappy`. A transform
-  means a composited layer, and a spring settles asymptotically, so the layer outlived the visible
-  fade by the better part of a second — the bird's blurred contact shadow re-rasterised under it
-  for exactly that long. The same reasoning already took the press sink off this button in an
-  earlier round ("without a transform there is no layer and no second shadow"); the hover path had
-  kept its transform.
-- **Fix**: the label fades on opacity alone, 150ms in / 120ms out on `EASE_OUT_SMOOTH`. No
-  transform on the hover path at all now.
-- Verified the reveal still lands in the same place at 1440 (pixel-diffed hover against rest: the
-  only pixels that change are the label's own) and the perch is unchanged at 390. `npm run check`
-  green.
-- **Round 5b, the actual cause.** The first fix was aimed at the wrong thing. His screenshots showed
-  it: in the hovered frame the contact shadow is a hard-edged RECTANGLE, in the resting frame it is
-  a soft ellipse. That is a `filter: blur(3px)` being re-rastered and clipped to its filter box when
-  the hover reveal next door promotes a layer. Repainted the shadow as a radial gradient instead:
-  no filter, nothing to re-raster, no box to clip to. Geometry and weight matched to the blur it
-  replaces (52x14, centre back on the button's bottom edge; darkest pixel 211 against the old 212,
-  measured on the same crop). Verified at rest and hovered at 1440 and at 390.
-
 # Session — Support page redesign, four concepts in /lab
 
 The Support page had barely been touched in months and the owner called it the weakest part of the

@@ -1497,23 +1497,12 @@ function PerchedBird({
         >
           <AnimatePresence>
             {showName && (
-              /* Opacity only, on a short tween, and deliberately NOT a spring.
-                 The 6px slide meant this label animated a TRANSFORM, which put
-                 it on its own composited layer right where the bird's blurred
-                 contact shadow is drawn; the shadow re-rasterised under it and
-                 read as a faint second shadow appearing on hover (owner,
-                 2026-08-18). A spring made that worse: springs settle
-                 asymptotically, so the layer outlived the visible fade by the
-                 better part of a second, which is why the extra shadow hung
-                 around after the pointer had left. The same reasoning already
-                 took the press sink off the button above. 150/120ms is the
-                 house pair for a label that must not out-linger the pointer. */
               <motion.span
                 className="flex w-max items-center gap-2 whitespace-nowrap font-heading text-[13.5px] italic leading-none tracking-[0.01em] text-foreground/75"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, transition: { duration: 0.12, ease: EASE_OUT_SMOOTH } }}
-                transition={{ duration: 0.15, ease: EASE_OUT_SMOOTH }}
+                initial={{ opacity: 0, x: 6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 4 }}
+                transition={SPRINGS.snappy}
               >
                 {species}
                 {/* The annotating stroke: one gentle pencil curve up toward
@@ -1562,29 +1551,11 @@ function PerchedBird({
       </button>
 
       {/* A soft contact shadow on the paper: what makes it read as perched on
-          the edge rather than pasted over it.
-
-          Painted as a radial gradient, NOT as a `filter: blur()` on a solid
-          bar, which is what it used to be. A blur is a filter, a filter gets
-          its own raster, and that raster is only as big as the box Chrome
-          decided to give it: the moment the hover reveal next door promoted a
-          layer, this one was re-rastered and the blur came back clipped to a
-          hard-edged rectangle sitting under the bird (owner, 2026-08-18, with
-          the two screenshots). A gradient is just paint. There is nothing to
-          re-raster and no box to clip to, so it looks the same in every state.
-
-          Geometry matched to the blur it replaces: the old bar was 44x8 with a
-          3px blur, so its visible extent was ~50x14 with the softness carried
-          in the outer 3px on each side. 52x14 with a closest-side falloff is
-          that shape, and -mt-[7px] puts the ellipse's CENTRE back on the
-          button's bottom edge, exactly where -mt-1 put the old 8px bar's. */}
+          the edge rather than pasted over it. */}
       <span
         aria-hidden
-        className="mx-auto -mt-[7px] block h-[14px] w-[52px]"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgb(var(--shadow-ink) / 0.13), rgb(var(--shadow-ink) / 0.07) 55%, rgb(var(--shadow-ink) / 0) 100%)",
-        }}
+        className="mx-auto -mt-1 block h-2 w-11 rounded-full"
+        style={{ background: "var(--color-ink)", opacity: 0.14, filter: "blur(3px)" }}
       />
     </div>
   );
