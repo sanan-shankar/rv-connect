@@ -36,6 +36,11 @@ export async function GET(req: NextRequest) {
       photoUrl: true,
       birdOverride: true,
       batchYear: true,
+      // Returned even though the filter above excludes teachers, so the rows
+      // that render this can call `batchLine()` and be right on their own
+      // terms. A component whose output depends on a `where` clause in a
+      // different file is one relaxed filter away from being wrong.
+      accountType: true,
     },
     take: 8,
   });
