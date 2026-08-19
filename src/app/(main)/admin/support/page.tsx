@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, CalendarDays, IndianRupee, Users } from "lucide-react";
+import { AlertTriangle, CalendarDays, CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
@@ -76,6 +76,22 @@ export default async function AdminSupportPage() {
   const paid = rows.filter((r) => r.status === "paid");
   const notPaid = rows.filter((r) => r.status !== "paid");
 
+  /* The funnel and the payment methods live HERE rather than in the analytics
+     room (owner, 2026-08-19: "that could be under that section of admin not
+     analytics"). They are facts about the money, and this is the money page;
+     analytics is for exploring, not for the ledger's own arithmetic.
+     livemode only, everywhere -- a developer's test order is indistinguishable
+     from a real one by its ids alone. */
+  const live = rows.filter((r) => r.livemode);
+  const livePaid = live.filter((r) => r.status === "paid");
+  const completion = live.length > 0 ? livePaid.length / live.length : 0;
+  const byMethod = new Map<string, number>();
+  for (const r of livePaid) byMethod.set(r.method ?? "unknown", (byMethod.get(r.method ?? "unknown") ?? 0) + 1);
+  const avgPaise =
+    livePaid.length > 0
+      ? Math.round(livePaid.reduce((n, r) => n + r.amount, 0) / livePaid.length)
+      : 0;
+
   return (
     <div className={`flex flex-col gap-6 ${ADMIN_MEASURE}`}>
       <PageHeader title="Support" />
@@ -95,6 +111,42 @@ export default async function AdminSupportPage() {
           tone={notPaid.length > 0 ? "warn" : "plain"}
         />
       </StatStrip>
+
+      <StatStrip>
+        <StatTile
+          label="Finished paying"
+          value={`${Math.round(completion * 100)}%`}
+          icon={TrendingUp}
+          tone={completion < 0.5 ? "warn" : "plain"}
+        />
+        <StatTile label="Opened a payment" value={live.length} icon={Users} />
+        <StatTile label="Typical gift" value={formatPaise(avgPaise)} icon={IndianRupee} />
+        <StatTile
+          label="Most used"
+          value={[...byMethod.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "none yet"}
+          icon={CreditCard}
+        />
+      </StatStrip>
+
+      {/* The gap between opening a payment and finishing one is the single
+          most actionable number on this page, so it gets said in words rather
+          than left to be inferred from two percentages. */}
+      {live.length > 0 && livePaid.length < live.length && (
+        <p className="text-[12.5px] leading-relaxed text-foreground">
+          {live.length - livePaid.length} of {live.length} people opened a payment and did not
+          finish it.{" "}
+          {byMethod.size > 0 && (
+            <>
+              Of those who did, the methods were{" "}
+              {[...byMethod.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .map(([m, n]) => `${m} (${n})`)
+                .join(", ")}
+              .
+            </>
+          )}
+        </p>
+      )}
 
       <p className="text-[12.5px] leading-relaxed text-muted-foreground">
         The totals above count real payments only. This database is shared with local

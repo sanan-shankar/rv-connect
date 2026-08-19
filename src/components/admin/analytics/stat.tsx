@@ -182,17 +182,30 @@ export function BarList({
   );
 }
 
-/** A titled block. Two per row on desktop, so nothing is ever full-bleed. */
+/**
+ * A titled block.
+ *
+ * `cap` is what makes a grid of these survive real data. Panels sized by their
+ * content give every row a ragged bottom edge, and one list that happens to be
+ * long (forty people online, twelve cities) drags its whole row with it. A
+ * capped panel scrolls its own overflow instead, so the page's shape is a
+ * property of the LAYOUT rather than of whatever the numbers happen to be
+ * today -- which is the difference between a page that looks fine now and one
+ * that still looks fine at two thousand members.
+ */
 export function Panel({
   title,
   note,
   children,
   className,
+  cap = true,
 }: {
   title: string;
   note?: string;
   children: React.ReactNode;
   className?: string;
+  /** Set false for a panel whose content is inherently short and fixed. */
+  cap?: boolean;
 }) {
   return (
     <section
@@ -205,7 +218,9 @@ export function Panel({
         <h3 className="text-[12.5px] font-semibold text-foreground">{title}</h3>
         {note && <p className="text-[11.5px] leading-snug text-muted-foreground">{note}</p>}
       </div>
-      {children}
+      {/* -mx/px pair so a scrollbar sits at the panel edge rather than
+          insetting the content away from it. */}
+      <div className={cn(cap && "-mx-1 max-h-[264px] overflow-y-auto px-1")}>{children}</div>
     </section>
   );
 }

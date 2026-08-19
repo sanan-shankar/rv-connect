@@ -570,3 +570,165 @@ export async function loadArrivals() {
     region: region.map((r) => ({ label: r.region ?? "unknown", value: r._count._all })),
   };
 }
+
+/* ---------------------------------------------------------------- *
+ *  Rhythms: when this place is actually alive
+ * ---------------------------------------------------------------- */
+
+/** hour 0-23 x weekday 0-6 (Sunday first), counted from visits. */
+export async function loadRhythm() {
+  /* IST, not UTC. "When is the community awake" is a question about people,
+   * and almost all of them are in India; a UTC heatmap would put the evening
+   * rush at 2pm and make the whole thing meaningless. */
+  const rows = await prisma.$queryRaw<{ dow: number; hour: number; n: bigint }[]>`
+    SELECT EXTRACT(DOW  FROM "endedAt" AT TIME ZONE 'Asia/Kolkata')::int AS dow,
+           EXTRACT(HOUR FROM "endedAt" AT TIME ZONE 'Asia/Kolkata')::int AS hour,
+           count(*)::bigint AS n
+    FROM "Visit"
+    WHERE "endedAt" >= now() - interval '90 days'
+    GROUP BY 1, 2
+  `;
+
+  const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+  let peak = { dow: 0, hour: 0, n: 0 };
+  for (const r of rows) {
+    const n = Number(r.n);
+    grid[r.dow][r.hour] = n;
+    if (n > peak.n) peak = { dow: r.dow, hour: r.hour, n };
+  }
+  return { grid, peak, total: rows.reduce((n, r) => n + Number(r.n), 0) };
+}
+
+/* ---------------------------------------------------------------- *
+ *  Faces: the superlatives, and who is interested in whom
+ * ---------------------------------------------------------------- */
+
+export async function loadFaces() {
+  const [heartsGiven, heartsGot, loyal, longest, deepest, mostViewed, watchers, lurkers, isolated] =
+    await Promise.all([
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", count(*)::bigint AS n
+        FROM "Like" l JOIN "User" u ON u.id = l."userId"
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", count(*)::bigint AS n
+        FROM "Like" l JOIN "Post" p ON p.id = l."postId" JOIN "User" u ON u.id = p."authorId"
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      /* Distinct DAYS present, which is loyalty. Total visits rewards one
+       * frantic afternoon; distinct days rewards turning up. */
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", count(DISTINCT date_trunc('day', v."startedAt"))::bigint AS n
+        FROM "Visit" v JOIN "User" u ON u.id = v."userId"
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name",
+               max(EXTRACT(EPOCH FROM (v."endedAt" - v."startedAt")))::bigint AS n
+        FROM "Visit" v JOIN "User" u ON u.id = v."userId"
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", max(v."views")::bigint AS n
+        FROM "Visit" v JOIN "User" u ON u.id = v."userId"
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      /* Whose profile gets looked at most. Self-views are never recorded, so
+       * nobody tops their own list. */
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", sum(cv."count")::bigint AS n
+        FROM "ContentView" cv JOIN "User" u ON u.id = cv."targetId"
+        WHERE cv.kind = 'profile'
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      /* And who does the looking. The pair of these two lists is the closest
+       * thing this community has to a social graph. */
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", sum(cv."count")::bigint AS n
+        FROM "ContentView" cv JOIN "User" u ON u.id = cv."viewerId"
+        WHERE cv.kind = 'profile'
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      /* Present but silent: visits recorded, nothing ever written. Not a
+       * criticism -- most of any community reads -- but the ratio is the
+       * health of the place. */
+      prisma.$queryRaw<{ n: bigint }[]>`
+        SELECT count(*)::bigint AS n FROM "User" u
+        WHERE u."lastSeenAt" IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM "Post" p WHERE p."authorId" = u.id)
+          AND NOT EXISTS (SELECT 1 FROM "Comment" c WHERE c."authorId" = u.id)
+      `,
+      /* THE ACTIONABLE ONE. Members whose own posts have never been hearted or
+       * commented on, and who have never been messaged. Nobody has responded to
+       * them. These are the people who quietly leave, and the owner can go and
+       * say hello. */
+      prisma.$queryRaw<{ id: string; name: string; batchYear: number | null }[]>`
+        SELECT u.id, u."name", u."batchYear"
+        FROM "User" u
+        WHERE u."isBlocked" = false
+          AND NOT EXISTS (
+            SELECT 1 FROM "Like" l JOIN "Post" p ON p.id = l."postId"
+            WHERE p."authorId" = u.id
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM "Comment" c JOIN "Post" p ON p.id = c."postId"
+            WHERE p."authorId" = u.id AND c."authorId" <> u.id
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM "ContentView" cv WHERE cv.kind = 'profile' AND cv."targetId" = u.id
+          )
+        ORDER BY u."createdAt" DESC
+        LIMIT 30
+      `,
+    ]);
+
+  const list = (rows: { name: string; n: bigint }[]) =>
+    rows.map((r) => ({ label: r.name, value: Number(r.n) }));
+
+  return {
+    heartsGiven: list(heartsGiven),
+    heartsGot: list(heartsGot),
+    loyal: list(loyal),
+    /* Seconds in, minutes out: an hour-long visit shown as 3,600 is a number
+     * nobody reads at a glance. */
+    longest: longest.map((r) => ({ label: r.name, value: Math.round(Number(r.n) / 60) })),
+    deepest: list(deepest),
+    mostViewed: list(mostViewed),
+    watchers: list(watchers),
+    lurkers: Number(lurkers[0]?.n ?? 0),
+    isolated,
+  };
+}
+
+/* ---------------------------------------------------------------- *
+ *  Did each joining cohort stick around
+ * ---------------------------------------------------------------- */
+
+export async function loadRetention() {
+  /* By BATCH DECADE, not by join month, and that is the whole point. The
+   * owner's stated reason for this room is finding where older alumni
+   * struggle, and a decade cohort answers it at population scale instead of
+   * by anecdote: if 90% of the 2010s came back and 20% of the 1970s did, that
+   * is a usability finding, not a coincidence. */
+  const rows = await prisma.$queryRaw<
+    { decade: string; joined: bigint; seen: bigint; recent: bigint }[]
+  >`
+    SELECT (floor(u."batchYear" / 10) * 10)::text || 's'                       AS decade,
+           count(*)::bigint                                                     AS joined,
+           count(*) FILTER (WHERE u."lastSeenAt" IS NOT NULL)::bigint           AS seen,
+           count(*) FILTER (WHERE u."lastSeenAt" >= now() - interval '30 days')::bigint AS recent
+    FROM "User" u
+    WHERE u."batchYear" IS NOT NULL AND u."isBlocked" = false
+    GROUP BY 1
+    ORDER BY 1 DESC
+  `;
+
+  return rows.map((r) => ({
+    decade: r.decade,
+    joined: Number(r.joined),
+    seen: Number(r.seen),
+    recent: Number(r.recent),
+    rate: Number(r.joined) > 0 ? Number(r.recent) / Number(r.joined) : 0,
+  }));
+}
