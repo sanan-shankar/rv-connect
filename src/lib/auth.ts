@@ -4,6 +4,7 @@ import { IS_DEMO, DEMO_USER_ID } from "./demo";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { recordLoginAttempt } from "@/lib/login-attempt";
 import { prisma } from "./prisma";
 
 const nextAuth = NextAuth({
@@ -25,7 +26,15 @@ const nextAuth = NextAuth({
           where: { email },
         });
 
-        if (!user) return null;
+        /* Every branch below records its outcome. Purely additive: nothing
+           here changes what this function returns, and recordLoginAttempt
+           cannot throw or block. A member who cannot sign in was previously
+           invisible to every number in /admin/analytics, which is backwards --
+           they are the ones most likely to need help. */
+        if (!user) {
+          recordLoginAttempt({ email, ok: false, reason: "no-account" });
+          return null;
+        }
 
         // Admin bypass: skip password check for admin email
         const adminEmail = process.env.ADMIN_EMAIL;
@@ -37,6 +46,11 @@ const nextAuth = NextAuth({
               data: { role: "admin" },
             });
           }
+          /* The admin bypass returns without ever checking a password
+             (documented as C1-a in the security audit). It is still a
+             successful sign-in and has to be counted, or the owner's own
+             logins are missing from every number here. */
+          recordLoginAttempt({ email, ok: true, reason: "ok", userId: user.id });
           return {
             id: user.id,
             name: user.name,
@@ -49,11 +63,25 @@ const nextAuth = NextAuth({
         }
 
         // Regular user: verify password
-        if (!password || !user.password) return null;
+        if (!password || !user.password) {
+          /* An account with no password set is an invited member who never
+             finished signing up. Different problem, different help. */
+          recordLoginAttempt({
+            email,
+            ok: false,
+            reason: "no-password-set",
+            userId: user.id,
+          });
+          return null;
+        }
 
         const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) return null;
+        if (!isValid) {
+          recordLoginAttempt({ email, ok: false, reason: "wrong-password", userId: user.id });
+          return null;
+        }
 
+        recordLoginAttempt({ email, ok: true, reason: "ok", userId: user.id });
         return {
           id: user.id,
           name: user.name,

@@ -976,3 +976,34 @@ model ContentView {
   // "What has this person been looking at", and recency.
   @@index([viewerId, lastAt])
 }
+
+// ─── Who could not get in ───────────────────────────────────────────────────
+//
+// The owner's reason for the analytics room is finding where older alumni get
+// stuck, and somebody who cannot sign in AT ALL is the strongest possible
+// version of that -- and was completely invisible, because a failed login left
+// no trace anywhere. They simply never appeared in any number.
+//
+// Never stores a password or any part of one. The email is stored as typed,
+// because "which address did they keep trying" is the whole point: a member
+// entering the wrong address is a different problem from one entering the
+// wrong password, and only the address distinguishes them.
+model LoginAttempt {
+  id String @id @default(cuid())
+
+  // Lowercased as submitted. May belong to no account at all, which is itself
+  // one of the more common failures.
+  email  String
+  // Set when the address matched an account, so a decade can be attached.
+  userId String?
+
+  ok Boolean
+  // "ok" | "no-account" | "no-password-set" | "wrong-password"
+  reason String
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([email, createdAt])
+  @@index([userId, createdAt])
+}

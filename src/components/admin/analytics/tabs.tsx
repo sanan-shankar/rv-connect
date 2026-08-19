@@ -25,6 +25,7 @@ export const VIEWS = [
   { key: "rhythms", label: "Rhythms", blurb: "When this place is awake" },
   { key: "faces", label: "Faces", blurb: "Who reads, who writes, and who nobody has answered" },
   { key: "reach", label: "Reach", blurb: "How people arrive and what they look for" },
+  { key: "journey", label: "Joining", blurb: "How far each generation gets, and who cannot sign in" },
   { key: "compare", label: "Compare", blurb: "Any measure, grouped any way, plus what moves together" },
   { key: "health", label: "Health", blurb: "Email and delivery" },
 ] as const;
