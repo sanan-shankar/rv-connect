@@ -206,6 +206,19 @@ for the shots that go on the record and for sweeps; the MCP is for the measuring
    `toBeVisible()`, so animated UI is asserted on **geometry with `expect.poll`**, not element
    presence. `e2e/sidebar.spec.ts` is the worked example of both.
 
+8. **Adding a Prisma model? Restart the dev server.** `src/lib/prisma.ts` caches the client on
+   `globalThis` so it survives HMR, which means `npx prisma generate` does NOT reach the running
+   server: it keeps the instance it built at boot. The symptom is
+   `Cannot read properties of undefined (reading 'findMany')` on the new model, from code that
+   typechecks perfectly, and it cost two rounds on 2026-08-19 (`MetricSnapshot`, then `Visit`).
+   Kill the dev server and start it again. `npm run check` cannot catch this: `tsc` reads the
+   freshly generated types off disk while the server holds the old object.
+
+   Related: anything writing telemetry from a layout must **log its own failures in development**.
+   `touchLastSeen` swallows errors so no member ever sees an error page over a statistics row, and
+   the first time it broke the only symptom was an empty table with no clue why. A guard that hides
+   its own breakage is worse than no guard.
+
 # Reference images
 
 When the owner supplies a screenshot of another site: match layout, spacing, typography and colour
