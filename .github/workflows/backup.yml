@@ -175,7 +175,11 @@ jobs:
             done
 
       - name: Report
-        run: echo "### Backup ${{ env.STAMP }} verified and uploaded" >> "$GITHUB_STEP_SUMMARY"
+        # $STAMP, not ${{ env.STAMP }}. GITHUB_ENV makes it a real shell variable
+        # in later steps, but the Actions language server cannot see a value
+        # written at runtime and flags the expression form as possibly invalid.
+        # The shell form is both correct and quiet.
+        run: echo "### Backup $STAMP verified and uploaded" >> "$GITHUB_STEP_SUMMARY"
 
   media:
     runs-on: ubuntu-latest

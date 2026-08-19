@@ -142,7 +142,7 @@ documents remain traceable.
 | **C1** | Critical | Unauthenticated admin takeover (3 parts) | `auth.ts:30-49`, `api/auth/admin-login/route.ts:7-70`, `login/page.tsx:345-372` | A:C1,C2,C3 · B:C-1,C-2 |
 | **C2** | Critical | Any member can delete every image in the R2 bucket | `feed/actions.ts:117→278→29` → `storage.ts:183,168,151` | A:H3 · B:C-3 |
 | **C3** | Critical | 33 production dependency advisories; 2 Critical on the auth library | `package.json` | B:C-4 · A:L3 |
-| **C4** | Critical (op) | No verified DB backup; no R2 versioning or backup | infrastructure | B:F-61,F-62 |
+| **C4** | Critical (op) | No verified DB backup; no R2 versioning or backup | infrastructure | B:F-61,F-62 | **DB RESOLVED 2026-08-19** (nightly verified pg_dump to a private R2 bucket) |
 | **H1** | High | `loadDirectoryPage` has no authentication check | `directory/actions.ts:39-61` | A:H1 · B:F-7,F-10 |
 | **H2** | High | `proxy.ts` is not an authorization boundary for server actions | `proxy.ts:107-110,161-163` | B:§5 · A:H1 note |
 | **H3** | High | Private-content IDOR: comments, likes, bookmarks, polls | `feed/actions.ts:234,405,455,477,908,954` | A:H2 · B:F-11,F-12 |
@@ -157,7 +157,7 @@ documents remain traceable.
 | **H12** | High | No privacy policy, consent, or transparency layer | all 70 routes | A:L9 (Low) · B:H-1 (High) |
 | **H13** | High | Cross-border transfer with no mechanism; no DPAs | infrastructure | B:H-4 |
 | **H14** | High | No breach-detection capability | — | B:H-6 |
-| **H15** | High | Production and local dev share one live database; no staging | `AGENTS.md`, `CLAUDE.md`, `.env` | B:F-19,F-37 |
+| **H15** | High | Production and local dev share one live database; no staging | `AGENTS.md`, `CLAUDE.md`, `.env` | B:F-19,F-37 | **ACCEPTED 2026-08-19** (staging declined; C4 backup removes the unrecoverable outcome) |
 | **H16** | High | No CI/CD, no branch protection, no security gate | repo | B:F-36 · B:§9 |
 | **H17** | High | 14 tests for 97,500 LOC; none test security | `*.test.mjs` | B:F-72 |
 | **H18** | High | Unbounded queries that will OOM | `admin/page.tsx:63-74,99-113`; `users-by-batch/route.ts:24` | B:F-65,F-13 |
@@ -463,6 +463,42 @@ gate — there is no CI at all today (H16).
 ## C4 — No verified database backup, and no backup or versioning of R2 at all
 
 **Severity: Critical (operational)**
+
+> **RESOLVED for the database, 2026-08-19.** `.github/workflows/backup.yml` runs a nightly
+> `pg_dump` (PostgreSQL 17 client, matching the 17.6 server) into a **separate private R2
+> bucket**, `rv-backups`. It does the three things this finding asked for:
+> **retention** (30 days rolling, plus the 1st of each month kept indefinitely),
+> **verification** (the archive's table of contents is read back and the job fails if it is
+> short or if `User`/`Post`/`Comment`/`Contribution`/`Photo`/`CatchupEntry` are absent — a
+> dump nobody has opened is a file, not a backup), and a **documented restore** (the
+> `pg_restore` line is in the workflow header and in `docs/OPERATIONS.md`).
+>
+> It also **refuses to run** if pointed at the public `rv-alumni-media` bucket, since a dump
+> landing on a `pub-*.r2.dev` URL would publish every member's personal data.
+>
+> First run verified end to end: 12MB archive, 571 objects, uploaded. Credentials are a
+> **separate R2 token scoped to `rv-backups` only**, so a leaked backup key cannot touch
+> members' photos and the media key cannot touch or delete the backups.
+>
+> Supabase's own plan-level backups are **not** part of this: the free plan has none and no
+> point-in-time recovery, which is precisely why this exists.
+>
+> **R2 media: RESOLVED the same day, by a different mechanism than this finding proposed.**
+> The original remediation said to enable object versioning on the bucket. **That is not
+> possible: Cloudflare R2 does not offer object versioning on any plan.** Bucket Lock and
+> Object Lifecycle rules are different features and neither keeps a deleted object
+> recoverable. The finding was unactionable as written.
+>
+> The `media` job in the same workflow implements the fallback
+> `docs/planning/OWNER-INPUT-REQUIRED.md` (A2, step 5) had already anticipated: a nightly
+> server-side copy of `rv-alumni-media` into the private backup bucket. It is incremental, so
+> it transfers only what changed, and it **never passes `--delete`** — which is the whole
+> point. A photo removed from the live bucket, whether by accident or by the C2 defect, stays
+> in the backup until somebody deliberately removes it. That is the protection versioning
+> would have provided.
+>
+> **Residual gap, stated plainly:** a photo uploaded *and* deleted between two nightly runs is
+> never copied and is genuinely gone. Closing that needs the C2 code fix, not a backup.
 
 **No documented backup strategy for the database.** Supabase's plan-level automated backups may
 exist; there is nothing in this repository that documents them, verifies them, tests a restore, or
@@ -787,6 +823,26 @@ number of records affected — which you could not do.
 ## H15 — Production and local development share one live database; there is no staging
 
 **Severity: High · Architectural + Operational**
+
+> **ACCEPTED, not remediated — owner's decision, 2026-08-19.** A staging database was costed
+> and declined. Supabase's free plan caps an organisation at two projects, both of which are
+> in use (`rv-alumni`, `rv-alumni-demo`), so staging would have meant either paying for Pro or
+> adding a **second vendor** (Neon) for one purpose. The owner declined both: "I did a bunch of
+> thinking through between turso, supabase and neon initially and we settled on supabase as
+> best. and now I have to use both?!?! that's annoying."
+>
+> What actually changes the risk here is C4, which is now done: the catastrophic outcome of
+> this finding was an unrecoverable destructive write, and there is now a verified nightly
+> backup to restore from. The remaining exposure is the *inconvenience* of restoring rather
+> than the *loss* of the data.
+>
+> The existing controls stay load-bearing and must not be relaxed: `prisma db push` remains
+> prohibited (it will DROP tables it considers orphaned), schema changes stay as dated
+> idempotent files in `prisma/migrations-manual/` applied through `scripts/dev/run-sql.mjs`,
+> and `Contribution.livemode` still separates test payments from real ones.
+>
+> Revisit if the project ever moves to Supabase Pro, which lifts the project cap and brings
+> branching with it.
 
 `AGENTS.md` and `CLAUDE.md` both confirm one Supabase instance behind production and local dev.
 Consequences:
