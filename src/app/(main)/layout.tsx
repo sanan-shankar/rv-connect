@@ -8,6 +8,7 @@ import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
 import { maskEmail } from "@/lib/mask-email";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { TourProvider } from "@/components/tour/tour-provider";
+import { PostHogIdentify } from "@/components/analytics/posthog-identify";
 import { IS_DEMO } from "@/lib/demo";
 import { DemoBar } from "@/components/demo/demo-bar";
 
@@ -67,6 +68,15 @@ export default async function MainLayout({
     // the tour is the fastest way to show someone the four surfaces worth
     // seeing. On the real site it stays opt-in, where the owner left it.
     <TourProvider userId={session.user.id} autoOffer={IS_DEMO}>
+      {/* Attaches events to a member so a funnel can follow one person across
+          pages and devices. Opaque id plus two coarse attributes only -- never
+          the name, address or email. See the component for the reasoning. */}
+      <PostHogIdentify
+        userId={session.user.id}
+        accountType={session.user.accountType ?? null}
+        batchYear={session.user.batchYear ?? null}
+        isOwner={session.user.role === "admin"}
+      />
       <AppShell
         user={{
           id: session.user.id,

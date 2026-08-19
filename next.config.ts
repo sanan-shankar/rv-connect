@@ -27,6 +27,33 @@ const nextConfig: NextConfig = {
     // Actions bodySizeLimit above.
     proxyClientMaxBodySize: "25mb",
   },
+  /* PostHog, served from our own domain. Ad blockers ship lists of known
+   * analytics hostnames and posthog.com is on all of them, so a direct
+   * connection loses roughly 10-25% of visitors silently. These rewrites make
+   * the browser talk only to rishivalley's own /ingest path; the forwarding
+   * happens server-side where no blocker can see it. Costs a few extra
+   * function invocations, well inside the free tier.
+   *
+   * The static rule MUST come first: /ingest/static/* is the SDK bundle and
+   * lives on a different host from the event endpoint. Ordering it second
+   * would let the catch-all swallow it and the SDK would 404. */
+  async rewrites() {
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: "https://eu-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/ingest/:path*",
+        destination: "https://eu.i.posthog.com/:path*",
+      },
+    ];
+  },
+
+  /* PostHog's API is sensitive to the trailing slash; Next's default redirect
+   * would break the capture endpoint. */
+  skipTrailingSlashRedirect: true,
+
   images: {
     remotePatterns: [
       // Cloudflare R2 (pub-<hash>.r2.dev now; a custom domain can be added later).

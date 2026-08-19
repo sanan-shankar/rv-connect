@@ -174,6 +174,11 @@ export function proxy(request: NextRequest) {
     // Svix retries it into oblivion. Authenticated by its Svix signature in
     // the route itself; nothing there trusts an unsigned body.
     "/api/resend",
+    // PostHog's reverse proxy (rewrites in next.config.ts). Analytics fires on
+    // the signed-out landing page too, and every request carries no session by
+    // design, so without this the very events we proxied to save from ad
+    // blockers would be lost to a redirect instead.
+    "/ingest",
     "/lab",
     "/catchups/join",
     "/hoopoe",
