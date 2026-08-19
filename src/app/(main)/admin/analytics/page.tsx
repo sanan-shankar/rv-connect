@@ -1,103 +1,319 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
+import {
+  loadCatchups,
+  loadContent,
+  loadGeography,
+  loadMail,
+  loadPeople,
+  loadSupport,
+  loadTrends,
+} from "@/lib/admin-analytics";
+import { BarList, Panel, StatGrid, type Stat } from "@/components/admin/analytics/stat";
 
-export const metadata: Metadata = {
-  title: "Analytics",
-};
+export const metadata: Metadata = { title: "Analytics" };
 
-/* The questions this room will answer, and where each answer already lives.
-   Written down now so the room is not designed from scratch later, and so it
-   is obvious which ones are cheap and which need a schema change first. */
-const PLANNED: { question: string; source: string; ready: boolean }[] = [
-  {
-    question: "How many people have joined, and when",
-    source: "Every account carries the day it was made.",
-    ready: true,
-  },
-  {
-    question: "Who they are: alumni, teachers, which batches",
-    source: "Already on the account, and already how the directory groups people.",
-    ready: true,
-  },
-  {
-    question: "Where in the world they are",
-    source: "Cities carry real coordinates, which is what already draws the map.",
-    ready: true,
-  },
-  {
-    question: "What gets written, and what gets read",
-    source: "Posts, letters, comments, hearts, poll votes, saved things, photo hearts.",
-    ready: true,
-  },
-  {
-    question: "Whether Catch-ups are actually being answered",
-    source: "Answers per Round against how many people are in the group.",
-    ready: true,
-  },
-  {
-    question: "What has been given, and how",
-    source: "The contributions ledger, real payments only.",
-    ready: true,
-  },
-  {
-    question: "Whether email is reaching people",
-    source: "The send queue already records every attempt and every failure.",
-    ready: true,
-  },
-  {
-    question: "Who is still using this",
-    source:
-      "Nothing records when somebody was last here. This is the one question the database cannot answer today, and the column has to exist before it can start collecting.",
-    ready: false,
-  },
-];
+/* This room reads live tables. Caching it would show a number that is wrong
+   by however long the cache lived, on a page whose whole job is to be true. */
+export const dynamic = "force-dynamic";
 
-/**
- * A room with a reserved place and nothing in it yet.
+/* ------------------------------------------------------------------ *
+ *  The analytics room.
  *
- * The owner is building this separately. The job here was to hold the slot in
- * the rail, so that when it arrives it is a section of the panel rather than
- * something bolted onto the side of it, and to write down the one thing that
- * has to be decided BEFORE it is built rather than after.
+ *  Built from the question list the placeholder version of this file
+ *  carried, plus the owner's own list from the session that commissioned
+ *  it: who joins and when, who they are, where they are, what gets
+ *  written and whether it gets read, whether Catch-ups are answered, what
+ *  has been given and how, whether email arrives, and who is still here.
  *
- * No stats block: the house rule for a room with no numbers is not to open
- * with a scoreboard it cannot fill (docs/spec/lab-voice.md, and the same
- * instinct applies here).
- */
-export default function AdminAnalyticsPage() {
+ *  TWO KINDS OF NUMBER, and the difference matters:
+ *    LIVE      counted from the tables on every load. Exact. Can be
+ *              broken down by batch, city, person.
+ *    HISTORY   from MetricSnapshot, written nightly. The sparklines. The
+ *              only numbers that outlive Sentry's 30-day window.
+ *
+ *  Sparklines stay absent until there are two nights of history. An empty
+ *  chart frame is worse than no chart, so nothing draws one.
+ *
+ *  LAYOUT, against the owner's complaint about the tools this replaces
+ *  ("a lot of white space, a lot of tiles that are full width when it can
+ *  be in columns"): four tiles per row on desktop, two on a phone, and
+ *  every panel half-width. Nothing on this page is full-bleed.
+ * ------------------------------------------------------------------ */
+
+export default async function AdminAnalyticsPage() {
+  const [trends, people, geo, content, catchups, support, mail] = await Promise.all([
+    loadTrends(90),
+    loadPeople(),
+    loadGeography(),
+    loadContent(),
+    loadCatchups(),
+    loadSupport(),
+    loadMail(),
+  ]);
+
+  const t = (key: string) => trends.get(key);
+
+  /* --- The community ------------------------------------------------ */
+  const communityStats: Stat[] = [
+    {
+      label: "Members",
+      value: people.total,
+      trend: t("db.members.total"),
+      hint: `${people.joined30} joined in the last 30 days`,
+    },
+    {
+      label: "Confirmed",
+      value: people.verified,
+      trend: t("db.members.verified"),
+      hint: `${people.total - people.verified} still unconfirmed`,
+      tone: people.total - people.verified > people.total * 0.2 ? "warn" : undefined,
+    },
+    {
+      label: "Here this week",
+      value: people.active7,
+      trend: t("db.members.active_7d"),
+      hint:
+        people.neverSeen === people.total
+          ? "Collecting from today onward"
+          : `${people.active30} in the last 30 days`,
+    },
+    {
+      label: "On the map",
+      value: people.placed,
+      trend: t("db.members.placed"),
+      hint: `${people.total - people.placed} have given no city`,
+    },
+    {
+      label: "With a photo",
+      value: people.withPhoto,
+      hint: `the rest carry their bird`,
+    },
+    {
+      label: "Dark mode",
+      value: people.dark,
+      trend: t("db.members.dark_mode"),
+      hint: `${((people.dark / Math.max(people.total, 1)) * 100).toFixed(0)}% of members`,
+    },
+    {
+      label: "Never signed in",
+      value: people.neverSeen,
+      hint: "since the column was added",
+      tone: people.neverSeen > people.total * 0.5 ? "warn" : undefined,
+    },
+    {
+      label: "Blocked",
+      value: people.blocked,
+      hint: "removed from the community",
+      tone: people.blocked > 0 ? "bad" : undefined,
+    },
+  ];
+
+  /* --- What gets made ------------------------------------------------ */
+  const contentStats: Stat[] = [
+    { label: "Letters", value: content.letters, trend: t("db.letters.total"), hint: "published" },
+    { label: "Posts", value: content.posts, trend: t("db.posts.total"), hint: "published" },
+    { label: "Comments", value: content.comments, trend: t("db.comments.total") },
+    { label: "Hearts", value: content.likes, trend: t("db.likes.total") },
+    {
+      label: "Response per piece",
+      value: content.responsePerPost,
+      kind: "ratio",
+      hint: "comments and hearts per published thing",
+      tone: content.responsePerPost < 1 ? "warn" : "good",
+    },
+    { label: "Saved", value: content.bookmarks, hint: "bookmarked by someone" },
+    { label: "Photos", value: content.photos, trend: t("db.photos.total") },
+    { label: "Drafts", value: content.drafts, hint: "written, never published" },
+  ];
+
+  /* --- Support ------------------------------------------------------- */
+  const supportStats: Stat[] = [
+    {
+      label: "Given",
+      value: support.totalPaise,
+      kind: "money",
+      trend: t("db.contributions.paise"),
+      hint: `from ${support.people} ${support.people === 1 ? "person" : "people"}`,
+    },
+    {
+      label: "Completed",
+      value: support.paid,
+      trend: t("db.contributions.count"),
+      hint: `${support.recent} in the last 30 days`,
+    },
+    {
+      label: "Finished paying",
+      value: support.completion,
+      kind: "percent",
+      trend: t("db.contributions.completion_rate"),
+      hint: `${support.started - support.paid} opened a payment and stopped`,
+      tone: support.completion < 0.5 ? "bad" : "good",
+    },
+    {
+      label: "Members who gave",
+      value: support.participation,
+      kind: "percent",
+      trend: t("db.contributions.rate"),
+      hint: `${support.people} of ${people.total}`,
+    },
+    {
+      label: "Typical gift",
+      value: support.avgPaise,
+      kind: "money",
+      hint: "mean of completed payments",
+    },
+    { label: "Started", value: support.started, hint: "payments opened, live mode only" },
+    {
+      label: "Failed",
+      value: support.failed,
+      hint: "declined or errored",
+      tone: support.failed > 0 ? "warn" : undefined,
+    },
+  ];
+
+  /* --- Catch-ups ----------------------------------------------------- */
+  const catchupStats: Stat[] = [
+    { label: "Answers", value: catchups.entries, trend: t("db.catchups.entries") },
+    {
+      label: "Per question",
+      value: catchups.answersPerPrompt,
+      kind: "ratio",
+      trend: t("db.catchups.answers_per_prompt"),
+      hint: "the number that says they are working",
+      tone: catchups.answersPerPrompt < 2 ? "warn" : "good",
+    },
+    {
+      label: "People answering",
+      value: catchups.people,
+      hint: `${((catchups.people / Math.max(people.total, 1)) * 100).toFixed(0)}% of members`,
+    },
+    { label: "Rounds", value: catchups.editions, hint: `${catchups.prompts} questions asked` },
+  ];
+
+  /* --- Mail ---------------------------------------------------------- */
+  const mailStats: Stat[] = [
+    { label: "Sent", value: mail.sent, trend: t("db.mail.sent"), hint: "accepted by Resend" },
+    {
+      label: "Confirmed delivered",
+      value: mail.delivered,
+      trend: t("db.mail.delivered"),
+      hint:
+        mail.delivered === 0
+          ? "the webhook only started recently"
+          : `${(mail.deliveryRate * 100).toFixed(0)}% of sent`,
+    },
+    {
+      label: "Bounced",
+      value: mail.bounced,
+      trend: t("db.mail.bounced"),
+      hint: "the address did not accept it",
+      tone: mail.bounced > 0 ? "bad" : undefined,
+    },
+    {
+      label: "Waiting",
+      value: mail.queued,
+      hint: "held by the daily budget",
+      tone: mail.queued > 0 ? "warn" : undefined,
+    },
+  ];
+
+  const hasHistory = trends.size > 0;
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <PageHeader title="Analytics" />
 
-      <p className="max-w-2xl text-[14px] leading-relaxed text-foreground">
-        Not built yet. This is the reserved place for it, so it arrives as part of the panel
-        rather than beside it. Below is what the site can already answer, and the one thing it
-        cannot.
-      </p>
-
-      <ul className="flex max-w-2xl flex-col gap-2">
-        {PLANNED.map((p) => (
-          <li
-            key={p.question}
-            className="flex flex-col gap-1 rounded-[var(--radius)] border border-border bg-card p-3.5"
-          >
-            <p className="text-[13.5px] font-semibold text-foreground">{p.question}</p>
-            <p className="text-[12.5px] leading-relaxed text-muted-foreground">{p.source}</p>
-          </li>
-        ))}
-      </ul>
-
-      {/* The one thing worth acting on before the build, not after: a column
-          that does not exist collects nothing retroactively. */}
-      <div className="max-w-2xl rounded-[var(--radius)] border border-cinnamon/30 bg-cinnamon/[0.07] p-3.5">
-        <p className="text-[13.5px] font-semibold text-cinnamon">Worth deciding first</p>
-        <p className="mt-1 text-[12.5px] leading-relaxed text-foreground">
-          Nothing currently records when a member was last here. Adding that is cheap today and
-          impossible to fill in later, because there is no history to recover. Every other
-          question on this list can wait until the room is built; this one starts collecting the
-          day it is added.
+      {/* One line, only while it is true, because a reader who does not know
+          the sparklines are still filling will read their absence as a bug. */}
+      {!hasHistory && (
+        <p className="max-w-2xl text-[12.5px] leading-relaxed text-muted-foreground">
+          Every number below is live and exact. The trend lines appear once the nightly
+          snapshot has run twice, which is the first thing on this page that has to wait.
         </p>
-      </div>
+      )}
+
+      <Section title="The community">
+        <StatGrid stats={communityStats} />
+        <div className="grid gap-2 lg:grid-cols-3">
+          <Panel title="By decade" note="When they left the valley">
+            <BarList items={people.byDecade} empty="No batch years recorded." />
+          </Panel>
+          <Panel title="Where they are" note="Cities with the most members">
+            <BarList items={geo.cities} empty="No cities recorded." />
+          </Panel>
+          <Panel title="Countries">
+            <BarList items={geo.countries} empty="No countries recorded." />
+          </Panel>
+        </div>
+      </Section>
+
+      <Section title="What gets written, and whether it gets read">
+        <StatGrid stats={contentStats} />
+        <div className="grid gap-2 lg:grid-cols-2">
+          <Panel title="Who writes" note="Published posts and letters, by author">
+            <BarList items={content.topAuthors} empty="Nothing published yet." />
+          </Panel>
+          <Panel title="Kinds of account" note="How the community is made up">
+            <BarList items={people.byType} empty="No account types recorded." />
+          </Panel>
+        </div>
+      </Section>
+
+      <Section title="Support">
+        <StatGrid stats={supportStats} />
+        <div className="grid gap-2 lg:grid-cols-2">
+          <Panel title="How people pay" note="Completed payments, by method">
+            <BarList items={support.byMethod} empty="No completed payments yet." />
+          </Panel>
+          <Panel
+            title="The gap"
+            note="Everyone who opened a payment, against everyone who finished one"
+          >
+            <BarList
+              items={[
+                { label: "Opened a payment", value: support.started },
+                { label: "Finished", value: support.paid },
+                { label: "Gave up", value: support.started - support.paid },
+              ]}
+              total={support.started}
+            />
+          </Panel>
+        </div>
+      </Section>
+
+      <Section title="Catch-ups">
+        <StatGrid stats={catchupStats} />
+        <div className="grid gap-2 lg:grid-cols-2">
+          <Panel title="Answers by Round" note="Whether interest is holding up">
+            <BarList items={catchups.byEdition} empty="No answers yet." />
+          </Panel>
+          <Panel title="Hearts on answers" note="Whether anyone is reading them">
+            <BarList
+              items={[
+                { label: "Answers written", value: catchups.entries },
+                { label: "Hearts given", value: catchups.loves },
+              ]}
+            />
+          </Panel>
+        </div>
+      </Section>
+
+      <Section title="Email">
+        <StatGrid stats={mailStats} />
+        <Panel title="What we send" note="Every message, by template" className="lg:max-w-md">
+          <BarList items={mail.byKind} empty="No mail sent yet." />
+        </Panel>
+      </Section>
     </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="font-display text-[17px] leading-tight text-foreground">{title}</h2>
+      {children}
+    </section>
   );
 }
