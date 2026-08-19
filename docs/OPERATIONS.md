@@ -161,9 +161,35 @@ mail, and this is a community's inbox, not a marketing funnel.
 
 ---
 
-## Still to do
+## 7. PostHog — what members actually do
 
-- **PostHog** — analytics. Blocked on the project key.
+**Fires by itself.** Read it at **https://eu.posthog.com**.
+
+Funnels, paths, search terms, conversion. Free tier is 1M events a month against usage of
+maybe 600k a *year*, so there is no bill to reach.
+
+**Routed through `/ingest` on our own domain** (rewrites in `next.config.ts`). Ad blockers
+list posthog.com, so a direct connection loses ~10-25% of visitors silently.
+
+**Session replay is off and stays off** (`disable_session_recording`). Real names, home
+addresses and photographs of other people are on that screen.
+
+`identify()` sends the opaque cuid plus `accountType` and `batchYear`. Never the name,
+email, city or phone. Enough to answer "which batch uses the map", nothing more.
+
+**Turn on freely later, all free:** feature flags, surveys, experiments. **Do not turn on:**
+session replay, and PostHog's error tracking — Sentry does that better and running both
+means every error files twice.
+
+**Own traffic:** the admin is tagged `isOwner: true` rather than opted out. Hide it project-
+wide from Settings → Project → *Filter out internal users* if the numbers start looking odd.
+
+**Verifying a change locally:** `NEXT_PUBLIC_POSTHOG_DEV=1`, otherwise dev opts out so
+localhost clicking cannot pollute the funnels.
+
+---
+
+## Still to do
 - **Staging database** — a second Supabase project so schema changes get a rehearsal.
   Data fixes (capitalisations, cities) would continue to run against production exactly as
   they do today; only structure changes gain a dry run.
