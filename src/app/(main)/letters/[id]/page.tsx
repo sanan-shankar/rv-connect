@@ -10,6 +10,7 @@ import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { LetterImages } from "@/components/letters/letter-images";
 import { canViewCityScope } from "@/lib/city-scope";
 import { batchLine, formatDisplayDate, metaLine, renderRichText, parseJsonArray, letterTitle } from "@/lib/utils";
+import { recordView } from "@/lib/content-view";
 
 export async function generateMetadata({
   params,
@@ -78,6 +79,10 @@ export default async function LetterPage({
   });
 
   if (!letter || letter.kind !== "letter" || letter.isHidden) notFound();
+
+  /* The read side of "read click-through rates": a letter's hearts say who
+     reacted, this says who actually opened it. */
+  void recordView(session.user.id, "letter", letter.id);
 
   // A draft is only ever visible to its own author: a preview of a letter
   // still being written, not a published page. Everyone else gets the same
