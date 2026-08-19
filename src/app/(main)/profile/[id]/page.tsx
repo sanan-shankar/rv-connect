@@ -9,6 +9,8 @@ import { socialHref, socialDisplay, parseUserLinks } from "@/lib/social";
 import { academicSpanLabel, parseHouseSpans, parseHouseYearEntries } from "@/lib/house-spans";
 import { AdminProfileTools } from "@/components/profile/admin-profile-tools";
 import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
+import { StrayHair } from "@/components/profile/stray-hair";
+import { STRAY_HAIR_USER_IDS } from "@/components/profile/stray-hair-ids";
 import { LetterheadProfile } from "@/components/profile/letterhead-profile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
 import { PUBLISHED_ONLY } from "@/lib/posts";
@@ -259,6 +261,7 @@ export default async function ProfilePage({
     ) : null;
 
   return (
+    <>
     <LetterheadProfile
       user={{
         id: user.id,
@@ -344,5 +347,11 @@ export default async function ProfilePage({
           : undefined
       }
     />
+      {/* A prank, not a feature. Renders only for the ids in
+          stray-hair-ids.ts, and only on their own sheet. The gate is here on the
+          server so nobody else's bundle ever loads it; the component file explains
+          itself and the ids file holds the off switch. */}
+      {isOwnProfile && STRAY_HAIR_USER_IDS.includes(user.id) ? <StrayHair /> : null}
+    </>
   );
 }
