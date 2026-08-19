@@ -65,7 +65,20 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
-          pg_dump --version
+
+          # Installing the package is NOT enough. ubuntu-latest ships
+          # postgresql-client-common, whose pg_wrapper owns /usr/bin/pg_dump and
+          # dispatches to the DEFAULT cluster version -- which stays 16 even
+          # after 17 is installed alongside it. The first real run of this job
+          # failed exactly here: "server version: 17.6; pg_dump version: 16.15".
+          # Addressing the versioned binary directly is the only reliable fix.
+          echo "PG_BIN=/usr/lib/postgresql/17/bin" >> "$GITHUB_ENV"
+
+          # Fail now, loudly, rather than producing a dump against the wrong
+          # client and discovering it during a restore.
+          "/usr/lib/postgresql/17/bin/pg_dump" --version
+          "/usr/lib/postgresql/17/bin/pg_dump" --version | grep -q " 17\." \
+            || { echo "::error::pg_dump is not version 17."; exit 1; }
 
       - name: Dump the database
         env:
@@ -80,7 +93,7 @@ jobs:
           # single table from it, which a plain .sql dump cannot do.
           # --no-owner/--no-acl so it restores cleanly into a fresh project
           # whose roles differ from production's.
-          pg_dump "$DIRECT_URL" \
+          "$PG_BIN/pg_dump" "$DIRECT_URL" \
             --format=custom \
             --no-owner \
             --no-acl \
@@ -93,7 +106,7 @@ jobs:
           # reads the archive's table of contents and fails the job if the
           # dump is truncated or corrupt -- the difference between "we have
           # backups" and "we have backups that work".
-          pg_restore --list "rv-connect-$STAMP.dump" > /tmp/toc.txt
+          "$PG_BIN/pg_restore" --list "rv-connect-$STAMP.dump" > /tmp/toc.txt
           LINES=$(wc -l < /tmp/toc.txt)
           echo "archive lists $LINES objects"
           if [ "$LINES" -lt 50 ]; then
