@@ -1749,3 +1749,30 @@ restored CostBar with the live recovery fill, the fourteen-bird plate with the s
 contribution ₹500, payment success walking straight into /pick-bird (the /birds layout with
 selection and the sticky confirm), the pay-again-pick-again ledger on birdPickedAt, and the
 admin-only Change bird test door.
+
+---
+
+# A stray hair, for two accounts
+
+Not a feature. `StrayHair` puts one tapered strand on the screen for the two ids in
+`stray-hair-ids.ts`, and only when they are looking at their own profile. Empty that array and it
+is over; the gate sits on the server, so the component's chunk never reaches anyone else's bundle.
+
+Three things had to be true or it reads as a drawing rather than as dirt on the glass:
+
+- It is `fixed`, not absolute, so it does not scroll with the sheet. This is the whole illusion.
+- It is a filled tapered path (1px at the root, 0.75 at the middle, a point at the tip), not a
+  stroke, and a shallow S rather than an arc. The first pass was a symmetric dome and that was the
+  tell — nothing organic is a parabola, so it read as a pencil mark. Owner then called the strand
+  thick and blurry: root width came down from 1.6px and the blur from 0.3 to 0.12, with fill
+  opacity up 0.55 -> 0.68 to hold its presence at the thinner width.
+- It flees only while the cursor is CLOSING on it. Pushing on the receding half as well made a
+  swipe straight through cancel itself: measured 9px of travel where it now moves 46. An
+  incidental pass 95px away still only nudges it 4px, and that gap is what keeps it ambiguous.
+  The offset accumulates and never returns to origin, so there is no snap-back frame.
+
+Two gotchas worth keeping. Exporting the id array from the `"use client"` component gave the
+server component a client *reference*, so `.includes` was not a function and the page 500'd —
+`tsc` was perfectly happy, which is gotcha 3 in CLAUDE.md exactly. And this repo has no prettier
+config: running `prettier --write` on the profile page reformatted 321 lines to its 80-column
+defaults. Reverted and reapplied by hand; the page edit is a 9-line pure insertion.
