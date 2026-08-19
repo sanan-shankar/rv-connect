@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
+import { touchLastSeen } from "@/lib/last-seen";
 import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
 import { maskEmail } from "@/lib/mask-email";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
@@ -43,6 +44,10 @@ export default async function MainLayout({
       ? Promise.resolve(null)
       : verificationMailState(session.user.id),
     advanceDueCatchups(session.user.id),
+    // Records that this member was here, at most once every 15 minutes.
+    // Rides in this same Promise.all rather than awaiting separately: it is
+    // bookkeeping and must never add a serial round trip to page render.
+    touchLastSeen(session.user.id),
   ]);
 
   // The mail queue's tick. There is no cron on this project, so the queue is

@@ -1,0 +1,68 @@
+name: snapshot
+
+# Nightly metric snapshot into our own database.
+#
+# WHY: Sentry's free plan drops errors after 30 days, Vercel Analytics keeps 30,
+# PostHog keeps a year. None of them will say in 2028 what this site looked like
+# in 2026, and none of it is recoverable once dropped. This is the only thing
+# that accumulates that history, so a day it does not run is a day permanently
+# missing from every chart in /admin/analytics.
+#
+# Runs at 02:30 IST, half an hour after backup.yml, so the two never contend for
+# the same session-pooler connection.
+
+on:
+  schedule:
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 'Backfill a specific day (YYYY-MM-DD). Leave blank for today.'
+        required: false
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      # The collector needs `pg` and `dotenv` only, but npm ci is what
+      # guarantees the lockfile's versions. --ignore-scripts skips the Prisma
+      # generate on postinstall, which this script does not use and which would
+      # otherwise need a schema-valid datasource for nothing.
+      - run: npm ci --ignore-scripts
+
+      - name: Collect
+        env:
+          # Session pooler, same secret backup.yml uses.
+          DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+          # Every one of these is OPTIONAL. The collector skips a source it has
+          # no key for and still records everything else -- a vendor being
+          # unconfigured, down or rate-limited must never cost us the database
+          # numbers, which are the exact ones.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          # Provided automatically by Actions; no secret to create.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ -n "${{ inputs.day }}" ]; then
+            node scripts/ops/snapshot.mjs --day "${{ inputs.day }}"
+          else
+            node scripts/ops/snapshot.mjs
+          fi
+
+      - name: Report
+        run: echo "### Snapshot collected" >> "$GITHUB_STEP_SUMMARY"
