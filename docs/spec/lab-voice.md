@@ -19,6 +19,25 @@ So the bar is not "is this rigorous". The rooms were already rigorous. The bar i
 
 ---
 
+## The model is Delight, not Second look
+
+The owner made this explicit on 2026-08-19: a new room should feel like the
+rooms in the **Delight** group, not the ones in **Second look**.
+
+A Delight room is a thing to play with. The walking birds on the landing room.
+The heart you can actually click in Feedback moments. Five whole landing pages
+you flip between with a key. The room shows the work at full size and lets him
+poke it, and whatever prose exists is a caption under the thing.
+
+A Second look room is a memo with exhibits. Findings first, then numbers, then
+a filterable list. Those rooms did their job, but they are why he said lab "is
+just work for me to read". Do not model a new room on them.
+
+This does not ban audits. It changes their shape: lead with the live specimen
+misbehaving, put the fix right next to it so the eye can compare, and keep the
+write-up to what the specimen cannot say for itself. If a room would be mostly
+a findings list, it is not a room. It is a page in `docs/`.
+
 ## The reader
 
 One person. He knows the product better than you do, he has not read the file you
@@ -108,6 +127,8 @@ keep doing that.
 
 ## The checklist before you register a room
 
+- Would it sit comfortably in the Delight group? If it reads like a memo,
+  rebuild it around the specimen.
 - Read it aloud. If you run out of breath, the sentence is too long.
 - Would the owner know what to do after one pass? If not, cut until he would.
 - Is there anything to look at, or is it only prose?
