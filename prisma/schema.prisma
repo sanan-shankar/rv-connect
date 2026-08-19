@@ -47,6 +47,18 @@ model User {
   verifiedAt    DateTime?
   verifyMethod  String?   // office_list | community | admin_manual
   isBlocked     Boolean   @default(false)
+  // Bumped whenever this account's credentials or standing change: a password
+  // reset or change, a block, an unblock. The value is copied into the JWT at
+  // sign-in and compared on every session read, so raising it invalidates every
+  // token already in the wild.
+  //
+  // WHY: sessions are JWTs with no server-side store, so before this there was
+  // no way to end one. A phished member could reset their password and the
+  // attacker's cookie kept working for its full 30 days (audit M4); blocking
+  // somebody removed them from the directory but left them posting (audit H4).
+  // The same one column answers both, plus the deleted-account case, which is
+  // the only revocation primitive this design can have.
+  credentialVersion Int   @default(0)
   adminNote     String?
   theme         String?   // UI theme preference: "light" | "dark"; null = light (the default, so existing rows need no backfill). Mirrored into the rv-theme cookie (src/lib/theme.ts) for SSR.
   // Last time this member loaded an authenticated page, rounded to ~15 minutes

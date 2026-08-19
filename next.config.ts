@@ -97,6 +97,23 @@ export default withSentryConfig(analyzed, {
    * log is how real build errors get missed. */
   silent: true,
 
+  /* NO RELEASE PER DEPLOY. Owner, 2026-08-20: "don't let sentry send me
+   * emails for each commit or deployment... I don't need an email from them
+   * and blow up my inbox."
+   *
+   * A Sentry "release" is what a deploy notification is attached to, so not
+   * creating one is what actually stops the mail. Today this is already the
+   * effective behaviour, because release creation needs a SENTRY_AUTH_TOKEN
+   * and there is none -- but that makes the quiet accidental, and it would
+   * end the moment anybody added a token to turn source maps on. Stated
+   * explicitly so the two decisions stay independent.
+   *
+   * This cannot switch off mail Sentry sends from its own dashboard --
+   * new-issue alerts and the weekly summary are account settings, not build
+   * settings. Those live in Sentry under Settings > Notifications, and the
+   * Vercel-Sentry integration sends its own deploy mail from Vercel's side. */
+  release: { create: false, deploy: undefined },
+
   /* No browser SDK is initialised (server-only), so widening the client
    * upload would ship source maps for code Sentry never reports on. */
   widenClientFileUpload: false,

@@ -11,6 +11,7 @@ import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 import { requireVerifiedEmail } from "@/lib/email-verification";
+import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
  *  never as a throw: a post with a corrupt column should still delete, and
@@ -235,6 +236,13 @@ export async function votePoll(postId: string, optionId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  /* Voting is a write on somebody's post, so the same visibility the feed
+     query enforces applies here (audit H3). Checking that the option belongs
+     to the post, below, never established that the VIEWER belongs anywhere
+     near it. */
+  const visible = await canViewPost(postId, session.user);
+  if (!visible.ok) return { error: POST_NOT_VISIBLE };
+
   // Verify option belongs to post
   const option = await prisma.pollOption.findUnique({
     where: { id: optionId },
@@ -406,6 +414,9 @@ export async function toggleLike(postId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  const visible = await canViewPost(postId, session.user);
+  if (!visible.ok) return { error: POST_NOT_VISIBLE };
+
   const existing = await prisma.like.findUnique({
     where: {
       userId_postId: {
@@ -456,6 +467,12 @@ export async function toggleBookmark(postId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  /* Bookmarking is private, but it is still a durable reference to a post,
+     and loadSavedPosts re-applies the visibility rules when reading the list
+     back. Refusing at the point of saving keeps the two consistent. */
+  const visible = await canViewPost(postId, session.user);
+  if (!visible.ok) return { error: POST_NOT_VISIBLE };
+
   const existing = await prisma.bookmark.findUnique({
     where: { userId_postId: { userId: session.user.id, postId } },
     select: { id: true },
@@ -491,6 +508,12 @@ export async function createComment(formData: FormData) {
 
   const parsed = commentSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  /* The post has to be one this person may actually see. Without this a
+     non-member could comment inside a private Catch-up group holding nothing
+     but the post id, and raise a notification on the author as they did. */
+  const visible = await canViewPost(parsed.data.postId, session.user);
+  if (!visible.ok) return { error: POST_NOT_VISIBLE };
 
   // If replying to a reply, redirect to the parent comment (enforce 1-level depth)
   let parentId = parsed.data.parentId || null;
@@ -958,6 +981,9 @@ export async function toggleCommentLike(commentId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  const visible = await canViewPostOfComment(commentId, session.user);
+  if (!visible.ok) return { error: POST_NOT_VISIBLE };
+
   const existing = await prisma.commentLike.findUnique({
     where: {
       userId_commentId: {
@@ -1022,6 +1048,14 @@ export async function loadComments(
   if (!session?.user?.id) return { comments: [], nextCursor: null, hasMore: false };
   const userId = session.user.id;
   const viewerIsAdmin = session.user.role === "admin";
+
+  /* Requiring a session was only half of it. This returned every comment on
+     any post id -- content, author name, photo, batch -- for private-group
+     and city-scoped posts the caller had no access to. An empty page is the
+     right answer, and it is the same answer a post that does not exist gives,
+     so this cannot be used to discover which ids are real. */
+  const visible = await canViewPost(postId, session.user);
+  if (!visible.ok) return { comments: [], nextCursor: null, hasMore: false };
 
   const take = Math.min(Math.max(opts?.take ?? 10, 1), 50);
 

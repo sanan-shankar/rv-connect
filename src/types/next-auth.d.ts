@@ -3,6 +3,12 @@ import "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
+    /** Set by the session callback when the token is cryptographically valid
+     *  but no longer stands for a session: the row is gone, the member is
+     *  blocked, or credentialVersion has moved on. The auth() wrapper in
+     *  src/lib/auth.ts turns this into null, so application code never sees a
+     *  session carrying it. */
+    invalid?: boolean;
     user: {
       id: string;
       name: string;
@@ -32,6 +38,9 @@ declare module "next-auth" {
 
   interface User {
     role?: string;
+    /** Copied into the JWT at sign-in so the session callback can compare it
+     *  against the row on every read. */
+    credentialVersion?: number;
     accountType?: string;
     verifyState?: string;
     batchType?: string | null;
@@ -46,6 +55,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     role?: string;
+    credentialVersion?: number;
     batchType?: string | null;
     batchYear?: number | null;
     avatarColor?: string | null;

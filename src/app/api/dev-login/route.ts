@@ -116,6 +116,12 @@ export async function POST(req: NextRequest) {
       id: user.id,
       /* Whatever the row says. Never an elevation. */
       role: user.role,
+      /* Must match the row, exactly as the real sign-in path does: the
+         session callback compares this on every read and drops the session on
+         a mismatch. A tooling token minted without it would be invalid the
+         moment it was used against any account that had ever reset a
+         password or been blocked. */
+      credentialVersion: user.credentialVersion,
       batchType: user.batchType,
       batchYear: user.batchYear,
       avatarColor: user.avatarColor,

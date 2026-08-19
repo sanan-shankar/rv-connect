@@ -14,7 +14,17 @@ import { prisma } from "@/lib/prisma";
  *  and a wrong PASSWORD.
  * ------------------------------------------------------------------ */
 
-export type LoginReason = "ok" | "no-account" | "no-password-set" | "wrong-password";
+/* "blocked" was added 2026-08-20 with audit H4. It is deliberately a distinct
+   reason rather than folding into "wrong-password": a blocked member typing
+   their correct password is a very different event from a stranger guessing,
+   and the analytics room's "who cannot sign in" panel is the one place the
+   owner would ever notice somebody locked out who should not be. */
+export type LoginReason =
+  | "ok"
+  | "no-account"
+  | "no-password-set"
+  | "wrong-password"
+  | "blocked";
 
 export function recordLoginAttempt(input: {
   email: string;

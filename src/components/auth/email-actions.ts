@@ -221,6 +221,12 @@ export async function resetPassword(input: {
       // found the original welcome mail is fixed by the very act of proving
       // they can read the inbox.
       emailVerified: new Date(),
+      /* Ends every session already signed in on this account (audit M4).
+         Without it, a reset burned the outstanding reset LINKS below and left
+         the attacker's actual session cookie working for its full 30 days --
+         so the one action a phished member takes to save themselves did not
+         touch the thing that had been stolen. */
+      credentialVersion: { increment: 1 },
     },
   });
 

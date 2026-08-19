@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildDirectoryWhere, directoryOrderBy, type DirectoryFilters } from "./where";
 
@@ -43,6 +44,20 @@ export async function loadDirectoryPage({
   filters: DirectoryFilters;
   cursor: string | null;
 }): Promise<{ users: DirectoryUser[]; nextCursor: string | null }> {
+  /* This was the one "use server" action in the codebase with no auth() call
+     at all (audit H1), and it returns the complete membership roll of a
+     private community -- name, batch, city, employer, job title -- sixty at a
+     time, with a caller-supplied cursor and caller-controlled filters. The
+     page that renders it does call auth(), but a server action is a POST
+     endpoint that Next will dispatch on its own, independently of the page,
+     and proxy.ts only checks that a session cookie is PRESENT, never that it
+     is valid. So the page's guard was never this action's guard.
+
+     Phase 3 raises this to the member gate, since reading names is a Stage 1
+     capability under the new trust model. Being signed in at all is the floor. */
+  const session = await auth();
+  if (!session?.user?.id) return { users: [], nextCursor: null };
+
   const where = buildDirectoryWhere(filters);
   const orderBy = directoryOrderBy(filters.sort);
 
