@@ -56,6 +56,7 @@ model User {
   // discovered missing afterwards.
   lastSeenAt    DateTime?
   visits        Visit[]
+  searches      SearchLog[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -867,6 +868,12 @@ model Visit {
   // a per-view table is a firehose that answers little more, and PostHog
   // already holds the full path-by-path journey.
   lastPath String?
+  // The FIRST page of the visit. The pair (entryPath, lastPath) is the cheap
+  // version of a journey: where people come in and where they stop.
+  entryPath String?
+  // Where they came from, host only. The full URL would carry query strings
+  // (search terms, tracking ids) belonging to somebody else's site.
+  referrer String?
 
   // Parsed from the user agent, coarse on purpose. "phone | tablet | desktop"
   // is what answers "are the older alumni on phones"; the exact model is not
@@ -874,11 +881,20 @@ model Visit {
   device  String?
   os      String?
   browser String?
+  // Browser UI language, e.g. "en-GB". The one honest signal about whether
+  // anyone needs this site in another language.
+  language String?
 
   // From Vercel's edge headers, which cost nothing -- they are on every
-  // request already. Absent in local development, so both are nullable.
-  country String?
-  city    String?
+  // request already. Absent in local development, so all are nullable.
+  country  String?
+  city     String?
+  region   String?
+  timezone String?
+  // Coarse coordinates from the same headers. Enough to put a visit on the
+  // directory's existing map; never a street address.
+  lat      Float?
+  lng      Float?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -887,4 +903,34 @@ model Visit {
   // One person's history, and the lookup that decides whether to extend the
   // current visit or open a new one.
   @@index([userId, endedAt])
+}
+
+// ─── What people look for ───────────────────────────────────────────────────
+//
+// The owner asked for "the most common searches" in the session that
+// commissioned the analytics room, and nothing recorded them: the header pill
+// submits to /feed?q= and the directory filters in the browser, so every query
+// anyone has ever typed was thrown away.
+//
+// The query text is stored as typed. That is the entire point -- "what are
+// people failing to find" cannot be answered by a count -- and it is covered
+// by the same disclosure as the rest of the presence data.
+model SearchLog {
+  id     String  @id @default(cuid())
+  userId String?
+
+  // "feed" | "directory" | "people" | "places"
+  scope String
+  query String
+  // How many rows came back. A query with zero results is the useful one: it
+  // is somebody looking for a person or a place this site could not show them.
+  results Int?
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // "What is searched most", and the zero-result list.
+  @@index([scope, createdAt])
+  @@index([query])
 }

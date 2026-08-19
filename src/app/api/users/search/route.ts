@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { insensitive } from "@/lib/db-text";
+import { logSearch } from "@/lib/search-log";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -43,6 +44,16 @@ export async function GET(req: NextRequest) {
       accountType: true,
     },
     take: 8,
+  });
+
+  /* Recorded here rather than in the browser: this endpoint already knows the
+     query AND how many rows it found, and a zero-result search is the useful
+     one -- somebody looking for a person this site could not show them. */
+  void logSearch({
+    scope: "people",
+    query: q,
+    userId: session.user.id,
+    results: users.length,
   });
 
   return NextResponse.json(users);

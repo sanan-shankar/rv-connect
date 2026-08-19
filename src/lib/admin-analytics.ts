@@ -479,3 +479,94 @@ export async function loadPresence() {
     byPath: byPath.map((p) => ({ label: p.lastPath ?? "unknown", value: p._count._all })),
   };
 }
+
+/* ---------------------------------------------------------------- *
+ *  What people look for, and where they arrive from
+ * ---------------------------------------------------------------- */
+
+export async function loadSearches() {
+  const since = new Date(Date.now() - 90 * 86_400_000);
+
+  const [top, byScope, empty, recent, total] = await Promise.all([
+    prisma.searchLog.groupBy({
+      by: ["query"],
+      _count: { _all: true },
+      where: { createdAt: { gte: since } },
+      orderBy: { _count: { query: "desc" } },
+      take: 12,
+    }),
+    prisma.searchLog.groupBy({
+      by: ["scope"],
+      _count: { _all: true },
+      where: { createdAt: { gte: since } },
+      orderBy: { _count: { scope: "desc" } },
+    }),
+    /* The list worth acting on: searches that found NOTHING. Each one is a
+     * person looking for someone or somewhere this site could not show them. */
+    prisma.searchLog.groupBy({
+      by: ["query"],
+      _count: { _all: true },
+      where: { createdAt: { gte: since }, results: 0 },
+      orderBy: { _count: { query: "desc" } },
+      take: 10,
+    }),
+    prisma.searchLog.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { query: true, scope: true, results: true, createdAt: true },
+    }),
+    prisma.searchLog.count({ where: { createdAt: { gte: since } } }),
+  ]);
+
+  return {
+    total,
+    top: top.map((r) => ({ label: r.query, value: r._count._all })),
+    byScope: byScope.map((r) => ({ label: r.scope, value: r._count._all })),
+    empty: empty.map((r) => ({ label: r.query, value: r._count._all })),
+    recent,
+  };
+}
+
+/** Where visits begin, and what sent people here. */
+export async function loadArrivals() {
+  const since = new Date(Date.now() - 30 * 86_400_000);
+
+  const [entry, referrer, language, region] = await Promise.all([
+    prisma.visit.groupBy({
+      by: ["entryPath"],
+      _count: { _all: true },
+      where: { startedAt: { gte: since }, entryPath: { not: null } },
+      orderBy: { _count: { entryPath: "desc" } },
+      take: 10,
+    }),
+    prisma.visit.groupBy({
+      by: ["referrer"],
+      _count: { _all: true },
+      where: { startedAt: { gte: since }, referrer: { not: null } },
+      orderBy: { _count: { referrer: "desc" } },
+      take: 8,
+    }),
+    prisma.visit.groupBy({
+      by: ["language"],
+      _count: { _all: true },
+      where: { startedAt: { gte: since }, language: { not: null } },
+      orderBy: { _count: { language: "desc" } },
+      take: 8,
+    }),
+    prisma.visit.groupBy({
+      by: ["region"],
+      _count: { _all: true },
+      where: { startedAt: { gte: since }, region: { not: null } },
+      orderBy: { _count: { region: "desc" } },
+      take: 10,
+    }),
+  ]);
+
+  return {
+    entry: entry.map((r) => ({ label: r.entryPath ?? "unknown", value: r._count._all })),
+    referrer: referrer.map((r) => ({ label: r.referrer ?? "direct", value: r._count._all })),
+    language: language.map((r) => ({ label: r.language ?? "unknown", value: r._count._all })),
+    region: region.map((r) => ({ label: r.region ?? "unknown", value: r._count._all })),
+  };
+}

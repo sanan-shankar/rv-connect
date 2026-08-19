@@ -1,3 +1,4 @@
+import { logSearch } from "@/lib/search-log";
 import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -21,6 +22,14 @@ export default async function FeedPage({
   if (!session?.user) return null;
 
   const { q } = await searchParams;
+
+  /* The header pill submits here, so this is where a feed search becomes
+     visible. Not awaited: the feed must render at the same speed whether or
+     not a statistics row lands. */
+  if (q) {
+    const s = await auth();
+    void logSearch({ scope: "feed", query: q, userId: s?.user?.id });
+  }
 
   const [unreadCount, userPlaces] = await Promise.all([
     prisma.notification.count({
