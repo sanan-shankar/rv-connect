@@ -94,7 +94,10 @@ while iterating: `npm run check -- lint`. Details and how to read a failure: `.c
     for every later call. `--isolated` gives a fresh profile, so redo it if the browser restarts.
   - First hit of a cold route outruns the 10s default. Pass `timeout: 45000`.
   - The **scripts** still own what must repeat without you: `npm run check` gates, sweeps across many
-    routes (`verify:crawl`, `theme-shots`), and the numbered PNGs the two-round compare reads.
+    routes (`verify:crawl`, `theme-shots`), the numbered PNGs the two-round compare reads, and the
+    Playwright specs in `e2e/`. The division of labour: **the MCP finds the answer, Playwright
+    remembers it** — never use a Playwright run as the way to discover what the page is doing
+    (gotcha 7 below).
 
 Both load at session start. If a tool is missing, the dev server is probably not running.
 
@@ -193,6 +196,15 @@ for the shots that go on the record and for sweeps; the MCP is for the measuring
    infer the style from whichever room you read last. That is how every room ended up opening with a
    stats scoreboard it had no numbers for. Short sentences, plain words, something to actually look
    at, and a stats block only when the numbers are the finding.
+7. **A Playwright spec is written after the answer is known, never as the way to find it.** The
+   2026-08-19 sidebar test burned three failed rounds re-running the suite to debug locators while
+   `chrome-devtools` sat there with the same page open. Reproduce the behaviour in the MCP first
+   (click it, read the rects, watch the DOM), and only then write the spec that pins the number you
+   already saw. When writing one against this UI, two locator traps are known: the mobile drawer
+   renders the same components again through a Radix portal, so scope every locator to the desktop
+   rail (`page.locator("aside").first()`), and a node mid exit-animation still answers
+   `toBeVisible()`, so animated UI is asserted on **geometry with `expect.poll`**, not element
+   presence. `e2e/sidebar.spec.ts` is the worked example of both.
 
 # Reference images
 
