@@ -49,6 +49,12 @@ model User {
   isBlocked     Boolean   @default(false)
   adminNote     String?
   theme         String?   // UI theme preference: "light" | "dark"; null = light (the default, so existing rows need no backfill). Mirrored into the rv-theme cookie (src/lib/theme.ts) for SSR.
+  // Last time this member loaded an authenticated page, rounded to ~15 minutes
+  // (src/lib/last-seen.ts). THE ONE QUESTION THE DATABASE COULD NOT ANSWER:
+  // "who is still using this". Impossible to backfill -- there is no history to
+  // recover -- so it was added the day the analytics room was built rather than
+  // discovered missing afterwards.
+  lastSeenAt    DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -794,4 +800,38 @@ model Contribution {
 
   @@index([status, createdAt])
   @@index([userId])
+}
+
+// ─── Metric snapshots: the history the vendors will not keep ────────────────
+//
+// Sentry's free plan drops errors after 30 days. Vercel Analytics keeps 30.
+// PostHog keeps a year. None of them will tell you in 2028 what the site
+// looked like in 2026, and none of it can be recovered once dropped.
+//
+// A nightly job (scripts/ops/snapshot.mjs) writes one row per metric per day
+// into OUR database, from every source at once. The admin room then reads only
+// this table: fast, no API keys at page load, no vendor rate limit, and a
+// history that outlives every free tier it was collected from.
+//
+// Key-value rather than a wide table on purpose. A new metric is a new string,
+// not a migration, and this list is certain to grow.
+model MetricSnapshot {
+  id String @id @default(cuid())
+
+  // The UTC day this describes. Date, not timestamp: two runs on one day must
+  // collide and overwrite rather than quietly double-count.
+  day    DateTime @db.Date
+  // "db" | "sentry" | "posthog" | "github"
+  source String
+  // Dotted, e.g. "members.total", "letters.published", "errors.unresolved".
+  metric String
+  // Float, so a count and a conversion rate can share one column.
+  value  Float
+
+  capturedAt DateTime @default(now())
+
+  // The idempotency key: re-running today's collection updates today's row.
+  @@unique([day, source, metric])
+  // The room's read: one metric's line over time.
+  @@index([source, metric, day])
 }
