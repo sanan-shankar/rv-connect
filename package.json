@@ -19,7 +19,8 @@
     "visual": "playwright test -c e2e/playwright.config.ts --project=desktop --project=mobile visual.spec.ts",
     "visual:update": "playwright test -c e2e/playwright.config.ts --project=desktop --project=mobile visual.spec.ts --update-snapshots",
     "visual:report": "playwright show-report e2e/.report",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "ANALYZE=true next build",
+    "audit:status": "node scripts/qa/audit-status.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
