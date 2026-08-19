@@ -74,6 +74,17 @@ pg_restore --clean --if-exists --no-owner --no-acl --dbname "$DIRECT_URL" rv-con
 ```
 Rehearse against staging, never straight at production.
 
+The same workflow's **`media` job** copies every object in `rv-alumni-media` into the
+private bucket under `media/`, server-side, **never with `--delete`**. This is the photo
+archive's undelete: Cloudflare R2 has no object versioning on any plan, so the security
+audit's "enable versioning" remediation (C2/C4) is impossible as written and this
+scheduled copy is its named fallback. A photo deleted from the live bucket survives in
+the backup until deliberately removed there. The job fails if the backup ever holds
+fewer objects than the live bucket. Restore one photo:
+```
+aws s3 cp "s3://$R2_BACKUP_BUCKET/media/<key>" "s3://rv-alumni-media/<key>" --endpoint-url "https://<account-id>.r2.cloudflarestorage.com"
+```
+
 ### Minute budget
 Private repos get **2,000 free minutes a month** and the account spending limit is **$0 by
 default**, so exhausting them stops runs rather than producing a bill. Expected usage is

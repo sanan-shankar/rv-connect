@@ -1,18 +1,31 @@
 name: backup
 
-# Nightly pg_dump of the Supabase database to a PRIVATE R2 bucket.
+# Nightly pg_dump of the Supabase database to a PRIVATE R2 bucket, plus a
+# nightly copy of the media bucket into that same private bucket.
 #
-# WHY: Supabase's free plan has no automatic backups and no point-in-time
-# recovery -- their own docs tell free-tier projects to dump it themselves.
-# One database serves both production and local dev (AGENTS.md), and
-# CLAUDE.md documents that `prisma db push` will try to DROP tables it thinks
-# are orphaned. Until this job existed, a single bad command destroyed every
-# member's profile, letters, photos and contribution records with no way back.
+# WHY (database): Supabase's free plan has no automatic backups and no
+# point-in-time recovery -- their own docs tell free-tier projects to dump it
+# themselves. One database serves both production and local dev (AGENTS.md),
+# and CLAUDE.md documents that `prisma db push` will try to DROP tables it
+# thinks are orphaned. Until this job existed, a single bad command destroyed
+# every member's profile, letters, photos and contribution records with no
+# way back.
+#
+# WHY (media): Cloudflare R2 has no object versioning -- the feature simply
+# does not exist, so the security audit's "enable versioning" remediation
+# (C2/C4) is impossible as written. This is its fallback, the one the audit
+# doc itself names: a scheduled copy to a second bucket. The sync deliberately
+# never passes --delete, so a photo deleted from rv-alumni-media -- including
+# by the C2 arbitrary-delete bug -- survives here until someone consciously
+# removes it from the backup too.
 #
 # Restore, when you need it:
 #   pg_restore --clean --if-exists --no-owner --no-acl \
 #     --dbname "$DIRECT_URL" rv-connect-YYYY-MM-DD.dump
 # Rehearse that against the staging database, never straight at production.
+# A lost photo comes back with:
+#   aws s3 cp "s3://$BACKUP_BUCKET/media/<key>" "s3://rv-alumni-media/<key>" \
+#     --endpoint-url "https://<account-id>.r2.cloudflarestorage.com"
 
 on:
   schedule:
@@ -163,3 +176,70 @@ jobs:
 
       - name: Report
         run: echo "### Backup ${{ env.STAMP }} verified and uploaded" >> "$GITHUB_STEP_SUMMARY"
+
+  media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Refuse to sync into a public bucket
+        env:
+          BACKUP_BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+        run: |
+          # Same guard as the database job: the destination must be the
+          # private backup bucket, never anything public-facing.
+          if [ -z "$BACKUP_BUCKET" ]; then
+            echo "::error::R2_BACKUP_BUCKET is not set."
+            exit 1
+          fi
+          case "$BACKUP_BUCKET" in
+            rv-alumni-media|*media*|*public*)
+              echo "::error::R2_BACKUP_BUCKET is '$BACKUP_BUCKET', which looks like the PUBLIC media bucket."
+              echo "::error::Backups must go to a separate PRIVATE bucket. Refusing to run."
+              exit 1
+              ;;
+          esac
+          echo "Sync target: $BACKUP_BUCKET (private)"
+
+      - name: Copy new photos to the private bucket
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+        run: |
+          # R2 offers no object versioning, so this copy IS the photo
+          # archive's undelete (audit C2/C4). Bucket-to-bucket sync copies
+          # server-side inside Cloudflare; nothing streams through the runner.
+          #
+          # NO --delete, ever: a deletion in the media bucket must never reach
+          # the backup. That asymmetry is the entire point of the job. The
+          # backup only grows; at WebP sizes that stays far under R2's free
+          # tier for years.
+          aws s3 sync "s3://rv-alumni-media" "s3://$BUCKET/media/" \
+            --endpoint-url "$ENDPOINT" --no-progress
+
+      - name: Verify the backup holds at least everything live
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+        run: |
+          # The backup may hold MORE objects than the live bucket (that means
+          # it preserved something that was deleted -- working as intended).
+          # It may never hold fewer.
+          LIVE=$(aws s3 ls "s3://rv-alumni-media" --recursive --endpoint-url "$ENDPOINT" | wc -l | tr -d ' ')
+          SAVED=$(aws s3 ls "s3://$BUCKET/media/" --recursive --endpoint-url "$ENDPOINT" | wc -l | tr -d ' ')
+          echo "live: $LIVE objects, backup: $SAVED objects"
+          if [ "$SAVED" -lt "$LIVE" ]; then
+            echo "::error::Backup holds $SAVED objects but the live bucket holds $LIVE. Sync is incomplete."
+            exit 1
+          fi
+          echo "### Media backup: $SAVED objects (live bucket: $LIVE)" >> "$GITHUB_STEP_SUMMARY"
