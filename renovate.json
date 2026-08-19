@@ -1,0 +1,78 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+
+  "_comment": [
+    "Dependency updates, batched weekly. The floor under this project moves",
+    "fast -- Next 16, Prisma 7, and next-auth on a 5.0.0-beta -- and until now",
+    "nothing tracked it. The settings below exist to keep this from becoming",
+    "notification noise the owner learns to ignore, which is the usual way a",
+    "bot like this stops working."
+  ],
+
+  "timezone": "Asia/Kolkata",
+  "schedule": ["* 0-6 * * 1"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+
+  "labels": ["dependencies"],
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "chore(deps):",
+
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 0-6 1 * *"]
+  },
+
+  "packageRules": [
+    {
+      "description": "Routine patch/minor bumps arrive as ONE pull request a week, not thirty. Nothing here should need individual review.",
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "weekly patch and minor",
+      "automerge": false
+    },
+    {
+      "description": "Majors get their own PR each: these are the ones that break a build, and batching them makes the culprit impossible to identify.",
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "addLabels": ["major"]
+    },
+    {
+      "description": "The framework spine moves together or not at all. Next and its eslint config disagreeing on version is a known way to get confusing lint failures.",
+      "matchPackageNames": ["next", "eslint-config-next", "@next/**"],
+      "groupName": "next.js"
+    },
+    {
+      "description": "Prisma's client and CLI MUST share a version -- a mismatch produces a generated client that does not match the schema, which typechecks and then fails at runtime.",
+      "matchPackageNames": ["prisma", "@prisma/**"],
+      "groupName": "prisma"
+    },
+    {
+      "description": "React and its DOM package are pinned exactly in package.json (19.2.4, no caret). Renovate respects that; this rule keeps them in one PR so they can never drift apart.",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "groupName": "react"
+    },
+    {
+      "description": "next-auth is on a 5.0.0-beta. Betas can change shape between patch releases, so this one is never grouped and never quiet: auth breaking is the worst failure this site has.",
+      "matchPackageNames": ["next-auth", "@auth/**"],
+      "groupName": null,
+      "addLabels": ["auth", "review-carefully"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Playwright's npm package and its downloaded browsers must match, and a bump means re-running the visual baselines. Held a week so a bad release is yanked before it lands here.",
+      "matchPackageNames": ["@playwright/test", "playwright"],
+      "groupName": "playwright",
+      "addLabels": ["run npm run visual after merging"],
+      "minimumReleaseAge": "7 days"
+    }
+  ],
+
+  "vulnerabilityAlerts": {
+    "description": "Security fixes ignore the weekly schedule and arrive immediately.",
+    "labels": ["security"],
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
+  }
+}

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withBundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
@@ -36,4 +37,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/* `npm run analyze` opens a treemap of what is actually in the client bundle.
+ * Dev-only and opt-in: without ANALYZE=true this wrapper is a no-op, so it
+ * costs members nothing and does not touch a normal build.
+ *
+ * Worth having because this project already holds the principle -- "parked
+ * code should not ride in bundles it is not used by" (progress.md, on moving
+ * wood.tsx out of the app shell) -- and had no way to check it beyond
+ * reasoning about imports. optimizePackageImports above is a bet about
+ * @phosphor-icons/react tree-shaking that nothing has ever confirmed. */
+export default withBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+})(nextConfig);
