@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { logSearch } from "@/lib/search-log";
 
 /**
  * GET /api/places/search?q=<text>
@@ -113,6 +114,13 @@ export async function GET(req: NextRequest) {
     ...row,
     label: formatLabel(row),
   }));
+
+  void logSearch({
+    scope: "places",
+    query: raw,
+    userId: session?.user?.id,
+    results: results.length,
+  });
 
   return NextResponse.json(results);
 }

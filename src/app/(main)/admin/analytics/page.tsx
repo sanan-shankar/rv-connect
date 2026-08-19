@@ -6,7 +6,9 @@ import {
   loadGeography,
   loadMail,
   loadPeople,
+  loadArrivals,
   loadPresence,
+  loadSearches,
   loadSupport,
   loadTrends,
 } from "@/lib/admin-analytics";
@@ -44,7 +46,8 @@ export const dynamic = "force-dynamic";
  * ------------------------------------------------------------------ */
 
 export default async function AdminAnalyticsPage() {
-  const [trends, people, geo, content, catchups, support, mail, presence] = await Promise.all([
+  const [trends, people, geo, content, catchups, support, mail, presence, searches, arrivals] =
+    await Promise.all([
     loadTrends(90),
     loadPeople(),
     loadGeography(),
@@ -53,6 +56,8 @@ export default async function AdminAnalyticsPage() {
     loadSupport(),
     loadMail(),
     loadPresence(),
+    loadSearches(),
+    loadArrivals(),
   ]);
 
   const t = (key: string) => trends.get(key);
@@ -289,6 +294,62 @@ export default async function AdminAnalyticsPage() {
           </Panel>
           <Panel title="Where visits end" note="The last page of a visit, which is where people stop">
             <BarList items={presence.byPath} empty="No visits recorded yet." />
+          </Panel>
+        </div>
+      </Section>
+
+      <Section title="What people look for">
+        <StatGrid
+          stats={[
+            {
+              label: "Searches",
+              value: searches.total,
+              hint: "in the last 90 days",
+            },
+            {
+              label: "Found nothing",
+              value: searches.empty.reduce((n, e) => n + e.value, 0),
+              hint: "somebody looking for what is not here",
+              tone: searches.empty.length > 0 ? "warn" : undefined,
+            },
+            {
+              label: "Arrived from elsewhere",
+              value: arrivals.referrer.reduce((n, r) => n + r.value, 0),
+              hint: "visits with a referring site",
+            },
+            {
+              label: "Languages seen",
+              value: arrivals.language.length,
+              hint: "browser UI language",
+            },
+          ]}
+        />
+        <div className="grid items-start gap-2 lg:grid-cols-3">
+          <Panel title="Most searched" note="Every scope, last 90 days">
+            <BarList items={searches.top} empty="Nothing searched yet." />
+          </Panel>
+          <Panel
+            title="Found nothing"
+            note="The list worth acting on: someone looked for this and the site had none of it"
+          >
+            <BarList items={searches.empty} empty="Every search found something." />
+          </Panel>
+          <Panel title="Where they search" note="Which box was used">
+            <BarList items={searches.byScope} empty="Nothing searched yet." />
+          </Panel>
+        </div>
+        <div className="grid items-start gap-2 lg:grid-cols-4">
+          <Panel title="Visits begin at" note="First page of a visit">
+            <BarList items={arrivals.entry} empty="No visits recorded yet." />
+          </Panel>
+          <Panel title="Sent here by" note="Referring site, host only">
+            <BarList items={arrivals.referrer} empty="Everyone arrived directly." />
+          </Panel>
+          <Panel title="Language">
+            <BarList items={arrivals.language} empty="No visits recorded yet." />
+          </Panel>
+          <Panel title="Region" note="State or province, from the edge">
+            <BarList items={arrivals.region} empty="No visits recorded yet." />
           </Panel>
         </div>
       </Section>

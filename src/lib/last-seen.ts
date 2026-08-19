@@ -84,10 +84,25 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
      * lookup and no third party. Absent locally, which is why both are
      * nullable and why a dev row simply has no city. */
     const country = h.get("x-vercel-ip-country");
-    const city = h.get("x-vercel-ip-city");
     /* Percent-encoded by Vercel (e.g. "New%20Delhi"), and a malformed value
      * must not take the page down. */
-    const cityName = city ? safeDecode(city) : null;
+    const cityName = safeDecode(h.get("x-vercel-ip-city"));
+    const region = safeDecode(h.get("x-vercel-ip-country-region"));
+    const timezone = h.get("x-vercel-ip-timezone");
+    const lat = num(h.get("x-vercel-ip-latitude"));
+    const lng = num(h.get("x-vercel-ip-longitude"));
+
+    /* Host only. The full referring URL carries query strings -- somebody
+     * else's search terms and tracking ids -- which are not ours to keep, and
+     * "where do people arrive from" only ever needed the domain. Same-origin
+     * referrers are dropped: every internal navigation would otherwise report
+     * this site as its own source and drown the one interesting row. */
+    const referrer = refererHost(h.get("referer"), h.get("host"));
+
+    /* First tag only: "en-GB,en;q=0.9,hi;q=0.8" is a preference list, and the
+     * question ("does anyone need this in another language") wants the top
+     * choice, not the whole negotiation. */
+    const language = h.get("accept-language")?.split(",")[0]?.trim() || null;
 
     const gapCutoff = new Date(now.getTime() - SESSION_GAP_MIN * 60 * 1000);
 
@@ -113,8 +128,16 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
               device,
               os,
               browser,
+              language: language ?? undefined,
               country: country ?? undefined,
               city: cityName ?? undefined,
+              region: region ?? undefined,
+              timezone: timezone ?? undefined,
+              lat: lat ?? undefined,
+              lng: lng ?? undefined,
+              /* entryPath and referrer are NOT refreshed: they describe how
+                 this visit began, and overwriting them on every page view
+                 would turn "where people arrive" into "where they are now". */
             },
           })
         : prisma.visit.create({
@@ -124,11 +147,18 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
               endedAt: now,
               views: 1,
               lastPath: path ?? null,
+              entryPath: path ?? null,
+              referrer,
               device,
               os,
               browser,
+              language,
               country,
               city: cityName,
+              region,
+              timezone,
+              lat,
+              lng,
             },
           }),
 
@@ -155,10 +185,28 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
   }
 }
 
-function safeDecode(v: string): string {
+function safeDecode(v: string | null): string | null {
+  if (!v) return null;
   try {
     return decodeURIComponent(v);
   } catch {
     return v;
+  }
+}
+
+function num(v: string | null): number | null {
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** The referring host, or null for same-origin and unparseable values. */
+function refererHost(referer: string | null, host: string | null): string | null {
+  if (!referer) return null;
+  try {
+    const h = new URL(referer).host;
+    return h && h !== host ? h : null;
+  } catch {
+    return null;
   }
 }
