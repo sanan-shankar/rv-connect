@@ -1830,3 +1830,20 @@ room must not be modelled on one. Audits keep their rigour but change shape, spe
 fix beside it. The pre-registration checklist gained the matching question.
 
 Commits: 6730e14 (CLAUDE.md), 28ad1bb (lab-voice.md). `npm run check` clean, 15/15 tests.
+
+Session outcome (2026-08-19, night): audit item A2 resolved without the owner.
+
+The owner went looking for "Object versioning" in the R2 dashboard and could not find it,
+because Cloudflare R2 does not have object versioning on any plan — the audit's "enable
+versioning today" remediation for C2/C4 was impossible as written. A2 anticipated this and
+named its own fallback, which is now built: `backup.yml` gained a `media` job that copies
+`rv-alumni-media` server-side into the private backup bucket every night, never with
+`--delete`, so a deleted photo — including via the C2 arbitrary-delete bug — survives in the
+backup. The job refuses public destinations (same guard as the dump job) and fails if the
+backup ever holds fewer objects than the live bucket. A2 rewritten as done in
+OWNER-INPUT-REQUIRED.md, PDF regenerated, OPERATIONS.md records the single-photo restore
+command. One open question the first run will answer: whether the R2 token in GitHub secrets
+can read the media bucket, or is scoped to the backup bucket only.
+
+Commit: f8aeb76. `npm run check` clean, 15/15 tests. Not yet pushed — needs the owner's
+go-ahead, then a manual Actions run to prove the media job end to end.
