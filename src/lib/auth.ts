@@ -62,6 +62,16 @@ const nextAuth = NextAuth({
           return null;
         }
 
+        /* A blocked member may not sign in. Until now `isBlocked` was read by
+           six list queries and by nothing else -- not here, not in the session
+           callback, not in any write path -- so blocking somebody removed them
+           from the directory and left them posting, commenting, uploading and
+           messaging exactly as before (audit H4). The block starts at the door. */
+        if (user.isBlocked) {
+          recordLoginAttempt({ email, ok: false, reason: "blocked", userId: user.id });
+          return null;
+        }
+
         recordLoginAttempt({ email, ok: true, reason: "ok", userId: user.id });
         return {
           id: user.id,
@@ -71,6 +81,13 @@ const nextAuth = NextAuth({
           batchType: user.batchType,
           batchYear: user.batchYear,
           avatarColor: user.avatarColor,
+          /* MUST be carried, or the epoch check below rejects the very token
+             this call is minting. Anyone who had ever reset their password
+             would sign in successfully, receive a token stamped 0, be compared
+             against a row reading 1, and be thrown straight back out -- every
+             time, permanently. Caught by the Phase 2 behavioural probe; the
+             static checks were perfectly happy with it. */
+          credentialVersion: user.credentialVersion,
         };
       },
     }),
@@ -89,6 +106,11 @@ const nextAuth = NextAuth({
         token.batchType = user.batchType;
         token.batchYear = user.batchYear;
         token.avatarColor = user.avatarColor;
+        /* Stamped at sign-in and compared on every session read. Tokens minted
+           before this claim existed carry undefined, which reads as 0 below --
+           the same value every existing row was backfilled with -- so shipping
+           this signs nobody out. */
+        token.credentialVersion = user.credentialVersion ?? 0;
       }
       return token;
     },
@@ -102,6 +124,8 @@ const nextAuth = NextAuth({
             role: true,
             accountType: true,
             verifyState: true,
+            isBlocked: true,
+            credentialVersion: true,
             emailVerified: true,
             email: true,
             batchType: true,
@@ -112,6 +136,25 @@ const nextAuth = NextAuth({
             birdOverride: true,
           },
         });
+        /* Three ways a token that verifies cryptographically is still not a
+           session any more. Each returns an INVALID marker rather than a
+           patched-up session, and the auth() wrapper below turns that into
+           null -- so every one of the ~86 `if (!session?.user?.id)` guards
+           refuses, with no per-action change needed.
+
+             row gone       the account was deleted. The old code skipped the
+                            branch but still RETURNED the session with an id
+                            set from the JWT, so every guard passed and a
+                            deleted account kept browsing for 30 days (M6).
+             blocked        see authorize() above; this is the half that ends
+                            sessions the block did not catch at the door (H4).
+             stale epoch    the password was reset or changed, or the account
+                            was blocked, since this token was minted (M4). */
+        if (!dbUser || dbUser.isBlocked || (dbUser.credentialVersion ?? 0) !== (token.credentialVersion ?? 0)) {
+          session.invalid = true;
+          return session;
+        }
+
         if (dbUser) {
           session.user.role = dbUser.role;
           session.user.accountType = dbUser.accountType;
@@ -210,6 +253,22 @@ async function demoSession(): Promise<Session | null> {
 // server action all call auth() independently, and each re-runs the session()
 // callback's prisma.user.findUnique. React cache() collapses the repeat calls
 // in one request to a single session resolution (one DB read instead of ~3).
+/* The one place a revoked session becomes "not signed in".
+ *
+ *  The session callback can tell that a token is finished -- account deleted,
+ *  member blocked, credentials rotated -- but its return type is a Session, so
+ *  it cannot say "nobody". It marks the session instead, and this drops it.
+ *
+ *  Doing it here, rather than asking ~86 server actions to check a flag, is
+ *  the whole point: this is the ONE function every page and every action calls
+ *  to learn who you are, so a guard here cannot be forgotten by the next
+ *  action somebody writes. That is precisely how H1 and H3 happened. */
+async function guardedSession(): Promise<Session | null> {
+  const session = await nextAuth.auth();
+  if (!session || session.invalid) return null;
+  return session;
+}
+
 export const auth = cache(
-  IS_DEMO ? (demoSession as typeof nextAuth.auth) : nextAuth.auth,
+  IS_DEMO ? (demoSession as typeof nextAuth.auth) : (guardedSession as typeof nextAuth.auth),
 );

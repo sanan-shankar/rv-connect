@@ -16,7 +16,16 @@ export async function adminBlockUser(userId: string, block: boolean): Promise<Ad
 
   await prisma.user.update({
     where: { id: userId },
-    data: { isBlocked: block },
+    data: {
+      isBlocked: block,
+      /* Blocking has to reach the sessions the person is already holding, not
+         just the next sign-in. Sessions are JWTs with no server-side store, so
+         bumping the epoch is the only way to end one (audit H4): without it a
+         blocked member kept a valid 30-day token and carried on posting.
+         Bumped on UNBLOCK as well -- cheap, and it means an accidental block
+         and unblock leaves no token minted during the gap still floating. */
+      credentialVersion: { increment: 1 },
+    },
   });
 
   revalidatePath(`/profile/${userId}`);

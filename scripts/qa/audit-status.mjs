@@ -68,18 +68,44 @@ function appSources() {
     .map((p) => ({ path: p, text: read(p) }));
 }
 
-/** The body of a named function, brace-matched from its declaration. */
+/** The body of a named function, brace-matched from its declaration.
+ *
+ *  Finding the body's opening brace is fiddlier than "the next {", and
+ *  getting it wrong is dangerous rather than merely annoying: it makes a
+ *  guarded function look unguarded, which reads as a finding still being open.
+ *  Three real cases bit this during Phase 1 and 2:
+ *    authorize(credentials) {}                  -- METHOD, not `function foo`
+ *    loadComments(postId, opts?: { take })      -- brace in a PARAMETER type
+ *    loadDirectoryPage(...): Promise<{ users }> -- brace in a RETURN type
+ *  So: match either declaration form, step over the parameter list by paren
+ *  depth, step over any return-type annotation by angle depth, and only then
+ *  take the brace.
+ */
 function fnBody(text, name) {
-  /* Matches both `function foo(` and the object-method shorthand
-     `async foo(`. Missing the second form made this fall back to scanning
-     the entire file, which is how the C1-a probe reported a hit from a
-     completely different callback further down auth.ts. */
   const m =
     text.match(new RegExp(`(export\\s+)?(async\\s+)?function\\s+${name}\\b`)) ??
     text.match(new RegExp(`(^|[\\s,{])(async\\s+)?${name}\\s*\\(`, "m"));
   if (!m) return null;
-  let i = text.indexOf("{", m.index);
+
+  let i = text.indexOf("(", m.index);
   if (i < 0) return null;
+  for (let depth = 0; i < text.length; i++) {
+    if (text[i] === "(") depth++;
+    else if (text[i] === ")") { depth--; if (depth === 0) { i++; break; } }
+  }
+  while (i < text.length && /\s/.test(text[i])) i++;
+  if (text[i] === ":") {
+    let angle = 0;
+    for (i++; i < text.length; i++) {
+      const c = text[i];
+      if (c === "<") angle++;
+      else if (c === ">") angle--;
+      else if (c === "{" && angle === 0) break;
+    }
+  }
+  i = text.indexOf("{", i);
+  if (i < 0) return null;
+
   let depth = 0;
   for (let j = i; j < text.length; j++) {
     if (text[j] === "{") depth++;
@@ -245,9 +271,15 @@ const CHECKS = [
       /credentialVersion|sessionsValidFrom/.test(read("prisma/schema.prisma"))
         ? ok("credential epoch column present") : open("no credentialVersion/sessionsValidFrom column") },
   { id: "M6", sev: "medium", title: "Deleted user keeps a working session", probe: () => {
-      const s = read("src/lib/auth.ts");
-      return /if\s*\(!dbUser\)\s*return null|dbUser\s*==\s*null[^\n]*return null/.test(s)
-        ? ok("session callback returns null for a missing row") : open("session still returned when the row is gone");
+      /* Two halves, and only both together revoke anything: the session
+         callback must NOTICE the row is gone (it cannot return null itself --
+         its return type is Session), and the auth() wrapper must turn that
+         mark into null before any caller sees it. */
+      const s = decomment(read("src/lib/auth.ts"));
+      const notices = /!dbUser/.test(s) && /session\.invalid\s*=\s*true/.test(s);
+      const drops = /session\.invalid[\s\S]{0,80}return null/.test(s);
+      if (notices && drops) return ok("missing row marks the session invalid; auth() drops it");
+      return open(`${notices ? "" : "session callback does not detect a missing row; "}${drops ? "" : "auth() does not drop invalid sessions"}`);
     }},
   { id: "M7", sev: "medium", title: "Trivia gate: hardcoded fallback secret", probe: () =>
       /rv-connect-trivia-dev-secret/.test(decomment(read("src/components/auth/trivia-actions.ts")))

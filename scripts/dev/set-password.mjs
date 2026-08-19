@@ -106,7 +106,12 @@ try {
     `UPDATE "User"
         SET password = $1,
             "emailVerified" = COALESCE("emailVerified", now()),
-            role = CASE WHEN $3 THEN 'admin' ELSE role END
+            role = CASE WHEN $3 THEN 'admin' ELSE role END,
+            -- Same rule the app's own reset follows: changing the password
+            -- ends every session already signed in on this account. A break
+            -- glass tool that left the intruder's cookie alive would be the
+            -- one path around the revocation it exists to provide.
+            "credentialVersion" = "credentialVersion" + 1
       WHERE lower(email) = lower($2)
       RETURNING email, role, "verifyState", ("emailVerified" IS NOT NULL) AS email_confirmed`,
     [hash, email, makeAdmin]
