@@ -57,6 +57,7 @@ model User {
   lastSeenAt    DateTime?
   visits        Visit[]
   searches      SearchLog[]
+  contentViews  ContentView[] @relation("ContentViewer")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -933,4 +934,45 @@ model SearchLog {
   // "What is searched most", and the zero-result list.
   @@index([scope, createdAt])
   @@index([query])
+}
+
+// ─── Who looks at what, and how often ───────────────────────────────────────
+//
+// The owner asked for two things this answers at once: the curiosity ("who
+// searches for whose profile, how often") and the product question ("read
+// click-through rates" -- does anything written actually get read).
+//
+// A COUNTER, not a log, and that choice is load-bearing. A row per view is
+// unbounded: 2,000 members at twenty views a day is 14M rows a year, which is
+// gigabytes on a 500MB plan. Keyed on (viewer, kind, target) it is bounded by
+// distinct PAIRS instead -- a member might look at fifty profiles ever, so
+// 2,000 members is ~100k rows total, and it answers "how often does A look at
+// B" better than a log does, because the answer is one column rather than a
+// count over a scan.
+//
+// firstAt/lastAt keep what the counter would otherwise lose: whether an
+// interest is old or current.
+model ContentView {
+  id String @id @default(cuid())
+
+  viewerId String
+  // "profile" | "letter" | "post" | "photo" | "round"
+  kind     String
+  // The profile's user id, the letter's post id, and so on. Not a foreign key:
+  // one column cannot reference five tables, and a view of something later
+  // deleted is still a true fact about what someone was interested in.
+  targetId String
+
+  count   Int      @default(1)
+  firstAt DateTime @default(now())
+  lastAt  DateTime @default(now())
+
+  viewer User @relation("ContentViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+
+  // The upsert key.
+  @@unique([viewerId, kind, targetId])
+  // "Who is looking at this", and the most-viewed lists.
+  @@index([kind, targetId])
+  // "What has this person been looking at", and recency.
+  @@index([viewerId, lastAt])
 }

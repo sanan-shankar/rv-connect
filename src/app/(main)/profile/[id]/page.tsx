@@ -15,6 +15,7 @@ import { LetterheadProfile } from "@/components/profile/letterhead-profile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 import { viewerMaySeeContacts } from "@/lib/email-verification";
+import { recordView } from "@/lib/content-view";
 
 export async function generateMetadata({
   params,
@@ -76,6 +77,11 @@ export default async function ProfilePage({
     include: { places: { orderBy: { position: "asc" } } },
   });
   if (!user || user.isBlocked) notFound();
+
+  /* Not awaited: a profile must render at the same speed whether or not a
+     counter increments. recordView drops self-views, so nobody tops their own
+     most-viewed list. */
+  void recordView(session.user.id, "profile", user.id);
 
   const isOwnProfile = session.user.id === user.id;
   const isAdmin = session.user.role === "admin";
