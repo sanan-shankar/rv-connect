@@ -1805,3 +1805,28 @@ the year captions already state the order.
 One gotcha for the file: a linearGradient in default objectBoundingBox units on a horizontal
 line paints NOTHING, because the line's bounding box has zero height and the spec skips the
 gradient entirely. Every connector gradient is gradientUnits="userSpaceOnUse" for that reason.
+
+---
+
+# Two lessons written down where they will be read
+
+Session outcome (2026-08-19, evening): no product code, two doctrine commits.
+
+The sidebar regression test earlier today took three failed rounds because the debugging
+happened inside Playwright: re-run the suite, read the locator error, guess, repeat, while
+chrome-devtools sat there able to show the live DOM in one call. The owner's words: "I can't
+afford stupid mistakes like this when the solution is right there." That is now gotcha 7 in
+CLAUDE.md, with the rule stated as a lane assignment: the MCP finds the answer, Playwright
+remembers it. A spec is written after the behaviour is understood, never as the instrument for
+understanding it. The two locator traps are named there too: the mobile drawer re-renders the
+same components through a Radix portal (scope to the desktop `aside`), and exit-animating nodes
+still answer `toBeVisible()` (assert on geometry with `expect.poll`). `e2e/sidebar.spec.ts` is
+the worked example.
+
+Separately, the owner asked that lab rooms read like the Delight group, not the Second look
+group. `docs/spec/lab-voice.md` now says so in its own section: a Delight room is a thing to
+play with and its prose is a caption; a Second look room is a memo with exhibits, and a new
+room must not be modelled on one. Audits keep their rigour but change shape, specimen first,
+fix beside it. The pre-registration checklist gained the matching question.
+
+Commits: 6730e14 (CLAUDE.md), 28ad1bb (lab-voice.md). `npm run check` clean, 15/15 tests.
