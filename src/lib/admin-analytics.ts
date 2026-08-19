@@ -347,3 +347,135 @@ export async function loadMail() {
     byKind: byKind.map((k) => ({ label: k.kind, value: k._count._all })),
   };
 }
+
+/* ---------------------------------------------------------------- *
+ *  Presence: who is here, where, on what, and for how long
+ *
+ *  The owner asked for this explicitly, for a stated purpose: finding
+ *  where older alumni get stuck. It is per-person and identifiable by
+ *  design, and it belongs in the site's privacy text.
+ * ---------------------------------------------------------------- */
+
+/** A visit is "live" if it saw a page view in the last 15 minutes. */
+const ONLINE_MIN = 15;
+
+export type Presence = {
+  name: string | null;
+  id: string;
+  /* Carried so the avatar follows the same precedence it does everywhere
+     else -- photo, then manual override, then the deterministic bird. Without
+     them a member with a photo would show a bird here and nowhere else. */
+  photoUrl: string | null;
+  birdOverride: string | null;
+  batchYear: number | null;
+  path: string | null;
+  device: string | null;
+  os: string | null;
+  browser: string | null;
+  city: string | null;
+  country: string | null;
+  startedAt: Date;
+  endedAt: Date;
+  views: number;
+};
+
+export async function loadPresence() {
+  const now = Date.now();
+  const online = new Date(now - ONLINE_MIN * 60_000);
+
+  const [live, recent, sessionAgg, byDevice, byOs, byPath, returning] = await Promise.all([
+    prisma.visit.findMany({
+      where: { endedAt: { gte: online } },
+      orderBy: { endedAt: "desc" },
+      take: 40,
+      include: {
+        user: {
+          select: { id: true, name: true, batchYear: true, photoUrl: true, birdOverride: true },
+        },
+      },
+    }),
+    prisma.visit.findMany({
+      where: { endedAt: { gte: new Date(now - 24 * 3600_000), lt: online } },
+      orderBy: { endedAt: "desc" },
+      take: 25,
+      include: {
+        user: {
+          select: { id: true, name: true, batchYear: true, photoUrl: true, birdOverride: true },
+        },
+      },
+    }),
+    /* Average length and depth over the last 30 days. Computed in SQL because
+     * a duration is a subtraction Postgres does far better than JavaScript
+     * does over a few thousand rows pulled across the wire. */
+    prisma.$queryRaw<{ visits: bigint; avg_sec: number | null; avg_views: number | null; people: bigint }[]>`
+      SELECT count(*)::bigint                                            AS visits,
+             avg(EXTRACT(EPOCH FROM ("endedAt" - "startedAt")))          AS avg_sec,
+             avg("views")                                                AS avg_views,
+             count(DISTINCT "userId")::bigint                            AS people
+      FROM "Visit"
+      WHERE "startedAt" >= now() - interval '30 days'
+    `,
+    prisma.visit.groupBy({
+      by: ["device"],
+      _count: { _all: true },
+      where: { startedAt: { gte: new Date(now - 30 * 86_400_000) } },
+      orderBy: { _count: { device: "desc" } },
+    }),
+    prisma.visit.groupBy({
+      by: ["os"],
+      _count: { _all: true },
+      where: { startedAt: { gte: new Date(now - 30 * 86_400_000) }, os: { not: null } },
+      orderBy: { _count: { os: "desc" } },
+    }),
+    prisma.visit.groupBy({
+      by: ["lastPath"],
+      _count: { _all: true },
+      where: { startedAt: { gte: new Date(now - 30 * 86_400_000) }, lastPath: { not: null } },
+      orderBy: { _count: { lastPath: "desc" } },
+      take: 10,
+    }),
+    /* How many people came back on more than one day. The single best signal
+     * that this is a place rather than a page somebody visited once. */
+    prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT count(*)::bigint AS n FROM (
+        SELECT "userId" FROM "Visit"
+        WHERE "startedAt" >= now() - interval '30 days'
+        GROUP BY "userId" HAVING count(DISTINCT date_trunc('day', "startedAt")) > 1
+      ) t
+    `,
+  ]);
+
+  const shape = (v: (typeof live)[number]): Presence => ({
+    id: v.user.id,
+    name: v.user.name,
+    photoUrl: v.user.photoUrl,
+    birdOverride: v.user.birdOverride,
+    batchYear: v.user.batchYear,
+    path: v.lastPath,
+    device: v.device,
+    os: v.os,
+    browser: v.browser,
+    city: v.city,
+    country: v.country,
+    startedAt: v.startedAt,
+    endedAt: v.endedAt,
+    views: v.views,
+  });
+
+  const agg = sessionAgg[0];
+
+  return {
+    online: live.map(shape),
+    recent: recent.map(shape),
+    visits30d: Number(agg?.visits ?? 0),
+    people30d: Number(agg?.people ?? 0),
+    /* Zero is honest for a single-page visit: they arrived and left. It is not
+     * a missing number, and padding it would make the average a fiction. */
+    avgSessionSec: Math.round(agg?.avg_sec ?? 0),
+    avgViews: agg?.avg_views ?? 0,
+    returning: Number(returning[0]?.n ?? 0),
+    byDevice: byDevice.map((d) => ({ label: d.device ?? "unknown", value: d._count._all })),
+    byOs: byOs.map((d) => ({ label: d.os ?? "unknown", value: d._count._all })),
+    byPath: byPath.map((p) => ({ label: p.lastPath ?? "unknown", value: p._count._all })),
+  };
+}

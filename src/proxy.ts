@@ -197,7 +197,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  /* The path, forwarded as a request header so a SERVER component can read it.
+     A layout has no usePathname and Next exposes no reliable equivalent, and
+     the alternative -- a client component reporting its own location back over
+     fetch -- would be a second round trip on every navigation to learn
+     something this process already knows. Consumed by touchLastSeen
+     (src/lib/last-seen.ts) to record which page a member is actually on. */
+  const withPath = new Headers(request.headers);
+  withPath.set("x-pathname", pathname);
+  return NextResponse.next({ request: { headers: withPath } });
 }
 
 export const config = {

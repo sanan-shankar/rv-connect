@@ -55,6 +55,7 @@ model User {
   // recover -- so it was added the day the analytics room was built rather than
   // discovered missing afterwards.
   lastSeenAt    DateTime?
+  visits        Visit[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -834,4 +835,56 @@ model MetricSnapshot {
   @@unique([day, source, metric])
   // The room's read: one metric's line over time.
   @@index([source, metric, day])
+}
+
+// ─── Presence and sessions: who is here, where, on what ─────────────────────
+//
+// The owner asked for this explicitly (2026-08-19): "who's online right now,
+// where they are, what device, what page... how long is the average session".
+// The stated purpose is finding where older alumni get stuck, and it is
+// disclosed in the site's policies.
+//
+// WHY A TABLE rather than more columns on User: a column can only hold the
+// LAST value, which answers "where is Ravi now" and nothing else. Session
+// length, pages per visit, and "how often does someone come back" are all
+// questions about a span of time, and a span needs a row.
+//
+// A Visit is a span of activity with no gap longer than SESSION_GAP_MIN
+// (src/lib/last-seen.ts). Cross that gap and the next page view opens a new
+// Visit, which is the standard definition and the one that makes "average
+// session" mean what a person expects it to mean.
+model Visit {
+  id     String @id @default(cuid())
+  userId String
+
+  startedAt DateTime @default(now())
+  // Last activity in this visit. The visit's length is endedAt - startedAt,
+  // so a single-page visit is legitimately zero rather than a guess.
+  endedAt   DateTime @default(now())
+  views     Int      @default(1)
+
+  // Where they were when it ended. Kept on the visit rather than per view:
+  // a per-view table is a firehose that answers little more, and PostHog
+  // already holds the full path-by-path journey.
+  lastPath String?
+
+  // Parsed from the user agent, coarse on purpose. "phone | tablet | desktop"
+  // is what answers "are the older alumni on phones"; the exact model is not
+  // a question anyone has.
+  device  String?
+  os      String?
+  browser String?
+
+  // From Vercel's edge headers, which cost nothing -- they are on every
+  // request already. Absent in local development, so both are nullable.
+  country String?
+  city    String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // "Who is online right now" and "recent visits", the two live reads.
+  @@index([endedAt])
+  // One person's history, and the lookup that decides whether to extend the
+  // current visit or open a new one.
+  @@index([userId, endedAt])
 }
