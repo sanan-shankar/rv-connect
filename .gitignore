@@ -89,3 +89,10 @@ demo-photos/
 
 # Supabase CLI local link state, written by `supabase link`. Machine-specific.
 supabase/.temp/
+
+# Playwright. Baselines in e2e/__screenshots__ ARE committed (they are the
+# picture memory); everything below is per-run output or a live credential.
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth/

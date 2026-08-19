@@ -145,6 +145,28 @@ Dev server: `npm run dev` on `http://localhost:3000`. Start it in the background
 Protocol: screenshot, **Read the PNG**, make fixes, re-screenshot, compare in specific numbers ("the
 heading gap is 24px, should be 16px"). Minimum two rounds, then repeat on mobile.
 
+## Visual regression: `npm run visual` — run it after every UI change
+
+The above catches what you thought to look at. **`npm run visual` catches what you didn't**: it
+compares 10 routes x 2 viewports against committed baselines in `e2e/__screenshots__/` and fails on
+a diff of 100 pixels. Takes 50s. Run it before you commit any UI work, not just on the page you
+edited — its whole point is the page you were not looking at.
+
+| Command | Use |
+|---|---|
+| `npm run visual` | compare every route against its baseline |
+| `npm run visual:update` | **the change was intentional** — rewrite the baselines, then commit the PNGs |
+| `npm run visual:report` | open the three-up expected/actual/diff view of the last failure |
+| `npm run test:e2e` | the above plus the sign-in flow checks |
+
+A red run is a question, not a verdict: open the report, look at the diff, then either fix the
+regression or accept it with `visual:update`. **Never run `visual:update` to make a failure go away
+without looking at the diff first** — that is the one way to make this whole thing worthless.
+
+Adding a route: one line in `ROUTES` in `e2e/visual.spec.ts`, each with its reason. Something that
+moves on its own (a live counter, a relative timestamp, the idling hoopoe) goes in
+`volatileRegions()` so it is masked rather than making the suite cry wolf.
+
 Those numbers come from `chrome-devtools` (above), not from squinting at the PNG: `resize_page` to
 390x844 or 1440x900, then `evaluate_script` for the real rects and computed styles. The scripts are
 for the shots that go on the record and for sweeps; the MCP is for the measuring in between.
