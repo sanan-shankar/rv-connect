@@ -8,6 +8,7 @@ import {
   loadGeography,
   loadGrowth,
   loadInteractions,
+  loadJourney,
   loadMail,
   loadMemberMetrics,
   loadNotifications,
@@ -24,6 +25,7 @@ import { AnalyticsTabs, isViewKey, VIEWS, type ViewKey } from "@/components/admi
 import { BarList, Panel, StatGrid, type Stat } from "@/components/admin/analytics/stat";
 import { PresenceList } from "@/components/admin/analytics/presence";
 import { Heatmap } from "@/components/admin/analytics/heatmap";
+import { CohortMatrix } from "@/components/admin/analytics/cohort";
 import {
   CorrelationGrid,
   GROUPINGS,
@@ -80,6 +82,7 @@ export default async function AdminAnalyticsPage({
       {active === "rhythms" && <RhythmsView />}
       {active === "faces" && <FacesView />}
       {active === "reach" && <ReachView />}
+      {active === "journey" && <JourneyView />}
       {active === "compare" && <CompareView measure={measure} by={by} />}
       {active === "health" && <HealthView />}
     </div>
@@ -763,6 +766,94 @@ async function CompareView({ measure, by }: { measure?: string; by?: string }) {
       >
         <CorrelationGrid rows={rows} />
       </Panel>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+
+async function JourneyView() {
+  const j = await loadJourney();
+  const totalFails = j.failures.reduce((n, f) => n + f.value, 0);
+
+  const REASON: Record<string, string> = {
+    ok: "Signed in fine",
+    "no-account": "No account with that address",
+    "no-password-set": "Account exists but has no password",
+    "wrong-password": "Wrong password",
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <StatGrid
+        stats={[
+          {
+            label: "Sign-in attempts recorded",
+            value: totalFails,
+            hint: "Recording started 19 Aug 2026, so this only covers attempts since then.",
+          },
+          {
+            label: "Failed this week",
+            value: j.failsThisWeek,
+            hint: "Attempts in the last seven days that did not get in.",
+            tone: j.failsThisWeek > 0 ? "warn" : "good",
+          },
+          {
+            label: "Still locked out",
+            value: j.lockedOut.length,
+            hint: "Addresses that have tried and never once succeeded. These people cannot use the site at all.",
+            tone: j.lockedOut.length > 0 ? "bad" : "good",
+          },
+          {
+            label: "Generations tracked",
+            value: j.rows.length,
+            hint: "Groups in the table below.",
+          },
+        ]}
+      />
+
+      <Panel
+        title="How far each generation gets"
+        note="Everyone who signed up, and the share of them still with us at each step."
+        cap={false}
+      >
+        <CohortMatrix rows={j.rows} />
+      </Panel>
+
+      <Row cols={2}>
+        <Panel
+          title="Why sign-ins fail"
+          note="A wrong address needs different help from a wrong password, so they are counted separately."
+        >
+          <BarList
+            items={j.failures.map((f) => ({ label: REASON[f.label] ?? f.label, value: f.value }))}
+            empty="No sign-in attempts recorded yet."
+          />
+        </Panel>
+        <Panel
+          title="People who still cannot get in"
+          note="Every attempt from these addresses has failed. Worth emailing them directly."
+        >
+          {j.lockedOut.length === 0 ? (
+            <p className="px-0.5 py-1 text-[12.5px] text-muted-foreground">
+              Nobody is locked out. Everyone who has tried has got in at least once.
+            </p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border/70">
+              {j.lockedOut.map((l) => (
+                <li key={l.email} className="flex items-center gap-2 py-1.5">
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground">
+                    {l.email}
+                  </span>
+                  <span className="shrink-0 text-[11.5px] tabular-nums text-muted-foreground">
+                    {l.tries} {l.tries === 1 ? "try" : "tries"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </Row>
     </div>
   );
 }

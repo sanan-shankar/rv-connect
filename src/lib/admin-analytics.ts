@@ -1050,3 +1050,101 @@ export async function loadMemberMetrics(): Promise<MemberRow[]> {
     };
   });
 }
+
+/* ---------------------------------------------------------------- *
+ *  The journey from signing up to belonging, by generation
+ * ---------------------------------------------------------------- */
+
+export type JourneyRow = {
+  decade: string;
+  joined: number;
+  steps: { label: string; n: number }[];
+  /** Median hours between the confirmation email being sent and the link
+   *  being tapped. Median, not mean: one person who confirmed after three
+   *  weeks would drag an average into nonsense. */
+  medianVerifyHours: number | null;
+};
+
+export async function loadJourney() {
+  const [funnel, verify, failures, lockedOut, recentFails] = await Promise.all([
+    prisma.$queryRaw<Record<string, unknown>[]>`
+      SELECT CASE WHEN u."batchYear" IS NULL THEN 'unknown'
+                  ELSE (floor(u."batchYear" / 10) * 10)::text || 's' END        AS decade,
+             count(*)::int                                                       AS joined,
+             count(*) FILTER (WHERE u."emailVerified" IS NOT NULL)::int          AS confirmed,
+             count(*) FILTER (WHERE u."about" IS NOT NULL OR u."workplace" IS NOT NULL
+                                 OR u."currentCity" IS NOT NULL OR u."phone" IS NOT NULL
+                                 OR u."links" IS NOT NULL OR u."photoUrl" IS NOT NULL
+                                 OR u."instagram" IS NOT NULL OR u."linkedin" IS NOT NULL)::int
+                                                                                 AS "filledAnything",
+             count(*) FILTER (WHERE u."houses" IS NOT NULL AND u."houses" <> '')::int AS houses,
+             count(*) FILTER (WHERE u."photoUrl" IS NOT NULL)::int               AS photo,
+             count(*) FILTER (WHERE EXISTS (SELECT 1 FROM "Post" p WHERE p."authorId" = u.id)
+                                 OR EXISTS (SELECT 1 FROM "Comment" c WHERE c."authorId" = u.id)
+                                 OR EXISTS (SELECT 1 FROM "CatchupEntry" e WHERE e."authorId" = u.id))::int
+                                                                                 AS wrote,
+             count(*) FILTER (WHERE u."lastSeenAt" IS NOT NULL)::int             AS "cameBack"
+      FROM "User" u WHERE u."isBlocked" = false
+      GROUP BY 1 ORDER BY 1 DESC
+    `,
+    /* AuthToken records when a confirmation link was minted and when it was
+     * used, so this is an exact measurement rather than an estimate. */
+    prisma.$queryRaw<{ decade: string; hours: number | null }[]>`
+      SELECT CASE WHEN u."batchYear" IS NULL THEN 'unknown'
+                  ELSE (floor(u."batchYear" / 10) * 10)::text || 's' END AS decade,
+             percentile_cont(0.5) WITHIN GROUP (
+               ORDER BY EXTRACT(EPOCH FROM (t."usedAt" - t."createdAt")) / 3600
+             ) AS hours
+      FROM "AuthToken" t JOIN "User" u ON u.id = t."userId"
+      WHERE t.kind = 'verify' AND t."usedAt" IS NOT NULL
+      GROUP BY 1
+    `,
+    prisma.loginAttempt.groupBy({
+      by: ["reason"],
+      _count: { _all: true },
+      orderBy: { _count: { reason: "desc" } },
+    }),
+    /* THE LIST THAT MATTERS. Addresses that have failed and never once
+     * succeeded: somebody trying to get in who still cannot. */
+    prisma.$queryRaw<{ email: string; tries: bigint; last: Date }[]>`
+      SELECT email, count(*)::bigint AS tries, max("createdAt") AS last
+      FROM "LoginAttempt"
+      GROUP BY email
+      HAVING bool_and(ok = false)
+      ORDER BY count(*) DESC
+      LIMIT 20
+    `,
+    prisma.loginAttempt.count({
+      where: { ok: false, createdAt: { gte: new Date(Date.now() - 7 * 86_400_000) } },
+    }),
+  ]);
+
+  const hoursBy = new Map(verify.map((v) => [v.decade, v.hours]));
+  const n = (r: Record<string, unknown>, k: string) => Number(r[k] ?? 0);
+
+  const rows: JourneyRow[] = funnel.map((r) => ({
+    decade: String(r.decade),
+    joined: n(r, "joined"),
+    steps: [
+      { label: "Signed up", n: n(r, "joined") },
+      { label: "Confirmed email", n: n(r, "confirmed") },
+      { label: "Filled in anything", n: n(r, "filledAnything") },
+      { label: "Added houses", n: n(r, "houses") },
+      { label: "Added a photo", n: n(r, "photo") },
+      { label: "Wrote something", n: n(r, "wrote") },
+      { label: "Came back", n: n(r, "cameBack") },
+    ],
+    medianVerifyHours: hoursBy.get(String(r.decade)) ?? null,
+  }));
+
+  return {
+    rows,
+    failures: failures.map((f) => ({ label: f.reason, value: f._count._all })),
+    lockedOut: lockedOut.map((l) => ({
+      email: l.email,
+      tries: Number(l.tries),
+      last: l.last,
+    })),
+    failsThisWeek: recentFails,
+  };
+}
