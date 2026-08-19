@@ -21,6 +21,12 @@
  * Usage:
  *   node scripts/dev/set-password.mjs you@example.com 'the-new-password'
  *   node scripts/dev/set-password.mjs you@example.com            (prompts, hidden)
+ *   node scripts/dev/set-password.mjs you@example.com --admin    (also grant admin)
+ *
+ * --admin replaces the signIn callback that used to re-promote whoever
+ * matched ADMIN_EMAIL on every sign-in. Same recovery, but deliberate, local,
+ * and leaving a person rather than an environment variable in charge of who
+ * administers the community.
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -60,7 +66,9 @@ function askHidden(question) {
   });
 }
 
-const [email, passwordArg] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const makeAdmin = argv.includes("--admin");
+const [email, passwordArg] = argv.filter((a) => a !== "--admin");
 if (!email) {
   console.error("Usage: node scripts/dev/set-password.mjs <email> [password]");
   process.exit(1);
@@ -97,10 +105,11 @@ try {
   const { rows } = await client.query(
     `UPDATE "User"
         SET password = $1,
-            "emailVerified" = COALESCE("emailVerified", now())
+            "emailVerified" = COALESCE("emailVerified", now()),
+            role = CASE WHEN $3 THEN 'admin' ELSE role END
       WHERE lower(email) = lower($2)
       RETURNING email, role, "verifyState", ("emailVerified" IS NOT NULL) AS email_confirmed`,
-    [hash, email]
+    [hash, email, makeAdmin]
   );
   if (rows.length === 0) {
     console.error(`No account found for ${email}`);
