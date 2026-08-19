@@ -89,47 +89,47 @@ async function LiveView() {
       <StatGrid
         stats={[
           {
-            label: "Here now",
+            label: "On the site now",
             value: p.online.length,
-            hint: "active in the last 15 minutes",
+            hint: "Members who loaded a page in the last 15 minutes.",
             tone: p.online.length > 0 ? "good" : undefined,
           },
           {
-            label: "Typical visit",
+            label: "Average visit length",
             value: p.avgSessionSec / 60,
             kind: "ratio",
-            hint: "minutes, last 30 days",
+            hint: "Minutes from a member's first page to their last, averaged over 30 days.",
           },
           {
-            label: "Pages a visit",
+            label: "Pages per visit",
             value: p.avgViews,
             kind: "ratio",
             hint: `${p.visits30d} visits by ${p.people30d} people. Counts layout renders, so prefetches inflate it slightly.`,
           },
           {
-            label: "Came back",
+            label: "Returned another day",
             value: p.returning,
-            hint: "people here on more than one day",
+            hint: "Members who came back on a second, separate day. The clearest sign this is a habit and not a one-off.",
             tone: p.returning > 0 ? "good" : undefined,
           },
         ]}
       />
       <Row cols={2}>
-        <Panel title="Here now" note="What they are looking at, and on what">
+        <Panel title="On the site now" note="Each row: who, the page they are on, where they are, and how long they have been here.">
           <PresenceList rows={p.online} live empty="Nobody in the last 15 minutes." />
         </Panel>
-        <Panel title="Earlier today" note="The last 24 hours">
+        <Panel title="Earlier today" note="Members who were here in the last 24 hours but have since left.">
           <PresenceList rows={p.recent} empty="Nobody else today." />
         </Panel>
       </Row>
       <Row cols={3}>
-        <Panel title="Device" note="Visits, last 30 days">
+        <Panel title="Phone, tablet or computer" note="How many visits came from each, over 30 days.">
           <BarList items={p.byDevice} empty="No visits yet." />
         </Panel>
-        <Panel title="Operating system">
+        <Panel title="Operating system" note="iOS, Android, Windows, macOS.">
           <BarList items={p.byOs} empty="No visits yet." />
         </Panel>
-        <Panel title="Where visits end" note="The last page, which is where people stop">
+        <Panel title="The last page people saw" note="Where each visit ended. A page high on this list is where members give up or run out of things to do.">
           <BarList items={p.byPath} empty="No visits yet." />
         </Panel>
       </Row>
@@ -155,44 +155,48 @@ async function PeopleView() {
       label: "Members",
       value: people.total,
       trend: t("db.members.total"),
-      hint: `${people.joined30} joined in 30 days`,
+      hint: `${people.joined30} of them joined in the last 30 days.`,
     },
     {
-      label: "Confirmed",
+      label: "Confirmed their email",
       value: people.verified,
       trend: t("db.members.verified"),
-      hint: `${people.total - people.verified} unconfirmed`,
+      hint: `${people.total - people.verified} have never clicked the link in their confirmation email.`,
       tone: people.total - people.verified > people.total * 0.2 ? "warn" : undefined,
     },
     {
-      label: "Here this week",
+      label: "Visited this week",
       value: people.active7,
       trend: t("db.members.active_7d"),
-      hint: `${people.active30} in 30 days`,
+      hint: `${people.active30} have visited in the last 30 days.`,
     },
     {
-      label: "On the map",
+      label: "Told us where they live",
       value: people.placed,
       trend: t("db.members.placed"),
-      hint: `${people.total - people.placed} gave no city`,
+      hint: `${people.total - people.placed} have given no city, so they do not appear on the directory map.`,
     },
-    { label: "With a photo", value: people.withPhoto, hint: "the rest carry their bird" },
     {
-      label: "Dark mode",
+      label: "Uploaded a photo",
+      value: people.withPhoto,
+      hint: "Everyone else is shown as their assigned bird.",
+    },
+    {
+      label: "Use dark mode",
       value: people.dark,
       trend: t("db.members.dark_mode"),
       hint: `${((people.dark / Math.max(people.total, 1)) * 100).toFixed(0)}% of members`,
     },
     {
-      label: "Never signed in",
+      label: "Not seen since tracking began",
       value: people.neverSeen,
-      hint: "since presence started",
+      hint: "Visit tracking started 19 Aug 2026, so this only means they have not been back since then.",
       tone: people.neverSeen > people.total * 0.5 ? "warn" : undefined,
     },
     {
       label: "Blocked",
       value: people.blocked,
-      hint: "removed",
+      hint: "Accounts an admin has removed from the community.",
       tone: people.blocked > 0 ? "bad" : undefined,
     },
   ];
@@ -202,8 +206,8 @@ async function PeopleView() {
       <StatGrid stats={stats} />
       <Row cols={2}>
         <Panel
-          title="Did each generation stay"
-          note="Members of each decade active in the last 30 days. The reason this room exists."
+          title="Which generations come back"
+          note="Of the members who left in each decade, the share who have visited in the last 30 days. Needs a few weeks of data before it means anything."
         >
           {retention.length === 0 ? (
             <p className="px-0.5 py-1 text-[12.5px] text-muted-foreground">
@@ -221,25 +225,25 @@ async function PeopleView() {
             />
           )}
         </Panel>
-        <Panel title="By decade" note="When they left the valley">
+        <Panel title="Members by decade" note="Which decade each member left Rishi Valley in.">
           <BarList items={people.byDecade} empty="No batch years recorded." />
         </Panel>
       </Row>
       <Row cols={3}>
-        <Panel title="Cities">
+        <Panel title="Cities" note="Where members say they live now.">
           <BarList items={geo.cities} empty="No cities recorded." />
         </Panel>
-        <Panel title="Countries">
+        <Panel title="Countries" note="Where members say they live now.">
           <BarList items={geo.countries} empty="No countries recorded." />
         </Panel>
-        <Panel title="Kinds of account">
+        <Panel title="Alumni and teachers" note="How the community is made up.">
           <BarList items={people.byType} empty="None recorded." />
         </Panel>
       </Row>
       <Row cols={3}>
         <Panel
-          title="What profiles are missing"
-          note="Least-filled field first. An empty profile gets no interaction."
+          title="How many members filled in each field"
+          note="Emptiest first. Members with blank profiles are harder to find in the directory and get less response."
         >
           <BarList
             items={profiles.fields.map((f) => ({
@@ -250,10 +254,10 @@ async function PeopleView() {
             empty="No members yet."
           />
         </Panel>
-        <Panel title="Joins by month" note="The growth curve">
+        <Panel title="New members each month" note="When people signed up.">
           <BarList items={growth} empty="No members yet." />
         </Panel>
-        <Panel title="Verification">
+        <Panel title="Identity checks" note="Whether an admin has confirmed each member really is an alumnus.">
           <BarList
             items={[
               { label: "Verified", value: profiles.verified },
@@ -288,29 +292,61 @@ async function ContentView() {
     <div className="flex flex-col gap-3">
       <StatGrid
         stats={[
-          { label: "Letters", value: content.letters, trend: t("db.letters.total"), hint: "published" },
-          { label: "Posts", value: content.posts, trend: t("db.posts.total"), hint: "published" },
-          { label: "Comments", value: content.comments, trend: t("db.comments.total") },
-          { label: "Hearts", value: content.likes, trend: t("db.likes.total") },
           {
-            label: "Response per piece",
+            label: "Letters published",
+            value: content.letters,
+            trend: t("db.letters.total"),
+            hint: "Long-form pieces, not counting drafts.",
+          },
+          {
+            label: "Feed posts",
+            value: content.posts,
+            trend: t("db.posts.total"),
+            hint: "Short posts on the main feed.",
+          },
+          {
+            label: "Comments written",
+            value: content.comments,
+            trend: t("db.comments.total"),
+            hint: "Replies left on posts and letters.",
+          },
+          {
+            label: "Hearts given",
+            value: content.likes,
+            trend: t("db.likes.total"),
+            hint: "Likes on posts and letters.",
+          },
+          {
+            label: "Reactions per post",
             value: content.responsePerPost,
             kind: "ratio",
-            hint: "comments and hearts per published thing",
+            hint: "Comments plus hearts, divided by everything published. Below 1 means most things get no response at all.",
             tone: content.responsePerPost < 1 ? "warn" : "good",
           },
-          { label: "Saved", value: content.bookmarks, hint: "bookmarked by someone" },
-          { label: "Photos", value: content.photos, trend: t("db.photos.total") },
-          { label: "Drafts", value: content.drafts, hint: "written, never published" },
+          {
+            label: "Bookmarked",
+            value: content.bookmarks,
+            hint: "Times someone saved a post to read later. Only the saver ever sees this.",
+          },
+          {
+            label: "Photos in the Collection",
+            value: content.photos,
+            trend: t("db.photos.total"),
+          },
+          {
+            label: "Unfinished drafts",
+            value: content.drafts,
+            hint: "Letters someone started and never published.",
+          },
         ]}
       />
       <Row cols={2}>
-        <Panel title="Who writes" note="Published posts and letters, by author">
+        <Panel title="Who writes the most" note="Number of published posts and letters, by author.">
           <BarList items={content.topAuthors} empty="Nothing published yet." />
         </Panel>
         <Panel
-          title="Letters, read against hearted"
-          note="Opens versus reactions. A letter widely read and never hearted is a different problem from one nobody opened."
+          title="How each letter did"
+          note="Opens is how many times it was viewed; readers is how many different people; hearted is how many liked it. A letter read a lot but hearted by nobody is a different problem from one nobody opened."
         >
           {reading.letters.length === 0 ? (
             <p className="px-0.5 py-1 text-[12.5px] text-muted-foreground">
@@ -339,44 +375,57 @@ async function ContentView() {
         </Panel>
       </Row>
       <Row cols={3}>
-        <Panel title="Who comments" note="The people keeping conversations going">
+        <Panel title="Who replies the most" note="Members who leave the most comments. These people keep conversations alive.">
           <BarList items={inter.topCommenters} empty="No comments yet." />
         </Panel>
-        <Panel title="Who saves things" note="Bookmarks, which nobody sees but the saver">
+        <Panel title="Who bookmarks the most" note="Members saving posts to read later.">
           <BarList items={inter.bookmarkers} empty="Nothing bookmarked yet." />
         </Panel>
-        <Panel title="Who loves photos" note="Hearts on the Collection">
+        <Panel title="Who hearts photos the most" note="Likes given on the Valley Collection.">
           <BarList items={inter.photoLovers} empty="No photo hearts yet." />
         </Panel>
       </Row>
       <StatGrid
         stats={[
-          { label: "Catch-up answers", value: catchups.entries, trend: t("db.catchups.entries") },
           {
-            label: "Per question",
+            label: "Catch-up answers",
+            value: catchups.entries,
+            trend: t("db.catchups.entries"),
+            hint: "Total answers members have written to catch-up questions.",
+          },
+          {
+            label: "Answers per question",
             value: catchups.answersPerPrompt,
             kind: "ratio",
             trend: t("db.catchups.answers_per_prompt"),
-            hint: "the number that says they are working",
+            hint: "How many people answer a typical catch-up question. Under 2 means questions are mostly going unanswered.",
             tone: catchups.answersPerPrompt < 2 ? "warn" : "good",
           },
           {
-            label: "People answering",
+            label: "Members who have answered",
             value: catchups.people,
             hint: `${((catchups.people / Math.max(people.total, 1)) * 100).toFixed(0)}% of members`,
           },
           {
-            label: "Hearts on answers",
+            label: "Hearts on catch-up answers",
             value: catchups.loves,
-            hint: "whether anyone is reading them",
+            hint: "Whether anyone reads what gets written back.",
           },
-          { label: "Photo opens", value: reading.photoViews, hint: "Collection detail views" },
-          { label: "Round opens", value: reading.roundViews, hint: "Catch-up rounds read" },
-          { label: "Poll votes", value: inter.pollVotes },
           {
-            label: "Messages to admin",
+            label: "Photo opens",
+            value: reading.photoViews,
+            hint: "Times a Collection photo was opened full-size.",
+          },
+          {
+            label: "Catch-up round opens",
+            value: reading.roundViews,
+            hint: "Times someone opened a finished round to read it.",
+          },
+          { label: "Poll votes cast", value: inter.pollVotes, hint: "Votes on polls attached to posts." },
+          {
+            label: "Messages sent to you",
             value: inter.adminMsgs,
-            hint: `across ${inter.threads} ${inter.threads === 1 ? "thread" : "threads"}`,
+            hint: `Across ${inter.threads} ${inter.threads === 1 ? "conversation" : "conversations"} in the Reach out inbox.`,
           },
         ]}
       />
@@ -391,8 +440,8 @@ async function RhythmsView() {
   return (
     <div className="flex flex-col gap-3">
       <Panel
-        title="The week"
-        note="Visits by hour, Indian time, over 90 days"
+        title="When members are on the site"
+        note="Every hour of the week over the last 90 days, in Indian time. Darker means busier."
         cap={false}
         className="lg:max-w-4xl"
       >
@@ -405,7 +454,7 @@ async function RhythmsView() {
         <Panel title="Operating system">
           <BarList items={presence.byOs} empty="No visits yet." />
         </Panel>
-        <Panel title="Where visits end">
+        <Panel title="The last page people saw" note="Where each visit ended.">
           <BarList items={presence.byPath} empty="No visits yet." />
         </Panel>
       </Row>
@@ -423,33 +472,35 @@ async function FacesView() {
       <StatGrid
         stats={[
           {
-            label: "Read but never write",
+            label: "Only ever read",
             value: faces.lurkers,
-            hint: `of ${people.total} members. Most of any community reads.`,
+            hint: `Of ${people.total} members, these have visited but never written a post or a comment. Normal: most people in any community read rather than write.`,
           },
           {
-            label: "Nobody has answered",
+            label: "Got no response from anyone",
             value: faces.isolated.length,
-            hint: "no hearts, no replies, nobody has opened their profile",
+            hint: "Nobody has hearted their posts, replied to them, or opened their profile. These are the members most likely to quietly drift away.",
             tone: faces.isolated.length > 0 ? "warn" : "good",
           },
           {
-            label: "Profiles looked at",
+            label: "Profile opens",
             value: faces.mostViewed.reduce((n, m) => n + m.value, 0),
-            hint: "since profile views started recording",
+            hint: "Times a member opened somebody else's profile. Started recording 19 Aug 2026.",
           },
           {
-            label: "Most looked-up",
+            label: "Most-opened profile",
             value: faces.mostViewed[0]?.value ?? 0,
-            hint: faces.mostViewed[0]?.label ?? "nobody yet",
+            hint: faces.mostViewed[0]
+              ? `${faces.mostViewed[0].label}. Nobody's own visits to their own profile are counted.`
+              : "No profile has been opened by anyone else yet.",
           },
         ]}
       />
 
       <Row cols={2}>
         <Panel
-          title="Nobody has answered them"
-          note="No hearts, no replies, and nobody has opened their profile. Worth saying hello."
+          title="Members nobody has responded to"
+          note="No hearts on their posts, no replies, and nobody has opened their profile. Worth saying hello to."
         >
           {faces.isolated.length === 0 ? (
             <p className="px-0.5 py-1 text-[12.5px] text-muted-foreground">
@@ -473,31 +524,31 @@ async function FacesView() {
             </ul>
           )}
         </Panel>
-        <Panel title="Most looked-up profiles" note="Whose page people open">
+        <Panel title="Whose profiles get opened" note="How many times each member's profile has been opened by someone else.">
           <BarList items={faces.mostViewed} empty="No profile views recorded yet." />
         </Panel>
       </Row>
 
       <Row cols={3}>
-        <Panel title="Most curious" note="Who does the profile-looking">
+        <Panel title="Who looks people up" note="How many profiles each member has opened.">
           <BarList items={faces.watchers} empty="No profile views yet." />
         </Panel>
-        <Panel title="Most generous" note="Hearts given">
+        <Panel title="Who gives the most hearts" note="Likes each member has given to other people's posts.">
           <BarList items={faces.heartsGiven} empty="No hearts yet." />
         </Panel>
-        <Panel title="Most loved" note="Hearts received on their writing">
+        <Panel title="Whose writing gets the most hearts" note="Likes received on their own posts and letters.">
           <BarList items={faces.heartsGot} empty="No hearts yet." />
         </Panel>
       </Row>
 
       <Row cols={3}>
-        <Panel title="Most loyal" note="Distinct days here, which beats total visits">
+        <Panel title="Who visits on the most days" note="Number of separate days each member has been on the site. Turning up often beats one long session.">
           <BarList items={faces.loyal} empty="No visits yet." />
         </Panel>
-        <Panel title="Longest single visit" note="Minutes">
+        <Panel title="Longest single visit" note="The longest one sitting each member has had, in minutes.">
           <BarList items={faces.longest} empty="No visits yet." />
         </Panel>
-        <Panel title="Deepest visit" note="Most pages in one sitting">
+        <Panel title="Most pages in one sitting" note="The busiest single visit each member has had.">
           <BarList items={faces.deepest} empty="No visits yet." />
         </Panel>
       </Row>
@@ -513,43 +564,51 @@ async function ReachView() {
     <div className="flex flex-col gap-3">
       <StatGrid
         stats={[
-          { label: "Searches", value: searches.total, hint: "last 90 days" },
           {
-            label: "Found nothing",
+            label: "Searches made",
+            value: searches.total,
+            hint: "Across the feed search box, the people picker and the city picker, over 90 days.",
+          },
+          {
+            label: "Searches that found nothing",
             value: searches.empty.reduce((n, e) => n + e.value, 0),
-            hint: "somebody looking for what is not here",
+            hint: "Someone typed this and got zero results. Each one is a person looking for something the site could not give them.",
             tone: searches.empty.length > 0 ? "warn" : undefined,
           },
           {
-            label: "Arrived from elsewhere",
+            label: "Arrived from another site",
             value: arrivals.referrer.reduce((n, r) => n + r.value, 0),
-            hint: "visits with a referring site",
+            hint: "Visits that came from a link somewhere else rather than typing the address or using a bookmark.",
           },
-          { label: "Languages seen", value: arrivals.language.length, hint: "browser UI language" },
+          {
+            label: "Browser languages",
+            value: arrivals.language.length,
+            hint: "How many different languages members' browsers are set to. Tells you whether anyone needs this site in another language.",
+          },
         ]}
       />
       <Row cols={3}>
-        <Panel title="Most searched" note="Every box, last 90 days">
+        <Panel title="What people search for" note="The exact words typed, most frequent first.">
           <BarList items={searches.top} empty="Nothing searched yet." />
         </Panel>
-        <Panel title="Found nothing" note="Someone looked and the site had none of it">
+        <Panel title="Searches that returned nothing" note="Worth reading. Each is a gap between what someone expected and what exists.">
           <BarList items={searches.empty} empty="Every search found something." />
         </Panel>
-        <Panel title="Which box">
+        <Panel title="Which search box" note="Feed search, people picker, or city picker.">
           <BarList items={searches.byScope} empty="Nothing searched yet." />
         </Panel>
       </Row>
       <Row cols={4}>
-        <Panel title="Visits begin at" note="First page of a visit">
+        <Panel title="The first page of a visit" note="Where members land when they arrive.">
           <BarList items={arrivals.entry} empty="No visits yet." />
         </Panel>
-        <Panel title="Sent here by" note="Referring site, host only">
+        <Panel title="Which site sent them" note="The domain they clicked a link on. Only the domain is stored, never the full address.">
           <BarList items={arrivals.referrer} empty="Everyone arrived directly." />
         </Panel>
-        <Panel title="Language">
+        <Panel title="Browser language" note="What each member's browser is set to.">
           <BarList items={arrivals.language} empty="No visits yet." />
         </Panel>
-        <Panel title="Region" note="From the edge">
+        <Panel title="State or province" note="Worked out from the network connection, not from anything the member typed.">
           <BarList items={arrivals.region} empty="No visits yet." />
         </Panel>
       </Row>
@@ -570,60 +629,73 @@ async function HealthView() {
     <div className="flex flex-col gap-3">
       <StatGrid
         stats={[
-          { label: "Sent", value: mail.sent, trend: t("db.mail.sent"), hint: "accepted by Resend" },
+          {
+            label: "Emails sent",
+            value: mail.sent,
+            trend: t("db.mail.sent"),
+            hint: "Handed to Resend, our email provider. This does not mean they arrived.",
+          },
           {
             label: "Confirmed delivered",
             value: mail.delivered,
             trend: t("db.mail.delivered"),
             hint:
               mail.delivered === 0
-                ? "the webhook only started recently"
-                : `${(mail.deliveryRate * 100).toFixed(0)}% of sent`,
+                ? "Delivery reporting was only switched on 19 Aug 2026, so older emails cannot be counted."
+                : `${(mail.deliveryRate * 100).toFixed(0)}% of everything sent actually reached a mailbox.`,
           },
           {
             label: "Bounced",
             value: mail.bounced,
             trend: t("db.mail.bounced"),
-            hint: "the address did not accept it",
+            hint: "The receiving mail server rejected it. Usually a dead or mistyped address.",
             tone: mail.bounced > 0 ? "bad" : undefined,
           },
           {
-            label: "Waiting",
+            label: "Queued to send",
             value: mail.queued,
-            hint: "held by the daily budget",
+            hint: "Written but not sent yet, held back by the 100-a-day limit on our email plan.",
             tone: mail.queued > 0 ? "warn" : undefined,
           },
         ]}
       />
       <StatGrid
         stats={[
-          { label: "Notifications", value: notif.total, hint: "sent inside the app" },
           {
-            label: "Read",
+            label: "In-app notifications",
+            value: notif.total,
+            hint: "The bell icon alerts, not emails.",
+          },
+          {
+            label: "Notifications opened",
             value: notif.rate,
             kind: "percent",
-            hint: `${notif.read} of ${notif.total}`,
+            hint: `${notif.read} of ${notif.total} were actually read. A low share means the bell is being ignored.`,
             tone: notif.rate < 0.3 ? "warn" : "good",
           },
-          { label: "Kinds", value: notif.byType.length, hint: "distinct notification types" },
           {
-            label: "Unread",
+            label: "Types of notification",
+            value: notif.byType.length,
+            hint: "How many different reasons the app has to alert someone.",
+          },
+          {
+            label: "Never opened",
             value: notif.total - notif.read,
-            hint: "nobody opened these",
+            hint: "Notifications still sitting unread.",
             tone: notif.total - notif.read > notif.read ? "warn" : undefined,
           },
         ]}
       />
       <Row cols={2}>
-        <Panel title="What we send" note="Every message, by template">
+        <Panel title="Kinds of email we send" note="Confirmation links, password resets, and so on.">
           <BarList items={mail.byKind} empty="No mail sent yet." />
         </Panel>
         <Panel
-          title="What happened to it"
+          title="What happened to those emails"
           note={
             mail.delivered === 0
-              ? "Delivery reports started when the webhook was wired, so this fills from here"
-              : "Accepted by Resend, against what reached a mailbox"
+              ? "Delivery reporting started 19 Aug 2026, so this only covers emails sent since then."
+              : "Handed to our provider, against what actually reached a mailbox."
           }
         >
           <BarList
@@ -638,7 +710,7 @@ async function HealthView() {
         </Panel>
       </Row>
       <Row cols={2}>
-        <Panel title="Notification kinds" note="What the app tells people about">
+        <Panel title="What notifications are about" note="Which events cause the bell to light up.">
           <BarList items={notif.byType} empty="No notifications yet." />
         </Panel>
       </Row>
