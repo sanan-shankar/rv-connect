@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
@@ -46,6 +47,44 @@ const nextConfig: NextConfig = {
  * wood.tsx out of the app shell) -- and had no way to check it beyond
  * reasoning about imports. optimizePackageImports above is a bet about
  * @phosphor-icons/react tree-shaking that nothing has ever confirmed. */
-export default withBundleAnalyzer({
+const analyzed = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 })(nextConfig);
+
+/* Sentry wraps last so it sees the final config. Every option here is set
+ * against a default we did not want -- see src/instrumentation.ts for the
+ * server-only decision this enforces at build time. */
+export default withSentryConfig(analyzed, {
+  org: "sanan-l0",
+  project: "javascript-nextjs",
+
+  /* Source map upload needs a SENTRY_AUTH_TOKEN. There isn't one, on purpose:
+   * the wizard would have written it into a .env.sentry-build-plugin file on
+   * the owner's laptop. Without it, server stack traces point at compiled
+   * output rather than the original line -- readable, just less precise.
+   * To turn it on later: create an org auth token in Sentry, add it to
+   * Vercel's env settings only (never .env), and this flips itself on. */
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+
+  /* Quiet during builds; a monitoring tool narrating itself in the deploy
+   * log is how real build errors get missed. */
+  silent: true,
+
+  /* No browser SDK is initialised (server-only), so widening the client
+   * upload would ship source maps for code Sentry never reports on. */
+  widenClientFileUpload: false,
+
+  webpack: {
+    /* Strips Sentry's internal debug logging from the production bundle.
+     * Lives under `webpack` because the flat `disableLogger` and
+     * `automaticVercelMonitors` options are deprecated in SDK 10 and warn
+     * on every build (AGENTS.md: heed deprecation notices). */
+    treeshake: { removeDebugLogging: true },
+
+    /* OFF: this would auto-create Sentry cron monitors for the two jobs in
+     * vercel.json. Cron monitoring is a real gap, but it is the owner's
+     * call to make deliberately, not something a config flag turns on
+     * behind him. */
+    automaticVercelMonitors: false,
+  },
+});
