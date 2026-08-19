@@ -17,182 +17,125 @@
  *  1. It is `fixed`, not absolute. A hair lying on the glass does not
  *     scroll with the page. This is the entire illusion; get it wrong
  *     and it reads instantly as a drawing in the layout.
- *  2. `pointer-events: none`, so it can never be grabbed, clicked
- *     through, or selected. It also means the hair can never intercept
- *     a real click, which is what keeps this from being an actual bug.
- *  3. It flees the cursor and STAYS fled — see the drift note below.
+ *  2. It does not move. An earlier pass had it flee the cursor, which
+ *     was rejected on sight: a hair that dodges is obviously a script,
+ *     and the whole point is that there is no explanation available
+ *     except a dirty screen. Inert is the more convincing behaviour.
+ *  3. It is SHARP and nearly opaque, not soft and grey — see the note
+ *     on the path below, which is where the first two attempts died.
+ *
+ *  You can swat it: one click on the strand and it is gone. It does not
+ *  persist, so it is back on the next load of the page. That is
+ *  deliberate — a permanent dismissal would end the joke on the first
+ *  lucky click, and a hair you brush off the glass was never gone for
+ *  good either.
  * ------------------------------------------------------------------ */
 
-import { useEffect } from "react";
-import { motion, useMotionValue, useSpring } from "motion/react";
+import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
 /* The drawn box. Fixed px rather than a viewport unit: a real hair is a
-   real-world object about 4cm long, so it must NOT scale with the window,
-   and the flee maths needs a known size to keep it on screen. */
+   real-world object about 4cm long, so it must NOT scale with the window.
+   It stays this size on a phone for the same reason. */
 const HAIR_W = 190;
 const HAIR_H = 44;
 
-/* Where it starts, as a fraction of the viewport. Just left of centre and
-   a third of the way down puts it across the top of the letterhead sheet —
+/* Where it sits, as a fraction of the viewport. Just left of centre and a
+   third of the way down puts it across the top of the letterhead sheet —
    over the name and occupation, which is the first place the eye lands on
    your own profile and therefore the most annoying place available. */
 const BASE_LEFT = 0.34;
 const BASE_TOP = 0.3;
 
-/* How close the cursor gets before the hair moves, and how hard one
-   pointermove event shoves it. 120px is roughly "the cursor is visibly
-   near it" without being so wide that the hair reacts to unrelated
-   movement across the page. 3.5px per event is small on purpose:
-   pointermove fires ~60x a second, so a deliberate swipe at the hair
-   carries it ~45px (measured, see the approach-only note below), while
-   merely passing by nudges it two or three — which is the ambiguity that
-   makes this work. A hair that leapt away would be obviously fake on the
-   first pass. */
-const FLEE_RADIUS = 120;
-const STEP = 3.5;
+/* The strand itself: one closed path, not a stroke, because a stroke has
+   constant width and a real hair tapers from ~0.9px at the root to a point.
+   The outbound curve is the upper edge, the return curve the lower,
+   converging at the tip.
 
-/* It never returns to where it started. This is the point: the offset
-   accumulates, so over an afternoon the hair wanders the screen, and
-   there is never a snap-back frame to give the game away. Kept MARGIN px
-   inside the viewport so it can't flee somewhere unreachable and quietly
-   end the joke. */
-const MARGIN = 20;
+   The shape is a shallow S with a kink two-thirds along, not an arc. The
+   first version was a clean symmetric dome and that was the whole tell —
+   nothing organic is a parabola, so it read as a drawn stroke. */
+const HAIR_PATH = `M 0,2 C 22,-16 56,-26 92,-21 C 112,-18 124,-11 140,-11
+   C 156,-11 168,-6 178,-8
+   C 168,-5.4 156,-10.4 140,-10.4 C 124,-10.4 112,-17.4 92,-20.3
+   C 56,-25.2 22,-15.2 0,2.9 Z`;
 
-/* Rotation is capped so a long session can't wind it into a spinning
-   pinwheel; a real hair being nudged swivels a little and stops. */
-const MAX_ROTATION = 25;
-
-/* Low stiffness, damping ratio just over 1 (20 / (2 * sqrt(90)) = 1.05),
-   so it is very slightly OVERDAMPED: it glides to the new spot and never
-   overshoots or wobbles. Every named spring in common/motion.tsx is
-   underdamped by design — they are UI answering a click, and they should
-   feel alive. This is the opposite: it must feel like inert matter being
-   pushed through air, so it gets its own. */
-const HAIR_SPRING = { stiffness: 90, damping: 20, mass: 1 } as const;
-
-const clamp = (v: number, lo: number, hi: number) =>
-  Math.min(hi, Math.max(lo, v));
+/* The same curve as a bare centreline, used ONLY as the click target. The
+   filled strand above is under a pixel wide, and hit-testing against its
+   real geometry would mean demanding a sub-pixel click — not "hard", just
+   broken. A 4px invisible ribbon along the spine means you have to
+   deliberately land on the hair and a near miss still does nothing, which
+   is the intended difficulty. */
+const HAIR_SPINE = `M 0,2.5 C 22,-15.6 56,-25.6 92,-20.6 C 112,-17.6 124,-10.7 140,-10.7
+   C 156,-10.7 168,-5.7 178,-8`;
+const HIT_WIDTH = 4;
 
 export function StrayHair() {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotate = useMotionValue(0);
-
-  /* Sprung views of the raw values, so the pointermove handler can write
-     as often as it likes without ever triggering a React render. */
-  const springX = useSpring(x, HAIR_SPRING);
-  const springY = useSpring(y, HAIR_SPRING);
-  const springR = useSpring(rotate, HAIR_SPRING);
-
-  useEffect(() => {
-    let lastDist = Infinity;
-
-    const onMove = (e: PointerEvent) => {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const baseLeft = vw * BASE_LEFT;
-      const baseTop = vh * BASE_TOP;
-
-      /* Current centre = where CSS puts the box + how far it has drifted.
-         Derived rather than measured: reading getBoundingClientRect on
-         every pointermove would force layout 60x a second. */
-      const dx = baseLeft + HAIR_W / 2 + x.get() - e.clientX;
-      const dy = baseTop + HAIR_H / 2 + y.get() - e.clientY;
-      const dist = Math.hypot(dx, dy);
-      const closing = dist < lastDist;
-      lastDist = dist;
-      if (dist > FLEE_RADIUS) return;
-
-      /* Only shove while the cursor is CLOSING on it — a bow wave, not a
-         magnet. Without this, a swipe straight through the hair pushes it
-         right on the way in and left again on the way out, and the two
-         cancel: measured, a full swipe moved it 9px instead of the 46 it
-         does now. Ignoring the receding half both fixes that and is the more
-         honest physics, since air pushed ahead of your hand does not suck
-         back when the hand has passed. */
-      if (!closing) return;
-
-      /* Dead centre gives no direction to flee in, so pick one rather
-         than dividing by zero and freezing the hair under the cursor. */
-      const nx = dist < 1 ? 0.7 : dx / dist;
-      const ny = dist < 1 ? -0.7 : dy / dist;
-
-      /* Closer cursor, harder shove. */
-      const push = (FLEE_RADIUS - dist) / FLEE_RADIUS;
-
-      x.set(
-        clamp(
-          x.get() + nx * push * STEP,
-          MARGIN - baseLeft,
-          vw - MARGIN - HAIR_W - baseLeft,
-        ),
-      );
-      y.set(
-        clamp(
-          y.get() + ny * push * STEP,
-          MARGIN - baseTop,
-          vh - MARGIN - HAIR_H - baseTop,
-        ),
-      );
-      rotate.set(
-        clamp(rotate.get() + nx * push * 0.6, -MAX_ROTATION, MAX_ROTATION),
-      );
-    };
-
-    /* On `window`, not the element: the element cannot receive pointer
-       events at all (see rule 2 above), so the flee has to be driven by
-       the pointer's position in the page rather than by hovering it. */
-    window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
-  }, [x, y, rotate]);
+  const [swatted, setSwatted] = useState(false);
 
   return (
-    <motion.div
-      aria-hidden
-      className="pointer-events-none fixed z-[70] select-none"
-      style={{
-        left: `${BASE_LEFT * 100}%`,
-        top: `${BASE_TOP * 100}%`,
-        width: HAIR_W,
-        height: HAIR_H,
-        x: springX,
-        y: springY,
-        rotate: springR,
-      }}
-    >
-      <svg
-        width={HAIR_W}
-        height={HAIR_H}
-        viewBox="-5 -30 190 44"
-        fill="none"
-        /* Enough blur to kill the hard vector edge — a real hair sits a
-           hair's breadth off the screen's focal plane and never has a
-           crisp CAD outline — but no more. This was 0.3px against a
-           1.6px-wide strand, i.e. a fifth of the whole width, which is
-           exactly why it read as a soft grey smudge rather than a hair.
-           At the thinner 1px width it has to come down with it. */
-        style={{ filter: "blur(0.12px)" }}
-      >
-        {/* One closed path, not a stroke: a stroke has constant width and
-            a real hair tapers from ~1px at the root to a point. The
-            outbound curve is the upper edge, the return curve the lower,
-            converging at the tip.
+    <AnimatePresence>
+      {!swatted ? (
+        <motion.div
+          aria-hidden
+          /* pointer-events-none on the WRAPPER is load-bearing: the box is
+             190x44 and sits over real content, so if the box itself were
+             clickable it would swallow clicks meant for the sheet beneath
+             it. Only the hit ribbon inside re-enables them. */
+          className="pointer-events-none fixed z-[70] select-none"
+          style={{
+            left: `${BASE_LEFT * 100}%`,
+            top: `${BASE_TOP * 100}%`,
+            width: HAIR_W,
+            height: HAIR_H,
+          }}
+          /* Brushed away rather than deleted: 120ms is under the ~150ms it
+             takes to read as a transition at all, so it reads as "gone the
+             moment I touched it" without the jarring single-frame pop. */
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.12 }}
+        >
+          <svg width={HAIR_W} height={HAIR_H} viewBox="-5 -30 190 44" fill="none">
+            <defs>
+              {/* A real hair is not one flat tone down its length. It presses
+                  against the glass in the middle, where it reads darkest, and
+                  lifts at both ends, where it thins to almost nothing.
+                  Painting that falloff into the fill is what stops the strand
+                  looking like a drawn line with two abrupt ends. */}
+              <linearGradient id="stray-hair-ink" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="var(--ink)" stopOpacity="0.5" />
+                <stop offset="0.18" stopColor="var(--ink)" stopOpacity="0.95" />
+                <stop offset="0.62" stopColor="var(--ink)" stopOpacity="0.9" />
+                <stop offset="1" stopColor="var(--ink)" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
 
-            The shape is a shallow S, not an arc. The first version was a
-            clean symmetric dome, and that was the whole tell — nothing
-            organic is a parabola, so it read as a drawn stroke. A real
-            hair falls with one strong bend near the root and a longer,
-            lazier counter-bend out to the tip. */}
-        <path
-          d="M 0,2 C 22,-16 56,-26 92,-21 C 132,-15 152,-2 178,-8
-             C 152,-1.3 132,-14.3 92,-20.25 C 56,-25.1 22,-15.1 0,3 Z"
-          fill="var(--ink)"
-          /* Up from 0.55 with the thinning: half the width means half
-             the covered pixels, and at 0.55 the strand went faint enough
-             to lose against the sheet's texture. */
-          fillOpacity={0.68}
-        />
-      </svg>
-    </motion.div>
+            {/* NO BLUR, and near-opaque. Two earlier passes had this
+                backwards: a sub-pixel shape at 0.68 opacity under a 0.12px
+                blur is nothing but antialiasing spread over two-odd pixels,
+                which is precisely how you draw a soft grey smudge. A hair
+                lying on the glass is in the same focal plane as the pixels
+                under it, so it is SHARP, and it is nearly black rather than
+                grey. Contrast is what makes it read as a fine strand instead
+                of a thick soft one: measured, the darkest point is luma 49
+                against a 232 background, at 1.0px wide falling to 0.75px. */}
+            <path d={HAIR_PATH} fill="url(#stray-hair-ink)" />
+
+            {/* The swat target. `pointerEvents="stroke"` with no fill and no
+                visible stroke colour: it is hit-tested but never painted. */}
+            <path
+              d={HAIR_SPINE}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={HIT_WIDTH}
+              strokeLinecap="round"
+              pointerEvents="stroke"
+              className="pointer-events-auto cursor-default"
+              onClick={() => setSwatted(true)}
+            />
+          </svg>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }
