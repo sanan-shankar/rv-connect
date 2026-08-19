@@ -113,6 +113,7 @@ const HEX_ALLOW = new Map([
   ["src/components/common/image-viewer.tsx", "the viewer's warm-ink backdrop + photo shadow"],
   ["src/components/ui/sonner.tsx", "toast shadow, pending tokenised shadows"],
   ["src/app/layout.tsx", "themeColor meta must be a literal; kept in lockstep with --background by hand"],
+  ["src/app/manifest.ts", "a web app manifest is JSON read by the OS installer before any stylesheet exists, so background_color/theme_color cannot be custom properties; both are --background, kept in lockstep by hand (same reason as layout.tsx above)"],
   ["src/components/support/support-contribute.tsx", "Razorpay's checkout theme.color is read by their SDK inside an iframe on their domain, so it cannot be a CSS variable; it is Canopy, kept in lockstep with --color-canopy by hand (same reason as layout.tsx above)"],
   ["src/components/ui/dialog.tsx", "the dialog material's warm-ink scrim (#241a12), same register as the viewer backdrop"],
   ["src/components/ui/sheet.tsx", "the edge-anchored variant of the dialog material, sharing its warm-ink scrim (#241a12)"],

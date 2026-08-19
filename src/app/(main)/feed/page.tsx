@@ -31,7 +31,7 @@ export default async function FeedPage({
     void logSearch({ scope: "feed", query: q, userId: s?.user?.id });
   }
 
-  const [unreadCount, userPlaces] = await Promise.all([
+  const [unreadCount, userPlaces, marker] = await Promise.all([
     prisma.notification.count({
       where: { userId: session.user.id, read: false },
     }),
@@ -39,6 +39,14 @@ export default async function FeedPage({
       where: { userId: session.user.id },
       orderBy: { position: "asc" },
       select: { city: true },
+    }),
+    /* The "New since you were last here" marker. Read here rather than in the
+       client so it is the ACCOUNT's marker, not this browser's -- it used to
+       sit in localStorage, which announced the same posts as new again on
+       every device the member signed in on (owner, 2026-08-20). */
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { feedSeenAt: true },
     }),
   ]);
 
@@ -72,6 +80,7 @@ export default async function FeedPage({
             initialSearch={q}
             currentUser={{ id: session.user.id, name: session.user.name, photoUrl: session.user.photoUrl, birdOverride: session.user.birdOverride }}
             userPlaces={userPlaces.map((p) => p.city)}
+            lastSeenAt={marker?.feedSeenAt?.toISOString() ?? null}
           />
         </div>
         <aside className={RAIL_ASIDE}>

@@ -1107,3 +1107,46 @@ export async function loadComments(
     hasMore,
   };
 }
+
+/**
+ * Advance the "New since you were last here" marker to the newest post the
+ * member has now been shown.
+ *
+ * This lived in localStorage until 2026-08-20, which made the divider a
+ * per-browser fact: reading the feed on a laptop and then a phone announced
+ * the same posts as new a second time (owner: "should only appear once, not
+ * once on each device you're logged into"). On the account it is announced
+ * once, on whichever device gets there first.
+ *
+ * The write is a single conditional updateMany rather than a read-then-write,
+ * so it is monotonic without a transaction: two devices loading the feed at
+ * the same moment cannot rewind each other, because the WHERE clause refuses
+ * any value that is not strictly newer than what is already stored.
+ *
+ * Failure is deliberately silent in production. Nobody should meet an error
+ * page because a divider could not be bookkept -- and in the public demo the
+ * write is DENIED outright by the client extension in prisma.ts, since
+ * feedSeenAt is not one of the visitor's own profile fields. Development logs
+ * it, because a guard that hides its own breakage is worse than no guard.
+ */
+export async function markFeedSeen(newestCreatedAt: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) return;
+
+  const seenAt = new Date(newestCreatedAt);
+  if (Number.isNaN(seenAt.getTime())) return;
+
+  try {
+    await prisma.user.updateMany({
+      where: {
+        id: session.user.id,
+        OR: [{ feedSeenAt: null }, { feedSeenAt: { lt: seenAt } }],
+      },
+      data: { feedSeenAt: seenAt },
+    });
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[markFeedSeen] could not advance the feed marker", err);
+    }
+  }
+}

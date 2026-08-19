@@ -55,6 +55,14 @@ model User {
   // recover -- so it was added the day the analytics room was built rather than
   // discovered missing afterwards.
   lastSeenAt    DateTime?
+  // createdAt of the newest post this member has already been shown in the
+  // feed, which is what the "New since you were last here" divider draws
+  // against. It lived in localStorage until 2026-08-20, so the divider was
+  // per-browser: signing in on a phone and a laptop meant being told the same
+  // posts were new twice (owner: "should only appear once, not once on each
+  // device"). Only ever moves forward, so the older of two devices catching up
+  // cannot rewind it. Null = never seen a feed; the divider stays hidden.
+  feedSeenAt    DateTime?
   visits        Visit[]
   searches      SearchLog[]
   contentViews  ContentView[] @relation("ContentViewer")
