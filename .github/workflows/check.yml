@@ -1,0 +1,51 @@
+name: check
+
+# The gate that already existed, now run by something other than memory.
+# `npm run check` is TypeScript + ESLint + the shape/colour protocol + the lab
+# registry + the unit tests, ~20s locally. A push to this repo IS a deploy
+# (CLAUDE.md), so this is the last thing standing between a bad commit and
+# members seeing it.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# MINUTE BUDGET. Private repos get 2,000 free minutes a month and the account
+# spending limit is $0, so an overrun stops runs rather than billing anything.
+# Two things keep usage far below that ceiling:
+#   1. this concurrency block cancels an in-flight run when you push again,
+#      so a burst of three pushes costs one run, not three;
+#   2. timeout-minutes caps the worst case, so a hung job cannot quietly eat
+#      the month.
+# Expected: ~3 min/run. Even 100 pushes a month is ~300 min of the 2,000.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # prisma generate runs on postinstall and reads prisma.config.ts, which
+      # wants a datasource url present. It never CONNECTS during generate, so
+      # a syntactically valid placeholder is enough -- and means this workflow
+      # needs no database secret at all.
+      DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      DIRECT_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+    steps:
+      - uses: actions/checkout@v5
+        # protocol-audit.mjs and lab-audit.mjs shell out to `git ls-files`, so
+        # they need a real working tree, which the default checkout gives.
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run check
