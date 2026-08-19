@@ -206,13 +206,16 @@ for the shots that go on the record and for sweeps; the MCP is for the measuring
    `toBeVisible()`, so animated UI is asserted on **geometry with `expect.poll`**, not element
    presence. `e2e/sidebar.spec.ts` is the worked example of both.
 
-8. **Adding a Prisma model? Restart the dev server.** `src/lib/prisma.ts` caches the client on
-   `globalThis` so it survives HMR, which means `npx prisma generate` does NOT reach the running
-   server: it keeps the instance it built at boot. The symptom is
-   `Cannot read properties of undefined (reading 'findMany')` on the new model, from code that
-   typechecks perfectly, and it cost two rounds on 2026-08-19 (`MetricSnapshot`, then `Visit`).
-   Kill the dev server and start it again. `npm run check` cannot catch this: `tsc` reads the
-   freshly generated types off disk while the server holds the old object.
+8. **Adding a Prisma model used to need a dev server restart. It no longer does.**
+   `src/lib/prisma.ts` caches the client on `globalThis` to survive HMR, so `npx prisma generate`
+   never reached the running server and the new model was simply `undefined` -- from code that
+   typechecks perfectly, because `tsc` reads the fresh types off disk while the server holds the
+   old object. There WAS a guard: a hand-written `clientKey` string to bump in the same commit as
+   any schema change. Three schema changes in a row forgot it on 2026-08-19.
+   The key now derives itself from `Prisma.ModelName`, which hot reload re-imports fresh even
+   while the cached client stays stale, so the client rebuilds on its own and logs
+   `[prisma] schema changed; rebuilding the dev client`. Nothing to remember. If you ever see
+   `Cannot read properties of undefined (reading 'findMany')` again, that mechanism has broken.
 
    Related: anything writing telemetry from a layout must **log its own failures in development**.
    `touchLastSeen` swallows errors so no member ever sees an error page over a statistics row, and
