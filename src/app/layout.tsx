@@ -27,6 +27,18 @@ export const metadata: Metadata = {
   },
   description:
     "A space for the Rishi Valley community to stay connected.",
+  /* Home-screen installs. `title` is the name under the icon -- without it iOS
+   * uses the <title> of whichever page was open when you tapped Share, so the
+   * same site could land on two phones as "Rishi Valley" and "Rishi Valley ·
+   * Feed". `capable` opens it chromeless, and the light status bar matches the
+   * warm paper the app paints on. The icon itself comes from app/apple-icon.png
+   * (Next emits the rel="apple-touch-icon" link for it) -- iOS reads neither
+   * favicon.ico nor an SVG icon, which is why it drew a letter tile instead. */
+  appleWebApp: {
+    title: "Rishi Valley",
+    capable: true,
+    statusBarStyle: "default",
+  },
 };
 
 /* Without an explicit themeColor, iOS Safari paints its top/bottom chrome in

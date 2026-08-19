@@ -133,18 +133,18 @@ const nextAuth = NextAuth({
       }
       return session;
     },
-    async signIn({ user }) {
-      if (user.email) {
-        const adminEmail = process.env.ADMIN_EMAIL;
-        if (adminEmail && user.email === adminEmail) {
-          await prisma.user.updateMany({
-            where: { email: adminEmail },
-            data: { role: "admin" },
-          });
-        }
-      }
-      return true;
-    },
+    /* There is deliberately no signIn callback promoting anybody.
+       Until 2026-08-19 this block re-wrote `role: "admin"` onto whichever row
+       matched process.env.ADMIN_EMAIL, on every single sign-in. It was not a
+       bypass -- authorize() has already checked the password by the time it
+       runs -- but it is the same anti-pattern as C1-a: a privilege granted by
+       comparing a string instead of reading the row. Two concrete costs. It
+       made adminSetRole's demotion meaningless for that one address, which
+       would silently re-promote on next sign-in. And it meant control of one
+       mailbox, rather than one password, was what ultimately decided who
+       administered the community.
+       Recovery, if an admin role is ever lost, is deliberate and local:
+         node scripts/dev/set-password.mjs <email> --admin              */
   },
 });
 

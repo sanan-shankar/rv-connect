@@ -274,8 +274,14 @@ export function proxy(request: NextRequest) {
   return res;
 }
 
+/* The brand assets (icon.svg, apple-icon.png, manifest.webmanifest) are
+ * excluded because the thing fetching them is usually NOT signed in: a phone
+ * doing "Add to Home Screen" from the landing page, a link preview, a browser
+ * filling in a tab. Redirecting those to /login hands the installer an HTML
+ * page where it expected an image, which is how iOS ended up drawing a plain
+ * letter "R" instead of the mark. */
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|images/|uploads/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|images/|uploads/).*)",
   ],
 };
