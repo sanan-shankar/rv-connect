@@ -6,10 +6,12 @@ import {
   loadGeography,
   loadMail,
   loadPeople,
+  loadPresence,
   loadSupport,
   loadTrends,
 } from "@/lib/admin-analytics";
 import { BarList, Panel, StatGrid, type Stat } from "@/components/admin/analytics/stat";
+import { PresenceList } from "@/components/admin/analytics/presence";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -42,7 +44,7 @@ export const dynamic = "force-dynamic";
  * ------------------------------------------------------------------ */
 
 export default async function AdminAnalyticsPage() {
-  const [trends, people, geo, content, catchups, support, mail] = await Promise.all([
+  const [trends, people, geo, content, catchups, support, mail, presence] = await Promise.all([
     loadTrends(90),
     loadPeople(),
     loadGeography(),
@@ -50,6 +52,7 @@ export default async function AdminAnalyticsPage() {
     loadCatchups(),
     loadSupport(),
     loadMail(),
+    loadPresence(),
   ]);
 
   const t = (key: string) => trends.get(key);
@@ -232,6 +235,63 @@ export default async function AdminAnalyticsPage() {
           snapshot has run twice, which is the first thing on this page that has to wait.
         </p>
       )}
+
+      <Section title="Right now">
+        <StatGrid
+          stats={[
+            {
+              label: "Here now",
+              value: presence.online.length,
+              hint: "active in the last 15 minutes",
+              tone: presence.online.length > 0 ? "good" : undefined,
+            },
+            {
+              label: "Typical visit",
+              value: presence.avgSessionSec / 60,
+              kind: "ratio",
+              hint: "minutes, over the last 30 days",
+            },
+            {
+              label: "Pages a visit",
+              value: presence.avgViews,
+              kind: "ratio",
+              hint: `${presence.visits30d} visits by ${presence.people30d} people`,
+            },
+            {
+              label: "Came back",
+              value: presence.returning,
+              hint: "people here on more than one day",
+              tone: presence.returning > 0 ? "good" : undefined,
+            },
+          ]}
+        />
+        <div className="grid items-start gap-2 lg:grid-cols-2">
+          <Panel
+            title="Here now"
+            note="Who is on the site, what they are looking at, and on what"
+          >
+            <PresenceList
+              rows={presence.online}
+              live
+              empty="Nobody on the site in the last 15 minutes."
+            />
+          </Panel>
+          <Panel title="Earlier today" note="The last 24 hours">
+            <PresenceList rows={presence.recent} empty="Nobody else today." />
+          </Panel>
+        </div>
+        <div className="grid items-start gap-2 lg:grid-cols-3">
+          <Panel title="What they are on" note="Visits by device, last 30 days">
+            <BarList items={presence.byDevice} empty="No visits recorded yet." />
+          </Panel>
+          <Panel title="Operating system">
+            <BarList items={presence.byOs} empty="No visits recorded yet." />
+          </Panel>
+          <Panel title="Where visits end" note="The last page of a visit, which is where people stop">
+            <BarList items={presence.byPath} empty="No visits recorded yet." />
+          </Panel>
+        </div>
+      </Section>
 
       <Section title="The community">
         <StatGrid stats={communityStats} />

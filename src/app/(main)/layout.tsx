@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
 import { advanceDueCatchups } from "@/lib/catchups";
 import { touchLastSeen } from "@/lib/last-seen";
+import { headers } from "next/headers";
 import { drainMailQueue, verificationMailState } from "@/lib/email-queue";
 import { maskEmail } from "@/lib/mask-email";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
@@ -47,7 +48,7 @@ export default async function MainLayout({
     // Records that this member was here, at most once every 15 minutes.
     // Rides in this same Promise.all rather than awaiting separately: it is
     // bookkeeping and must never add a serial round trip to page render.
-    touchLastSeen(session.user.id),
+    touchLastSeen(session.user.id, await currentPath()),
   ]);
 
   // The mail queue's tick. There is no cron on this project, so the queue is
@@ -120,4 +121,12 @@ export default async function MainLayout({
       </AppShell>
     </TourProvider>
   );
+}
+
+/* The page the member is actually on, from the header src/proxy.ts sets.
+   Null rather than a guess when the header is absent, so a missing value is
+   visibly missing in the admin room rather than quietly wrong. */
+async function currentPath(): Promise<string | undefined> {
+  const h = await headers();
+  return h.get("x-pathname") ?? undefined;
 }
