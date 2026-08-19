@@ -435,7 +435,15 @@ function AccountSection({
   if (pathname !== prevRoute) {
     setPrevRoute(pathname);
     if (onAccountRoute) setOpen(true);
-    else if (NAV.some((n) => isActive(pathname, n.href))) setOpen(false);
+    /* /admin closes it too, and needs saying separately because it falls
+       through BOTH tests otherwise. Admin is not in NAV (it is an account
+       row), and the Admin row drops itself while you are inside admin -- see
+       `rows` above -- so `onAccountRoute` is false as well. Neither branch
+       fired, the panel stayed open, and its rows overlapped the admin section
+       list that replaces the rail under /admin (owner, 2026-08-19: "it's
+       kind of cutting into the admin menu"). */
+    else if (isAdminRoute(pathname) || NAV.some((n) => isActive(pathname, n.href)))
+      setOpen(false);
   }
 
   return (
