@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { config as loadEnv } from "dotenv";
-import { requireLoopbackBaseUrl } from "./scripts/qa/local-base-url.mjs";
+import { requireLoopbackBaseUrl } from "../scripts/qa/local-base-url.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Playwright - the picture-memory and the flow tests.
@@ -32,10 +32,14 @@ export const DESKTOP = { width: 1440, height: 900 };
 export const MOBILE = { width: 390, height: 844 };
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: ".",
   /* Baselines sit next to the suite, not in per-test folders, so the
    * whole visual memory is one browsable directory. */
-  snapshotPathTemplate: "e2e/__screenshots__/{projectName}/{arg}{ext}",
+  snapshotPathTemplate: "__screenshots__/{projectName}/{arg}{ext}",
+
+  /* Per-run output stays inside e2e/ too. The owner keeps the repo root
+   * clear, so nothing here writes a new top-level folder. */
+  outputDir: ".output",
 
   /* 90s, not the 30s default. CLAUDE.md gotcha: "first hit of a cold route
    * outruns the 10s default" -- and /birds (50 plumage SVGs) plus
@@ -50,7 +54,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
+  reporter: process.env.CI ? [["github"], ["html", { open: "never", outputFolder: "e2e/.report" }]] : [["list"]],
 
   expect: {
     toHaveScreenshot: {
