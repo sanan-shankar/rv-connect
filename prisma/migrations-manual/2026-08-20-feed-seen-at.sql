@@ -1,0 +1,14 @@
+-- The "New since you were last here" marker, moved off the device.
+--
+-- It used to live in localStorage under "rv-feed-last-seen:all", so it was
+-- per-browser: the same posts were announced as new again on every device the
+-- member signed in on (owner, 2026-08-20). On the account it is announced once.
+--
+-- Nullable with no backfill on purpose. Null means "no marker yet", which is
+-- exactly the state every row is in today -- the old markers are in browsers we
+-- cannot read -- and the divider already hides itself when the marker is null.
+-- So the first feed load after this ships stamps the marker and shows no
+-- divider, which is the honest answer: we do not know what you had seen.
+--
+-- Idempotent: safe to run more than once.
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "feedSeenAt" TIMESTAMP(3);

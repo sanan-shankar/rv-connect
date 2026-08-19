@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { MagnifyingGlass, SlidersHorizontal, X } from "@phosphor-icons/react";
 import { PostCard, type PostData } from "./post-card";
-import { loadPosts } from "@/app/(main)/feed/actions";
+import { loadPosts, markFeedSeen } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,8 +24,6 @@ type TimeFilter = "all" | "today" | "week" | "month" | "year";
 /** Which slice of posts to render. `author` is reserved for a later batch (needs loadPosts support). */
 export type FeedScope = "all" | "author" | "group" | "letters";
 
-const LAST_SEEN_KEY = "rv-feed-last-seen";
-
 export function PostFeed({
   groupId,
   scope = "all",
@@ -34,6 +32,7 @@ export function PostFeed({
   emptyTitle,
   emptyHint,
   initialSearch,
+  lastSeenAt,
 }: {
   groupId?: string;
   scope?: FeedScope;
@@ -44,6 +43,10 @@ export function PostFeed({
   /** Seeds the search query (e.g. from the header search pill's `?q=`) even
    *  when `showControls` hides the inline search box. */
   initialSearch?: string;
+  /** ISO createdAt of the newest post this member has already been shown,
+   *  read off their account by the server component above. Null = no marker
+   *  yet, and the divider stays hidden. */
+  lastSeenAt?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -75,8 +78,14 @@ export function PostFeed({
     }
   }
 
-  // "New since you were last here": the timestamp of the most recent post we showed last visit.
-  const [lastSeen, setLastSeen] = useState<number | null>(null);
+  /* "New since you were last here": the newest post we had shown this member
+   * as of their last visit, ON ANY DEVICE. It arrives from the server already
+   * resolved, and is captured in state ONCE so the divider cannot move under
+   * the reader while they are looking at it -- the same load that draws the
+   * divider also advances the stored marker past it. */
+  const [lastSeen] = useState<number | null>(() =>
+    lastSeenAt ? new Date(lastSeenAt).getTime() : null
+  );
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -101,16 +110,6 @@ export function PostFeed({
     [groupId, scope, search, sortBy, timeFilter]
   );
 
-  // Read (then refresh) the last-seen marker once on mount, per scope, so the
-  // "new since last here" divider is stable for the session.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const key = `${LAST_SEEN_KEY}:${groupId ?? scope}`;
-    const stored = window.localStorage.getItem(key);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reads the last-seen timestamp out of localStorage, which has no server-side value.
-    setLastSeen(stored ? Number(stored) : null);
-  }, [groupId, scope]);
-
   // First page whenever filters, group, or an external reload trigger change.
   useEffect(() => {
     let cancelled = false;
@@ -122,18 +121,25 @@ export function PostFeed({
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
       setLoading(false);
-      // Stamp the newest post we just showed as the new marker for next visit.
-      if (typeof window !== "undefined" && data.posts.length > 0) {
+      /* Stamp the newest post we just showed as the marker for next visit.
+       * On the ACCOUNT, not this browser, so the divider is not re-announced
+       * on every other device the member is signed in on. Fire-and-forget:
+       * the divider is already drawn from the value captured at mount, so
+       * nothing on screen is waiting for this to come back. Only the
+       * unfiltered recent feed may stamp -- a search or a "this month" filter
+       * shows a slice, and letting a slice advance the marker would silently
+       * bury everything the member had not actually been shown. */
+      if (data.posts.length > 0 && sortBy === "recent" && !search && timeFilter === "all") {
         const newest = Math.max(
           ...data.posts.map((p) => new Date(p.createdAt).getTime())
         );
-        window.localStorage.setItem(`${LAST_SEEN_KEY}:${groupId ?? scope}`, String(newest));
+        void markFeedSeen(new Date(newest).toISOString());
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [fetchPosts, reloadKey, groupId, scope]);
+  }, [fetchPosts, reloadKey, groupId, scope, sortBy, search, timeFilter]);
 
   // Index of the first post that is NOT newer than last-seen: the divider goes above it.
   // Only meaningful on the default recent sort and when there is genuinely new content.

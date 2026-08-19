@@ -58,13 +58,34 @@ function createPrismaClient() {
 // typechecks perfectly, because `tsc` reads the freshly generated types off
 // disk while the running server holds the old object.
 //
-// Derived automatically now. `Prisma.ModelName` is a plain runtime object
-// listing every model, and hot reload re-imports it fresh even while the
-// cached CLIENT stays stale -- so comparing the two is exactly the "has the
-// schema changed underneath me" question, answered without anyone
-// remembering anything.
+// Derived automatically now. These are plain runtime objects, and hot reload
+// re-imports them fresh even while the cached CLIENT stays stale -- so
+// comparing the two is exactly the "has the schema changed underneath me"
+// question, answered without anyone remembering anything.
+//
+// FIELDS, not just models (2026-08-20). The first version of this hashed
+// `Prisma.ModelName` alone, which is the set of model NAMES -- so it saw a new
+// model and was blind to a new COLUMN on an existing one. Adding
+// User.feedSeenAt reproduced the original bug exactly: `prisma generate`
+// succeeded, tsc read the fresh types off disk and passed, and the running
+// server threw PrismaClientValidationError on a select of a field its cached
+// client had never heard of. `*ScalarFieldEnum` is generated per model as a
+// runtime object of its column names, so folding those in makes the key move
+// on any schema change at all. Both halves are kept: if a future client stops
+// emitting the enums, the filter yields nothing and this degrades to exactly
+// the model-name behaviour it replaced, rather than to a constant.
 const globalForPrismaKey = globalThis as unknown as { prismaKey: string | undefined };
-const clientKey = Object.keys(Prisma.ModelName).sort().join(",");
+const clientKey = [
+  Object.keys(Prisma.ModelName).sort().join(","),
+  Object.entries(Prisma as unknown as Record<string, unknown>)
+    .filter(
+      ([name, value]) =>
+        name.endsWith("ScalarFieldEnum") && typeof value === "object" && value !== null
+    )
+    .map(([name, value]) => `${name}(${Object.keys(value as object).sort().join("|")})`)
+    .sort()
+    .join(","),
+].join("::");
 
 if (globalForPrisma.prisma && globalForPrismaKey.prismaKey !== clientKey) {
   // Let the old client's pool go rather than leaking a connection per reload.

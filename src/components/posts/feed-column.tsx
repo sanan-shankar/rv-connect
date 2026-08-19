@@ -21,6 +21,7 @@ export function FeedColumn({
   emptyTitle,
   emptyHint,
   initialSearch,
+  lastSeenAt,
 }: {
   groupId?: string;
   scope?: FeedScope;
@@ -35,6 +36,9 @@ export function FeedColumn({
   /** Seeds the feed's search (e.g. `?q=` from the header search pill) even
    *  when the inline search/filter row (`showControls`) is hidden. */
   initialSearch?: string;
+  /** The account's "New since you were last here" marker, read server-side.
+   *  Passed straight through; see PostFeed for what it draws. */
+  lastSeenAt?: string | null;
 }) {
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -56,6 +60,7 @@ export function FeedColumn({
         emptyTitle={emptyTitle}
         emptyHint={emptyHint}
         initialSearch={initialSearch}
+        lastSeenAt={lastSeenAt}
       />
     </div>
   );
