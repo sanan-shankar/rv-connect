@@ -12,6 +12,8 @@ import { prisma } from "@/lib/prisma";
  * definition, and the one that makes "average session" mean what a person
  * expects: come back after lunch and that is a second visit, not a
  * four-hour one. */
+/* Kept as documentation of the window; the window itself is now enforced by
+ * the rolling cookie's max-age in src/proxy.ts. */
 export const SESSION_GAP_MIN = 30;
 
 /* User.lastSeenAt is throttled because it only ever answers "roughly when",
@@ -104,44 +106,20 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
      * choice, not the whole negotiation. */
     const language = h.get("accept-language")?.split(",")[0]?.trim() || null;
 
-    const gapCutoff = new Date(now.getTime() - SESSION_GAP_MIN * 60 * 1000);
-
-    /* The current visit, if there is one. Ordered and limited so this is an
-     * index seek on (userId, endedAt) rather than a scan of a growing table. */
-    const open = await prisma.visit.findFirst({
-      where: { userId, endedAt: { gte: gapCutoff } },
-      orderBy: { endedAt: "desc" },
-      select: { id: true },
-    });
+    /* The browser's own visit id, minted and rolled by src/proxy.ts. With it
+     * this is a single upsert on a known primary key: no read-then-write, so
+     * nothing to race over. Without it (a request that somehow skipped the
+     * proxy) there is no safe way to attribute the view, so the Visit is
+     * skipped rather than guessed at -- lastSeenAt below still records that
+     * the member was here. */
+    const visitId = h.get("x-visit-id");
 
     await Promise.all([
-      open
-        ? prisma.visit.update({
-            where: { id: open.id },
-            data: {
-              endedAt: now,
-              views: { increment: 1 },
-              lastPath: path ?? undefined,
-              /* Refreshed rather than left at the visit's first value: a
-                 member who moves from wifi to mobile data mid-visit is more
-                 usefully described by where they are now. */
-              device,
-              os,
-              browser,
-              language: language ?? undefined,
-              country: country ?? undefined,
-              city: cityName ?? undefined,
-              region: region ?? undefined,
-              timezone: timezone ?? undefined,
-              lat: lat ?? undefined,
-              lng: lng ?? undefined,
-              /* entryPath and referrer are NOT refreshed: they describe how
-                 this visit began, and overwriting them on every page view
-                 would turn "where people arrive" into "where they are now". */
-            },
-          })
-        : prisma.visit.create({
-            data: {
+      visitId
+        ? prisma.visit.upsert({
+            where: { id: visitId },
+            create: {
+              id: visitId,
               userId,
               startedAt: now,
               endedAt: now,
@@ -160,7 +138,28 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
               lat,
               lng,
             },
-          }),
+            update: {
+              endedAt: now,
+              views: { increment: 1 },
+              lastPath: path ?? undefined,
+              /* Refreshed: someone moving from wifi to mobile data mid-visit is
+                 more usefully described by where they are now. entryPath and
+                 referrer are NOT here on purpose -- they describe how the visit
+                 began, and overwriting them would turn "where people arrive"
+                 into "where they are now". */
+              device,
+              os,
+              browser,
+              language: language ?? undefined,
+              country: country ?? undefined,
+              city: cityName ?? undefined,
+              region: region ?? undefined,
+              timezone: timezone ?? undefined,
+              lat: lat ?? undefined,
+              lng: lng ?? undefined,
+            },
+          })
+        : Promise.resolve(),
 
       /* Still worth keeping alongside Visit: it is one indexed column on User,
          so "active in the last 30 days" is a count rather than a join, and it

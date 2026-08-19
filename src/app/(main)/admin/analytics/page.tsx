@@ -104,7 +104,7 @@ async function LiveView() {
             label: "Pages a visit",
             value: p.avgViews,
             kind: "ratio",
-            hint: `${p.visits30d} visits by ${p.people30d} people`,
+            hint: `${p.visits30d} visits by ${p.people30d} people. Counts layout renders, so prefetches inflate it slightly.`,
           },
           {
             label: "Came back",

@@ -62,6 +62,26 @@ const DEMO_CLOSED_APIS = [
   "/api/resend",
 ];
 
+/* Not a session and not an identity: a per-browser id for one sitting, used
+   only to attribute page views to one Visit row. Rolling, so it expires 30
+   minutes after the LAST page view rather than the first. */
+const VISIT_COOKIE = "rv-visit";
+const VISIT_TTL_SECONDS = 30 * 60;
+
+/* FNV-1a. Synchronous (the proxy is not async), stable, and only ever used to
+   agree on an arbitrary key -- nothing here is a security boundary, so a
+   non-cryptographic hash is the right tool. */
+function derivedVisitId(seed: string): string {
+  const bucket = Math.floor(Date.now() / (VISIT_TTL_SECONDS * 1000));
+  const input = `${seed}:${bucket}`;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return `v-${bucket.toString(36)}-${h.toString(36)}`;
+}
+
 function isUnder(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
@@ -205,7 +225,43 @@ export function proxy(request: NextRequest) {
      (src/lib/last-seen.ts) to record which page a member is actually on. */
   const withPath = new Headers(request.headers);
   withPath.set("x-pathname", pathname);
-  return NextResponse.next({ request: { headers: withPath } });
+
+  /* THE VISIT ID, held in a rolling 30-minute cookie.
+     touchLastSeen used to find-then-create ("is there an open visit? no ->
+     make one"), which races: several page loads land together, all read "no
+     open visit" before any of them has written one, and each creates its own.
+     The owner saw the result as four separate 0-second visits from one person
+     in one sitting.
+     A cookie removes the guess entirely. The browser carries its own visit's
+     identity, so the write is an upsert on a known primary key with nothing to
+     race over, and the 30-minute session gap comes free from the cookie's own
+     expiry -- refreshed on every request, so it slides. */
+  /* Cookie first. On a COLD browser there is no cookie yet and several
+     requests land in parallel -- the page, its RSC payload, a prefetch -- so a
+     random id per request would have each of them mint a different one and
+     only the last Set-Cookie would win. That is what still produced six rows
+     from one sitting after the first fix.
+     So the fallback is DERIVED, not random: the same session token in the same
+     30-minute bucket always yields the same id, which means a burst of
+     simultaneous requests agrees without needing to coordinate. The cookie
+     then takes over and slides, so a long visit never splits at a bucket
+     boundary the way a bucket alone would. */
+  const existing = request.cookies.get(VISIT_COOKIE)?.value;
+  const visitId =
+    existing && /^[0-9a-z-]{8,64}$/.test(existing)
+      ? existing
+      : derivedVisitId(sessionCookie?.value ?? request.headers.get("user-agent") ?? "anon");
+  withPath.set("x-visit-id", visitId);
+
+  const res = NextResponse.next({ request: { headers: withPath } });
+  res.cookies.set(VISIT_COOKIE, visitId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: request.nextUrl.protocol === "https:",
+    path: "/",
+    maxAge: VISIT_TTL_SECONDS,
+  });
+  return res;
 }
 
 export const config = {

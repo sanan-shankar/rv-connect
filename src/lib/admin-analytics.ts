@@ -741,13 +741,12 @@ export async function loadRetention() {
 export async function loadProfiles() {
   const [f] = await prisma.$queryRaw<
     {
-      total: bigint; bio: bigint; about: bigint; work: bigint; phone: bigint;
+      total: bigint; about: bigint; work: bigint; phone: bigint;
       links: bigint; houses: bigint; photo: bigint; city: bigint; social: bigint;
       admission: bigint; verified: bigint; pending: bigint;
     }[]
   >`
     SELECT count(*)::bigint                                                   AS total,
-           count(*) FILTER (WHERE "bio"        <> '' AND "bio"        IS NOT NULL)::bigint AS bio,
            count(*) FILTER (WHERE "about"      <> '' AND "about"      IS NOT NULL)::bigint AS about,
            count(*) FILTER (WHERE "workplace"  <> '' AND "workplace"  IS NOT NULL)::bigint AS work,
            count(*) FILTER (WHERE "phone"      <> '' AND "phone"      IS NOT NULL)::bigint AS phone,
@@ -770,8 +769,11 @@ export async function loadProfiles() {
   const fields = [
     { label: "A photo", value: n(f?.photo) },
     { label: "A city", value: n(f?.city) },
-    { label: "A short bio", value: n(f?.bio) },
-    { label: "The long 'about'", value: n(f?.about) },
+    /* `about` only. The old `bio` column is retired -- nothing in the shipped
+       profile renders it, and its one remaining writer is a stale onboarding
+       action -- so counting it would have shown 0 of 51 forever and taught
+       nobody anything. */
+    { label: "An 'about' paragraph", value: n(f?.about) },
     { label: "Where they work", value: n(f?.work) },
     { label: "Houses", value: n(f?.houses) },
     { label: "A phone number", value: n(f?.phone) },
