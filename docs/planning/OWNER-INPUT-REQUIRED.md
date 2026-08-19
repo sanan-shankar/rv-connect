@@ -44,13 +44,14 @@ If you don't have a fixed date, we just work the list top to bottom and launch w
 
 **3. Your input isn't only at the beginning.** There are seven points where I'll be blocked without you (Part 7). The two big ones: after I delete the admin backdoor you'll need to set a real password before you can get back into your own admin panel, and I can't write the privacy policy without knowing who legally owns this thing.
 
-**One sequencing point that matters more than anything else in this document.** Three of the actions in Part 6 must happen **before** I start writing code:
+**One sequencing point that matters more than anything else in this document.** Two of the actions in Part 6 must happen **before** I start writing code:
 
-- **A2 (turn on R2 versioning)** — because the single worst finding in the audit is that any member can permanently delete every photograph in the archive, and right now there is nothing to restore from. Turning versioning on takes four minutes and makes that finding survivable *tonight*, before I've written a line.
 - **A4 (create a separate development database)** — because production and your laptop currently share one database. The fix run involves schema changes. I don't want to be running those against live member data.
 - **A1 (take a manual database backup)** — same reason.
 
-Do those three this week even if you read nothing else.
+*(A2 — protecting the photo archive — used to be the third and most urgent item here. It's done: Cloudflare turned out not to offer versioning at all, so I set up the fallback the item described instead — a nightly copy of every photo to the private backup bucket that never propagates deletions. Nothing for you to do.)*
+
+Do those two this week even if you read nothing else.
 
 ---
 
@@ -390,7 +391,7 @@ Several fixes need paid services. **None of these are optional in the sense that
 | **Upstash Redis** | The memory that rate limiting needs — "this address has tried to log in 40 times in a minute, stop it." Without a shared store, limits reset constantly and don't work. | likely sufficient | Free → paid if busy | **$0–10/mo** |
 | **Sentry** (error tracking) | Tells you when the app breaks for a real person. Right now, **nothing** tells you — a scheduled job on your site has been failing every night for weeks and nobody noticed. | sufficient | Free | **$0** |
 | **Cloudflare Turnstile** | The CAPTCHA that stops bulk bot signups. | sufficient | Free | **$0** |
-| **Cloudflare R2** | Photo storage. Turning on versioning (so deleted photos are recoverable) costs a little extra storage. | mostly sufficient | — | **~$1–3/mo** |
+| **Cloudflare R2** | Photo storage. A nightly copy of every photo to the private backup bucket (so deleted photos are recoverable) costs a little extra storage. | mostly sufficient | — | **~$1–3/mo** |
 | **Vercel** (hosting) | Worth checking which plan you're on. The Hobby plan doesn't permit commercial use and limits scheduled jobs to one a day. | depends | Pro if needed | **$0 or $20/mo** |
 
 **Total: roughly $45–80 per month**, most likely **~$65**.
@@ -592,7 +593,7 @@ I couldn't find the query that produces a public total, which may mean it doesn'
 
 Everything below needs your hands, because it needs a password or a card.
 
-> **Do A1, A2 and A4 first, before I start writing code.** The rest can happen while I work.
+> **Do A1 and A4 first, before I start writing code.** The rest can happen while I work. (A2 is already done — see below.)
 > **A10 (rotate the secrets) must be done LAST** — after the backdoor is closed. Rotating keys while the front door is open achieves nothing.
 
 ---
@@ -612,20 +613,15 @@ Everything below needs your hands, because it needs a password or a card.
 
 ---
 
-### A2 — Turn on object versioning for photo storage ⏱ 5 min · **DO FIRST — most urgent item here**
+### A2 — Protect the photo archive from deletion ⏱ done · **nothing for you to do**
 
-**Why.** Any member can currently delete **every photograph in your app** — every profile picture, every Collection scan, every post image — with a single ordinary request. Cloudflare does not keep deleted files unless you switch versioning on. Right now, that deletion would be permanent and unrecoverable.
+**Why this existed.** Any member can currently delete **every photograph in your app** — every profile picture, every Collection scan, every post image — with a single ordinary request. Until this item, that deletion would have been permanent and unrecoverable.
 
-I'm fixing the code. But the code fix takes a day and **this takes four minutes and protects you tonight.**
+**What changed.** This item originally asked you to turn on "object versioning" in the Cloudflare dashboard. You looked, and it isn't there — because Cloudflare R2 doesn't offer versioning at all, on any plan. That's not you missing a setting; the feature doesn't exist. So I built the fallback this item already named: every night, the same automated job that backs up the database now also copies every photo to the private backup bucket, and **deletions are never copied across** — a photo deleted from the live bucket, by accident or by attack, stays safe in the backup until we deliberately remove it.
 
-1. Go to **https://dash.cloudflare.com** and sign in.
-2. In the left sidebar click **R2** (it may be under "R2 Object Storage").
-3. Click your bucket: **`rv-alumni-media`**.
-4. Open the **Settings** tab.
-5. Find **Object versioning** and turn it **on**. *(If you can't find it under Settings, check for a "Data retention", "Versioning" or "Object lifecycle" section — Cloudflare has moved this. If it isn't there at all, tell me and we'll set up a scheduled copy to a second bucket instead, which achieves the same thing.)*
-6. While you're on that page, look for **Lifecycle rules** and add one that keeps **non-current versions for 30 days** — so recovery is possible for a month without storing every old version forever.
+The one gap: a photo uploaded and deleted within the same day, before the nightly copy has seen it. The code fix for the deletion bug itself (C2) closes that.
 
-> **Report back:** versioning on: ☐ yes ☐ couldn't find it · lifecycle rule set: ☐ yes ☐ no
+> **Report back:** nothing — this one's done. You'll see it as the "media" job in the nightly backup run on GitHub.
 
 ---
 
@@ -928,7 +924,7 @@ D20  Launch date: ..............  Line as proposed: ......
   ACTIONS COMPLETED
 ---------------------------------------------------------
 A1   Backup            [ ]  Backups page says: ......................
-A2   R2 versioning     [ ]  Lifecycle rule: [ ]
+A2   Photo backup      [x]  (done for you -- R2 has no versioning; nightly copy set up instead)
 A3   Plans checked     [ ]
 A4   Dev database      [ ]  Connection strings in .env: [ ]
 A5   Upstash           [ ]
