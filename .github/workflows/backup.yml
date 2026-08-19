@@ -1,0 +1,152 @@
+name: backup
+
+# Nightly pg_dump of the Supabase database to a PRIVATE R2 bucket.
+#
+# WHY: Supabase's free plan has no automatic backups and no point-in-time
+# recovery -- their own docs tell free-tier projects to dump it themselves.
+# One database serves both production and local dev (AGENTS.md), and
+# CLAUDE.md documents that `prisma db push` will try to DROP tables it thinks
+# are orphaned. Until this job existed, a single bad command destroyed every
+# member's profile, letters, photos and contribution records with no way back.
+#
+# Restore, when you need it:
+#   pg_restore --clean --if-exists --no-owner --no-acl \
+#     --dbname "$DIRECT_URL" rv-connect-YYYY-MM-DD.dump
+# Rehearse that against the staging database, never straight at production.
+
+on:
+  schedule:
+    # 20:30 UTC == 02:00 IST, matching the existing catchups cron in
+    # vercel.json so all the quiet-hours work happens in one window.
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Refuse to write backups into a public bucket
+        env:
+          BACKUP_BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+        run: |
+          # rv-alumni-media is served publicly from a pub-*.r2.dev URL. A
+          # database dump landing there would publish every member's personal
+          # data to the open internet. This is the one mistake that must be
+          # impossible, so it is checked before anything is produced.
+          if [ -z "$BACKUP_BUCKET" ]; then
+            echo "::error::R2_BACKUP_BUCKET is not set."
+            exit 1
+          fi
+          case "$BACKUP_BUCKET" in
+            rv-alumni-media|*media*|*public*)
+              echo "::error::R2_BACKUP_BUCKET is '$BACKUP_BUCKET', which looks like the PUBLIC media bucket."
+              echo "::error::Backups must go to a separate PRIVATE bucket. Refusing to run."
+              exit 1
+              ;;
+          esac
+          echo "Backup target: $BACKUP_BUCKET (private)"
+
+      - name: Install PostgreSQL 17 client
+        run: |
+          # The database is PostgreSQL 17.6. pg_dump refuses to dump a server
+          # newer than itself, and ubuntu-latest ships an older client, so the
+          # matching major version is installed from the official PGDG repo.
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: Dump the database
+        env:
+          # The SESSION pooler URL (port 5432, DIRECT_URL), not the transaction
+          # pooler: pg_dump needs a real session, and pgbouncer in transaction
+          # mode cannot serve one.
+          DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+        run: |
+          STAMP="$(date -u +%Y-%m-%d)"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          # Custom format (-Fc): compressed, and pg_restore can pick out a
+          # single table from it, which a plain .sql dump cannot do.
+          # --no-owner/--no-acl so it restores cleanly into a fresh project
+          # whose roles differ from production's.
+          pg_dump "$DIRECT_URL" \
+            --format=custom \
+            --no-owner \
+            --no-acl \
+            --file="rv-connect-$STAMP.dump"
+          ls -lh "rv-connect-$STAMP.dump"
+
+      - name: Verify the dump is readable before trusting it
+        run: |
+          # A dump that cannot be listed is not a backup, it is a file. This
+          # reads the archive's table of contents and fails the job if the
+          # dump is truncated or corrupt -- the difference between "we have
+          # backups" and "we have backups that work".
+          pg_restore --list "rv-connect-$STAMP.dump" > /tmp/toc.txt
+          LINES=$(wc -l < /tmp/toc.txt)
+          echo "archive lists $LINES objects"
+          if [ "$LINES" -lt 50 ]; then
+            echo "::error::Dump lists only $LINES objects. Expected far more. Treating as corrupt."
+            exit 1
+          fi
+          # The tables that would hurt most to lose must actually be present.
+          for t in User Post Comment Contribution Photo CatchupEntry; do
+            grep -q "TABLE DATA public $t " /tmp/toc.txt \
+              || { echo "::error::Table '$t' missing from dump."; exit 1; }
+          done
+          echo "Dump verified."
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          # AWS CLI v2.23+ sends integrity headers that R2 rejects. Without
+          # this the upload fails with an opaque 400.
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+        run: |
+          aws s3 cp "rv-connect-$STAMP.dump" \
+            "s3://$BUCKET/postgres/rv-connect-$STAMP.dump" \
+            --endpoint-url "$ENDPOINT"
+          echo "Uploaded postgres/rv-connect-$STAMP.dump"
+
+      - name: Prune backups older than 30 days
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+        run: |
+          # ~15MB compressed x 30 days is well under R2's 10GB free storage.
+          # The 1st of each month is kept indefinitely, so a corruption that
+          # goes unnoticed for six weeks is still recoverable.
+          CUTOFF=$(date -u -d '30 days ago' +%Y-%m-%d)
+          aws s3 ls "s3://$BUCKET/postgres/" --endpoint-url "$ENDPOINT" \
+            | awk '{print $4}' | grep -E '^rv-connect-[0-9-]+\.dump$' | while read -r f; do
+              D=$(echo "$f" | sed -E 's/rv-connect-([0-9-]+)\.dump/\1/')
+              case "$D" in *-01) continue;; esac   # keep monthlies forever
+              if [[ "$D" < "$CUTOFF" ]]; then
+                aws s3 rm "s3://$BUCKET/postgres/$f" --endpoint-url "$ENDPOINT"
+                echo "pruned $f"
+              fi
+            done
+
+      - name: Report
+        run: echo "### Backup ${{ env.STAMP }} verified and uploaded" >> "$GITHUB_STEP_SUMMARY"
