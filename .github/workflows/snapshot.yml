@@ -64,5 +64,15 @@ jobs:
             node scripts/ops/snapshot.mjs
           fi
 
+      # Same workflow, because it is the same nightly window and the same
+      # connection. Notifications are the one table in this schema that grows
+      # without bound -- ~0.8KB each, and 2,000 members at 500 apiece is ~800MB
+      # against a 500MB free tier. Everything else is either fixed reference
+      # data (Place) or lives in R2.
+      - name: Prune notifications older than 30 days
+        env:
+          DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+        run: node scripts/ops/prune.mjs --days 30
+
       - name: Report
-        run: echo "### Snapshot collected" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "### Snapshot collected and notifications pruned" >> "$GITHUB_STEP_SUMMARY"
