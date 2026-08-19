@@ -24,6 +24,7 @@
  */
 import puppeteer from "puppeteer";
 import { config } from "dotenv";
+import { devLogin } from "./_dev-login.mjs";
 config({ path: ".env" });
 
 const BASE = "http://localhost:3000";
@@ -50,13 +51,7 @@ const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 
 await page.goto(BASE, { waitUntil: "networkidle2", timeout: 60000 });
-await page.evaluate(async (email) => {
-  await fetch("/api/auth/admin-login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-}, adminEmail);
+await devLogin(page, BASE, adminEmail);
 await page.goto(`${BASE}/feed`, { waitUntil: "networkidle2", timeout: 60000 });
 await sleep(2500);
 

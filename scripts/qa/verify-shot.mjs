@@ -6,6 +6,7 @@ import { config } from "dotenv";
 import { mkdirSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
+import { devLogin } from "./_dev-login.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
@@ -21,9 +22,7 @@ const errs = [];
 page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text().slice(0, 160)); });
 page.on("pageerror", (e) => errs.push("pageerror: " + String(e.message).slice(0, 180)));
 await page.goto("http://localhost:3000", { waitUntil: "domcontentloaded" });
-await page.evaluate(async (email) => {
-  await fetch("/api/auth/admin-login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-}, process.env.ADMIN_EMAIL);
+await devLogin(page, "http://localhost:3000");
 let status = "?";
 try {
   const resp = await page.goto("http://localhost:3000" + route, { waitUntil: "networkidle2", timeout: 30000 });

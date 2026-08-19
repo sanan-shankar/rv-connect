@@ -9,7 +9,9 @@ and never run again. They were deleted. The ones below survived because each has
 a reason stated here.
 
 Most QA scripts need the dev server running (`npm run dev`) and sign in as the
-admin via `/api/auth/admin-login`, so `ADMIN_EMAIL` must be set in `.env`.
+admin via `/api/dev-login`, so `ADMIN_EMAIL` and `DEV_LOGIN_SECRET` must both
+be set in `.env`. That route answers 404 unless NODE_ENV is not production and
+the secret matches, so it exists only on a developer's machine.
 Screenshots land in `temporary screenshots/`.
 
 ## Wired into `npm run`

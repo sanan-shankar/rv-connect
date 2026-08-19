@@ -90,7 +90,9 @@ while iterating: `npm run check -- lint`. Details and how to read a failure: `.c
   with `performance_start_trace` instead of a rAF sampler. `take_screenshot` returns the image
   inline, so a quick look costs no file.
   - **Authed pages work here.** Once per session: `navigate_page` to `http://localhost:3000`, then
-    `evaluate_script` POSTing `{ email: ADMIN_EMAIL }` to `/api/auth/admin-login`. The cookie holds
+    `evaluate_script` POSTing `{ email: ADMIN_EMAIL, secret: DEV_LOGIN_SECRET }` to
+    `/api/dev-login` (the old `/api/auth/admin-login` is deleted -- security audit C1-b, it
+    needed no secret and existed in production). The cookie holds
     for every later call. `--isolated` gives a fresh profile, so redo it if the browser restarts.
   - First hit of a cold route outruns the 10s default. Pass `timeout: 45000`.
   - The **scripts** still own what must repeat without you: `npm run check` gates, sweeps across many

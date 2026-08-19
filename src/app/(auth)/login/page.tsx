@@ -352,35 +352,12 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [mobileFlyIn]);
 
-  const isAdmin =
-    process.env.NEXT_PUBLIC_ADMIN_EMAIL &&
-    email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      // Admin bypass: direct login via admin-login endpoint (no password needed)
-      if (isAdmin) {
-        const res = await fetch("/api/auth/admin-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          window.location.href = nextPathFromLocation();
-          return;
-        }
-        if (data.error) {
-          setError(data.error);
-          setLoading(false);
-          return;
-        }
-      }
-
       const result = await signIn("credentials", {
         email,
         password,
@@ -517,69 +494,69 @@ export default function LoginPage() {
                 ref={emailFocusRef}
               />
             </motion.div>
-            <AnimatePresence mode="popLayout" initial={false}>
-              {!isAdmin && (
-                <motion.div
-                  key="password"
-                  layout
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ ...SPRINGS.snappy, ...rowTransition }}
+            {/* The password field is unconditional. It used to be hidden
+                whenever the typed address matched NEXT_PUBLIC_ADMIN_EMAIL,
+                because the admin signed in through a password-less bypass
+                (security audit C1-a/b/c). That bypass is being removed, and
+                hiding the field was also what stopped the owner from ever
+                testing his own password. */}
+            <motion.div
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ ...SPRINGS.snappy, ...rowTransition }}
+            >
+              <FloatField
+                id="password"
+                type={showPw ? "text" : "password"}
+                label="Password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  // the bird follows what you type whether peeking or covered (head tracks
+                  // behind the wings when its eyes are hidden)
+                  hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
+                }}
+                required
+                minLength={8}
+                trailing={
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => !s)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                    // state-layer gives the reveal button the fill it never had:
+                    // an ink darkening alone is easy to miss on a 32px target,
+                    // and the same class carries the press state.
+                    className="state-layer grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                }
+              />
+              {/* The way out sits right under the field that is failing
+                  them: by the time somebody wants this they have typed a
+                  password that did not work, and their eyes are here (the
+                  floating label leaves no label row for it to share).
+                  Carries whatever is already in the email box - retyping
+                  an address ten seconds after a rejection reads as an app
+                  that is not paying attention (owner, 2026-08-12). */}
+              {/* leading-none trims the inherited 24px line box around a
+                  12.5px link, which was adding ~4px of phantom air to the
+                  coded 6px gap above it. */}
+              <div className="mt-1.5 text-right leading-none">
+                <Link
+                  href={
+                    email.trim()
+                      ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
+                      : "/forgot-password"
+                  }
+                  className="rounded-sm text-[12.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-                  <FloatField
-                    id="password"
-                    type={showPw ? "text" : "password"}
-                    label="Password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      // the bird follows what you type whether peeking or covered (head tracks
-                      // behind the wings when its eyes are hidden)
-                      hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
-                    }}
-                    required
-                    minLength={8}
-                    trailing={
-                      <button
-                        type="button"
-                        onClick={() => setShowPw((s) => !s)}
-                        aria-label={showPw ? "Hide password" : "Show password"}
-                        // state-layer gives the reveal button the fill it never had:
-                        // an ink darkening alone is easy to miss on a 32px target,
-                        // and the same class carries the press state.
-                        className="state-layer grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                      >
-                        {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                      </button>
-                    }
-                  />
-                  {/* The way out sits right under the field that is failing
-                      them: by the time somebody wants this they have typed a
-                      password that did not work, and their eyes are here (the
-                      floating label leaves no label row for it to share).
-                      Carries whatever is already in the email box - retyping
-                      an address ten seconds after a rejection reads as an app
-                      that is not paying attention (owner, 2026-08-12). */}
-                  {/* leading-none trims the inherited 24px line box around a
-                      12.5px link, which was adding ~4px of phantom air to the
-                      coded 6px gap above it. */}
-                  <div className="mt-1.5 text-right leading-none">
-                    <Link
-                      href={
-                        email.trim()
-                          ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
-                          : "/forgot-password"
-                      }
-                      className="rounded-sm text-[12.5px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    >
-                      Forgot it?
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  Forgot it?
+                </Link>
+              </div>
+            </motion.div>
             <AnimatePresence mode="popLayout" initial={false}>
               {error && (
                 <motion.p

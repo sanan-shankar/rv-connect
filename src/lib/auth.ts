@@ -36,31 +36,12 @@ const nextAuth = NextAuth({
           return null;
         }
 
-        // Admin bypass: skip password check for admin email
-        const adminEmail = process.env.ADMIN_EMAIL;
-        if (adminEmail && email === adminEmail) {
-          // Ensure admin role is set
-          if (user.role !== "admin") {
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { role: "admin" },
-            });
-          }
-          /* The admin bypass returns without ever checking a password
-             (documented as C1-a in the security audit). It is still a
-             successful sign-in and has to be counted, or the owner's own
-             logins are missing from every number here. */
-          recordLoginAttempt({ email, ok: true, reason: "ok", userId: user.id });
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: "admin",
-            batchType: user.batchType,
-            batchYear: user.batchYear,
-            avatarColor: user.avatarColor,
-          };
-        }
+        /* There is deliberately no admin branch here. Until 2026-08-19 this
+           function short-circuited on `email === process.env.ADMIN_EMAIL` and
+           returned role:"admin" BEFORE bcrypt.compare ever ran, so the admin
+           address signed in with any password, including an empty one
+           (security audit C1-a). The role now comes from the database row
+           like everybody else's, by way of the ordinary path below. */
 
         // Regular user: verify password
         if (!password || !user.password) {

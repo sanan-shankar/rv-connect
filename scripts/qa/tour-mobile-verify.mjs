@@ -63,10 +63,10 @@ assertSameOriginAfterNavigation(baseUrl, page.url());
 // Authenticate from Node rather than the page's main world, so ADMIN_EMAIL is
 // never serialized into app-controlled JavaScript. Copy only the resulting
 // HttpOnly session cookie into the browser context.
-const authResponse = await fetch(`${baseUrl}/api/auth/admin-login`, {
+const authResponse = await fetch(`${baseUrl}/api/dev-login`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email: adminEmail }),
+  body: JSON.stringify({ email: adminEmail, secret: process.env.DEV_LOGIN_SECRET }),
   redirect: 'error',
 });
 const authData = await authResponse.json();

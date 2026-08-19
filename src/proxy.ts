@@ -47,8 +47,12 @@ const DEMO_CLOSED_PATHS = [
 //   /api/upload   -- an anonymous stranger putting files into R2 is the
 //                    single most dangerous thing a public link can offer.
 //   /api/razorpay -- live payment intents and the payment webhook.
-//   /api/auth     -- admin-login mints an ADMIN session from an email
-//                    alone. It must not exist on a link anyone can open.
+//   /api/auth     -- the credentials sign-in endpoint. The demo has one
+//                    invented visitor and no real accounts, so every call
+//                    here is either an attack or a mistake. (Until
+//                    2026-08-19 this line also guarded admin-login, which
+//                    minted an ADMIN session from an email address alone;
+//                    that route is deleted -- security audit C1-b.)
 //   /api/places   -- a metered geocoding provider, i.e. a billing
 //                    amplifier pointed at the owner's account.
 //   /api/resend   -- delivery reports write to the real OutboundEmail rows.
@@ -189,6 +193,12 @@ export function proxy(request: NextRequest) {
     "/verify-email",
     "/api/auth",
     "/api/razorpay",
+    // The local tooling sign-in (screenshots, the visual suite, the
+    // chrome-devtools MCP). It has to be reachable WITHOUT a session --
+    // handing one out is its whole job -- but it answers 404 unless
+    // NODE_ENV is not production AND DEV_LOGIN_SECRET is set and matches,
+    // so on every Vercel build, preview included, this path is dead.
+    "/api/dev-login",
     // Resend's delivery reports. Server-to-server, no session cookie, so
     // without this every webhook is answered with a redirect to /login and
     // Svix retries it into oblivion. Authenticated by its Svix signature in

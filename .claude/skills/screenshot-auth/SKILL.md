@@ -1,6 +1,6 @@
 ---
 name: Screenshot Auth Workflow
-description: Take screenshots of authenticated pages using the admin-login bypass. Use when you need to screenshot any page behind login (feed, groups, directory, profile, settings, admin).
+description: Take screenshots of authenticated pages using the local dev-login route. Use when you need to screenshot any page behind login (feed, groups, directory, profile, settings, admin).
 trigger: When needing to screenshot or visually verify any authenticated page.
 ---
 
@@ -30,15 +30,19 @@ node scripts/qa/screenshot.mjs http://localhost:3000/login login
 
 ## How It Works
 
-1. `scripts/qa/screenshot-auth.mjs` reads `ADMIN_EMAIL` from `.env.local`
-2. POSTs to `http://localhost:3000/api/auth/admin-login` to create a DB session
+1. `scripts/qa/screenshot-auth.mjs` reads `ADMIN_EMAIL` and `DEV_LOGIN_SECRET` from `.env`
+2. Signs in from Node via `scripts/qa/_dev-login.mjs`, which POSTs to
+   `http://localhost:3000/api/dev-login` and copies only the resulting HttpOnly
+   cookie into the browser (the secret never enters page JavaScript)
 3. Sets the `authjs.session-token` cookie on the browser
 4. Navigates to the target URL and screenshots
 
 ## Prerequisites
 
 - Dev server must be running: `npm run dev` (start in background if not running)
-- `.env.local` must contain `ADMIN_EMAIL` and `NEXT_PUBLIC_ADMIN_EMAIL`
+- `.env` must contain `ADMIN_EMAIL` and `DEV_LOGIN_SECRET` (`openssl rand -base64 32`).
+  `NEXT_PUBLIC_ADMIN_EMAIL` is gone: it compiled the owner's address into the public
+  browser bundle (security audit C1-c)
 - The admin email user must exist in the database
 
 ## Screenshot Review Protocol
