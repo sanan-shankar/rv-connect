@@ -14,6 +14,8 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   work.** Live tokens are in `src/app/globals.css`; where the two disagree, globals.css is what ships.
 - `docs/spec/` holds a deep spec per area (avatars, catchups, demo, directory, letters, mascot,
   media, profile, lab-voice). Read the one you are touching.
+- `docs/OPERATIONS.md` is every non-application tool and the moment each one is meant to
+  fire: the visual suite, the CI gate, the nightly database backup, Sentry, Renovate.
 - `docs/ROADMAP.md` is the phased plan. `docs/planning/bugs.md` is the bug tracker,
   `docs/planning/FEATURES.md` the parked ideas. `progress.md` is the session history; log outcomes there.
 - **`/lab` is the one index of every dev and preview room.** Nothing is browsable that is not listed
