@@ -143,8 +143,8 @@ Mark a phase done only when `npm run audit:status` agrees.
 | # | Phase | Closes | Status |
 |---|---|---|---|
 | 1 | Admin takeover + session integrity | C1-a/b/c, and the signIn role grant | **done 2026-08-20** |
-| 2 | Authorization holes | H1, H3, H4, M6, M4 | next |
-| 3 | The two-gate trust model | H21, and the abuse half of M1 | |
+| 2 | Authorization holes | H1, H3, H4, M6, M4 | **done 2026-08-20** |
+| 3 | The two-gate trust model | H21, and the abuse half of M1 | next |
 | 4 | Bot defence and rate limiting | H22, H6, M2, M3, M7 | |
 | 5 | Object deletion and uploads | C2, M10–M17 | |
 | 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | |
@@ -164,7 +164,7 @@ authenticates from Node so the secret never enters page JavaScript.
 `scripts/dev/set-password.mjs` is the break-glass (`--admin` to also grant the role).
 Second admin account created.
 
-### Phase 2 — Authorization holes · **next**
+### Phase 2 — Authorization holes · **done**
 - **H1** `auth()` in `loadDirectoryPage`.
 - **H3** one shared `canViewPost(postId, userId)`, applied to `loadComments`, `createComment`,
   `toggleLike`, `toggleBookmark`, `votePoll`, `toggleCommentLike`. The read path already gets this
@@ -288,3 +288,36 @@ three bugs in itself on first run — see trap 2.
 **Owner needs to:** delete `NEXT_PUBLIC_ADMIN_EMAIL` from both Vercel projects (it is gone from
 code and `.env`; the deploy will not use it either way). Change the second admin's temporary
 password. Confirm the standing authorizations above.
+
+### 2026-08-20 — Phase 2
+**Closed:** H1, H3, H4, M4, M6. Also: Sentry release-per-deploy turned off explicitly
+(owner: no deploy mail), and a second security test file added, which is a down payment on H17.
+**Built:** `src/lib/post-visibility.ts` (fetching) split from `post-visibility-rule.ts` (the pure
+decision, no imports, so it is unit-testable) + `post-visibility-rule.test.mjs`, 12 cases phrased as
+attacks. `credentialVersion` column + `prisma/migrations-manual/2026-08-20-credential-version.sql`.
+**Proved:**
+- behavioural probe against a disposable account, **9/9**: epoch bump ends a live session; a fresh
+  sign-in after the bump works; blocking ends the live session *and* refuses the correct password at
+  the door; unblocking restores; a deleted account's session stops; `/directory` refuses anonymously
+- `/directory` search as a signed-in member returns 52 profile links; anonymous gets 307
+- feed renders 16 articles, no console errors beyond the three known PostHog 404s
+- `npm run check` clean (16 test files) · `npm run visual` 21/21 · `npm run build` exit 0
+- **production build**: `/api/dev-login` answers **404 even with the correct secret** and sets no
+  cookie; the deleted `/api/auth/admin-login` answers 400 and sets no cookie
+- deploy blast radius measured before pushing: **0** members have `credentialVersion > 0` and **0**
+  are blocked, out of 51 -- so no one is signed out or locked out by this landing
+**Caught by verification, not by review:** neither `authorize()` nor `dev-login` put
+`credentialVersion` into the token, so anybody who had ever reset their password would have signed
+in, been stamped 0, been compared against a row reading 1, and been thrown straight back out --
+permanently. `npm run check` was perfectly happy with it. **Static checks cannot find this class of
+bug; the probe is not optional.**
+**Owner needs to:** run the one-line `credentialVersion` migration against the DEMO database too, if
+it is still live (belt and braces -- the demo's session path bypasses NextAuth entirely, so nothing
+there reads the column):
+```sql
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "credentialVersion" INTEGER NOT NULL DEFAULT 0;
+```
+Also: Sentry's own new-issue and weekly-summary mail is an account setting, not a build setting --
+Sentry > Settings > Notifications, and the Vercel-Sentry integration sends deploy mail from Vercel's
+side. The code no longer creates a release per deploy.
+
