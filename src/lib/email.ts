@@ -70,6 +70,13 @@ export interface MailResult {
   ok: boolean;
   /** Set when the send failed, for the server log. Never shown to a visitor. */
   error?: string;
+  /**
+   * Resend's id for the accepted message. Stored on the OutboundEmail row so a
+   * later delivery webhook has something to join on: an event says "this id
+   * bounced" and nothing else that identifies the recipient. Absent on the dev
+   * path and on failures, both of which never produced a message at all.
+   */
+  providerId?: string;
 }
 
 /**
@@ -167,7 +174,7 @@ export async function sendMail(opts: {
   }
 
   try {
-    const { error } = await api.emails.send({
+    const { data, error } = await api.emails.send({
       from: FROM,
       to: opts.to,
       subject: opts.subject,
@@ -178,7 +185,11 @@ export async function sendMail(opts: {
       console.error("[email] send failed", error);
       return { ok: false, error: error.message };
     }
-    return { ok: true };
+    // Resend's id for this message, carried back so the queue can store it on
+    // the row. It is the ONLY thing a delivery webhook gives us to identify
+    // which OutboundEmail an event belongs to -- without it, "delivered" and
+    // "bounced" arrive with nowhere to go.
+    return { ok: true, providerId: data?.id };
   } catch (err) {
     console.error("[email] send threw", err);
     return { ok: false, error: err instanceof Error ? err.message : "unknown" };

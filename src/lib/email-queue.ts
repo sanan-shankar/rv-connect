@@ -185,7 +185,16 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
     if (result.ok) {
       await prisma.outboundEmail.update({
         where: { id: row.id },
-        data: { status: "sent", sentAt: new Date(), claimedAt: null, lastError: null },
+        data: {
+          status: "sent",
+          sentAt: new Date(),
+          claimedAt: null,
+          lastError: null,
+          // Resend's id for the message. "sent" only means Resend accepted it;
+          // this is what lets the delivery webhook come back later and say
+          // whether it actually landed. See the delivery columns on the model.
+          providerId: result.providerId ?? null,
+        },
       });
       // One line of record per real send, with the ORIGIN its links were built
       // against (never the token). Exists because "which link did Nirad's

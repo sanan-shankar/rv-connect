@@ -51,11 +51,15 @@ const DEMO_CLOSED_PATHS = [
 //                    alone. It must not exist on a link anyone can open.
 //   /api/places   -- a metered geocoding provider, i.e. a billing
 //                    amplifier pointed at the owner's account.
+//   /api/resend   -- delivery reports write to the real OutboundEmail rows.
+//                    The demo has no business recording anything about mail
+//                    sent to real members.
 const DEMO_CLOSED_APIS = [
   "/api/upload",
   "/api/razorpay",
   "/api/auth",
   "/api/places",
+  "/api/resend",
 ];
 
 function isUnder(pathname: string, prefixes: string[]): boolean {
@@ -165,6 +169,11 @@ export function proxy(request: NextRequest) {
     "/verify-email",
     "/api/auth",
     "/api/razorpay",
+    // Resend's delivery reports. Server-to-server, no session cookie, so
+    // without this every webhook is answered with a redirect to /login and
+    // Svix retries it into oblivion. Authenticated by its Svix signature in
+    // the route itself; nothing there trusts an unsigned body.
+    "/api/resend",
     "/lab",
     "/catchups/join",
     "/hoopoe",
