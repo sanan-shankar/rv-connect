@@ -887,3 +887,166 @@ export async function loadReading() {
     roundViews: Number(rounds[0]?.n ?? 0),
   };
 }
+
+/* ---------------------------------------------------------------- *
+ *  One row per member, every measure at once.
+ *
+ *  The point of doing it this way: with a per-member table in hand,
+ *  ANY grouping ("by decade", "by device") and ANY correlation ("do
+ *  people who give hearts also get them") is arithmetic in JavaScript
+ *  rather than another SQL query. One trip to the database answers a
+ *  question nobody has asked yet.
+ *
+ *  Cheap because the community is small. 2,000 members x ~20 numbers is
+ *  a few hundred KB; the moment that stops being true, this becomes a
+ *  materialised table refreshed by the nightly snapshot instead.
+ * ---------------------------------------------------------------- */
+
+export type MemberRow = {
+  id: string;
+  name: string;
+  batchYear: number | null;
+  decade: string;
+  accountType: string;
+  verifyState: string;
+  hasPhoto: boolean;
+  country: string;
+  device: string;
+  joinedMonth: string;
+  fieldsFilled: number;
+  completeness: number;
+  likesGiven: number;
+  likesGot: number;
+  comments: number;
+  posts: number;
+  catchupAnswers: number;
+  bookmarks: number;
+  photoHearts: number;
+  visits: number;
+  minutes: number;
+  pageViews: number;
+  daysActive: number;
+  profileOpensGot: number;
+  profileOpensGave: number;
+  searches: number;
+};
+
+/** The nine profile fields counted toward completeness. `bio` is excluded: it
+ *  is retired and nothing in the shipped profile renders it. */
+const PROFILE_FIELDS = 9;
+
+export async function loadMemberMetrics(): Promise<MemberRow[]> {
+  const rows = await prisma.$queryRaw<Record<string, unknown>[]>`
+    WITH
+      likes_given AS (SELECT "userId" id, count(*) n FROM "Like" GROUP BY 1),
+      likes_got AS (
+        SELECT p."authorId" id, count(*) n
+        FROM "Like" l JOIN "Post" p ON p.id = l."postId" GROUP BY 1
+      ),
+      cmts AS (SELECT "authorId" id, count(*) n FROM "Comment" GROUP BY 1),
+      posts AS (SELECT "authorId" id, count(*) n FROM "Post" WHERE status = 'published' GROUP BY 1),
+      answers AS (SELECT "authorId" id, count(*) n FROM "CatchupEntry" GROUP BY 1),
+      marks AS (SELECT "userId" id, count(*) n FROM "Bookmark" GROUP BY 1),
+      phearts AS (SELECT "userId" id, count(*) n FROM "PhotoLove" GROUP BY 1),
+      vis AS (
+        SELECT "userId" id,
+               count(*) n,
+               sum(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) / 60 mins,
+               sum("views") views,
+               count(DISTINCT date_trunc('day', "startedAt")) days,
+               mode() WITHIN GROUP (ORDER BY "device") dev
+        FROM "Visit" GROUP BY 1
+      ),
+      opens_got AS (
+        SELECT "targetId" id, sum("count") n FROM "ContentView"
+        WHERE kind = 'profile' GROUP BY 1
+      ),
+      opens_gave AS (
+        SELECT "viewerId" id, sum("count") n FROM "ContentView"
+        WHERE kind = 'profile' GROUP BY 1
+      ),
+      srch AS (SELECT "userId" id, count(*) n FROM "SearchLog" WHERE "userId" IS NOT NULL GROUP BY 1),
+      place AS (
+        SELECT up."userId" id, min(p."country") c
+        FROM "UserPlace" up JOIN "Place" p ON p.id = up."placeId" GROUP BY 1
+      )
+    SELECT
+      u.id, u."name", u."batchYear", u."accountType", u."verifyState",
+      (u."photoUrl" IS NOT NULL)                                        AS "hasPhoto",
+      coalesce(place.c, 'unknown')                                      AS country,
+      coalesce(vis.dev, 'never visited')                                AS device,
+      to_char(u."createdAt", 'Mon YYYY')                                AS "joinedMonth",
+      (   (u."about"       IS NOT NULL AND u."about"       <> '')::int
+        + (u."workplace"   IS NOT NULL AND u."workplace"   <> '')::int
+        + (u."jobTitle"    IS NOT NULL AND u."jobTitle"    <> '')::int
+        + (u."currentCity" IS NOT NULL AND u."currentCity" <> '')::int
+        + (u."houses"      IS NOT NULL AND u."houses"      <> '')::int
+        + (u."phone"       IS NOT NULL AND u."phone"       <> '')::int
+        + (u."links"       IS NOT NULL AND u."links"       <> '')::int
+        + (u."photoUrl"    IS NOT NULL)::int
+        + (u."instagram" IS NOT NULL OR u."linkedin" IS NOT NULL
+           OR u."facebook" IS NOT NULL)::int )                          AS "fieldsFilled",
+      coalesce(likes_given.n, 0) AS "likesGiven",
+      coalesce(likes_got.n, 0)   AS "likesGot",
+      coalesce(cmts.n, 0)        AS comments,
+      coalesce(posts.n, 0)       AS posts,
+      coalesce(answers.n, 0)     AS "catchupAnswers",
+      coalesce(marks.n, 0)       AS bookmarks,
+      coalesce(phearts.n, 0)     AS "photoHearts",
+      coalesce(vis.n, 0)         AS visits,
+      coalesce(vis.mins, 0)      AS minutes,
+      coalesce(vis.views, 0)     AS "pageViews",
+      coalesce(vis.days, 0)      AS "daysActive",
+      coalesce(opens_got.n, 0)   AS "profileOpensGot",
+      coalesce(opens_gave.n, 0)  AS "profileOpensGave",
+      coalesce(srch.n, 0)        AS searches
+    FROM "User" u
+    LEFT JOIN likes_given ON likes_given.id = u.id
+    LEFT JOIN likes_got   ON likes_got.id   = u.id
+    LEFT JOIN cmts        ON cmts.id        = u.id
+    LEFT JOIN posts       ON posts.id       = u.id
+    LEFT JOIN answers     ON answers.id     = u.id
+    LEFT JOIN marks       ON marks.id       = u.id
+    LEFT JOIN phearts     ON phearts.id     = u.id
+    LEFT JOIN vis         ON vis.id         = u.id
+    LEFT JOIN opens_got   ON opens_got.id   = u.id
+    LEFT JOIN opens_gave  ON opens_gave.id  = u.id
+    LEFT JOIN srch        ON srch.id        = u.id
+    LEFT JOIN place       ON place.id       = u.id
+    WHERE u."isBlocked" = false
+  `;
+
+  const num = (v: unknown) => Number(v ?? 0);
+  return rows.map((r) => {
+    const year = r.batchYear as number | null;
+    const filled = num(r.fieldsFilled);
+    return {
+      id: String(r.id),
+      name: String(r.name),
+      batchYear: year,
+      decade: year ? `${Math.floor(year / 10) * 10}s` : "unknown",
+      accountType: String(r.accountType ?? "unknown"),
+      verifyState: String(r.verifyState ?? "unknown"),
+      hasPhoto: Boolean(r.hasPhoto),
+      country: String(r.country),
+      device: String(r.device),
+      joinedMonth: String(r.joinedMonth),
+      fieldsFilled: filled,
+      completeness: filled / PROFILE_FIELDS,
+      likesGiven: num(r.likesGiven),
+      likesGot: num(r.likesGot),
+      comments: num(r.comments),
+      posts: num(r.posts),
+      catchupAnswers: num(r.catchupAnswers),
+      bookmarks: num(r.bookmarks),
+      photoHearts: num(r.photoHearts),
+      visits: num(r.visits),
+      minutes: num(r.minutes),
+      pageViews: num(r.pageViews),
+      daysActive: num(r.daysActive),
+      profileOpensGot: num(r.profileOpensGot),
+      profileOpensGave: num(r.profileOpensGave),
+      searches: num(r.searches),
+    };
+  });
+}

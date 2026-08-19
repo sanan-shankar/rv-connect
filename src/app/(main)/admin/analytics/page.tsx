@@ -9,6 +9,7 @@ import {
   loadGrowth,
   loadInteractions,
   loadMail,
+  loadMemberMetrics,
   loadNotifications,
   loadProfiles,
   loadReading,
@@ -23,6 +24,15 @@ import { AnalyticsTabs, isViewKey, VIEWS, type ViewKey } from "@/components/admi
 import { BarList, Panel, StatGrid, type Stat } from "@/components/admin/analytics/stat";
 import { PresenceList } from "@/components/admin/analytics/presence";
 import { Heatmap } from "@/components/admin/analytics/heatmap";
+import {
+  CorrelationGrid,
+  GROUPINGS,
+  GroupTable,
+  isGroup,
+  isMeasure,
+  MEASURES,
+  PickerRow,
+} from "@/components/admin/analytics/compare";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { MetaDots } from "@/components/common/meta-dots";
 
@@ -52,9 +62,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminAnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; measure?: string; by?: string }>;
 }) {
-  const { view } = await searchParams;
+  const { view, measure, by } = await searchParams;
   const active: ViewKey = isViewKey(view) ? view : "live";
   const blurb = VIEWS.find((v) => v.key === active)!.blurb;
 
@@ -70,6 +80,7 @@ export default async function AdminAnalyticsPage({
       {active === "rhythms" && <RhythmsView />}
       {active === "faces" && <FacesView />}
       {active === "reach" && <ReachView />}
+      {active === "compare" && <CompareView measure={measure} by={by} />}
       {active === "health" && <HealthView />}
     </div>
   );
@@ -714,6 +725,44 @@ async function HealthView() {
           <BarList items={notif.byType} empty="No notifications yet." />
         </Panel>
       </Row>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+
+async function CompareView({ measure, by }: { measure?: string; by?: string }) {
+  const m = isMeasure(measure) ? measure : "completeness";
+  const g = isGroup(by) ? by : "decade";
+  const rows = await loadMemberMetrics();
+
+  const mSpec = MEASURES.find((x) => x.key === m)!;
+  const gSpec = GROUPINGS.find((x) => x.key === g)!;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Panel title="Measure" note="What to count for each member" cap={false}>
+        <PickerRow options={MEASURES} active={m} param="measure" other={g} />
+      </Panel>
+      <Panel title="Group by" note="How to split the members up" cap={false}>
+        <PickerRow options={GROUPINGS} active={g} param="by" other={m} />
+      </Panel>
+
+      <Panel
+        title={`${mSpec.label}, by ${gSpec.label.toLowerCase()}`}
+        note={`${mSpec.note}. "Any at all" is the share of the group who have done it even once, which an average on its own hides.`}
+        cap={false}
+      >
+        <GroupTable rows={rows} measure={m} by={g} />
+      </Panel>
+
+      <Panel
+        title="What moves together"
+        note="Whether two things tend to rise and fall with each other across all members."
+        cap={false}
+      >
+        <CorrelationGrid rows={rows} />
+      </Panel>
     </div>
   );
 }
