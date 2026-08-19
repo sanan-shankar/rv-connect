@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { MascotFlightLayer } from "@/components/mascot/mascot-flight-layer";
+import { PostHogProvider } from "@/components/analytics/posthog-provider";
 import { getThemeCookie } from "@/lib/theme";
 import "./globals.css";
 
@@ -60,6 +61,9 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col antialiased">
+        {/* Wraps everything, signed-out pages included: the landing page is
+            the front door and its funnel is the one that matters most. */}
+        <PostHogProvider>
         <ThemeProvider
           attribute="class"
           defaultTheme={theme}
@@ -73,6 +77,7 @@ export default async function RootLayout({
           <MascotFlightLayer />
           <Toaster position="bottom-right" />
         </ThemeProvider>
+        </PostHogProvider>
         {/* Vercel Analytics: page views only, no cookies. Data only flows once this is deployed
             to Vercel (a Vercel project must have Analytics enabled); it is inert in local dev. */}
         <Analytics />
