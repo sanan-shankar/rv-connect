@@ -1890,3 +1890,37 @@ a bare `git commit` while the icon files sat staged, so those eight files landed
 third item the owner raised — the show/hide password button on /reset-password — could not be
 reproduced in Chrome at either viewport (it reveals and re-hides correctly on both fields) and
 the owner set it aside rather than pin down what he saw.
+
+## 2026-08-20 — Security audit, Phases 1 and 2
+
+Two phases of `docs/planning/SECURITY-FIX-PLAN.md`, which is now the spine for the remaining eight.
+Ground truth for what is closed is `npm run audit:status`, not any document.
+
+**Phase 1 — the unauthenticated admin takeover (C1).** All three parts removed: the password-less
+branch in `authorize()`, the `/api/auth/admin-login` route that minted a 30-day admin session from
+an email address alone, and `NEXT_PUBLIC_ADMIN_EMAIL`, which compiled that address into every
+visitor's browser bundle. A fourth path turned up that the audit had missed -- a `signIn` callback
+re-writing `role: "admin"` onto whoever matched `ADMIN_EMAIL`, on every sign-in.
+
+That route was load-bearing for every screenshot script, the Playwright visual suite and the
+chrome-devtools MCP workflow, so the capability survives as `/api/dev-login`: 404 whenever
+`NODE_ENV` is production, wants a 32-char secret compared with `timingSafeEqual` rather than an
+identifier, and copies the role the row already holds instead of granting one. Nine hand-copied
+sign-in blocks across `scripts/qa` became one `_dev-login.mjs` that authenticates from Node, so the
+secret never enters page JavaScript.
+
+**Phase 2 — authorization holes.** `loadDirectoryPage` had no `auth()` call at all. Six interaction
+paths acted on any `postId` without asking whether the caller could see the post, while the read
+path carefully checked group membership, city scope and batch targeting -- so a non-member could
+read and post into a private Catch-up thread with nothing but an id the app hands out in its own
+notification links. `isBlocked` was read by six list queries and no write path. A deleted account
+kept a working session for 30 days. A password reset burned reset links but not sessions.
+
+The last three are one mechanism: a `credentialVersion` column stamped into the JWT and compared on
+every session read, dropped by the `auth()` wrapper -- the one function every page and action
+already calls, so it cannot be forgotten by the next action somebody writes.
+
+**The lesson worth keeping.** The behavioural probe caught a lockout bug that `npm run check` was
+entirely happy with: neither mint path carried `credentialVersion`, so anyone who had ever reset
+their password would have been thrown out immediately after signing in, forever. Every phase from
+here writes the probe and pastes the numbers into the plan's session log.
