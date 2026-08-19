@@ -55,7 +55,11 @@ export function AnalyticsTabs({ active }: { active: ViewKey }) {
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               current
                 ? "bg-canopy text-white"
-                : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground",
+                : /* Lifts to the card surface on hover rather than sinking into
+                     muted. The protocol audit catches the sink, and it is right
+                     to: a control that darkens under the cursor reads as pressed
+                     before it has been. */
+                  "bg-secondary text-muted-foreground hover:bg-card hover:text-foreground",
             )}
           >
             {v.label}

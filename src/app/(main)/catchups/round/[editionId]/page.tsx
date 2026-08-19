@@ -48,6 +48,7 @@ import { RoundFooterTease } from "@/components/catchups/round/footer-tease";
 import { PublishNowButton } from "@/components/catchups/round/publish-now-button";
 import { NotYetPublished } from "@/components/catchups/round/not-yet-published";
 import type { RoundEntry } from "@/components/catchups/round/answer-card";
+import { recordView } from "@/lib/content-view";
 
 /**
  * This reader's heading: "{Group name} catch-up", singular, because it is one
@@ -168,6 +169,9 @@ export default async function RoundPage({
   }
 
   if (!edition) notFound();
+
+  /* Not awaited: the page renders at the same speed either way. */
+  void recordView(session?.user?.id, "round", edition.id);
 
   const membership = await loadMembership(edition.catchup.group.id, session.user.id);
   if (!membership) notFound();

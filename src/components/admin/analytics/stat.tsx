@@ -145,12 +145,16 @@ export function Sparkline({ trend, tone }: { trend: Trend; tone?: Stat["tone"] }
 export function BarList({
   items,
   total,
+  unit,
   empty = "Nothing yet.",
 }: {
   items: { label: string; value: number; hint?: string }[];
   /** Bars are drawn against the LARGEST value, not the sum, so the shape of
       the distribution is legible even when one entry dominates. */
   total?: number;
+  /** Appended to every value. Without it a percentage renders as a bare "2",
+      which reads as a count -- the retention panel said "2" and meant 2%. */
+  unit?: string;
   empty?: string;
 }) {
   if (items.length === 0) {
@@ -175,6 +179,7 @@ export function BarList({
           </span>
           <span className="relative z-10 shrink-0 pr-2 text-[12.5px] tabular-nums text-muted-foreground">
             {nf.format(i.value)}
+            {unit}
           </span>
         </li>
       ))}

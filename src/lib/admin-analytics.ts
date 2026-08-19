@@ -732,3 +732,156 @@ export async function loadRetention() {
     rate: Number(r.joined) > 0 ? Number(r.recent) / Number(r.joined) : 0,
   }));
 }
+
+/* ---------------------------------------------------------------- *
+ *  Everything else worth knowing
+ * ---------------------------------------------------------------- */
+
+/** How complete people's profiles are. An empty profile gets no interaction. */
+export async function loadProfiles() {
+  const [f] = await prisma.$queryRaw<
+    {
+      total: bigint; bio: bigint; about: bigint; work: bigint; phone: bigint;
+      links: bigint; houses: bigint; photo: bigint; city: bigint; social: bigint;
+      admission: bigint; verified: bigint; pending: bigint;
+    }[]
+  >`
+    SELECT count(*)::bigint                                                   AS total,
+           count(*) FILTER (WHERE "bio"        <> '' AND "bio"        IS NOT NULL)::bigint AS bio,
+           count(*) FILTER (WHERE "about"      <> '' AND "about"      IS NOT NULL)::bigint AS about,
+           count(*) FILTER (WHERE "workplace"  <> '' AND "workplace"  IS NOT NULL)::bigint AS work,
+           count(*) FILTER (WHERE "phone"      <> '' AND "phone"      IS NOT NULL)::bigint AS phone,
+           count(*) FILTER (WHERE "links"      <> '' AND "links"      IS NOT NULL)::bigint AS links,
+           count(*) FILTER (WHERE "houses"     <> '' AND "houses"     IS NOT NULL)::bigint AS houses,
+           count(*) FILTER (WHERE "photoUrl"   IS NOT NULL)::bigint           AS photo,
+           count(*) FILTER (WHERE "currentCity" IS NOT NULL)::bigint          AS city,
+           count(*) FILTER (WHERE "instagram" IS NOT NULL OR "linkedin" IS NOT NULL
+                              OR "facebook"  IS NOT NULL)::bigint             AS social,
+           count(*) FILTER (WHERE "admissionNumber" IS NOT NULL)::bigint      AS admission,
+           count(*) FILTER (WHERE "verifyState" = 'verified')::bigint         AS verified,
+           count(*) FILTER (WHERE "verifyState" = 'pending')::bigint          AS pending
+    FROM "User" WHERE "isBlocked" = false
+  `;
+  const n = (v: bigint | undefined) => Number(v ?? 0);
+  const total = n(f?.total);
+
+  /* Ordered by how EMPTY each field is, so the top of the list is what most
+   * people have not filled in -- which is the thing worth prompting for. */
+  const fields = [
+    { label: "A photo", value: n(f?.photo) },
+    { label: "A city", value: n(f?.city) },
+    { label: "A short bio", value: n(f?.bio) },
+    { label: "The long 'about'", value: n(f?.about) },
+    { label: "Where they work", value: n(f?.work) },
+    { label: "Houses", value: n(f?.houses) },
+    { label: "A phone number", value: n(f?.phone) },
+    { label: "Social links", value: n(f?.social) },
+    { label: "Other links", value: n(f?.links) },
+    { label: "Admission number", value: n(f?.admission) },
+  ].sort((a, b) => a.value - b.value);
+
+  return { total, fields, verified: n(f?.verified), pending: n(f?.pending) };
+}
+
+/** Notifications: are they read, and do they bring anyone back. */
+export async function loadNotifications() {
+  const [total, read, byType] = await Promise.all([
+    prisma.notification.count(),
+    prisma.notification.count({ where: { read: true } }),
+    prisma.notification.groupBy({
+      by: ["type"],
+      _count: { _all: true },
+      orderBy: { _count: { type: "desc" } },
+      take: 10,
+    }),
+  ]);
+  return {
+    total,
+    read,
+    rate: total > 0 ? read / total : 0,
+    byType: byType.map((r) => ({ label: r.type, value: r._count._all })),
+  };
+}
+
+/** Joins per month: the growth curve, straight off createdAt. */
+export async function loadGrowth() {
+  const rows = await prisma.$queryRaw<{ month: string; n: bigint }[]>`
+    SELECT to_char(date_trunc('month', "createdAt"), 'Mon YYYY') AS month,
+           count(*)::bigint AS n
+    FROM "User"
+    GROUP BY date_trunc('month', "createdAt")
+    ORDER BY date_trunc('month', "createdAt") DESC
+    LIMIT 12
+  `;
+  return rows.map((r) => ({ label: r.month, value: Number(r.n) }));
+}
+
+/** Talking: comments, messages, polls, bookmarks -- the quieter interactions. */
+export async function loadInteractions() {
+  const [topCommenters, threads, adminMsgs, pollVotes, bookmarkers, photoLovers] =
+    await Promise.all([
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", count(*)::bigint AS n
+        FROM "Comment" c JOIN "User" u ON u.id = c."authorId"
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      prisma.adminThread.count(),
+      prisma.adminMessage.count(),
+      prisma.pollVote.count(),
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", count(*)::bigint AS n
+        FROM "Bookmark" b JOIN "User" u ON u.id = b."userId"
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+      prisma.$queryRaw<{ name: string; n: bigint }[]>`
+        SELECT u."name", count(*)::bigint AS n
+        FROM "PhotoLove" pl JOIN "User" u ON u.id = pl."userId"
+        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+      `,
+    ]);
+  const list = (r: { name: string; n: bigint }[]) =>
+    r.map((x) => ({ label: x.name, value: Number(x.n) }));
+  return {
+    topCommenters: list(topCommenters),
+    bookmarkers: list(bookmarkers),
+    photoLovers: list(photoLovers),
+    threads,
+    adminMsgs,
+    pollVotes,
+  };
+}
+
+/** What actually gets opened: reads against reactions, per letter. */
+export async function loadReading() {
+  const [letters, photos, rounds] = await Promise.all([
+    prisma.$queryRaw<{ title: string | null; reads: bigint; readers: bigint; hearts: bigint }[]>`
+      SELECT p."title",
+             coalesce(sum(cv."count"), 0)::bigint AS reads,
+             count(DISTINCT cv."viewerId")::bigint AS readers,
+             (SELECT count(*) FROM "Like" l WHERE l."postId" = p.id)::bigint AS hearts
+      FROM "Post" p
+      LEFT JOIN "ContentView" cv ON cv.kind = 'letter' AND cv."targetId" = p.id
+      WHERE p.kind = 'letter' AND p.status = 'published'
+      GROUP BY p.id, p."title"
+      ORDER BY reads DESC, hearts DESC
+      LIMIT 10
+    `,
+    prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'photo'
+    `,
+    prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT coalesce(sum("count"), 0)::bigint AS n FROM "ContentView" WHERE kind = 'round'
+    `,
+  ]);
+
+  return {
+    letters: letters.map((l) => ({
+      title: l.title ?? "Untitled",
+      reads: Number(l.reads),
+      readers: Number(l.readers),
+      hearts: Number(l.hearts),
+    })),
+    photoViews: Number(photos[0]?.n ?? 0),
+    roundViews: Number(rounds[0]?.n ?? 0),
+  };
+}

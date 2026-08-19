@@ -6,7 +6,12 @@ import {
   loadContent,
   loadFaces,
   loadGeography,
+  loadGrowth,
+  loadInteractions,
   loadMail,
+  loadNotifications,
+  loadProfiles,
+  loadReading,
   loadPeople,
   loadPresence,
   loadRetention,
@@ -19,6 +24,7 @@ import { BarList, Panel, StatGrid, type Stat } from "@/components/admin/analytic
 import { PresenceList } from "@/components/admin/analytics/presence";
 import { Heatmap } from "@/components/admin/analytics/heatmap";
 import { BirdAvatar } from "@/components/common/bird-avatar";
+import { MetaDots } from "@/components/common/meta-dots";
 
 export const metadata: Metadata = { title: "Analytics" };
 
@@ -134,11 +140,13 @@ async function LiveView() {
 /* ---------------------------------------------------------------- */
 
 async function PeopleView() {
-  const [trends, people, geo, retention] = await Promise.all([
+  const [trends, people, geo, retention, profiles, growth] = await Promise.all([
     loadTrends(90),
     loadPeople(),
     loadGeography(),
     loadRetention(),
+    loadProfiles(),
+    loadGrowth(),
   ]);
   const t = (k: string) => trends.get(k);
 
@@ -206,9 +214,10 @@ async function PeopleView() {
               items={retention.map((r) => ({
                 label: r.decade,
                 value: Math.round(r.rate * 100),
-                hint: `${r.recent} of ${r.joined}`,
+                hint: `${r.recent} of ${r.joined} back this month`,
               }))}
               total={100}
+              unit="%"
             />
           )}
         </Panel>
@@ -227,6 +236,37 @@ async function PeopleView() {
           <BarList items={people.byType} empty="None recorded." />
         </Panel>
       </Row>
+      <Row cols={3}>
+        <Panel
+          title="What profiles are missing"
+          note="Least-filled field first. An empty profile gets no interaction."
+        >
+          <BarList
+            items={profiles.fields.map((f) => ({
+              ...f,
+              hint: `of ${profiles.total}`,
+            }))}
+            total={profiles.total}
+            empty="No members yet."
+          />
+        </Panel>
+        <Panel title="Joins by month" note="The growth curve">
+          <BarList items={growth} empty="No members yet." />
+        </Panel>
+        <Panel title="Verification">
+          <BarList
+            items={[
+              { label: "Verified", value: profiles.verified },
+              { label: "Pending", value: profiles.pending },
+              {
+                label: "Neither",
+                value: profiles.total - profiles.verified - profiles.pending,
+              },
+            ]}
+            total={profiles.total}
+          />
+        </Panel>
+      </Row>
     </div>
   );
 }
@@ -234,11 +274,13 @@ async function PeopleView() {
 /* ---------------------------------------------------------------- */
 
 async function ContentView() {
-  const [trends, content, catchups, people] = await Promise.all([
+  const [trends, content, catchups, people, reading, inter] = await Promise.all([
     loadTrends(90),
     loadContent(),
     loadCatchups(),
     loadPeople(),
+    loadReading(),
+    loadInteractions(),
   ]);
   const t = (k: string) => trends.get(k);
 
@@ -266,8 +308,45 @@ async function ContentView() {
         <Panel title="Who writes" note="Published posts and letters, by author">
           <BarList items={content.topAuthors} empty="Nothing published yet." />
         </Panel>
-        <Panel title="Answers by Round" note="Whether Catch-up interest is holding up">
-          <BarList items={catchups.byEdition} empty="No answers yet." />
+        <Panel
+          title="Letters, read against hearted"
+          note="Opens versus reactions. A letter widely read and never hearted is a different problem from one nobody opened."
+        >
+          {reading.letters.length === 0 ? (
+            <p className="px-0.5 py-1 text-[12.5px] text-muted-foreground">
+              No letters published yet.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {reading.letters.map((l) => (
+                <li key={l.title} className="flex items-baseline gap-2 py-0.5">
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground">
+                    {l.title}
+                  </span>
+                  <span className="shrink-0 text-[11.5px] tabular-nums text-muted-foreground">
+                    <MetaDots
+                      parts={[
+                        `${l.reads} ${l.reads === 1 ? "open" : "opens"}`,
+                        `${l.readers} ${l.readers === 1 ? "reader" : "readers"}`,
+                        `${l.hearts} hearted`,
+                      ]}
+                    />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </Row>
+      <Row cols={3}>
+        <Panel title="Who comments" note="The people keeping conversations going">
+          <BarList items={inter.topCommenters} empty="No comments yet." />
+        </Panel>
+        <Panel title="Who saves things" note="Bookmarks, which nobody sees but the saver">
+          <BarList items={inter.bookmarkers} empty="Nothing bookmarked yet." />
+        </Panel>
+        <Panel title="Who loves photos" note="Hearts on the Collection">
+          <BarList items={inter.photoLovers} empty="No photo hearts yet." />
         </Panel>
       </Row>
       <StatGrid
@@ -290,6 +369,14 @@ async function ContentView() {
             label: "Hearts on answers",
             value: catchups.loves,
             hint: "whether anyone is reading them",
+          },
+          { label: "Photo opens", value: reading.photoViews, hint: "Collection detail views" },
+          { label: "Round opens", value: reading.roundViews, hint: "Catch-up rounds read" },
+          { label: "Poll votes", value: inter.pollVotes },
+          {
+            label: "Messages to admin",
+            value: inter.adminMsgs,
+            hint: `across ${inter.threads} ${inter.threads === 1 ? "thread" : "threads"}`,
           },
         ]}
       />
@@ -473,7 +560,11 @@ async function ReachView() {
 /* ---------------------------------------------------------------- */
 
 async function HealthView() {
-  const [trends, mail] = await Promise.all([loadTrends(90), loadMail()]);
+  const [trends, mail, notif] = await Promise.all([
+    loadTrends(90),
+    loadMail(),
+    loadNotifications(),
+  ]);
   const t = (k: string) => trends.get(k);
   return (
     <div className="flex flex-col gap-3">
@@ -504,6 +595,25 @@ async function HealthView() {
           },
         ]}
       />
+      <StatGrid
+        stats={[
+          { label: "Notifications", value: notif.total, hint: "sent inside the app" },
+          {
+            label: "Read",
+            value: notif.rate,
+            kind: "percent",
+            hint: `${notif.read} of ${notif.total}`,
+            tone: notif.rate < 0.3 ? "warn" : "good",
+          },
+          { label: "Kinds", value: notif.byType.length, hint: "distinct notification types" },
+          {
+            label: "Unread",
+            value: notif.total - notif.read,
+            hint: "nobody opened these",
+            tone: notif.total - notif.read > notif.read ? "warn" : undefined,
+          },
+        ]}
+      />
       <Row cols={2}>
         <Panel title="What we send" note="Every message, by template">
           <BarList items={mail.byKind} empty="No mail sent yet." />
@@ -525,6 +635,11 @@ async function HealthView() {
             ]}
             total={mail.sent}
           />
+        </Panel>
+      </Row>
+      <Row cols={2}>
+        <Panel title="Notification kinds" note="What the app tells people about">
+          <BarList items={notif.byType} empty="No notifications yet." />
         </Panel>
       </Row>
     </div>
