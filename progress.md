@@ -1847,3 +1847,46 @@ can read the media bucket, or is scoped to the backup bucket only.
 
 Commit: f8aeb76. `npm run check` clean, 15/15 tests. Not yet pushed — needs the owner's
 go-ahead, then a manual Actions run to prove the media job end to end.
+
+Session outcome (2026-08-20): the home-screen icon, and a divider that followed you between
+devices.
+
+The owner added rishivalley.space to his iPhone home screen and got a plain letter "R"; on a
+Mac he got the mark, but blurry. Three separate causes. The site shipped no apple-touch-icon
+at all, and iOS Safari reads neither favicon.ico nor an SVG icon for Add to Home Screen, so
+it fell back to drawing a letter tile. There was no web app manifest either, so the only
+raster anywhere was a 32px favicon.ico, which is what macOS was scaling up. And `/icon.svg`
+was not excluded from the auth proxy, so a signed-out phone asking for the icon was answered
+with a 307 to /login and an HTML page where it wanted an image. All three fixed:
+`scripts/dev/generate-icons.mjs` derives a full-bleed 180px apple-icon and 192/512/maskable
+PNGs from the one canonical PeaksMark, `src/app/manifest.ts` carries them, and the proxy
+matcher now lets the brand assets through. Verified all five URLs answer 200 with the right
+content type while signed out. The apple-icon and the maskable icon are deliberately NOT
+pre-rounded, because iOS and Android adaptive launchers mask to their own squircle and would
+otherwise eat into our rx=96 corners.
+
+Second: "New since you were last here" lived in localStorage, so it was a fact about a
+browser, not a person — the same posts were announced as new again on every device signed in.
+Moved onto the account as `User.feedSeenAt`, read by the feed's server component, advanced by
+a `markFeedSeen` action with a conditional updateMany so two devices cannot rewind each other.
+Verified end to end against the database: the marker stamps to the newest post on load,
+rewinding it by one post draws the divider in the right place at both viewports, and the same
+load advances it again.
+
+That change also caught a hole in the dev Prisma client's staleness guard. It hashed
+`Prisma.ModelName` — the set of model NAMES — so it saw a new model and was blind to a new
+COLUMN on an existing one. Adding feedSeenAt reproduced gotcha 8 exactly: generate succeeded,
+tsc passed off the fresh types on disk, and the running server threw
+PrismaClientValidationError from its cached client. The key now folds in each model's
+`*ScalarFieldEnum`, so it moves on any schema change at all.
+
+Commits: 2e160c6 (the icon set, swallowed into a concurrent session's security commit — see
+below), c372839 (feed marker + the Prisma key). `npm run check` clean 15/15, `npm run visual`
+21/21.
+
+Note for whoever reads this next: several sessions were live in this tree, and one of them ran
+a bare `git commit` while the icon files sat staged, so those eight files landed inside
+2e160c6 rather than under their own message. Nothing is lost and nothing was rewritten. A
+third item the owner raised — the show/hide password button on /reset-password — could not be
+reproduced in Chrome at either viewport (it reveals and re-hides correctly on both fields) and
+the owner set it aside rather than pin down what he saw.
