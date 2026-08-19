@@ -235,7 +235,7 @@ export default async function AdminAnalyticsPage() {
 
       <Section title="The community">
         <StatGrid stats={communityStats} />
-        <div className="grid gap-2 lg:grid-cols-3">
+        <div className="grid items-start gap-2 lg:grid-cols-3">
           <Panel title="By decade" note="When they left the valley">
             <BarList items={people.byDecade} empty="No batch years recorded." />
           </Panel>
@@ -250,7 +250,7 @@ export default async function AdminAnalyticsPage() {
 
       <Section title="What gets written, and whether it gets read">
         <StatGrid stats={contentStats} />
-        <div className="grid gap-2 lg:grid-cols-2">
+        <div className="grid items-start gap-2 lg:grid-cols-2">
           <Panel title="Who writes" note="Published posts and letters, by author">
             <BarList items={content.topAuthors} empty="Nothing published yet." />
           </Panel>
@@ -262,7 +262,7 @@ export default async function AdminAnalyticsPage() {
 
       <Section title="Support">
         <StatGrid stats={supportStats} />
-        <div className="grid gap-2 lg:grid-cols-2">
+        <div className="grid items-start gap-2 lg:grid-cols-2">
           <Panel title="How people pay" note="Completed payments, by method">
             <BarList items={support.byMethod} empty="No completed payments yet." />
           </Panel>
@@ -284,7 +284,7 @@ export default async function AdminAnalyticsPage() {
 
       <Section title="Catch-ups">
         <StatGrid stats={catchupStats} />
-        <div className="grid gap-2 lg:grid-cols-2">
+        <div className="grid items-start gap-2 lg:grid-cols-2">
           <Panel title="Answers by Round" note="Whether interest is holding up">
             <BarList items={catchups.byEdition} empty="No answers yet." />
           </Panel>
@@ -301,9 +301,29 @@ export default async function AdminAnalyticsPage() {
 
       <Section title="Email">
         <StatGrid stats={mailStats} />
-        <Panel title="What we send" note="Every message, by template" className="lg:max-w-md">
-          <BarList items={mail.byKind} empty="No mail sent yet." />
-        </Panel>
+        <div className="grid items-start gap-2 lg:grid-cols-2">
+          <Panel title="What we send" note="Every message, by template">
+            <BarList items={mail.byKind} empty="No mail sent yet." />
+          </Panel>
+          <Panel
+            title="What happened to it"
+            note={
+              mail.delivered === 0
+                ? "Delivery reports only started when the webhook was wired, so this fills from here on"
+                : "Accepted by Resend, against what reached a mailbox"
+            }
+          >
+            <BarList
+              items={[
+                { label: "Accepted by Resend", value: mail.sent },
+                { label: "Confirmed delivered", value: mail.delivered },
+                { label: "Bounced", value: mail.bounced },
+                { label: "Marked as spam", value: mail.complained },
+              ]}
+              total={mail.sent}
+            />
+          </Panel>
+        </div>
       </Section>
     </div>
   );
