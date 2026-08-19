@@ -139,12 +139,31 @@ no way to check it. The `optimizePackageImports` bet on `@phosphor-icons/react` 
 
 ---
 
+## 6. Resend delivery reports
+
+**Fires by itself.** Bounces appear in the admin worklist under Email.
+
+`OutboundEmail.status` used to stop at "sent", meaning only that Resend accepted the
+message. `/api/resend/webhook` now records `deliveredAt`, `bouncedAt`, `bounceKind` and
+`complainedAt` against the row, matched on `providerId` (Resend's message id, captured at
+send time).
+
+A **bounce sets `status: "failed"`** on purpose rather than inventing a sixth status, so it
+lands on the admin worklist the owner already reads, with `lastError` explaining why. Hard
+vs soft is kept raw in `bounceKind`: a hard bounce means the address is dead, a soft one is
+a full mailbox, and nothing has decided yet what to do about either.
+
+Signatures are verified by hand (Svix scheme, one HMAC plus a five-minute replay window)
+rather than by adding the `svix` package. Needs `RESEND_WEBHOOK_SECRET` in Vercel.
+
+**Not tracked, deliberately:** opens and clicks. Those need a tracking pixel in members'
+mail, and this is a community's inbox, not a marketing funnel.
+
+---
+
 ## Still to do
 
 - **PostHog** — analytics. Blocked on the project key.
-- **Resend delivery tracking** — `OutboundEmail.status` is `queued|sending|sent|failed`, so
-  "sent" only means Resend accepted it. No bounce or spam visibility, which matters most at
-  launch when 400 invitations go out at once.
 - **Staging database** — a second Supabase project so schema changes get a rehearsal.
   Data fixes (capitalisations, cities) would continue to run against production exactly as
   they do today; only structure changes gain a dry run.
