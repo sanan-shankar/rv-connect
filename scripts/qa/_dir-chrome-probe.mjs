@@ -10,6 +10,7 @@
  */
 import puppeteer from "puppeteer";
 import { config } from "dotenv";
+import { devLogin } from "./_dev-login.mjs";
 
 // .env, not .env: ADMIN_EMAIL lives there, and `dotenv/config` reads the
 // wrong file, which is what made the first run of this probe 403.
@@ -31,18 +32,11 @@ const WIDTHS = [1440, 1280, 1024];
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
 const page = await browser.newPage();
 
-// admin-login bypass, same path screenshot-auth.mjs uses
+// Shared local sign-in, same path every other QA script uses.
 await page.setViewport({ width: 1440, height: 900 });
 await page.goto(`${BASE}/login`, { waitUntil: "networkidle2" });
-const res = await page.evaluate(async (email) => {
-  const r = await fetch("/api/auth/admin-login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-  return r.status;
-}, ADMIN_EMAIL);
-console.log("auth:", res);
+await devLogin(page, BASE, ADMIN_EMAIL);
+console.log("auth: ok");
 
 for (const w of WIDTHS) {
   await page.setViewport({ width: w, height: 900 });

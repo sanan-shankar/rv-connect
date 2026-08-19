@@ -1,7 +1,7 @@
 /**
  * Directory map: cluster-resolution + touch-target verification.
  *
- * Drives the REAL map (not a mock): admin-login, /directory, map view, then
+ * Drives the REAL map (not a mock): dev-login, /directory, map view, then
  * wheel-zooms to the map's own maximum over the Delhi / Gurgaon area and
  * asserts, in code:
  *
@@ -18,6 +18,7 @@ import { mkdirSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { config } from "dotenv";
+import { devLogin } from "./_dev-login.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
@@ -61,16 +62,10 @@ const fail = [];
 const note = (m) => console.log(m);
 
 await page.goto(base, { waitUntil: "domcontentloaded", timeout: 20000 });
-const auth = await page.evaluate(async (email) => {
-  const res = await fetch("/api/auth/admin-login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-  return res.ok;
-}, adminEmail);
-if (!auth) {
-  console.error("admin-login failed");
+try {
+  await devLogin(page, base, adminEmail);
+} catch (err) {
+  console.error(err.message);
   await browser.close();
   process.exit(1);
 }

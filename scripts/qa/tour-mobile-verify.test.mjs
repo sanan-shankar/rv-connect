@@ -9,7 +9,7 @@ test("authenticated mobile tour launches from admin via the exact hoopoe tour bu
 
   assert.match(source, /requireLoopbackBaseUrl\(process\.argv\[2\]/);
   assert.match(source, /assertSameOriginAfterNavigation\(baseUrl, page\.url\(\)\)/);
-  assert.match(source, /await fetch\(`\$\{baseUrl\}\/api\/auth\/admin-login`/);
+  assert.match(source, /await fetch\(`\$\{baseUrl\}\/api\/dev-login`/);
   assert.doesNotMatch(source, /page\.evaluate\(async \(email\)/);
   assert.match(source, /page\.goto\(`\$\{baseUrl\}\/admin`/);
   assert.match(source, /b\.textContent\?\.trim\(\) === 'hoopoe tour'/);

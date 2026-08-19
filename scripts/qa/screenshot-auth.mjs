@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
+import { devLogin } from "./_dev-login.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
@@ -52,28 +53,13 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage();
 await page.setViewport(viewport);
 
-// Step 1: Authenticate via admin-login API
+// Step 1: Authenticate via the local dev-login route
 try {
   // Navigate to the base URL first to establish cookie domain
   const baseUrl = new URL(url).origin;
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
 
-  // Call the admin-login endpoint
-  const authResult = await page.evaluate(async (email) => {
-    const res = await fetch('/api/auth/admin-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    return { ok: res.ok, status: res.status, data: await res.json() };
-  }, adminEmail);
-
-  if (!authResult.ok) {
-    console.error(`Auth failed (${authResult.status}):`, authResult.data);
-    await browser.close();
-    process.exit(1);
-  }
-
+  await devLogin(page, baseUrl, adminEmail);
   console.log('Authenticated successfully');
 } catch (e) {
   console.error('Auth error:', e.message);

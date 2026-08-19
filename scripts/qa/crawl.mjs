@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import { config } from 'dotenv';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { devLogin } from "./_dev-login.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
@@ -19,9 +20,7 @@ const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] 
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
-await page.evaluate(async (email) => {
-  await fetch('/api/auth/admin-login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
-}, process.env.ADMIN_EMAIL);
+await devLogin(page, 'http://localhost:3000');
 for (const r of routes) {
   const errs = [];
   const onConsole = m => { if (m.type()==='error') errs.push('console: '+m.text().slice(0,120)); };

@@ -97,7 +97,7 @@ export default defineConfig({
   },
 
   projects: [
-    /* Signs in once via the admin-login bypass and writes the cookie to
+    /* Signs in once via the local dev-login route and writes the cookie to
      * e2e/.auth/admin.json (gitignored). Every other project reuses it,
      * so 30 tests cost one login. */
     { name: "setup", testMatch: /auth\.setup\.ts/ },

@@ -17,6 +17,7 @@ import { mkdirSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { config } from "dotenv";
+import { devLogin } from "./_dev-login.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 process.chdir(repoRoot);
@@ -279,16 +280,10 @@ page.on("console", (m) => {
 
 if (!NO_AUTH.has(scenarioName)) {
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  const auth = await page.evaluate(async (email) => {
-    const res = await fetch("/api/auth/admin-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    return res.ok;
-  }, adminEmail);
-  if (!auth) {
-    console.error("auth failed");
+  try {
+    await devLogin(page, BASE, adminEmail);
+  } catch (err) {
+    console.error(err.message);
     await browser.close();
     process.exit(1);
   }

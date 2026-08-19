@@ -15,6 +15,7 @@ import { mkdirSync } from 'fs';
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
+import { devLogin } from "./_dev-login.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 process.chdir(repoRoot);
@@ -45,12 +46,7 @@ for (const theme of ['light', 'dark']) {
     const page = await browser.newPage();
     await page.setViewport(size);
     await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await page.evaluate(async (email) => {
-      await fetch('/api/auth/admin-login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-    }, adminEmail);
+    await devLogin(page, BASE, adminEmail);
     await page.setCookie({ name: 'rv-theme', value: theme, url: BASE });
     await page.goto(BASE + route, { waitUntil: 'networkidle2', timeout: 30000 });
     await new Promise((r) => setTimeout(r, 900));

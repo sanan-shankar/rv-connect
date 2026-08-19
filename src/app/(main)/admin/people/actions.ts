@@ -197,10 +197,12 @@ export async function adminSetPhotoTrusted(
 /**
  * Make somebody an admin, or stop them being one.
  *
- * Refuses to remove the LAST admin. There is no other door into this panel
- * (the admin-login bypass is keyed to ADMIN_EMAIL and mints a session for a
- * row that must already be `role: "admin"`), so demoting the only one locks
- * everybody out of moderation permanently.
+ * Refuses to remove the LAST admin. Since 2026-08-19 there is genuinely no
+ * other door into this panel: the /api/auth/admin-login bypass that used to
+ * mint an admin session from an email address alone is deleted (security
+ * audit C1-b), and its local replacement 404s outside development. So
+ * demoting the only admin locks everybody out of moderation permanently, and
+ * the only way back would be editing the database by hand.
  */
 export async function adminSetRole(
   userId: string,
