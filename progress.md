@@ -1776,3 +1776,32 @@ server component a client *reference*, so `.includes` was not a function and the
 `tsc` was perfectly happy, which is gotcha 3 in CLAUDE.md exactly. And this repo has no prettier
 config: running `prettier --write` on the profile page reformatted 321 lines to its 80-column
 defaults. Reverted and reapplied by hand; the page edit is a 9-line pure insertion.
+
+---
+
+# The chain trades its arrows for lines
+
+The owner's read on the house chain (2026-08-19 voice note): the layout is right, but from afar
+it is "a bunch of pills". The arrows between houses were the problem, grey glyphs floating in
+air, so nothing looked connected to anything. The ask: connecting lines that leave one pill in
+its colour and arrive at the next in its colour.
+
+The first pass drew exactly that and he called it janky. Two reasons, both now understood. A
+full-ink line is the most saturated thing in a block of 7% washes, so it shouted over the pills
+it was joining. And 30px is too short for an end-to-end gradient to read as a choice; the more
+saturated ink just wins and the middle looks like a smudge.
+
+So the second pass went to the lab. `/lab/chain-lines` ("The colour handoff") draws the real
+nine-house chain with the shipped geometry six ways: thread, garland, baton, stitch, rings
+(his outline idea), wash, with a width slider so each one curls into the serpentine on demand.
+He picked Thread over the old arrows and the other five, and it shipped: 1.75px at 60% opacity,
+which is roughly the weight of the pill borders, and each ink holds pure for the first and last
+30% of the line with the blend confined to the middle. The blend is OKLab via color-mix, because
+sRGB drags green-to-orange through mud and OKLCH drags orange-to-blue through magenta. Lines now
+run flush to the pill borders at both ends; the 4px standoff existed for arrowheads, and a
+connector that stops short of what it connects is an arrow with no head. No arrowheads at all:
+the year captions already state the order.
+
+One gotcha for the file: a linearGradient in default objectBoundingBox units on a horizontal
+line paints NOTHING, because the line's bounding box has zero height and the spec skips the
+gradient entirely. Every connector gradient is gradientUnits="userSpaceOnUse" for that reason.
