@@ -1,0 +1,153 @@
+# Operations
+
+Everything installed on 2026-08-19 that is not application code: what it does, how it is
+used, and what breaks if it is ignored. **A tool nobody runs is worse than no tool**, so
+each entry names the moment it is supposed to fire.
+
+Security items are tracked separately in `docs/planning/SECURITY-AUDIT.md`, not here.
+
+---
+
+## 1. Playwright — the picture memory
+
+**Fires:** after any UI change, before committing. `npm run visual`.
+
+10 routes x 2 viewports (1440x900 and 390x844) compared against baselines in
+`e2e/__screenshots__/`. 50 seconds. Fails on a difference of 100 pixels.
+
+| Command | Use |
+|---|---|
+| `npm run visual` | compare everything against baseline |
+| `npm run visual:update` | the change was intentional; rewrites baselines, then **commit the PNGs** |
+| `npm run visual:report` | the three-up expected/actual/diff view of the last failure |
+| `npm run test:e2e` | the above plus the sign-in check |
+
+**The one rule:** never run `visual:update` to silence a failure without opening the diff
+first. That is the single action that turns this from a safety net into a rubber stamp.
+
+**Why it is not a ratio.** The first version used `maxDiffPixelRatio: 0.01`, which sounds
+strict and is not: 1% of a full-page shot is ~28,000 pixels. Verified by regression —
+changing `/about` from `text-sm` to `text-base` **passed**. It is now an absolute
+`maxDiffPixels: 100`, so the blind spot does not scale with the page.
+
+**What is masked, and why** (`volatileRegions()` in `e2e/visual.spec.ts`): relative
+timestamps from `formatTimeAgo`, the live contribution fill on `/support`, and the hoopoe,
+which idles forever and has no rest state. The mascot keeps its own dedicated checks in
+`scripts/qa/hoopoe-idle-check.mjs`.
+
+**Adding a route:** one line in `ROUTES`, with its reason. That is the whole procedure.
+
+**Known gap:** this runs locally only, not in CI, because baselines rendered on macOS do
+not match a Linux runner pixel for pixel. Making it a CI gate means generating baselines in
+Docker. Worth doing if the discipline ever slips.
+
+---
+
+## 2. GitHub Actions
+
+### `check.yml` — the gate, run by something other than memory
+**Fires:** every push to `main`. ~3 minutes.
+
+Runs `npm run check`. A push to this repo is a deploy, so this is the last thing between a
+bad commit and members seeing it.
+
+### `backup.yml` — the one that must never be broken
+**Fires:** nightly at 02:00 IST, and on demand via **Actions → backup → Run workflow**.
+
+Supabase's free plan has **no automatic backups and no point-in-time recovery**. One
+database serves production and local dev. `prisma db push` will try to DROP tables it
+thinks are orphaned. Before this job, one bad command destroyed everything with no
+recovery.
+
+Dumps to a **private** R2 bucket, keeps 30 days plus the 1st of every month forever, and:
+
+- **refuses to run** if the target bucket looks like the public media bucket
+  (`rv-alumni-media` is served from a `pub-*.r2.dev` URL; a dump landing there would
+  publish every member's personal data);
+- **verifies the archive** before trusting it, failing if the table of contents is short or
+  if `User` / `Post` / `Comment` / `Contribution` / `Photo` / `CatchupEntry` are absent. A
+  dump nobody has read is a file, not a backup.
+
+**Restore:**
+```
+pg_restore --clean --if-exists --no-owner --no-acl --dbname "$DIRECT_URL" rv-connect-YYYY-MM-DD.dump
+```
+Rehearse against staging, never straight at production.
+
+### Minute budget
+Private repos get **2,000 free minutes a month** and the account spending limit is **$0 by
+default**, so exhausting them stops runs rather than producing a bill. Expected usage is
+~350 minutes. Two things keep it there: `concurrency.cancel-in-progress` means a burst of
+pushes costs one run, and every job sets `timeout-minutes`.
+
+**If usage ever climbs:** Settings → Billing → check the limit is still $0, then trim
+`check.yml` to run on pull requests only.
+
+---
+
+## 3. Sentry — the smoke alarm
+
+**Fires by itself.** You do nothing until it emails you.
+
+Server-side only, EU region, free Developer plan (5,000 errors and 10,000 spans a month;
+the 14-day Business trial lapses back to free with no card on file and no charge).
+
+**What it catches:** 500s, failed Server Actions, database errors — the class that produced
+the "passed `tsc`, then 500'd the feed" incident in CLAUDE.md gotcha 3.
+
+**What it does not catch:** crashes inside client components. There is no browser SDK,
+because it costs ~30KB gzipped on every page load. If a member ever reports a blank screen
+that Sentry knows nothing about, that is the gap, and adding `instrumentation-client.ts` is
+the fix.
+
+**Deliberate settings** (`src/instrumentation.ts`): `sendDefaultPii: false` so no IPs,
+cookies or headers are attached; session replay never installed; disabled outside Vercel so
+dev-server noise cannot spend the monthly budget; `NEXT_REDIRECT` and `NEXT_NOT_FOUND`
+ignored, because Next implements `redirect()` and `notFound()` by throwing and every
+redirect would otherwise file an issue.
+
+Installed by hand rather than with `npx @sentry/wizard`, which would have added a
+`/sentry-example-page` route, enabled session replay, and written an auth token into a new
+`.env.sentry-build-plugin` file.
+
+---
+
+## 4. Renovate — dependency updates
+
+**Fires:** Monday mornings, as one pull request.
+
+Config in `.github/renovate.json`. Batched deliberately so it does not become noise. Four
+things are never batched: **majors** get individual PRs so a broken build has an obvious
+culprit; **prisma** and `@prisma/*` move together because a client/CLI mismatch typechecks
+and then fails at runtime; **react**/**react-dom** are pinned exactly and must not drift;
+**next-auth** is held 7 days and labelled `review-carefully`, because it is on a
+`5.0.0-beta` that can change shape between patches and auth breaking is the worst failure
+this site has. Security fixes ignore the schedule.
+
+**A Playwright bump means re-running `npm run visual`** — the PR carries a label saying so.
+
+---
+
+## 5. Bundle analyzer
+
+**Fires:** when you ask. `npm run analyze`.
+
+A no-op without `ANALYZE=true`, so members pay nothing. Exists because this project already
+holds the principle — *"parked code should not ride in bundles it is not used by"* — and had
+no way to check it. The `optimizePackageImports` bet on `@phosphor-icons/react` in
+`next.config.ts` has never been confirmed by anything but reasoning.
+
+---
+
+## Still to do
+
+- **PostHog** — analytics. Blocked on the project key.
+- **Resend delivery tracking** — `OutboundEmail.status` is `queued|sending|sent|failed`, so
+  "sent" only means Resend accepted it. No bounce or spam visibility, which matters most at
+  launch when 400 invitations go out at once.
+- **Staging database** — a second Supabase project so schema changes get a rehearsal.
+  Data fixes (capitalisations, cities) would continue to run against production exactly as
+  they do today; only structure changes gain a dry run.
+- **Cron monitoring** — the two jobs in `vercel.json` can stop silently. Deliberately
+  deferred; can be done with no third party by logging each run and surfacing it on
+  `/admin`.
