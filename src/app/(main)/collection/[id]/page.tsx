@@ -8,6 +8,7 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { PhotoLoveButton } from "@/components/collection/photo-love-button";
 import { PhotoModerationControl } from "@/components/collection/photo-moderation-control";
 import { subjectLabel, areaLabel, eraLabel } from "@/lib/collection";
+import { recordView } from "@/lib/content-view";
 
 export async function generateMetadata({
   params,
@@ -52,6 +53,9 @@ export default async function PhotoPage({
   });
 
   if (!photo || photo.isHidden) notFound();
+
+  /* Not awaited: the page renders at the same speed either way. */
+  void recordView(session?.user?.id, "photo", photo.id);
   const isOwn = photo.uploaderId === session.user.id;
   const isAdmin = session.user.role === "admin";
   // Unapproved photos are visible only to their uploader and admins.
