@@ -22,6 +22,7 @@ import { prisma } from "@/lib/prisma";
 import { batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
+import { contactMethodsSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
 
 const YEAR_MIN = 1926;
@@ -167,26 +168,40 @@ export async function updateContactMethods(input: {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  // Blank rows are how the repeater says "nothing here yet"; drop them before
+  // validation so an empty row is not an error, then run the rest through the
+  // same rules profileSchema applies to these columns (audit M18): length
+  // caps, an email format on displayEmail, and https-only on every link.
+  const cleaned = {
+    displayEmail: input.displayEmail?.trim() || null,
+    phones: input.phones.map((p) => p.trim()).filter((p) => p.length > 0),
+    instagram: input.instagram?.trim() || null,
+    linkedin: input.linkedin?.trim() || null,
+    facebook: input.facebook?.trim() || null,
+    links: input.links
+      .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
+      .filter((l) => l.label && l.url),
+  };
+  const parsed = contactMethodsSchema.safeParse(cleaned);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
   const phoneArr = Array.from(
-    new Set(input.phones.map(normalizePhone).filter((p) => p.length > 0))
+    new Set(parsed.data.phones.map(normalizePhone).filter((p) => p.length > 0))
   ).slice(0, 5);
 
-  const links = input.links
-    .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
-    .filter((l) => l.label && l.url)
-    .slice(0, 10);
+  const links = parsed.data.links.slice(0, 10);
 
   await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      displayEmail: input.displayEmail?.trim() || null,
+      displayEmail: parsed.data.displayEmail || null,
       // The mirror is the contract: legacy `phone` always holds the FIRST
       // number, so every reader that predates the list keeps working.
       phone: phoneArr[0] ?? null,
       phones: phoneArr.length > 0 ? JSON.stringify(phoneArr) : null,
-      instagram: input.instagram?.trim() || null,
-      linkedin: input.linkedin?.trim() || null,
-      facebook: input.facebook?.trim() || null,
+      instagram: parsed.data.instagram || null,
+      linkedin: parsed.data.linkedin || null,
+      facebook: parsed.data.facebook || null,
       links: links.length > 0 ? JSON.stringify(links) : null,
     },
   });

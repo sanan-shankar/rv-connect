@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 
 /**
  * The one place a raw upload buffer becomes a sharp pipeline. Every call site
@@ -23,9 +23,18 @@ import sharp from "sharp";
  */
 export const MAX_INPUT_PIXELS = 100_000_000;
 
-export function sharpImage(input: Buffer): sharp.Sharp {
+export function sharpImage(input: Buffer): Sharp {
   return sharp(input, {
     limitInputPixels: MAX_INPUT_PIXELS,
     sequentialRead: true,
+    // Fail only on a real decode ERROR, not on a libpng WARNING. sharp 0.35
+    // bundles a stricter libpng (1.6.58) whose default (`failOn: "warning"`)
+    // rejects otherwise-decodable images that merely carry a cosmetic defect —
+    // most commonly the "iCCP: known incorrect sRGB profile" warning that old
+    // Photoshop exports and scanner software emit. For a heritage photo archive
+    // that is exactly the kind of file we must NOT turn away over a colour-
+    // profile nitpick, so we decode it and move on; genuine corruption still
+    // throws.
+    failOn: "error",
   });
 }

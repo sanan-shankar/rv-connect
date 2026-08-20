@@ -131,6 +131,24 @@ export async function createPost(formData: FormData) {
   // even if a tampered form field sends it.
   const isDraft = parsed.data.kind === "letter" && parsed.data.saveAsDraft === true;
 
+  // Poll options are written in the SAME create as the post, as a nested
+  // create, so the post and all of its options land in one transaction (audit
+  // M32). The old loop issued up to four separate round trips after the post
+  // existed, and a failure mid-loop left a post carrying a partial poll.
+  // Drafts are letters-only, so a poll never applies to one, but the guard
+  // costs nothing.
+  const withPoll =
+    !isDraft && parsed.data.pollOptions && parsed.data.pollOptions.length >= 2
+      ? {
+          pollOptions: {
+            create: parsed.data.pollOptions.map((text, i) => ({
+              text: text.trim(),
+              position: i,
+            })),
+          },
+        }
+      : {};
+
   const post = await prisma.post.create({
     data: {
       authorId: session.user.id,
@@ -142,22 +160,9 @@ export async function createPost(formData: FormData) {
       images: imagesJson,
       cityScope,
       status: isDraft ? "draft" : "published",
+      ...withPoll,
     },
   });
-
-  // Create poll options if present (drafts are letters-only, so this never
-  // applies to one, but the guard costs nothing).
-  if (!isDraft && parsed.data.pollOptions && parsed.data.pollOptions.length >= 2) {
-    for (let i = 0; i < parsed.data.pollOptions.length; i++) {
-      await prisma.pollOption.create({
-        data: {
-          postId: post.id,
-          text: parsed.data.pollOptions[i].trim(),
-          position: i,
-        },
-      });
-    }
-  }
 
   /* "Also add to the Collection". Scheduled with `after` so the composer gets
      its response the moment the post exists: copying a photograph costs a

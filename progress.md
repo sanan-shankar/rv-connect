@@ -2029,3 +2029,43 @@ full-resolution WebP with its location metadata stripped.
 Self-review caught what the probe would not have: WebP's 16383px hard cap, which the M12 re-encode
 would have thrown on for a very large scan where the old raw passthrough stored it — bounded now. No
 schema change, so no migration and no demo-DB step this phase.
+
+## 2026-08-20 — Security Phase 6: headers, the beta.32 auth bump, and the crons that never fired
+
+**Seven findings, three of them structural.** The auth library and image decoder both carried live
+advisories (C3): next-auth moved beta.30 → 5.0.0-beta.32 (pinned exact — a beta you can't let float),
+sharp 0.34 → 0.35.3, next 16.2 → 16.3.1. The one that mattered is next-auth: the advisory is
+*existence-based auth checks can fail open*, and this whole app is `if (!session?.user?.id) return`.
+So the probe doesn't trust the version string — it signs a real account in through the real
+credentials callback under the new library, opens a members-only route with the minted session, and
+confirms a wrong password still mints nothing. beta.32 authenticates and does not fail open.
+
+sharp 0.35 brought a stricter libpng that rejects images over cosmetic warnings; `sharpImage` now
+sets `failOn: "error"` so an old heritage scan with a bad colour profile is decoded, not turned away.
+(It also rejected the probe's hand-pasted 1×1 test PNG — a bad test fixture, not a real photo; the
+probe now generates a valid one, and re-ran 29/29.)
+
+**Headers (H7).** A real CSP plus X-Frame-Options: DENY, Referrer-Policy, nosniff, Permissions-Policy
+and explicit HSTS. `frame-ancestors 'none'` is the clickjacking fix the audit named by name (framing
+/settings to bait a click onto deleteAccount). The CSP was iterated with the browser console open, as
+the plan warned: it caught Vercel Analytics' loader host, and a production build confirmed the login
+page renders whole — hero, fonts, and the Cloudflare Turnstile widget all load under the enforced
+policy. The one residual eval "issue" is Turnstile fingerprinting the headless browser inside
+Cloudflare's own iframe, present whether or not we allow eval, i.e. not ours.
+
+**The quiet ones.** `/lab` was public in production and `/lab/everything` served an internal audit log
+of quoted source paths (M19) — now removed from the public list and behind an admin-only layout that
+404s everyone else, so it doesn't even admit it exists. The nightly `vercel.json` cron pointed at
+`/api/catchups/tick`, a route that never existed, so it 404'd every night and Catch-up deadlines only
+advanced when a member happened to load a page (M27) — the route exists now, wrapping the cron-wide
+advance the function was written for, gated by CRON_SECRET. Poll options were written in a loop after
+the post existed, so a mid-loop failure left a partial poll (M32) — folded into the post's own create
+as one transaction. `updateContactMethods` wrote links, socials and a display email with no
+validation at all, saved from stored XSS only by a read-side re-check (M18) — now through the same
+schema profileSchema uses. And `/api/users-by-batch` would dump the whole user table to any
+signed-in account (H18) — capped.
+
+**Proof.** phase6-probe 15/15 live, phase5-probe 29/29 under the new sharp, build exit 0 under all
+three upgrades, check clean, visual 21/21. Owner action: confirm CRON_SECRET is set on the real
+Vercel project (same one demo-reset uses) so the nightly Catch-up cron actually runs; until then the
+lazy page-load tick covers it exactly as before, so nothing regresses.
