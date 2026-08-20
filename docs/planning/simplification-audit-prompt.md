@@ -224,6 +224,22 @@ that narrate the obvious.
 - Images through `next/image`/Sharp (already the pattern — verify no strays), fonts via
   `next/font` with subsets.
 
+**The root directory (an explicit owner request — small next to the rest, but his, verbatim):**
+"I don't want my root directory to be crowded. I understand that many of the things there have to
+be there, but just in case there's some unnecessary stuff: I very much appreciate a clean,
+well-maintained root directory, especially because that's the main part that I keep looking at.
+Critically analyse each thing that's there — whether it has to be there, whether it can be
+somewhere else — and make the root directory just a bit cleaner." So: one agent (or one pass)
+takes the repo root as its territory. For every top-level entry, answer: is it required at the
+root by a tool's convention (and by which tool, exactly — verify, don't assume), can it move into
+an existing folder or a config's alternative location, is it a build artifact or OS dropping that
+should be gitignored and absent (`tsconfig.tsbuildinfo` and `.DS_Store` deserve immediate
+suspicion), or is it a real judgment call for the owner (a working file like `progress.md` that he
+may *want* visible)? `stuff/` and `screenshots/` get looked at hard. Every proposed move must name
+what references the current path (configs, scripts, docs, CI) and list the exact reference updates,
+so the fix session can move it without breaking anything. These findings are typically quick T1
+wins — put them in an early phase so the owner feels the cleaner root immediately.
+
 **Cleanup-audit tiering (jonesrussell):** classify every finding into
 **T1** safe deletes / **T2** small fixes / **T3** refactors / **T4** architecture, by effort × risk.
 Also ask, at the macro level, the uncomfortable question: is there a feature or subsystem whose
