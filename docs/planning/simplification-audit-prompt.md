@@ -120,6 +120,11 @@ agent brief in this session:
    Nothing over 200MB.
 6. If any tool run mutates files (a formatter, a `--fix` flag), do not use that mode. Report-only
    flags everywhere.
+7. **Resource discipline.** The no-time-limit grant is for depth, not waste: don't burn usage on
+   preventable retry loops, re-derivation, or agents doing what a grep answers. And the owner's
+   machine has hung before under parallel heavy processes: reading agents may fan out freely, but
+   run at most ONE headless Chrome and ONE build (or visual suite) at a time — serialize anything
+   screenshot- or build-shaped.
 
 ## 5. Your arsenal — use all of it, not the best of it
 
