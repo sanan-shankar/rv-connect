@@ -25,6 +25,19 @@ class BotCheckFailed extends CredentialsSignin {
   code = "bot-check";
 }
 
+/* A real bcrypt cost-12 hash of a throwaway string, compared against in the
+   branches that reject BEFORE reaching the genuine bcrypt.compare below (no
+   such account, or an account with no password set). Without it those branches
+   return after a single DB read in single-digit milliseconds while a real
+   account always pays ~150-300ms for the compare, and that difference alone
+   tells an attacker which addresses belong to members -- the exact membership
+   fact the generic "Invalid email or password" and the reset flow's `after()`
+   both exist to hide. Burning one equivalent compare in the fast branches makes
+   all three failure paths cost roughly the same. The hash must be valid, or
+   bcryptjs short-circuits on a parse error and the equalisation is lost. */
+const DUMMY_PASSWORD_HASH =
+  "$2b$12$i80egBbL/FYVUTbemVUv4uMONfzeXjEd2dwV1Ssq8TIAOTKKpCWrW";
+
 const nextAuth = NextAuth({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: PrismaAdapter(prisma as any),
@@ -96,6 +109,9 @@ const nextAuth = NextAuth({
            invisible to every number in /admin/analytics, which is backwards --
            they are the ones most likely to need help. */
         if (!user) {
+          // Spend an equivalent bcrypt compare so this branch costs about what
+          // a real account's wrong-password branch does (see DUMMY_PASSWORD_HASH).
+          await bcrypt.compare(password ?? "", DUMMY_PASSWORD_HASH);
           recordLoginAttempt({ email, ok: false, reason: "no-account" });
           await fail();
           return null;
@@ -112,6 +128,8 @@ const nextAuth = NextAuth({
         if (!password || !user.password) {
           /* An account with no password set is an invited member who never
              finished signing up. Different problem, different help. */
+          // Same constant-time reasoning as the no-account branch above.
+          await bcrypt.compare(password ?? "", DUMMY_PASSWORD_HASH);
           recordLoginAttempt({
             email,
             ok: false,
