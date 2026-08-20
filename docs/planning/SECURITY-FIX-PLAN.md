@@ -371,10 +371,17 @@ whose broken types failed every preview build and re-emailed the owner on each r
 (C3) owes those upgrades**: next-auth beta.32, sharp >=0.35.3 (0.35.0-0.35.2 have broken type
 exports), next 16.3, hono, ip-address, express-rate-limit -- do them there, not from Dependabot's
 lump.
-**Owner confirmed same day:** demo DB got the credentialVersion migration;
-NEXT_PUBLIC_ADMIN_EMAIL deleted from Vercel; he is verifying Yashvardhan himself. Still open on
-the demo DB: `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "birdPickedAt" TIMESTAMP(3);` (the
-column verify-guard.mts actually crashed on -- drift may be wider, so the first session that
-touches the demo should diff its schema against prisma/schema.prisma). Still open with the owner:
-the second admin account's temporary password from Phase 1.
+**Owner confirmed same day:** demo DB got the credentialVersion + birdPickedAt columns;
+NEXT_PUBLIC_ADMIN_EMAIL deleted from Vercel; he is verifying Yashvardhan himself. Still open with
+the owner: the second admin account's temporary password from Phase 1.
+**Same evening -- Supabase advisor criticals (new finding, not in the audit):** every Supabase
+project exposes PostgREST over the public schema via the anon key; with RLS off that is full
+read/write on every table for anyone holding the key. The app never uses that API (Prisma only),
+so it was latent, but real. Fixed on BOTH databases: RLS enabled on all 38 tables with no
+policies (`prisma/migrations-manual/2026-08-20-enable-rls.sql`; owner connections bypass RLS, so
+the app is untouched -- proved by phase3-probe 24/24 after). The demo DB was also 8 tables and 3
+columns behind the code it autodeploys (why verify-guard crashed): caught up additively via the
+new `scripts/demo/run-sql.mjs`, and verify-guard now passes 15/15. The advisor warnings clear on
+its next scan. Optional owner toggle for belt and braces: Project Settings -> Data API -> disable,
+in both projects (nothing uses it).
 
