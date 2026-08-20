@@ -1,13 +1,27 @@
 "use server";
 
-import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
-import { putImage, delImage, getImageBuffer, delImageByKey, publicUrlForKey } from "@/lib/storage";
+import {
+  putImage,
+  delImage,
+  getImageBuffer,
+  delImageByKey,
+  headObjectSize,
+  keyBelongsTo,
+  ownerPrefix,
+} from "@/lib/storage";
+import { sharpImage } from "@/lib/image";
 import { photoSchema } from "@/lib/validators";
-import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/lib/upload-shared";
+import {
+  MAX_UPLOAD_BYTES,
+  MAX_PHOTOS_PER_ACCOUNT,
+  isUnsupportedHeic,
+  describeProcessingError,
+  sniffImageType,
+} from "@/lib/upload-shared";
 import { eraFromYear } from "@/lib/collection";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
@@ -71,6 +85,20 @@ const includeFor = (userId: string) => ({
   loves: { where: { userId }, select: { id: true } },
 });
 
+/**
+ * The per-account Collection quota (audit M17). Counts every photo the member
+ * still has on file — approved, pending or hidden alike, since each is a stored
+ * object costing money — and refuses a new contribution once the ceiling is
+ * reached. Returns an error string, or null when there is room.
+ */
+async function photoQuotaError(userId: string): Promise<string | null> {
+  const count = await prisma.photo.count({ where: { uploaderId: userId } });
+  if (count >= MAX_PHOTOS_PER_ACCOUNT) {
+    return "You've reached the limit of photos one account can add to the Collection. Message the admin if you have more to share.";
+  }
+  return null;
+}
+
 export async function contributePhoto(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
@@ -86,6 +114,9 @@ export async function contributePhoto(formData: FormData) {
   // travel, one account gets one hourly allowance (audit M2).
   const limited = await rateLimit("uploads", session.user.id);
   if (!limited.ok) return { error: limited.error };
+
+  const quota = await photoQuotaError(session.user.id);
+  if (quota) return { error: quota };
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
@@ -125,9 +156,17 @@ export async function contributePhoto(formData: FormData) {
   let height: number;
   try {
     const input = Buffer.from(await file.arrayBuffer());
+    // The bytes, not the client's MIME string, decide it is an image (M13).
+    if (!sniffImageType(input)) {
+      return { error: "That file doesn't look like a JPG, PNG, GIF or WebP image." };
+    }
     const id = createId();
+    const dir = ownerPrefix("collection", session.user.id);
 
-    const display = await sharp(input)
+    // Re-encoding through sharp drops EXIF (there is no .withMetadata()), so the
+    // stored image carries no camera or GPS metadata (M12 in spirit; this path
+    // already re-encoded, unlike the direct one).
+    const display = await sharpImage(input)
       .rotate()
       .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 80 })
@@ -135,15 +174,15 @@ export async function contributePhoto(formData: FormData) {
     width = display.info.width;
     height = display.info.height;
 
-    const thumb = await sharp(input)
+    const thumb = await sharpImage(input)
       .rotate()
       .resize(480, 480, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 72 })
       .toBuffer();
 
     [url, thumbUrl] = await Promise.all([
-      putImage(display.data, "collection", `${id}.webp`),
-      putImage(thumb, "collection", `${id}-t.webp`),
+      putImage(display.data, dir, `${id}.webp`),
+      putImage(thumb, dir, `${id}-t.webp`),
     ]);
   } catch (e) {
     return { error: describeProcessingError(e) };
@@ -184,16 +223,28 @@ export async function contributePhoto(formData: FormData) {
   return { success: true, autoApprove };
 }
 
-// Only objects the collection presign step itself created may be recorded.
-const COLLECTION_ORIGINAL_KEY = /^collection\/\d{4}\/\d{2}\/[a-z0-9]+-o\.(jpg|jpeg|png|webp|gif)$/;
+// Only objects the collection presign step itself created may be recorded, AND
+// only ones staged under the CALLER's own prefix (`collection/<their id>/...`);
+// the ownership half is enforced with keyBelongsTo below (audit C2).
+const COLLECTION_ORIGINAL_KEY =
+  /^collection\/[a-z0-9]+\/\d{4}\/\d{2}\/[a-z0-9]+-o\.(jpg|jpeg|png|webp|gif)$/;
 
 /**
  * The direct-to-R2 completion of a Collection contribution: the browser has
  * already PUT the FULL-RESOLUTION original via a presigned URL (see
  * /api/upload/presign), dodging Vercel's ~4.5MB body cap; this validates it,
- * builds the grid thumbnail off it, and records the row with the original
- * itself as the photo's URL. Nothing between the camera and storage ever
- * rescales it (owner, 2026-07-30: high-res in the Collection is the point).
+ * re-encodes it once to strip metadata, builds the grid thumbnail, and records
+ * the row.
+ *
+ * Full resolution is preserved — nothing is downscaled, so "high-res in the
+ * Collection is the point" (owner, 2026-07-30) still holds — but the canonical
+ * image is now a server re-encode of the original rather than the browser's
+ * exact bytes. The reason is privacy: a phone photo's EXIF carries the GPS
+ * coordinates it was taken at, and serving the untouched original published
+ * those to the whole community and to anyone who noted the public URL (audit
+ * M12). Re-encoding through sharp drops all metadata (there is no
+ * .withMetadata() call), and the raw original is deleted afterwards, so the
+ * location data never persists.
  */
 export async function contributePhotoDirect(input: {
   key: string;
@@ -219,8 +270,19 @@ export async function contributePhotoDirect(input: {
   const limited = await rateLimit("uploads", session.user.id);
   if (!limited.ok) return { error: limited.error };
 
-  if (typeof input.key !== "string" || !COLLECTION_ORIGINAL_KEY.test(input.key)) {
+  if (
+    typeof input.key !== "string" ||
+    !COLLECTION_ORIGINAL_KEY.test(input.key) ||
+    !keyBelongsTo(input.key, session.user.id, "collection")
+  ) {
     return { error: "Bad upload reference" };
+  }
+
+  const quota = await photoQuotaError(session.user.id);
+  if (quota) {
+    // The staged original is orphaned if we refuse it; clean it up.
+    await delImageByKey(input.key);
+    return { error: quota };
   }
 
   const parsed = photoSchema.safeParse({
@@ -242,31 +304,67 @@ export async function contributePhotoDirect(input: {
     select: { photoTrusted: true },
   });
 
+  let url: string;
   let thumbUrl: string;
   let width: number;
   let height: number;
   try {
-    const original = await getImageBuffer(input.key);
-    if (original.byteLength > MAX_UPLOAD_BYTES + 1024) {
-      // A presigned PUT cannot enforce size; enforce it here instead.
+    // Size is checked with a HEAD before the object is pulled into memory: a
+    // presigned PUT cannot enforce a limit (R2 has no content-length-range), so
+    // an oversized object is deleted without ever being fetched (audit M16).
+    const stagedSize = await headObjectSize(input.key);
+    if (stagedSize !== null && stagedSize > MAX_UPLOAD_BYTES + 1024) {
       await delImageByKey(input.key);
       return { error: "Photo is over the 20MB limit" };
     }
 
-    // Dimensions of the original as DISPLAYED: EXIF orientations 5-8 are the
-    // rotated ones, where the stored width/height swap.
-    const md = await sharp(original).metadata();
-    const swap = (md.orientation ?? 1) >= 5;
-    width = (swap ? md.height : md.width) ?? 0;
-    height = (swap ? md.width : md.height) ?? 0;
+    const original = await getImageBuffer(input.key);
+    if (original.byteLength > MAX_UPLOAD_BYTES + 1024) {
+      // Belt to the HEAD's braces (a HEAD that could not read the size falls
+      // through to here).
+      await delImageByKey(input.key);
+      return { error: "Photo is over the 20MB limit" };
+    }
+    if (!sniffImageType(original)) {
+      await delImageByKey(input.key);
+      return { error: "That upload doesn't look like a JPG, PNG, GIF or WebP image." };
+    }
+
+    const dir = ownerPrefix("collection", session.user.id);
+
+    // The canonical full-size image: re-encoded (so EXIF/GPS is gone, M12) and
+    // orientation baked in. Full resolution is kept for every realistic photo;
+    // the only resize is a ceiling at WebP's hard 16383px dimension limit, so a
+    // scan larger than WebP can even hold is bounded rather than throwing (the
+    // old path stored the raw original and dodged this, but the raw original is
+    // exactly the EXIF-bearing file we are no longer willing to publish).
+    // withoutEnlargement means anything under the ceiling is untouched.
+    // resolveWithObject gives us the upright dimensions directly, so there is
+    // no EXIF-orientation swap to reason about.
+    const WEBP_MAX_DIM = 16383;
+    const display = await sharpImage(original)
+      .rotate()
+      .resize(WEBP_MAX_DIM, WEBP_MAX_DIM, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 90 })
+      .toBuffer({ resolveWithObject: true });
+    width = display.info.width;
+    height = display.info.height;
     if (!width || !height) throw new Error("unsupported image format");
 
-    const thumb = await sharp(original)
+    const thumb = await sharpImage(original)
       .rotate()
       .resize(480, 480, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 72 })
       .toBuffer();
-    thumbUrl = await putImage(thumb, "collection", `${createId()}-t.webp`);
+
+    [url, thumbUrl] = await Promise.all([
+      putImage(display.data, dir, `${createId()}.webp`),
+      putImage(thumb, dir, `${createId()}-t.webp`),
+    ]);
+
+    // The raw original carried the EXIF; its re-encoded copy is now the
+    // canonical image, so the original is deleted rather than left retrievable.
+    await delImageByKey(input.key);
   } catch (e) {
     await delImageByKey(input.key);
     return { error: describeProcessingError(e) };
@@ -279,7 +377,7 @@ export async function contributePhotoDirect(input: {
     data: {
       uploaderId: session.user.id,
       thumbUrl,
-      url: publicUrlForKey(input.key),
+      url,
       width,
       height,
       caption: parsed.data.caption || null,
@@ -464,12 +562,14 @@ export async function declinePhoto(photoId: string) {
 }
 
 /**
- * Admin-only: soft-hide an already-approved Collection photo from its own
- * card/row (the grid tile and the /collection/[id] detail view), with the
- * same optional warm note flow as adminRemovePost/adminRemoveComment.
- * Distinct from declinePhoto above (a hard delete + file cleanup for photos
- * still in the pending-review queue): this keeps the row and the files, and
- * only applies to photos already live in the Collection.
+ * Admin-only: remove an already-approved Collection photo. The row is KEPT
+ * (soft-hidden) for the record and the warm-note flow, exactly like
+ * adminRemovePost/adminRemoveComment — but unlike those, the stored image
+ * BYTES are deleted here. A hidden text post is unreadable once hidden; a
+ * hidden photo's file stayed at a public, permanent R2 URL that anyone who had
+ * noted it could still fetch forever, so "removed" did not remove the thing
+ * that mattered (audit M11). Deleting the bytes is best-effort and never
+ * throws, so it cannot turn a moderation click into an error page.
  */
 export async function adminRemovePhoto(photoId: string, note?: string) {
   const session = await auth();
@@ -477,11 +577,18 @@ export async function adminRemovePhoto(photoId: string, note?: string) {
 
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
-    select: { uploaderId: true },
+    select: { uploaderId: true, thumbUrl: true, url: true, originalUrl: true },
   });
   if (!photo) return { error: "Photo not found" };
 
   await prisma.photo.update({ where: { id: photoId }, data: { isHidden: true } });
+
+  // The row survives (structure + note); the retrievable bytes do not.
+  await Promise.all([
+    delImage(photo.thumbUrl),
+    delImage(photo.url),
+    delImage(photo.originalUrl),
+  ]);
 
   const trimmedNote = note?.trim();
   if (trimmedNote) await notifyAdminNote(photo.uploaderId, trimmedNote);

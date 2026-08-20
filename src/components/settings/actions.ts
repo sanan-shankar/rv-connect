@@ -1,11 +1,12 @@
 "use server";
 
-import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
-import { putImage, delImage } from "@/lib/storage";
+import { putImage, delImage, ownerPrefix } from "@/lib/storage";
+import { sharpImage } from "@/lib/image";
+import { sniffImageType } from "@/lib/upload-shared";
 import { profileSchema } from "@/lib/validators";
 import { batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
@@ -204,14 +205,20 @@ export async function updateAvatar(formData: FormData) {
   let url: string;
   try {
     const input = Buffer.from(await file.arrayBuffer());
+    // The bytes, not the client MIME string, decide it is an image (M13).
+    if (!sniffImageType(input)) {
+      return { error: "That file doesn't look like a JPG, PNG, GIF or WebP image." };
+    }
     const id = createId();
-    // Square crop to a compact WebP; avatars never need more than ~512px.
-    const webp = await sharp(input)
+    // Square crop to a compact WebP; avatars never need more than ~512px. The
+    // key is scoped to the owner (`avatars/<their id>/...`) like every other
+    // upload root (audit C2).
+    const webp = await sharpImage(input)
       .rotate()
       .resize(512, 512, { fit: "cover", position: "centre" })
       .webp({ quality: 82 })
       .toBuffer();
-    url = await putImage(webp, "avatars", `${id}.webp`);
+    url = await putImage(webp, ownerPrefix("avatars", session.user.id), `${id}.webp`);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return { error: `Could not process the photo: ${message}` };

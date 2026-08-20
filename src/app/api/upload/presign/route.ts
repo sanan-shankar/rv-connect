@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
-import { directUploadAvailable, presignImagePut } from "@/lib/storage";
+import { directUploadAvailable, presignImagePut, ownerPrefix } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
@@ -90,11 +90,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ direct: false });
   }
 
+  // Both the staging area and the Collection original are scoped to the
+  // uploader, so the finalize step can prove the caller owns the key it names
+  // rather than trusting an arbitrary path in the request body (audit C2).
   const id = createId();
   const target =
     kind === "post"
-      ? { subdir: "staging", filename: `${id}.${ext}` }
-      : { subdir: "collection", filename: `${id}-o.${ext}` };
+      ? { subdir: ownerPrefix("staging", session.user.id), filename: `${id}.${ext}` }
+      : { subdir: ownerPrefix("collection", session.user.id), filename: `${id}-o.${ext}` };
 
   const { key, signedUrl, publicUrl } = await presignImagePut(
     target.subdir,

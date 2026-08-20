@@ -1992,3 +1992,40 @@ challenge theme pinned light, and the trivia swap became an inline circular-arro
 half-turn per press, one-breath question crossfade, arrow gliding on layout=position.
 Deploy times (~1m20 → ~2m) are Sentry + PostHog landing Aug 19, normal; puppeteer's
 per-build Chrome download on Vercel was the one real waste, now skipped (.puppeteerrc.cjs).
+
+## 2026-08-20 — Security Phase 5: the bucket stops trusting the caller
+
+**C2 was the worst thing in the audit that was not an open front door.** Any confirmed member could
+put every image URL they could scrape — the heritage Collection, other people's avatars, anyone's
+post photos — into a post's `images`, then delete the post, and every one of those objects was
+deleted from R2 with it. No versioning, no undo, a scanned archive that cannot be re-sourced. One
+authenticated request.
+
+**The fix: the bucket stops trusting any URL the caller hands it.** Every upload now mints its key
+server-side under the uploader's own prefix, `<purpose>/<their id>/…`, and every write that accepts
+image URLs (posts, letter drafts, Catch-up answers) refuses anything that is not app-minted AND under
+the caller's own `uploads/` prefix, capped at three. So a post can only ever carry photos its author
+uploaded, and deleting it can only ever delete those. The verdict is a pure rule with twelve tests
+written as attacks; the two direct-to-R2 paths bind the staged key to the caller the same way. That
+one change also closes M10 (external tracking-pixel URLs are refused by the same gate).
+
+The rest of the upload surface got hardened alongside: removed Collection photos now actually delete
+their bytes instead of leaving them fetchable forever (M11); the direct Collection path re-encodes the
+original so a phone photo's GPS coordinates are not published to the whole community, full resolution
+kept (M12); a magic-byte sniff decides what is really an image before libvips touches it (M13); every
+sharp call has a decompression-bomb ceiling (M14); a presigned object's size is checked with a HEAD
+before it is pulled into a function's memory, since R2 cannot enforce it in the signature the way S3
+can (M16); and one account can only fill so much of the Collection (M17).
+
+**Proof.** `phase5-probe.mjs` 27/27, against the running server and the REAL R2 bucket: the actual
+composer driven headless with its upload response forged to a victim's URL creates no post carrying
+it and the victim's object survives — while the attacker's own post goes through (positive control);
+cross-user staged-key finalize is refused and own succeeds; a GPS/EXIF JPEG comes out of the
+re-encode with no metadata; a delete really removes the bytes; text-in-a-png-suit is refused. `check`
+clean (19 test files), `visual` 21/21 — no UI moved. New copy shows only on abuse paths; a member's
+normal posting is untouched, except that a directly-uploaded Collection photo is now stored as a
+full-resolution WebP with its location metadata stripped.
+
+Self-review caught what the probe would not have: WebP's 16383px hard cap, which the M12 re-encode
+would have thrown on for a very large scan where the old raw passthrough stored it — bounded now. No
+schema change, so no migration and no demo-DB step this phase.

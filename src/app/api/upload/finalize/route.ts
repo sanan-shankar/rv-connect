@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
-import { getImageBuffer, putImage, delImageByKey } from "@/lib/storage";
-import { MAX_UPLOAD_BYTES, describeProcessingError } from "@/lib/upload-shared";
+import {
+  getImageBuffer,
+  putImage,
+  delImageByKey,
+  headObjectSize,
+  keyBelongsTo,
+  ownerPrefix,
+} from "@/lib/storage";
+import { sharpImage } from "@/lib/image";
+import { MAX_UPLOAD_BYTES, describeProcessingError, sniffImageType } from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -17,9 +24,13 @@ import { rateLimit } from "@/lib/rate-limit";
  */
 
 const MAX_FILES = 3;
-// Only objects this route's own presign step created may be named; anything
-// else in the bucket is not a staging area.
-const STAGING_KEY = /^staging\/\d{4}\/\d{2}\/[a-z0-9]+\.(jpg|jpeg|png|webp|gif)$/;
+// Only objects this route's own presign step created may be named, AND only
+// ones staged under the CALLER's own prefix: `staging/<their id>/...`. The
+// shape is checked here; the ownership half (the id segment must be the
+// session user's) is enforced with keyBelongsTo below, so a caller cannot
+// finalize — and thereby have us fetch and re-serve — another member's staged
+// bytes (audit C2).
+const STAGING_KEY = /^staging\/[a-z0-9]+\/\d{4}\/\d{2}\/[a-z0-9]+\.(jpg|jpeg|png|webp|gif)$/;
 
 
 export async function POST(request: Request) {
@@ -59,25 +70,44 @@ export async function POST(request: Request) {
   if (keys.length > MAX_FILES) {
     return NextResponse.json({ error: `Maximum ${MAX_FILES} images allowed` }, { status: 400 });
   }
-  if (keys.some((k) => !STAGING_KEY.test(k))) {
+  if (keys.some((k) => !STAGING_KEY.test(k) || !keyBelongsTo(k, session.user.id, "staging"))) {
     return NextResponse.json({ error: "Bad staging key" }, { status: 400 });
   }
 
   const urls: string[] = [];
   for (const key of keys) {
     try {
-      const original = await getImageBuffer(key);
-      if (original.byteLength > MAX_UPLOAD_BYTES + 1024) {
-        // A presigned PUT cannot enforce size, so it is enforced here.
+      // Size is checked with a HEAD before the bytes are pulled into memory: a
+      // presigned PUT cannot enforce a limit (R2 has no content-length-range),
+      // so an oversized object is deleted without ever being fetched — closing
+      // the memory-amplification window a post-download check would leave open
+      // (audit M16).
+      const staged = await headObjectSize(key);
+      if (staged !== null && staged > MAX_UPLOAD_BYTES + 1024) {
         await delImageByKey(key);
         return NextResponse.json({ error: "Photo is over the 20MB limit" }, { status: 400 });
       }
-      const webp = await sharp(original)
+
+      const original = await getImageBuffer(key);
+      if (original.byteLength > MAX_UPLOAD_BYTES + 1024) {
+        // Belt to the HEAD's braces (a HEAD that could not read the size
+        // returns null and falls through to here).
+        await delImageByKey(key);
+        return NextResponse.json({ error: "Photo is over the 20MB limit" }, { status: 400 });
+      }
+      if (!sniffImageType(original)) {
+        await delImageByKey(key);
+        return NextResponse.json(
+          { error: "That upload doesn't look like a JPG, PNG, GIF or WebP image." },
+          { status: 400 }
+        );
+      }
+      const webp = await sharpImage(original)
         .rotate()
         .resize(1920, 1920, { fit: "inside", withoutEnlargement: true })
         .webp({ quality: 80 })
         .toBuffer();
-      const url = await putImage(webp, "uploads", `${createId()}.webp`);
+      const url = await putImage(webp, ownerPrefix("uploads", session.user.id), `${createId()}.webp`);
       urls.push(url);
     } catch (error) {
       console.error("Finalize processing error:", error);

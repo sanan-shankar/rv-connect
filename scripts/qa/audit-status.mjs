@@ -143,12 +143,25 @@ const CHECKS = [
       return ok("not referenced in src/ and not in .env");
     }},
   { id: "C2", sev: "critical", title: "Any member can delete every image in R2", probe: () => {
-      const v = read("src/lib/validators.ts");
-      const store = read("src/lib/storage.ts");
-      const validated = /images:\s*z[^\n]*\.refine|isUploadedImageUrl/.test(v);
-      const scoped = /ownerPrefix|assertOwnedKey|objectKey/.test(store);
-      if (validated && scoped) return ok("images validated on write and delete is key-scoped");
-      return open(`${validated ? "" : "postSchema.images unvalidated; "}${scoped ? "" : "delImage still derives keys from caller URLs"}`);
+      // The fix has two halves, and both must be present. (1) Keys are minted
+      // server-side under the uploader's own prefix (storage.ownerPrefix), so
+      // ownership is provable from the key. (2) Every write that accepts
+      // client image URLs runs them through ownedUploadUrls before storing, so
+      // a row can only ever hold URLs its owner minted. Behaviour is
+      // scripts/qa/phase5-probe.mjs. See also the ownership rule's unit test.
+      const store = decomment(read("src/lib/storage.ts"));
+      const scoped = /export function ownerPrefix\b/.test(store) && /KNOWN_ROOTS/.test(store);
+      const feed = decomment(read("src/app/(main)/feed/actions.ts"));
+      const validatedOnWrite = /ownedUploadUrls\(/.test(feed);
+      const hasRule = has("src/lib/upload-ownership-rule.ts");
+      if (scoped && validatedOnWrite && hasRule) {
+        return ok("keys owner-scoped (ownerPrefix); post images validated by ownedUploadUrls on write");
+      }
+      const missing = [];
+      if (!scoped) missing.push("keys not owner-scoped in storage.ts");
+      if (!validatedOnWrite) missing.push("createPost does not validate image ownership");
+      if (!hasRule) missing.push("no ownership rule");
+      return open(missing.join("; "));
     }},
   { id: "C3", sev: "critical", title: "Dependency advisories (auth library, sharp)", probe: () => {
       const d = { ...pkg().dependencies, ...pkg().devDependencies };
@@ -280,9 +293,12 @@ const CHECKS = [
       // Verified at all three doors, or it is not closed: login (inside
       // authorize, the one place a direct POST cannot skip), signup, reset.
       const missing = [];
-      if (!/verifyTurnstile\(/.test(decomment(read("src/lib/auth.ts")))) missing.push("login");
-      if (!/verifyTurnstile\(/.test(decomment(read("src/components/auth/actions.ts")))) missing.push("signup");
-      if (!/verifyTurnstile\(/.test(decomment(read("src/components/auth/email-actions.ts")))) missing.push("reset");
+      // The form doors verify through verifyHumanFromForm, which wraps
+      // verifyTurnstile — the simplify pass consolidated them post-Phase 4.
+      const door = /verifyTurnstile\(|verifyHumanFromForm\(/;
+      if (!door.test(decomment(read("src/lib/auth.ts")))) missing.push("login");
+      if (!door.test(decomment(read("src/components/auth/actions.ts")))) missing.push("signup");
+      if (!door.test(decomment(read("src/components/auth/email-actions.ts")))) missing.push("reset");
       if (missing.length === 3) {
         const env = /TURNSTILE/.test(read(".env"));
         return open(env ? "keys in .env but no code verifies them yet" : "no Turnstile anywhere");
@@ -327,6 +343,90 @@ const CHECKS = [
   { id: "M7", sev: "medium", title: "Trivia gate: hardcoded fallback secret", probe: () =>
       /rv-connect-trivia-dev-secret/.test(decomment(read("src/components/auth/trivia-actions.ts")))
         ? open("hardcoded fallback secret still present") : ok("no hardcoded fallback") },
+
+  // ---- Phase 5: object deletion and uploads (behaviour: phase5-probe.mjs) ----
+  { id: "M10", sev: "medium", title: "Feed/Catch-up accept arbitrary external image URLs", probe: () => {
+      // Both write paths must reject a URL this app did not mint. They share
+      // ownedUploadUrls, which requires isUploadedImageUrl of every entry.
+      const feed = decomment(read("src/app/(main)/feed/actions.ts"));
+      const catchups = decomment(read("src/app/(main)/catchups/actions.ts"));
+      const missing = [];
+      if (!/ownedUploadUrls\(/.test(feed)) missing.push("feed");
+      if (!/ownedUploadUrls\(/.test(catchups)) missing.push("catchups");
+      return missing.length ? open(`external URLs still accepted in: ${missing.join(", ")}`)
+        : ok("post + Catch-up images validated by ownedUploadUrls (origin + ownership)");
+    }},
+  { id: "M11", sev: "medium", title: "Removed Collection photos stay publicly fetchable", probe: () => {
+      const b = fnBody(read("src/app/(main)/collection/actions.ts"), "adminRemovePhoto");
+      if (!b) return open("adminRemovePhoto not found");
+      return /delImage\(/.test(decomment(b))
+        ? ok("adminRemovePhoto deletes the stored bytes, not just the row")
+        : open("adminRemovePhoto still keeps the file after hiding the row");
+    }},
+  { id: "M12", sev: "medium", title: "Collection originals published with EXIF/GPS", probe: () => {
+      // The direct path must no longer store the raw original as the canonical
+      // url; it re-encodes through sharp (which drops metadata) and stops using
+      // publicUrlForKey(input.key) as the stored url.
+      const b = fnBody(read("src/app/(main)/collection/actions.ts"), "contributePhotoDirect");
+      if (!b) return open("contributePhotoDirect not found");
+      const src = decomment(b);
+      const reencoded = /sharpImage\([^)]*\)[\s\S]*\.webp\(/.test(src);
+      const storesRaw = /url:\s*publicUrlForKey\(input\.key\)/.test(src);
+      return reencoded && !storesRaw
+        ? ok("direct original re-encoded to strip metadata; raw original not stored")
+        : open(storesRaw ? "still stores the raw EXIF-bearing original as the url" : "original not re-encoded");
+    }},
+  { id: "M13", sev: "medium", title: "Content-type trusted from the client", probe: () => {
+      // Magic-byte sniff before sharp on every byte-ingesting path.
+      const sniff = decomment(read("src/lib/upload-shared.ts"));
+      if (!/export function sniffImageType\b/.test(sniff)) return open("no sniffImageType helper");
+      const paths = {
+        "upload route": "src/app/api/upload/route.ts",
+        finalize: "src/app/api/upload/finalize/route.ts",
+        collection: "src/app/(main)/collection/actions.ts",
+        avatar: "src/components/settings/actions.ts",
+      };
+      const missing = Object.entries(paths)
+        .filter(([, p]) => !/sniffImageType\(/.test(decomment(read(p))))
+        .map(([n]) => n);
+      return missing.length ? open(`magic-byte check missing on: ${missing.join(", ")}`)
+        : ok("sniffImageType guards every path that ingests client bytes");
+    }},
+  { id: "M14", sev: "medium", title: "No sharp limitInputPixels (decompression bomb)", probe: () => {
+      const img = decomment(read("src/lib/image.ts"));
+      if (!/limitInputPixels/.test(img) || !/export function sharpImage\b/.test(img)) {
+        return open("no sharpImage helper with limitInputPixels");
+      }
+      // No call site may still use raw sharp() to open an upload buffer.
+      const sites = [
+        "src/app/api/upload/route.ts",
+        "src/app/api/upload/finalize/route.ts",
+        "src/app/(main)/collection/actions.ts",
+        "src/components/settings/actions.ts",
+        "src/lib/collection-intake.ts",
+      ];
+      const raw = sites.filter((p) => /\bfrom "sharp"/.test(read(p)));
+      return raw.length ? open(`raw sharp import still in: ${raw.join(", ")}`)
+        : ok("all five call sites route through sharpImage (limitInputPixels set)");
+    }},
+  { id: "M16", sev: "medium", title: "Presigned PUT cannot enforce object size", probe: () => {
+      // R2 has no content-length-range; the mitigation is a HEAD size check
+      // before the object is pulled into memory, on both finalize paths.
+      const store = decomment(read("src/lib/storage.ts"));
+      if (!/export async function headObjectSize\b/.test(store)) return open("no headObjectSize helper");
+      const fin = /headObjectSize\(/.test(decomment(read("src/app/api/upload/finalize/route.ts")));
+      const col = /headObjectSize\(/.test(decomment(read("src/app/(main)/collection/actions.ts")));
+      return fin && col ? ok("oversized presigned objects HEAD-checked and deleted before fetch")
+        : open(`HEAD size check missing on: ${[!fin && "finalize", !col && "collection"].filter(Boolean).join(", ")}`);
+    }},
+  { id: "M17", sev: "medium", title: "No per-account storage quota", probe: () => {
+      if (!/MAX_PHOTOS_PER_ACCOUNT/.test(read("src/lib/upload-shared.ts"))) return open("no quota constant");
+      const col = decomment(read("src/app/(main)/collection/actions.ts"));
+      return /photoQuotaError\(/.test(col)
+        ? ok("Collection contributions capped per account (MAX_PHOTOS_PER_ACCOUNT)")
+        : open("quota not enforced on the contribute paths");
+    }},
+
   { id: "M18", sev: "medium", title: "updateContactMethods bypasses profileSchema", probe: () => {
       const b = fnBody(read("src/components/profile/profile-actions.ts"), "updateContactMethods");
       if (!b) return open("updateContactMethods not found");

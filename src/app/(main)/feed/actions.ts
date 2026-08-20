@@ -13,6 +13,7 @@ import { PUBLISHED_ONLY } from "@/lib/posts";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
+import { ownedUploadUrls } from "@/lib/upload-ownership";
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
  *  never as a throw: a post with a corrupt column should still delete, and
@@ -89,6 +90,16 @@ export async function createPost(formData: FormData) {
   const parsed = postSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // Every image on the post must be one THIS member uploaded here: app-minted,
+  // under their own `uploads/<id>/` prefix, at most three. This is the write
+  // that C2 turned catastrophic — the `images` array was stored straight
+  // through and later deleted key-by-key, so an unvalidated array let any
+  // member wipe every object whose URL they could scrape. `imagesJson` is what
+  // gets stored; nothing else reaches the column.
+  const ownership = ownedUploadUrls(parseImageUrls(parsed.data.images), session.user.id);
+  if (!ownership.ok) return { error: ownership.error };
+  const imagesJson = ownership.urls.length ? JSON.stringify(ownership.urls) : null;
+
   const groupId = parsed.data.groupId || null;
 
   // Posting into a group requires membership; group posts ignore batch targeting.
@@ -128,7 +139,7 @@ export async function createPost(formData: FormData) {
       content: parsed.data.content,
       targetBatches: groupId ? null : parsed.data.targetBatches || null,
       groupId,
-      images: parsed.data.images || null,
+      images: imagesJson,
       cityScope,
       status: isDraft ? "draft" : "published",
     },
@@ -157,7 +168,7 @@ export async function createPost(formData: FormData) {
 
      Errors are swallowed inside the helper. By the time this runs the post is
      committed and the response is gone, so there is nobody to tell. */
-  const collectionImages = isDraft ? [] : parseImageUrls(parsed.data.images);
+  const collectionImages = isDraft ? [] : ownership.urls;
   if (parsed.data.toCollection && collectionImages.length > 0) {
     const userId = session.user.id;
     after(async () => {
@@ -367,7 +378,7 @@ export async function editPost(postId: string, formData: FormData) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, kind: true, groupId: true, status: true },
+    select: { authorId: true, kind: true, groupId: true, status: true, images: true },
   });
 
   if (!post) return { error: "Post not found" };
@@ -390,17 +401,42 @@ export async function editPost(postId: string, formData: FormData) {
   // row's media never changes through this action, so a tampered field
   // cannot rewrite what readers have already seen.
   let imagesUpdate: { images: string | null } | undefined;
+  let imagesError: string | undefined;
   const imagesRaw = formData.get("images");
   if (imagesRaw !== null && isLetter && post.status === "draft") {
     try {
       const arr = JSON.parse(imagesRaw as string);
-      if (Array.isArray(arr) && arr.every((u) => typeof u === "string") && arr.length <= 3) {
-        imagesUpdate = { images: arr.length > 0 ? JSON.stringify(arr) : null };
+      // Images ALREADY on this draft are grandfathered: they were the author's
+      // own uploads, and a draft written before the owner-scoped key scheme
+      // (audit C2) carries legacy `uploads/<year>/...` URLs that predate the
+      // per-user prefix and would otherwise fail the ownership check. Only
+      // NEWLY-added URLs are gated, and a bad one is now an ERROR rather than a
+      // silent no-op, so adding a second photo to an old draft cannot fail
+      // invisibly (write-path review, Phase 5).
+      const current = new Set(parseImageUrls(post.images));
+      const added = (Array.isArray(arr) ? arr : []).filter(
+        (u) => typeof u === "string" && !current.has(u)
+      );
+      const ownership = ownedUploadUrls(added, session.user.id);
+      if (!ownership.ok) {
+        imagesError = ownership.error;
+      } else if (Array.isArray(arr)) {
+        // Keep the client's order/selection, but only entries that are either
+        // already on the draft or a freshly-validated own upload; cap at 3.
+        const allowed = arr.filter(
+          (u) => typeof u === "string" && (current.has(u) || ownership.urls.includes(u))
+        );
+        if (allowed.length > 3) {
+          imagesError = "Up to 3 photos.";
+        } else {
+          imagesUpdate = { images: allowed.length > 0 ? JSON.stringify(allowed) : null };
+        }
       }
     } catch {
       /* ignore a malformed field; the draft keeps its images */
     }
   }
+  if (imagesError) return { error: imagesError };
 
   await prisma.post.update({
     where: { id: postId },

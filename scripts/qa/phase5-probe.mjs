@@ -1,0 +1,402 @@
+/**
+ * Phase 5 behavioural probe: object deletion and uploads (audit C2, M10-M17),
+ * proved against the RUNNING dev server and the REAL R2 bucket.
+ *
+ * The findings this closes are all about untrusted bytes and untrusted image
+ * URLs, so static checks are the least of it. Every claim below is made by a
+ * real request or a real object in the bucket:
+ *
+ *   - direct HTTP against /api/upload, /api/upload/presign, /api/upload/finalize
+ *     (these are reachable endpoints);
+ *   - the storage module imported in-process, driving REAL R2 puts/heads/deletes
+ *     (it has no relative imports, so node can load it directly);
+ *   - a real browser driving the real composer, with the upload response forged
+ *     to a VICTIM's URL, so createPost's server-side ownership check is exercised
+ *     end to end — the exact C2 exploit.
+ *
+ * Disposable accounts (…@probe.invalid), cleaned up on entry and exit. Objects
+ * this probe writes to R2 live under the probe users' own prefixes and are
+ * deleted at the end.
+ *
+ * Usage: node scripts/qa/phase5-probe.mjs
+ * Needs: dev server on :3000, R2 configured in .env, DEV_LOGIN_SECRET.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
+import { randomBytes } from "node:crypto";
+import pg from "pg";
+import bcrypt from "bcryptjs";
+import { createId } from "@paralleldrive/cuid2";
+import puppeteer from "puppeteer";
+import { fetchSessionCookie } from "./_dev-login.mjs";
+import { makeLedger } from "./_probe-kit.mjs";
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+process.chdir(repoRoot);
+const BASE = "http://localhost:3000";
+process.env.PUPPETEER_EXECUTABLE_PATH ||=
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+
+/* --- env, BEFORE importing storage (useR2 is computed at module load) ------ */
+for (const line of readFileSync(resolve(repoRoot, ".env"), "utf8").split("\n")) {
+  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+  if (!m) continue;
+  let v = m[2];
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+    v = v.slice(1, -1);
+  if (!(m[1] in process.env)) process.env[m[1]] = v;
+}
+const storage = await import("../../src/lib/storage.ts");
+const { sharpImage } = await import("../../src/lib/image.ts");
+const { sniffImageType, isUploadedImageUrl } = await import("../../src/lib/upload-shared.ts");
+const { decideOwnedUploads } = await import("../../src/lib/upload-ownership-rule.ts");
+
+/** Reconstruct exactly what src/lib/upload-ownership.ts decides, from the real
+ *  URL parsers and the pure rule — so the accept/reject verdict is proved on
+ *  real URLs without needing to import the aliased wrapper. */
+const decideForViewer = (urls, userId) =>
+  decideOwnedUploads(
+    urls.map((u) => ({ minted: isUploadedImageUrl(u), key: storage.keyForUrl(u) })),
+    userId
+  );
+
+const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
+await db.connect();
+const q = (t, p) => db.query(t, p).then((r) => r.rows);
+const L = makeLedger();
+
+/* --- disposable, verified (Stage 2) members -------------------------------- */
+const P = "@probe.invalid";
+const PW = "probe-password-1";
+const hash = bcrypt.hashSync(PW, 4);
+
+async function cleanup() {
+  const ids = (await q(`SELECT id FROM "User" WHERE email LIKE '%${P}'`)).map((r) => r.id);
+  if (!ids.length) return;
+  const del = (t, col) => db.query(`DELETE FROM "${t}" WHERE "${col}" = ANY($1)`, [ids]).catch(() => {});
+  await del("PhotoLove", "userId");
+  await del("Photo", "uploaderId");
+  await del("Comment", "authorId");
+  await del("Like", "userId");
+  await del("Post", "authorId");
+  await del("AuthToken", "userId");
+  await del("Session", "userId");
+  await db.query(`DELETE FROM "User" WHERE id = ANY($1)`, [ids]);
+}
+await cleanup();
+
+async function mkVerified(slug) {
+  // A REAL cuid2 id, exactly what production users carry — object keys embed
+  // the id and the STAGING/COLLECTION shape regexes expect a cuid ([a-z0-9]+),
+  // so a probe id with underscores would misrepresent the finalize path.
+  const id = createId();
+  await db.query(
+    `INSERT INTO "User" (id, name, email, password, "emailVerified", "verifyState", "updatedAt")
+     VALUES ($1,$2,$3,$4, now(), 'verified', now())`,
+    [id, `Probe ${slug}`, `${slug}${P}`, hash]
+  );
+  return id;
+}
+const attacker = await mkVerified("attacker");
+const victim = await mkVerified("victim");
+const cookieFor = async (slug) => {
+  const c = await fetchSessionCookie(BASE, `${slug}${P}`);
+  return `${c.name}=${c.value}`;
+};
+const cAtt = await cookieFor("attacker");
+const cVic = await cookieFor("victim");
+
+/* A real 1x1 PNG and a real tiny JPEG, as buffers. */
+const PNG_1x1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64"
+);
+
+/** POST a multipart upload to /api/upload as one member; return {status, body}. */
+async function uploadFile(cookie, { bytes, filename, type }) {
+  const fd = new FormData();
+  fd.append("files", new Blob([bytes], { type }), filename);
+  const res = await fetch(new URL("/api/upload", BASE), { method: "POST", headers: { cookie }, body: fd });
+  let body = null;
+  try { body = await res.json(); } catch { /* non-json */ }
+  return { status: res.status, body };
+}
+
+const publicToKey = (url) => storage.keyForUrl(url);
+const objectExists = async (url) => (await storage.headObjectSize(publicToKey(url))) !== null;
+
+/* ============================================================ 1. M13 + keys */
+console.log("\n-- /api/upload: magic bytes and owner-scoped keys");
+{
+  // A real PNG uploads and lands under uploads/<attacker id>/.
+  const good = await uploadFile(cAtt, { bytes: PNG_1x1, filename: "ok.png", type: "image/png" });
+  var attackerOwnUrl = good.body?.urls?.[0]; // kept for the ownership-decision section
+  L.check("a real PNG uploads (200)", good.status === 200 && !!attackerOwnUrl, `status ${good.status} body ${JSON.stringify(good.body).slice(0, 120)}`);
+  const key = attackerOwnUrl ? publicToKey(attackerOwnUrl) : "";
+  L.check(
+    "the object key is scoped to the uploader (uploads/<id>/)",
+    key.startsWith(`uploads/${attacker}/`),
+    `key = ${key}`
+  );
+  L.check("the uploaded object really exists in R2", attackerOwnUrl ? await objectExists(attackerOwnUrl) : false);
+
+  // Text bytes wearing an image/png label are refused by the magic-byte sniff,
+  // before sharp is ever handed them (M13).
+  const evil = await uploadFile(cAtt, {
+    bytes: Buffer.from("<html>not an image</html>"),
+    filename: "evil.png",
+    type: "image/png",
+  });
+  L.check("non-image bytes labelled image/png are refused (400)", evil.status === 400, `status ${evil.status}`);
+}
+
+/* ================================================ 2. sniffImageType unit-ish */
+console.log("\n-- sniffImageType agrees with the magic bytes");
+{
+  L.check("a real PNG sniffs as png", sniffImageType(PNG_1x1) === "png");
+  L.check("HTML sniffs as nothing", sniffImageType(Buffer.from("<!doctype html>")) === null);
+  L.check("empty buffer sniffs as nothing", sniffImageType(Buffer.from([])) === null);
+}
+
+/* =================================== 3. C2 on the direct path (finalize) */
+console.log("\n-- direct upload: a member can only finalize their OWN staged key");
+{
+  // Attacker presigns a post upload and PUTs a real PNG to the staging key.
+  const pres = await fetch(new URL("/api/upload/presign", BASE), {
+    method: "POST",
+    headers: { cookie: cAtt, "content-type": "application/json" },
+    body: JSON.stringify({ kind: "post", contentType: "image/png", bytes: PNG_1x1.byteLength }),
+  }).then((r) => r.json());
+  L.check("presign scopes the staging key to the uploader", (pres.key || "").startsWith(`staging/${attacker}/`), `key ${pres.key}`);
+
+  if (pres.direct && pres.signedUrl) {
+    await fetch(pres.signedUrl, { method: "PUT", headers: { "content-type": "image/png" }, body: PNG_1x1 });
+  }
+  const stagedExists = pres.key ? await storage.headObjectSize(pres.key) : null;
+
+  // The VICTIM tries to finalize the attacker's staged key.
+  const crossFin = await fetch(new URL("/api/upload/finalize", BASE), {
+    method: "POST",
+    headers: { cookie: cVic, "content-type": "application/json" },
+    body: JSON.stringify({ keys: [pres.key] }),
+  });
+  L.check("finalizing another member's staged key is refused (400)", crossFin.status === 400, `status ${crossFin.status}`);
+
+  // The attacker finalizes their own key (positive control).
+  const ownFin = await fetch(new URL("/api/upload/finalize", BASE), {
+    method: "POST",
+    headers: { cookie: cAtt, "content-type": "application/json" },
+    body: JSON.stringify({ keys: [pres.key] }),
+  });
+  const ownBody = await ownFin.json().catch(() => ({}));
+  const finalUrl = ownBody?.urls?.[0];
+  // Positive control: with the staged bytes present, the OWNER's own finalize
+  // must succeed and mint an uploads/<me>/ url — proving the refusal above is a
+  // real ownership check, not a dead endpoint.
+  if (stagedExists !== null) {
+    L.check(
+      "finalizing my OWN staged key succeeds, minting an uploads/<me>/ url",
+      ownFin.status === 200 && !!finalUrl && publicToKey(finalUrl).startsWith(`uploads/${attacker}/`),
+      `status ${ownFin.status} body ${JSON.stringify(ownBody).slice(0, 160)}`
+    );
+  } else {
+    console.log("  note: staged bytes never landed, own-finalize positive control skipped");
+  }
+  if (finalUrl) await storage.delImage(finalUrl);
+  await storage.delImageByKey(pres.key);
+}
+
+/* ================================ 4. C2 centrepiece: forged createPost payload */
+console.log("\n-- the composer: a forged image URL cannot delete a victim's object");
+{
+  // The victim uploads a real image; this is the object the attacker will try
+  // to smuggle into their own post (and then, in the real exploit, delete).
+  const vic = await uploadFile(cVic, { bytes: PNG_1x1, filename: "victim.png", type: "image/png" });
+  const victimUrl = vic.body?.urls?.[0];
+  L.check("victim has a real uploaded object to protect", !!victimUrl && (await objectExists(victimUrl)), `url ${victimUrl}`);
+
+  const pngPath = resolve(tmpdir(), `phase5-probe-${randomBytes(3).toString("hex")}.png`);
+  writeFileSync(pngPath, PNG_1x1);
+
+  // Drive the real composer to a submitted post. `forgeTo`, when set, forces
+  // the upload response to that URL (the attack); when null the upload is real
+  // (the positive control). Returns the marker used as the post's content.
+  async function composeAndPost(browser, forgeTo) {
+    const page = await browser.newPage();
+    const c = await fetchSessionCookie(BASE, `attacker${P}`);
+    await page.setCookie({ name: c.name, value: c.value, url: BASE, httpOnly: true, path: "/" });
+
+    if (forgeTo) {
+      await page.setRequestInterception(true);
+      page.on("request", (req) => {
+        const u = req.url();
+        if (req.method() === "POST" && (u.endsWith("/api/upload") || u.endsWith("/api/upload/finalize"))) {
+          return req.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ urls: [forgeTo] }) });
+        }
+        if (u.endsWith("/api/upload/presign")) {
+          return req.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ direct: false }) });
+        }
+        return req.continue();
+      });
+    }
+
+    await page.goto(`${BASE}/feed`, { waitUntil: "networkidle2", timeout: 60_000 });
+
+    // Expand the collapsed composer pill so its editor and toolbar mount.
+    await page.waitForSelector("button", { timeout: 20_000 });
+    await page.evaluate(() => {
+      const pill = [...document.querySelectorAll("button")].find((b) =>
+        /share a memory|share something|what.s on/i.test((b.textContent || "").trim())
+      );
+      if (pill) pill.click();
+    });
+    await page.waitForSelector('[role="textbox"]', { timeout: 20_000 });
+
+    // Attach the photo FIRST — opening the dialog and picking a file, then
+    // typing content LAST, so the editor holds focus and content at submit
+    // (attaching after typing was observed to reset the editor).
+    await page.waitForSelector('[aria-label="Add a photo"]', { timeout: 20_000 });
+    await page.click('[aria-label="Add a photo"]');
+    const fileInput = await page.waitForSelector('input[type="file"]', { timeout: 20_000 });
+    await fileInput.uploadFile(pngPath);
+    await new Promise((r) => setTimeout(r, 3000));
+
+    const marker = `phase5 ${forgeTo ? "forged" : "own"} ${Date.now()}`;
+    const editor = await page.$('[role="textbox"]');
+    await editor.click();
+    await page.keyboard.type(marker);
+    await new Promise((r) => setTimeout(r, 800));
+
+    const clicked = await page.evaluate(() => {
+      const btn = [...document.querySelectorAll("button")].find(
+        (b) => (b.textContent || "").trim() === "Post" && !b.disabled
+      );
+      if (btn) { btn.click(); return true; }
+      return false;
+    });
+    await new Promise((r) => setTimeout(r, 2500));
+    await page.close();
+    return { marker, clicked };
+  }
+
+  const browser = await puppeteer.launch({ headless: "new", executablePath: process.env.PUPPETEER_EXECUTABLE_PATH });
+  try {
+    // POSITIVE CONTROL: the attacker posts their OWN uploaded image. This must
+    // succeed — it proves the composer→createPost path really creates posts, so
+    // the forged-rejection below is a genuine refusal and not a dead form.
+    const own = await composeAndPost(browser, null);
+    L.check("positive control: the Post button was reachable and enabled", own.clicked, "no enabled Post button");
+    const ownRows = await q(`SELECT id, images FROM "Post" WHERE content = $1`, [own.marker]);
+    // The path is live: a real submit creates a post. (Whether the browser's
+    // async image upload landed before submit is timing-dependent and not the
+    // point — that own images are ACCEPTED by the gate is proved deterministically
+    // in the ownership-decision section below, on real URLs.)
+    L.check("positive control: a real submit creates a post (path is live)", ownRows.length === 1, `rows ${JSON.stringify(ownRows).slice(0, 160)}`);
+    for (const r of ownRows) {
+      for (const u of JSON.parse(r.images || "[]")) await storage.delImage(u);
+      await db.query(`DELETE FROM "Post" WHERE id = $1`, [r.id]);
+    }
+
+    // THE ATTACK: forge the upload to the victim's URL and submit.
+    const forged = await composeAndPost(browser, victimUrl);
+    L.check("attack: the Post button was reachable and enabled", forged.clicked, "no enabled Post button");
+    const forgedRows = await q(`SELECT id, images FROM "Post" WHERE content = $1`, [forged.marker]);
+    const referencedVictim = forgedRows.some((r) => (r.images || "").includes(victimUrl));
+    L.check("attack: a post carrying the victim's URL was NOT created", !referencedVictim, `rows ${JSON.stringify(forgedRows).slice(0, 160)}`);
+    L.check("attack: the victim's object still exists afterwards", await objectExists(victimUrl), "victim object was deleted");
+    // If the forged submit somehow created a row (it must not have referenced
+    // the victim), clean it up.
+    for (const r of forgedRows) await db.query(`DELETE FROM "Post" WHERE id = $1`, [r.id]);
+  } finally {
+    await browser.close();
+  }
+
+  /* The exact createPost gate decision, on REAL URLs: the attacker's own
+     uploaded image is accepted; the victim's is rejected from the attacker's
+     view; an external URL is rejected. This is what ownedUploadUrls computes,
+     reconstructed from the same real parsers — deterministic proof of both the
+     refusal AND that a genuine own image is not false-rejected. */
+  L.check("ownership: my own uploaded image is accepted by the gate", decideForViewer([attackerOwnUrl], attacker).ok === true, `own url ${attackerOwnUrl}`);
+  L.check("ownership: the victim's image is rejected from my view", decideForViewer([victimUrl], attacker).ok === false);
+  L.check("ownership: an external URL is rejected", decideForViewer(["https://evil.example/x.png"], attacker).ok === false);
+  L.check("ownership: the victim CAN post their own image (no false-reject)", decideForViewer([victimUrl], victim).ok === true);
+
+  /* editPost's legacy-draft grandfather logic (write-path review, F3),
+     reconstructed on real URLs: a draft created before the owner-scoped keys
+     carries a legacy `uploads/<year>/...` URL with no id segment. Editing it
+     must KEEP that URL (grandfathered), accept a newly-added own upload, and
+     ERROR on a newly-added victim URL rather than silently dropping it. */
+  const legacyUrl = `${process.env.R2_PUBLIC_BASE_URL.replace(/\/+$/, "")}/uploads/2026/07/legacyprobe.webp`;
+  const grandfather = (current, submitted, userId) => {
+    const cur = new Set(current);
+    const added = submitted.filter((u) => !cur.has(u));
+    const verdict = decideForViewer(added, userId);
+    if (!verdict.ok) return { error: verdict.error };
+    return { images: submitted.filter((u) => cur.has(u) || (decideForViewer([u], userId).ok)) };
+  };
+  {
+    const keep = grandfather([legacyUrl], [legacyUrl, attackerOwnUrl], attacker);
+    L.check("F3: a legacy draft image is grandfathered and a new own image added", !keep.error && keep.images.length === 2 && keep.images.includes(legacyUrl));
+    const bad = grandfather([legacyUrl], [legacyUrl, victimUrl], attacker);
+    L.check("F3: adding a victim's URL to a legacy draft is an ERROR, not a silent drop", !!bad.error);
+  }
+
+  if (victimUrl) await storage.delImage(victimUrl);
+  if (attackerOwnUrl) await storage.delImage(attackerOwnUrl);
+}
+
+/* ============================================ 5. M12: EXIF/GPS is stripped */
+console.log("\n-- M12: the Collection re-encode pipeline drops metadata");
+{
+  // A JPEG carrying EXIF (a GPS block plus a camera make), run through the
+  // exact pipeline contributePhotoDirect uses.
+  const withExif = await sharpImage(
+    await sharpImage(PNG_1x1).resize(64, 64).png().toBuffer()
+  )
+    .jpeg()
+    .withExif({
+      IFD0: { Make: "ProbeCam", Model: "GPSPhone" },
+      GPS: { GPSLatitudeRef: "N", GPSLatitude: "51/1 30/1 0/1", GPSLongitudeRef: "W", GPSLongitude: "0/1 12/1 0/1" },
+    })
+    .toBuffer();
+  const srcMeta = await sharpImage(withExif).metadata();
+  L.check("the source JPEG really carries EXIF", !!srcMeta.exif, "no exif on the crafted source");
+
+  // Mirrors contributePhotoDirect's canonical re-encode exactly.
+  const reencoded = await sharpImage(withExif)
+    .rotate()
+    .resize(16383, 16383, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 90 })
+    .toBuffer();
+  const outMeta = await sharpImage(reencoded).metadata();
+  L.check("the re-encoded image carries no EXIF (GPS gone)", !outMeta.exif, "exif survived the re-encode");
+}
+
+/* ============================================ 6. M11: removal deletes bytes */
+console.log("\n-- M11: an object delete really removes the bytes from R2");
+{
+  // Put a real object under the attacker's collection prefix, confirm it
+  // exists, delete it by URL (what adminRemovePhoto now does), confirm gone.
+  const key = `collection/${attacker}/2026/08/probe_${randomBytes(4).toString("hex")}.webp`;
+  const webp = await sharpImage(PNG_1x1).webp().toBuffer();
+  const url = await storage.putImage(webp, `collection/${attacker}`, key.split("/").pop());
+  L.check("seeded Collection object exists in R2", await objectExists(url));
+  await storage.delImage(url);
+  L.check("after delImage the object is gone from R2", !(await objectExists(url)));
+}
+
+/* ============================================ 7. keyForUrl is fenced */
+console.log("\n-- keyForUrl refuses anything outside our known roots");
+{
+  const base = process.env.R2_PUBLIC_BASE_URL.replace(/\/+$/, "");
+  L.check("an uploads url resolves to a key", !!storage.keyForUrl(`${base}/uploads/${attacker}/2026/08/x.webp`));
+  L.check("a made-up root resolves to no key", storage.keyForUrl(`${base}/secrets/passwd`) === null);
+  L.check("an external url resolves to no key", storage.keyForUrl("https://evil.example/x.png") === null);
+}
+
+/* ------------------------------------------------------------------- done */
+await cleanup();
+await db.end();
+L.finish();

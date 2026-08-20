@@ -3,6 +3,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { writeFile, mkdir, unlink, readFile } from "fs/promises";
@@ -51,6 +52,44 @@ function buildKey(subdir: string, filename: string): string {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   return `${subdir}/${year}/${month}/${filename}`;
+}
+
+/**
+ * The top-level areas of the bucket this app ever writes to. Anything outside
+ * them is not ours, and `keyForUrl` refuses to derive a key for it, so a
+ * deletion can never be aimed at an arbitrary path even if a raw URL reached it
+ * (audit C2 — "stop keyForUrl accepting caller URLs").
+ */
+const KNOWN_ROOTS = ["uploads", "collection", "avatars", "staging"] as const;
+export type UploadPurpose = (typeof KNOWN_ROOTS)[number];
+
+/**
+ * The owner-scoped subdirectory a member's uploads live under:
+ * `<purpose>/<userId>`, e.g. `uploads/clx.../2026/08/<cuid>.webp` after
+ * `buildKey` adds the date partition (audit C2).
+ *
+ * The key is written by the server with the uploader's own id baked in, and no
+ * request body can change it. That is what makes ownership provable at write
+ * time: a post may only reference an image URL whose key sits under the
+ * caller's own `uploads/<their id>/` prefix (see `keyBelongsTo` and
+ * upload-ownership.ts), so member A can no longer smuggle member B's — or the
+ * heritage Collection's — object URL into a post and then delete the post to
+ * destroy it. The id is a public cuid (it is already in every /profile URL),
+ * so putting it in the path leaks nothing.
+ */
+export function ownerPrefix(purpose: UploadPurpose, userId: string): string {
+  return `${purpose}/${userId}`;
+}
+
+/** Whether an object key sits under a specific member's area of a purpose,
+ *  i.e. `<purpose>/<userId>/...`. The ownership test the direct-upload
+ *  finalize paths apply to a caller-named staged key (audit C2). */
+export function keyBelongsTo(
+  key: string,
+  userId: string,
+  purpose: UploadPurpose
+): boolean {
+  return key.startsWith(`${purpose}/${userId}/`);
 }
 
 /** Store a processed image buffer and return its public URL. */
@@ -146,6 +185,34 @@ export async function getImageBuffer(key: string): Promise<Buffer> {
   return readFile(path.join(process.cwd(), "public", key));
 }
 
+/**
+ * The byte length of an object without downloading it (a HEAD, not a GET), or
+ * null if it cannot be read. Used before pulling a presigned original into a
+ * serverless function's memory: R2 cannot enforce a size limit on a presigned
+ * PUT (unlike S3's presigned POST `content-length-range`, which R2 does not
+ * implement — verified against Cloudflare's S3 compatibility docs, Aug 2026),
+ * so a client can PUT bytes far larger than it declared. Checking the size
+ * with a HEAD first means an oversized object is deleted without ever being
+ * fetched, closing the memory-amplification window (audit M16).
+ */
+export async function headObjectSize(key: string): Promise<number | null> {
+  if (!useR2) {
+    try {
+      const { stat } = await import("fs/promises");
+      const s = await stat(path.join(process.cwd(), "public", key));
+      return s.size;
+    } catch {
+      return null;
+    }
+  }
+  try {
+    const res = await r2().send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    return res.ContentLength ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Delete an object by its raw key (for cleaning up presigned originals
  *  that fail validation or finish processing). Best-effort. */
 export async function delImageByKey(key: string): Promise<void> {
@@ -167,14 +234,23 @@ export async function delImageByKey(key: string): Promise<void> {
  */
 export function keyForUrl(url: string | null | undefined): string | null {
   if (!url) return null;
+  let key: string | null = null;
   if (useR2 && R2_PUBLIC_BASE_URL && url.startsWith(R2_PUBLIC_BASE_URL)) {
-    return url.slice(R2_PUBLIC_BASE_URL.length + 1);
+    key = url.slice(R2_PUBLIC_BASE_URL.length + 1);
+  } else if (url.startsWith("/")) {
+    // A root-relative path is ours whether or not R2 is configured: rows
+    // written before the R2 migration still carry local paths, and they
+    // resolve against public/ in both modes.
+    key = url.slice(1);
   }
-  // A root-relative path is ours whether or not R2 is configured: rows written
-  // before the R2 migration still carry local paths, and they resolve against
-  // public/ in both modes. Matching the pre-refactor delImage exactly.
-  if (url.startsWith("/")) return url.slice(1);
-  return null;
+  if (!key) return null;
+  // The key must live under one of the roots this app actually writes to.
+  // Refusing anything else means that even if a raw, caller-influenced URL ever
+  // reaches a delete path, it cannot be turned into a key pointing at some
+  // arbitrary object — the last backstop behind write-time ownership (audit C2).
+  const root = key.split("/", 1)[0];
+  if (!(KNOWN_ROOTS as readonly string[]).includes(root)) return null;
+  return key;
 }
 
 /** Delete an image by its public URL (best-effort; never throws). Derives

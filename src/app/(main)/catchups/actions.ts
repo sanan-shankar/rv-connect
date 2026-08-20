@@ -41,6 +41,7 @@ import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
+import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { revalidatePath } from "next/cache";
 import {
   addCadenceGap,
@@ -1115,10 +1116,20 @@ export async function submitEntry(input: {
     const hasImages = parsed.data.images !== undefined;
     const hasSong = parsed.data.songUrl !== undefined;
 
+    // An answer's images must be this member's own uploads, not arbitrary
+    // external URLs (M10) or another member's objects (C2). `z.url()` above
+    // only proved they were URLs; this proves they are ours and theirs.
+    let ownedImages: string[] = [];
+    if (hasImages) {
+      const ownership = ownedUploadUrls(parsed.data.images!, session.user.id);
+      if (!ownership.ok) return { error: ownership.error };
+      ownedImages = ownership.urls;
+    }
+
     const bodyValue = hasBody ? parsed.data.body!.trim() || null : undefined;
     const imagesValue = hasImages
-      ? parsed.data.images!.length
-        ? JSON.stringify(parsed.data.images)
+      ? ownedImages.length
+        ? JSON.stringify(ownedImages)
         : null
       : undefined;
 

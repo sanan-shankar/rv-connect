@@ -149,8 +149,8 @@ Mark a phase done only when `npm run audit:status` agrees.
 | 2 | Authorization holes | H1, H3, H4, M6, M4 | **done 2026-08-20** |
 | 3 | The two-gate trust model | H21, and the abuse half of M1 | **done 2026-08-20** |
 | 4 | Bot defence and rate limiting | H22, H6, M2, M3, M7 | **done 2026-08-20** |
-| 5 | Object deletion and uploads | C2, M10–M17 | next |
-| 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | |
+| 5 | Object deletion and uploads | C2, M10–M17 | **done 2026-08-20** |
+| 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | next |
 | 7 | Audit log and admin accountability | H10, H14, M36, H5 | |
 | 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | |
 | 9 | CI hardening and security tests | H16, H17 | |
@@ -481,3 +481,73 @@ the widget/domain mismatch to check first.
   PostHog landing, i.e. normal growth; sourcemap upload was already off; the one real
   waste found — puppeteer downloading Chrome on every Vercel build — is now skipped via
   `.puppeteerrc.cjs`.
+
+
+### 2026-08-20 — Phase 5
+**Closed:** C2 (any member could delete every image in R2), and M10, M11, M12, M13, M14, M16, M17.
+(M15, malware scanning, is not in this phase — the audit itself parks it as accept-for-now.)
+**The C2 shape chosen** — the audit offered (a) validate-on-write with `isUploadedImageUrl` + cap,
+or (b) a server-written `objectKey`, delete only by that. **Both, realised as owner-scoped keys**
+rather than a per-row column, because a post holds up to three images and a photo three URLs, so the
+natural place for "the server decides the key" is the key itself: every upload now mints under
+`<purpose>/<uploaderId>/…` (`ownerPrefix` in `storage.ts`), and every write that accepts client image
+URLs runs them through `ownedUploadUrls` — app-minted (`isUploadedImageUrl`, moved to the pure
+`upload-shared.ts`) AND under the caller's own `uploads/<id>/` prefix, capped at 3. The pure verdict
+is `upload-ownership-rule.ts` (+12 attack unit tests); the wrapper wires the real URL parsers so there
+is no second copy of the parsing. The two direct-to-R2 finalize paths bind the staged key to the
+caller (`STAGING_KEY`/`COLLECTION_ORIGINAL_KEY` now carry an id segment + `keyBelongsTo`). `keyForUrl`
+is fenced to the four known roots, so even a raw URL reaching a delete path cannot name an arbitrary
+object. Legacy rows (keys with no id segment) still DELETE fine — `keyForUrl` accepts the `uploads/`
+root — and editing a legacy draft simply keeps its images rather than dropping them (the ownership
+gate ignores a set it cannot vouch for). **M10** falls out of the same gate (external URLs rejected on
+posts and Catch-up answers). **M11** `adminRemovePhoto` now deletes the R2 bytes (keeps the row for the
+note/record). **M12** `contributePhotoDirect` re-encodes the original through sharp (metadata dropped)
+and deletes the raw EXIF-bearing file; full resolution kept, with a resize ceiling only at WebP's hard
+16383px so a monster scan is bounded instead of throwing. **M13** `sniffImageType` (magic bytes) guards
+every path that ingests client bytes, before libvips. **M14** `sharpImage()` sets `limitInputPixels`
+(100MP) at all five sharp call sites. **M16** `headObjectSize` HEAD-checks a presigned object's size
+before pulling it into memory (R2 has no `content-length-range`; verified against Cloudflare's S3 docs
+— the audit's "presigned POST" fix is not available on this platform, so this is the honest
+mitigation). **M17** `MAX_PHOTOS_PER_ACCOUNT` (1000) caps Collection contributions per account.
+**Proved:** `scripts/qa/phase5-probe.mjs`, **27/27** against the running server and the REAL R2 bucket
+(storage.ts imported in-process — it has no relative imports, so node loads it): a real PNG uploads to
+`uploads/<id>/` and exists in R2; text bytes wearing `image/png` are refused (magic bytes); a member
+can finalize only their OWN staged key (cross-user 400, own succeeds — positive control); the REAL
+composer, driven headless with the upload response FORGED to a victim's URL, creates NO post carrying
+that URL and the victim's object survives, while the attacker's own submit does create a post
+(positive control, path is live); the exact ownership verdict on real URLs accepts my own image,
+rejects the victim's and an external URL, and does not false-reject the victim posting their own; a
+GPS/EXIF JPEG comes out of the re-encode pipeline with no metadata; `delImage` really removes bytes
+from R2; `keyForUrl` refuses unknown roots. `npm run check` clean (19 test files) · `npm run visual`
+21/21 · audit:status **26 fixed** (C2 + M10–M17 now tracked; the H22 probe was also corrected — it
+still read the pre-Phase-4 `verifyTurnstile` call site and missed the `verifyHumanFromForm` wrapper
+the simplify pass introduced, so it wrongly showed OPEN).
+**Write-path review found three real defects the probe missed, all now fixed and re-verified:**
+(1) The "Also add to the Collection" tick (`collection-intake.ts`) stored the Collection row's `url`
+as the SAME R2 object the post's `images` already pointed at. Harmless until M11 — but M11 made
+`adminRemovePhoto`/`declinePhoto` delete a Collection photo's bytes, so removing a tick-contributed
+photo would have silently broken the member's still-live feed post. Fixed structurally: the tick now
+copies the bytes to the Collection's OWN `collection/<id>/` object (0 aliased rows exist today, so
+nothing legacy to migrate). (2) That same tick path bypassed the M17 quota entirely; it now honours
+`MAX_PHOTOS_PER_ACCOUNT`. (3) `editPost` on a pre-owner-scoped-keys letter draft would silently drop
+image edits, because the draft's legacy `uploads/<year>/...` URLs fail the ownership check; now those
+already-stored URLs are grandfathered, only newly-added URLs are gated, and a bad add is a visible
+error instead of a silent no-op. Probe extended to 29/29 (grandfather logic proved on real URLs).
+Held: ownership wiring on all three write paths, the `keyForUrl` root fence, both direct-finalize
+ownership checks, M13/M14/M16 ordering, and the demo's three layers (demo.test.mjs still 19/19).
+**Caught in self-review, not by the probe:** WebP's 16383px hard dimension cap — the M12 re-encode
+would have thrown on a heritage scan larger than WebP can hold, where the old raw-passthrough stored
+it. Bounded with a `fit:inside`/`withoutEnlargement` ceiling so only a >16383px original is touched.
+Also, the probe's first run used disposable user ids with underscores; real ids are cuid2
+(`[a-z0-9]+`), which the staging-key regex correctly expects, so the probe was misrepresenting the
+finalize path — switched to `createId()`.
+**No UI moved** (visual 21/21). New user-facing strings appear only on abuse/edge paths (a forged or
+external image, a fourth image, a non-image file, an over-quota Collection, an oversized upload); a
+member's normal posting and contributing is unchanged. One behaviour change worth the owner knowing:
+a Collection photo uploaded through the direct path is now stored as a re-encoded WebP (full
+resolution) instead of the exact original bytes, so its download is a WebP and its location metadata
+is gone — deliberate, for M12.
+**Owner needs to:** nothing blocking. No schema change this phase, so no migration and no demo-DB
+step. The R2 bucket stays public-read (H20 accepted); M11's pending-photo-privacy half is bounded by
+that posture — a truly private pending prefix would need signed delivery, which conflicts with the
+accepted public bucket, so only the concrete "removed photos stay fetchable" half is closed here.
