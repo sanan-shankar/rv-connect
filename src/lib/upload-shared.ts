@@ -101,5 +101,8 @@ export function describeProcessingError(error: unknown): string {
   if (/premature end|truncated|invalid/i.test(message)) {
     return "That photo looks corrupted or only partially uploaded. Please try again.";
   }
-  return `Could not process the photo (${message}).`;
+  // A generic sentence, never the raw libvips string: those can carry absolute
+  // filesystem and temp-file paths, a small server-path disclosure to any
+  // signed-in caller. Callers log `error` server-side for the real cause.
+  return "Could not process the photo. Please try a different one, or a JPG or PNG export of it.";
 }
