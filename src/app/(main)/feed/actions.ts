@@ -14,6 +14,7 @@ import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
+import { escapeLike } from "@/lib/db-text";
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
  *  never as a throw: a post with a corrupt column should still delete, and
@@ -807,11 +808,12 @@ export async function loadPosts(opts?: {
        2026-08-04: "they might not always remember words from the post, but
        they might remember, oh, it was this person who did it"). It still
        returns POSTS, not people; finding a person is the directory's job. */
+    const search = escapeLike(opts.search);
     andConditions.push({
       OR: [
-        { title: { contains: opts.search, ...searchInsensitive } },
-        { content: { contains: opts.search, ...searchInsensitive } },
-        { author: { name: { contains: opts.search, ...searchInsensitive } } },
+        { title: { contains: search, ...searchInsensitive } },
+        { content: { contains: search, ...searchInsensitive } },
+        { author: { name: { contains: search, ...searchInsensitive } } },
       ],
     });
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { requireVerifiedEmail } from "@/lib/email-verification";
 import { prisma } from "@/lib/prisma";
-import { insensitive } from "@/lib/db-text";
+import { insensitive, escapeLike } from "@/lib/db-text";
 import { logSearch } from "@/lib/search-log";
 
 export async function GET(req: NextRequest) {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   const users = await prisma.user.findMany({
     where: {
-      AND: terms.map((term) => ({ name: { contains: term, ...insensitive } })),
+      AND: terms.map((term) => ({ name: { contains: escapeLike(term), ...insensitive } })),
       isBlocked: false,
       // An account inside its deletion grace window (audit M35) is held out
       // of every people surface the same way a blocked one is.

@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/prisma";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 import { plainExcerpt } from "@/lib/utils";
+import { escapeLike } from "@/lib/db-text";
 import {
   CONTENT_PAGE_SIZE,
   type ContentFilters,
@@ -34,7 +35,7 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
   const want = (k: string) => f.type === "all" || f.type === k;
   const hidden = f.includeHidden ? {} : { isHidden: false };
   const author = f.authorId ? { authorId: f.authorId } : {};
-  const search = f.q ? { contains: f.q, mode: "insensitive" as const } : undefined;
+  const search = f.q ? { contains: escapeLike(f.q), mode: "insensitive" as const } : undefined;
 
   const jobs: Promise<ContentItem[]>[] = [];
 

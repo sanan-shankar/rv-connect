@@ -2,7 +2,7 @@ import { cityNameVariants } from "@/lib/city-coords";
 // The one definition of the Postgres-only `mode: "insensitive"` gate (audit
 // R6: this file used to carry its own copy, which is the drift-by-copy-paste
 // pattern that produced M18 for real).
-import { insensitive } from "@/lib/db-text";
+import { insensitive, escapeLike } from "@/lib/db-text";
 
 export type DirectoryFilters = {
   q?: string;
@@ -33,11 +33,12 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
   // (audit M35) leaves the directory immediately, exactly like a blocked one.
   const where: Record<string, unknown> = { isBlocked: false, deletionRequestedAt: null };
   if (filters.q) {
+    const q = escapeLike(filters.q);
     where.OR = [
-      { name: { contains: filters.q, ...insensitive } },
-      { workplace: { contains: filters.q, ...insensitive } },
-      { jobTitle: { contains: filters.q, ...insensitive } },
-      { places: { some: { city: { contains: filters.q, ...insensitive } } } },
+      { name: { contains: q, ...insensitive } },
+      { workplace: { contains: q, ...insensitive } },
+      { jobTitle: { contains: q, ...insensitive } },
+      { places: { some: { city: { contains: q, ...insensitive } } } },
     ];
   }
   if (showingYear === "faculty") {
@@ -58,7 +59,7 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
     const variants = cityNameVariants(filters.city);
     const targets = variants.length > 0 ? variants : [filters.city];
     where.places = {
-      some: { OR: targets.map((v) => ({ city: { contains: v, ...insensitive } })) },
+      some: { OR: targets.map((v) => ({ city: { contains: escapeLike(v), ...insensitive } })) },
     };
   }
   if (filters.profession) where.workplace = filters.profession;
