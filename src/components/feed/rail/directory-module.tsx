@@ -15,7 +15,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
   const recentMembers = await prisma.user.findMany({
     where: { isBlocked: false, id: { not: userId } },
     orderBy: { createdAt: "desc" },
-    take: 3,
+    take: 6,
     select: {
       id: true,
       name: true,
