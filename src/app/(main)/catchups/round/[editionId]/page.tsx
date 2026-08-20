@@ -92,15 +92,26 @@ const LIGHT_EDITION_SELECT = {
 type LightEdition = Prisma.CatchupEditionGetPayload<{ select: typeof LIGHT_EDITION_SELECT }>;
 
 /** Bring one Round's status current against the clock, then return the fresh row. */
-async function loadFreshEdition(editionId: string): Promise<LightEdition | null> {
-  const base = await prisma.catchupEdition.findUnique({
+/* The plain read, WITHOUT advancing. Split from the advance below so the page
+   can gate on group membership between the two: advanceEdition is a write, and
+   a non-member must not be able to trigger that status transition just by
+   opening the URL. The two sibling pages (catchups/[catchupId] and its answer
+   page) already check membership before advancing; this page used to advance
+   first, inside a combined loadFreshEdition, which was the ordering bug. */
+async function loadEditionBase(editionId: string): Promise<LightEdition | null> {
+  return prisma.catchupEdition.findUnique({
     where: { id: editionId },
     select: LIGHT_EDITION_SELECT,
   });
-  if (!base) return null;
+}
 
+/* Advance the Round's clock-based status, then return the fresh row. Only
+   reached once the caller is a confirmed member of the edition's group. */
+async function advanceAndReload(
+  base: LightEdition,
+  editionId: string,
+): Promise<LightEdition | null> {
   await advanceEdition(base as AdvanceEditionInput);
-
   return prisma.catchupEdition.findUnique({
     where: { id: editionId },
     select: LIGHT_EDITION_SELECT,
@@ -154,9 +165,18 @@ export default async function RoundPage({
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  let edition: LightEdition | null;
+  let edition: LightEdition | null = null;
+  let membership: Awaited<ReturnType<typeof loadMembership>> = null;
   try {
-    edition = await loadFreshEdition(editionId);
+    const base = await loadEditionBase(editionId);
+    if (!base) notFound();
+
+    // Gate BEFORE advancing: advanceEdition is a write, so a non-member must
+    // not reach it. Membership is also needed just below for the Keeper check.
+    membership = await loadMembership(base.catchup.group.id, session.user.id);
+    if (!membership) notFound();
+
+    edition = await advanceAndReload(base, editionId);
   } catch (err) {
     if (isMissingCatchupTable(err)) {
       return (
@@ -168,13 +188,10 @@ export default async function RoundPage({
     throw err;
   }
 
-  if (!edition) notFound();
+  if (!edition || !membership) notFound();
 
   /* Not awaited: the page renders at the same speed either way. */
   void recordView(session?.user?.id, "round", edition.id);
-
-  const membership = await loadMembership(edition.catchup.group.id, session.user.id);
-  if (!membership) notFound();
 
   const status = edition.status as EditionStatus;
   const title = roundTitle(edition.catchup.title, edition.catchup.group.name);
