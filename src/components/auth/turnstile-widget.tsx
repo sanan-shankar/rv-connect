@@ -76,6 +76,11 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
           widgetId.current = window.turnstile.render(holder.current, {
             sitekey: siteKey,
             appearance: "interaction-only",
+            // Pinned, never "auto": auto follows the visitor's OS setting,
+            // and this site is warm eggshell in both of its own themes — a
+            // near-black Cloudflare card in the middle of the form is how
+            // the rare visible challenge would look on a dark-mode machine.
+            theme: "light",
             callback: (t: string) => {
               token.current = t;
               waiters.current.splice(0).forEach((w) => w(t));
