@@ -145,8 +145,8 @@ Mark a phase done only when `npm run audit:status` agrees.
 | 1 | Admin takeover + session integrity | C1-a/b/c, and the signIn role grant | **done 2026-08-20** |
 | 2 | Authorization holes | H1, H3, H4, M6, M4 | **done 2026-08-20** |
 | 3 | The two-gate trust model | H21, and the abuse half of M1 | **done 2026-08-20** |
-| 4 | Bot defence and rate limiting | H22, H6, M2, M3, M7 | next |
-| 5 | Object deletion and uploads | C2, M10–M17 | |
+| 4 | Bot defence and rate limiting | H22, H6, M2, M3, M7 | **done 2026-08-20** |
+| 5 | Object deletion and uploads | C2, M10–M17 | next |
 | 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | |
 | 7 | Audit log and admin accountability | H10, H14, M36, H5 | |
 | 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | |
@@ -385,3 +385,75 @@ new `scripts/demo/run-sql.mjs`, and verify-guard now passes 15/15. The advisor w
 its next scan. Optional owner toggle for belt and braces: Project Settings -> Data API -> disable,
 in both projects (nothing uses it).
 
+
+### 2026-08-20 — Phase 4
+**Closed:** H22, H6, M2, M3, M7. Also, owner ask mid-session: the trivia gate now offers
+"Try a different question" (no cost, no limit; both questions were always a refresh away).
+**Built:** `src/lib/rate-limit.ts` — the ONE limiter (Upstash sliding windows, fail-open,
+IS_DEMO exempt, dev/prod keyspaces split so probes never spend production budget; every
+number argued in place). `src/lib/turnstile.ts` — server-side verify; dev/test pin
+Cloudflare's official always-pass pair so the enforcement path is identical in every
+environment and e2e/visual/QA run unattended; `devBypassAllowed` accepts DEV_LOGIN_SECRET
+via timingSafeEqual, non-production only (the Phase 1 mechanism). `src/lib/human-pass-rule.ts`
+(+9 unit tests phrased as attacks) — the 5-minute HMAC cookie a fresh signup or completed
+reset carries into authorize() instead of a second widget token; bound to ONE address,
+replaces only the bot check. Widget: `turnstile-widget.tsx`, appearance "interaction-only",
+so login/signup/forgot keep their look (21/21 visual baselines untouched). Login/signup
+page.tsx became thin server wrappers passing the site key (protocol-audit allowlist moved
+with the rename). Login limits are FAILURES ONLY, read at the door and spent only on a
+refusal, so members and QA scripts signing in repeatedly consume nothing; refusals carry
+honest codes (`rate-limited`, `bot-check`) the login form shows instead of lying "invalid
+password". Reset per IP (M3). Posts 10/10m, comments 30/10m, uploads 40/h across all five
+byte paths, reports 10/d, catch-up creation 5/h, all per account (M2). Trivia (M7): fallback
+secret deleted (appSecret() throws), per-IP limit in the shared store, pass token HMAC-bound
+to a browser id and compared constant-time.
+**Proved:** `scripts/qa/phase4-probe.mjs`, **29/29** against the running server: no
+proof-of-human → refused BEFORE bcrypt (and LoginAttempt shows the password was never
+judged); human pass works for its own address only, dead at six minutes; 10 failures shut an
+account across rotated IPs while a bystander account signs in from the attacker's own IP; 30
+failures shut an IP; the WHOLE real signup ran unattended in a browser (trivia → form →
+Turnstile → account → auto sign-in on /welcome) with two forged-pass sabotages refused
+mid-flow; 8 wrong trivia answers shut one IP while a fresh visitor passes first try
+(M7's global-bucket DoS pinned dead: discarding cookies does not reopen the IP); 5 reset
+requests shut an IP, another IP unaffected, zero reset mail rows written; the 41st presign
+in an hour is a 429 while another account passes. `phase4-prod-check.mjs` against a local
+production build, **6/6**: QA bypass with the CORRECT secret refused, garbage token refused
+by a LIVE siteverify round trip against the real key, dev-login still 404, and a valid human
+pass signs in — the positive control that caught the first run being vacuous (UntrustedHost
+500s made every refusal "pass"; local prod needs `AUTH_TRUST_HOST=1`, which Vercel sets
+itself). `npm run check` clean (18 test files) · visual 21/21 · e2e 22 passed / 1 designed
+skip · audit:status **18 fixed** (M2/M3 got probes of their own; H6/H22 probes tightened to
+demand the real mechanism, not a keyword) · signup gate screenshotted desktop+mobile, read
+personally; question swap driven live (tree → house → tree).
+**Notes:** demo stays untouched three ways: IS_DEMO short-circuits every limiter call, a
+missing Turnstile secret skips verification, and fail-open means absent Upstash env can
+never lock anything. Signup allows 10/h per IP (not 5) for the reunion-crowd-on-one-NAT
+case; bots still gain nothing, since every minted account is Stage 0. Blocked-member logins
+deliberately do not consume the failure budget (a correct password from a known account is
+not a guessing signal). The reset-side human pass (resetPassword → auto sign-in) shares the
+exact minting line signup's E2E run proved; not separately behaviour-tested.
+**Write-path review (rerun after an interrupt killed the first): clean on all six
+adversarial questions** — no gate skips, the human pass cannot cross accounts / replace a
+password / outlive 5 minutes, no membership oracle in the new refusals, the renames leak
+nothing. Two low findings, one fixed (`verifyTurnstile` and `turnstileSiteKey` now
+short-circuit on IS_DEMO — defence in depth for the demo project, which carries real keys
+behind closed routes), one deferred to post-deploy: EMPIRICALLY confirm Vercel overwrites
+`x-forwarded-for` rather than appending (drive prod /forgot-password 6x with a spoofed
+rotating XFF; the 6th must still be refused). The simplify pass consolidated the four
+hand-typed constant-time compares into `timing-safe.ts` (human-pass-rule keeps its inline
+copy DELIBERATELY: -rule files import nothing relative, or node cannot run their tests —
+found the hard way when check went red), one `verifyHumanFromForm` for the two form doors,
+one source of truth for the refusal copy (trivia and the login form had already grown
+three different sentences for the same throttle), `_probe-kit.mjs` for the QA plumbing
+(the R6 lesson, nearly repeated), and a `TURNSTILE_DEV_REAL=1` escape hatch for debugging
+live Turnstile locally. Two altitude findings deliberately skipped and worth revisiting in
+Phase 9: folding the limit name into `requireVerifiedMember(limit?)` so gate and meter
+cannot drift (skipped now: rewrites a Phase 3-proven artifact and the audit-status probes
+mid-phase), and unifying the trivia pass onto the human-pass signing primitive (took only
+the concrete drift fix: trivia now also rejects future-dated timestamps). Both probes
+re-run green after all of it: 29/29 dev, 6/6 prod build.
+**Owner needs to:** nothing blocking. Two to verify after this deploys: sign in once on
+production (proves the real site key accepts rishivalley.space — the widget side no local
+test can reach), and confirm the Turnstile widget list in the Cloudflare dashboard includes
+the production domain. If members ever report "We couldn't confirm you're human", that is
+the widget/domain mismatch to check first.
