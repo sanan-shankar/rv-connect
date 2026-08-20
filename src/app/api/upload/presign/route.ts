@@ -5,6 +5,7 @@ import { directUploadAvailable, presignImagePut, ownerPrefix } from "@/lib/stora
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
+import { originAllowed } from "@/lib/origin-rule";
 
 /**
  * Step one of the direct-to-R2 upload path. Vercel caps serverless request
@@ -33,6 +34,11 @@ const EXT_BY_TYPE: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
+  // A cross-site page must not be able to spend this cookie (audit M33).
+  if (!originAllowed(request.headers.get("origin"), request.headers.get("host"))) {
+    return NextResponse.json({ error: "Cross-site call refused" }, { status: 403 });
+  }
+
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

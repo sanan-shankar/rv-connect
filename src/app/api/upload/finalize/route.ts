@@ -13,6 +13,7 @@ import { sharpImage } from "@/lib/image";
 import { MAX_UPLOAD_BYTES, describeProcessingError, sniffImageType } from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
+import { originAllowed } from "@/lib/origin-rule";
 
 /**
  * Step two of the direct-to-R2 POST-image path: the browser has PUT the
@@ -34,6 +35,11 @@ const STAGING_KEY = /^staging\/[a-z0-9]+\/\d{4}\/\d{2}\/[a-z0-9]+\.(jpg|jpeg|png
 
 
 export async function POST(request: Request) {
+  // A cross-site page must not be able to spend this cookie (audit M33).
+  if (!originAllowed(request.headers.get("origin"), request.headers.get("host"))) {
+    return NextResponse.json({ error: "Cross-site call refused" }, { status: 403 });
+  }
+
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

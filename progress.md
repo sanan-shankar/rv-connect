@@ -2143,3 +2143,19 @@ feeds member text into raw HTML, and a sweep that checks EVERY server action car
 or a written reason it doesn't — the tripwire for the forgotten-line class of bug that caused three
 of the audit's findings. Proved in both directions: the probes watched each gate refuse a real and
 a crafted regression, 13/13. audit:status: 42 fixed, 0 open.
+
+## 2026-08-20 — Security Phase 10: the long tail, swept
+
+The audit's remaining mediums and lows, closed or consciously accepted, every one now on the status
+board with its reason. The real changes: the three upload endpoints no longer trust a browser cookie
+alone — a request from another site's page is refused by its Origin before anything else runs (M33);
+passwords now have a floor beyond length — the breach-corpus classics, rishivalley123 and its family,
+and your own email address are refused at signup and reset, with the reset checked before the link is
+spent so a rejected password never burns it (M8); starting or growing a Catch-up tops out at 100
+people instead of the 500 the audit demonstrated as forced-enrolment (M29); the password-reset form
+no longer answers faster for strangers than for members (L3); a duplicate signup race gets a sentence
+instead of a crash (L9); and the one production log line that printed a member's email address now
+masks it (L5). Housekeeping with teeth: AGENTS.md stopped describing the deleted admin bypass as a
+working feature, and the three PostHog 404s that have polluted every console check since Phase 1 are
+gone, so the next real error stands alone. Proved live, 11/11, with the phase 5 and phase 8 probes
+re-run green behind the route changes. The board: 74 findings tracked, 0 open.

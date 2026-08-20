@@ -1,16 +1,27 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # Architecture
 
 ## Auth
-- **NextAuth v5 beta** (`next-auth@5.0.0-beta.30`) with Credentials (email + password) provider
-- Session strategy: database-backed (Prisma adapter)
-- Admin bypass: `POST /api/auth/admin-login` with `ADMIN_EMAIL` creates a DB session + cookie. Works locally and on Vercel (the old Vercel bug was fixed; owner confirmed 2026-07-18).
-- Protected routes: everything under `(main)/` layout requires auth. Public: `/`, `/login`, `/verify`.
+- **NextAuth v5 beta** (`next-auth@5.0.0-beta.32`, pinned exact) with Credentials (email + password) provider
+- Session strategy: **JWT** (`strategy: "jwt"` in `src/lib/auth.ts`), NOT database sessions. Revocation
+  exists anyway: `User.credentialVersion` is stamped into the token at sign-in and compared against the
+  row on every session read, so a password reset, block or deletion request ends every live session
+  (audits M4/M5/H4). This paragraph previously claimed database-backed sessions; the code was always JWT.
+- There is **no admin bypass**. The old `POST /api/auth/admin-login` (minted an admin session from an
+  email address alone) was deleted in the 2026-08-20 security work (audit C1-b) and is pinned deleted by
+  `src/lib/security-regressions.test.mjs`. Local tooling signs in via `POST /api/dev-login`, which
+  requires `DEV_LOGIN_SECRET`, never grants a role, and answers 404 on every production build.
+- Protected routes: everything under `(main)/` layout requires auth. Public: `/`, `/login`, `/signup`,
+  the auth/email/token flows, `/privacy`, `/terms`, `/guidelines`, and the exact list in `src/proxy.ts`.
 
 ## Database
 - **Prisma ORM** with `@prisma/adapter-pg` (Postgres driver adapter)

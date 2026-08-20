@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { IS_DEMO } from "./demo";
+import { maskEmail } from "./mask-email";
 
 /* ------------------------------------------------------------------ *
  *  The one place that sends mail.
@@ -132,7 +133,10 @@ export async function sendMail(opts: {
 
   // Guaranteed bounce. Refused before the provider ever sees it.
   if (isUndeliverable(opts.to)) {
-    console.warn(`[email] refused undeliverable address: ${opts.to}`);
+    // Masked (audit L5): this is the one line here that logs an address in
+    // PRODUCTION, and Vercel's log stream has no scrubbing or retention
+    // promise. The first character and domain are plenty to debug with.
+    console.warn(`[email] refused undeliverable address: ${maskEmail(opts.to)}`);
     return { ok: false, error: "undeliverable address" };
   }
 

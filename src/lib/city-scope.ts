@@ -1,9 +1,6 @@
 import { prisma } from "@/lib/prisma";
-
-// Same Postgres-only `mode: "insensitive"` gate used in feed/actions.ts and
-// directory/where.ts -- see those files for why it's conditional.
-const IS_POSTGRES = (process.env.DATABASE_URL ?? "").startsWith("postgres");
-const searchInsensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
+// The one definition of the Postgres-only `mode: "insensitive"` gate (audit R6).
+import { insensitive as searchInsensitive } from "@/lib/db-text";
 
 /** Cities the given user has listed (UserPlace.city), for feed cityScope matching. */
 export async function getViewerCities(userId: string): Promise<string[]> {

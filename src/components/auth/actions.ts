@@ -9,6 +9,7 @@ import { sendVerificationEmail } from "@/lib/verification-mail";
 import { verifyHumanFromForm } from "@/lib/turnstile";
 import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { passwordProblem } from "@/lib/password-rule";
 import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
 
@@ -67,6 +68,11 @@ export async function registerUser(formData: FormData) {
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
+
+  // The quality floor (audit M8): the denylist and the not-your-own-email
+  // rule, after the schema so the address is validated first.
+  const weak = passwordProblem(password, parsed.data.email);
+  if (weak) return { error: weak };
 
   if (
     parsed.data.yearJoined != null &&
@@ -130,8 +136,15 @@ export async function registerUser(formData: FormData) {
   // takes the batch directly, so that column stays untouched. The two year
   // columns are strictly student facts; a teacher's years land in the tenure
   // pair instead so neither reading ever has to guess what a column means.
-  const user = await prisma.user.create({
-    data: {
+  //
+  // try/catch on the unique email (audit L9): the findUnique above and this
+  // create can race when the same address submits twice at once, and the
+  // loser used to surface as an unhandled P2002 — a 500 where the sentence
+  // the pre-check already knows belongs.
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
       name,
       email: parsed.data.email,
       password: hashedPassword,
@@ -145,9 +158,15 @@ export async function registerUser(formData: FormData) {
       taughtUntil: isAlum ? null : (parsed.data.yearLeft ?? null),
       // The consent receipt (audit H12). Members who joined before the box
       // existed carry null, which the owner's decision reads as agreement.
-      consentAt: new Date(),
-    },
-  });
+        consentAt: new Date(),
+      },
+    });
+  } catch (err) {
+    if ((err as { code?: string })?.code === "P2002") {
+      return { error: "An account with this email already exists. Try signing in instead." };
+    }
+    throw err;
+  }
 
   // Every alumnus is auto-added to their batch group ("Batch of {year}"), which
   // is created on demand by the first person from that batch to join. No manual

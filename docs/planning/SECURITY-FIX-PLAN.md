@@ -803,3 +803,52 @@ regression test itself became the one src/ reference to NEXT_PUBLIC_ADMIN_EMAIL 
 audit-status probe to open — trap 2 striking its own guard; the test now splits the literal.
 **Owner needs to:** nothing new. The standing reminder: add `CRON_SECRET` to GitHub repo secrets
 (retention), and to the prod Vercel project (catchups tick).
+
+### 2026-08-20 — Phase 10
+**Closed (code changed):** M29, M33, M8, L3, L5, L9, plus R6's remaining duplication and R7's stale
+docs, and the three-PostHog-404s console noise (plan trap 3). **Closed (already true, now tracked):**
+M5, M9, M20, M28, M30, M31, M36, L2, L4, L6, L7, L8, L10, L12. **Accepted, with the reason on the
+board:** M21, M22, M24, M25, M26, L1, L11; M23 owner-side. The audit-status board now tracks the
+audit's WHOLE C/H/M/L set: **74 checked — 63 fixed, 0 open, 9 accepted, 2 awaiting the owner**
+(H13 DPAs, M23 secret practice).
+**Built / changed:**
+- **M33** — `src/lib/origin-rule.ts` (+9 attack unit tests): a request carrying an Origin header
+  must name the host it arrived at; absent Origin passes (no browser omits it on the cross-site
+  POST this exists to stop, and non-browsers carry no ambient cookie). Wired into all three upload
+  routes ahead of auth, so SameSite=Lax is no longer the single point of failure the audit named.
+- **M8** — `src/lib/password-rule.ts` (+6 unit tests): NIST-style, no composition theatre — the
+  breach-corpus classics at 8+ chars, the site's own "companyname123" family (rishivalley123 and
+  friends), and the caller's own email local part. Wired into signup and reset; reset checks
+  against a PEEK at the token so a refused password never burns the person's one link.
+- **M29** — both Catch-up enrolment paths capped at 100 (a whole batch, argued in place), down from
+  the audit's own abuse number of 500.
+- **L3** — requestPasswordReset's enqueue moved into after(): both branches now return after the
+  same single lookup, closing the timing oracle that recovered the membership fact the identical
+  answers exist to hide.
+- **L9** — registerUser catches the create's P2002 race and answers the same sentence as the
+  pre-check instead of a 500.
+- **L5** — the one production log line carrying an address (the undeliverable-address warn) now
+  masks it; the dev-mode full prints are local-only by design and stay.
+- **R6/R7** — the last two hand-copied `insensitive` gates (directory/where.ts, city-scope.ts) now
+  import the one definition in db-text.ts; AGENTS.md's auth section rewritten (it still claimed
+  database sessions and documented the DELETED admin bypass as a working feature).
+- **Trap 3** — the three PostHog 404s on every page: posthog-js probes a versioned asset path the
+  asset host does not serve, then falls back. A rewrite maps the versioned probe onto the
+  query-string form, so every page load is now 404-free and a real console error has no noise to
+  hide in.
+**Proved:** `scripts/qa/phase10-probe.mjs`, **11/11** against the running server: a cross-site
+Origin (and the sandboxed-iframe "null") with a VALID member cookie is 403 on all three upload
+routes while the site's own origin and origin-less probes still upload (positive controls); the
+REAL signup form refuses Password123 with the new copy and no row, then lands a decent password on
+the same form (non-vacuous), and a duplicate address gets the friendly sentence; a page load
+produces zero /ingest 404s. Regression re-runs after the route changes: phase5-probe **29/29**,
+phase8-probe **40/40**. `npm run check` clean (25 test files). Phase 9's CI run passed on GitHub
+(the new security gate's first real outing). No UI changed, so no visual/screenshot round.
+**Local-tooling note:** `npm run build` cannot run inside this session's sandbox — two
+owner-added images in public/images/collection carry com.apple.provenance and read as EPERM under
+seatbelt (earlier sessions built fine; Vercel builds from the git checkout). The next.config
+rewrite was validated by the restarted dev server and verified live in the browser instead.
+**R-series disposition:** R6 (above), R7 (above), R9 already fixed (the self-deriving client key),
+R10/R11 are praise. R1-R5, R8 are performance/refactoring items with no exposure, parked for the
+post-launch backlog on the audit's own phasing; R5's security half (a check lost in a 1,400-line
+file) is now covered by the gate-coverage sweep, which fails check on any ungated new action.
