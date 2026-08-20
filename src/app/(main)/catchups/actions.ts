@@ -419,6 +419,10 @@ export async function createCatchupWithPeople(input: {
           where: {
             id: { in: invitedIds },
             isBlocked: false,
+            // Same as every people surface: someone inside their deletion
+            // grace window (audit M35) must not be enrollable or emailable
+            // by a hand-crafted call the picker would never make.
+            deletionRequestedAt: null,
             accountType: { notIn: ["teacher", "ex_teacher"] },
           },
           select: { id: true },
@@ -1297,6 +1301,8 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
       where: {
         id: { in: [...new Set(parsed.data)] },
         isBlocked: false,
+        // Deletion-pending accounts are out of reach here too (audit M35).
+        deletionRequestedAt: null,
         accountType: { notIn: ["teacher", "ex_teacher"] },
       },
       select: { id: true },

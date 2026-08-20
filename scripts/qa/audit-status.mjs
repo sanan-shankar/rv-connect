@@ -225,14 +225,28 @@ const CHECKS = [
       return missing.length ? open(`headers() present but missing: ${missing.join(", ")}`) : ok("all five headers configured");
     }},
   { id: "H8", sev: "high", title: "deleteAccount throws for anyone who filed a report", probe: () => {
-      const b = fnBody(read("src/components/settings/actions.ts"), "deleteAccount");
-      if (!b) return open("deleteAccount not found");
-      return /report\.deleteMany/.test(b) ? ok("clears filed reports first") : open("no report.deleteMany before user.delete");
+      // Phase 8 moved deletion into purgeUserAccount (account-purge.ts),
+      // shared by adminDeleteUser and the retention sweep's grace purge; the
+      // filed-report clearing must sit there, before the user.delete.
+      const purge = read("src/lib/account-purge.ts");
+      if (!purge) return open("account-purge.ts not found");
+      return /report\.deleteMany/.test(decomment(purge))
+        ? ok("purgeUserAccount clears filed reports first")
+        : open("no report.deleteMany in purgeUserAccount");
     }},
   { id: "H9", sev: "high", title: "Deletion never removes stored image bytes", probe: () => {
-      const b = fnBody(read("src/components/settings/actions.ts"), "deleteAccount");
-      if (!b) return open("deleteAccount not found");
-      return /delImage/.test(b) ? ok("removes R2 objects") : open("no delImage call");
+      // Three parts, all required: the purge deletes R2 objects, the admin
+      // delete routes through it, and the retention sweep purges accounts
+      // whose 60-day grace window has closed (nothing else ever finalises a
+      // self-deletion). Run phase8-probe for the behavioural proof against
+      // the real bucket.
+      const purge = decomment(read("src/lib/account-purge.ts"));
+      if (!/delImage/.test(purge)) return open("purgeUserAccount does not delete R2 objects");
+      if (!/purgeUserAccount/.test(decomment(read("src/components/profile/admin-actions.ts"))))
+        return open("adminDeleteUser does not route through purgeUserAccount");
+      if (!/purgeUserAccount/.test(decomment(read("src/lib/retention.ts"))))
+        return open("retention sweep does not purge grace-expired accounts");
+      return ok("purge deletes R2 objects; both deletion paths route through it");
     }},
   { id: "H10", sev: "high", title: "No audit log", probe: () =>
       /model\s+AuditLog\b/.test(read("prisma/schema.prisma"))
@@ -244,7 +258,13 @@ const CHECKS = [
     }},
   { id: "H12", sev: "high", title: "No privacy policy, consent or transparency layer", probe: () => {
       const routes = walk("src/app").filter((p) => /privacy|terms|guidelines/i.test(p) && p.endsWith("page.tsx"));
-      return routes.length ? ok(`${routes.length} policy page(s)`) : open("no privacy/terms/guidelines route");
+      if (routes.length < 3) return open(`only ${routes.length} of the 3 policy pages exist`);
+      // The pages alone are not the finding closed: signup must REQUIRE the
+      // consent tick server-side and record it on the row.
+      const signup = decomment(read("src/components/auth/actions.ts"));
+      if (!/consent/.test(signup) || !/consentAt/.test(signup))
+        return open("policy pages exist but signup records no consent");
+      return ok(`${routes.length} policy pages; signup consent enforced and stamped`);
     }},
   { id: "H13", sev: "high", title: "Cross-border transfer, no DPAs", probe: () => owner("owner action: sign DPAs with Vercel, Supabase, Cloudflare, Resend, Razorpay") },
   { id: "H14", sev: "high", title: "No breach-detection capability", probe: () =>
@@ -460,6 +480,25 @@ const CHECKS = [
       const nested = /pollOptions:\s*\{\s*create:/.test(src) && !/prisma\.pollOption\.create/.test(src);
       if (/\$transaction/.test(src) || nested) return ok("poll + options written atomically (nested create)");
       return open("poll options still written in a loop outside a transaction");
+    }},
+  { id: "M34", sev: "medium", title: "No retention policy; unbounded accumulation", probe: () => {
+      const r = decomment(read("src/lib/retention.ts"));
+      if (!r) return open("no retention sweep");
+      const models = ["adminMessage", "report", "contribution", "notification", "loginAttempt", "auditLog", "outboundEmail"];
+      const missing = models.filter((m) => !new RegExp(`${m}\\.deleteMany`).test(r));
+      if (missing.length) return open(`sweep misses: ${missing.join(", ")}`);
+      if (!has("src/app/api/retention/sweep/route.ts")) return open("sweep has no route to trigger it");
+      if (!has(".github/workflows/retention.yml")) return open("no schedule fires the sweep");
+      return ok("sweep covers all seven tables, on a nightly schedule");
+    }},
+  { id: "M35", sev: "medium", title: "No deletion confirmation, re-auth, grace period or data export", probe: () => {
+      const b = fnBody(read("src/components/settings/actions.ts"), "requestAccountDeletion");
+      if (!b) return open("requestAccountDeletion not found (deletion still fires on one call?)");
+      const src = decomment(b);
+      if (!/bcrypt\.compare/.test(src)) return open("deletion does not re-ask for the password");
+      if (!/deletionRequestedAt/.test(src)) return open("deletion is immediate; no grace window recorded");
+      if (!has("src/app/api/account/export/route.ts")) return open("no data export route");
+      return ok("re-auth + 60-day grace + export route; run phase8-probe for behaviour");
     }},
 ];
 

@@ -92,8 +92,14 @@ export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
     // Report.reporterId is RESTRICT, not cascade: a member who has EVER filed
     // a report cannot be deleted until those rows are cleared, or the delete
     // throws and rolls back (audit H8). Reports filed AGAINST them cascade.
-    await prisma.report.deleteMany({ where: { reporterId: userId } });
-    await prisma.user.delete({ where: { id: userId } });
+    // ONE transaction: if the user.delete fails, the report clearing rolls
+    // back with it, so a failed purge can never silently destroy the report
+    // history while leaving the account alive (write-path review, Phase 8 —
+    // this matters doubly now that the retention sweep runs this unattended).
+    await prisma.$transaction([
+      prisma.report.deleteMany({ where: { reporterId: userId } }),
+      prisma.user.delete({ where: { id: userId } }),
+    ]);
   } catch (err) {
     console.error("purgeUserAccount failed:", err);
     return { ok: false, error: "Could not delete the account." };
