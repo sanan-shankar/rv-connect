@@ -365,4 +365,10 @@ not real guard failures. Bring the demo schema up to date so that proof runs aga
 **Owner needs to:** nothing blocking. Verify or decline Yashvardhan Chauhan from the admin panel
 when convenient. Two noted calls to overrule if wanted: avatar uploads stay at Stage 0 (above),
 and Stage 0 still sees aggregate counts (result totals, pin numbers, batch tiles).
+**Post-deploy:** production verified live (directory/search/by-batch 307 to login signed out,
+dev-login 404, site 200). Dependabot PRs #2/#7/#8 closed with notes -- #7 pinned sharp 0.35.0,
+whose broken types failed every preview build and re-emailed the owner on each rebase. **Phase 6
+(C3) owes those upgrades**: next-auth beta.32, sharp >=0.35.3 (0.35.0-0.35.2 have broken type
+exports), next 16.3, hono, ip-address, express-rate-limit -- do them there, not from Dependabot's
+lump.
 
