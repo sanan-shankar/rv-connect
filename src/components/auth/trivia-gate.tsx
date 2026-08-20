@@ -42,6 +42,16 @@ export function TriviaGate({
     getTriviaQuestion().then(setQuestion);
   }, []);
 
+  async function swapQuestion() {
+    if (!question || checking || passed) return;
+    setError("");
+    setAnswer("");
+    // The bird tilts its head at the new question rather than reacting as if
+    // something went wrong: asking for another question is a normal move.
+    hoopoe.express("curious");
+    setQuestion(await getTriviaQuestion(question.id));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!question || checking || passed) return;
@@ -83,8 +93,23 @@ export function TriviaGate({
     <div>
       {/* mt-5 = the same 20px the register step puts between its title and
           form, now that the subtitle between them is gone. */}
-      <p className="mt-5 mb-4 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
+      <p className="mt-5 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
         {question?.question ?? "..."}
+      </p>
+      {/* The escape hatch for the person this question happens to miss: the
+          bank has more than one, so let them ask rather than guess. Styled
+          as the quiet sibling of the "Sign in" line below, not a button —
+          it must never compete with the answer box. The mb-4 that used to
+          close the question line moved here so the field keeps its gap. */}
+      <p className="mb-4 mt-1 text-center">
+        <button
+          type="button"
+          onClick={swapQuestion}
+          disabled={!question || checking || passed}
+          className="rounded-sm text-sm text-muted-foreground underline hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+        >
+          Try a different question
+        </button>
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* The same calm material as the register step's FloatFields (56px
