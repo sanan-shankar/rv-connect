@@ -6,7 +6,15 @@ import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { previewOf } from "@/lib/admin-threads";
-import { notifyAdmins } from "@/lib/admin-threads-server";
+import { notifyAdmins, isThreadRateLimited } from "@/lib/admin-threads-server";
+import { writeAudit } from "@/lib/audit";
+
+// How many DISTINCT members must flag one person before the admin notification
+// escalates from "someone flagged X" to "N members have now flagged X" (audit
+// H5). It changes nothing about the target's standing — only an admin's hand
+// still does that — it just tells the admin when a flag is one voice or a
+// chorus. Kept small for a community this size.
+const FLAG_ESCALATION_THRESHOLD = 3;
 
 /**
  * Reporting a post or flagging a person opens a conversation the reporter can
@@ -63,10 +71,16 @@ export async function reportPost(postId: string, reason: string) {
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
-  // Report flooding is paging a human on demand, so it is metered (audit M2;
-  // the per-pair dedupe and threshold are Phase 7).
+  // Report flooding is paging a human on demand, so it is metered (audit M2).
   const limited = await rateLimit("reports", session.user.id);
   if (!limited.ok) return { error: limited.error };
+
+  // A report opens an AdminThread, so it also answers to the same new-thread
+  // budget a member's own messages do (audit H5): reporting must not be a way
+  // to fan out threads faster than messaging is allowed to.
+  if (await isThreadRateLimited(session.user.id)) {
+    return { error: "That's a lot of reports at once. Give it an hour and send the rest." };
+  }
 
   const trimmed = reason?.trim() ?? "";
   if (!trimmed || trimmed.length > 500) {
@@ -102,6 +116,13 @@ export async function reportPost(postId: string, reason: string) {
     `/admin?thread=${thread.id}#messages`
   );
 
+  await writeAudit({
+    actorId: session.user.id,
+    action: "report.post",
+    targetType: "post",
+    targetId: postId,
+  });
+
   return { success: true };
 }
 
@@ -121,6 +142,11 @@ export async function reportUser(reportedUserId: string, reason: string) {
   const limited = await rateLimit("reports", session.user.id);
   if (!limited.ok) return { error: limited.error };
 
+  // Also the new-thread budget, same as reportPost (audit H5).
+  if (await isThreadRateLimited(session.user.id)) {
+    return { error: "That's a lot of reports at once. Give it an hour and send the rest." };
+  }
+
   const trimmed = reason?.trim() ?? "";
   if (!trimmed || trimmed.length > 500) {
     return { error: "Please provide a valid reason" };
@@ -132,15 +158,39 @@ export async function reportUser(reportedUserId: string, reason: string) {
   });
   if (!reported) return { error: "We couldn't find that person" };
 
-  const report = await prisma.report.create({
-    data: {
-      targetType: "user",
-      reportedUserId,
-      reporterId: session.user.id,
-      reason: trimmed,
-    },
+  // One report per (reporter, reported member): a member cannot inflate the
+  // flag count by reporting the same person again (audit H5, enforced by the
+  // @@unique on Report). Answered gently rather than as an error — from the
+  // reporter's side "we've already got your flag" is the honest result, and it
+  // must NOT open a second thread or re-page the admins.
+  const already = await prisma.report.findFirst({
+    where: { reporterId: session.user.id, reportedUserId, targetType: "user" },
     select: { id: true },
   });
+  if (already) {
+    return { success: true, alreadyFlagged: true };
+  }
+
+  let report: { id: string };
+  try {
+    report = await prisma.report.create({
+      data: {
+        targetType: "user",
+        reportedUserId,
+        reporterId: session.user.id,
+        reason: trimmed,
+      },
+      select: { id: true },
+    });
+  } catch (err) {
+    // The findFirst above is a fast path, not the guarantee — two flags of the
+    // same pair racing in together both pass it, and one loses to the unique
+    // index (audit H5). That is the SAME "already flagged" answer, not a 500.
+    if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
+      return { success: true, alreadyFlagged: true };
+    }
+    throw err;
+  }
 
   /* This used to also write verifyState:"flagged" onto the reported member --
      one report, from anyone, and the badge was gone (audit H5). Now that
@@ -157,10 +207,31 @@ export async function reportUser(reportedUserId: string, reason: string) {
     opening: `You flagged ${reported.name}, saying: "${trimmed}"\n\nAn admin will look into it. Anything you want to add, write it below.`,
   });
 
+  // How many DISTINCT members have now flagged this person (this reporter is a
+  // new distinct one, since the dedup above just let them through). At or past
+  // the threshold the admin hears a chorus, not a single voice — the standing
+  // still changes only by the admin's hand, per Phase 3's decision to make
+  // verifyState a capability rather than a badge one report could strip.
+  const distinctReporters = await prisma.report.groupBy({
+    by: ["reporterId"],
+    where: { reportedUserId, targetType: "user" },
+  });
+  const flagCount = distinctReporters.length;
+
   await notifyAdmins(
-    `${session.user.name} flagged ${reported.name}: ${previewOf(trimmed, 60)}`,
+    flagCount >= FLAG_ESCALATION_THRESHOLD
+      ? `${reported.name} has now been flagged by ${flagCount} members. Latest, ${session.user.name}: ${previewOf(trimmed, 60)}`
+      : `${session.user.name} flagged ${reported.name}: ${previewOf(trimmed, 60)}`,
     `/admin?thread=${thread.id}#messages`
   );
+
+  await writeAudit({
+    actorId: session.user.id,
+    action: "report.user",
+    targetType: "user",
+    targetId: reportedUserId,
+    detail: `distinct flaggers: ${flagCount}`,
+  });
 
   return { success: true };
 }

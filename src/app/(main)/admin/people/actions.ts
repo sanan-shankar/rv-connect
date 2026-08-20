@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { titleCase } from "@/lib/normalize";
-import { requireAdminAction, type AdminActionResult } from "@/lib/admin";
+import { requireAdminAction, requireAdminActor, type AdminActionResult } from "@/lib/admin";
 import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
+import { writeAudit } from "@/lib/audit";
 
 /* ------------------------------------------------------------------ *
  *  Everything you can do TO a person, from the panel.
@@ -208,8 +209,8 @@ export async function adminSetRole(
   userId: string,
   role: "admin" | "member"
 ): Promise<AdminActionResult> {
-  const denied = await requireAdminAction();
-  if (denied) return denied;
+  const actor = await requireAdminActor();
+  if (!actor.ok) return { error: actor.error };
 
   if (role === "member") {
     const admins = await prisma.user.count({ where: { role: "admin" } });
@@ -223,6 +224,16 @@ export async function adminSetRole(
   }
 
   await prisma.user.update({ where: { id: userId }, data: { role } });
+
+  await writeAudit({
+    actorId: actor.actorId,
+    action: "admin.role",
+    targetType: "user",
+    targetId: userId,
+    ip: actor.ip,
+    detail: `-> ${role}`,
+  });
+
   revalidateAdmin(userId);
   return { success: true };
 }
@@ -259,8 +270,8 @@ export async function adminMergeUsers(
   sourceId: string,
   targetId: string
 ): Promise<AdminActionResult> {
-  const denied = await requireAdminAction();
-  if (denied) return denied;
+  const actor = await requireAdminActor();
+  if (!actor.ok) return { error: actor.error };
 
   if (sourceId === targetId) return { error: "That is the same account." };
 
@@ -306,6 +317,15 @@ export async function adminMergeUsers(
     console.error("adminMergeUsers failed:", err);
     return { error: "Could not merge those accounts. Nothing was changed. Check the server log." };
   }
+
+  await writeAudit({
+    actorId: actor.actorId,
+    action: "admin.merge",
+    targetType: "user",
+    targetId: targetId,
+    ip: actor.ip,
+    detail: `merged ${sourceId} into ${targetId}`,
+  });
 
   revalidateAdmin(targetId);
   revalidatePath("/feed");
