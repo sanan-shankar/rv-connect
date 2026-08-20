@@ -852,3 +852,14 @@ rewrite was validated by the restarted dev server and verified live in the brows
 R10/R11 are praise. R1-R5, R8 are performance/refactoring items with no exposure, parked for the
 post-launch backlog on the audit's own phasing; R5's security half (a check lost in a 1,400-line
 file) is now covered by the gate-coverage sweep, which fails check on any ungated new action.
+
+**Owner follow-ups, same evening (H13/M28):** CRON_SECRET was already on the real Vercel project
+(added Jul 1, marked Sensitive — so its value cannot be read back out of the dashboard), and the
+owner added the GitHub repository secret. First manual retention run answered 401: the two values
+do not match (or Vercel's was edited without a redeploy). Fix in flight: one fresh value into both
+plus a Vercel Redeploy, then re-run Actions → retention and look for the "Retention sweep ran" line
+on /admin/audit. **H13 DPAs:** Vercel/Cloudflare/Resend apply automatically with their terms
+(Resend's signed PDF saved-able); Razorpay publishes none. **Supabase's sign-the-DPA form was
+DECLINED by the owner** (2026-08-20: it routes through a third-party contract service asking for
+personal details) — recorded as the owner's decision; their standard terms still govern the
+processing, so this is a paperwork gap, not a data-handling one.
