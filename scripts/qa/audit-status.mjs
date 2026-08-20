@@ -452,7 +452,14 @@ const CHECKS = [
   { id: "M32", sev: "medium", title: "Poll options created outside a transaction", probe: () => {
       const b = fnBody(read("src/app/(main)/feed/actions.ts"), "createPost");
       if (!b) return open("createPost not found");
-      return /\$transaction/.test(b) ? ok("transactional") : open("poll options still written in a loop outside a transaction");
+      const src = decomment(b);
+      // Atomic either way: an explicit $transaction, OR — as done here — the
+      // options written as a nested create in the SAME post.create, which
+      // Prisma commits in one transaction. What must be gone is the old
+      // separate pollOption.create loop that ran after the post existed.
+      const nested = /pollOptions:\s*\{\s*create:/.test(src) && !/prisma\.pollOption\.create/.test(src);
+      if (/\$transaction/.test(src) || nested) return ok("poll + options written atomically (nested create)");
+      return open("poll options still written in a loop outside a transaction");
     }},
 ];
 

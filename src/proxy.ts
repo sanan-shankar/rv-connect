@@ -158,9 +158,11 @@ export function proxy(request: NextRequest) {
   }
 
   // Public routes that don't require auth
-  // NOTE: "/lab" is temporary — it is the one index over every dev/preview room
-  // (the old /preview tree was folded into it on 2026-07-30). Remove before
-  // shipping to the public, along with the rooms themselves.
+  // NOTE: "/lab" is NO LONGER public (audit M19). It was the one index over
+  // every dev/preview room, and /lab/everything served an internal audit log
+  // with quoted source paths. It is now admin-only: removed from this list, so
+  // it requires a session, and gated to the admin role in src/app/lab/layout.tsx
+  // (a non-admin gets a 404, which also hides that the tree exists).
   // "/catchups/join" is public so a shared invite link can be OPENED by
   // someone with no account (the whole point of it). Only the join page is
   // exposed: prefix matching means /catchups and /catchups/<id> stay gated,
@@ -209,7 +211,12 @@ export function proxy(request: NextRequest) {
     // design, so without this the very events we proxied to save from ad
     // blockers would be lost to a redirect instead.
     "/ingest",
-    "/lab",
+    // The nightly Catch-up advance cron (audit M27). A server-to-server GET
+    // from Vercel with no session cookie; authenticated by CRON_SECRET inside
+    // the route, so it is exposed here only to get past the redirect-to-login.
+    // Exact path, not a prefix, so the member-facing /api/catchups routes stay
+    // gated.
+    "/api/catchups/tick",
     "/catchups/join",
     "/hoopoe",
   ];

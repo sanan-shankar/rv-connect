@@ -2,9 +2,103 @@ import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
 
+/* Content-Security-Policy (audit H7). Built as a directive map so each entry
+ * carries the reason a host is on it. The tight ones first:
+ *   - frame-ancestors 'none' + X-Frame-Options: DENY are the clickjacking fix
+ *     the audit called out by name (framing /settings to bait a click onto
+ *     deleteAccount / adminDeleteUser).
+ *   - object-src 'none', base-uri 'self', form-action 'self' close the classic
+ *     injection levers.
+ * script-src carries 'unsafe-inline' because the App Router emits inline
+ * hydration/bootstrap scripts and there is no nonce pipeline here; it still
+ * blocks loading an external <script src> that is not on the allowlist, which
+ * is the injection path that matters most. 'unsafe-eval' is allowed too: an
+ * analytics dependency uses eval() (a prod build proved the block fires and
+ * spams the console), and once 'unsafe-inline' is already present — which Next
+ * requires without a nonce — allowing eval adds no meaningful XSS surface,
+ * since an attacker who can inject inline script has no need of eval. The real
+ * wins here are host-allowlisting (no external <script src> off the list),
+ * frame-ancestors, Referrer-Policy and nosniff. A nonce-based strict CSP that
+ * could drop both 'unsafe-*' is a larger, separate piece of work.
+ * The external hosts are exactly the three the browser actually talks to:
+ * Cloudflare Turnstile (the bot widget + its challenge iframe), Razorpay
+ * checkout (its script + payment iframe + API), and Cloudflare R2 (images).
+ * PostHog is same-origin (proxied through /ingest, next.config rewrites) so it
+ * needs no host here; Sentry is server-only (no browser SDK), so it needs none
+ * either. Iterate against the browser console if a real flow trips a directive. */
+const csp = {
+  "default-src": ["'self'"],
+  "base-uri": ["'self'"],
+  "object-src": ["'none'"],
+  "frame-ancestors": ["'none'"],
+  "form-action": ["'self'"],
+  "script-src": [
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'", // see the note above: an analytics dep needs it, and it is free of extra risk given 'unsafe-inline'
+    "https://challenges.cloudflare.com",
+    "https://checkout.razorpay.com",
+    "https://va.vercel-scripts.com", // Vercel Web Analytics loader
+  ],
+  "style-src": ["'self'", "'unsafe-inline'"],
+  "img-src": [
+    "'self'",
+    "data:",
+    "blob:",
+    "https://*.r2.dev",
+    "https://*.posthog.com",
+    "https://*.razorpay.com",
+    "https://i.scdn.co", // Spotify album art on Catch-up answers
+  ],
+  "font-src": ["'self'", "data:"],
+  "connect-src": [
+    "'self'",
+    "https://challenges.cloudflare.com",
+    "https://api.razorpay.com",
+    "https://lumberjack.razorpay.com",
+    "https://*.posthog.com",
+    "https://va.vercel-scripts.com", // Vercel Analytics beacon
+    "https://vitals.vercel-insights.com", // Vercel Speed Insights beacon
+  ],
+  "frame-src": [
+    "https://challenges.cloudflare.com",
+    "https://api.razorpay.com",
+    "https://checkout.razorpay.com",
+  ],
+  "worker-src": ["'self'", "blob:"],
+  "upgrade-insecure-requests": [],
+};
+
+const cspHeader = Object.entries(csp)
+  .map(([k, v]) => (v.length ? `${k} ${v.join(" ")}` : k))
+  .join("; ");
+
+const securityHeaders = [
+  { key: "Content-Security-Policy", value: cspHeader },
+  // Clickjacking: DENY plus frame-ancestors 'none' above (X-Frame-Options for
+  // older browsers, the CSP directive for current ones).
+  { key: "X-Frame-Options", value: "DENY" },
+  // Reset/verify tokens ride in URLs; keep them out of the Referer sent to any
+  // outbound link, while still sending the bare origin same-site.
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  // Powerful features nothing here uses. Camera is left available: the avatar
+  // and Collection flows may let a phone take a photo.
+  {
+    key: "Permissions-Policy",
+    value: "geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=()",
+  },
+  // Vercel sets HSTS by default; stated explicitly so it does not depend on the
+  // platform default and survives a move off Vercel. Two years, subdomains.
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+];
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
   devIndicators: false,
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
   // Tree-shake large icon/animation barrels so dev recompiles and prod client
   // chunks only pull the icons actually used. Next auto-optimizes lucide-react
   // but NOT @phosphor-icons/react (a 4500-line barrel), which is the big win here.

@@ -150,8 +150,8 @@ Mark a phase done only when `npm run audit:status` agrees.
 | 3 | The two-gate trust model | H21, and the abuse half of M1 | **done 2026-08-20** |
 | 4 | Bot defence and rate limiting | H22, H6, M2, M3, M7 | **done 2026-08-20** |
 | 5 | Object deletion and uploads | C2, M10–M17 | **done 2026-08-20** |
-| 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | next |
-| 7 | Audit log and admin accountability | H10, H14, M36, H5 | |
+| 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | **done 2026-08-20** |
+| 7 | Audit log and admin accountability | H10, H14, M36, H5 | next |
 | 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | |
 | 9 | CI hardening and security tests | H16, H17 | |
 | 10 | Remaining mediums and lows | the rest | |
@@ -551,3 +551,62 @@ is gone — deliberate, for M12.
 step. The R2 bucket stays public-read (H20 accepted); M11's pending-photo-privacy half is bounded by
 that posture — a truly private pending prefix would need signed delivery, which conflicts with the
 accepted public bucket, so only the concrete "removed photos stay fetchable" half is closed here.
+
+
+### 2026-08-20 — Phase 6
+**Closed:** H7, C3, H18, M19, M27, M32, M18. (H18 was already half-solved: /admin's people list is
+keyset-paginated and the worklist queries all carry `take: PER_QUEUE` since the audit, so only
+`/api/users-by-batch` was still unbounded.)
+**Built / changed:**
+- **C3** — `next-auth` beta.30 -> **5.0.0-beta.32** (pinned EXACT, not `^`, so a reinstall cannot
+  drift to an untested beta), `sharp` ^0.34.5 -> **^0.35.3** (the vulnerable range ends at 0.35.0;
+  0.35.0-0.35.2 have broken type exports, so ^0.35.3 is the floor), `next` 16.2 -> **16.3.1**.
+  sharp 0.35 bundles a stricter libpng (1.6.58); `sharpImage` now sets `failOn: "error"` so a
+  heritage scan with a merely-cosmetic libpng WARNING (the classic "iCCP: incorrect sRGB profile")
+  is still decoded rather than turned away. Its `sharp.Sharp` type moved to a named `Sharp` export.
+- **H7** — `next.config.ts` `headers()`: a CSP built as a documented directive map, plus
+  X-Frame-Options: DENY, Referrer-Policy: strict-origin-when-cross-origin, X-Content-Type-Options:
+  nosniff, Permissions-Policy, and an explicit HSTS. `frame-ancestors 'none'` + X-Frame-Options are
+  the clickjacking fix the audit named (framing /settings onto deleteAccount). script-src allowlists
+  exactly the three third-party hosts the browser talks to (Turnstile, Razorpay checkout, Vercel
+  analytics); PostHog is same-origin via /ingest, Sentry is server-only. It carries
+  'unsafe-inline'+'unsafe-eval' — Next needs inline without a nonce pipeline, and once inline is
+  allowed eval adds no XSS surface; the real wins are host-allowlisting, frame-ancestors, referrer
+  and nosniff. A nonce-based strict CSP is future work.
+- **M19** — `/lab` out of `publicPaths` and behind a new `src/app/lab/layout.tsx` that `notFound()`s
+  a non-admin (a 404 hides that the tree exists). `/lab/everything`'s internal audit log of quoted
+  source paths is no longer reachable by any member.
+- **M27** — the never-existent `/api/catchups/tick` the nightly cron 404'd on now exists, wrapping
+  `advanceDueCatchups()` (the function was written to be exactly this thin wrapper), required to
+  carry `Authorization: Bearer $CRON_SECRET` (timing-safe), and added to `publicPaths` so the
+  cookie-less cron reaches it.
+- **M32** — poll options moved into the SAME `post.create` as a nested create, so a post and its
+  options commit in one transaction instead of a post-then-loop that could leave a partial poll.
+- **M18** — `updateContactMethods` now runs its input through `contactMethodsSchema` (the same
+  length caps, email format and https-only link rule `profileSchema` applies to those columns) after
+  dropping blank repeater rows; a bad link can no longer reach the column trusting only the read-side
+  re-check.
+- **H18** — `/api/users-by-batch` caps the batch list at 120 and the query at `take: 5000`, so a
+  signed-in account can no longer turn it into a whole-table dump.
+**Proved:** `scripts/qa/phase6-probe.mjs`, **15/15** against the running server: all five headers
+present with `frame-ancestors 'none'` and the Turnstile+Razorpay script hosts allowlisted; a REAL
+credentials login mints a session under beta.32 and opens /feed, while a wrong password mints
+nothing (the fail-open advisory C3 names, checked live); /lab is 307 signed-out, **404 to a non-admin
+member**, 200 to an admin; the tick route is 401 with no/ wrong secret and EXISTS (not 404);
+users-by-batch still returns for a real batch. The CSP was iterated against the browser console
+(chrome-devtools): it caught Vercel Web Analytics' `va.vercel-scripts.com` loader (added), and a
+prod-build run confirmed the login page renders fully — hero image, fonts, and the Cloudflare
+Turnstile widget all load under the enforced policy (the one residual eval "issue" is Turnstile's own
+bot-fingerprint probing inside Cloudflare's sandboxed iframe, present with OR without our eval
+allowance, i.e. not our scripts). `npm run build` exit 0 under all three upgrades · `npm run check`
+clean (19 test files) · `npm run visual` 21/21 (16.3 changed no rendering) · `phase5-probe` re-run
+**29/29** under sharp 0.35 (a regression caught here: the probe's hand-pasted 1x1 PNG tripped the
+stricter libpng — a bad TEST image, not a real one; sharp-generated PNGs and JPEGs process fine, and
+the probe now generates a valid PNG). audit:status **33 fixed**.
+**Owner needs to:** (1) Confirm `CRON_SECRET` is set in the REAL Vercel project's env (it is the same
+secret `/api/demo/reset` already uses) — the nightly Catch-up cron needs it to run; until then the
+route 401s and Catch-ups keep advancing via the lazy page-load tick, as they did before, so nothing
+regresses. (2) Dependabot's next-auth/sharp/next PRs can be closed as done. Nothing else blocking; no
+schema change, no migration, no demo-DB step. User-visible: no layout moved; the only new failure
+copy is on invalid contact input (a non-https link, an over-long field), which was silently accepted
+before.
