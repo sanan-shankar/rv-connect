@@ -28,6 +28,34 @@ import { revalidatePath } from "next/cache";
 const YEAR_MIN = 1926;
 const YEAR_MAX = 2100;
 
+/* The only columns this action may touch. A "use server" export is a
+   network-callable POST and the `field: ProfileField` type is erased at
+   runtime, so `field` can arrive as ANY string. Without this guard the
+   `default:` branch below would run `data[field] = ...` for a column it was
+   never meant to: nulling `password` (leaving the account with no working
+   login, reset, or delete-reauth path), wiping the `adminNote` an admin keeps
+   about this member, or clearing `deletionRequestedAt` without the password
+   re-auth requestAccountDeletion deliberately requires. The where-clause pins
+   the row to the caller so this was never IDOR or a role change -- role,
+   verifyState, accountType, isBlocked are all non-nullable -- but it was
+   arbitrary tampering with the caller's own row. Every other profile writer
+   whitelists (an explicit `data` literal after a zod parse); this one now does
+   too. Kept in step with the ProfileField union above by hand: a member added
+   there but not here simply cannot be edited, which fails safe. */
+const EDITABLE_FIELDS = new Set<string>([
+  "name",
+  "about",
+  "jobTitle",
+  "workplace",
+  "batchYear",
+  "yearJoined",
+  "yearLeft",
+  "admissionNumber",
+  "subjects",
+  "taughtFrom",
+  "taughtUntil",
+]);
+
 export type ProfileField =
   | "name"
   | "about"
@@ -44,6 +72,10 @@ export type ProfileField =
 export async function updateProfileField(field: ProfileField, raw: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // Refuse any column not in the edit set before a single write is composed
+  // (mass-assignment guard -- see EDITABLE_FIELDS above).
+  if (!EDITABLE_FIELDS.has(field)) return { error: "That field cannot be edited here." };
 
   const value = raw.trim();
   const data: Record<string, string | number | null> = {};

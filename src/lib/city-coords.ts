@@ -137,7 +137,11 @@ export function cityNameVariants(raw: string | null | undefined): string[] {
   if (!raw) return [];
   const key = normalizeCity(raw);
   const variants = new Set<string>([key]);
-  const coords = CITY_COORDS[key];
+  // Object.hasOwn, not a bare `CITY_COORDS[key]`: a filter value like
+  // "constructor" or "__proto__" survives normalizeCity and would otherwise
+  // return an inherited member (Object, Object.prototype) -- truthy, no
+  // `.join` -- turning a member's `/directory?city=...` into an uncaught 500.
+  const coords = Object.hasOwn(CITY_COORDS, key) ? CITY_COORDS[key] : undefined;
   if (coords) {
     const target = coords.join(",");
     for (const [name, c] of Object.entries(CITY_COORDS)) {

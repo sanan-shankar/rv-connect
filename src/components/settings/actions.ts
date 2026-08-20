@@ -10,7 +10,7 @@ import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { putImage, delImage, ownerPrefix } from "@/lib/storage";
 import { sharpImage } from "@/lib/image";
-import { sniffImageType } from "@/lib/upload-shared";
+import { sniffImageType, describeProcessingError } from "@/lib/upload-shared";
 import { profileSchema } from "@/lib/validators";
 import { batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
@@ -225,8 +225,10 @@ export async function updateAvatar(formData: FormData) {
       .toBuffer();
     url = await putImage(webp, ownerPrefix("avatars", session.user.id), `${id}.webp`);
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    return { error: `Could not process the photo: ${message}` };
+    // Log the real cause server-side; hand the client a mapped, path-free
+    // sentence (describeProcessingError) rather than the raw libvips string.
+    console.error("Avatar processing error:", e);
+    return { error: describeProcessingError(e) };
   }
 
   // Replace any prior uploaded photo, best-effort.

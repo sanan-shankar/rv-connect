@@ -90,3 +90,19 @@ test("C2: every write path that accepts image URLs runs the ownership gate", () 
     );
   }
 });
+
+/* ------------------------------------- M1: profile field mass assignment */
+
+test("M1: updateProfileField whitelists the column before writing", () => {
+  // updateProfileField is a "use server" POST and its `field` argument is an
+  // erased TS union, so without an allowlist its `default:` branch would write
+  // any column (nulling password, wiping adminNote, clearing
+  // deletionRequestedAt). The guard must exist AND run before prisma.update.
+  const src = decomment(read("src/components/profile/profile-actions.ts"));
+  const fn = src.slice(src.indexOf("export async function updateProfileField"));
+  const guardAt = fn.search(/EDITABLE_FIELDS\.has\(field\)/);
+  const updateAt = fn.search(/prisma\.user\.update/);
+  assert.ok(guardAt !== -1, "updateProfileField no longer checks EDITABLE_FIELDS");
+  assert.ok(updateAt !== -1, "updateProfileField no longer writes the row");
+  assert.ok(guardAt < updateAt, "the field allowlist runs after the write");
+});
