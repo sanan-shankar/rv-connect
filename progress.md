@@ -2069,3 +2069,33 @@ signed-in account (H18) — capped.
 three upgrades, check clean, visual 21/21. Owner action: confirm CRON_SECRET is set on the real
 Vercel project (same one demo-reset uses) so the nightly Catch-up cron actually runs; until then the
 lazy page-load tick covers it exactly as before, so nothing regresses.
+
+## 2026-08-20 — Security Phase 7: a record that outlives the people in it
+
+Before this, nothing was written down. An admin could block, delete, verify or demote anyone and the
+only trace was the effect itself; a member could delete their account and it vanished without a line
+(H10, M36). If C1 had ever been exploited you would never have learned the 72-hour clock had started
+(H14). So: an **AuditLog** table with no foreign keys on purpose — actorId, targetId and a
+denormalised name live as plain strings, so "admin X deleted member Y" survives Y's deletion, and X's,
+which is the one property an audit log exists to have. `writeAudit()` records block/unblock, delete,
+verify, unverify, role, merge, self-deletion and reports, and it can never throw — an audit write must
+not turn a successful moderation click into an error page. Sign-ins were already logged (LoginAttempt,
+Phase 4), so the two tables together are the record.
+
+The admin can now **see** it: `/admin/audit` puts the attribution record and the failed-sign-in record
+side by side — who did what to whom, and the shape a break-in attempt makes (a burst of wrong
+passwords, a run at addresses that match no account). That is H14: not alerting, but the thing you look
+at when you have a reason to.
+
+And **H5** finally closed. Phase 3 took away the one-report-strips-a-badge bug; this took away the rest.
+A member can no longer inflate a flag count by reporting the same person over and over — one report per
+pair, enforced by a unique index and answered gently ("we've already got your flag", even when two
+flags race in together and one loses to the constraint). Reporting routes through the same new-thread
+budget messaging does, so it can't be a faster way to page a human. And at three distinct flaggers the
+admin hears "N members have now flagged X" instead of a single voice — but the standing still only ever
+changes by the admin's hand, which was the whole point of making verifyState a capability in Phase 3.
+
+**Proof.** phase7-probe 9/9 live, including the real thing end to end: an admin clicks Verify in the
+actual /admin/people UI, the member is verified, an attributed `admin.verify` row lands in the log, and
+it renders on /admin/audit. check clean, visual 21/21, the new page screenshotted both viewports. One
+migration (AuditLog + the Report unique), applied forward-only; the demo writes no audit rows.

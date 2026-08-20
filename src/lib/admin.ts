@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -61,6 +62,23 @@ export async function requireAdminAction(): Promise<{ error: string } | null> {
     return { error: "Not authorized" };
   }
   return null;
+}
+
+/**
+ * Like `requireAdminAction`, but on success also returns WHO is acting and
+ * from WHERE — the actor id and caller IP an audit-logged action needs to
+ * record (audit H10). Used by the standing-changing actions (block, delete,
+ * role, verification) so the log can attribute the change.
+ */
+export async function requireAdminActor(): Promise<
+  { ok: false; error: string } | { ok: true; actorId: string; ip: string | null }
+> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return { ok: false, error: "Not authorized" };
+  }
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+  return { ok: true, actorId: session.user.id, ip };
 }
 
 /** True only for the one configured owner, who gets the hoopoe tour trigger. */

@@ -8,6 +8,7 @@ import {
   IndianRupee,
   Mail,
   ChartLine,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -107,6 +108,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: "Mail",
         icon: Mail,
         blurb: "The send queue, the daily budget, and the failures.",
+      },
+      {
+        href: "/admin/audit",
+        label: "Audit log",
+        icon: ScrollText,
+        blurb: "Who blocked, deleted or verified whom, and the failed sign-ins.",
       },
       {
         href: "/admin/analytics",

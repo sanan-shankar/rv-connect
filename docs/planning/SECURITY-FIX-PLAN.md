@@ -151,8 +151,8 @@ Mark a phase done only when `npm run audit:status` agrees.
 | 4 | Bot defence and rate limiting | H22, H6, M2, M3, M7 | **done 2026-08-20** |
 | 5 | Object deletion and uploads | C2, M10–M17 | **done 2026-08-20** |
 | 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | **done 2026-08-20** |
-| 7 | Audit log and admin accountability | H10, H14, M36, H5 | next |
-| 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | |
+| 7 | Audit log and admin accountability | H10, H14, M36, H5 | **done 2026-08-20** |
+| 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | next |
 | 9 | CI hardening and security tests | H16, H17 | |
 | 10 | Remaining mediums and lows | the rest | |
 
@@ -619,3 +619,52 @@ regresses. (2) Dependabot's next-auth/sharp/next PRs can be closed as done. Noth
 schema change, no migration, no demo-DB step. User-visible: no layout moved; the only new failure
 copy is on invalid contact input (a non-https link, an over-long field), which was silently accepted
 before.
+
+### 2026-08-20 — Phase 7
+**Closed:** H10, H14, M36, H5.
+**Schema (SA-3 migration `2026-08-20-audit-log.sql`, applied via run-sql, RLS-enabled to match the
+2026-08-20 posture):** `AuditLog` (id, actorId, action, targetType, targetId, ip, detail, createdAt)
+with NO foreign keys ON PURPOSE — actorId/targetId are plain strings and `detail` carries a
+denormalised name/email, so a row is immutable and OUTLIVES the accounts it names ("admin X deleted
+member Y" must survive Y's deletion, and X's). Plus `@@unique([reporterId, reportedUserId])` on
+Report (a pre-check found 0 duplicate pairs, so the index built clean; post reports carry
+reportedUserId NULL and Postgres keeps NULLs distinct, so post reporting is untouched).
+**Built:** `src/lib/audit.ts` `writeAudit()` — append-only, NEVER throws (the touchLastSeen contract:
+an audit write must not turn a successful block/delete/sign-in into an error page), IS_DEMO
+short-circuits. `requireAdminActor()` in `admin.ts` returns `{ok, actorId, ip}` so an audited action
+can attribute itself. Wired: block/unblock, delete, verify, unverify, role, merge (admin actions),
+account.delete (self, M36 — context captured before the row is gone), report.user/report.post.
+Sign-ins were ALREADY logged in LoginAttempt since Phase 4, so AuditLog covers what that does not;
+the two together are the record. **H5's remainder:** reportUser now dedups per (reporter, reported)
+pair (a findFirst fast-path AND a P2002 catch on create, so a concurrent double-flag is the same
+graceful "already flagged", not a 500), routes through the same new-thread limiter startThread uses
+(reporting can't out-fan messaging), and escalates the admin notification from "someone flagged X"
+to "N members have now flagged X" at 3 distinct reporters — standing still changes only by an
+admin's hand (the Phase 3 decision), the threshold just tells one voice from a chorus. **H14:** a new
+admin-only `/admin/audit` view (recent AuditLog + recent failed sign-ins from LoginAttempt — the
+attribution record and the break-in-shape record side by side), linked in the admin nav.
+**Proved:** `scripts/qa/phase7-probe.mjs`, **9/9** against the running server: /admin/audit is
+redirected signed-out, redirected for a non-admin member, 200 for an admin; a duplicate
+(reporter, reported) user-report is refused by the unique index while two post reports from one
+member both land; and END TO END — the admin clicks Verify on a disposable member in the real
+/admin/people UI, the member is verified AND an `admin.verify` AuditLog row is written attributed to
+the admin acting on that member, and it renders on /admin/audit as "Verified". `npm run check` clean
+(19 test files) · `npm run visual` 21/21 · the /admin/audit page screenshotted desktop+mobile and
+read (clean, responsive, nav active state correct). audit:status **37 fixed, 3 open** (H9/H12 are
+Phase 8, H16 Phase 9).
+**Write-path review, two findings, both fixed:** (1) the reportUser dedup had a TOCTOU race — two
+flags of the same pair racing in both pass the findFirst, and the loser hit the unique index as an
+unhandled 500; now the create catches P2002 and returns the same graceful "already flagged". (2)
+`deleteAccount` had the SAME RESTRICT-FK break `adminDeleteUser` was fixed for — a self-deleting
+member who had ever filed a report threw before the delete, which ALSO meant the M36 audit never
+ran for them; now it clears their filed reports first, in a try/catch, so M36 is reliable. That
+one-liner **closes H8 early** (its whole content was "deleteAccount throws for report-filers"); the
+Phase 8 deletion rework (H9 R2 cleanup, M35 grace/export) still stands on top of it. Review
+otherwise confirmed the invariants: writeAudit never throws and always follows a successful
+mutation, AuditLog has no FK so rows outlive deletions, /admin/audit inherits the admin-layout gate,
+and AuditLog/Report are absent from the demo write-allowlist (default-deny even past the IS_DEMO
+short-circuit).
+**Owner needs to:** nothing blocking. The audit log begins empty and fills as actions happen; the
+failed-sign-in list is already populated (it reads the LoginAttempt table Phase 4 has been writing).
+No demo-DB step — the demo writes no audit rows (writeAudit short-circuits on IS_DEMO), and RLS on
+AuditLog matches every other table.

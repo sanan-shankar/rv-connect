@@ -470,6 +470,41 @@ model Report {
   // The conversation the reporter can follow after filing this (see AdminThread).
   // Back-relation only: the foreign key lives on AdminThread.reportId.
   thread AdminThread?
+
+  // One report per (reporter, reported member): a member cannot inflate the
+  // flag count against someone by reporting them over and over (audit H5).
+  // Post reports carry reportedUserId = NULL, and Postgres treats NULLs as
+  // distinct in a unique index, so this constrains only user-to-user reports
+  // and leaves post reporting unaffected.
+  @@unique([reporterId, reportedUserId])
+}
+
+/**
+ * The audit log (audit H10 / H14 / M36). An append-only record of the events
+ * that matter for accountability and breach detection: sign-ins (success and
+ * failure), every admin action against a member (block, delete, role change,
+ * verification change), a member deleting their own account, and reports.
+ *
+ * Deliberately has NO foreign keys. actorId and targetId are plain strings, so
+ * a row is immutable and OUTLIVES the accounts it names — the entire point of
+ * an audit log is that "admin X deleted member Y" survives Y's deletion (and
+ * X's). Denormalised context (a name, an email, a method) goes in `detail` for
+ * the same reason: it stays readable after the referenced row is gone.
+ */
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String? // who did it; null for an anonymous/system event (e.g. a failed sign-in)
+  action     String // dotted verb, e.g. "signin.success", "admin.block", "account.delete"
+  targetType String? // "user" | "post" | "report" | ...
+  targetId   String?
+  ip         String?
+  detail     String? // small human-readable context, safe to read after the row it names is gone
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([targetId])
+  @@index([action, createdAt])
 }
 
 model Notification {

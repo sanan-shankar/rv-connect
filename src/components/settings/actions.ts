@@ -10,6 +10,7 @@ import { sniffImageType } from "@/lib/upload-shared";
 import { profileSchema } from "@/lib/validators";
 import { batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
+import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
@@ -264,8 +265,36 @@ export async function deleteAccount() {
   if (!session?.user?.id) return { error: "Not authenticated" };
   if (IS_DEMO) return { error: "This is a demo account, so it stays put." };
 
-  await prisma.user.delete({
-    where: { id: session.user.id },
+  const userId = session.user.id;
+  // Context for the audit entry, captured before the row is gone (audit M36:
+  // deletion was silent and unlogged). The grace period, confirmation email
+  // and stored-object cleanup are Phase 8 (M35/H8/H9); this phase gives the
+  // deletion a record.
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true },
+  });
+
+  try {
+    // Report.reporterId is RESTRICT, not cascade: a member who has EVER filed a
+    // report cannot be deleted until those rows are cleared, or the delete
+    // throws and rolls back (audit H8 — adminDeleteUser already does exactly
+    // this; self-deletion had the same latent break, which also meant the M36
+    // audit below never ran for that person). Reports filed AGAINST them
+    // cascade on their own.
+    await prisma.report.deleteMany({ where: { reporterId: userId } });
+    await prisma.user.delete({ where: { id: userId } });
+  } catch (err) {
+    console.error("deleteAccount failed:", err);
+    return { error: "Could not delete your account. Please try again, or message the admin." };
+  }
+
+  await writeAudit({
+    actorId: userId,
+    action: "account.delete",
+    targetType: "user",
+    targetId: userId,
+    detail: me ? `${me.name} <${me.email}> (self-deleted)` : "self-deleted",
   });
 
   return { success: true };

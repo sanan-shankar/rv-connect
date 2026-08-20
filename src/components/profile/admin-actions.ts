@@ -1,8 +1,9 @@
 "use server";
 
-import { requireAdminAction, type AdminActionResult } from "@/lib/admin";
+import { requireAdminAction, requireAdminActor, type AdminActionResult } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { noteOnReportThread } from "@/lib/admin-threads-server";
+import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 
 /* The guard and the result shape moved to src/lib/admin.ts on 2026-08-19, when
@@ -11,8 +12,8 @@ import { revalidatePath } from "next/cache";
 const requireAdmin = requireAdminAction;
 
 export async function adminBlockUser(userId: string, block: boolean): Promise<AdminActionResult> {
-  const denied = await requireAdmin();
-  if (denied) return denied;
+  const actor = await requireAdminActor();
+  if (!actor.ok) return { error: actor.error };
 
   await prisma.user.update({
     where: { id: userId },
@@ -28,13 +29,28 @@ export async function adminBlockUser(userId: string, block: boolean): Promise<Ad
     },
   });
 
+  await writeAudit({
+    actorId: actor.actorId,
+    action: block ? "admin.block" : "admin.unblock",
+    targetType: "user",
+    targetId: userId,
+    ip: actor.ip,
+  });
+
   revalidatePath(`/profile/${userId}`);
   return { success: true };
 }
 
 export async function adminDeleteUser(userId: string): Promise<AdminActionResult> {
-  const denied = await requireAdmin();
-  if (denied) return denied;
+  const actor = await requireAdminActor();
+  if (!actor.ok) return { error: actor.error };
+
+  // Capture a little context BEFORE the row is gone, so the audit entry is
+  // still readable once the account it names no longer exists.
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true },
+  });
 
   try {
     // Report.reporterId is intentionally not a cascading relation (a filed
@@ -48,6 +64,15 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
     console.error("adminDeleteUser failed:", err);
     return { error: "Could not delete this user. Check the server log." };
   }
+
+  await writeAudit({
+    actorId: actor.actorId,
+    action: "admin.delete",
+    targetType: "user",
+    targetId: userId,
+    ip: actor.ip,
+    detail: target ? `${target.name} <${target.email}>` : undefined,
+  });
 
   revalidatePath("/directory");
   revalidatePath("/admin", "layout");
@@ -70,8 +95,8 @@ export async function adminVerifyUser(
   userId: string,
   method: "office_list" | "admin_manual" = "admin_manual"
 ): Promise<AdminActionResult> {
-  const denied = await requireAdmin();
-  if (denied) return denied;
+  const actor = await requireAdminActor();
+  if (!actor.ok) return { error: actor.error };
 
   await prisma.user.update({
     where: { id: userId },
@@ -80,6 +105,15 @@ export async function adminVerifyUser(
       verifyMethod: method,
       verifiedAt: new Date(),
     },
+  });
+
+  await writeAudit({
+    actorId: actor.actorId,
+    action: "admin.verify",
+    targetType: "user",
+    targetId: userId,
+    ip: actor.ip,
+    detail: method,
   });
 
   await prisma.notification.create({
@@ -97,12 +131,20 @@ export async function adminVerifyUser(
 }
 
 export async function adminUnverifyUser(userId: string): Promise<AdminActionResult> {
-  const denied = await requireAdmin();
-  if (denied) return denied;
+  const actor = await requireAdminActor();
+  if (!actor.ok) return { error: actor.error };
 
   await prisma.user.update({
     where: { id: userId },
     data: { verifyState: "unverified", verifyMethod: null, verifiedAt: null },
+  });
+
+  await writeAudit({
+    actorId: actor.actorId,
+    action: "admin.unverify",
+    targetType: "user",
+    targetId: userId,
+    ip: actor.ip,
   });
 
   revalidatePath("/admin", "layout");
