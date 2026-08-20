@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
-import { putImage } from "@/lib/storage";
-import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/lib/upload-shared";
+import { putImage, ownerPrefix } from "@/lib/storage";
+import { sharpImage } from "@/lib/image";
+import {
+  MAX_UPLOAD_BYTES,
+  isUnsupportedHeic,
+  describeProcessingError,
+  sniffImageType,
+} from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -89,10 +94,22 @@ export async function POST(request: Request) {
 
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
+
+      // The client's MIME string got the file this far; the bytes themselves
+      // decide whether it is really an image, before libvips parses it (M13).
+      if (!sniffImageType(buffer)) {
+        return NextResponse.json(
+          { error: `"${file.name}" doesn't look like a JPG, PNG, GIF or WebP image.` },
+          { status: 400 }
+        );
+      }
+
       const id = createId();
 
-      // Process with sharp: resize + convert to WebP
-      const webpBuffer = await sharp(buffer)
+      // Process with sharp: resize + convert to WebP. The object key is scoped
+      // to the uploader (`uploads/<their id>/...`) so ownership is provable at
+      // the point a post later references this URL (audit C2).
+      const webpBuffer = await sharpImage(buffer)
         .rotate()
         .resize(1920, 1920, {
           fit: "inside",
@@ -101,7 +118,7 @@ export async function POST(request: Request) {
         .webp({ quality: 80 })
         .toBuffer();
 
-      const url = await putImage(webpBuffer, "uploads", `${id}.webp`);
+      const url = await putImage(webpBuffer, ownerPrefix("uploads", session.user.id), `${id}.webp`);
       urls.push(url);
     } catch (error) {
       console.error("Upload processing error:", error);

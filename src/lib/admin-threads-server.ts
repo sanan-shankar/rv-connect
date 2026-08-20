@@ -5,6 +5,9 @@ import {
   deriveSubject,
   previewOf,
 } from "@/lib/admin-threads";
+// One definition of "did this app mint that URL", in a pure module so both the
+// message path and the post/Catch-up write paths share it (audit C2/M10).
+export { isUploadedImageUrl } from "@/lib/upload-shared";
 
 /**
  * The database half of member <-> admin conversations. Split from
@@ -19,18 +22,6 @@ import {
  * Threads are private: a member may only ever touch their own, admins may
  * touch all. Those checks live in the server actions, against the session.
  */
-
-/**
- * True only for a URL this app produced through POST /api/upload (local
- * `/uploads/...` in dev, the R2 public base in production). Everything else is
- * rejected, so a crafted action call cannot hotlink or embed an arbitrary
- * remote URL into a thread.
- */
-export function isUploadedImageUrl(url: string): boolean {
-  if (url.startsWith("/uploads/")) return true;
-  const base = process.env.R2_PUBLIC_BASE_URL?.replace(/\/+$/, "");
-  return !!base && url.startsWith(`${base}/uploads/`);
-}
 
 /** Cheap DB-backed throttle: enough to stop a script, invisible to a person. */
 export async function isThreadRateLimited(memberId: string): Promise<boolean> {

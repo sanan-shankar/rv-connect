@@ -1,7 +1,8 @@
-import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "@/lib/prisma";
-import { getImageBuffer, keyForUrl, putImage } from "@/lib/storage";
+import { getImageBuffer, keyForUrl, putImage, ownerPrefix } from "@/lib/storage";
+import { sharpImage } from "@/lib/image";
+import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
 import { plainExcerpt } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
@@ -12,10 +13,13 @@ import { plainExcerpt } from "@/lib/utils";
  *  maybe it could even just be a tiny tick mark"). This is what that tick does
  *  once the post itself is safely written.
  *
- *  The bytes are already in storage, uploaded for the post. Nothing is
- *  re-uploaded: the post's own image becomes the Collection photo's `url`, and
- *  the only new object is the 480px grid thumbnail, which the Collection needs
- *  and a post does not.
+ *  The bytes are already in storage, uploaded for the post. The Collection row
+ *  gets its OWN copy of them (a fresh object under the uploader's collection
+ *  prefix) plus a 480px grid thumbnail — deliberately NOT a reference to the
+ *  post's object. Sharing one object between the two rows was cheaper, but once
+ *  removing a Collection photo deletes its bytes (Phase 5, M11) an aliased
+ *  delete would silently break the still-live feed post; independent objects
+ *  keep the two rows from ever taking each other down.
  *
  *  Approval is unchanged. A contribution made this way lands in the same
  *  admin queue as one made through the contribute dialog, and auto-approves on
@@ -57,19 +61,29 @@ export async function copyPostImagesToCollection({
   if (!me) return 0;
   const autoApprove = me.role === "admin" || me.photoTrusted;
 
+  // The per-account Collection ceiling applies here too (audit M17): this path
+  // creates Photo rows just like the contribute dialog, so without it a member
+  // could tick "add to the Collection" on post after post and never hit the
+  // cap the two dialog paths enforce. Take only as many as the account has room
+  // for; the rest are simply not copied (the tick is best-effort by design).
+  const existing = await prisma.photo.count({ where: { uploaderId: userId } });
+  const room = Math.max(0, MAX_PHOTOS_PER_ACCOUNT - existing);
+  if (room === 0) return 0;
+  const toCopy = imageUrls.slice(0, room);
+
   // The post's text is the only thing the member wrote about this photograph,
   // so it is the caption. Trimmed to the same 300 the contribute form allows.
   const photoCaption = plainExcerpt(caption, 300) || null;
 
   const results = await Promise.all(
-    imageUrls.map(async (url) => {
+    toCopy.map(async (url) => {
       const key = keyForUrl(url);
       // Not ours (a legacy host, an external URL): there are no bytes to read
       // and no thumbnail to build, so there is nothing to contribute.
       if (!key) return false;
       try {
         const original = await getImageBuffer(key);
-        const md = await sharp(original).metadata();
+        const md = await sharpImage(original).metadata();
         // EXIF orientations 5-8 are the rotated ones, where stored width and
         // height are swapped relative to how the image displays.
         const swap = (md.orientation ?? 1) >= 5;
@@ -77,18 +91,28 @@ export async function copyPostImagesToCollection({
         const height = (swap ? md.width : md.height) ?? 0;
         if (!width || !height) return false;
 
-        const thumb = await sharp(original)
-          .rotate()
-          .resize(THUMB_PX, THUMB_PX, { fit: "inside", withoutEnlargement: true })
-          .webp({ quality: 72 })
-          .toBuffer();
-        const thumbUrl = await putImage(thumb, "collection", `${createId()}-t.webp`);
+        // The Collection row gets its OWN copy of the bytes under the uploader's
+        // collection prefix, NOT the post's URL. Sharing one object between a
+        // post and a Collection row was safe only while nothing deleted a
+        // Collection photo's bytes; Phase 5's M11 fix (adminRemovePhoto /
+        // declinePhoto now delete the file) made an aliased delete silently
+        // break the still-live feed post. A distinct object keeps the two rows
+        // independent, at the cost of one extra PUT of bytes already in memory.
+        const [copiedUrl, thumbUrl] = await Promise.all([
+          putImage(original, ownerPrefix("collection", userId), `${createId()}.webp`),
+          sharpImage(original)
+            .rotate()
+            .resize(THUMB_PX, THUMB_PX, { fit: "inside", withoutEnlargement: true })
+            .webp({ quality: 72 })
+            .toBuffer()
+            .then((thumb) => putImage(thumb, ownerPrefix("collection", userId), `${createId()}-t.webp`)),
+        ]);
 
         await prisma.photo.create({
           data: {
             uploaderId: userId,
             thumbUrl,
-            url,
+            url: copiedUrl,
             width,
             height,
             caption: photoCaption,
