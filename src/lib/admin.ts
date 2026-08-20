@@ -107,6 +107,7 @@ export interface WorklistCounts {
   reports: number;
   photos: number;
   flagged: number;
+  pendingVerify: number;
   failedMail: number;
   stuckCatchups: number;
   total: number;
@@ -139,12 +140,13 @@ export function overdueEditionWhere(now: Date) {
  */
 export async function worklistCounts(): Promise<WorklistCounts> {
   const now = new Date();
-  const [messages, reports, photos, flagged, failedMail, stuckCatchups] =
+  const [messages, reports, photos, flagged, pendingVerify, failedMail, stuckCatchups] =
     await Promise.all([
       prisma.adminThread.count({ where: { adminUnread: true } }),
       prisma.report.count({ where: { status: "pending" } }),
       prisma.photo.count({ where: { approved: false, isHidden: false } }),
       prisma.user.count({ where: { isBlocked: false, verifyState: "flagged" } }),
+      prisma.user.count({ where: { isBlocked: false, verifyState: "pending" } }),
       prisma.outboundEmail.count({ where: { status: "failed" } }),
       prisma.catchupEdition.count({ where: overdueEditionWhere(now) }),
     ]);
@@ -153,8 +155,9 @@ export async function worklistCounts(): Promise<WorklistCounts> {
     reports,
     photos,
     flagged,
+    pendingVerify,
     failedMail,
     stuckCatchups,
-    total: messages + reports + photos + flagged + failedMail + stuckCatchups,
+    total: messages + reports + photos + flagged + pendingVerify + failedMail + stuckCatchups,
   };
 }

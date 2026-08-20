@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  BadgeCheck,
   CalendarDays,
   Flag,
   IndianRupee,
@@ -33,6 +34,7 @@ const QUEUE_ICON = {
   report: Flag,
   photo: Images,
   flagged: ShieldQuestion,
+  verify: BadgeCheck,
   mail: Mail,
   catchup: CalendarDays,
 } as const;
