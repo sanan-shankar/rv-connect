@@ -190,6 +190,13 @@ export function proxy(request: NextRequest) {
     "/",
     "/login",
     "/signup",
+    // The three policy documents (audit H12). Public on principle: someone
+    // deciding whether to sign up must be able to read the privacy policy
+    // BEFORE handing over an email address, and the signup consent line
+    // links all three.
+    "/privacy",
+    "/terms",
+    "/guidelines",
     "/forgot-password",
     "/reset-password",
     "/verify-email",

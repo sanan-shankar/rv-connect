@@ -89,7 +89,7 @@ import {
   updateAvatar,
   removeAvatar,
 } from "@/components/settings/actions";
-import { PasswordField } from "@/components/auth/password-field";
+import { Input } from "@/components/ui/input";
 import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { Camera, X } from "lucide-react";
@@ -1315,12 +1315,18 @@ export function LetterheadProfile({
             }}
             className="space-y-[var(--space-s)]"
           >
-            <PasswordField
-              label="Your password"
+            {/* The standard bordered Input, NOT the auth pages' mist
+                FloatField: that material is scoped to pages that ARE a form
+                (design system, section 3), and this is a dialog like every
+                other dialog. No reveal toggle for the same reason no other
+                dialog has one. */}
+            <Input
+              type="password"
               value={deletePassword}
-              onChange={setDeletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
               autoComplete="current-password"
-              focusHint=""
+              placeholder="Your password"
+              aria-label="Your password"
             />
             {deleteError && (
               <p role="alert" className="text-[13px] leading-snug text-heart">

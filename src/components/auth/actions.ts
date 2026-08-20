@@ -34,6 +34,14 @@ export async function registerUser(formData: FormData) {
     return { error: "Password must be at least 8 characters." };
   }
 
+  // The consent box (audit H12) is enforced HERE, not just as a `required`
+  // attribute in the form: a POST that skips the browser must still carry it.
+  // The tick is recorded as a timestamp on the row, which is the receipt
+  // GDPR Art. 7 asks for.
+  if (formData.get("consent") !== "on") {
+    return { error: "Please agree to the terms and the privacy policy to join." };
+  }
+
   const accountType = (formData.get("accountType") as string) || "alumnus";
   const isAlum = accountType === "alumnus";
   const num = (key: string) =>
@@ -135,6 +143,9 @@ export async function registerUser(formData: FormData) {
       yearLeft: isAlum ? (parsed.data.yearLeft ?? null) : null,
       taughtFrom: isAlum ? null : (parsed.data.yearJoined ?? null),
       taughtUntil: isAlum ? null : (parsed.data.yearLeft ?? null),
+      // The consent receipt (audit H12). Members who joined before the box
+      // existed carry null, which the owner's decision reads as agreement.
+      consentAt: new Date(),
     },
   });
 
