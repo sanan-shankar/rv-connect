@@ -59,6 +59,18 @@ model User {
   // The same one column answers both, plus the deleted-account case, which is
   // the only revocation primitive this design can have.
   credentialVersion Int   @default(0)
+  // Self-deletion is a request, not an event (audit M35): set when the member
+  // confirms deletion with their password, cleared if they sign back in during
+  // the 60-day grace period (the owner's retention decision, 2026-08-19), and
+  // acted on by the retention sweep, which purges the row and every stored
+  // image once the window has passed (audit H9). While set, the account is
+  // held out of the directory and search the same way a blocked one is.
+  deletionRequestedAt DateTime?
+  // When this person ticked the signup consent box linking the privacy
+  // policy, terms and community guidelines (audit H12). Null for members who
+  // joined before the box existed; the owner's decision records that existing
+  // members are assumed to agree, so null is never treated as missing consent.
+  consentAt     DateTime?
   adminNote     String?
   theme         String?   // UI theme preference: "light" | "dark"; null = light (the default, so existing rows need no backfill). Mirrored into the rv-theme cookie (src/lib/theme.ts) for SSR.
   // Last time this member loaded an authenticated page, rounded to ~15 minutes

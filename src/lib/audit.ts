@@ -10,8 +10,12 @@ import { IS_DEMO } from "@/lib/demo";
  *   signin.success  signin.fail
  *   admin.block  admin.unblock  admin.delete  admin.role  admin.verify
  *   admin.unverify  admin.merge
- *   account.delete
+ *   account.delete_request  account.delete_cancel  account.purge  account.export
  *   report.user  report.post
+ *   retention.sweep
+ *
+ * ("account.delete" was the pre-grace-period self-deletion event; nothing
+ * writes it since Phase 8, but old rows still carry it.)
  */
 export type AuditAction =
   | "signin.success"
@@ -23,9 +27,13 @@ export type AuditAction =
   | "admin.verify"
   | "admin.unverify"
   | "admin.merge"
-  | "account.delete"
+  | "account.delete_request"
+  | "account.delete_cancel"
+  | "account.purge"
+  | "account.export"
   | "report.user"
-  | "report.post";
+  | "report.post"
+  | "retention.sweep";
 
 /**
  * Record one event. NEVER throws and never blocks the caller's real work: an

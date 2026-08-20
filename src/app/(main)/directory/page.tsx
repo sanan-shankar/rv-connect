@@ -243,7 +243,12 @@ export default async function DirectoryPage({
   // filter already implies `where.places` is set, so it is not overwritten
   // here -- otherwise the "has any place" guard is added on top.
   const placesGuard = (where as { places?: unknown }).places ? {} : { places: { some: {} } };
-  const pinWhere = hasFilter ? { ...where, ...placesGuard } : { isBlocked: false, ...placesGuard };
+  // Every unfiltered branch repeats the deletionRequestedAt guard `where`
+  // already carries (via buildDirectoryWhere): a deletion-pending account is
+  // out of the directory in every view, counts included (audit M35).
+  const pinWhere = hasFilter
+    ? { ...where, ...placesGuard }
+    : { isBlocked: false, deletionRequestedAt: null, ...placesGuard };
 
   // Every read this page needs is independent of every other, so they all run
   // as one concurrent round trip instead of several sequential ones: the
@@ -260,15 +265,15 @@ export default async function DirectoryPage({
   ] = await Promise.all([
     prisma.user.groupBy({
       by: ["batchYear"],
-      where: { isBlocked: false, accountType: { notIn: ["teacher", "ex_teacher"] } },
+      where: { isBlocked: false, deletionRequestedAt: null, accountType: { notIn: ["teacher", "ex_teacher"] } },
       _count: { id: true },
       orderBy: { batchYear: "desc" },
     }),
     prisma.user.count({
-      where: { isBlocked: false, accountType: { in: ["teacher", "ex_teacher"] } },
+      where: { isBlocked: false, deletionRequestedAt: null, accountType: { in: ["teacher", "ex_teacher"] } },
     }),
     prisma.user.aggregate({
-      where: { isBlocked: false, batchYear: { not: null } },
+      where: { isBlocked: false, deletionRequestedAt: null, batchYear: { not: null } },
       _min: { batchYear: true },
       _max: { batchYear: true },
     }),
@@ -298,7 +303,7 @@ export default async function DirectoryPage({
     // needed) imported straight into the client component.
     prisma.userPlace.groupBy({
       by: ["city"],
-      where: { user: { isBlocked: false } },
+      where: { user: { isBlocked: false, deletionRequestedAt: null } },
       _count: { city: true },
       orderBy: [{ _count: { city: "desc" } }, { city: "asc" }],
     }),

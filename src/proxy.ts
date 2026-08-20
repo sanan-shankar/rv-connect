@@ -217,6 +217,10 @@ export function proxy(request: NextRequest) {
     // Exact path, not a prefix, so the member-facing /api/catchups routes stay
     // gated.
     "/api/catchups/tick",
+    // The nightly retention sweep (audit M34), same shape as the tick above:
+    // a server-to-server GET from GitHub Actions carrying CRON_SECRET, no
+    // session cookie. Exact path; nothing else lives under /api/retention.
+    "/api/retention/sweep",
     "/catchups/join",
     "/hoopoe",
   ];

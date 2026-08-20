@@ -1,0 +1,45 @@
+name: retention
+
+# Nightly data-retention sweep (security audit M34) plus the 60-day
+# grace-period account purge (audits H9 + M35). The app exposes one guarded
+# route, /api/retention/sweep, and this job is its alarm clock.
+#
+# WHY GitHub Actions and not a Vercel cron: the Vercel Hobby plan allows two
+# cron jobs and both slots are spent (the nightly Catch-up tick and the demo
+# reset). This repo already runs its nightly backup from Actions, so the
+# retention beat lives beside it.
+#
+# Needs one repository secret: CRON_SECRET, the same value set on the Vercel
+# project (it also guards /api/catchups/tick). Without it the route answers
+# 401 and this job fails loudly, which is the correct symptom.
+
+on:
+  schedule:
+    # 21:00 UTC == 02:30 IST: inside the same quiet-hours window as the
+    # backup (20:30 UTC) and the catchups cron, but not simultaneous with
+    # either.
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: retention
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call the sweep route
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET repository secret is not set" >&2
+            exit 1
+          fi
+          # -f turns an HTTP error (401, 500) into a job failure instead of a
+          # green run that silently swept nothing.
+          curl -sS -f \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://rishivalley.space/api/retention/sweep"

@@ -342,3 +342,47 @@ export function passwordChangedTemplate(opts: { name: string }): BuiltEmail {
     ].join("\n"),
   };
 }
+
+/**
+ * Sent when a member asks for their account to be deleted (audit M35).
+ *
+ * Two jobs. It confirms the request in writing, with the date the deletion
+ * becomes final. And, like the password-changed notice, it is the takeover
+ * alarm: if somebody ELSE requested it, this is the mail that says so while
+ * the grace period still leaves 60 days to undo it — by simply signing in,
+ * which is deliberately something only the account's real owner can do.
+ */
+export function deletionScheduledTemplate(opts: {
+  name: string;
+  /** Human-readable date the purge becomes final, e.g. "19 October 2026". */
+  purgeDate: string;
+}): BuiltEmail {
+  const first = firstNameOf(opts.name);
+  const when = opts.purgeDate || "60 days from now";
+  return {
+    subject: "Your Rishi Valley account is scheduled for deletion",
+    html: shell({
+      preheader: "Your account and everything in it will be deleted.",
+      heading: "Your account is scheduled for deletion",
+      body: `<p style="margin:0;">Hello ${escapeHtml(
+        first,
+      )}. You asked for your Rishi Valley account to be deleted. On ${escapeHtml(
+        when,
+      )} the account, your posts, comments, photos and profile will be permanently removed.</p><p style="margin:12px 0 0;">Changed your mind? Just sign in before then and the deletion is cancelled.</p>`,
+      ctaLabel: "Keep my account",
+      ctaHref: "https://rishivalley.space/login",
+      footnote:
+        "If you did not ask for this, someone else has access to your account. Sign in to cancel the deletion, then change your password.",
+    }),
+    text: [
+      "Your account is scheduled for deletion",
+      "",
+      `Hello ${first}. You asked for your Rishi Valley account to be deleted. On ${when} the account, your posts, comments, photos and profile will be permanently removed.`,
+      "",
+      "Changed your mind? Just sign in before then and the deletion is cancelled:",
+      "https://rishivalley.space/login",
+      "",
+      "If you did not ask for this, someone else has access to your account. Sign in to cancel the deletion, then change your password.",
+    ].join("\n"),
+  };
+}
