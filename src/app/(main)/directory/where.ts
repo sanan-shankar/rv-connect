@@ -63,7 +63,11 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
     };
   }
   if (filters.profession) where.workplace = filters.profession;
-  if (filters.house) where.houses = { contains: filters.house };
+  // escapeLike like every other free-text contains: an unescaped "%" or "_" in
+  // the URL param would otherwise reach Postgres as a live LIKE wildcard and
+  // silently widen the filter (the last of the ~18 contains sites to get this).
+  // Case-sensitivity is left exactly as it was -- only the wildcard escaping changes.
+  if (filters.house) where.houses = { contains: escapeLike(filters.house) };
   if (filters.type === "alumni") {
     where.accountType = "alumnus";
   } else if (filters.type === "teachers") {
