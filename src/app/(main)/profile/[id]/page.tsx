@@ -24,6 +24,13 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  // The tab title holds the same Stage 1 line as the page: names are a
+  // confirmed-email capability, and a <title> is serialized like anything
+  // else. Own profile excepted, same as the page body.
+  const session = await auth();
+  if (session?.user && session.user.id !== id && !session.user.emailConfirmed && !IS_DEMO) {
+    return { title: "Profile" };
+  }
   const user = await prisma.user.findUnique({
     where: { id },
     select: { name: true, isBlocked: true },

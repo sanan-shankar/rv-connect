@@ -188,9 +188,14 @@ const CHECKS = [
   { id: "H5", sev: "high", title: "reportUser strips any member's verified badge", probe: () => {
       const b = fnBody(decomment(read("src/components/posts/report-action.ts")), "reportUser");
       if (!b) return open("reportUser not found");
-      return /verifyState:\s*"flagged"/.test(b)
-        ? open("a single report still writes verifyState:'flagged'")
-        : ok("no unconditional verifyState write");
+      if (/verifyState:\s*"flagged"/.test(b))
+        return open("a single report still writes verifyState:'flagged'");
+      // Phase 3 removed the badge-strip and member-gated reporting; the rest
+      // of H5 (per-pair dedupe, threshold, rate limit) is Phase 7 and keeps
+      // this open until it lands.
+      if (!/@@unique\(\[reporterId, reportedUserId\]\)/.test(read("prisma/schema.prisma")))
+        return open("badge-strip gone, reporting member-gated; per-pair dedupe/threshold still missing (Phase 7)");
+      return ok("no verifyState write, and repeat reports deduped per reporter");
     }},
   { id: "H6", sev: "high", title: "No rate limiting or lockout on authentication", probe: () => {
       const s = decomment(read("src/lib/auth.ts") + read("src/app/(auth)/login/page.tsx"));
@@ -256,8 +261,17 @@ const CHECKS = [
   { id: "H20", sev: "high", title: "Object storage public-read and permanent", probe: () =>
       acc("owner chose option A (leave public) 2026-08-19; revisit post-launch") },
   { id: "H21", sev: "high", title: "verifyState gates nothing (verification is decorative)", probe: () => {
-      const gate = read("src/lib/email-verification.ts") + read("src/lib/member-gate.ts");
-      return /requireVerifiedMember/.test(gate) ? ok("requireVerifiedMember exists") : open("no member-tier gate; verifyState still unread by any permission");
+      // Existence is not application: the gate must be defined AND sitting in
+      // the write paths. Correctness beyond shape is scripts/qa/phase3-probe.mjs.
+      const gate = decomment(read("src/lib/member-gate.ts"));
+      if (!/verifyState !== "verified"/.test(gate)) return open("no member-tier gate; verifyState still unread by any permission");
+      const feed = decomment(read("src/app/(main)/feed/actions.ts"));
+      const upload = decomment(read("src/app/api/upload/route.ts"));
+      const missing = [];
+      if (!/requireVerifiedMember\(\)/.test(feed)) missing.push("feed actions");
+      if (!/requireVerifiedMember\(\)/.test(upload)) missing.push("upload route");
+      if (missing.length) return open(`gate exists but unused in: ${missing.join(", ")}`);
+      return ok("requireVerifiedMember read in the write paths; run phase3-probe for behaviour");
     }},
   { id: "H22", sev: "high", title: "No bot defence on any public entry point", probe: () => {
       const src = appSources().some((f) => /turnstile/i.test(decomment(f.text)));
