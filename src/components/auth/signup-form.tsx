@@ -634,6 +634,37 @@ export function SignupForm({
           turnstile-widget.tsx. */}
       <TurnstileWidget ref={turnstileRef} siteKey={turnstileSiteKey} />
 
+      {/* The consent line (audit H12): one tick covering all three documents,
+          which each open in a new tab so the half-filled form is never lost.
+          `required` is the browser's nudge; the server refuses without it
+          either way (see registerUser). A native checkbox: accent-color paints
+          it canopy in every browser without inventing a control. */}
+      <motion.div layout transition={rowTransition}>
+        <label className="flex cursor-pointer items-start gap-2.5 px-1 text-[13.5px] leading-snug text-muted-foreground">
+          <input
+            type="checkbox"
+            name="consent"
+            required
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-canopy outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
+          />
+          <span>
+            I agree to the{" "}
+            <a href="/terms" target="_blank" rel="noopener" className="font-medium text-canopy underline decoration-canopy/40 underline-offset-2 hover:decoration-canopy">
+              terms of use
+            </a>{" "}
+            and{" "}
+            <a href="/guidelines" target="_blank" rel="noopener" className="font-medium text-canopy underline decoration-canopy/40 underline-offset-2 hover:decoration-canopy">
+              community guidelines
+            </a>
+            , and I have read the{" "}
+            <a href="/privacy" target="_blank" rel="noopener" className="font-medium text-canopy underline decoration-canopy/40 underline-offset-2 hover:decoration-canopy">
+              privacy policy
+            </a>
+            .
+          </span>
+        </label>
+      </motion.div>
+
       {/* 12 from the list + 4 here = 16 before the CTA, the same breath the
           trivia step gives its Check button, and one step up from the 12px
           field rhythm (the action is related to the fields, not one of them). */}

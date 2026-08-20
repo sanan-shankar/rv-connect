@@ -33,6 +33,7 @@ const ROUTES: Route[] = [
   { path: "/support", name: "support", why: "the tree backdrop + CostBar, retuned three times" },
   { path: "/birds", name: "birds", why: "50 avatar glyphs; catches a broken plumage path fast" },
   { path: "/about", name: "about", why: "static copy; a canary for global token drift" },
+  { path: "/privacy", name: "privacy", why: "the policy shell; one page stands in for all three documents", anonymous: true },
 ];
 
 /* Relative timestamps ("3h ago") tick between runs and would fail every

@@ -61,6 +61,19 @@ export function LandingFooter() {
             <Wordmark variant="light" textClassName="text-foreground" />
           </div>
           <p>A space for the Rishi Valley community to stay connected.</p>
+          {/* The transparency layer's front door (audit H12): the documents a
+              stranger should be able to find before an account exists. */}
+          <nav aria-label="Policies" className="flex items-center gap-4">
+            <Link href="/privacy" className="state-layer rounded-full px-1.5 py-1 hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/terms" className="state-layer rounded-full px-1.5 py-1 hover:text-foreground">
+              Terms
+            </Link>
+            <Link href="/guidelines" className="state-layer rounded-full px-1.5 py-1 hover:text-foreground">
+              Guidelines
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>
