@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { cookies } from "next/headers";
 import { appSecret } from "@/lib/app-secret";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { timingSafeEqualStrings } from "@/lib/timing-safe";
 
 /**
  * Server-side trivia gate.
@@ -165,9 +166,10 @@ export async function checkTrivia(
   const jar = await cookies();
 
   // Attempts are metered per IP in the shared store (see the note above).
+  // The refusal is the shared sentence, not a hand-typed cousin of it.
   const limited = await rateLimit("trivia", await clientIp());
   if (!limited.ok) {
-    return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." };
+    return { ok: false, error: limited.error };
   }
 
   // A per-browser id the pass token below is signed AGAINST. Issued here,
@@ -226,10 +228,11 @@ export async function hasPassedTrivia(): Promise<boolean> {
   if (!tsStr || !sig) return false;
   const ts = Number(tsStr);
   if (!Number.isFinite(ts)) return false;
-  if (Date.now() - ts > TOKEN_TTL_MS) return false;
+  // Expired, or dated in the future -- the same clock-skew paranoia
+  // human-pass-rule.ts applies; a pass this server minted is never ahead
+  // of its own clock by more than a minute.
+  if (Date.now() - ts > TOKEN_TTL_MS || ts > Date.now() + 60_000) return false;
   // Recompute from what THIS request carries and compare constant-time
   // (the old check was a string ===, a timing oracle on the signature).
-  const expected = Buffer.from(sign(`trivia:${ts}:${browserId}`));
-  const got = Buffer.from(sig);
-  return expected.length === got.length && crypto.timingSafeEqual(expected, got);
+  return timingSafeEqualStrings(sign(`trivia:${ts}:${browserId}`), sig);
 }

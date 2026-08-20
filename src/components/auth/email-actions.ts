@@ -8,7 +8,8 @@ import { burnTokens, readToken } from "@/lib/auth-tokens";
 import { enqueueMail, verificationMailState } from "@/lib/email-queue";
 import { sendVerificationEmail } from "@/lib/verification-mail";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
-import { verifyTurnstile, devBypassAllowed, BOT_CHECK_FAILED } from "@/lib/turnstile";
+import { verifyHumanFromForm } from "@/lib/turnstile";
+import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { mintHumanPass } from "@/lib/human-pass";
 
@@ -148,10 +149,7 @@ export async function requestPasswordReset(
      caller cycling known addresses could burn the whole day's ~95-message
      mail budget in minutes, taking password recovery down for everyone. */
   const ip = await clientIp();
-  if (
-    !devBypassAllowed(formData.get("devBypass") as string | null) &&
-    !(await verifyTurnstile(formData.get("turnstileToken") as string | null, ip))
-  ) {
+  if (!(await verifyHumanFromForm(formData, ip))) {
     return { ok: false, error: BOT_CHECK_FAILED };
   }
   const limited = await rateLimit("reset", ip);

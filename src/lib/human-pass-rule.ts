@@ -31,6 +31,10 @@ export function humanPassValid(
   const ts = Number(value.slice(0, dot));
   if (!Number.isFinite(ts)) return false;
   if (now - ts > TTL_MS || ts > now + 60_000) return false;
+  // Inline rather than the shared timing-safe helper ON PURPOSE: a -rule
+  // file imports nothing relative, because node runs the .test.mjs against
+  // this file directly and extensionless relative imports don't resolve
+  // there (same contract as post-visibility-rule.ts).
   const expected = Buffer.from(signHumanPass(email, ts, secret));
   const got = Buffer.from(value);
   return expected.length === got.length && crypto.timingSafeEqual(expected, got);

@@ -6,7 +6,8 @@ import { signupSchema } from "@/lib/validators";
 import { titleCase, normalizePhone } from "@/lib/normalize";
 import { batchTypeFromLeaving } from "@/lib/utils";
 import { sendVerificationEmail } from "@/lib/verification-mail";
-import { verifyTurnstile, devBypassAllowed, BOT_CHECK_FAILED } from "@/lib/turnstile";
+import { verifyHumanFromForm } from "@/lib/turnstile";
+import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
@@ -23,10 +24,7 @@ export async function registerUser(formData: FormData) {
   // from the widget, or the QA scripts' dev bypass, which is refused
   // outright in production builds.
   const ip = await clientIp();
-  if (
-    !devBypassAllowed(formData.get("devBypass") as string | null) &&
-    !(await verifyTurnstile(formData.get("turnstileToken") as string | null, ip))
-  ) {
+  if (!(await verifyHumanFromForm(formData, ip))) {
     return { error: BOT_CHECK_FAILED };
   }
 

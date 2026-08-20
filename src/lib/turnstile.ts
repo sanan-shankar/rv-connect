@@ -1,4 +1,5 @@
-import crypto from "crypto";
+import { timingSafeEqualStrings } from "./timing-safe";
+import { IS_DEMO } from "./demo";
 
 /* ------------------------------------------------------------------ *
  *  Cloudflare Turnstile, verified SERVER-SIDE (audit H22 — Phase 4).
@@ -25,21 +26,30 @@ const IS_PROD = process.env.NODE_ENV === "production";
 const TEST_SITE_KEY = "1x00000000000000000000AA";
 const TEST_SECRET_KEY = "1x0000000000000000000000000000000AA";
 
+/** TURNSTILE_DEV_REAL=1 makes non-production use the real env pair instead
+ *  of the pinned test pair — the escape hatch for debugging a live Turnstile
+ *  issue locally (real widget, real siteverify latency, real failure modes).
+ *  Off by default because real keys in dev would break every unattended
+ *  flow: the widget only passes on the key's registered hostnames. */
+const DEV_REAL = process.env.TURNSTILE_DEV_REAL === "1";
+
 /** What the page hands the widget. Null means "not configured" (the demo
  *  project, or a stripped env) and the widget simply is not rendered —
  *  the server side below stays consistent by skipping verification too. */
 export function turnstileSiteKey(): string | null {
-  if (!IS_PROD) return TEST_SITE_KEY;
+  // The demo renders no widget at all: its signup/reset routes are closed
+  // by the proxy and its "login" is a constant session, so a real widget
+  // there could only ever be decoration wired to real Cloudflare traffic.
+  if (IS_DEMO) return null;
+  if (!IS_PROD && !DEV_REAL) return TEST_SITE_KEY;
   return process.env.TURNSTILE_SITE_KEY || null;
 }
 
 function turnstileSecret(): string | null {
-  if (!IS_PROD) return TEST_SECRET_KEY;
+  if (!IS_PROD && !DEV_REAL) return TEST_SECRET_KEY;
   return process.env.TURNSTILE_SECRET_KEY || null;
 }
 
-export const BOT_CHECK_FAILED =
-  "We couldn't confirm you're human. Refresh the page and try once more.";
 
 /**
  * The server-side verdict on a widget token. Fail-open ONLY when Turnstile
@@ -53,6 +63,12 @@ export async function verifyTurnstile(
   token: string | null | undefined,
   ip?: string,
 ): Promise<boolean> {
+  /* Defence in depth, same posture as rate-limit.ts: every route that could
+     reach this is already closed on the demo by DEMO_CLOSED_PATHS, but the
+     owner's real keys ARE on that project, so without this line a future
+     route added without remembering the proxy list would silently start
+     spending real Cloudflare calls on invented traffic. */
+  if (IS_DEMO) return true;
   const secret = turnstileSecret();
   if (!secret) return true; // unconfigured: nothing to verify against
   if (!token) return false;
@@ -90,7 +106,18 @@ export function devBypassAllowed(candidate: string | null | undefined): boolean 
   if (IS_PROD) return false;
   const secret = process.env.DEV_LOGIN_SECRET;
   if (!secret || !candidate) return false;
-  const a = Buffer.from(candidate);
-  const b = Buffer.from(secret);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  return timingSafeEqualStrings(candidate, secret);
+}
+
+/**
+ * The whole bot check as one question, for the two form actions (signup and
+ * the reset request) that carry their proof in FormData. authorize() keeps
+ * its own three-branch order because its proof arrives differently (a cookie
+ * header) and its failure is a throw, not a return.
+ */
+export async function verifyHumanFromForm(formData: FormData, ip: string): Promise<boolean> {
+  return (
+    devBypassAllowed(formData.get("devBypass") as string | null) ||
+    (await verifyTurnstile(formData.get("turnstileToken") as string | null, ip))
+  );
 }

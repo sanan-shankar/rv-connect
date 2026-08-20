@@ -34,7 +34,7 @@
  * ------------------------------------------------------------------ */
 
 import { NextResponse, type NextRequest } from "next/server";
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqualStrings } from "@/lib/timing-safe";
 import { encode } from "@auth/core/jwt";
 import { prisma } from "@/lib/prisma";
 
@@ -45,16 +45,6 @@ const MAX_AGE = 30 * 24 * 60 * 60;
 /* Long enough that guessing is hopeless even against a local server with no
    rate limit in front of it. `openssl rand -base64 32` clears it comfortably. */
 const MIN_SECRET_LENGTH = 32;
-
-/** Constant-time string compare. Bails on length first, because
- *  timingSafeEqual throws on mismatched buffer lengths -- and a thrown
- *  exception is itself a timing signal. */
-function secretMatches(provided: string, expected: string): boolean {
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
 
 export async function POST(req: NextRequest) {
   const expected = process.env.DEV_LOGIN_SECRET;
@@ -86,7 +76,7 @@ export async function POST(req: NextRequest) {
      drives this through evaluate_script where a header is tidier than
      threading the value through a fetch body by hand. */
   const provided = body.secret ?? req.headers.get("x-dev-login-secret") ?? "";
-  if (!secretMatches(provided, expected)) {
+  if (!timingSafeEqualStrings(provided, expected)) {
     return new NextResponse("Not found", { status: 404 });
   }
 
