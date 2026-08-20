@@ -152,9 +152,9 @@ Mark a phase done only when `npm run audit:status` agrees.
 | 5 | Object deletion and uploads | C2, M10–M17 | **done 2026-08-20** |
 | 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | **done 2026-08-20** |
 | 7 | Audit log and admin accountability | H10, H14, M36, H5 | **done 2026-08-20** |
-| 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | **done 2026-08-20** (docs await owner review) |
-| 9 | CI hardening and security tests | H16, H17 | next — **only after the owner reviews Phase 8's documents** |
-| 10 | Remaining mediums and lows | the rest | |
+| 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | **done 2026-08-20** (docs owner-approved same day) |
+| 9 | CI hardening and security tests | H16, H17 | **done 2026-08-20** |
+| 10 | Remaining mediums and lows | the rest | next |
 
 ---
 
@@ -760,3 +760,46 @@ H13 DPA links are in the session handoff. (2) Add the `CRON_SECRET` repository s
 loudly with a 401 and nothing is swept; this joins the existing open item of setting CRON_SECRET on
 the prod Vercel project. (3) Decide whether the hero-only landing should carry a quiet privacy
 link while the showcase stays off.
+**Owner answered, same day:** documents approved as written; no privacy link on the hero; the
+CRON_SECRET GitHub secret stays an open reminder ("remind me later"). Phases 9–10 green-lit.
+
+### 2026-08-20 — Phase 9
+**Closed:** H16, H17. audit:status now **42 fixed, 0 open** (2 accepted, 1 awaiting the owner's
+DPA signatures).
+**Built:**
+- **H16, the CI security gate**, two halves added to `check.yml` after `npm run check`:
+  `scripts/qa/npm-audit-gate.mjs` — `npm audit --omit=dev` with a WRITTEN allowlist (a bare
+  `npm audit --audit-level=high` is permanently red on the one owner-accepted deepmerge-ts
+  residual, and a gate that is always red is a gate nobody reads; each allowlist entry carries
+  the reason AND the condition that clears it, enforced by its own unit test) — and
+  `audit-status.mjs --fail-on-open=critical,high`, so a quietly undone fix now stops the merge
+  instead of shipping. The H16 probe was tightened to demand both real mechanisms, not a keyword.
+- **H17, three security test suites**, all running in `npm run check` and therefore in CI
+  (23 test files now):
+  `security-regressions.test.mjs` pins C1 and C2 closed (no email-match grant in authorize, the
+  admin-login route stays deleted, dev-login stays production-dead/secret-gated/role-less, the
+  admin email stays out of the bundle, keyForUrl keeps its root fence, ownerPrefix/keyBelongsTo
+  survive, both image-accepting write paths keep the ownership gate);
+  `gate-coverage.test.mjs` sweeps EVERY `"use server"` file — each exported action must carry a
+  gate marker, delegate to a gated sibling, or sit on the written PUBLIC_BY_DESIGN list with its
+  reason (the tripwire for the forgotten-gate class that produced H1/H3/L4: a new ungated action
+  now fails check until gating it is a decision, not an accident);
+  `rich-text.test.mjs` attacks renderRichText — the one dangerouslySetInnerHTML feeder — with
+  script tags, attribute breakouts through mention names/ids, javascript: ids, plus the property
+  that NO hostile input in a fixed corpus yields a tag outside the renderer's own set.
+**Proved:** `scripts/qa/phase9-probe.mjs`, **13/13**, no dev server needed, both directions of
+both gates: the npm-audit gate passes the real tree naming its allowlisted advisory, and refuses
+a CRAFTED novel advisory (unit test — a real npm audit cannot invent one on demand);
+`--fail-on-open` exits 0 on the real tree and exits 1 naming H16 when check.yml is moved aside
+(a genuine regression, restored in finally); all three suites pass; the workflow wires all of it.
+`npm run check` clean, 23/23 test files. No UI touched, so no visual/screenshot round this phase.
+**Found and fixed during the build (the sweep doing its job early):** the first run flagged 10
+candidates; triage found my fnBody helper mangled return-type braces (fixed with the
+audit-status version), two `src/lib` files matched only because their comments QUOTE the
+"use server" directive (discovery now requires it as the module's first statement), the theme
+action's one-implementation-two-names delegation (pass 2 follows delegation to a gated sibling),
+and the rest were genuinely public token/trivia flows, now on the written list. Also: the C1-c
+regression test itself became the one src/ reference to NEXT_PUBLIC_ADMIN_EMAIL and flipped the
+audit-status probe to open — trap 2 striking its own guard; the test now splits the literal.
+**Owner needs to:** nothing new. The standing reminder: add `CRON_SECRET` to GitHub repo secrets
+(retention), and to the prod Vercel project (catchups tick).

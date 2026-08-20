@@ -275,7 +275,12 @@ const CHECKS = [
   { id: "H16", sev: "high", title: "No CI/CD, no branch protection, no security gate", probe: () => {
       if (!has(".github/workflows/check.yml")) return open("no check workflow");
       const w = read(".github/workflows/check.yml");
-      return /npm audit/.test(w) ? ok("check + npm audit run in CI") : open("CI runs check but not `npm audit`");
+      // The real mechanisms, not a keyword: the allowlisted npm-audit gate
+      // (a bare `npm audit` would be permanently red on the accepted
+      // residual) and this very script as a regression tripwire.
+      if (!/npm-audit-gate\.mjs/.test(w)) return open("CI runs check but not the npm-audit gate");
+      if (!/audit-status\.mjs --fail-on-open/.test(w)) return open("CI does not fail on a re-opened critical/high");
+      return ok("CI runs check + the npm-audit gate + audit-status --fail-on-open");
     }},
   { id: "H17", sev: "high", title: "No security tests", probe: () => {
       const tests = walk("src", [".test.mjs", ".test.ts"]).concat(walk("e2e", [".spec.ts"]));
