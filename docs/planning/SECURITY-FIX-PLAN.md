@@ -564,6 +564,15 @@ keyset-paginated and the worklist queries all carry `take: PER_QUEUE` since the 
   sharp 0.35 bundles a stricter libpng (1.6.58); `sharpImage` now sets `failOn: "error"` so a
   heritage scan with a merely-cosmetic libpng WARNING (the classic "iCCP: incorrect sRGB profile")
   is still decoded rather than turned away. Its `sharp.Sharp` type moved to a named `Sharp` export.
+  **`npm audit --omit=dev` went from 2 critical / 33 total to 0 critical / 3 total.** The second
+  critical was `@auth/core@0.41.1` pulled by `@auth/prisma-adapter@2.11.1` (next-auth beta.32 already
+  pulls the fixed 0.41.3); bumped the adapter to 2.11.3 so both resolve to 0.41.3. `npm audit fix`
+  cleared every remaining HIGH and MODERATE (a Prisma-toolchain sweep: prisma 7.5 -> 7.9.1,
+  `prisma generate` re-run, build + both probes green after). The 3 that remain are one
+  non-exploitable advisory — `deepmerge-ts` stack-exhaustion via `@prisma/config`, whose only
+  offered "fix" is a MAJOR downgrade to prisma 6, and which needs attacker-controlled config objects
+  this app never hands it (build/config-time only). Accepted residual; clears when Prisma ships a 7.x
+  bump of it.
 - **H7** — `next.config.ts` `headers()`: a CSP built as a documented directive map, plus
   X-Frame-Options: DENY, Referrer-Policy: strict-origin-when-cross-origin, X-Content-Type-Options:
   nosniff, Permissions-Policy, and an explicit HSTS. `frame-ancestors 'none'` + X-Frame-Options are
