@@ -154,7 +154,7 @@ Mark a phase done only when `npm run audit:status` agrees.
 | 7 | Audit log and admin accountability | H10, H14, M36, H5 | **done 2026-08-20** |
 | 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | **done 2026-08-20** (docs owner-approved same day) |
 | 9 | CI hardening and security tests | H16, H17 | **done 2026-08-20** |
-| 10 | Remaining mediums and lows | the rest | next |
+| 10 | Remaining mediums and lows | the rest | **done 2026-08-20** |
 
 ---
 
