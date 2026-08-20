@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { rateLimit } from "@/lib/rate-limit";
 import { logSearch } from "@/lib/search-log";
 
 /**
@@ -75,6 +76,14 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // This is the expensive one: a raw LIKE scan over 234k gazetteer rows. The
+  // shared lookup throttle caps a script pointed at it without touching a
+  // member's live type-ahead.
+  const limited = await rateLimit("search", session.user.id);
+  if (!limited.ok) {
+    return NextResponse.json({ error: limited.error }, { status: 429 });
   }
 
   const raw = req.nextUrl.searchParams.get("q")?.trim() ?? "";

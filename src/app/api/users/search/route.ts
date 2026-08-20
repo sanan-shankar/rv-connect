@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { requireVerifiedEmail } from "@/lib/email-verification";
 import { prisma } from "@/lib/prisma";
 import { insensitive, escapeLike } from "@/lib/db-text";
+import { rateLimit } from "@/lib/rate-limit";
 import { logSearch } from "@/lib/search-log";
 
 export async function GET(req: NextRequest) {
@@ -17,6 +18,13 @@ export async function GET(req: NextRequest) {
   const gate = await requireVerifiedEmail();
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: 403 });
+  }
+
+  // The read-heavy lookup endpoints share one throttle so a script cannot
+  // hammer them the way every write path is already capped.
+  const limited = await rateLimit("search", session.user.id);
+  if (!limited.ok) {
+    return NextResponse.json({ error: limited.error }, { status: 429 });
   }
 
   const q = req.nextUrl.searchParams.get("q")?.trim();

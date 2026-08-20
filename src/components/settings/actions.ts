@@ -3,7 +3,7 @@
 import { createId } from "@paralleldrive/cuid2";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
-import { hasBudget, consume } from "@/lib/rate-limit";
+import { hasBudget, consume, rateLimit } from "@/lib/rate-limit";
 import { DELETION_GRACE_DAYS } from "@/lib/account-purge";
 import { enqueueMail } from "@/lib/email-queue";
 import { IS_DEMO } from "@/lib/demo";
@@ -199,6 +199,13 @@ export async function updateAvatar(formData: FormData) {
      replace); and the image is only ever shown to Stage 1+ viewers, since a
      Stage 0 account cannot post and the directory is gated. Revisit if
      avatars ever render anywhere unauthenticated. */
+
+  // The one upload path that was missing the shared hourly ceiling every other
+  // image write already has: each call reads up to 15MB, runs sharp, and does a
+  // PUT + DELETE against R2, so an unthrottled loop is a compute/cost amplifier
+  // even though storage never grows (the prior avatar is deleted on replace).
+  const limited = await rateLimit("uploads", session.user.id);
+  if (!limited.ok) return { error: limited.error };
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
