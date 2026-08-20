@@ -1,11 +1,28 @@
-import NextAuth, { type Session } from "next-auth";
+import NextAuth, { CredentialsSignin, type Session } from "next-auth";
 import { cache } from "react";
 import { IS_DEMO, DEMO_USER_ID } from "./demo";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { recordLoginAttempt } from "@/lib/login-attempt";
+import { hasBudget, consume, ipFromRequest } from "@/lib/rate-limit";
+import { verifyTurnstile, devBypassAllowed } from "@/lib/turnstile";
+import { humanPassValid, humanPassFromCookieHeader } from "@/lib/human-pass-rule";
+import { appSecret } from "@/lib/app-secret";
 import { prisma } from "./prisma";
+
+/* authorize() below can only say "yes" (a user) or "no" (null), and null
+   always surfaces as "Invalid email or password." These two let the login
+   form tell the truth when the refusal was never about the password.
+   CredentialsSignin subclasses are the ONE kind of throw NextAuth turns
+   into a clean error code instead of a 500; the code strings are matched
+   by the login client. */
+class RateLimitedLogin extends CredentialsSignin {
+  code = "rate-limited";
+}
+class BotCheckFailed extends CredentialsSignin {
+  code = "bot-check";
+}
 
 const nextAuth = NextAuth({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,12 +32,58 @@ const nextAuth = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        /* Produced by the widget on the login form and verified against
+           Cloudflare below. Never trusted client-side (audit H22). */
+        turnstileToken: { type: "text" },
+        /* QA scripts only; see devBypassAllowed — dead in production. */
+        devBypass: { type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
 
         if (!email) return null;
+
+        const ip = ipFromRequest(request);
+        const acctKey = email.trim().toLowerCase();
+
+        /* H6: the door itself is metered. Read-only here — a successful
+           sign-in must never spend anyone's budget, or the QA scripts and
+           any member who signs in often would rate-limit themselves — and
+           spent only in the failure branches below (see fail()). */
+        const [ipOk, acctOk] = await Promise.all([
+          hasBudget("login-ip", ip),
+          hasBudget("login-account", acctKey),
+        ]);
+        if (!ipOk || !acctOk) {
+          recordLoginAttempt({ email, ok: false, reason: "rate-limited" });
+          throw new RateLimitedLogin();
+        }
+
+        /* H22: prove a human before proving a password. Three doors, in
+           cost order: the five-minute pass a fresh signup or reset already
+           earned (no network), the QA bypass (refused outright in
+           production), then a live Turnstile token checked with
+           Cloudflare. bcrypt never runs for a caller with none of them. */
+        const human =
+          humanPassValid(
+            humanPassFromCookieHeader(request.headers.get("cookie")),
+            acctKey,
+            Date.now(),
+            appSecret(),
+          ) ||
+          devBypassAllowed(credentials?.devBypass as string | undefined) ||
+          (await verifyTurnstile(credentials?.turnstileToken as string | undefined, ip));
+        if (!human) {
+          recordLoginAttempt({ email, ok: false, reason: "bot-check" });
+          throw new BotCheckFailed();
+        }
+
+        /* Every refusal below is what the limiter counts: guesses, not
+           visits. Awaited so a serverless instance cannot freeze before
+           the count lands. */
+        const fail = () =>
+          Promise.all([consume("login-ip", ip), consume("login-account", acctKey)]);
 
         const user = await prisma.user.findUnique({
           where: { email },
@@ -33,6 +96,7 @@ const nextAuth = NextAuth({
            they are the ones most likely to need help. */
         if (!user) {
           recordLoginAttempt({ email, ok: false, reason: "no-account" });
+          await fail();
           return null;
         }
 
@@ -53,12 +117,14 @@ const nextAuth = NextAuth({
             reason: "no-password-set",
             userId: user.id,
           });
+          await fail();
           return null;
         }
 
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) {
           recordLoginAttempt({ email, ok: false, reason: "wrong-password", userId: user.id });
+          await fail();
           return null;
         }
 
@@ -69,6 +135,10 @@ const nextAuth = NextAuth({
            messaging exactly as before (audit H4). The block starts at the door. */
         if (user.isBlocked) {
           recordLoginAttempt({ email, ok: false, reason: "blocked", userId: user.id });
+          /* Deliberately NOT counted: this is a correct password from a
+             known account. Counting it would let the block's own refusals
+             exhaust the member's budget and muddy the door for the account
+             they may be unblocked back into. */
           return null;
         }
 

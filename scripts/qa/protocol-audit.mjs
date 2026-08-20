@@ -106,8 +106,10 @@ const HEX_ALLOW = new Map([
   ["src/components/onboarding/steps/houses-step.tsx", "TEMP: house tints pending the Wave-2 houses rebuild"],
   ["src/components/directory/alumni-map.tsx", "TEMP: map land fills pending the Wave-4 directory redo"],
   ["src/components/landing/landing-hero.tsx", "photo-overlay treatment on the hero image"],
-  ["src/app/(auth)/login/page.tsx", "photo-overlay treatment (duplicated from the hero)"],
-  ["src/app/(auth)/signup/page.tsx", "photo-overlay treatment (duplicated from the hero)"],
+  // page.tsx became a thin server wrapper when Turnstile arrived (Phase 4);
+  // the photo overlay moved with the client half into *-client.tsx.
+  ["src/app/(auth)/login/login-client.tsx", "photo-overlay treatment (duplicated from the hero)"],
+  ["src/app/(auth)/signup/signup-client.tsx", "photo-overlay treatment (duplicated from the hero)"],
   ["src/components/auth/auth-panel.tsx", "the same photo-overlay treatment as login/signup above; this is the shared shell the three email pages use instead of copying their flight wiring"],
   ["src/lib/email-templates.ts", "an inbox cannot read a CSS custom property: Gmail strips <style> blocks, Outlook renders through Word, and no client loads our webfonts. Every brand value has to ship as an inline hex, so these are transcribed from globals.css and kept in lockstep with it by hand (same reason as layout.tsx's themeColor and the Razorpay theme above)"],
   ["src/components/common/image-viewer.tsx", "the viewer's warm-ink backdrop + photo shadow"],

@@ -11,6 +11,7 @@ import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { SPRINGS } from "@/components/common/motion";
 import { requestPasswordReset } from "@/components/auth/email-actions";
+import { TurnstileWidget, type TurnstileHandle } from "@/components/auth/turnstile-widget";
 
 /* ------------------------------------------------------------------ *
  *  "I forgot my password", step one.
@@ -33,12 +34,20 @@ import { requestPasswordReset } from "@/components/auth/email-actions";
  *  protects nobody from anything.
  * ------------------------------------------------------------------ */
 
-export function ForgotPasswordClient({ initialEmail }: { initialEmail: string }) {
+export function ForgotPasswordClient({
+  initialEmail,
+  turnstileSiteKey,
+}: {
+  initialEmail: string;
+  turnstileSiteKey: string | null;
+}) {
   const { ref: hoopoeRef, ...hoopoe } = useHoopoe();
   const apiRef = useRef<HoopoeApi | null>(null);
   const [email, setEmail] = useState(initialEmail);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
   // Desktop-only deferred focus; attached only when the box arrived empty.
   // Arriving from sign-in it is already filled, and stealing focus there
   // would put a caret in a field nobody needs to touch.
@@ -55,10 +64,24 @@ export function ForgotPasswordClient({ initialEmail }: { initialEmail: string })
     e.preventDefault();
     if (sending) return;
     setSending(true);
+    setError("");
 
     const formData = new FormData();
     formData.set("email", email);
-    await requestPasswordReset(formData);
+    // Proof-of-human (audit H22); the server verifies it with Cloudflare.
+    const turnstileToken = await turnstileRef.current?.getToken();
+    if (turnstileToken) formData.set("turnstileToken", turnstileToken);
+    const result = await requestPasswordReset(formData);
+
+    /* The refusals here are about the CALLER (bot check, too many requests
+       from this connection), never about the address, so showing them leaks
+       nothing the always-identical success screen exists to protect. */
+    if (!result.ok) {
+      setError(result.error);
+      setSending(false);
+      void apiRef.current?.react("wrong");
+      return;
+    }
 
     setSentTo(email.trim());
     setSending(false);
@@ -112,6 +135,10 @@ export function ForgotPasswordClient({ initialEmail }: { initialEmail: string })
                 required
                 ref={initialEmail === "" ? emailFocusRef : undefined}
               />
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              {/* Invisible unless Cloudflare asks for an interaction; see
+                  turnstile-widget.tsx. */}
+              <TurnstileWidget ref={turnstileRef} siteKey={turnstileSiteKey} />
               <div className="pt-1">
                 <Button
                   type="submit"

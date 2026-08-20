@@ -2,6 +2,8 @@
 
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { appSecret } from "@/lib/app-secret";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
  * Server-side trivia gate.
@@ -78,19 +80,22 @@ const TRIVIA_QUESTIONS: Question[] = [
 const NEAR_MISS_MIN_LENGTH = 5;
 
 const TOKEN_TTL_MS = 30 * 60 * 1000; // a passed gate is good for 30 minutes
-const MAX_ATTEMPTS = 8; // light rate limit per gate token
-const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 
-// In-process attempt counter. Sufficient as a light guard for a single-node
-// deploy; a multi-node deploy would back this with a shared store.
-const attempts = new Map<string, { count: number; first: number }>();
+/* The attempt limit lives in src/lib/rate-limit.ts with everything else
+   (audit M7). The old version here was an in-process Map keyed on a cookie
+   the CALLER chose whether to send: omitting it collapsed every anonymous
+   visitor into one shared bucket, so eight requests in a loop locked the
+   front door for the whole site while the attacker rotated cookies past the
+   limit entirely. Worse, the check ran BEFORE the cookie was issued, so the
+   lockout landed precisely on genuine first-time visitors. Now the key is
+   the caller's IP — not theirs to discard — in the shared store. */
 
-function secret(): string {
-  return process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "rv-connect-trivia-dev-secret";
-}
-
+/* No fallback secret. The previous version fell back to a literal string
+   printed in this file, which made every "signed" pass token forgeable by
+   anyone who could read the repository (audit M7). appSecret() throws
+   instead, and NextAuth cannot boot without AUTH_SECRET anyway. */
 function sign(payload: string): string {
-  return crypto.createHmac("sha256", secret()).update(payload).digest("hex");
+  return crypto.createHmac("sha256", appSecret()).update(payload).digest("hex");
 }
 
 /**
@@ -135,21 +140,21 @@ function withinOneEdit(a: string, b: string): boolean {
   );
 }
 
-/** Returns a question to show. Never returns the answer. */
-export async function getTriviaQuestion(): Promise<{ id: string; question: string }> {
-  const q = TRIVIA_QUESTIONS[Math.floor(Math.random() * TRIVIA_QUESTIONS.length)];
+/**
+ * Returns a question to show. Never returns the answer. Pass the current
+ * question's id to get a DIFFERENT one — the gate offers a swap (owner,
+ * 2026-08-20) for the person who knows the tree but never lived in the
+ * houses, or the reverse. No cost and no limit on swapping: both questions
+ * were always reachable by refreshing, so the button gives away nothing
+ * the page did not.
+ */
+export async function getTriviaQuestion(
+  excludeId?: string,
+): Promise<{ id: string; question: string }> {
+  const pool = TRIVIA_QUESTIONS.filter((q) => q.id !== excludeId);
+  const bank = pool.length > 0 ? pool : TRIVIA_QUESTIONS;
+  const q = bank[Math.floor(Math.random() * bank.length)];
   return { id: q.id, question: q.question };
-}
-
-function rateLimited(key: string): boolean {
-  const now = Date.now();
-  const rec = attempts.get(key);
-  if (!rec || now - rec.first > ATTEMPT_WINDOW_MS) {
-    attempts.set(key, { count: 1, first: now });
-    return false;
-  }
-  rec.count += 1;
-  return rec.count > MAX_ATTEMPTS;
 }
 
 /** Checks an answer on the server. On success, records a signed pass cookie. */
@@ -158,16 +163,24 @@ export async function checkTrivia(
   answer: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const jar = await cookies();
-  // Rate-limit per gate cookie (falls back to the question id for first visit).
-  const rlKey = jar.get("rv_trivia_rl")?.value ?? `anon:${id}`;
-  if (rateLimited(rlKey)) {
+
+  // Attempts are metered per IP in the shared store (see the note above).
+  const limited = await rateLimit("trivia", await clientIp());
+  if (!limited.ok) {
     return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." };
   }
-  if (!jar.get("rv_trivia_rl")) {
-    jar.set("rv_trivia_rl", crypto.randomUUID(), {
+
+  // A per-browser id the pass token below is signed AGAINST. Issued here,
+  // before the answer is judged, so the very first attempt already has the
+  // id its eventual pass will be bound to. It carries no limit and no
+  // trust; it exists so a pass cookie lifted on its own is worthless.
+  let browserId = jar.get("rv_trivia_id")?.value;
+  if (!browserId) {
+    browserId = crypto.randomUUID();
+    jar.set("rv_trivia_id", browserId, {
       httpOnly: true,
       sameSite: "lax",
-      maxAge: ATTEMPT_WINDOW_MS / 1000,
+      maxAge: TOKEN_TTL_MS / 1000,
       path: "/",
     });
   }
@@ -187,8 +200,13 @@ export async function checkTrivia(
     return { ok: false, error: "Not quite. Have another go." };
   }
 
+  /* The pass is HMAC-bound to THIS browser's id cookie, not a bare
+     timestamp. The old token signed the timestamp alone, so one solved
+     gate was a 30-minute hall pass anyone could replay from anywhere
+     (audit M7); this one is useless without the matching rv_trivia_id,
+     which never leaves the browser it was minted in. */
   const ts = Date.now();
-  const token = `${ts}.${sign(String(ts))}`;
+  const token = `${ts}.${sign(`trivia:${ts}:${browserId}`)}`;
   jar.set("rv_trivia_pass", token, {
     httpOnly: true,
     sameSite: "lax",
@@ -202,11 +220,16 @@ export async function checkTrivia(
 export async function hasPassedTrivia(): Promise<boolean> {
   const jar = await cookies();
   const token = jar.get("rv_trivia_pass")?.value;
-  if (!token) return false;
+  const browserId = jar.get("rv_trivia_id")?.value;
+  if (!token || !browserId) return false;
   const [tsStr, sig] = token.split(".");
   if (!tsStr || !sig) return false;
-  if (sign(tsStr) !== sig) return false;
   const ts = Number(tsStr);
   if (!Number.isFinite(ts)) return false;
-  return Date.now() - ts <= TOKEN_TTL_MS;
+  if (Date.now() - ts > TOKEN_TTL_MS) return false;
+  // Recompute from what THIS request carries and compare constant-time
+  // (the old check was a string ===, a timing oracle on the signature).
+  const expected = Buffer.from(sign(`trivia:${ts}:${browserId}`));
+  const got = Buffer.from(sig);
+  return expected.length === got.length && crypto.timingSafeEqual(expected, got);
 }

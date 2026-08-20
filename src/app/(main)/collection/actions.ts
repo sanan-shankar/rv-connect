@@ -11,6 +11,7 @@ import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/
 import { eraFromYear } from "@/lib/collection";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
+import { rateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 
 const PAGE_SIZE = 24;
@@ -80,6 +81,11 @@ export async function contributePhoto(formData: FormData) {
   // with a real cost attached, so it waits for a confirmed address.
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
+
+  // Shares the uploads meter with the /api/upload routes: however the bytes
+  // travel, one account gets one hourly allowance (audit M2).
+  const limited = await rateLimit("uploads", session.user.id);
+  if (!limited.ok) return { error: limited.error };
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
@@ -207,6 +213,11 @@ export async function contributePhotoDirect(input: {
   // with a real cost attached, so it waits for a confirmed address.
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
+
+  // Same meter as contributePhoto: the bytes came up through presign, but
+  // the row it creates is the same kind of thing (audit M2).
+  const limited = await rateLimit("uploads", session.user.id);
+  if (!limited.ok) return { error: limited.error };
 
   if (typeof input.key !== "string" || !COLLECTION_ORIGINAL_KEY.test(input.key)) {
     return { error: "Bad upload reference" };

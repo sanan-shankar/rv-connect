@@ -6,6 +6,9 @@ import { signupSchema } from "@/lib/validators";
 import { titleCase, normalizePhone } from "@/lib/normalize";
 import { batchTypeFromLeaving } from "@/lib/utils";
 import { sendVerificationEmail } from "@/lib/verification-mail";
+import { verifyTurnstile, devBypassAllowed, BOT_CHECK_FAILED } from "@/lib/turnstile";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
 
 export async function registerUser(formData: FormData) {
@@ -13,6 +16,18 @@ export async function registerUser(formData: FormData) {
   // present, so the gate cannot be skipped by jumping straight to register.
   if (!(await hasPassedTrivia())) {
     return { error: "Please answer the entry question before signing up." };
+  }
+
+  // Bulk account creation is what a bot farm actually wants from this app
+  // (audit H22), so signup proves a human server-side: a Turnstile token
+  // from the widget, or the QA scripts' dev bypass, which is refused
+  // outright in production builds.
+  const ip = await clientIp();
+  if (
+    !devBypassAllowed(formData.get("devBypass") as string | null) &&
+    !(await verifyTurnstile(formData.get("turnstileToken") as string | null, ip))
+  ) {
+    return { error: BOT_CHECK_FAILED };
   }
 
   const password = formData.get("password") as string;
@@ -64,6 +79,13 @@ export async function registerUser(formData: FormData) {
     batchYear = parsed.data.batchYear!;
     batchType = batchTypeFromLeaving(parsed.data.yearLeft!, batchYear);
   }
+
+  // Metered from here, per IP, AFTER validation: a member fumbling the form
+  // never spends budget, but both of the things worth metering sit past this
+  // line — the "already exists" answer (the membership oracle, audit M1) and
+  // the row creation itself.
+  const limited = await rateLimit("signup", ip);
+  if (!limited.ok) return { error: limited.error };
 
   // Check if user already exists
   const existing = await prisma.user.findUnique({
@@ -140,6 +162,12 @@ export async function registerUser(formData: FormData) {
   } catch (err) {
     console.error("Verification email failed", err);
   }
+
+  // The signup form signs the new account straight in, which lands in
+  // authorize()'s bot check with no widget on screen. This five-minute pass,
+  // bound to exactly this address, is how the account just proven human
+  // above crosses that door without solving Turnstile twice in one minute.
+  await mintHumanPass(user.email);
 
   return { success: true, email: parsed.data.email };
 }

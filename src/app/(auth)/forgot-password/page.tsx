@@ -1,3 +1,4 @@
+import { turnstileSiteKey } from "@/lib/turnstile";
 import { ForgotPasswordClient } from "./forgot-client";
 
 export const metadata = { title: "Forgot your password?" };
@@ -26,5 +27,5 @@ export default async function ForgotPasswordPage({
 }) {
   const { email } = await searchParams;
   const prefill = email && looksLikeEmail(email) ? email : "";
-  return <ForgotPasswordClient initialEmail={prefill} />;
+  return <ForgotPasswordClient initialEmail={prefill} turnstileSiteKey={turnstileSiteKey()} />;
 }

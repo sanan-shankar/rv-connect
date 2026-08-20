@@ -8,6 +8,9 @@ import { burnTokens, readToken } from "@/lib/auth-tokens";
 import { enqueueMail, verificationMailState } from "@/lib/email-queue";
 import { sendVerificationEmail } from "@/lib/verification-mail";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
+import { verifyTurnstile, devBypassAllowed, BOT_CHECK_FAILED } from "@/lib/turnstile";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { mintHumanPass } from "@/lib/human-pass";
 
 /* ------------------------------------------------------------------ *
  *  Everything the two email flows do on the server.
@@ -135,7 +138,25 @@ export async function confirmEmailToken(token: string): Promise<ConfirmOutcome> 
  * address, read the response, learn whether that person went to Rishi Valley.
  * For a private community that is precisely the fact worth protecting.
  */
-export async function requestPasswordReset(formData: FormData): Promise<{ ok: true }> {
+export async function requestPasswordReset(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  /* Bot check + per-IP meter FIRST, and both refusals are safe to say out
+     loud: they depend only on the caller's behaviour, never on whether the
+     typed address has an account, so the membership secret this function
+     protects stays protected. The per-IP limit is audit M3 — before it, one
+     caller cycling known addresses could burn the whole day's ~95-message
+     mail budget in minutes, taking password recovery down for everyone. */
+  const ip = await clientIp();
+  if (
+    !devBypassAllowed(formData.get("devBypass") as string | null) &&
+    !(await verifyTurnstile(formData.get("turnstileToken") as string | null, ip))
+  ) {
+    return { ok: false, error: BOT_CHECK_FAILED };
+  }
+  const limited = await rateLimit("reset", ip);
+  if (!limited.ok) return { ok: false, error: limited.error };
+
   const raw = ((formData.get("email") as string) ?? "").trim().toLowerCase();
 
   // Nothing usable typed: still answer as though it worked.
@@ -260,6 +281,12 @@ export async function resetPassword(input: {
     userId: read.userId,
     payload: { name: user?.name ?? "there" },
   });
+
+  // The client signs the person straight in with their new password, which
+  // now crosses authorize()'s bot check. Consuming a single-use emailed link
+  // is already proof of a human with the mailbox, so it earns the same
+  // five-minute pass a fresh signup gets.
+  await mintHumanPass(read.email);
 
   return { ok: true, email: read.email };
 }

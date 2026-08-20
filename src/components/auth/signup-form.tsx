@@ -21,6 +21,7 @@ import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { cn } from "@/lib/utils";
 import { registerUser } from "./actions";
+import { TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 
 // keep the gaze sweep bounded to [-1, 1] as the field fills
 const gazeFor = (len: number, over: number) =>
@@ -230,13 +231,16 @@ function PhoneField({
 
 export function SignupForm({
   hoopoe,
+  turnstileSiteKey,
   onSuccess,
 }: {
   hoopoe: HoopoeApi;
+  turnstileSiteKey: string | null;
   onSuccess: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const [accountType, setAccountType] = useState<"alumnus" | "teacher">("alumnus");
   const isAlum = accountType === "alumnus";
   const [showPw, setShowPw] = useState(false);
@@ -384,6 +388,12 @@ export function SignupForm({
     }
 
     try {
+      // Proof-of-human for the server (audit H22); registerUser verifies it
+      // with Cloudflare before touching the database. The signIn below needs
+      // no second token: registerUser leaves a five-minute pass cookie.
+      const turnstileToken = await turnstileRef.current?.getToken();
+      if (turnstileToken) formData.set("turnstileToken", turnstileToken);
+
       const result = await registerUser(formData);
       if (result.error) {
         setError(result.error);
@@ -619,6 +629,10 @@ export function SignupForm({
           </motion.p>
         )}
       </AnimatePresence>
+
+      {/* Invisible unless Cloudflare asks for an interaction; see
+          turnstile-widget.tsx. */}
+      <TurnstileWidget ref={turnstileRef} siteKey={turnstileSiteKey} />
 
       {/* 12 from the list + 4 here = 16 before the CTA, the same breath the
           trivia step gives its Check button, and one step up from the 12px
