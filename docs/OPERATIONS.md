@@ -4,7 +4,7 @@ Everything installed on 2026-08-19 that is not application code: what it does, h
 used, and what breaks if it is ignored. **A tool nobody runs is worse than no tool**, so
 each entry names the moment it is supposed to fire.
 
-Security items are tracked separately in `docs/planning/SECURITY-AUDIT.md`, not here.
+Security items are tracked separately in `docs/SECURITY.md` (and live on `npm run audit:status`), not here.
 
 ---
 

@@ -2159,3 +2159,14 @@ masks it (L5). Housekeeping with teeth: AGENTS.md stopped describing the deleted
 working feature, and the three PostHog 404s that have polluted every console check since Phase 1 are
 gone, so the next real error stands alone. Proved live, 11/11, with the phase 5 and phase 8 probes
 re-run green behind the route changes. The board: 74 findings tracked, 0 open.
+
+## 2026-08-20 — Security section closed: one reference document
+
+The three working files of the overhaul (the 2,000-line audit, the owner Q&A, the fix plan with its
+ten session logs) collapsed into docs/SECURITY.md: the machinery and what must not be broken, the
+owner's standing decisions, the retention schedule, the accepted-risk register with reasons, the
+open items, and the traps. The full originals stay in git history. Ground truth remains `npm run
+audit:status` (74 tracked, 0 open), which reads the code, not any document. Loose ends tied the
+same evening: CRON_SECRET now matches across Vercel and GitHub, proved by a manual retention run
+going green and writing its own line into /admin/audit; the Supabase DPA form recorded as declined
+by the owner; the DPA posture of the other four providers recorded.

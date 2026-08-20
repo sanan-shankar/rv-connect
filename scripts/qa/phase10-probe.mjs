@@ -13,7 +13,7 @@
  *    friendly sentence, not a 500 (L9's visible half; the race itself is
  *    pinned by the P2002 catch);
  *  - a page load produces ZERO /ingest 404s (the three-PostHog-404s
- *    baseline noise, SECURITY-FIX-PLAN trap 3, is gone).
+ *    baseline noise, docs/SECURITY.md traps, is gone).
  *
  * Usage: node scripts/qa/phase10-probe.mjs
  * Needs: dev server on :3000, DEV_LOGIN_SECRET + ADMIN_EMAIL in .env.
