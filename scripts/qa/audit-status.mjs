@@ -198,8 +198,11 @@ const CHECKS = [
       return ok("no verifyState write, and repeat reports deduped per reporter");
     }},
   { id: "H6", sev: "high", title: "No rate limiting or lockout on authentication", probe: () => {
-      const s = decomment(read("src/lib/auth.ts") + read("src/app/(auth)/login/page.tsx"));
-      return /ratelimit|rateLimit|Ratelimit/.test(s) ? ok("a limiter is wired into the auth path") : open("no limiter on the credentials path");
+      // Both keys must be read at the door AND spent somewhere: a check
+      // that never consumes is decoration. Behaviour is phase4-probe's job.
+      const s = decomment(read("src/lib/auth.ts"));
+      const wired = /hasBudget\("login-ip"/.test(s) && /hasBudget\("login-account"/.test(s) && /consume\("login-/.test(s);
+      return wired ? ok("per-IP + per-account failure limits in authorize(); run phase4-probe for behaviour") : open("no limiter on the credentials path");
     }},
   { id: "H7", sev: "high", title: "No security headers at all", probe: () => {
       const c = read("next.config.ts");
@@ -274,13 +277,39 @@ const CHECKS = [
       return ok("requireVerifiedMember read in the write paths; run phase3-probe for behaviour");
     }},
   { id: "H22", sev: "high", title: "No bot defence on any public entry point", probe: () => {
-      const src = appSources().some((f) => /turnstile/i.test(decomment(f.text)));
-      const env = /TURNSTILE/.test(read(".env"));
-      if (src) return ok("Turnstile verified server-side");
-      return open(env ? "keys in .env but no code verifies them yet" : "no Turnstile anywhere");
+      // Verified at all three doors, or it is not closed: login (inside
+      // authorize, the one place a direct POST cannot skip), signup, reset.
+      const missing = [];
+      if (!/verifyTurnstile\(/.test(decomment(read("src/lib/auth.ts")))) missing.push("login");
+      if (!/verifyTurnstile\(/.test(decomment(read("src/components/auth/actions.ts")))) missing.push("signup");
+      if (!/verifyTurnstile\(/.test(decomment(read("src/components/auth/email-actions.ts")))) missing.push("reset");
+      if (missing.length === 3) {
+        const env = /TURNSTILE/.test(read(".env"));
+        return open(env ? "keys in .env but no code verifies them yet" : "no Turnstile anywhere");
+      }
+      return missing.length ? open(`Turnstile verified on some doors but not: ${missing.join(", ")}`)
+        : ok("Turnstile verified server-side on login, signup and reset");
     }},
 
   // ------------------------------------------------------------------ MEDIUM
+  { id: "M2", sev: "medium", title: "No rate limiting on content-creating actions", probe: () => {
+      if (!has("src/lib/rate-limit.ts")) return open("no shared limiter module");
+      const missing = [];
+      if (!/rateLimit\("posts"/.test(decomment(read("src/app/(main)/feed/actions.ts")))) missing.push("posts");
+      if (!/rateLimit\("comments"/.test(decomment(read("src/app/(main)/feed/actions.ts")))) missing.push("comments");
+      if (!/rateLimit\("uploads"/.test(decomment(read("src/app/api/upload/route.ts")))) missing.push("uploads");
+      if (!/rateLimit\("reports"/.test(decomment(read("src/components/posts/report-action.ts")))) missing.push("reports");
+      if (!/rateLimit\("catchups"/.test(decomment(read("src/app/(main)/catchups/actions.ts")))) missing.push("catchups");
+      return missing.length ? open(`limiter exists but unused on: ${missing.join(", ")}`)
+        : ok("one Upstash limiter on posts/comments/uploads/reports/catchups; run phase4-probe for behaviour");
+    }},
+  { id: "M3", sev: "medium", title: "Public reset requests can exhaust the daily mail budget", probe: () => {
+      const b = fnBody(read("src/components/auth/email-actions.ts"), "requestPasswordReset");
+      if (!b) return open("requestPasswordReset not found");
+      return /rateLimit\("reset"/.test(decomment(b))
+        ? ok("reset requests metered per IP before any mail is queued")
+        : open("still limited per user id only, never per IP");
+    }},
   { id: "M4", sev: "medium", title: "Password reset does not revoke sessions", probe: () =>
       /credentialVersion|sessionsValidFrom/.test(read("prisma/schema.prisma"))
         ? ok("credential epoch column present") : open("no credentialVersion/sessionsValidFrom column") },
