@@ -8,6 +8,7 @@ import { requireAdminAction, requireAdminActor, type AdminActionResult } from "@
 import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
+import { delImage } from "@/lib/storage";
 
 /* ------------------------------------------------------------------ *
  *  Everything you can do TO a person, from the panel.
@@ -276,8 +277,8 @@ export async function adminMergeUsers(
   if (sourceId === targetId) return { error: "That is the same account." };
 
   const [source, target] = await Promise.all([
-    prisma.user.findUnique({ where: { id: sourceId }, select: { id: true, role: true } }),
-    prisma.user.findUnique({ where: { id: targetId }, select: { id: true } }),
+    prisma.user.findUnique({ where: { id: sourceId }, select: { id: true, role: true, photoUrl: true } }),
+    prisma.user.findUnique({ where: { id: targetId }, select: { id: true, photoUrl: true } }),
   ]);
   if (!source) return { error: "The duplicate account no longer exists." };
   if (!target) return { error: "Could not find the account to merge into." };
@@ -316,6 +317,19 @@ export async function adminMergeUsers(
   } catch (err) {
     console.error("adminMergeUsers failed:", err);
     return { error: "Could not merge those accounts. Nothing was changed. Check the server log." };
+  }
+
+  // The one R2 object a merge otherwise strands (write-path review, Phase 8):
+  // the duplicate's avatar. It lives under `avatars/<sourceId>/`, no moved row
+  // points at it, and the target keeps its own photo, so without this it sat
+  // publicly fetchable forever with nothing left to find it by (the H9
+  // failure mode, via merge instead of delete). The coverPhoto is NOT
+  // touched: that URL belongs to a Collection Photo row, which has just been
+  // re-pointed at the target and is still alive. Guarded and best-effort:
+  // only after the transaction committed, and never an object the target
+  // itself displays.
+  if (source.photoUrl && source.photoUrl !== target.photoUrl) {
+    await delImage(source.photoUrl);
   }
 
   await writeAudit({

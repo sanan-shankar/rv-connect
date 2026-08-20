@@ -85,6 +85,21 @@ fewer objects than the live bucket. Restore one photo:
 aws s3 cp "s3://$R2_BACKUP_BUCKET/media/<key>" "s3://rv-alumni-media/<key>" --endpoint-url "https://<account-id>.r2.cloudflarestorage.com"
 ```
 
+### `retention.yml` — the data that is supposed to expire, expiring
+**Fires:** nightly at 02:30 IST, and on demand via **Actions → retention → Run workflow**.
+
+One `curl` to `https://rishivalley.space/api/retention/sweep` carrying `CRON_SECRET`
+(security audit M34). The route applies the owner's retention schedule (admin messages
+2y, reports 3y, payments 10y, notifications 1y, login/audit logs 1y, sent-email log
+180d) and makes 60-day-old deletion requests final, erasing the account's rows AND its
+R2 images (audits H9/M35). It lives in Actions rather than a Vercel cron because the
+Hobby plan allows two crons and both are spent (the Catch-up tick, the demo reset).
+
+**Needs the `CRON_SECRET` repository secret** — the same value set on the Vercel
+project. Without it the job fails loudly with a 401, which is the correct symptom, and
+nothing is swept until it is set. Every sweep writes a `retention.sweep` line to
+/admin/audit, so "is this actually running" is answerable from inside the app.
+
 ### Minute budget
 Private repos get **2,000 free minutes a month** and the account spending limit is **$0 by
 default**, so exhausting them stops runs rather than producing a bill. Expected usage is

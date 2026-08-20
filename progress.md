@@ -2099,3 +2099,34 @@ changes by the admin's hand, which was the whole point of making verifyState a c
 actual /admin/people UI, the member is verified, an attributed `admin.verify` row lands in the log, and
 it renders on /admin/audit. check clean, visual 21/21, the new page screenshotted both viewports. One
 migration (AuditLog + the Report unique), applied forward-only; the demo writes no audit rows.
+
+## 2026-08-20 — Security Phase 8: leaving, and being able to see the rules
+
+Deleting your account used to be one click and a lie: the click destroyed the rows instantly with no
+confirmation and no way back, and it LEFT every photograph you ever uploaded publicly fetchable in
+storage forever, with nothing left pointing at it so nobody could ever find and remove it (H9 — the
+finding that made "right to erasure" unachievable for images). Now deletion is a request: it asks for
+your password (a stolen browser session is not enough to erase somebody's history), signs you out
+everywhere, emails you the date it becomes final, and waits 60 days — during which simply signing in
+again cancels it, and your name is held out of the directory as if you had already gone. When the
+window closes, a nightly job erases everything for real: the rows AND the stored images, through the
+same one purge the admin's delete button uses. The same job is the retention schedule (M34): admin
+messages 2 years, reports 3, payment records 10, notifications and security logs 1, email delivery
+records 180 days — personal data now stops accumulating forever, and every sweep leaves a line in
+/admin/audit saying what it swept.
+
+Alongside it, the things a member can now DO: download everything the site holds about them as one
+file (the "Download your data" link in settings — GDPR Art. 20), and read, at last, what the site
+actually promises. Three documents went up — /privacy, /terms, /guidelines — written in plain
+sentences, honest about the public image CDN and about what outlives deletion, with the controller
+contact reachable at the bottom rather than featured. Signup now carries the consent tick linking
+all three, enforced server-side and receipted with a timestamp. H12, the "bare violation with no
+defence available", is closed pending the owner's read of the words.
+
+**Proof.** phase8-probe 40/40 against the real server and the real bucket, twice: the real dialog
+refusing a wrong password, a real uploaded image provably gone from R2 after the sweep, the seeded
+over-age rows dying while fresh ones survive, the export refusing strangers, the signup refusing a
+consent-stripped POST. The write-path review found three real gaps (a non-atomic purge, Catch-up
+enrolment reaching grace-period members, merge stranding an avatar in R2) and the design review
+three more (focus rings, a borrowed field material) — all six fixed and re-proved. check clean,
+visual green with two new baselines, phase4-probe re-run 29/29.

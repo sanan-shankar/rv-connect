@@ -152,8 +152,8 @@ Mark a phase done only when `npm run audit:status` agrees.
 | 5 | Object deletion and uploads | C2, M10–M17 | **done 2026-08-20** |
 | 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | **done 2026-08-20** |
 | 7 | Audit log and admin accountability | H10, H14, M36, H5 | **done 2026-08-20** |
-| 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | next |
-| 9 | CI hardening and security tests | H16, H17 | |
+| 8 | Deletion, retention, privacy layer | H8, H9, H12, M34, M35 | **done 2026-08-20** (docs await owner review) |
+| 9 | CI hardening and security tests | H16, H17 | next — **only after the owner reviews Phase 8's documents** |
 | 10 | Remaining mediums and lows | the rest | |
 
 ---
@@ -668,3 +668,95 @@ short-circuit).
 failed-sign-in list is already populated (it reads the LoginAttempt table Phase 4 has been writing).
 No demo-DB step — the demo writes no audit rows (writeAudit short-circuits on IS_DEMO), and RLS on
 AuditLog matches every other table.
+
+### 2026-08-20 — Phase 8
+**Closed:** H9, H12, M34, M35 (H8 closed early in Phase 7; its regression is pinned here anyway).
+audit:status now **41 fixed, 1 open** (H16, Phase 9).
+**Schema (SA-3 migration `2026-08-20-deletion-grace-consent.sql`, applied to BOTH databases — the
+demo's directory queries filter on the new column, the Phase 3 P2022 lesson):**
+`User.deletionRequestedAt` and `User.consentAt`, both nullable, so nothing existing is touched.
+**Built:**
+- **Deletion became a request, not an event (M35).** `requestAccountDeletion` replaces the old
+  one-call `deleteAccount`: the dialog re-asks for the PASSWORD (a stolen cookie must not be able to
+  schedule someone's history for destruction), wrong guesses spend their own `reauth` budget (5/h —
+  the login limiter cannot see this second password door), and a correct one stamps
+  `deletionRequestedAt`, bumps the credential epoch (every session ends), writes an
+  `account.delete_request` audit entry and queues the new `deletion-scheduled` email — the written
+  confirmation that is also the takeover alarm, with the purge date and "sign in to cancel".
+  Signing in during the 60-day window IS the cancel: authorize() clears the request, writes
+  `account.delete_cancel`, and leaves a welcome-back notification. While pending, the account is held
+  out of every people surface exactly like a blocked one (directory + counts + pins + city facet,
+  search, by-batch, the feed rail card, and both Catch-up enrol paths).
+- **The purge (H9).** `src/lib/account-purge.ts` `purgeUserAccount()` — ONE definition of "gone",
+  used by `adminDeleteUser` (immediate) and the retention sweep (grace-expired): collect every
+  stored-image URL the member's rows point at (avatar, post images, Collection thumb/full/original,
+  Catch-up answer images) BEFORE the cascade takes the rows, delete the row in one transaction with
+  the H8 report-clearing (a failed delete can no longer half-commit), then delete the R2 objects
+  best-effort AFTER the row delete succeeds. `coverPhoto` deliberately not collected — it aliases a
+  Collection Photo row's object.
+- **Retention (M34).** `src/lib/retention.ts` applies the DECISIONS schedule verbatim (admin
+  messages 730d, reports 1095d, payments 3650d, notifications 365d, LoginAttempt+AuditLog 365d,
+  OutboundEmail 180d) plus the grace-expired purge, every step individually try/caught, the pass
+  itself audit-logged (`retention.sweep` with the counts as detail — "is retention running" is
+  answerable from /admin/audit). Trigger: `/api/retention/sweep` (Bearer CRON_SECRET, timing-safe,
+  IS_DEMO skips) called nightly by the new `.github/workflows/retention.yml` at 02:30 IST — GitHub
+  Actions, NOT a third Vercel cron, because Hobby allows two and both are spent. Documented in
+  OPERATIONS.md.
+- **The export (M35, Art. 20).** `GET /api/account/export` — strictly self-service (session decides
+  whose, no parameter exists), rate-limited 3/day, audit-logged, returns a JSON attachment of
+  profile/places/posts/comments/likes/photos/catch-up answers/admin messages/reports
+  filed/contributions, and none of the operational columns (hash, epoch, adminNote, role). Reached
+  from the new quiet "Download your data" link beside "Delete your account" in settings.
+- **The transparency layer (H12).** `/privacy`, `/terms`, `/guidelines` — public, static, in a new
+  `(policies)` route group with its own shell and shared typographic pieces; controller contact
+  (email + Margravine Gardens, London, no name) at the BOTTOM of the privacy policy per DECISIONS;
+  honest about the public image CDN (H20) and the deletion carve-outs. Signup gained the required
+  consent tick linking all three (server-enforced — a POST that strips `required` is refused — and
+  receipted as `consentAt`, the Art. 7 proof; existing members carry null = assumed agreement, the
+  owner's decision). LandingFooter carries the three links, but NOTE: the landing showcase (footer
+  included) is behind `SHOW_SHOWCASE = false` (owner, 2026-08-04, hero-only landing), so today the
+  documents are reached from the signup consent line and by URL; whether the hero should carry a
+  quiet link is the owner's call. New audit actions: account.delete_request / delete_cancel / purge
+  / export, retention.sweep — all labelled on /admin/audit.
+**Proved:** `scripts/qa/phase8-probe.mjs`, **40/40** against the running server and the REAL R2
+bucket, twice (before and after the review fixes): all three documents 200 signed out with the
+controller reachable; the REAL dialog refuses a wrong password (nothing recorded) and the right one
+records the request + audit row + queued confirmation email while the pre-request session dies at
+/feed; signing back in cancels (row cleared, audit, notification); a grace-period account vanishes
+from people search while a control account still surfaces; the sweep 401s without/with a wrong
+secret, and with it a grace-expired account that had uploaded a REAL image, authored a post wearing
+it, and FILED A REPORT (the H8 FK) is purged — row gone, R2 object gone (HEAD), account.purge row
+written; seeded 400-day notification / 200-day email row / 400-day login attempt die while fresh
+controls survive; the export downloads the caller's own data (attachment header, their post, nobody
+else's address), refuses signed out, and is audit-logged; the REAL signup form blocks an unticked
+submit in the browser, refuses a `required`-stripped submit at the SERVER, and stamps consentAt when
+ticked. `phase4-probe` re-run **29/29** (its signup drive now ticks the box). `npm run check` clean
+(19 test files) · `npm run visual` green with two NEW baselines (privacy desktop+mobile, read
+personally) — a mid-run feed failure was probe-account pollution in the rail, not a regression ·
+all six document/checkbox/dialog surfaces screenshotted desktop+mobile and read.
+**Local-tooling note:** the retention probe needs the dev server started with CRON_SECRET in its
+environment (`.env` has none and is deny-ruled to sessions); this session used
+`CRON_SECRET=dev-cron-secret-for-local-probes-only npm run dev`, and the probe falls back to that
+same value. Adding CRON_SECRET to `.env` (owner's hand) would make it self-contained.
+**Write-path review: three findings, all fixed and re-proved** — (1) the purge's report-clear +
+row-delete were two statements, so a failed delete could silently destroy report history while the
+account lived; now one `$transaction` (matters doubly with the sweep running it unattended nightly).
+(2) Both Catch-up enrol actions re-validate invitees with their own query and missed the grace
+filter — a hand-crafted call could enrol and email someone who asked to leave; both now carry
+`deletionRequestedAt: null`. (3) `adminMergeUsers` stranded the duplicate's avatar object in R2 (the
+H9 failure shape via merge); it now `delImage`s the source's photoUrl after the transaction commits,
+never the coverPhoto (that aliases a Collection row's object, which the merge just re-pointed and
+kept alive). Review confirmed sound: authorize() ordering (blocked members can never reach the
+cancel), the export's self-scoping and column hygiene, the sweep's windows vs DECISIONS, demo's
+three layers untouched (demo.test.mjs 19/19, verify-guard 15/15).
+**Design review: three findings, all fixed** — the nine new inline document links and the consent
+checkbox lacked focus-visible rings (added, leaf, matching the house convention); the delete dialog
+had borrowed the auth pages' mist FloatField, which the design system scopes to pages that ARE a
+form — swapped to the standard bordered Input like every other dialog. Re-screenshotted both
+viewports after.
+**Owner needs to:** (1) REVIEW the three documents before Phase 9 proceeds — screenshots and the
+H13 DPA links are in the session handoff. (2) Add the `CRON_SECRET` repository secret on GitHub
+(Settings → Secrets → Actions) — same value as the Vercel one — or the nightly retention job fails
+loudly with a 401 and nothing is swept; this joins the existing open item of setting CRON_SECRET on
+the prod Vercel project. (3) Decide whether the hero-only landing should carry a quiet privacy
+link while the showcase stays off.

@@ -270,6 +270,11 @@ const signupEmail = `signup_${RUN}${P}`;
     await page.type("#yearJoined", String(batch - 7));
     await page.type("#yearLeft", String(batch));
     await page.type("#batchYear", String(batch));
+    // The Phase 8 consent line is `required`: without the tick the browser
+    // blocks every submit below client-side and the three checks that follow
+    // would all be watching a form that never POSTed. Phase 8's own probe is
+    // where refusing-without-consent is proved.
+    await page.click('input[name="consent"]');
 
     // Sabotage 1: swap the pass for an OLD-FORMAT token (timestamp signed
     // alone, with the REAL secret) -- the shareable hall pass M7 killed.
