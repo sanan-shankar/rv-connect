@@ -1,10 +1,12 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { maskEmail } from "@/lib/email";
 import { burnTokens, readToken } from "@/lib/auth-tokens";
+import { passwordProblem } from "@/lib/password-rule";
 import { enqueueMail, verificationMailState } from "@/lib/email-queue";
 import { sendVerificationEmail } from "@/lib/verification-mail";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
@@ -174,11 +176,25 @@ export async function requestPasswordReset(
   // send fails the message is not simply lost, and so the token is minted at
   // the moment of sending rather than here: a reset that did have to wait
   // still arrives with its full hour ahead of it.
-  await enqueueMail({
-    kind: "reset",
-    to: user.email,
-    userId: user.id,
-    payload: { name: user.name },
+  //
+  // Inside after(), NOT awaited (audit L3): both branches of this function
+  // now return after the same single findUnique. Awaiting the enqueue here
+  // made the has-an-account path measurably slower — a fold-check, a count
+  // and a create — which is a timing oracle recovering exactly the
+  // membership fact the identical { ok: true } answers exist to hide.
+  after(async () => {
+    try {
+      await enqueueMail({
+        kind: "reset",
+        to: user.email,
+        userId: user.id,
+        payload: { name: user.name },
+      });
+    } catch (err) {
+      // Post-response, so nothing can surface this to the caller; the queue
+      // row is the recovery path and this log is the only witness.
+      console.error("[reset] enqueue failed:", err);
+    }
   });
 
 
@@ -221,6 +237,15 @@ export async function resetPassword(input: {
 }): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
   if (!input.password || input.password.length < MIN_PASSWORD) {
     return { ok: false, error: `Pick a password of at least ${MIN_PASSWORD} characters.` };
+  }
+
+  // The quality floor (audit M8), checked against a PEEK at the token —
+  // never after consuming it, or a refused password would burn the person's
+  // one link and strand them back at the request form.
+  const peek = await readToken(input.token, "reset", { consume: false });
+  if (peek.ok) {
+    const weak = passwordProblem(input.password, peek.email);
+    if (weak) return { ok: false, error: weak };
   }
 
   // Consumed here, at the moment of use, so the link cannot be replayed.

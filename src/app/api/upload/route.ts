@@ -11,10 +11,17 @@ import {
 } from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
+import { originAllowed } from "@/lib/origin-rule";
 
 const MAX_FILES = 3;
 
 export async function POST(request: Request) {
+  // A cross-site page must not be able to spend this cookie (audit M33).
+  // Server actions get this check from Next itself; API routes do not.
+  if (!originAllowed(request.headers.get("origin"), request.headers.get("host"))) {
+    return NextResponse.json({ error: "Cross-site call refused" }, { status: 403 });
+  }
+
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -1,10 +1,8 @@
 import { cityNameVariants } from "@/lib/city-coords";
-
-// SQLite's Prisma adapter rejects `mode: "insensitive"`; only Postgres accepts
-// it. SQLite `LIKE` is already case-insensitive for ASCII, so on SQLite we drop
-// the flag. Detect the live provider the same way prisma.ts does.
-const IS_POSTGRES = (process.env.DATABASE_URL ?? "").startsWith("postgres");
-const insensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
+// The one definition of the Postgres-only `mode: "insensitive"` gate (audit
+// R6: this file used to carry its own copy, which is the drift-by-copy-paste
+// pattern that produced M18 for real).
+import { insensitive } from "@/lib/db-text";
 
 export type DirectoryFilters = {
   q?: string;

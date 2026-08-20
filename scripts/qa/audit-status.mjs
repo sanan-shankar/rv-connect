@@ -505,6 +505,155 @@ const CHECKS = [
       if (!has("src/app/api/account/export/route.ts")) return open("no data export route");
       return ok("re-auth + 60-day grace + export route; run phase8-probe for behaviour");
     }},
+
+  /* ---- Phase 10: the remaining mediums and lows, tracked at last ---- */
+
+  { id: "M1", sev: "medium", title: "Member enumeration and bulk harvesting", probe: () => {
+      // The harvesting half is closed (Stage gates + take: caps + per-IP
+      // limits). The residual oracle — signup's honest "already exists"
+      // answer — is rate-limited and kept deliberately: hiding it strands
+      // real returning members, a worse trade for a community this size.
+      const s = decomment(read("src/components/auth/actions.ts"));
+      return /rateLimit\("signup"/.test(s)
+        ? ok("surfaces gated + capped; signup oracle metered per IP (kept, deliberate)")
+        : open("signup oracle no longer metered");
+    }},
+  { id: "M5", sev: "medium", title: "JWT sessions: no revocation, docs wrong", probe: () => {
+      const a = decomment(read("src/lib/auth.ts"));
+      if (!/credentialVersion/.test(a)) return open("no revocation primitive in auth.ts");
+      const docs = read("AGENTS.md");
+      return /JWT/.test(docs) && !/database-backed \(Prisma adapter\)/.test(docs)
+        ? ok("credentialVersion epoch revokes; AGENTS.md corrected")
+        : open("AGENTS.md still claims database sessions");
+    }},
+  { id: "M8", sev: "medium", title: "Password policy is length-only", probe: () => {
+      if (!has("src/lib/password-rule.ts")) return open("no password quality rule");
+      const signup = decomment(read("src/components/auth/actions.ts"));
+      const reset = decomment(read("src/components/auth/email-actions.ts"));
+      return /passwordProblem/.test(signup) && /passwordProblem/.test(reset)
+        ? ok("denylist + own-email rule wired into signup and reset")
+        : open("password-rule exists but is not wired into signup and reset");
+    }},
+  { id: "M9", sev: "medium", title: "No re-authentication for sensitive operations", probe: () => {
+      const b = fnBody(read("src/components/settings/actions.ts"), "requestAccountDeletion") ?? "";
+      return /bcrypt\.compare/.test(decomment(b))
+        ? ok("deletion re-asks the password; password change is the emailed reset flow (its own re-auth)")
+        : open("account deletion no longer re-authenticates");
+    }},
+  { id: "M20", sev: "medium", title: "No row-level security", probe: () =>
+      has("prisma/migrations-manual/2026-08-20-enable-rls.sql")
+        ? ok("RLS enabled on every table (PostgREST anon-key surface closed, 2026-08-20)")
+        : open("no RLS migration") },
+  { id: "M21", sev: "medium", title: "No field-level encryption for phones/admission numbers", probe: () =>
+      acc("bounded by RLS + private DB + private backups; app-layer crypto adds key management a one-person operation cannot carry — revisit post-launch") },
+  { id: "M22", sev: "medium", title: "Schema-quality debt", probe: () =>
+      acc("refactoring, not exposure; tracked in the audit for the post-launch backlog") },
+  { id: "M23", sev: "medium", title: "Secrets in plaintext .env, no rotation", probe: () =>
+      owner("owner-side practice: secrets live in .env + Vercel/GitHub dashboards; rotate on departure/compromise, starting with AUTH_SECRET and the R2 keys") },
+  { id: "M24", sev: "medium", title: "Single signing key, no rotation path", probe: () =>
+      acc("one AUTH_SECRET; rotation = set a new value and every session re-authenticates (30-day cost, acceptable); no code change needed") },
+  { id: "M25", sev: "medium", title: "Single region, single points of failure", probe: () =>
+      acc("owner locked Hobby/Free tiers 2026-08-19; bom1 + the nightly backup is the accepted posture") },
+  { id: "M26", sev: "medium", title: "Free-tier services on the critical path", probe: () =>
+      acc("owner decision 2026-08-19: no paid plans; the mail queue and backups are the mitigations") },
+  { id: "M28", sev: "medium", title: "No scheduler: things advance on page view", probe: () => {
+      const crons = read("vercel.json");
+      return /catchups\/tick/.test(crons) && has(".github/workflows/retention.yml")
+        ? ok("nightly Vercel cron (catchups) + GitHub Actions (retention, backup); page-view ticks remain as backstop")
+        : open("a scheduled trigger went missing");
+    }},
+  { id: "M29", sev: "medium", title: "Forced enrolment: one member adds 500 users to a group", probe: () => {
+      const c = decomment(read("src/app/(main)/catchups/actions.ts"));
+      const caps = c.match(/max\(100/g) ?? [];
+      return caps.length >= 2
+        ? ok("both enrolment paths capped at 100 (a whole batch), Stage 2 gated, rate limited")
+        : open("an enrolment path lost its 100 cap");
+    }},
+  { id: "M30", sev: "medium", title: "photoTrusted auto-approval has no revocation path", probe: () => {
+      const b = fnBody(read("src/app/(main)/admin/people/actions.ts"), "adminSetPhotoTrusted");
+      return b ? ok("adminSetPhotoTrusted toggles it from the person page") : open("no adminSetPhotoTrusted action");
+    }},
+  { id: "M31", sev: "medium", title: "No security-relevant metrics", probe: () =>
+      /model\s+LoginAttempt\b/.test(read("prisma/schema.prisma")) && has("src/app/(main)/admin/audit/page.tsx")
+        ? ok("LoginAttempt + AuditLog land on /admin/audit; MetricSnapshot keeps history")
+        : open("the security metrics surface went missing") },
+  { id: "M33", sev: "medium", title: "API routes rely solely on SameSite=Lax", probe: () => {
+      if (!has("src/lib/origin-rule.ts")) return open("no origin rule");
+      const routes = ["src/app/api/upload/route.ts", "src/app/api/upload/presign/route.ts", "src/app/api/upload/finalize/route.ts"];
+      const missing = routes.filter((r) => !/originAllowed/.test(decomment(read(r))));
+      return missing.length ? open(`origin check missing in: ${missing.join(", ")}`) : ok("origin checked on all three upload routes");
+    }},
+  { id: "M36", sev: "medium", title: "Deletion is silent and unlogged", probe: () => {
+      const s = decomment(read("src/components/settings/actions.ts"));
+      return /account\.delete_request/.test(s) && /deletion-scheduled/.test(s)
+        ? ok("audited and confirmed in writing, with the grace window")
+        : open("self-deletion lost its audit entry or its confirmation email");
+    }},
+
+  { id: "L1", sev: "low", title: "Login email is the default public contact", probe: () =>
+      acc("mitigated: contacts serialize only for verified members (Stage 2); the displayEmail-only switch is an owner call because it would blank most existing contacts") },
+  { id: "L2", sev: "low", title: "Reset/verify tokens in URLs, no Referrer-Policy", probe: () => {
+      const c = read("next.config.ts");
+      return /strict-origin-when-cross-origin/.test(c)
+        ? ok("Referrer-Policy shipped (H7); tokens stay single-use and short-lived")
+        : open("Referrer-Policy gone from next.config.ts");
+    }},
+  { id: "L3", sev: "low", title: "requestPasswordReset timing side-channel", probe: () => {
+      const b = fnBody(read("src/components/auth/email-actions.ts"), "requestPasswordReset") ?? "";
+      const src = decomment(b);
+      // The await inside the after() callback is fine — post-response. What
+      // must not return is an enqueue awaited BEFORE the deferral begins.
+      const deferAt = src.indexOf("after(");
+      const enqueueAt = src.indexOf("enqueueMail");
+      return deferAt >= 0 && enqueueAt > deferAt
+        ? ok("enqueue moved into after(); both branches return after one lookup")
+        : open("the enqueue runs before the response again");
+    }},
+  { id: "L4", sev: "low", title: "Verification gate skipped report/message/createCatchup", probe: () => {
+      const c = decomment(read("src/app/(main)/catchups/actions.ts"));
+      const r = decomment(read("src/components/posts/report-action.ts"));
+      return /requireVerifiedMember/.test(c) && /requireVerifiedMember/.test(r)
+        ? ok("all three moved to the Stage 2 member gate in Phase 3")
+        : open("a write path fell off the member gate");
+    }},
+  { id: "L5", sev: "low", title: "PII in application logs", probe: () => {
+      const e = decomment(read("src/lib/email.ts"));
+      return /maskEmail\(opts\.to\)/.test(e)
+        ? ok("the one production log line with an address is masked; dev prints are local-only by design; log tables expire on the M34 schedule")
+        : open("email.ts logs a raw address in production again");
+    }},
+  { id: "L6", sev: "low", title: "Upload finalize validates key shape, not ownership", probe: () => {
+      const f = decomment(read("src/app/api/upload/finalize/route.ts"));
+      return /keyBelongsTo/.test(f) ? ok("finalize binds the staged key to the caller (Phase 5)") : open("keyBelongsTo gone from finalize");
+    }},
+  { id: "L7", sev: "low", title: "Poll voting: no window, unlimited switching", probe: () => {
+      const feed = decomment(read("src/app/(main)/feed/actions.ts"));
+      return /canViewPost/.test(feed)
+        ? ok("visibility checked (H3); switching your own vote is product behaviour, kept")
+        : open("votePoll lost its visibility check");
+    }},
+  { id: "L8", sev: "low", title: "livemode filtering on contribution totals unverified", probe: () => {
+      const s = decomment(read("src/app/(main)/support/actions.ts"));
+      return /livemode/.test(s) ? ok("totals filter on livemode via razorpayLivemode()") : open("no livemode filter in support actions");
+    }},
+  { id: "L9", sev: "low", title: "Signup race surfaces an unhandled P2002", probe: () => {
+      const b = fnBody(read("src/components/auth/actions.ts"), "registerUser") ?? "";
+      return /P2002/.test(b) ? ok("the create catches P2002 and answers like the pre-check") : open("no P2002 handling around user.create");
+    }},
+  { id: "L10", sev: "low", title: "extendDeadline deletes notifications unscoped", probe: () => {
+      const c = decomment(read("src/app/(main)/catchups/actions.ts"));
+      return /catchup_reminder", link:/.test(c) || /type: "catchup_reminder",\s*link:/.test(c)
+        ? ok("the delete is scoped to this Catch-up's reminder link (and Keeper-gated)")
+        : open("the reminder cleanup lost its link scope");
+    }},
+  { id: "L11", sev: "low", title: "R2 token is object-scoped, cannot manage CORS", probe: () =>
+      acc("least-privilege is the right posture; CORS changes are a dashboard action (documented in storage.ts)") },
+  { id: "L12", sev: "low", title: "Client-side-only enforcement patterns", probe: () => {
+      const feed = decomment(read("src/app/(main)/feed/actions.ts"));
+      return /ownedUploadUrls/.test(feed)
+        ? ok("the caps that matter (images, sizes, tiers) are server-side since Phase 5; tour/onboarding localStorage is UX state")
+        : open("server-side image validation went missing");
+    }},
 ];
 
 /* ------------------------------------------------------------------ *

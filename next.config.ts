@@ -133,6 +133,20 @@ const nextConfig: NextConfig = {
    * would let the catch-all swallow it and the SDK would 404. */
   async rewrites() {
     return [
+      /* posthog-js probes its optional feature bundles at a VERSIONED path
+       * first (/static/1.418.1/web-vitals.js), which the asset host does not
+       * serve; it then falls back to /static/web-vitals.js?v=1.418.1, which
+       * it does. The scripts always loaded, but every page paid three 404s
+       * in the console — the "three PostHog 404s" baseline noise every
+       * verify:shot has carried since Phase 1 (SECURITY-FIX-PLAN trap 3),
+       * which made a real fourth error easy to miss. Mapping the versioned
+       * probe onto the query-string form the host answers removes the noise
+       * without disabling the features. MUST come before the general static
+       * rule, or that one swallows it. */
+      {
+        source: "/ingest/static/:version(\\d+\\.\\d+\\.\\d+)/:path*",
+        destination: "https://eu-assets.i.posthog.com/static/:path*?v=:version",
+      },
       {
         source: "/ingest/static/:path*",
         destination: "https://eu-assets.i.posthog.com/static/:path*",

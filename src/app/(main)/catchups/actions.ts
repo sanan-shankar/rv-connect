@@ -117,7 +117,11 @@ const createCatchupSchema = z.object({
 /** People-first creation: no pre-existing group needed, see createCatchupWithPeople. */
 const createCatchupWithPeopleSchema = z.object({
   name: z.string().trim().min(1, "Give this Catch-up a name.").max(80, "Keep the name under 80 characters."),
-  memberIds: z.array(z.string().min(1)).max(500),
+  // 100, not the 500 the audit called out as the forced-enrolment number
+  // (M29): a whole batch is the largest genuine gathering this community has
+  // (~100 people at the expected ~1,000-member ceiling), and every enrolment
+  // notifies a real person, so the cap is the blast radius of one call.
+  memberIds: z.array(z.string().min(1)).max(100, "A Catch-up can start with up to 100 people."),
   cadence: cadenceSchema.default("monthly"),
 });
 
@@ -1287,8 +1291,9 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
-    const parsed = z.array(z.string().min(1)).min(1).max(500).safeParse(userIds);
-    if (!parsed.success) return { error: "Pick at least one person." };
+    // Same 100 ceiling as creation (audit M29) — adding is the same reach.
+    const parsed = z.array(z.string().min(1)).min(1).max(100).safeParse(userIds);
+    if (!parsed.success) return { error: "Pick between 1 and 100 people." };
 
     const scope = await loadKeeperScope(catchupId, session.user.id);
     if ("error" in scope) return { error: scope.error };
