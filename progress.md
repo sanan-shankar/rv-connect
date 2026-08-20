@@ -1924,3 +1924,31 @@ already calls, so it cannot be forgotten by the next action somebody writes.
 entirely happy with: neither mint path carried `credentialVersion`, so anyone who had ever reset
 their password would have been thrown out immediately after signing in, forever. Every phase from
 here writes the probe and pastes the numbers into the plan's session log.
+
+## 2026-08-20 — Security Phase 3: verification finally means something
+
+**Phase 3 — the two-gate trust model (H21, and M1's harvesting half).** `verifyState` had a badge
+and no consequences: any account with a throwaway mailbox could post, vote, upload, report, and
+read every phone number in the directory. Now the tiers hold server-side. Stage 0 (unconfirmed
+email) reads the feed and sees the map's circles and counts, never a name -- not in /directory, not
+in the two name-serving API routes, not on a profile, not even in the tab title. Stage 1
+(confirmed) browses the people but writes nothing and opens no contact details. Stage 2 (profile
+verified) is a member. Every write action moved from the email gate to the new
+`requireVerifiedMember`; own-account writes (deleting your own content, bookmarks, the feed
+marker) deliberately stayed below it. `reportUser` also stopped stripping the reported member's
+badge -- one anonymous-grade report would now have stripped their *access*.
+
+**The roster.** The school's two sheets (Centenary registrations + the 1936-onward Master list)
+consolidated into 2,134 `RosterEntry` rows carrying nothing beyond name/email/batch. A signup the
+sheets vouch for verifies itself with `verifyMethod: "office_list"` the moment its email is
+confirmed -- email match alone, or name+batch with no single-token or initial matches. Everyone
+else gets "Ask to be verified" (the confirm-email card's new sibling), which writes the first-ever
+`pending` and joins a new `verify` queue on the admin worklist. No digests, no mail: the owner
+mans the panel, so the worklist row IS the pipeline.
+
+**Proof, per the Phase 2 lesson.** `scripts/qa/phase3-probe.mjs`, kept as a script: 22/22 against
+the running dev server, driving disposable accounts at each tier through real pages, a real
+comment typed into the real feed UI (refused with the card at Stage 1, lands at Stage 2), and all
+three roster outcomes through a real /verify-email link. Locked states screenshot at 1440x900 and
+390x844 and read. `npm run check` 17/17 files, `npm run visual` 21/21, production build clean,
+`audit:status` 13 fixed / 18 open.
