@@ -3,7 +3,8 @@ import Link from "next/link";
 import { DocTitle, Section, P, Bullets } from "../_shared";
 
 export const metadata: Metadata = {
-  title: "Rishi Valley · Community guidelines",
+  // The root layout templates this into "Rishi Valley · Community guidelines".
+  title: "Community guidelines",
   description: "How we treat each other on the Rishi Valley community website.",
 };
 

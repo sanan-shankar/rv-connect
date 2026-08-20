@@ -3,7 +3,8 @@ import Link from "next/link";
 import { DocTitle, Section, P, Bullets, FactTable } from "../_shared";
 
 export const metadata: Metadata = {
-  title: "Rishi Valley · Privacy",
+  // The root layout templates this into "Rishi Valley · Privacy".
+  title: "Privacy",
   description: "How the Rishi Valley community website looks after your information.",
 };
 
