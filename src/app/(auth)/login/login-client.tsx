@@ -21,7 +21,7 @@ import { nextPathFromLocation } from "@/lib/next-path";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { TurnstileWidget, type TurnstileHandle } from "@/components/auth/turnstile-widget";
 import { RATE_LIMITED } from "@/lib/rate-limit-message";
-import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
+import { BOT_CHECK_FAILED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 
 export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: string | null }) {
   const [email, setEmail] = useState("");
@@ -365,8 +365,15 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
       // A fresh single-use token per attempt; authorize() checks it with
       // Cloudflare (audit H22). Null when the widget could not produce one
       // — the server then refuses with the bot-check code below, or lets
-      // it pass if Turnstile itself is what broke.
+      // it pass if Turnstile itself is what broke. The "interaction"
+      // sentinel means Cloudflare's checkbox is on screen waiting for the
+      // human: say so NOW instead of sending a request that can only fail.
       const turnstileToken = await turnstileRef.current?.getToken();
+      if (turnstileToken === "interaction") {
+        setError(TICK_HUMAN_BOX);
+        setLoading(false);
+        return;
+      }
 
       const result = await signIn("credentials", {
         email,

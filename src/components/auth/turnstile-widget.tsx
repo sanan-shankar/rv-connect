@@ -54,9 +54,14 @@ function loadScript(): Promise<void> {
 }
 
 export type TurnstileHandle = {
-  /** Resolves to a fresh single-use token, or null when the widget could
-   *  not produce one (script blocked, challenge errored, 12s timeout). */
-  getToken: () => Promise<string | null>;
+  /** Resolves to a fresh single-use token; null when the widget could not
+   *  produce one (script blocked, challenge errored, 12s timeout); or the
+   *  sentinel "interaction" the moment Cloudflare is showing its checkbox
+   *  and is waiting on the HUMAN — submitting can't succeed until they
+   *  tick it, so the form should say that immediately rather than hang
+   *  out the timeout and then send a doomed request (owner report,
+   *  2026-08-20: incognito visitors saw exactly that hang). */
+  getToken: () => Promise<string | null | "interaction">;
 };
 
 export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | null }>(
@@ -65,7 +70,8 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
     const widgetId = useRef<string | null>(null);
     const token = useRef<string | null>(null);
     const dead = useRef(false); // script/challenge failed; stop waiting
-    const waiters = useRef<Array<(t: string | null) => void>>([]);
+    const interactive = useRef(false); // Cloudflare is showing its checkbox
+    const waiters = useRef<Array<(t: string | null | "interaction") => void>>([]);
 
     useEffect(() => {
       if (!siteKey || !holder.current) return;
@@ -83,7 +89,16 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
             theme: "light",
             callback: (t: string) => {
               token.current = t;
+              interactive.current = false;
               waiters.current.splice(0).forEach((w) => w(t));
+            },
+            // Fires when Cloudflare decides the visitor must click. From
+            // this moment a token can only come from the human's tick, so
+            // any submit in flight (and every later one) is answered with
+            // the sentinel instead of a 12-second wait.
+            "before-interactive-callback": () => {
+              interactive.current = true;
+              waiters.current.splice(0).forEach((w) => w("interaction"));
             },
             "expired-callback": () => {
               token.current = null;
@@ -119,15 +134,16 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
           return Promise.resolve(t);
         }
         if (dead.current) return Promise.resolve(null);
-        return new Promise<string | null>((resolve) => {
+        if (interactive.current) return Promise.resolve("interaction");
+        return new Promise<string | null | "interaction">((resolve) => {
           const timer = setTimeout(() => {
             const i = waiters.current.indexOf(settle);
             if (i >= 0) waiters.current.splice(i, 1);
             resolve(null);
           }, 12_000);
-          const settle = (t: string | null) => {
+          const settle = (t: string | null | "interaction") => {
             clearTimeout(timer);
-            if (t) {
+            if (t && t !== "interaction") {
               token.current = null;
               if (widgetId.current) window.turnstile?.reset(widgetId.current);
             }

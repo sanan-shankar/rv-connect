@@ -9,3 +9,13 @@
  */
 export const BOT_CHECK_FAILED =
   "We couldn't confirm you're human. Refresh the page and try once more.";
+
+/**
+ * Shown INSTEAD of submitting when Cloudflare's checkbox is on screen and
+ * unticked. Before this, the form waited out a 12-second token timeout and
+ * then sent a request the server could only refuse — a hang, then a
+ * confusing error (owner report, 2026-08-20). Same file, same reasoning:
+ * all three auth forms show the identical sentence.
+ */
+export const TICK_HUMAN_BOX =
+  'Please tick the "Verify you are human" box first.';

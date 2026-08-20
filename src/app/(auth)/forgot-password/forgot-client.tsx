@@ -8,6 +8,7 @@ import { FloatField } from "@/components/common/float-field";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { AuthHeading, AuthPanel } from "@/components/auth/auth-panel";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
+import { TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { SPRINGS } from "@/components/common/motion";
 import { requestPasswordReset } from "@/components/auth/email-actions";
@@ -70,6 +71,13 @@ export function ForgotPasswordClient({
     formData.set("email", email);
     // Proof-of-human (audit H22); the server verifies it with Cloudflare.
     const turnstileToken = await turnstileRef.current?.getToken();
+    if (turnstileToken === "interaction") {
+      // Cloudflare's checkbox is on screen, waiting for the human.
+      setError(TICK_HUMAN_BOX);
+      setSending(false);
+      void apiRef.current?.react("wrong");
+      return;
+    }
     if (turnstileToken) formData.set("turnstileToken", turnstileToken);
     const result = await requestPasswordReset(formData);
 
@@ -170,25 +178,37 @@ export function ForgotPasswordClient({
             exit={{ opacity: 0, y: -8 }}
             transition={SPRINGS.gentle}
           >
-            <AuthHeading title="Check your email">
-              We sent a reset link to{" "}
-              <span className="font-medium text-foreground">{sentTo}</span>. It
-              expires in an hour.
-            </AuthHeading>
+            <AuthHeading title="Check your email" />
 
-            {/* One line, not a bulleted list of three. Spam is the only thing
-                worth saying here, because it is where the message usually is
-                when somebody comes back saying it never arrived. */}
-            <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-              Can&apos;t find it? Check your spam folder.
+            {/* Three tiers, one job each (owner, 2026-08-20: the old screen
+                was four same-weight muted lines with uneven gaps, "a jumble").
+                Tier 1 is the ADDRESS, on its own line in the foreground
+                weight: it is the one thing worth scanning for, both to know
+                which inbox to open and to catch a typo. Tier 2 is one quiet
+                line holding everything secondary (lifespan + spam) so nothing
+                floats alone. Tier 3 is the action, styled as the same canopy
+                link every auth page uses for its secondary move, so it reads
+                as something you can press rather than more grey prose. */}
+            <div className="mt-4">
+              <p className="text-[14px] leading-relaxed text-muted-foreground">
+                A reset link is on its way to
+              </p>
+              <p className="mt-0.5 break-all text-[16px] font-semibold text-foreground">
+                {sentTo}
+              </p>
+            </div>
+
+            <p className="mt-3 text-[13.5px] leading-relaxed text-muted-foreground">
+              It works for the next hour. If it hasn&apos;t appeared, check your
+              spam folder.
             </p>
 
             <button
               type="button"
               onClick={() => setSentTo(null)}
-              className="mt-5 w-full rounded-sm text-[13px] font-medium text-muted-foreground transition-[color,opacity] duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="mt-6 rounded-sm text-[14px] font-medium text-canopy underline decoration-canopy/40 underline-offset-2 transition-colors duration-150 hover:decoration-canopy active:opacity-70 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf"
             >
-              Use a different email
+              Use a different address
             </button>
           </motion.div>
         )}

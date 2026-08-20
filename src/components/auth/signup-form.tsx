@@ -20,6 +20,7 @@ import { YearInput } from "@/components/common/year-input";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { cn } from "@/lib/utils";
+import { TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 import { registerUser } from "./actions";
 import { TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 
@@ -392,6 +393,13 @@ export function SignupForm({
       // with Cloudflare before touching the database. The signIn below needs
       // no second token: registerUser leaves a five-minute pass cookie.
       const turnstileToken = await turnstileRef.current?.getToken();
+      if (turnstileToken === "interaction") {
+        // Cloudflare's checkbox is on screen, waiting for the human.
+        setError(TICK_HUMAN_BOX);
+        hoopoe.react("error");
+        setLoading(false);
+        return;
+      }
       if (turnstileToken) formData.set("turnstileToken", turnstileToken);
 
       const result = await registerUser(formData);
