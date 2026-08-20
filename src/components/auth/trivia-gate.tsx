@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { RefreshCw } from "lucide-react";
+import { SPRINGS } from "@/components/common/motion";
 import { FIELD_SHELL } from "@/components/common/float-field";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -42,10 +45,15 @@ export function TriviaGate({
     getTriviaQuestion().then(setQuestion);
   }, []);
 
+  // Counts swaps so the arrow icon rolls half a turn per press (see below);
+  // an accumulating angle means it always turns the same way, never snaps back.
+  const [swaps, setSwaps] = useState(0);
+
   async function swapQuestion() {
     if (!question || checking || passed) return;
     setError("");
     setAnswer("");
+    setSwaps((n) => n + 1);
     // The bird tilts its head at the new question rather than reacting as if
     // something went wrong: asking for another question is a normal move.
     hoopoe.express("curious");
@@ -93,23 +101,63 @@ export function TriviaGate({
     <div>
       {/* mt-5 = the same 20px the register step puts between its title and
           form, now that the subtitle between them is gone. */}
-      <p className="mt-5 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
-        {question?.question ?? "..."}
-      </p>
-      {/* The escape hatch for the person this question happens to miss: the
-          bank has more than one, so let them ask rather than guess. Styled
-          as the quiet sibling of the "Sign in" line below, not a button —
-          it must never compete with the answer box. The mb-4 that used to
-          close the question line moved here so the field keeps its gap. */}
-      <p className="mb-4 mt-1 text-center">
-        <button
-          type="button"
-          onClick={swapQuestion}
-          disabled={!question || checking || passed}
-          className="rounded-sm text-sm text-muted-foreground underline hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
-        >
-          Try a different question
-        </button>
+      {/* The swap sits INSIDE the question line as a small circular-arrow
+          beside the words (owner, 2026-08-20: the underlined text line read
+          as clutter). A whole extra line of UI for a two-question bank was
+          more furniture than the feature; a quiet glyph the eye finds only
+          when it goes looking is the right weight. The icon rolls half a
+          turn per press — transform only — so the press visibly "turns the
+          question over" while nothing else on the line moves. */}
+      <p className="mt-5 mb-4 min-h-[1.75rem] text-center font-heading text-lg text-foreground">
+        {/* One breath per swap (owner, 2026-08-20: "short and sweet, not
+            exaggerated"): the outgoing words drift up and fade as the new
+            ones rise in — opacity and a 5px translate on the snappy spring,
+            nothing slower. popLayout lifts the leaving text out of flow so
+            the arrow starts gliding to its new seat immediately. */}
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={question?.id ?? "loading"}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={SPRINGS.snappy}
+            className="inline-block"
+          >
+            {question?.question ?? "..."}
+          </motion.span>
+        </AnimatePresence>
+        {/* Inline in the text flow, not a flex sibling: when the question
+            wraps on a phone the arrow must hug the question mark, not hang
+            centered against two lines out at the margin (caught by the
+            first mobile screenshot round). The wrapper rides the line's
+            re-layout on `layout="position"` -- position only, because the
+            plain `layout` prop scales mid-flight and briefly stretches the
+            glyph (the known Motion gotcha). */}
+        {question && (
+          <motion.span
+            layout="position"
+            transition={SPRINGS.snappy}
+            className="ml-1 inline-flex align-middle"
+          >
+            {/* The 1px optical nudge lives on the BUTTON, not the motion
+                wrapper: motion owns the wrapper's transform during the
+                position glide and would silently drop a static translate. */}
+            <button
+              type="button"
+              onClick={swapQuestion}
+              disabled={checking || passed}
+              aria-label="Try a different question"
+              title="Try a different question"
+              className="inline-flex -translate-y-px rounded-full p-1 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40"
+            >
+              <RefreshCw
+                aria-hidden
+                className="size-4 transition-transform duration-500 ease-out"
+                style={{ transform: `rotate(${swaps * 180}deg)` }}
+              />
+            </button>
+          </motion.span>
+        )}
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* The same calm material as the register step's FloatFields (56px

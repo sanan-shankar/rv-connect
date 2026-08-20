@@ -20,10 +20,13 @@ import { IS_DEMO } from "./demo";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 
-/** Cloudflare's documented test pair: widget always passes invisibly,
- *  secret accepts the tokens it mints. Not a secret — published in the
- *  Turnstile docs for exactly this use. */
-const TEST_SITE_KEY = "1x00000000000000000000AA";
+/** Cloudflare's documented test pair: widget always passes, secret accepts
+ *  the tokens it mints. Not a secret — published in the Turnstile docs for
+ *  exactly this use. The site key is the INVISIBLE variant (…BB), not the
+ *  visible one (…AA): the visible variant renders Cloudflare's dark
+ *  "Success!" box into the middle of the auth forms, which is how the owner
+ *  met a widget that was designed never to be seen (2026-08-20). */
+const TEST_SITE_KEY = "1x00000000000000000000BB";
 const TEST_SECRET_KEY = "1x0000000000000000000000000000000AA";
 
 /** TURNSTILE_DEV_REAL=1 makes non-production use the real env pair instead
