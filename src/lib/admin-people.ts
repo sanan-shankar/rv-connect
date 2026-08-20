@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { FacetOption } from "@/components/common/filters/types";
+import { escapeLike } from "@/lib/db-text";
 
 /* ------------------------------------------------------------------ *
  *  One list of people, and the one place its filters are defined.
@@ -92,10 +93,11 @@ export function peopleWhere(f: PeopleFilters): Prisma.UserWhereInput {
   const and: Prisma.UserWhereInput[] = [];
 
   if (f.q) {
+    const q = escapeLike(f.q);
     and.push({
       OR: [
-        { name: { contains: f.q, mode: "insensitive" } },
-        { email: { contains: f.q, mode: "insensitive" } },
+        { name: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
       ],
     });
   }

@@ -14,6 +14,7 @@ import {
   ownerPrefix,
 } from "@/lib/storage";
 import { sharpImage } from "@/lib/image";
+import { escapeLike } from "@/lib/db-text";
 import { photoSchema } from "@/lib/validators";
 import {
   MAX_UPLOAD_BYTES,
@@ -418,13 +419,13 @@ function buildCollectionWhere(opts?: { area?: string; era?: string; search?: str
     // is a `contains`, not equality -- matches both the option the person
     // picked from the live distinct-value list and anyone who free-typed a
     // near variant.
-    ...(opts?.area ? { area: { contains: opts.area, ...insensitive } } : {}),
+    ...(opts?.area ? { area: { contains: escapeLike(opts.area), ...insensitive } } : {}),
     ...(opts?.era ? { era: opts.era } : {}),
     ...(opts?.search
       ? {
           OR: [
-            { caption: { contains: opts.search, ...insensitive } },
-            { freeTags: { contains: opts.search, ...insensitive } },
+            { caption: { contains: escapeLike(opts.search), ...insensitive } },
+            { freeTags: { contains: escapeLike(opts.search), ...insensitive } },
           ],
         }
       : {}),

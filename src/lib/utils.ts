@@ -450,12 +450,17 @@ const EMPHASIS_RULES: { pattern: RegExp; open: string; close: string }[] = [
  * bar) to exactly these markers, and hand-typed markdown lands here too.
  */
 export function renderRichText(text: string): string {
-  // 1. Escape HTML entities
+  // 1. Escape HTML entities. The single quote is escaped too, not just the
+  // double: the mention href below is double-quoted today, but that is the
+  // renderer's ONLY defence against attribute injection, and with CSP carrying
+  // 'unsafe-inline' there is no second layer -- so leaving `'` raw means a
+  // later change to single-quoted attributes would be instant stored XSS.
   let result = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
 
   // 2. Emphasis: ***both***, **bold**, *italic*, __underline__, ~~struck~~.
   for (const { pattern, open, close } of EMPHASIS_RULES) {
@@ -467,9 +472,15 @@ export function renderRichText(text: string): string {
     })
   }
 
-  // 3. Mentions: @[Name](userId) -> clickable link
+  // 3. Mentions: @[Name](userId) -> clickable link. The id capture is a strict
+  // charset, NOT `[^)]+`: it runs after emphasis (step 2), so `[^)]+` would let
+  // `@[N](*x*)` pull the `<em>` tag step 2 just produced straight into the href
+  // value. Constraining the id to characters a real profile id actually uses
+  // means anything else -- a stray tag, a quote, a space, a slash -- fails to
+  // match and is left as the escaped literal text it already is, rather than
+  // becoming a malformed link.
   result = result.replace(
-    /@\[([^\]]+)\]\(([^)]+)\)/g,
+    /@\[([^\]]+)\]\(([A-Za-z0-9_-]+)\)/g,
     '<a href="/profile/$2" class="font-semibold text-leaf hover:underline">@$1</a>'
   )
 
