@@ -104,7 +104,12 @@ export default async function ProfilePage({
     where: { id },
     include: { places: { orderBy: { position: "asc" } } },
   });
-  if (!user || user.isBlocked) notFound();
+  // deletionRequestedAt: an account inside its 60-day deletion grace window
+  // (audit M35) leaves every people surface at once. The directory, people
+  // search and batch roster all hold it out; this page did not, so a member
+  // who had asked to disappear was still reachable by direct URL. notFound()
+  // (not a 403) so the page never even hints the account exists.
+  if (!user || user.isBlocked || user.deletionRequestedAt) notFound();
 
   /* Not awaited: a profile must render at the same speed whether or not a
      counter increments. recordView drops self-views, so nobody tops their own
