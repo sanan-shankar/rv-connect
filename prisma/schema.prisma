@@ -1027,3 +1027,28 @@ model LoginAttempt {
   @@index([email, createdAt])
   @@index([userId, createdAt])
 }
+
+// ─── The office roster ───────────────────────────────────────────────────────
+//
+// The school's registration sheets, consolidated (owner, 2026-08-19: the
+// Centenary registrations plus the old rishivalley.xls Master list), so a
+// signup that matches them verifies itself with verifyMethod "office_list"
+// and the owner can see it was the sheets that vouched, not him. Written only
+// by scripts/dev/import-roster.mjs; read only by src/lib/roster.ts.
+//
+// Deliberately carries NOTHING beyond what matching needs -- no addresses, no
+// phones, no admission numbers -- because a roster row is somebody who never
+// signed up, and holding their data beyond name/email/batch is liability with
+// no function. Auto-fill from the sheets is explicitly off (owner call).
+model RosterEntry {
+  id             String  @id @default(cuid())
+  fullName       String  // as printed on the sheet, initials stripped
+  normalizedName String  // lowercased, diacritics and punctuation collapsed (roster-rule.ts)
+  email          String? // lowercased; most Master rows have none
+  batchYear      Int?    // "Batch" / "Year of Passing" as the sheet stated it
+  source         String  // "centenary-2026" | "master" | "phase3-probe"
+  createdAt      DateTime @default(now())
+
+  @@index([email])
+  @@index([normalizedName, batchYear])
+}
