@@ -118,6 +118,11 @@ write in this session:
    mark it "suspected."
 6. Temporary read-only tool installs are fine (report-only flags everywhere); nothing over 200MB;
    uninstall so the tree ends clean.
+7. **Resource discipline.** The no-time-limit grant is for depth, not waste: don't burn usage on
+   preventable retry loops, re-derivation, or agents doing what a grep answers. And the owner's
+   machine has hung before under parallel heavy processes: reading agents may fan out freely, but
+   run at most ONE headless Chrome and ONE build (or e2e/visual run) at a time — all live browser
+   reproduction and fuzzing is serialized through that single browser.
 
 ## 5. Your arsenal — use all of it, not the best of it
 
