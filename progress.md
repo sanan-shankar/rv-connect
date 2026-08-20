@@ -2183,3 +2183,23 @@ four equal grey lines to three tiers: the address bold on its own line, one quie
 hour-long lifespan and the spam pointer, and a proper link to try a different address. Both
 viewports read, visual 23/23. With the owner also changing the second admin's temporary password
 today, the security section's open-items list is empty.
+
+## 2026-08-21 — The pre-release audit armory: two overnight prompts and eleven imported reviewers
+
+The owner asked for two paste-and-go prompts to run as dedicated overnight sessions before the
+public release: one formal simplification audit (the codebase is ~200k lines of TS/TSX and he
+named AI bloat as a real problem here) and one bug-and-stability audit with headroom to 2,000
+users. Both are audit-only by design; each produces a phased report under docs/planning/audits/
+that later fix sessions execute without re-deriving anything. Two research agents swept what the
+community has published for each job; everything that verified was downloaded, not paraphrased.
+Now in .claude/skills/: Sentry's code-simplifier (Anthropic's official one, vendored), find-bugs
+and sentry-code-review; goal-sloc (SLOC-as-scoreboard with anti-gaming rules); Effeilo's
+front-refactor and front-review; Dimillian's bug-hunt-swarm and review-swarm; and the 21k-line
+code-review-skill reference. In .claude/agents/: Anthropic's five pr-review-toolkit agents,
+silent-failure-hunter the prize among them. In docs/planning/audits/assets/: Anthropic's
+production review pipeline verbatim (findings must each survive an independent validation agent)
+and the Big List of Naughty Strings for input fuzzing. The prompts themselves are
+docs/planning/simplification-audit-prompt.md and docs/planning/bug-audit-prompt.md; each carries
+the owner's brief nearly verbatim, his prompting ideology (verbose briefs, agents decide their
+own granularity), the shared-database rule stated twice, and the distilled methodology from both
+research sweeps, including the connection-budget arithmetic and the IST-vs-UTC date-boundary hunt.
