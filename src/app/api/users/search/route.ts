@@ -32,6 +32,9 @@ export async function GET(req: NextRequest) {
     where: {
       AND: terms.map((term) => ({ name: { contains: term, ...insensitive } })),
       isBlocked: false,
+      // An account inside its deletion grace window (audit M35) is held out
+      // of every people surface the same way a blocked one is.
+      deletionRequestedAt: null,
       // This endpoint's only consumers are the Catch-ups people surfaces,
       // and Catch-ups is an alumni feature (owner, 2026-08-18): teachers
       // cannot open the section, so offering them as invitees would only

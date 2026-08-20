@@ -85,10 +85,11 @@ import { resolveBirdOverride, speciesNameFor } from "@/components/common/bird-av
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import {
   updateUserPlaces,
-  deleteAccount,
+  requestAccountDeletion,
   updateAvatar,
   removeAvatar,
 } from "@/components/settings/actions";
+import { PasswordField } from "@/components/auth/password-field";
 import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { Camera, X } from "lucide-react";
@@ -334,6 +335,8 @@ export function LetterheadProfile({
   const [citiesOpen, setCitiesOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   /* The photograph. It used to be a row on the settings form; that form is
      gone, and this is the only place left that is yours to change, so the
      upload comes here rather than nowhere. Same crop dialog, same two
@@ -1203,17 +1206,28 @@ export function LetterheadProfile({
                 </Link>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                // One line of quiet text, not a red-bordered box with a
-                // heading and a paragraph. The dialog behind it is where a
-                // warning belongs; a box drawn around it here only makes the
-                // page longer for a thing nobody is looking for.
-                className="state-layer mt-3 rounded-full px-2 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-heart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                Delete your account
-              </button>
+              {/* Two quiet lines, not red-bordered boxes: the dialog is where
+                  a warning belongs. The export sits beside deletion because
+                  the person most likely to want their data out is the one
+                  about to leave (audit M35, GDPR Art. 20). A plain anchor:
+                  the route answers with a JSON attachment, so the browser
+                  downloads it without any client plumbing. */}
+              <div className="mt-3 flex flex-wrap items-center gap-1">
+                <a
+                  href="/api/account/export"
+                  className="state-layer rounded-full px-2 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  Download your data
+                </a>
+                <span aria-hidden className="text-[13px] text-muted-foreground/50">·</span>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="state-layer rounded-full px-2 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-heart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  Delete your account
+                </button>
+              </div>
             </motion.div>
           ) : (
             <motion.div
@@ -1261,35 +1275,75 @@ export function LetterheadProfile({
         }}
       />
 
-      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <Dialog
+        open={confirmDelete}
+        onOpenChange={(open) => {
+          setConfirmDelete(open);
+          if (!open) {
+            setDeletePassword("");
+            setDeleteError(null);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete account</DialogTitle>
             <DialogDescription>
-              This will permanently delete your account, all your posts, comments and
-              data. This cannot be undone.
+              Your account, posts, comments and photos will be permanently deleted 60
+              days from now. If you change your mind before then, just sign in again
+              and the deletion is cancelled. Confirm with your password.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleting}
-              onClick={async () => {
-                setDeleting(true);
-                const result = await deleteAccount();
-                if (result.error) {
-                  setDeleting(false);
-                  return;
-                }
-                signOut({ callbackUrl: "/" });
-              }}
-            >
-              {deleting ? "Deleting..." : "Yes, delete my account"}
-            </Button>
-          </div>
+          {/* The password, not the session, is what authorises this (audit
+              M35): a stolen cookie must not be enough to schedule someone's
+              history for destruction. */}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (deleting || deletePassword.length === 0) return;
+              setDeleting(true);
+              setDeleteError(null);
+              const fd = new FormData();
+              fd.set("password", deletePassword);
+              const result = await requestAccountDeletion(fd);
+              if (result.error) {
+                setDeleteError(result.error);
+                setDeleting(false);
+                return;
+              }
+              signOut({ callbackUrl: "/" });
+            }}
+            className="space-y-[var(--space-s)]"
+          >
+            <PasswordField
+              label="Your password"
+              value={deletePassword}
+              onChange={setDeletePassword}
+              autoComplete="current-password"
+              focusHint=""
+            />
+            {deleteError && (
+              <p role="alert" className="text-[13px] leading-snug text-heart">
+                {deleteError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setConfirmDelete(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={deleting || deletePassword.length === 0}
+              >
+                {deleting ? "Scheduling..." : "Delete my account"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 

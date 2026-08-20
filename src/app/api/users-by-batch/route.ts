@@ -37,6 +37,8 @@ export async function GET(request: Request) {
     where: {
       batchYear: { in: batches },
       isBlocked: false,
+      // Deletion-pending accounts are out of the people surfaces (audit M35).
+      deletionRequestedAt: null,
     },
     select: detail
       ? { id: true, name: true, photoUrl: true, birdOverride: true, batchYear: true }

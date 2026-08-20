@@ -1,7 +1,11 @@
 "use server";
 
 import { createId } from "@paralleldrive/cuid2";
+import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
+import { hasBudget, consume } from "@/lib/rate-limit";
+import { DELETION_GRACE_DAYS } from "@/lib/account-purge";
+import { enqueueMail } from "@/lib/email-queue";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { putImage, delImage, ownerPrefix } from "@/lib/storage";
@@ -260,41 +264,80 @@ export async function removeAvatar() {
   return { success: true };
 }
 
-export async function deleteAccount() {
+/**
+ * A member deleting their own account (audit M35, replacing the old one-call
+ * `deleteAccount`). Nothing is destroyed here: the request is recorded, every
+ * session ends, and the retention sweep purges the row and its R2 objects
+ * once the 60-day grace window has passed (src/lib/retention.ts, audit H9).
+ * Signing in again inside the window cancels it — authorize() in auth.ts.
+ *
+ * Re-auth is the password, not the session: a stolen cookie must not be
+ * enough to schedule someone's history for destruction. That makes this a
+ * second door where passwords can be guessed, which the login limiter never
+ * sees — so wrong guesses here spend their own budget ("reauth").
+ */
+export async function requestAccountDeletion(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
   if (IS_DEMO) return { error: "This is a demo account, so it stays put." };
 
   const userId = session.user.id;
-  // Context for the audit entry, captured before the row is gone (audit M36:
-  // deletion was silent and unlogged). The grace period, confirmation email
-  // and stored-object cleanup are Phase 8 (M35/H8/H9); this phase gives the
-  // deletion a record.
+  const password = (formData.get("password") as string) || "";
+
   const me = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true },
+    select: { name: true, email: true, password: true },
   });
-
-  try {
-    // Report.reporterId is RESTRICT, not cascade: a member who has EVER filed a
-    // report cannot be deleted until those rows are cleared, or the delete
-    // throws and rolls back (audit H8 — adminDeleteUser already does exactly
-    // this; self-deletion had the same latent break, which also meant the M36
-    // audit below never ran for that person). Reports filed AGAINST them
-    // cascade on their own.
-    await prisma.report.deleteMany({ where: { reporterId: userId } });
-    await prisma.user.delete({ where: { id: userId } });
-  } catch (err) {
-    console.error("deleteAccount failed:", err);
-    return { error: "Could not delete your account. Please try again, or message the admin." };
+  if (!me) return { error: "Not authenticated" };
+  if (!me.password) {
+    // An account with no password cannot prove itself here. Rare (nothing
+    // mints these today), but honest beats a dead button.
+    return { error: "This account has no password to confirm with. Please message the admin instead." };
   }
+
+  if (!(await hasBudget("reauth", userId))) {
+    return { error: "Too many password attempts. Try again in a little while." };
+  }
+  if (!password || !(await bcrypt.compare(password, me.password))) {
+    await consume("reauth", userId);
+    return { error: "That password isn't right." };
+  }
+
+  const purgeAt = new Date(Date.now() + DELETION_GRACE_DAYS * 86_400_000);
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      deletionRequestedAt: new Date(),
+      /* Ends every session this account holds, everywhere, right now — the
+         same epoch bump a block uses (audit M4). The person confirming just
+         proved the password, so THEY can sign straight back in (which is
+         also the cancel gesture); a thief holding only a cookie cannot. */
+      credentialVersion: { increment: 1 },
+    },
+  });
 
   await writeAudit({
     actorId: userId,
-    action: "account.delete",
+    action: "account.delete_request",
     targetType: "user",
     targetId: userId,
-    detail: me ? `${me.name} <${me.email}> (self-deleted)` : "self-deleted",
+    detail: `${me.name} <${me.email}> — purge due ${purgeAt.toISOString().slice(0, 10)}`,
+  });
+
+  // The written confirmation, and the takeover alarm: if somebody else did
+  // this, the mail says how to undo it while the window is still open.
+  await enqueueMail({
+    kind: "deletion-scheduled",
+    to: me.email,
+    userId,
+    payload: {
+      name: me.name,
+      purgeDate: purgeAt.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    },
   });
 
   return { success: true };

@@ -3,6 +3,7 @@
 import { requireAdminAction, requireAdminActor, type AdminActionResult } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { noteOnReportThread } from "@/lib/admin-threads-server";
+import { purgeUserAccount } from "@/lib/account-purge";
 import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 
@@ -52,16 +53,11 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
     select: { name: true, email: true },
   });
 
-  try {
-    // Report.reporterId is intentionally not a cascading relation (a filed
-    // report should normally outlive the person who filed it), but that
-    // means the FK is RESTRICT: deleting a user who has ever filed a report
-    // throws and the whole delete rolls back silently. Clear their filed
-    // reports first; reports filed against them already cascade.
-    await prisma.report.deleteMany({ where: { reporterId: userId } });
-    await prisma.user.delete({ where: { id: userId } });
-  } catch (err) {
-    console.error("adminDeleteUser failed:", err);
+  // The row delete, the RESTRICT-FK report clearing (audit H8) and the R2
+  // object cleanup (audit H9) all live in purgeUserAccount, shared with the
+  // retention sweep's grace-period purge — one definition of "gone".
+  const purged = await purgeUserAccount(userId);
+  if (!purged.ok) {
     return { error: "Could not delete this user. Check the server log." };
   }
 
@@ -71,7 +67,9 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
     targetType: "user",
     targetId: userId,
     ip: actor.ip,
-    detail: target ? `${target.name} <${target.email}>` : undefined,
+    detail: target
+      ? `${target.name} <${target.email}> — ${purged.imagesDeleted} stored image(s) removed`
+      : undefined,
   });
 
   revalidatePath("/directory");

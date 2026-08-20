@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { IS_DEMO } from "./demo";
 import { appUrl, sendMail } from "./email";
 import {
+  deletionScheduledTemplate,
   passwordChangedTemplate,
   resetPasswordTemplate,
   verifyEmailTemplate,
@@ -48,7 +49,7 @@ import { TOKEN_TTL_MINUTES, mintToken } from "./auth-tokens";
  *  race safely.
  * ------------------------------------------------------------------ */
 
-export type MailKind = "verify" | "reset" | "password-changed";
+export type MailKind = "verify" | "reset" | "password-changed" | "deletion-scheduled";
 
 /** Lower sends first.
  *
@@ -60,6 +61,10 @@ export type MailKind = "verify" | "reset" | "password-changed";
 const PRIORITY: Record<MailKind, number> = {
   reset: 10,
   "password-changed": 20,
+  // The same class of message as password-changed: the only warning a person
+  // gets that their account is going away, and — if it was not them — the 60
+  // days in which signing in undoes it start counting from now.
+  "deletion-scheduled": 20,
   verify: 100,
 };
 
@@ -265,6 +270,9 @@ const ENQUEUE_LIMIT: Record<MailKind, { max: number; windowMinutes: number }> = 
   reset: { max: 4, windowMinutes: 30 },
   verify: { max: 5, windowMinutes: 60 },
   "password-changed": { max: 6, windowMinutes: 60 },
+  // One genuine request plus a cancel-and-re-request; anything past that in
+  // an hour is a script worrying the button.
+  "deletion-scheduled": { max: 3, windowMinutes: 60 },
 };
 
 /**
@@ -375,6 +383,10 @@ async function render(row: {
 
   if (row.kind === "password-changed") {
     return passwordChangedTemplate({ name });
+  }
+
+  if (row.kind === "deletion-scheduled") {
+    return deletionScheduledTemplate({ name, purgeDate: payload.purgeDate ?? "" });
   }
 
   if (!row.userId) return { skip: "no user on a token email" };

@@ -25,7 +25,7 @@ export async function DirectoryModule({ userId }: { userId: string }) {
   // Untyped so the avatar-override column (photoUrl) selects alongside the
   // always-present fields, matching the post-card author select.
   const recentMembers = await prisma.user.findMany({
-    where: { isBlocked: false, id: { not: userId } },
+    where: { isBlocked: false, deletionRequestedAt: null, id: { not: userId } },
     orderBy: { createdAt: "desc" },
     take: 6,
     select: {

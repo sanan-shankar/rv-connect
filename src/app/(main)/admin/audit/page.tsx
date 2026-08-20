@@ -32,6 +32,11 @@ const ACTION_LABEL: Record<string, string> = {
   "admin.unverify": "Removed verification",
   "admin.merge": "Merged accounts",
   "account.delete": "Deleted own account",
+  "account.delete_request": "Asked to delete their account",
+  "account.delete_cancel": "Cancelled their deletion",
+  "account.purge": "Deletion became final",
+  "account.export": "Downloaded their data",
+  "retention.sweep": "Retention sweep ran",
   "report.user": "Flagged a member",
   "report.post": "Reported a post",
 };

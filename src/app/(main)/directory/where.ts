@@ -31,7 +31,9 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
   const yearFrom = filters.yearFrom ? Number(filters.yearFrom) : null;
   const yearTo = filters.yearTo ? Number(filters.yearTo) : null;
 
-  const where: Record<string, unknown> = { isBlocked: false };
+  // deletionRequestedAt: an account inside its 60-day deletion grace window
+  // (audit M35) leaves the directory immediately, exactly like a blocked one.
+  const where: Record<string, unknown> = { isBlocked: false, deletionRequestedAt: null };
   if (filters.q) {
     where.OR = [
       { name: { contains: filters.q, ...insensitive } },

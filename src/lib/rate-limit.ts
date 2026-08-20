@@ -73,6 +73,16 @@ const LIMITS = {
   /** Per user. Catch-ups fan out invitations, so creation is the one
    *  community write kept deliberately slow. */
   catchups: { tokens: 5, window: "1 h" },
+  /** Failures only, per account. Confirming deletion re-asks for the
+   *  password (audit M35), which hands an attacker who stole a SESSION a
+   *  quiet place to guess the password itself — the login limiter never
+   *  sees these attempts, so this one must. Five wrong guesses an hour is
+   *  fat fingers; fifty is a dictionary. */
+  reauth: { tokens: 5, window: "1 h" },
+  /** Per account. A data export (audit M35) reads every row the member
+   *  owns in one request; three a day serves any real need, and a script
+   *  polling it is just load with no new information. */
+  export: { tokens: 3, window: "24 h" },
 } as const;
 
 export type LimitName = keyof typeof LIMITS;

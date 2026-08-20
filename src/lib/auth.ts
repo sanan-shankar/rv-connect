@@ -9,6 +9,7 @@ import { hasBudget, consume, ipFromRequest } from "@/lib/rate-limit";
 import { verifyTurnstile, devBypassAllowed } from "@/lib/turnstile";
 import { humanPassValid, humanPassFromCookieHeader } from "@/lib/human-pass-rule";
 import { appSecret } from "@/lib/app-secret";
+import { writeAudit } from "@/lib/audit";
 import { prisma } from "./prisma";
 
 /* authorize() below can only say "yes" (a user) or "no" (null), and null
@@ -140,6 +141,41 @@ const nextAuth = NextAuth({
              exhaust the member's budget and muddy the door for the account
              they may be unblocked back into. */
           return null;
+        }
+
+        /* A sign-in during the deletion grace window IS the cancel gesture
+           (audit M35): only the account's real owner can produce the
+           password, so nothing weaker than this may undo — or keep — a
+           deletion request. Best-effort around the notification: a failure
+           to say "we cancelled it" must not turn a successful sign-in into
+           an error, but the clearing itself is awaited, because signing
+           someone in while their purge date still stands is the one wrong
+           outcome here. */
+        if (user.deletionRequestedAt) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { deletionRequestedAt: null },
+          });
+          await writeAudit({
+            actorId: user.id,
+            action: "account.delete_cancel",
+            targetType: "user",
+            targetId: user.id,
+            detail: `${user.name} <${user.email}> signed in during the grace period`,
+          });
+          try {
+            await prisma.notification.create({
+              data: {
+                userId: user.id,
+                type: "admin",
+                message:
+                  "Welcome back. Your account was scheduled for deletion; signing in has cancelled that, and everything is exactly as you left it.",
+                link: "/settings",
+              },
+            });
+          } catch (err) {
+            console.error("delete-cancel notification failed:", err);
+          }
         }
 
         recordLoginAttempt({ email, ok: true, reason: "ok", userId: user.id });
