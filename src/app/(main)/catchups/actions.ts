@@ -39,7 +39,7 @@ import { z } from "zod/v4";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
-import { requireVerifiedEmail } from "@/lib/email-verification";
+import { requireVerifiedMember } from "@/lib/member-gate";
 import { revalidatePath } from "next/cache";
 import {
   addCadenceGap,
@@ -287,6 +287,12 @@ export async function createCatchup(input: {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
 
+    // Catch-ups sit wholly behind the member gate (trust model, Stage 2).
+    // Membership of the group is checked below, but membership is only as
+    // trustworthy as the gate that admitted the account in the first place.
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
+
     const parsed = createCatchupSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const { groupId, cadence, seedPrompts } = parsed.data;
@@ -384,7 +390,7 @@ export async function createCatchupWithPeople(input: {
 
     // Starting a Catch-up enrols other named people and notifies every one of
     // them. That is reaching real members, so it waits for a confirmed address.
-    const gate = await requireVerifiedEmail();
+    const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
 
     const parsed = createCatchupWithPeopleSchema.safeParse(input);
@@ -476,6 +482,10 @@ export async function joinCatchupByToken(token: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Joining puts this account inside a private group, reading and writing
+    // among people who shared the link in good faith (trust model, Stage 2).
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     // Catch-ups is an alumni feature; an invite link forwarded to a teacher
     // must not enrol an account that cannot open the section.
     if (
@@ -650,7 +660,7 @@ export async function submitPrompt(input: {
 
     // A question put to a whole Round, under your name or anonymously. Same
     // footing as a post.
-    const gate = await requireVerifiedEmail();
+    const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
 
     const parsed = submitPromptSchema.safeParse(input);
@@ -1071,7 +1081,7 @@ export async function submitEntry(input: {
     // An answer carries prose and images into a Round that gets published to
     // everyone in it. The upload routes are gated too, so the images could not
     // have been produced by an unconfirmed account either.
-    const gate = await requireVerifiedEmail();
+    const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
 
     const parsed = submitEntrySchema.safeParse(input);
@@ -1153,6 +1163,9 @@ export async function toggleEntryLove(entryId: string) {
   return runAction(async () => {
     const session = await auth();
     if (!session?.user?.id) return { error: "Not authenticated" };
+    // Same tier as the feed's likes: a public gesture is a Stage 2 write.
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
     if (typeof entryId !== "string" || !entryId) return { error: "Invalid request." };
 
     const entry = await prisma.catchupEntry.findUnique({
@@ -1247,7 +1260,7 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
 
     // Enrols other people and notifies each of them. Reaching real members
     // waits for a confirmed address.
-    const gate = await requireVerifiedEmail();
+    const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
     const parsed = z.array(z.string().min(1)).min(1).max(500).safeParse(userIds);

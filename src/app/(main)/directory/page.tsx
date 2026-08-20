@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { auth } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { DirectoryClient } from "@/components/directory/directory-client";
@@ -184,6 +186,15 @@ export default async function DirectoryPage({
 }) {
   const params = await searchParams;
 
+  /* The trust model's Stage 1 line runs through this page (audit H21, and the
+     harvesting half of M1): an account that has not confirmed its email may
+     see the SHAPE of the community -- the map, the pin counts, the batch
+     tiles -- but not one name. Everything this page passes to the client is
+     serialized into the HTML, so the rule has to hold at query time, not at
+     render time. The demo's invented visitor is exempt, as with every gate. */
+  const session = await auth();
+  const namesLocked = !IS_DEMO && !session?.user?.emailConfirmed;
+
   const showingYear = params.year === "faculty" ? "faculty" : params.year ? Number(params.year) : null;
   const yearFrom = params.yearFrom ? Number(params.yearFrom) : null;
   const yearTo = params.yearTo ? Number(params.yearTo) : null;
@@ -261,7 +272,7 @@ export default async function DirectoryPage({
       _min: { batchYear: true },
       _max: { batchYear: true },
     }),
-    hasFilter
+    hasFilter && !namesLocked
       ? prisma.user.findMany({
           where,
           select: PERSON_SELECT,
@@ -309,7 +320,15 @@ export default async function DirectoryPage({
   }
   const fallbackCoords = await resolvePlacesFromGazetteer([...needsFallback]);
 
-  const { cityPins, unmappedPeople } = buildPins(mapped, fallbackCoords);
+  const built = buildPins(mapped, fallbackCoords);
+  // Below Stage 1 the map keeps its circles and counts (a city is coarse
+  // enough; owner call 2026-08-19) but every person is stripped BEFORE
+  // serialization. An empty array, not a hidden list: view-source must have
+  // nothing to find.
+  const cityPins = namesLocked
+    ? built.cityPins.map((p) => ({ ...p, people: [] }))
+    : built.cityPins;
+  const unmappedPeople = namesLocked ? [] : built.unmappedPeople;
 
   return (
     <div>
@@ -321,7 +340,7 @@ export default async function DirectoryPage({
         users={users}
         resultCount={resultCount}
         cityPins={cityPins}
-        unmappedCount={unmappedPeople.length}
+        unmappedCount={namesLocked ? built.unmappedPeople.length : unmappedPeople.length}
         unmappedPeople={unmappedPeople}
         batchYearCounts={batchYearCounts
           .filter((b): b is { batchYear: number; _count: { id: number } } => b.batchYear != null)
@@ -343,6 +362,7 @@ export default async function DirectoryPage({
         }}
         hasFilter={hasFilter}
         nextCursor={nextCursor}
+        namesLocked={namesLocked}
       />
     </div>
   );

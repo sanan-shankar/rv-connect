@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { getImageBuffer, putImage, delImageByKey } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, describeProcessingError } from "@/lib/upload-shared";
-import { requireVerifiedEmail } from "@/lib/email-verification";
+import { requireVerifiedMember } from "@/lib/member-gate";
 
 /**
  * Step two of the direct-to-R2 POST-image path: the browser has PUT the
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   // bucket and writes a new one back, and it names the source by key from the
   // request body, so it is its own write path rather than a continuation of
   // the last one.
-  const gate = await requireVerifiedEmail();
+  const gate = await requireVerifiedMember();
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: 403 });
   }

@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
+import { requireVerifiedMember } from "@/lib/member-gate";
 import { prisma } from "@/lib/prisma";
 import { previewOf } from "@/lib/admin-threads";
 import { notifyAdmins } from "@/lib/admin-threads-server";
@@ -56,6 +57,11 @@ export async function reportPost(postId: string, reason: string) {
   if (!session?.user?.id) return { error: "Not authenticated" };
   if (IS_DEMO) return { error: "Reporting summons a real moderator, so the demo leaves it switched off." };
 
+  // A report summons a moderator and creates work with a member's name in it,
+  // which is exactly the lever an abusive signup wants (trust model, Stage 2).
+  const gate = await requireVerifiedMember();
+  if (!gate.ok) return { error: gate.error };
+
   const trimmed = reason?.trim() ?? "";
   if (!trimmed || trimmed.length > 500) {
     return { error: "Please provide a valid reason" };
@@ -99,6 +105,12 @@ export async function reportUser(reportedUserId: string, reason: string) {
   if (IS_DEMO) return { error: "Reporting summons a real moderator, so the demo leaves it switched off." };
   if (reportedUserId === session.user.id) return { error: "You can't flag yourself" };
 
+  // Same tier as reportPost, and doubly so here: this action used to strip
+  // the reported member's verified badge, so an unvetted account could take
+  // standing AWAY from a vetted one (audit H5).
+  const gate = await requireVerifiedMember();
+  if (!gate.ok) return { error: gate.error };
+
   const trimmed = reason?.trim() ?? "";
   if (!trimmed || trimmed.length > 500) {
     return { error: "Please provide a valid reason" };
@@ -120,11 +132,12 @@ export async function reportUser(reportedUserId: string, reason: string) {
     select: { id: true },
   });
 
-  // An identity flag suppresses the verified marker until an admin reviews it.
-  await prisma.user.update({
-    where: { id: reportedUserId },
-    data: { verifyState: "flagged" },
-  });
+  /* This used to also write verifyState:"flagged" onto the reported member --
+     one report, from anyone, and the badge was gone (audit H5). Now that
+     verifyState is a capability rather than a decoration, that write would
+     have let one report strip a member's ability to post and see contacts.
+     The report row and the admin notification below ARE the flag; standing
+     changes only by an admin's hand (Phase 7 adds the threshold rule). */
 
   const subject = `${reported.name}'s profile`;
   const thread = await openReportThread({
