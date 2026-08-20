@@ -1,6 +1,6 @@
 ---
 name: code-simplifier
-description: Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Use when asked to "simplify code", "clean up code", "refactor for clarity", "improve readability", or review recently modified code for elegance. Focuses on project-specific best practices.
+description: Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Use only during a formal simplification audit or when explicitly invoked; routine cleanups use /simplify instead. Defers to this repo's own coding standards.
 ---
 
 <!--
@@ -20,14 +20,11 @@ Never change what the code does - only how it does it. All original features, ou
 
 ### 2. Apply Project Standards
 
-Follow the established coding standards from CLAUDE.md including:
-
-- Use ES modules with proper import sorting and extensions
-- Prefer `function` keyword over arrow functions
-- Use explicit return type annotations for top-level functions
-- Follow proper React component patterns with explicit Props types
-- Use proper error handling patterns (avoid try/catch when possible)
-- Maintain consistent naming conventions
+Follow the established coding standards of THIS repository (CLAUDE.md, AGENTS.md, and the
+surrounding code's existing idiom) — never a house style imported from elsewhere. When this
+skill's examples and the repo's conventions disagree, the repo wins. Match the codebase's
+existing patterns for module style, function declarations, typing, error handling, and naming;
+simplification must make code look more like this repo, not less.
 
 ### 3. Enhance Clarity
 

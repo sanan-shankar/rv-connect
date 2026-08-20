@@ -1,6 +1,6 @@
 ---
 name: front-refactor
-description: "Refactor a JS, TS, React (JSX/TSX), CSS, Sass, Vue, Svelte, or Astro file with improved naming, simplified logic, dead code removal, and modern syntax, without changing behavior. Usage: /front-refactor [apply]"
+description: "Refactor a JS, TS, React (JSX/TSX), CSS, or Sass file with improved naming, simplified logic, dead code removal, and modern syntax, without changing behavior. Only when explicitly invoked or during a formal simplification audit. Usage: /front-refactor [apply]"
 argument-hint: "[apply]"
 allowed-tools: Read, Glob, Edit, Write
 ---
@@ -18,10 +18,7 @@ Look at the extension of the target file:
 
 - If `.js`, `.ts`, `.mjs`, `.jsx`, `.tsx` → the language file is `front-refactor-js.md`
 - If `.css`, `.sass`, `.scss` → the language file is `front-refactor-css.md`
-- If `.vue` → the language file is `front-refactor-vue.md`
-- If `.svelte` → the language file is `front-refactor-svelte.md`
-- If `.astro` → the language file is `front-refactor-astro.md`
-- Otherwise → inform the user that this file type is not supported. Supported types: `.js`, `.ts`, `.mjs`, `.jsx`, `.tsx`, `.css`, `.sass`, `.scss`, `.vue`, `.svelte`, `.astro`.
+- Otherwise → inform the user that this file type is not supported. Supported types: `.js`, `.ts`, `.mjs`, `.jsx`, `.tsx`, `.css`, `.sass`, `.scss`.
 
 The path of this skill file is always available from context. Resolve all sub-file paths relative to it.
 

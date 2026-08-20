@@ -130,7 +130,6 @@ agent brief in this session:
 | `goal-sloc` (`.claude/skills/goal-sloc/`) | The spine of the whole audit: SLOC as a scoreboard with anti-gaming discipline. Read its SKILL.md **and** its `references/` folder in full. Its preflight (baseline, irreducible floor, verify-before-delete), its strict reduction order, its structural-vs-cheap classification, and its stop conditions structure this entire audit. |
 | `code-simplifier` (`.claude/skills/code-simplifier/`) | Anthropic's official simplification principles: preserve functionality, clarity over brevity, no clever one-liners, kill redundant abstractions, focus and balance. Every reviewing agent applies these. |
 | `front-refactor` + `front-review` (`.claude/skills/`) | Frontend-specific refactor and severity-graded review lenses for the TSX surface. |
-| `sentry-code-review` (`.claude/skills/sentry-code-review/`) | Sentry's engineering review practice — the performance and design-review sections apply here. |
 | `/simplify` (built-in) | The reuse/simplification/efficiency/altitude review dimensions. This session runs its *review* thinking, not its apply step. |
 | `impeccable-distill` + `impeccable-optimize` | UI-side essence-stripping and UI performance diagnosis (loading, rendering, bundle size). |
 | `superpowers` suite | `dispatching-parallel-agents` for how you fan out; `verification-before-completion` before you declare the report done — evidence before assertions, always. |

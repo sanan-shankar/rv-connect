@@ -1,6 +1,6 @@
 ---
 name: bug-hunt-swarm
-description: "Parallel read-only multi-agent root-cause investigation for bugs, regressions, crashes, flaky behavior, or unexplained failures. Use when the user asks to investigate a bug, find the root cause, trace a regression, understand why something broke, or wants a ranked diagnosis with the fastest proof path without making code edits."
+description: "Parallel read-only multi-agent root-cause investigation for bugs, regressions, crashes, flaky behavior, or unexplained failures. Use only when the user explicitly asks for a swarm/parallel investigation, or during a formal audit session; for everyday bugs use superpowers systematic-debugging instead. Produces a ranked diagnosis with the fastest proof path, without making code edits."
 ---
 
 # Bug Hunt Swarm
