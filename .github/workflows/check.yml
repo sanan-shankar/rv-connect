@@ -49,3 +49,18 @@ jobs:
       - run: npm ci
 
       - run: npm run check
+
+      # The security gate (audit H16). Two halves:
+      #   npm-audit-gate  -- `npm audit` for production dependencies, failing
+      #                      on any high/critical advisory that is not in its
+      #                      written allowlist (a bare `npm audit` would be
+      #                      permanently red on the one owner-accepted
+      #                      residual, and a gate that is always red is a
+      #                      gate nobody reads);
+      #   audit-status    -- the security-audit status board, failing the
+      #                      build if any critical or high finding has
+      #                      regressed to open. A fix that is quietly undone
+      #                      now stops the merge instead of shipping.
+      - run: node scripts/qa/npm-audit-gate.mjs
+
+      - run: node scripts/qa/audit-status.mjs --fail-on-open=critical,high

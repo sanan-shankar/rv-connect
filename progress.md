@@ -2130,3 +2130,16 @@ consent-stripped POST. The write-path review found three real gaps (a non-atomic
 enrolment reaching grace-period members, merge stranding an avatar in R2) and the design review
 three more (focus rings, a borrowed field material) — all six fixed and re-proved. check clean,
 visual green with two new baselines, phase4-probe re-run 29/29.
+
+## 2026-08-20 — Security Phase 9: the gate that stays shut on its own
+
+Everything fixed so far was held closed by attention, and attention rotates. Now CI holds it: every
+push runs `npm audit` through a gate with a written allowlist (the one accepted advisory is named,
+with its reason and the condition that clears it — anything new at high or critical stops the
+merge), and runs the audit status board with `--fail-on-open`, so a security fix that quietly
+regresses fails the build naming the finding (H16). And the test suite grew teeth (H17): regression
+pins that keep the two critical findings closed forever, an attack suite for the one function that
+feeds member text into raw HTML, and a sweep that checks EVERY server action carries an auth gate
+or a written reason it doesn't — the tripwire for the forgotten-line class of bug that caused three
+of the audit's findings. Proved in both directions: the probes watched each gate refuse a real and
+a crafted regression, 13/13. audit:status: 42 fixed, 0 open.
