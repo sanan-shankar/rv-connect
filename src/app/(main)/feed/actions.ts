@@ -11,6 +11,7 @@ import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 import { requireVerifiedMember } from "@/lib/member-gate";
+import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
@@ -52,6 +53,10 @@ export async function createPost(formData: FormData) {
   // is what makes it true: the composer could be bypassed, this cannot.
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
+
+  // Verified is not unlimited: creation is metered per account (audit M2).
+  const limited = await rateLimit("posts", session.user.id);
+  if (!limited.ok) return { error: limited.error };
 
   // Parse poll options from JSON string if present
   const pollOptionsRaw = formData.get("pollOptions") as string | null;
@@ -509,6 +514,10 @@ export async function createComment(formData: FormData) {
   // it raises a notification on their account. Same gate as a post.
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
+
+  // Verified is not unlimited: creation is metered per account (audit M2).
+  const limited = await rateLimit("comments", session.user.id);
+  if (!limited.ok) return { error: limited.error };
 
   const raw = {
     content: formData.get("content") as string,

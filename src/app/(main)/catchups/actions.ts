@@ -40,6 +40,7 @@ import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { requireVerifiedMember } from "@/lib/member-gate";
+import { rateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import {
   addCadenceGap,
@@ -293,6 +294,10 @@ export async function createCatchup(input: {
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
 
+    // Creation fans out to a whole group, so it is metered (audit M2).
+    const limited = await rateLimit("catchups", session.user.id);
+    if (!limited.ok) return { error: limited.error };
+
     const parsed = createCatchupSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const { groupId, cadence, seedPrompts } = parsed.data;
@@ -392,6 +397,10 @@ export async function createCatchupWithPeople(input: {
     // them. That is reaching real members, so it waits for a confirmed address.
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
+
+    // Creation notifies every named member, so it is metered (audit M2).
+    const limited = await rateLimit("catchups", session.user.id);
+    if (!limited.ok) return { error: limited.error };
 
     const parsed = createCatchupWithPeopleSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };

@@ -4,6 +4,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { directUploadAvailable, presignImagePut } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * Step one of the direct-to-R2 upload path. Vercel caps serverless request
@@ -44,6 +45,13 @@ export async function POST(request: Request) {
   const gate = await requireVerifiedMember();
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: 403 });
+  }
+
+  // One hourly uploads allowance per account, shared across every route
+  // bytes can travel through (audit M2).
+  const limited = await rateLimit("uploads", session.user.id);
+  if (!limited.ok) {
+    return NextResponse.json({ error: limited.error }, { status: 429 });
   }
 
   let body: { kind?: string; contentType?: string; bytes?: number };

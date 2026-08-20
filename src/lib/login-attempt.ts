@@ -19,12 +19,20 @@ import { prisma } from "@/lib/prisma";
    their correct password is a very different event from a stranger guessing,
    and the analytics room's "who cannot sign in" panel is the one place the
    owner would ever notice somebody locked out who should not be. */
+/* "rate-limited" and "bot-check" were added 2026-08-20 with audit H6/H22.
+   Distinct reasons for the same purpose as "blocked": a member turned away
+   because a stuffing run spent their account's failure budget, or because
+   their Turnstile token expired in a long-idle tab, is somebody the owner
+   may need to help — and indistinguishable from "wrong-password" they
+   would be invisible. */
 export type LoginReason =
   | "ok"
   | "no-account"
   | "no-password-set"
   | "wrong-password"
-  | "blocked";
+  | "blocked"
+  | "rate-limited"
+  | "bot-check";
 
 export function recordLoginAttempt(input: {
   email: string;

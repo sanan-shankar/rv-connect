@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { requireVerifiedMember } from "@/lib/member-gate";
+import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { previewOf } from "@/lib/admin-threads";
 import { notifyAdmins } from "@/lib/admin-threads-server";
@@ -62,6 +63,11 @@ export async function reportPost(postId: string, reason: string) {
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
+  // Report flooding is paging a human on demand, so it is metered (audit M2;
+  // the per-pair dedupe and threshold are Phase 7).
+  const limited = await rateLimit("reports", session.user.id);
+  if (!limited.ok) return { error: limited.error };
+
   const trimmed = reason?.trim() ?? "";
   if (!trimmed || trimmed.length > 500) {
     return { error: "Please provide a valid reason" };
@@ -110,6 +116,10 @@ export async function reportUser(reportedUserId: string, reason: string) {
   // standing AWAY from a vetted one (audit H5).
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
+
+  // Same meter as reportPost, same reason (audit M2).
+  const limited = await rateLimit("reports", session.user.id);
+  if (!limited.ok) return { error: limited.error };
 
   const trimmed = reason?.trim() ?? "";
   if (!trimmed || trimmed.length > 500) {
