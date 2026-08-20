@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { auth } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine, metaLine } from "@/lib/utils";
@@ -10,6 +12,16 @@ import { RailCard } from "./rail-card";
  * viewer. Hides entirely if there is no one else in the directory yet.
  */
 export async function DirectoryModule({ userId }: { userId: string }) {
+  /* This card is directory data wearing a feed shape -- names, batches,
+     cities -- so it holds the directory's own Stage 1 line (trust model,
+     audit M1): no confirmed email, no names. Found by the Phase 3 write-path
+     review AFTER the directory page itself was gated; the lesson is that a
+     capability lives everywhere its data is serialized, not on one route.
+     Hidden rather than locked-carded: the rail is optional garnish, and the
+     directory page already teaches the gate. */
+  const session = await auth();
+  if (!IS_DEMO && !session?.user?.emailConfirmed) return null;
+
   // Untyped so the avatar-override column (photoUrl) selects alongside the
   // always-present fields, matching the post-card author select.
   const recentMembers = await prisma.user.findMany({

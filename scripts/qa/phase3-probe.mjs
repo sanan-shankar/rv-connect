@@ -154,7 +154,15 @@ const c2 = await cookieFor("stage2");
 console.log("\n-- Stage 0 (email unconfirmed): sees the site, not the people");
 {
   const feed = await get("/feed", c0);
+  const feedHtml = await feed.text();
   check("stage0 can read the feed (200)", feed.status === 200, `got ${feed.status}`);
+  // The rail's "New in the directory" card is directory data on the feed
+  // page; the Phase 3 review caught it leaking names below Stage 1.
+  check(
+    "stage0 feed carries no directory rail card",
+    !feedHtml.includes("New in the directory"),
+    "rail card serialized for an unconfirmed viewer"
+  );
 
   const dir = await get("/directory", c0);
   const dirHtml = await dir.text();
@@ -190,6 +198,14 @@ console.log("\n-- Stage 1 (confirmed, unverified): directory yes, writes and con
   const dir = await get("/directory", c1);
   const dirHtml = await dir.text();
   check("stage1 /directory shows member names", dirHtml.includes(ref.name));
+
+  const feed1 = await get("/feed", c1);
+  const feed1Html = await feed1.text();
+  check(
+    "stage1 feed gets the directory rail card back",
+    feed1Html.includes("New in the directory"),
+    "rail card missing for a confirmed viewer"
+  );
 
   const search = await get(`/api/users/search?q=${encodeURIComponent(ref.name.slice(0, 4))}`, c1);
   check("stage1 /api/users/search allowed", search.status === 200, `got ${search.status}`);

@@ -351,6 +351,18 @@ new real member joining, diffs read first) · `npm run build` exit 0 · `audit:s
 email confirmed 2026-08-19) matches no sheet, so verifying them is the owner's call from
 /admin/people. `resultCount` and map/batch counts stay visible at Stage 0 deliberately (a count is
 coarse, per the map decision).
+**Write-path review caught two things after the probe was green:** (1) the feed rail's "New in
+the directory" card served six names/batches/cities to Stage 0 -- directory data on a feed route;
+fixed, and the probe now pins it (24/24). (2) `updateAvatar` writes image bytes with no tier gate;
+REVIEWED AND LEFT, with the reasoning at the call site: the owner's table grants own-profile at
+Stage 0, the onboarding wizard's photo step runs before an email can be confirmed, the abuse is
+bounded (one 512px WebP, prior object deleted), and the image only ever renders for Stage 1+
+viewers. Revisit if avatars appear anywhere unauthenticated.
+**Infra drift found by the review, pre-existing:** the DEMO database is missing older migration
+columns (at least `User.birdPickedAt`, plus `credentialVersion` from Phase 2), so
+`scripts/demo/verify-guard.mts` crashes with P2022 and its three "BROKEN" lines are that crash,
+not real guard failures. Bring the demo schema up to date so that proof runs again.
 **Owner needs to:** nothing blocking. Verify or decline Yashvardhan Chauhan from the admin panel
-when convenient.
+when convenient. Two noted calls to overrule if wanted: avatar uploads stay at Stage 0 (above),
+and Stage 0 still sees aggregate counts (result totals, pin numbers, batch tiles).
 

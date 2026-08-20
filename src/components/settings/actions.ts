@@ -184,6 +184,16 @@ export async function updateAvatar(formData: FormData) {
   if (!session?.user?.id) return { error: "Not authenticated" };
   if (IS_DEMO) return { error: "The demo does not accept photo uploads, but you can change your bird from the species picker." };
 
+  /* Deliberately NOT behind requireVerifiedMember, unlike every other image
+     write (Phase 3 review, 2026-08-20). Three reasons, all load-bearing:
+     the owner's capability table grants "own profile" at Stage 0 and the
+     onboarding wizard's photo step calls this before an email could possibly
+     be confirmed; the abuse is bounded in a way the open upload routes are
+     not (one 512px WebP per account, the previous object deleted on
+     replace); and the image is only ever shown to Stage 1+ viewers, since a
+     Stage 0 account cannot post and the directory is gated. Revisit if
+     avatars ever render anywhere unauthenticated. */
+
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
   if (!file.type.startsWith("image/")) return { error: "Only image files are allowed" };
