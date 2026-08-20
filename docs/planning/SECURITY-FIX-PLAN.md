@@ -371,4 +371,10 @@ whose broken types failed every preview build and re-emailed the owner on each r
 (C3) owes those upgrades**: next-auth beta.32, sharp >=0.35.3 (0.35.0-0.35.2 have broken type
 exports), next 16.3, hono, ip-address, express-rate-limit -- do them there, not from Dependabot's
 lump.
+**Owner confirmed same day:** demo DB got the credentialVersion migration;
+NEXT_PUBLIC_ADMIN_EMAIL deleted from Vercel; he is verifying Yashvardhan himself. Still open on
+the demo DB: `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "birdPickedAt" TIMESTAMP(3);` (the
+column verify-guard.mts actually crashed on -- drift may be wider, so the first session that
+touches the demo should diff its schema against prisma/schema.prisma). Still open with the owner:
+the second admin account's temporary password from Phase 1.
 
