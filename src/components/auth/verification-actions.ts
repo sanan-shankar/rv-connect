@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { IS_DEMO } from "@/lib/demo";
 import { EMAIL_UNVERIFIED } from "@/lib/email-gate-message";
 import { notifyAdmins } from "@/lib/admin-threads-server";
+import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 
 /* ------------------------------------------------------------------ *
  *  "Ask to be verified": the member's side of the second gate.
@@ -39,6 +40,13 @@ export async function requestVerification(): Promise<RequestVerificationResult> 
   // "flagged" means an admin is already looking at this account; asking again
   // must not quietly wash that state away. They are in the queue either way.
   if (session.user.verifyState === "flagged") return { ok: true, state: "pending" };
+
+  // The office roster answers instantly what the owner would otherwise be
+  // asked to check by hand. Best-effort: if it errors, the request still
+  // reaches the admin the ordinary way.
+  if (await tryRosterAutoVerifyQuietly(session.user.id)) {
+    return { ok: true, state: "verified" };
+  }
 
   const already = session.user.verifyState === "pending";
   if (!already) {

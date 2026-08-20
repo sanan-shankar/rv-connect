@@ -7,6 +7,7 @@ import { maskEmail } from "@/lib/email";
 import { burnTokens, readToken } from "@/lib/auth-tokens";
 import { enqueueMail, verificationMailState } from "@/lib/email-queue";
 import { sendVerificationEmail } from "@/lib/verification-mail";
+import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 
 /* ------------------------------------------------------------------ *
  *  Everything the two email flows do on the server.
@@ -112,6 +113,12 @@ export async function confirmEmailToken(token: string): Promise<ConfirmOutcome> 
     where: { id: read.userId },
     data: { emailVerified: new Date() },
   });
+
+  // The mailbox is proven the instant the line above lands, which is the
+  // moment an office-roster match becomes meaningful (trust model, Stage 2).
+  // Quietly: a roster hiccup must never turn a successful confirmation into
+  // an error screen.
+  await tryRosterAutoVerifyQuietly(read.userId);
 
   return "confirmed";
 }
@@ -229,6 +236,11 @@ export async function resetPassword(input: {
       credentialVersion: { increment: 1 },
     },
   });
+
+  // A reset doubles as a confirmation (above), so it is also a moment the
+  // roster may vouch for this account. Same best-effort contract as in
+  // confirmEmailToken.
+  await tryRosterAutoVerifyQuietly(read.userId);
 
   // Any other reset links already in flight die with this one.
   await burnTokens(read.userId, "reset");

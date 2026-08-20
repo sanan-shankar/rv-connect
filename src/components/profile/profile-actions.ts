@@ -21,6 +21,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
+import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 import { revalidatePath } from "next/cache";
 
 const YEAR_MIN = 1926;
@@ -136,6 +137,14 @@ export async function updateProfileField(field: ProfileField, raw: string) {
   }
 
   await prisma.user.update({ where: { id: session.user.id }, data });
+
+  /* The fields the office roster matches on. Someone who signed up with no
+     batch year, confirmed their email, and only now fills the year in has
+     just become matchable -- this is that moment's hook (trust model,
+     Phase 3). Best-effort, like every roster call. */
+  if (field === "name" || field === "batchYear" || field === "yearLeft") {
+    await tryRosterAutoVerifyQuietly(session.user.id);
+  }
 
   revalidatePath(`/profile/${session.user.id}`);
   return { success: true };
