@@ -83,6 +83,15 @@ const LIMITS = {
    *  owns in one request; three a day serves any real need, and a script
    *  polling it is just load with no new information. */
   export: { tokens: 3, window: "24 h" },
+  /** Per user, shared by the three read-heavy lookup endpoints (people
+   *  search, place gazetteer prefix search, batch roster). These are
+   *  type-ahead surfaces, so a real member firing one request per keystroke
+   *  across a few fields can legitimately burst dozens a minute -- 120 leaves
+   *  that untouched while still capping a script pointed at the raw-SQL
+   *  234k-row Place query, the one genuinely expensive path here. Bounded
+   *  abuse (all three are session-gated, two also require a verified email),
+   *  so this is DB-load protection, not an enumeration wall. */
+  search: { tokens: 120, window: "1 m" },
 } as const;
 
 export type LimitName = keyof typeof LIMITS;

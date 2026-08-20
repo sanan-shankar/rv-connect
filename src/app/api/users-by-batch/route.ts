@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { requireVerifiedEmail } from "@/lib/email-verification";
+import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
@@ -14,6 +15,13 @@ export async function GET(request: Request) {
   const gate = await requireVerifiedEmail();
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: 403 });
+  }
+
+  // Same shared throttle as the other lookup endpoints (each request can
+  // return up to 5000 rows, so scripted polling is pure DB load).
+  const limited = await rateLimit("search", session.user.id);
+  if (!limited.ok) {
+    return NextResponse.json({ error: limited.error }, { status: 429 });
   }
 
   const { searchParams } = new URL(request.url);
