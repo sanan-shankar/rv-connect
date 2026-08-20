@@ -1,6 +1,6 @@
 ---
 name: goal-sloc
-description: Playbook for using lines-of-code (SLOC) as a north-star metric to genuinely simplify and improve an engineering solution — without gaming the number. Use when asked to "cut SLOC", "reduce/simplify the codebase", remove bloat/complexity/tech-debt, delete dead code or duplication, or hit a line-count target. Covers preflight (baseline + feedback loops + tooling), an honest reduction order, a self-audit against gaming, stop conditions, and a Flutter reference.
+description: Playbook for using lines-of-code (SLOC) as a north-star metric to genuinely simplify and improve an engineering solution — without gaming the number. Use when asked to "cut SLOC", "reduce/simplify the codebase", remove bloat/complexity/tech-debt, delete dead code or duplication, or hit a line-count target. Covers preflight (baseline + feedback loops + tooling), an honest reduction order, a self-audit against gaming, and stop conditions.
 ---
 # goal-sloc — SLOC as a north-star, honestly
 
@@ -96,4 +96,3 @@ Defined once, in **`references/preflight-checklist.md` → "During-work loop."**
 ## 6. References
 - **`references/preflight-checklist.md`** — copy-paste preflight + the canonical during-work loop.
 - **`references/minimal-tools.md`** — SLOC-counting convention + paste-ready dead-code/orphan-import scripts when no semantic tooling is installed.
-- **`references/flutter-sloc-reference.md`** — Flutter/Dart specifics (hooks vs StatefulWidget, GlobalKey→controller, provider/ChangeNotifier layering, sealed classes, data-driven UI, the platform floor, dart format, DCM/GitNexus, app-driving via VM-service extensions).

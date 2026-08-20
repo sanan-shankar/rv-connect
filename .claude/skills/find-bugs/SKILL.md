@@ -1,6 +1,6 @@
 ---
 name: find-bugs
-description: Find bugs, security vulnerabilities, and code quality issues in local branch changes. Use when asked to review changes, find bugs, security review, or audit code on the current branch.
+description: Find bugs, security vulnerabilities, and code quality issues via a phased process (full input gathering, attack-surface map, checklist, verification, pre-conclusion audit). Use only during a formal bug audit or when explicitly invoked; routine change reviews use /code-review instead.
 ---
 
 # Find Bugs

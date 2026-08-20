@@ -1,6 +1,6 @@
 ---
 name: front-review
-description: "Review a JS, TS, React (JSX/TSX), CSS, Sass, HTML, Vue, Svelte, or Astro file for code quality, potential bugs, performance, and maintainability. Usage: /front-review [strict]"
+description: "Review a JS, TS, React (JSX/TSX), CSS, or Sass file for code quality, potential bugs, performance, and maintainability. Only when explicitly invoked or during a formal audit. Usage: /front-review [strict]"
 argument-hint: "[strict]"
 allowed-tools: Read, Glob
 ---
@@ -18,11 +18,7 @@ Look at the extension of the target file:
 
 - If `.js`, `.ts`, `.mjs`, `.jsx`, `.tsx` → the language file is `front-review-js.md`
 - If `.css`, `.sass`, `.scss` → the language file is `front-review-css.md`
-- If `.html` → the language file is `front-review-html.md`
-- If `.vue` → the language file is `front-review-vue.md`
-- If `.svelte` → the language file is `front-review-svelte.md`
-- If `.astro` → the language file is `front-review-astro.md`
-- Otherwise → inform the user that this file type is not supported. Supported types: `.js`, `.ts`, `.mjs`, `.jsx`, `.tsx`, `.css`, `.sass`, `.scss`, `.html`, `.vue`, `.svelte`, `.astro`.
+- Otherwise → inform the user that this file type is not supported. Supported types: `.js`, `.ts`, `.mjs`, `.jsx`, `.tsx`, `.css`, `.sass`, `.scss`.
 
 The path of this skill file is always available from context. Resolve all sub-file paths relative to it.
 
