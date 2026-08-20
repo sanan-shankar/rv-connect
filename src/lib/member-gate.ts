@@ -7,7 +7,7 @@ import type { GateResult } from "./email-verification";
 /* ------------------------------------------------------------------ *
  *  The verified-member gate: the second of the two gates.
  *
- *  Owner call, 2026-08-19 (the trust model in SECURITY-FIX-PLAN.md):
+ *  Owner call, 2026-08-19 (the trust model table in docs/SECURITY.md):
  *  confirming an email address proves a mailbox, not a person. Anyone
  *  can make an account with any address, so the address alone must not
  *  put content in front of the community or take a member's phone

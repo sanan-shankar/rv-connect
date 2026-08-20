@@ -5,7 +5,7 @@ import { purgeUserAccount, DELETION_GRACE_DAYS } from "./account-purge";
 /**
  * The retention sweep (audit M34, GDPR Art. 5(1)(e)): personal data stops
  * accumulating forever. Every window below is the owner's decision, recorded
- * 2026-08-19 in SECURITY-FIX-PLAN.md DECISIONS, not a default anyone reached
+ * 2026-08-19 in docs/SECURITY.md (retention table), not a default anyone reached
  * for — change them there first, here second.
  *
  * Run nightly by .github/workflows/retention.yml calling

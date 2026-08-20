@@ -2,7 +2,8 @@
 /**
  * Where the security audit actually stands, proved from the code.
  *
- * The problem this solves. docs/planning/SECURITY-AUDIT.md is 85 findings and
+ * The problem this solves. The security audit was 85 findings (now condensed
+ * into docs/SECURITY.md; the full text lives in git history) and
  * the work spans many sessions. A status column in a markdown file is a claim:
  * it is written by whoever last touched it, it goes stale the moment someone
  * edits code without editing prose, and a fresh session has no way to tell a
