@@ -108,7 +108,14 @@ export async function mintToken(
     .deleteMany({
       where: { expiresAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60_000) } },
     })
-    .catch(() => {});
+    .catch((err) => {
+      // Best-effort: a failed sweep just means dead rows linger, never a broken
+      // mint. But swallow it silently and the one time it breaks for real there
+      // is no trace, so it follows the same "loud in dev" contract as the other
+      // fire-and-forget writers (last-seen, audit, search-log, login-attempt).
+      if (process.env.NODE_ENV !== "production")
+        console.error("[auth-tokens] expired-token sweep failed:", err);
+    });
 
   return { ok: true, token: raw, expiresAt };
 }
