@@ -154,9 +154,20 @@ Each is on the audit:status board with its reason; the short version:
 
 ## Open with the owner
 
-- The second admin account's temporary password (from Phase 1) has not been changed.
+- Nothing. The second admin's temporary password was changed by the owner on 2026-08-20, which was
+  the last open item.
 - No launch date; completeness beats speed. Post-launch revisits: H20 signed delivery, a
   nonce-based CSP, M21 encryption, the R-series backlog.
+
+## A note on the Turnstile checkbox
+
+The production widget is Cloudflare's **Managed** mode with `appearance: interaction-only`: most
+members see nothing, but a visitor Cloudflare finds suspicious (incognito, VPN, automation
+signals) gets the "Verify you are human" checkbox. That is the design working, not a bug — the
+alternative (Invisible mode, changeable in the Cloudflare dashboard) refuses suspicious HUMANS
+outright with no way to prove themselves. Since 2026-08-20 the forms answer an unticked submit
+instantly ("Please tick the box first") instead of hanging out a 12-second token timeout into a
+doomed request.
 
 ## Traps that have already cost time
 
