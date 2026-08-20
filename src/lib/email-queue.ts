@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { prisma } from "./prisma";
 import { IS_DEMO } from "./demo";
 import { appUrl, sendMail } from "./email";
+import { maskEmail } from "./mask-email";
 import {
   deletionScheduledTemplate,
   passwordChangedTemplate,
@@ -207,8 +208,13 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
       // the Resend key is send-only, so the provider cannot answer, and the
       // row does not store the rendered body. With this, the answer is one
       // grep of the server logs.
+      // The address is MASKED here: in a members-only alumni community the
+      // membership of a given address is itself the protected fact, and it has
+      // no business sitting in Vercel's log retention in the clear. The row id
+      // stays unmasked, and OutboundEmail.to holds the full address, so the
+      // forensic lookup is one query away without logging PII on every send.
       console.info(
-        `[email] sent kind=${row.kind} to=${row.to} origin=${appUrl("/")} row=${row.id}`,
+        `[email] sent kind=${row.kind} to=${maskEmail(row.to)} origin=${appUrl("/")} row=${row.id}`,
       );
       return "sent";
     }

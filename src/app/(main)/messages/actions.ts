@@ -9,9 +9,9 @@ import { deriveSubject, previewOf, threadTitle } from "@/lib/admin-threads";
 import {
   isMessageRateLimited,
   isThreadRateLimited,
-  isUploadedImageUrl,
   notifyAdmins,
 } from "@/lib/admin-threads-server";
+import { ownedUploadUrls } from "@/lib/upload-ownership";
 
 /**
  * Every mutation for member <-> admin conversations.
@@ -30,12 +30,13 @@ type ParsedPayload =
   | { ok: false; error: string }
   | { ok: true; body: string; kind?: "bug" | "idea" | "message"; imageUrl?: string };
 
-/** Validates the shared body/kind/image payload and the optional screenshot URL. */
-function parsePayload(input: {
-  body: string;
-  kind?: string;
-  imageUrl?: string;
-}): ParsedPayload {
+/** Validates the shared body/kind/image payload and the optional screenshot URL.
+ *  `callerId` is the SESSION user's id, so the screenshot must sit under the
+ *  caller's OWN `uploads/<their id>/` prefix -- not merely be some uploaded URL. */
+function parsePayload(
+  input: { body: string; kind?: string; imageUrl?: string },
+  callerId: string
+): ParsedPayload {
   const parsed = adminMessageSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -44,14 +45,19 @@ function parsePayload(input: {
     };
   }
   const { imageUrl } = parsed.data;
-  // A screenshot URL must be one this app produced. Anything else is rejected
-  // rather than embedded, so a hand-rolled action call cannot plant a remote
-  // image (or a tracking pixel) inside a thread.
-  if (imageUrl && !isUploadedImageUrl(imageUrl)) {
-    return {
-      ok: false,
-      error: "That image didn't come from an upload here. Try attaching it again.",
-    };
+  // A screenshot URL must be one this caller uploaded. ownedUploadUrls checks
+  // both halves of the C2 rule: minted-by-this-app AND owner-prefixed, so a
+  // hand-rolled action call cannot plant a remote tracking pixel OR hotlink
+  // another member's upload into a thread (the gap the old isUploadedImageUrl
+  // prefix-only check left open).
+  if (imageUrl) {
+    const owned = ownedUploadUrls([imageUrl], callerId);
+    if (!owned.ok) {
+      return {
+        ok: false,
+        error: "That image didn't come from an upload here. Try attaching it again.",
+      };
+    }
   }
   return { ok: true, ...parsed.data };
 }
@@ -70,7 +76,7 @@ export async function startThread(input: {
   if (!session?.user?.id) return { error: "Not signed in" };
   if (IS_DEMO) return { error: "Messages here reach a real person, so the demo keeps this one closed." };
 
-  const parsed = parsePayload(input);
+  const parsed = parsePayload(input, session.user.id);
   if (!parsed.ok) return { error: parsed.error };
   const { body, kind, imageUrl } = parsed;
 
@@ -110,7 +116,7 @@ export async function replyToThread(
   if (!session?.user?.id) return { error: "Not signed in" };
   if (IS_DEMO) return { error: "Messages here reach a real person, so the demo keeps this one closed." };
 
-  const parsed = parsePayload(input);
+  const parsed = parsePayload(input, session.user.id);
   if (!parsed.ok) return { error: parsed.error };
   const { body, imageUrl } = parsed;
 
@@ -164,7 +170,7 @@ export async function adminReplyToThread(
     return { error: "Not authorized" };
   }
 
-  const parsed = parsePayload(input);
+  const parsed = parsePayload(input, session.user.id);
   if (!parsed.ok) return { error: parsed.error };
   const { body, imageUrl } = parsed;
 
