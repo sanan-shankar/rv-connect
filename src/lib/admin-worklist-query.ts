@@ -21,7 +21,7 @@ const PER_QUEUE = 20;
 export async function loadWorklist(): Promise<WorkItem[]> {
   const now = new Date();
 
-  const [threads, reports, photos, flagged, failedMail, stuck] = await Promise.all([
+  const [threads, reports, photos, flagged, pendingVerify, failedMail, stuck] = await Promise.all([
     prisma.adminThread.findMany({
       where: { adminUnread: true },
       select: {
@@ -64,6 +64,16 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       where: { isBlocked: false, verifyState: "flagged" },
       select: { id: true, name: true, email: true, updatedAt: true },
       orderBy: { updatedAt: "desc" },
+      take: PER_QUEUE,
+    }),
+    // Members who pressed "Ask to be verified" and whom the office roster
+    // could not vouch for (a roster match never reaches "pending"). The owner
+    // is the whole verification pipeline (his call: no digests, no mail), so
+    // if this queue is not on the worklist, the request went nowhere.
+    prisma.user.findMany({
+      where: { isBlocked: false, verifyState: "pending" },
+      select: { id: true, name: true, email: true, updatedAt: true },
+      orderBy: { updatedAt: "asc" },
       take: PER_QUEUE,
     }),
     prisma.outboundEmail.findMany({
@@ -124,6 +134,14 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       key: `flagged-${u.id}`,
       queue: "flagged" as const,
       title: `${u.name} has been flagged`,
+      detail: u.email,
+      href: `/admin/people/${u.id}`,
+      at: u.updatedAt.toISOString(),
+    })),
+    ...pendingVerify.map((u) => ({
+      key: `verify-${u.id}`,
+      queue: "verify" as const,
+      title: `${u.name} asked to be verified`,
       detail: u.email,
       href: `/admin/people/${u.id}`,
       at: u.updatedAt.toISOString(),

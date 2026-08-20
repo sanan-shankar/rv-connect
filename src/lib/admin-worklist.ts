@@ -2,7 +2,7 @@
 export interface WorkItem {
   key: string;
   /** Which queue it came from. Drives the chip and the icon. */
-  queue: "message" | "report" | "photo" | "flagged" | "mail" | "catchup";
+  queue: "message" | "report" | "photo" | "flagged" | "verify" | "mail" | "catchup";
   /** The sentence. One line, plain, says what happened. */
   title: string;
   /** The supporting line, or null. */
@@ -18,6 +18,7 @@ export const QUEUE_LABEL: Record<WorkItem["queue"], string> = {
   report: "Report",
   photo: "Photo",
   flagged: "Flagged",
+  verify: "Verify",
   mail: "Mail",
   catchup: "Catch-up",
 };
@@ -30,6 +31,9 @@ export const QUEUE_TONE: Record<WorkItem["queue"], "warn" | "bad" | "info"> = {
   report: "bad",
   photo: "warn",
   flagged: "bad",
+  // A person waiting at the door, not something wrong: same register as an
+  // unapproved photo.
+  verify: "warn",
   mail: "bad",
   catchup: "warn",
 };
