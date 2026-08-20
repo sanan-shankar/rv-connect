@@ -13,11 +13,14 @@ A new session does exactly this, in order. Nothing else needs to be asked of the
 1. npm run audit:status            # what is actually open, proved from the code
 2. read this file's PHASES table   # pick the topmost phase not marked done
 3. read that phase's section       # it lists findings, files, and the shape of the work
-4. work it
-5. verify (see VERIFICATION below) # non-negotiable, every phase
-6. commit each coherent piece as it passes
-7. append to SESSION LOG at the bottom of this file, and to progress.md
-8. stop, and report what closed
+4. read those findings' sections in SECURITY-AUDIT.md   # NOT optional: this file says WHAT,
+                                   # the audit holds the attack detail, the file:line
+                                   # evidence, and the edge cases a summary line drops
+5. work it
+6. verify (see VERIFICATION below) # non-negotiable, every phase
+7. commit each coherent piece as it passes
+8. append to SESSION LOG at the bottom of this file, and to progress.md
+9. stop, and report what closed
 ```
 
 **The owner does not need to be consulted to start, continue, or finish a phase.** Every decision
