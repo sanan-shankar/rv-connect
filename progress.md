@@ -2170,3 +2170,16 @@ audit:status` (74 tracked, 0 open), which reads the code, not any document. Loos
 same evening: CRON_SECRET now matches across Vercel and GitHub, proved by a manual retention run
 going green and writing its own line into /admin/audit; the Supabase DPA form recorded as declined
 by the owner; the DPA posture of the other four providers recorded.
+
+## 2026-08-20 — The Cloudflare checkbox stops being a trap; the reset screen learns hierarchy
+
+Owner, from incognito: the human-verification checkbox appeared (it does, for suspicious visitors —
+that is Managed mode deciding, and the right trade against refusing real humans outright), and
+submitting without ticking it hung for a while and then errored. The hang is gone: the widget now
+says the moment Cloudflare is waiting on a human, and all three auth forms answer an unticked
+submit within two seconds with one plain sentence instead of timing out into a doomed request.
+Proved live against the forced-interactive test key. And the "Check your email" screen went from
+four equal grey lines to three tiers: the address bold on its own line, one quiet line for the
+hour-long lifespan and the spam pointer, and a proper link to try a different address. Both
+viewports read, visual 23/23. With the owner also changing the second admin's temporary password
+today, the security section's open-items list is empty.
