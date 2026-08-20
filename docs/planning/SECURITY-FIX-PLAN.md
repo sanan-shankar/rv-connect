@@ -144,8 +144,8 @@ Mark a phase done only when `npm run audit:status` agrees.
 |---|---|---|---|
 | 1 | Admin takeover + session integrity | C1-a/b/c, and the signIn role grant | **done 2026-08-20** |
 | 2 | Authorization holes | H1, H3, H4, M6, M4 | **done 2026-08-20** |
-| 3 | The two-gate trust model | H21, and the abuse half of M1 | next |
-| 4 | Bot defence and rate limiting | H22, H6, M2, M3, M7 | |
+| 3 | The two-gate trust model | H21, and the abuse half of M1 | **done 2026-08-20** |
+| 4 | Bot defence and rate limiting | H22, H6, M2, M3, M7 | next |
 | 5 | Object deletion and uploads | C2, M10–M17 | |
 | 6 | Headers, dependencies, quick highs | H7, C3, H18, M19, M27, M32, M18 | |
 | 7 | Audit log and admin accountability | H10, H14, M36, H5 | |
@@ -320,4 +320,37 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "credentialVersion" INTEGER NOT NULL
 Also: Sentry's own new-issue and weekly-summary mail is an account setting, not a build setting --
 Sentry > Settings > Notifications, and the Vercel-Sentry integration sends deploy mail from Vercel's
 side. The code no longer creates a release per deploy.
+
+### 2026-08-20 — Phase 3
+**Closed:** H21 (verification gated nothing), and the harvesting half of M1. H5's worst edge
+(one report stripping a member's badge, which the new gate would have turned into one report
+stripping a member's ACCESS) removed; H5 itself stays open for Phase 7's threshold work.
+**Built:** `src/lib/member-gate.ts` (`requireVerifiedMember`, `viewerMaySeeContacts` moved up to
+Stage 2) + `member-gate-message.ts` sentinel; every community write moved from the email gate to
+the member gate (posts, comments, edits, likes, poll votes, comment likes, catch-up
+create/join/prompt/entry/love, collection uploads+loves, 3 upload routes, both report actions).
+Directory names, `/api/users/search`, `/api/users-by-batch`, profile pages and pin drilldowns hold
+the Stage 1 line server-side (counts and circles at Stage 0, never a serialized name — including
+the tab `<title>`). `requestVerification` writes the first-ever `pending`; member-verify dialog
+(sibling of the confirm-email card) carries "Ask to be verified"; new `verify` queue on the admin
+worklist. `RosterEntry` (2,134 people consolidated from both sheets by
+`scripts/dev/import-roster.mjs`) auto-verifies matches as `office_list` at email-confirm, reset,
+name/year edits, and on request — email match alone, or name+batch (never a lone token, never an
+initial, `roster-rule.ts` + 12 unit tests). No auto-fill of admission number or houses.
+**Proved:** `scripts/qa/phase3-probe.mjs`, **22/22** against the running server with disposable
+accounts per tier: Stage 0 reads the feed but gets zero names from /directory, search, by-batch or
+a profile; Stage 1 sees people but is refused uploads (member sentinel), a REAL comment typed into
+the real feed UI writes no row and shows the card, "Ask to be verified" lands `pending` and appears
+on /admin; Stage 2's identical comment lands, contacts serialize; roster email-match and
+name+batch-match both verify through a real /verify-email link (no admission number filled), a
+no-match stays unverified. Screenshots desktop+mobile of every locked state, read personally.
+`npm run check` clean (17 test files) · `npm run visual` 21/21 (two baselines re-accepted for a
+new real member joining, diffs read first) · `npm run build` exit 0 · `audit:status` 13 fixed.
+**Notes:** the demo needs no migration this time — `RosterEntry` is never queried under `IS_DEMO`.
+51 of 52 existing members were already verified; the one unverified account (Yashvardhan Chauhan,
+email confirmed 2026-08-19) matches no sheet, so verifying them is the owner's call from
+/admin/people. `resultCount` and map/batch counts stay visible at Stage 0 deliberately (a count is
+coarse, per the map decision).
+**Owner needs to:** nothing blocking. Verify or decline Yashvardhan Chauhan from the admin panel
+when convenient.
 
