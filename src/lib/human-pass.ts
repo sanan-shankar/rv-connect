@@ -28,6 +28,10 @@ export async function mintHumanPass(email: string): Promise<void> {
   const jar = await cookies();
   jar.set(HUMAN_PASS_COOKIE, signHumanPass(email, Date.now(), appSecret()), {
     httpOnly: true,
+    // HTTPS-only in production (Vercel is always TLS); off in local http dev.
+    // This cookie is the pass that lets the next sign-in skip Turnstile, so it
+    // is the one most worth keeping off a plaintext hop. Next does not set it.
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: HUMAN_PASS_TTL_MS / 1000,
     path: "/",

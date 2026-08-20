@@ -158,8 +158,11 @@ export async function confirmContribution(input: {
 
   // A valid signature proves the payment is real, not that this session opened
   // it. Refusing to move someone else's row keeps one person's checkout from
-  // being confirmed under another person's name.
-  if (contribution.userId && contribution.userId !== session.user.id) {
+  // being confirmed under another person's name. Strict inequality, not
+  // `userId && userId !== ...`: startContribution always stamps userId, so a
+  // null-owner row should never exist -- and if one ever did, the loose form
+  // would let ANY signed-in holder of the signature claim it. Refuse it.
+  if (contribution.userId !== session.user.id) {
     console.error("[support] confirm by non-owner", { orderId, userId: session.user.id });
     return { error: "That payment belongs to a different account." };
   }

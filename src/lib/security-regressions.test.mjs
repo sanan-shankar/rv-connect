@@ -71,6 +71,9 @@ test("C2: keyForUrl refuses keys outside the app's own roots", () => {
   assert.ok(/KNOWN_ROOTS/.test(src), "the root fence is gone from storage.ts");
   const keyForUrl = src.slice(src.indexOf("function keyForUrl"));
   assert.ok(/KNOWN_ROOTS/.test(keyForUrl), "keyForUrl no longer checks the roots");
+  // ...and refuses a traversal segment, so the local-dev filesystem branch
+  // cannot be walked out of public/ even if a caller-shaped URL reaches it.
+  assert.ok(/includes\(["']\.\.["']\)/.test(keyForUrl), "keyForUrl no longer rejects '..'");
 });
 
 test("C2: uploads mint under owner-scoped keys", () => {

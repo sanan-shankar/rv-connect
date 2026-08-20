@@ -73,7 +73,16 @@ export async function verifyTurnstile(
      spending real Cloudflare calls on invented traffic. */
   if (IS_DEMO) return true;
   const secret = turnstileSecret();
-  if (!secret) return true; // unconfigured: nothing to verify against
+  if (!secret) {
+    // Unconfigured: nothing to verify against, so fail open -- but in
+    // PRODUCTION that means bot protection has silently vanished from sign-in,
+    // signup and reset, with no other symptom. The network fail-open below is
+    // a deliberate availability tradeoff; a MISSING key is a misconfiguration,
+    // so say so loudly rather than let it pass unnoticed. (Not a throw: taking
+    // the auth surface down over a config gap would be the worse failure.)
+    if (IS_PROD) console.error("[turnstile] TURNSTILE_SECRET_KEY is unset in production; bot checks are OFF");
+    return true;
+  }
   if (!token) return false;
 
   try {

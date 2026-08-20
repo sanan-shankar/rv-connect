@@ -244,6 +244,14 @@ export function keyForUrl(url: string | null | undefined): string | null {
     key = url.slice(1);
   }
   if (!key) return null;
+  // No traversal segment. On the local-dev filesystem branch the key is joined
+  // onto public/ (getImageBuffer, delImageByKey, headObjectSize), and path.join
+  // normalises "uploads/../../etc/passwd" straight out of that directory -- so
+  // a "uploads/" prefix alone is not enough to keep a caller-influenced URL
+  // contained. Rejected before the root check so it holds whatever the root is.
+  // (On R2 a ".." is a literal object-key segment, not traversal, but the guard
+  // costs nothing there.)
+  if (key.split("/").includes("..")) return null;
   // The key must live under one of the roots this app actually writes to.
   // Refusing anything else means that even if a raw, caller-influenced URL ever
   // reaches a delete path, it cannot be turned into a key pointing at some

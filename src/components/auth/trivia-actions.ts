@@ -181,6 +181,9 @@ export async function checkTrivia(
     browserId = crypto.randomUUID();
     jar.set("rv_trivia_id", browserId, {
       httpOnly: true,
+      // HTTPS-only in production (Vercel is always TLS); left off in local
+      // dev, which is plain http. Next does not add this on its own.
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: TOKEN_TTL_MS / 1000,
       path: "/",
@@ -211,6 +214,7 @@ export async function checkTrivia(
   const token = `${ts}.${sign(`trivia:${ts}:${browserId}`)}`;
   jar.set("rv_trivia_pass", token, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: TOKEN_TTL_MS / 1000,
     path: "/",
