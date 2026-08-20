@@ -457,3 +457,24 @@ production (proves the real site key accepts rishivalley.space — the widget si
 test can reach), and confirm the Turnstile widget list in the Cloudflare dashboard includes
 the production domain. If members ever report "We couldn't confirm you're human", that is
 the widget/domain mismatch to check first.
+
+**Post-deploy, verified live on production (2026-08-20, same session):**
+- **XFF is not spoofable on Vercel — confirmed empirically**, closing the review's deferred
+  item: the trivia limiter engaged live, and rotating a forged `x-forwarded-for` did NOT
+  reopen it (the platform overwrites the header). Per-IP limits hold as designed.
+- A real headless Chrome driving the real production login was **refused by Turnstile with
+  the honest bot-check copy**, while the widget loaded with zero console errors — the site
+  key accepts the domain, and an automated browser cannot pass the door. That refusal IS
+  the feature working; the one thing a bot cannot prove (a human passing) remains the
+  owner's one real sign-in.
+- `phase4-prod-check` against the live site: 5/6, the human-pass positive control failing
+  only because the probe signs with the LOCAL AUTH_SECRET and Vercel's differs — on the
+  real deployment mint and verify share one runtime and one secret, which the local
+  production build already proved 6/6.
+- Owner round, same day, from screenshots: the visible Cloudflare card in dev was my wrong
+  test-key variant (visible …AA instead of invisible …BB) — fixed; challenge theme pinned
+  light; the swap link became an inline circular-arrow glyph with a one-breath swap
+  animation. Deploy times (~1m20 → ~2m since 2026-08-19) are Sentry's build wrapping plus
+  PostHog landing, i.e. normal growth; sourcemap upload was already off; the one real
+  waste found — puppeteer downloading Chrome on every Vercel build — is now skipped via
+  `.puppeteerrc.cjs`.

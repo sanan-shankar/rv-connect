@@ -1983,3 +1983,12 @@ presign a 429. `phase4-prod-check.mjs` 6/6 against a local production build: the
 the CORRECT secret refused, a garbage token refused by a live siteverify round trip — plus a
 positive control (human pass signs in), which caught the first run passing vacuously on
 UntrustedHost 500s. `npm run check` clean, e2e 22 passed.
+
+Post-deploy: XFF spoof-rotation confirmed dead against live Vercel; a headless bot was
+refused at the production login with the honest copy while the widget loaded clean (site
+key accepts the domain). Owner round from screenshots, same day: dev test key switched to
+the invisible variant (the dark Cloudflare card was my wrong key pick, not the design),
+challenge theme pinned light, and the trivia swap became an inline circular-arrow glyph —
+half-turn per press, one-breath question crossfade, arrow gliding on layout=position.
+Deploy times (~1m20 → ~2m) are Sentry + PostHog landing Aug 19, normal; puppeteer's
+per-build Chrome download on Vercel was the one real waste, now skipped (.puppeteerrc.cjs).
