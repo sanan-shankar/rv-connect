@@ -1952,3 +1952,34 @@ comment typed into the real feed UI (refused with the card at Stage 1, lands at 
 three roster outcomes through a real /verify-email link. Locked states screenshot at 1440x900 and
 390x844 and read. `npm run check` 17/17 files, `npm run visual` 21/21, production build clean,
 `audit:status` 13 fixed / 18 open.
+
+## 2026-08-20 — Security Phase 4: bots pay at the door, and everything is metered
+
+**Closed H22, H6, M2, M3, M7** (audit:status: 18 fixed / 15 open). Turnstile now stands at all
+three public doors and is verified **server-side**: inside NextAuth's `authorize()` for login (the
+one place a direct POST to the callback route cannot skip), in `registerUser`, and in
+`requestPasswordReset`. Development pins Cloudflare's official always-pass test pair, so the
+enforcement path is byte-identical in every environment while local sign-in, e2e, visual and the
+QA probes run unattended; the widget is `appearance: "interaction-only"`, so no page changed a
+pixel (21/21 baselines untouched). A signup or a completed reset carries a five-minute HMAC
+"human pass" bound to its one address into the auto-sign-in, instead of solving the widget twice.
+
+**One limiter.** `src/lib/rate-limit.ts` is the single Upstash-backed throttle: login failures
+per IP and per account (successes free, so nobody's own sign-ins spend anything), signup and
+reset per IP, posts/comments/uploads/reports/catch-up creation per account. Fail-open with a
+logged miss, IS_DEMO exempt three ways over — the demo can never be locked out. Refusals carry
+honest codes: the login form now says "too many attempts" or "couldn't confirm you're human"
+instead of lying "invalid password". The trivia gate lost its repo-printed fallback secret, its
+cookie-keyed in-process limiter (the one an attacker skipped by omitting the cookie while it
+starved real first-timers), and its shareable pass token — now per-IP in the shared store, and
+HMAC-bound to the browser that earned it. Owner ask mid-session: the gate also offers "Try a
+different question" now.
+
+**Proof.** `phase4-probe.mjs` 29/29 live: refusals before bcrypt (LoginAttempt proves the
+password was never judged), account lockout that survives IP rotation while a bystander signs in
+from the attacker's own IP, the whole real signup driven in a browser with two forged-trivia-pass
+sabotages refused mid-flow, the M7 DoS pinned dead, reset caps with zero mail rows, the 41st
+presign a 429. `phase4-prod-check.mjs` 6/6 against a local production build: the QA bypass with
+the CORRECT secret refused, a garbage token refused by a live siteverify round trip — plus a
+positive control (human pass signs in), which caught the first run passing vacuously on
+UntrustedHost 500s. `npm run check` clean, e2e 22 passed.
