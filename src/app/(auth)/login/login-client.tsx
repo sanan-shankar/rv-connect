@@ -20,6 +20,8 @@ import { reportPerch, onHandoff, FLIGHT_FLAG, PERCH_LIFT_PX } from "@/components
 import { nextPathFromLocation } from "@/lib/next-path";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { TurnstileWidget, type TurnstileHandle } from "@/components/auth/turnstile-widget";
+import { RATE_LIMITED } from "@/lib/rate-limit-message";
+import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
 
 export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: string | null }) {
   const [email, setEmail] = useState("");
@@ -376,14 +378,15 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
       if (result?.error) {
         // authorize() can refuse for reasons that are NOT a wrong password,
         // and telling someone their password is wrong when it isn't sends
-        // them into a doomed reset loop. The code rides on `code` (NextAuth
-        // CredentialsSignin subclasses).
+        // them into a doomed reset loop. Only a CODE survives NextAuth's
+        // CredentialsSignin channel, so it maps back to the same shared
+        // sentences every other surface shows for the same refusal.
         const code = (result as { code?: string | null }).code;
         setError(
           code === "rate-limited"
-            ? "Too many attempts. Wait a few minutes and try again."
+            ? RATE_LIMITED
             : code === "bot-check"
-              ? "We couldn't confirm you're human. Refresh the page and try once more."
+              ? BOT_CHECK_FAILED
               : "Invalid email or password.",
         );
       } else if (result?.ok) {

@@ -22,8 +22,6 @@ import { signHumanPass, HUMAN_PASS_COOKIE, HUMAN_PASS_TTL_MS } from "./human-pas
  *  The verifying half lives in human-pass-rule.ts (pure, unit-tested).
  * ------------------------------------------------------------------ */
 
-export { humanPassValid, humanPassFromCookieHeader, HUMAN_PASS_COOKIE } from "./human-pass-rule";
-
 /** Called by registerUser and resetPassword, never anywhere a human was
  *  not just proven. */
 export async function mintHumanPass(email: string): Promise<void> {

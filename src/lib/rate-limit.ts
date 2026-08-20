@@ -20,7 +20,6 @@ import { IS_DEMO } from "./demo";
  *  out (its own default-deny Prisma allowlist is its real wall).
  * ------------------------------------------------------------------ */
 
-export { RATE_LIMITED } from "./rate-limit-message";
 import { RATE_LIMITED } from "./rate-limit-message";
 
 /**

@@ -33,7 +33,6 @@
  * Usage: node scripts/qa/phase4-probe.mjs
  * Needs: dev server on :3000, DEV_LOGIN_SECRET + AUTH_SECRET in .env.
  */
-import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHmac, randomBytes } from "node:crypto";
@@ -41,6 +40,7 @@ import pg from "pg";
 import bcrypt from "bcryptjs";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
+import { loadEnv, makeLedger, credLogin as kitCredLogin } from "./_probe-kit.mjs";
 import { signHumanPass } from "../../src/lib/human-pass-rule.ts";
 import { RATE_LIMITED } from "../../src/lib/rate-limit-message.ts";
 
@@ -53,14 +53,7 @@ process.env.PUPPETEER_EXECUTABLE_PATH ||=
 
 /* ---------------------------------------------------------------- env + db */
 
-for (const line of readFileSync(resolve(repoRoot, ".env"), "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-  if (!m) continue;
-  let v = m[2];
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
-    v = v.slice(1, -1);
-  if (!(m[1] in process.env)) process.env[m[1]] = v;
-}
+loadEnv(repoRoot);
 const DEV_SECRET = process.env.DEV_LOGIN_SECRET;
 const AUTH_SECRET = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 if (!DEV_SECRET || !AUTH_SECRET) throw new Error("DEV_LOGIN_SECRET / AUTH_SECRET missing from .env");
@@ -71,17 +64,7 @@ const q = (text, params) => db.query(text, params).then((r) => r.rows);
 
 /* ------------------------------------------------------------- the ledger */
 
-let pass = 0;
-let fail = 0;
-function check(name, cond, detail = "") {
-  if (cond) {
-    pass += 1;
-    console.log(`  ok   ${name}`);
-  } else {
-    fail += 1;
-    console.log(`  FAIL ${name}${detail ? ` -- ${detail}` : ""}`);
-  }
-}
+const { check, finish } = makeLedger();
 
 /* --------------------------------------------------- disposable accounts */
 
@@ -125,41 +108,7 @@ async function mkUser(slug, { confirmed = true, verified = false } = {}) {
 
 /* --------------------------------------------------------- login machinery */
 
-/**
- * One real credentials sign-in attempt through NextAuth's own callback
- * route -- the exact POST a browser makes -- with a synthetic caller IP.
- * Returns { signedIn, location } where location carries NextAuth's error
- * code on refusal.
- */
-async function credLogin({ email, password, fromIp, turnstileToken, devBypass, cookie = "" }) {
-  const csrfRes = await fetch(`${BASE}/api/auth/csrf`, {
-    headers: { "x-forwarded-for": fromIp },
-  });
-  const { csrfToken } = await csrfRes.json();
-  const csrfCookies = csrfRes.headers
-    .getSetCookie()
-    .map((c) => c.split(";")[0])
-    .join("; ");
-
-  const body = new URLSearchParams({ csrfToken, email, password });
-  if (turnstileToken) body.set("turnstileToken", turnstileToken);
-  if (devBypass) body.set("devBypass", devBypass);
-
-  const res = await fetch(`${BASE}/api/auth/callback/credentials`, {
-    method: "POST",
-    redirect: "manual",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-      cookie: cookie ? `${csrfCookies}; ${cookie}` : csrfCookies,
-      "x-forwarded-for": fromIp,
-      origin: BASE,
-    },
-    body,
-  });
-  const setCookies = res.headers.getSetCookie();
-  const signedIn = setCookies.some((c) => c.includes("session-token") && !c.includes("=;"));
-  return { signedIn, location: res.headers.get("location") ?? "", status: res.status };
-}
+const credLogin = (opts) => kitCredLogin(BASE, opts);
 
 /* ================================================== A. the login bot gate */
 
@@ -375,8 +324,11 @@ console.log("\n-- trivia: eight wrong answers close one IP; a fresh visitor is u
   await page.goto(`${BASE}/signup`, { waitUntil: "networkidle2", timeout: 60_000 });
   for (let i = 0; i < 8; i++) await answerTrivia(page, { wrong: true });
   await answerTrivia(page, { wrong: true });
-  const limited = await page.evaluate(() => document.body.textContent.includes("Too many attempts"));
-  check("the 9th attempt from one IP is told to wait", limited);
+  const limited = await page.evaluate(
+    (msg) => document.body.textContent.includes(msg),
+    RATE_LIMITED,
+  );
+  check("the 9th attempt from one IP is told to wait, in the shared copy", limited);
 
   // The attacker rotating cookies used to walk around the limit while the
   // shared bucket starved everyone else. Now the key is the IP: same
@@ -386,7 +338,10 @@ console.log("\n-- trivia: eight wrong answers close one IP; a fresh visitor is u
   await ctx.clearCookies?.().catch(() => {});
   await page2.goto(`${BASE}/signup`, { waitUntil: "networkidle2", timeout: 60_000 });
   await answerTrivia(page2);
-  const stillLimited = await page2.evaluate(() => document.body.textContent.includes("Too many attempts"));
+  const stillLimited = await page2.evaluate(
+    (msg) => document.body.textContent.includes(msg),
+    RATE_LIMITED,
+  );
   check("discarding cookies does not reopen the same IP", stillLimited);
   await ctx.close();
 
@@ -493,5 +448,4 @@ console.log("\n-- cleaning up");
 await cleanup();
 await db.end();
 
-console.log(`\n${pass} passed, ${fail} failed`);
-process.exit(fail === 0 ? 0 : 1);
+finish();
