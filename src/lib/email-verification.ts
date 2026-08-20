@@ -70,11 +70,5 @@ export async function requireVerifiedEmail(): Promise<GateResult> {
   return { ok: true, user };
 }
 
-/** True when the signed-in viewer may see other members' contact details.
- *  Split out because the profile page needs the boolean to decide what to
- *  SERIALIZE, not just what to render: a phone number withheld by CSS is a
- *  phone number sitting in the page source. */
-export async function viewerMaySeeContacts(): Promise<boolean> {
-  const gate = await requireVerifiedEmail();
-  return gate.ok;
-}
+// viewerMaySeeContacts moved to member-gate.ts on 2026-08-20: contact details
+// are a Stage 2 capability under the trust model, not a Stage 1 one.

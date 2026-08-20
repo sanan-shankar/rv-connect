@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { createId } from "@paralleldrive/cuid2";
 import { putImage } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/lib/upload-shared";
-import { requireVerifiedEmail } from "@/lib/email-verification";
+import { requireVerifiedMember } from "@/lib/member-gate";
 
 const MAX_FILES = 3;
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   // ROUTE, not only in the actions that call it: this endpoint accepts a
   // multipart body from any signed-in session and would otherwise be reachable
   // straight from a console regardless of what the composer allows.
-  const gate = await requireVerifiedEmail();
+  const gate = await requireVerifiedMember();
   if (!gate.ok) {
     return NextResponse.json({ error: gate.error }, { status: 403 });
   }

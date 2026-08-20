@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { VerifyEmailDialog } from "@/components/auth/verify-email-dialog";
+import { MemberVerifyDialog } from "@/components/auth/member-verify-dialog";
 
 export interface ContactMethod {
   kind: "email" | "phone" | "instagram" | "linkedin" | "website";
@@ -49,7 +50,7 @@ export function GetInTouch({
   vcard,
   showSave = true,
   size = "sm",
-  lockedReason,
+  lock,
 }: {
   name: string;
   methods: ContactMethod[];
@@ -57,14 +58,14 @@ export function GetInTouch({
   showSave?: boolean;
   size?: "sm" | "default";
   /** Set when the details were withheld from the VIEWER rather than never
-   *  shared by the member. Opens a dialog that says which, because "they have
-   *  not shared anything" and "you have not confirmed your email" send a person
-   *  looking in completely different places. */
-  lockedReason?: string;
+   *  shared by the member. Names WHICH gate is closed, because "they have not
+   *  shared anything", "confirm your email" and "you are not verified yet"
+   *  send a person to three completely different fixes. */
+  lock?: "email" | "member";
 }) {
   const [open, setOpen] = useState(false);
   const firstName = name.split(" ")[0];
-  const locked = !!lockedReason;
+  const locked = !!lock;
   const hasMethods = methods.length > 0;
 
   function saveContact() {
@@ -106,13 +107,15 @@ export function GetInTouch({
       </div>
 
       {/* Locked, this is not a variant of the Reach dialog at all: it IS the
-          one shared confirm-email card (verify-email-dialog.tsx), the same
-          component posting and commenting open, resend button and all. One
-          component means the wording can never drift between surfaces
-          (owner, 2026-08-18: "make all the confirm email alerts look the
-          same"). */}
-      {locked ? (
+          one shared card for whichever gate is closed (verify-email-dialog /
+          member-verify-dialog), the same components posting and commenting
+          open, action button and all. One component per gate means the
+          wording can never drift between surfaces (owner, 2026-08-18: "make
+          all the confirm email alerts look the same"). */}
+      {lock === "email" ? (
         <VerifyEmailDialog open={open} onOpenChange={setOpen} />
+      ) : lock === "member" ? (
+        <MemberVerifyDialog open={open} onOpenChange={setOpen} />
       ) : (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[400px]">

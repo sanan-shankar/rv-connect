@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 import { prisma } from "@/lib/prisma";
 import { insensitive } from "@/lib/db-text";
 import { logSearch } from "@/lib/search-log";
@@ -8,6 +9,14 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Names by query is the directory's Stage 1 capability wearing an API
+  // shape (trust model; the harvesting half of audit M1), so it holds the
+  // same line: no confirmed email, no names.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: 403 });
   }
 
   const q = req.nextUrl.searchParams.get("q")?.trim();

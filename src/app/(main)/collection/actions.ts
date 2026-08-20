@@ -10,7 +10,7 @@ import { photoSchema } from "@/lib/validators";
 import { MAX_UPLOAD_BYTES, isUnsupportedHeic, describeProcessingError } from "@/lib/upload-shared";
 import { eraFromYear } from "@/lib/collection";
 import { notifyAdminNote } from "@/lib/admin-note";
-import { requireVerifiedEmail } from "@/lib/email-verification";
+import { requireVerifiedMember } from "@/lib/member-gate";
 import { revalidatePath } from "next/cache";
 
 const PAGE_SIZE = 24;
@@ -78,7 +78,7 @@ export async function contributePhoto(formData: FormData) {
   // A contributed photograph is bytes into a bucket, credited to a name, shown
   // to the whole community. Of everything an account can do this is the one
   // with a real cost attached, so it waits for a confirmed address.
-  const gate = await requireVerifiedEmail();
+  const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
   const file = formData.get("file") as File | null;
@@ -205,7 +205,7 @@ export async function contributePhotoDirect(input: {
   // A contributed photograph is bytes into a bucket, credited to a name, shown
   // to the whole community. Of everything an account can do this is the one
   // with a real cost attached, so it waits for a confirmed address.
-  const gate = await requireVerifiedEmail();
+  const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
   if (typeof input.key !== "string" || !COLLECTION_ORIGINAL_KEY.test(input.key)) {
@@ -390,6 +390,10 @@ export async function myPendingPhotos(): Promise<PhotoData[]> {
 export async function togglePhotoLove(photoId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // Same tier as the feed's likes: a public gesture is a Stage 2 write.
+  const gate = await requireVerifiedMember();
+  if (!gate.ok) return { error: gate.error };
 
   const existing = await prisma.photoLove.findUnique({
     where: { userId_photoId: { userId: session.user.id, photoId } },

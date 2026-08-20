@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 import { prisma } from "@/lib/prisma";
 import { buildDirectoryWhere, directoryOrderBy, type DirectoryFilters } from "./where";
 
@@ -53,10 +53,11 @@ export async function loadDirectoryPage({
      and proxy.ts only checks that a session cookie is PRESENT, never that it
      is valid. So the page's guard was never this action's guard.
 
-     Phase 3 raises this to the member gate, since reading names is a Stage 1
-     capability under the new trust model. Being signed in at all is the floor. */
-  const session = await auth();
-  if (!session?.user?.id) return { users: [], nextCursor: null };
+     Names are a Stage 1 capability under the trust model (audit H21): the
+     email gate, not just a session. requireVerifiedEmail also covers the
+     demo's invented visitor, which browses freely. */
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) return { users: [], nextCursor: null };
 
   const where = buildDirectoryWhere(filters);
   const orderBy = directoryOrderBy(filters.sort);

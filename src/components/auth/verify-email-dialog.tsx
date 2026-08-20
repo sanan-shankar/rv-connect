@@ -12,6 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EMAIL_UNVERIFIED } from "@/lib/email-gate-message";
+import { MEMBER_UNVERIFIED } from "@/lib/member-gate-message";
+import { MemberVerifyDialog } from "./member-verify-dialog";
 import { resendVerification } from "./email-actions";
 import { sendTimeLabel } from "./verify-email-banner";
 
@@ -38,22 +40,42 @@ import { sendTimeLabel } from "./verify-email-banner";
  *     ...
  *     {gate.dialog}
  *
- * `handled` matches the EXACT sentinel string rather than sniffing for a
+ * `handled` matches the EXACT sentinel strings rather than sniffing for a
  * keyword, so an unrelated error that happens to mention email can never open
- * this by accident.
+ * this by accident. Since 2026-08-20 it knows BOTH gates of the trust model:
+ * EMAIL_UNVERIFIED opens the confirm-email card, MEMBER_UNVERIFIED the
+ * ask-to-be-verified one. One hook, so no surface can handle the first gate
+ * and toast the second as a bare error.
  */
 export function useEmailGate() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<null | "email" | "member">(null);
 
   const handled = useCallback((error: string | undefined | null): boolean => {
-    if (error !== EMAIL_UNVERIFIED) return false;
-    setOpen(true);
-    return true;
+    if (error === EMAIL_UNVERIFIED) {
+      setOpen("email");
+      return true;
+    }
+    if (error === MEMBER_UNVERIFIED) {
+      setOpen("member");
+      return true;
+    }
+    return false;
   }, []);
 
   return {
     handled,
-    dialog: <VerifyEmailDialog open={open} onOpenChange={setOpen} />,
+    dialog: (
+      <>
+        <VerifyEmailDialog
+          open={open === "email"}
+          onOpenChange={(o) => setOpen(o ? "email" : null)}
+        />
+        <MemberVerifyDialog
+          open={open === "member"}
+          onOpenChange={(o) => setOpen(o ? "member" : null)}
+        />
+      </>
+    ),
   };
 }
 

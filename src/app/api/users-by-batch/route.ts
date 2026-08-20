@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { requireVerifiedEmail } from "@/lib/email-verification";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Whole batches of names at a time: the exact bulk-harvest shape audit M1
+  // describes, so it sits behind the directory's Stage 1 line too.
+  const gate = await requireVerifiedEmail();
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);

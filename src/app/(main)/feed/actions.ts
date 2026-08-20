@@ -10,7 +10,7 @@ import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { PUBLISHED_ONLY } from "@/lib/posts";
-import { requireVerifiedEmail } from "@/lib/email-verification";
+import { requireVerifiedMember } from "@/lib/member-gate";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
@@ -50,7 +50,7 @@ export async function createPost(formData: FormData) {
   // of the whole community under a name. That waits for a confirmed address.
   // The client shows the rule before you hit it (VerifyEmailDialog), but THIS
   // is what makes it true: the composer could be bypassed, this cannot.
-  const gate = await requireVerifiedEmail();
+  const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
   // Parse poll options from JSON string if present
@@ -184,7 +184,7 @@ export async function publishDraft(postId: string) {
   // The moment a draft letter becomes visible to everyone. Drafts themselves
   // stay ungated on purpose: writing privately harms nobody, and somebody
   // waiting on a confirmation email should not lose what they were working on.
-  const gate = await requireVerifiedEmail();
+  const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
   const post = await prisma.post.findUnique({
@@ -235,6 +235,11 @@ export async function deleteDraft(postId: string) {
 export async function votePoll(postId: string, optionId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // A vote is a write into the community, so it waits on the member gate like
+  // posting does (trust model, Stage 2).
+  const gate = await requireVerifiedMember();
+  if (!gate.ok) return { error: gate.error };
 
   /* Voting is a write on somebody's post, so the same visibility the feed
      query enforces applies here (audit H3). Checking that the option belongs
@@ -352,7 +357,7 @@ export async function editPost(postId: string, formData: FormData) {
   // Editing is publishing again: the body, the images and the audience can all
   // change. Gated on the same footing as creating, or an account could write
   // an empty post before confirming and fill it in afterwards.
-  const gate = await requireVerifiedEmail();
+  const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
   const post = await prisma.post.findUnique({
@@ -413,6 +418,11 @@ export async function editPost(postId: string, formData: FormData) {
 export async function toggleLike(postId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // A like is small but it is still a write with a name on it (trust model,
+  // Stage 2). Bookmarks stay below this gate: a save is private to the saver.
+  const gate = await requireVerifiedMember();
+  if (!gate.ok) return { error: gate.error };
 
   const visible = await canViewPost(postId, session.user);
   if (!visible.ok) return { error: POST_NOT_VISIBLE };
@@ -497,7 +507,7 @@ export async function createComment(formData: FormData) {
 
   // A comment is public writing under your name on somebody else's post, and
   // it raises a notification on their account. Same gate as a post.
-  const gate = await requireVerifiedEmail();
+  const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
   const raw = {
@@ -980,6 +990,10 @@ export async function loadSavedPosts() {
 export async function toggleCommentLike(commentId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
+
+  // Same tier as toggleLike: a public gesture is a Stage 2 write.
+  const gate = await requireVerifiedMember();
+  if (!gate.ok) return { error: gate.error };
 
   const visible = await canViewPostOfComment(commentId, session.user);
   if (!visible.ok) return { error: POST_NOT_VISIBLE };

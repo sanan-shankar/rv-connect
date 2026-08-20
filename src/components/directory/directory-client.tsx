@@ -68,6 +68,12 @@ interface DirectoryClientProps {
   initialFilters: DirectoryFiltersState;
   hasFilter: boolean;
   nextCursor: string | null;
+  /** True for a viewer below Stage 1 of the trust model (email not yet
+   *  confirmed): the server sent counts and pin geography but NO people, so
+   *  the people surfaces explain themselves instead of claiming "no one
+   *  matches". The rule itself lives server-side (directory/page.tsx and
+   *  actions.ts); this only makes it legible. */
+  namesLocked?: boolean;
 }
 
 function batchRangeText(from: string, to: string): string {
@@ -91,6 +97,7 @@ export function DirectoryClient({
   initialFilters,
   hasFilter,
   nextCursor,
+  namesLocked = false,
 }: DirectoryClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -473,7 +480,19 @@ export function DirectoryClient({
             <div className="mb-3 text-sm font-medium text-foreground">{yearLabel}</div>
           )}
 
-          {results.length === 0 ? (
+          {namesLocked ? (
+            /* Not the no-results card: nothing failed to match, the viewer is
+               simply below the tier that sees people. Same fix as everywhere
+               else, and the banner up top carries the resend button. */
+            <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
+              <p className="font-heading text-lg tracking-tight text-foreground">
+                Confirm your email to browse the people.
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Tap the link we sent you and every name opens up. The map is yours either way.
+              </p>
+            </div>
+          ) : results.length === 0 ? (
             <div className="card-elevated rounded-[var(--radius)] border border-border bg-card p-12 text-center">
               <div className="mb-3 flex justify-center">
                 <NoResultsHoopoe size={76} />
@@ -552,6 +571,7 @@ export function DirectoryClient({
             pins={cityPins}
             unmapped={unmappedCount}
             unmappedPeople={unmappedPeople}
+            namesLocked={namesLocked}
           />
         )
       ) : (

@@ -14,7 +14,8 @@ import { STRAY_HAIR_USER_IDS } from "@/components/profile/stray-hair-ids";
 import { LetterheadProfile } from "@/components/profile/letterhead-profile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
 import { PUBLISHED_ONLY } from "@/lib/posts";
-import { viewerMaySeeContacts } from "@/lib/email-verification";
+import { viewerMaySeeContacts } from "@/lib/member-gate";
+import { IS_DEMO } from "@/lib/demo";
 import { recordView } from "@/lib/content-view";
 
 export async function generateMetadata({
@@ -71,6 +72,26 @@ export default async function ProfilePage({
   const { edit } = await searchParams;
   const session = await auth();
   if (!session?.user) return null;
+
+  /* Someone else's profile is a Stage 1 capability (trust model, audit H21):
+     an account that has not even confirmed its address may read the feed, not
+     browse the people. Decided BEFORE the row is fetched, so nothing about
+     the member -- not their job, not their cities -- is ever serialized for
+     this viewer. Your own sheet always renders: withholding a person's own
+     details from them protects nobody. The banner the layout already shows
+     to every unconfirmed account carries the resend button, so this card
+     does not need one. The demo's invented visitor is exempt, as with every
+     gate (its Prisma allowlist is what keeps the demo safe). */
+  if (session.user.id !== id && !session.user.emailConfirmed && !IS_DEMO) {
+    return (
+      <div className="mx-auto mt-16 max-w-md rounded-[var(--radius-lg)] border border-border bg-card px-6 py-10 text-center">
+        <h1 className="font-heading text-xl text-foreground">Confirm your email first</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          Profiles open the moment you tap the link we sent you.
+        </p>
+      </div>
+    );
+  }
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -150,8 +171,9 @@ export default async function ProfilePage({
   const phoneNumbers = parsedPhones.length > 0 ? parsedPhones : user.phone ? [user.phone] : [];
 
   // Contact details are the one thing on this page that is a real person's
-  // private information rather than their public presence, so an account whose
-  // own address is not confirmed does not get them (owner, 2026-08-11).
+  // private information rather than their public presence, so they wait on
+  // the top tier of the trust model: a VERIFIED viewer (Stage 2; the
+  // harvesting half of audit M1). Raised from the email gate on 2026-08-20.
   //
   // Decided HERE, before the list is built, rather than by hiding the button.
   // Everything below is serialized into the page and shipped to the browser,
@@ -159,6 +181,10 @@ export default async function ProfilePage({
   // Your own sheet is always visible: withholding somebody's details from
   // themselves protects nobody and would make the edit form unusable.
   const maySeeContacts = isOwnProfile || (await viewerMaySeeContacts());
+  // Which card the locked "Get in touch" pill opens. The Stage 0 return above
+  // means a viewer who reaches here with contacts withheld is confirmed but
+  // unverified, so the email case is belt and braces.
+  const contactsLock = maySeeContacts ? null : session.user.emailConfirmed ? ("member" as const) : ("email" as const);
 
   // Every way of reaching someone, in ONE place: the Get in touch sheet.
   //
@@ -294,7 +320,7 @@ export default async function ProfilePage({
       subjects={isTeacher ? user.subjects : null}
       houseSpans={houseSpans}
       contactMethods={methods}
-      contactsLocked={!maySeeContacts}
+      contactsLock={contactsLock}
       vcard={vcard}
       postCount={postCount}
       letterCount={letterCount}

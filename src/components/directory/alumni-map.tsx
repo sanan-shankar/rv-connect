@@ -137,10 +137,15 @@ export function AlumniMap({
   pins,
   unmapped,
   unmappedPeople = [],
+  namesLocked = false,
 }: {
   pins: CityPin[];
   unmapped: number;
   unmappedPeople?: PinPerson[];
+  /** Viewer is below Stage 1 (email unconfirmed): the pins carry counts but
+   *  no people, so the drilldown explains the gate instead of reading "no one
+   *  to show here yet" about a city with a number on it. */
+  namesLocked?: boolean;
 }) {
   const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
   /* The place and its headcount are kept APART rather than pre-joined into one
@@ -644,7 +649,12 @@ export function AlumniMap({
               state layer, so at px-4 the avatars started 24px in while the
               title started at 16px. Now both edges land on 16px. */}
           <div className="space-y-0.5 px-2 pb-8">
-            {drill?.people.length === 0 ? (
+            {namesLocked ? (
+              <p className="px-2 py-6 text-sm text-muted-foreground">
+                Confirm your email to see who&apos;s here. Tap the link we sent
+                you and this list opens.
+              </p>
+            ) : drill?.people.length === 0 ? (
               <p className="px-2 py-6 text-sm text-muted-foreground">
                 No one to show here yet.
               </p>
