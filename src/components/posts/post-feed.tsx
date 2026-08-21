@@ -54,6 +54,10 @@ export function PostFeed({
   const pathname = usePathname();
 
   const [posts, setPosts] = useState<PostData[]>([]);
+  /* Bumped whenever the query behind this list changes, so a "Load more" that
+     was already in the air can tell that its page no longer belongs to what is
+     on screen. See handleLoadMore (audit Low 75). */
+  const listGeneration = useRef(0);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -115,6 +119,7 @@ export function PostFeed({
   // First page whenever filters, group, or an external reload trigger change.
   useEffect(() => {
     let cancelled = false;
+    listGeneration.current += 1;
     // Re-arms the skeleton whenever the filters, group or reload trigger change, so a filter change never leaves the old posts on screen.
     setLoading(true);
     (async () => {
@@ -163,9 +168,18 @@ export function PostFeed({
   const showDivider = dividerIndex > 0; // at least one new post above older ones
 
   async function handleLoadMore() {
+    /* The generation this page belongs to. Change the filter, the sort or the
+       search while a "Load more" is in the air and the page that comes back
+       belongs to the PREVIOUS query -- it used to be appended anyway, under a
+       list the member had already replaced, and its cursor adopted, so every
+       later page continued the wrong query (audit Low 75). Dropping the stale
+       page is the whole fix; the effect above has already loaded the new first
+       page. Same shape the directory carries for M36. */
+    const generation = listGeneration.current;
     setLoadingMore(true);
     try {
       const data = await callAction(() => fetchPosts(cursor));
+      if (generation !== listGeneration.current) return;
       if ("error" in data) {
         toast.error(data.error);
         return;

@@ -34,9 +34,13 @@ export async function generateMetadata({
   }
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { name: true, isBlocked: true },
+    select: { name: true, isBlocked: true, deletionRequestedAt: true },
   });
-  if (!user || user.isBlocked) return { title: "Profile" };
+  /* deletionRequestedAt as well as isBlocked, which the page body has always
+     checked and this did not (audit Low 93): a <title> is serialized like any
+     other content, so the tab was still carrying the name of an account that
+     had asked to disappear, on a page that answers 404 for it. */
+  if (!user || user.isBlocked || user.deletionRequestedAt) return { title: "Profile" };
   return { title: user.name };
 }
 
@@ -110,7 +114,14 @@ export default async function ProfilePage({
   // search and batch roster all hold it out; this page did not, so a member
   // who had asked to disappear was still reachable by direct URL. notFound()
   // (not a 403) so the page never even hints the account exists.
-  if (!user || user.isBlocked || user.deletionRequestedAt) notFound();
+  //
+  // An ADMIN is exempt, because the block control lives on this very page: an
+  // admin who blocked somebody from their profile could never open that
+  // profile again, so the button was one-way and unblocking had to be done
+  // from the People list instead (audit Low 98). Members and signed-out
+  // visitors still get an unqualified 404.
+  const isAdmin = session.user.role === "admin";
+  if (!user || (!isAdmin && (user.isBlocked || user.deletionRequestedAt))) notFound();
 
   /* after(), not the old `void`: see src/app/(main)/collection/[id]/page.tsx
      for why (bug audit Lows 25/35/44/72/77/82/87) -- a bare fire-and-forget
@@ -119,7 +130,6 @@ export default async function ProfilePage({
   after(() => recordView(session.user.id, "profile", user.id));
 
   const isOwnProfile = session.user.id === user.id;
-  const isAdmin = session.user.role === "admin";
   const firstName = user.name.split(" ")[0];
   const isTeacher = user.accountType === "teacher" || user.accountType === "ex_teacher";
 

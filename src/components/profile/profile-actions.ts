@@ -189,6 +189,16 @@ export async function updateProfileField(field: ProfileField, raw: string) {
  * Written together because they are one list on screen; splitting them into
  * eight actions would only mean eight round trips for one drag of the mouse.
  */
+/** A trimmed string, or "" for anything that is not one. */
+function text(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+/** The value as an array, or an empty one. */
+function asArray(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : [];
+}
+
 export async function updateContactMethods(input: {
   displayEmail: string | null;
   /** Whether the profile offers an email at all. See the write below. */
@@ -206,14 +216,27 @@ export async function updateContactMethods(input: {
   // validation so an empty row is not an error, then run the rest through the
   // same rules profileSchema applies to these columns (audit M18): length
   // caps, an email format on displayEmail, and https-only on every link.
+  /* Every read below is defensive, because this shaping happens BEFORE
+     validation. A server action is a public HTTP endpoint and its argument
+     arrives as whatever the caller serialized, so `input.phones.map(...)` on a
+     crafted payload carrying a string, or `l.label.trim()` on an array of
+     numbers, threw a raw TypeError straight out of the action -- a 500 and a
+     stack trace where a refusal belonged (audit Low 83). Anything that is not
+     the shape this expects becomes empty here and is then judged by the schema
+     on its merits. */
   const cleaned = {
-    displayEmail: input.displayEmail?.trim() || null,
-    phones: input.phones.map((p) => p.trim()).filter((p) => p.length > 0),
-    instagram: input.instagram?.trim() || null,
-    linkedin: input.linkedin?.trim() || null,
-    facebook: input.facebook?.trim() || null,
-    links: input.links
-      .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
+    displayEmail: text(input.displayEmail) || null,
+    phones: asArray(input.phones)
+      .map((p) => text(p))
+      .filter((p) => p.length > 0),
+    instagram: text(input.instagram) || null,
+    linkedin: text(input.linkedin) || null,
+    facebook: text(input.facebook) || null,
+    links: asArray(input.links)
+      .map((l) => {
+        const row = l && typeof l === "object" ? (l as { label?: unknown; url?: unknown }) : {};
+        return { label: text(row.label), url: text(row.url) };
+      })
       .filter((l) => l.label && l.url),
   };
   const parsed = contactMethodsSchema.safeParse(cleaned);
