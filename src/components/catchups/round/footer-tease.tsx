@@ -10,6 +10,7 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { VALLEY_TIME_ZONE } from "@/lib/utils";
 
 export function RoundFooterTease({
   catchupId,
@@ -24,6 +25,7 @@ export function RoundFooterTease({
   const nextLabel =
     showNextOpens && nextOpensAt
       ? new Date(nextOpensAt).toLocaleDateString("en-GB", {
+          timeZone: VALLEY_TIME_ZONE,
           day: "numeric",
           month: "long",
           year: "numeric",

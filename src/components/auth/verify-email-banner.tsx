@@ -3,7 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { MailWarning, Check, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, VALLEY_TIME_ZONE, valleyDayKey } from "@/lib/utils";
 import { resendVerification } from "./email-actions";
 
 /* ------------------------------------------------------------------ *
@@ -44,13 +44,17 @@ export function sendTimeLabel(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
   const time = d
-    .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+    .toLocaleTimeString("en-GB", {
+      timeZone: VALLEY_TIME_ZONE,
+      hour: "numeric",
+      minute: "2-digit",
+    })
     .toLowerCase();
-  const sameLocalDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
-  return sameLocalDay ? `at ${time}` : `tomorrow at ${time}`;
+  // Compared in the valley's day, because that is the day the time above is
+  // now printed in. Comparing browser-local calendar fields against an IST
+  // clock face made the two disagree for any member reading from abroad.
+  const sameDay = valleyDayKey(d) === valleyDayKey(now);
+  return sameDay ? `at ${time}` : `tomorrow at ${time}`;
 }
 
 /** A store that never notifies: the "external" value here is the browser's

@@ -12,7 +12,7 @@ import { putImage, delImage, ownerPrefix } from "@/lib/storage";
 import { sharpImage } from "@/lib/image";
 import { sniffImageType, describeProcessingError } from "@/lib/upload-shared";
 import { profileSchema } from "@/lib/validators";
-import { batchTypeFromLeaving } from "@/lib/utils";
+import { batchTypeFromLeaving, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
 import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
@@ -341,7 +341,11 @@ export async function requestAccountDeletion(formData: FormData) {
     userId,
     payload: {
       name: me.name,
+      // The purge happens on a valley day, so the member is told a valley
+      // date. Formatted in UTC it named the day BEFORE for anyone who asked
+      // between midnight and 05:30 IST (audit Lows 19/47/91/94).
       purgeDate: purgeAt.toLocaleDateString("en-GB", {
+        timeZone: VALLEY_TIME_ZONE,
         day: "numeric",
         month: "long",
         year: "numeric",

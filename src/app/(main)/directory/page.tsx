@@ -8,6 +8,7 @@ import { cityCoords, hasOwnPin, normalizeCity } from "@/lib/city-coords";
 import { resolvePlacesFromGazetteer } from "@/lib/geocode";
 import { buildDirectoryWhere, directoryOrderBy } from "./where";
 import type { CityPin, PinPerson } from "@/components/directory/alumni-map";
+import { valleyYear } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Directory",
@@ -375,8 +376,8 @@ export default async function DirectoryPage({
           .map((b) => ({ year: b.batchYear, count: b._count.id }))}
         facultyCount={facultyCount}
         cities={cityGroups.map((c) => c.city)}
-        minBatchYear={batchYearRange._min.batchYear ?? new Date().getFullYear() - 40}
-        maxBatchYear={batchYearRange._max.batchYear ?? new Date().getFullYear()}
+        minBatchYear={batchYearRange._min.batchYear ?? valleyYear() - 40}
+        maxBatchYear={batchYearRange._max.batchYear ?? valleyYear()}
         initialFilters={{
           q: params.q || "",
           year: params.year || "",

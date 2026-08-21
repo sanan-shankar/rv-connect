@@ -9,7 +9,7 @@ import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { LetterImages } from "@/components/letters/letter-images";
 import { canViewCityScope } from "@/lib/city-scope";
-import { batchLine, formatDisplayDate, metaLine, renderRichText, parseJsonArray, letterTitle } from "@/lib/utils";
+import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, renderRichText, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { recordView } from "@/lib/content-view";
 
 export async function generateMetadata({
@@ -163,6 +163,7 @@ export default async function LetterPage({
           metaLine(
             batchLine(letter.author),
             new Date(letter.createdAt).toLocaleDateString("en-GB", {
+              timeZone: VALLEY_TIME_ZONE,
               day: "numeric",
               month: "long",
               year: "numeric",
