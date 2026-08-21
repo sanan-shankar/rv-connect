@@ -352,9 +352,9 @@ export function PersonDetail({
             <div className="flex flex-col gap-2 rounded-[var(--radius)] border border-border bg-card p-3.5">
               {isSelf ? (
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  This is you. Blocking, merging and deleting are not offered on your own
-                  account here. Leaving is done from Settings, where it comes with the
-                  60-day grace period.
+                  This is you. Blocking, merging and deleting are not offered on your
+                  own account. Leaving is done from Settings, with its 60-day grace
+                  period.
                 </p>
               ) : (
                 <>

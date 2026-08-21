@@ -153,7 +153,7 @@ export function AlumniMap({
      middle dot (owner, 2026-08-03: "maybe a middle dot instead of hyphen"),
      which a baked "London - 3 members" cannot be split back into. */
   const [drill, setDrill] = useState<
-    { title: string; count: number | null; people: PinPerson[] } | null
+    { title: string; count: number | null; people: PinPerson[]; href?: string } | null
   >(null);
   const [fullscreen, setFullscreen] = useState(false);
   /** Live geometry of the rendered <svg>: its CSS box plus `s`, the CSS px that
@@ -435,12 +435,22 @@ export function AlumniMap({
                 // which already leads with this exact line, so the hover label
                 // was pure duplication (owner call, 2026-07).
                 onClick={() => {
-                  setDrill({ title: pin.city, count: pin.count, people: pin.people });
+                  setDrill({
+                      title: pin.city,
+                      count: pin.count,
+                      people: pin.people,
+                      href: `/directory?city=${encodeURIComponent(pin.city)}`,
+                    });
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setDrill({ title: pin.city, count: pin.count, people: pin.people });
+                    setDrill({
+                      title: pin.city,
+                      count: pin.count,
+                      people: pin.people,
+                      href: `/directory?city=${encodeURIComponent(pin.city)}`,
+                    });
                   }
                 }}
               >
@@ -678,6 +688,24 @@ export function AlumniMap({
                   />
                 </Link>
               ))
+            )}
+            {/* Only the first handful of a pin's people travel to the browser
+                (PIN_PEOPLE_CAP in the directory page): everything here is
+                serialized into the payload of every directory load and every
+                filter change, so a full list is a cost paid by every member for
+                a sheet almost nobody opens. Past the cap the sheet hands over
+                to the directory itself, which is paginated, searchable and a
+                far better place to read two hundred names (bug audit B-092). */}
+            {!namesLocked && drill && drill.count != null && drill.people.length < drill.count && (
+              <Link
+                href={drill.href ?? "/directory"}
+                onClick={() => setDrill(null)}
+                className="group mt-1 block rounded-[var(--radius-md)] px-2 py-3 text-[15px] font-medium text-canopy state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <span className="group-hover:underline">
+                  See all {drill.count} in the directory
+                </span>
+              </Link>
             )}
           </div>
         </SheetContent>
