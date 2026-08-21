@@ -90,6 +90,11 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             ...hidden,
             ...author,
             ...(search ? { content: search } : {}),
+            /* A comment the member deleted has had its words blanked and is
+               kept only as an anchor for replies, so it listed here as an empty
+               row with nothing to moderate. Same reason it is excluded from
+               every member-facing count. */
+            deletedAt: null,
           },
           select: {
             id: true,
@@ -109,8 +114,11 @@ export async function loadContent(f: ContentFilters): Promise<ContentItem[]> {
             title: null,
             excerpt: plainExcerpt(c.content, EXCERPT),
             thumbUrl: null,
-            authorId: c.author.id,
-            authorName: c.author.name,
+            /* Null when the account has been purged: the comment survives as
+               an authorless anchor for other members' replies (audit M34). The
+               filter above means this list should never actually meet one. */
+            authorId: c.author?.id ?? null,
+            authorName: c.author?.name ?? "Somebody since deleted",
             createdAt: c.createdAt.toISOString(),
             isHidden: c.isHidden,
             approved: null,

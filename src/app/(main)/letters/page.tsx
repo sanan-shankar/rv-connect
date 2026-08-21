@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Feather, MapPin } from "lucide-react";
+import { ArrowLeft, ArrowRight, Feather, MapPin } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
@@ -16,6 +16,18 @@ export const metadata: Metadata = {
   title: "Letters",
 };
 
+/**
+ * How many letters one page of the index holds.
+ *
+ * It used to be a flat `take: 40` with nothing after it, so the forty-first
+ * letter simply stopped existing: no link, no count, no way to know anything
+ * was missing (bug audit M47). Twenty per page with a keyset link at the foot
+ * keeps the whole archive reachable and the page light. Keyset rather than an
+ * offset because letters are published while people read: an offset page 2
+ * would repeat or skip a letter the moment a new one lands above it.
+ */
+const LETTERS_PER_PAGE = 20;
+
 function readTime(content: string) {
   return Math.max(1, Math.round(content.trim().split(/\s+/).filter(Boolean).length / 200));
 }
@@ -28,9 +40,21 @@ function excerpt(content: string) {
   return plain.length > 240 ? plain.slice(0, 240).trimEnd() + "..." : plain;
 }
 
-export default async function LettersPage() {
+export default async function LettersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ before?: string }>;
+}) {
   const session = await auth();
   if (!session?.user) return null;
+
+  /* The cursor is the createdAt of the last letter on the previous page. A
+     value that is not a date is ignored rather than reaching Prisma as an
+     Invalid Date, which throws and 500s the page -- the same trap M23 sprang on
+     the directory's numeric params. */
+  const { before } = await searchParams;
+  const cursor = before ? new Date(before) : null;
+  const olderThan = cursor && !Number.isNaN(cursor.getTime()) ? cursor : null;
 
   const userBatch = batchTargetKey(session.user.batchType, session.user.batchYear);
   const isAdmin = session.user.role === "admin";
@@ -47,6 +71,7 @@ export default async function LettersPage() {
       ...PUBLISHED_ONLY,
       ...batchScopeWhere(userBatch),
       ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
+      ...(olderThan ? { createdAt: { lt: olderThan } } : {}),
     },
     include: {
       author: {
@@ -55,7 +80,8 @@ export default async function LettersPage() {
       _count: { select: { comments: { where: { isHidden: false, deletedAt: null } }, likes: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 40,
+    // One extra, purely to answer "is there another page" without a count.
+    take: LETTERS_PER_PAGE + 1,
   });
 
   // The viewer's own in-progress letters. Author-only by construction (this
@@ -69,7 +95,12 @@ export default async function LettersPage() {
   });
 
   // Independent queries; no reason to serialize them.
-  const [letters, drafts] = await Promise.all([lettersQuery, draftsQuery]);
+  const [page, drafts] = await Promise.all([lettersQuery, draftsQuery]);
+  const hasOlder = page.length > LETTERS_PER_PAGE;
+  const letters = hasOlder ? page.slice(0, LETTERS_PER_PAGE) : page;
+  const olderHref = hasOlder
+    ? `/letters?before=${encodeURIComponent(letters[letters.length - 1].createdAt.toISOString())}`
+    : null;
 
   return (
     <div>
@@ -90,6 +121,17 @@ export default async function LettersPage() {
       />
 
       <div className="space-y-5">
+        {/* Only on a later page: the first page IS the latest. */}
+        {olderThan && (
+          <Link
+            href="/letters"
+            className="inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold text-canopy underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+          >
+            <ArrowLeft size={15} />
+            Back to the latest
+          </Link>
+        )}
+
         {drafts.length > 0 && (
           <DraftsStrip
             drafts={drafts.map((d) => ({
@@ -168,6 +210,21 @@ export default async function LettersPage() {
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {olderHref && (
+          /* A plain link, not a load-more button: this is an archive index, it
+             is read rather than scrolled, and a link keeps the page a server
+             component with a real URL somebody can bookmark or share. */
+          <div className="pt-1">
+            <Link
+              href={olderHref}
+              className="inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold text-canopy underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy"
+            >
+              Older letters
+              <ArrowRight size={15} />
+            </Link>
           </div>
         )}
       </div>

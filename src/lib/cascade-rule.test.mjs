@@ -120,3 +120,35 @@ test("a member's own writing still goes with them", () => {
     assert.ok(reachable.has(own), `${own} no longer goes with the member who wrote it`);
   }
 });
+
+test("a comment does not take somebody else's reply with it", () => {
+  /* Comment.author was Cascade, and Comment.parent is SetNull, so purging an
+     account deleted every comment they had written and silently PROMOTED every
+     reply underneath to a top-level comment -- a stray sentence with no
+     question above it, in a thread that then lied about its shape (audit M34).
+
+     Note Comment is still cascade-reachable above, through Post: a member's
+     comments on their OWN posts go with the post. What changed is the direct
+     User -> Comment edge, which is now SetNull, and purgeUserAccount does the
+     removing explicitly so it can tell an anchor from an ordinary comment. Both
+     halves are asserted, because either one alone brings the bug back. */
+  const rel = relations(schema).find((r) => r.child === "Comment" && r.parent === "User");
+  assert.ok(rel, "Comment has no author relation any more");
+  assert.equal(
+    rel.onDelete,
+    "SetNull",
+    "Comment.author is Cascade again: purging an account will promote other members' replies to top-level"
+  );
+
+  const purge = readFileSync(resolve(ROOT, "src/lib/account-purge.ts"), "utf8");
+  assert.match(
+    purge,
+    /replies:\s*\{\s*some:/,
+    "purgeUserAccount no longer distinguishes a comment holding somebody else's reply from an ordinary one"
+  );
+  assert.match(
+    purge,
+    /comment\.deleteMany/,
+    "purgeUserAccount no longer removes the member's comments at all, so they would survive the account"
+  );
+});

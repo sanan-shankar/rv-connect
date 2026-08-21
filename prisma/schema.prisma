@@ -489,7 +489,14 @@ model Bookmark {
 model Comment {
   id        String   @id @default(cuid())
   content   String
-  authorId  String
+  // Nullable, and SetNull rather than Cascade, for one reason: a purged
+  // account must not take other members' replies down with it or promote them
+  // to top-level. A root comment with replies hanging off it survives the
+  // purge as a blanked, authorless stub -- exactly what deletedAt below
+  // describes for an ordinary delete -- while everything childless is removed
+  // outright by purgeUserAccount. Same shape as AdminMessage.authorId, and the
+  // read path already renders an anchor stub with no author (audit M34).
+  authorId  String?
   postId    String
   parentId  String?
   isHidden  Boolean  @default(false) // admin soft-hide (moderation); matches Post.isHidden / Photo.isHidden
@@ -502,7 +509,7 @@ model Comment {
   deletedAt DateTime?
   createdAt DateTime  @default(now())
 
-  author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author       User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
   post         Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
   parent       Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
   replies      Comment[]     @relation("CommentReplies")

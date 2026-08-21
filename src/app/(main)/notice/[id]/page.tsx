@@ -38,14 +38,40 @@ export default async function AdminNoticePage({
     redirect(notification.link);
   }
 
-  const thread = await openAdminNoticeThread(notification.userId, notification.message, {
-    createdAt: notification.createdAt,
+  /* Resolve idempotently (bug audit M46).
+   *
+   * This used to create a thread unconditionally, so the resolution was only
+   * ever as reliable as the update below it: two requests arriving together --
+   * a double tap, a link prefetch racing the click -- both read a link that did
+   * not start with /messages/ and both minted a thread, leaving the member with
+   * two identical conversations about one note and the admin with two rows in
+   * the inbox. A create that failed to be recorded did the same thing on the
+   * next visit.
+   *
+   * The note itself is the key: this member, a notice thread, opened at the
+   * notification's own timestamp. Nothing else can collide with that, and it is
+   * exactly what openAdminNoticeThread stamps below. */
+  const existing = await prisma.adminThread.findFirst({
+    where: {
+      memberId: notification.userId,
+      kind: "notice",
+      createdAt: notification.createdAt,
+    },
+    select: { id: true },
   });
+
+  const threadId =
+    existing?.id ??
+    (
+      await openAdminNoticeThread(notification.userId, notification.message, {
+        createdAt: notification.createdAt,
+      })
+    ).id;
 
   await prisma.notification.update({
     where: { id: notification.id },
-    data: { link: `/messages/${thread.id}`, read: true },
+    data: { link: `/messages/${threadId}`, read: true },
   });
 
-  redirect(`/messages/${thread.id}`);
+  redirect(`/messages/${threadId}`);
 }

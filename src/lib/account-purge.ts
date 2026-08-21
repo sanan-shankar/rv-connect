@@ -168,6 +168,47 @@ export type PurgeResult =
  * The count returned is objects actually gone, not attempts (B-013): the audit
  * entry the CALLER writes quotes it, and it used to be a lie.
  */
+/**
+ * Take the member's comments out without breaking anybody else's thread
+ * (audit M34).
+ *
+ * `Comment.authorId` used to be `onDelete: Cascade`, so a purge simply removed
+ * every comment they had ever written -- and the self-referencing `parentId`
+ * FK is SetNull, so every reply anybody else had written underneath became a
+ * context-free top-level comment. That is precisely the corruption the soft
+ * delete exists to prevent, and the schema's own comment on `deletedAt` spells
+ * it out; the purge path re-introduced it wholesale.
+ *
+ * So: anything nothing hangs off is deleted outright, and a comment that is
+ * still holding somebody else's reply is blanked and tombstoned first. The FK
+ * is now SetNull, so the tombstone survives the account row as an authorless
+ * anchor -- which is exactly what the reader already renders for a deleted
+ * parent with living replies. No personal data survives either way: the words
+ * are blanked and the authorship is detached.
+ */
+async function tombstoneComments(db: Db, userId: string): Promise<void> {
+  const anchors = await db.comment.findMany({
+    where: {
+      authorId: userId,
+      // Replies by anyone else, deleted or not: a hidden or soft-deleted reply
+      // may still be restored, and it would have nothing to hang from.
+      replies: { some: { authorId: { not: userId } } },
+    },
+    select: { id: true },
+  });
+  const anchorIds = anchors.map((c) => c.id);
+
+  if (anchorIds.length > 0) {
+    await db.comment.updateMany({
+      where: { id: { in: anchorIds } },
+      data: { deletedAt: new Date(), content: "" },
+    });
+  }
+  await db.comment.deleteMany({
+    where: { authorId: userId, id: { notIn: anchorIds } },
+  });
+}
+
 export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
   let urls: string[];
   let groupsRehomed: number;
@@ -191,6 +232,7 @@ export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
         // alive (write-path review, Phase 8 — this matters doubly now that the
         // retention sweep runs this unattended).
         await tx.report.deleteMany({ where: { reporterId: userId } });
+        await tombstoneComments(tx, userId);
         await tx.user.delete({ where: { id: userId } });
         return { urls: collected, rehomed };
       },
