@@ -97,6 +97,19 @@ export function PostCard({
   const [showModeration, setShowModeration] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [viewerAt, setViewerAt] = useState<number | null>(null);
+  // What the member last saved from the edit dialog, when they have.
+  //
+  // Every surface that renders a PostCard -- the feed, a group feed, the
+  // profile tabs, Saved -- holds its posts in client state populated by a
+  // server action, so revalidatePath re-renders the server tree and the card
+  // on screen never moves. Deleting left the card sitting there (clicking
+  // delete again answered "Post not found") and editing kept showing the old
+  // words until the member navigated away and back (bug audit B-041). The
+  // moderation path already got this right with `removed`; this is the same
+  // shape for the member's own two actions.
+  const [edited, setEdited] = useState<{ content: string; title: string | null } | null>(null);
+  const content = edited?.content ?? post.content;
+  const title = edited ? edited.title : post.title;
 
   const images = parseJsonArray(post.images);
   // Built once per post payload, not on every like/comment re-render.
@@ -106,21 +119,21 @@ export function PostCard({
         src,
         author: post.author,
         date: formatDisplayDate(post.createdAt),
-        caption: post.kind === "letter" ? null : post.content,
+        caption: post.kind === "letter" ? null : content,
       })),
-    [post.images, post.author, post.createdAt, post.kind, post.content]
+    [post.images, post.author, post.createdAt, post.kind, content]
   );
   const isLetter = post.kind === "letter";
-  const isLongText = post.content.length > READ_MORE_TRUNCATE_LEN;
+  const isLongText = content.length > READ_MORE_TRUNCATE_LEN;
   // Split (rather than swap) the text so "Read more" can ease the remainder open
   // instead of snapping the whole paragraph to its full length.
   const leadText = isLongText
-    ? post.content.slice(0, READ_MORE_TRUNCATE_LEN)
-    : post.content;
-  const restText = isLongText ? post.content.slice(READ_MORE_TRUNCATE_LEN) : "";
+    ? content.slice(0, READ_MORE_TRUNCATE_LEN)
+    : content;
+  const restText = isLongText ? content.slice(READ_MORE_TRUNCATE_LEN) : "";
 
   // Letter preview: plain-text excerpt + estimated read time.
-  const letterPlain = post.content
+  const letterPlain = content
     .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
@@ -128,7 +141,7 @@ export function PostCard({
     letterPlain.length > 200 ? letterPlain.slice(0, 200).trimEnd() + "..." : letterPlain;
   const readMinutes = Math.max(
     1,
-    Math.round(post.content.trim().split(/\s+/).filter(Boolean).length / 200)
+    Math.round(content.trim().split(/\s+/).filter(Boolean).length / 200)
   );
 
   async function handleLike() {
@@ -148,7 +161,13 @@ export function PostCard({
     if (demo) return;
     if (!confirm("Delete this post? This cannot be undone.")) return;
     const result = await deletePost(post.id);
-    if (result.error) toast.error(result.error);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    // The card goes now, not on the next full load. Same move the moderation
+    // path already made (B-041).
+    setRemoved(true);
   }
 
   async function handleModerationConfirm(note: string) {
@@ -276,7 +295,7 @@ export function PostCard({
               <span className="text-muted-foreground/70">· {readMinutes} min read</span>
             </div>
             <h3 className="mt-2 font-heading text-xl font-bold leading-snug tracking-[-0.01em] text-foreground">
-              {letterTitle(post.title, post.content)}
+              {letterTitle(title, content)}
             </h3>
             {letterExcerpt && (
               <p className="mt-1.5 line-clamp-2 text-[14px] leading-relaxed text-muted-foreground">
@@ -464,10 +483,11 @@ export function PostCard({
         <EditPostDialog
           postId={post.id}
           kind={post.kind}
-          initialContent={post.content}
-          initialTitle={post.title}
+          initialContent={content}
+          initialTitle={title}
           open={showEdit}
           onClose={() => setShowEdit(false)}
+          onSaved={(next) => setEdited(next)}
         />
       )}
 

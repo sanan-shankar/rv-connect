@@ -34,6 +34,10 @@ export default async function EditLetterPage({
       content: true,
       images: true,
       isHidden: true,
+      // The audience the draft was saved with. Without it the desk always
+      // opened on "Everyone", so a letter saved as "Bangalore only" showed no
+      // chip and looked like it was going to everybody (bug audit B-048).
+      cityScope: true,
     },
   });
 
@@ -56,6 +60,7 @@ export default async function EditLetterPage({
       initialTitle={letter.title ?? undefined}
       initialContent={letter.content}
       initialImages={parseJsonArray(letter.images)}
+      initialCityScope={letter.cityScope}
     />
   );
 }

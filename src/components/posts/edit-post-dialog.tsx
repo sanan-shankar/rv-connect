@@ -23,6 +23,7 @@ export function EditPostDialog({
   initialTitle,
   open,
   onClose,
+  onSaved,
 }: {
   postId: string;
   kind?: string;
@@ -30,6 +31,11 @@ export function EditPostDialog({
   initialTitle?: string | null;
   open: boolean;
   onClose: () => void;
+  /** What was saved, handed back so the card on screen can show it. The lists
+   *  that render PostCard hold their posts in client state, so revalidatePath
+   *  alone leaves the old words up until the member navigates away and back
+   *  (bug audit B-041). */
+  onSaved?: (next: { content: string; title: string | null }) => void;
 }) {
   const isLetter = kind === "letter";
   const [content, setContent] = useState(initialContent);
@@ -53,6 +59,9 @@ export function EditPostDialog({
         return;
       }
       toast.success(isLetter ? "Letter updated" : "Post updated");
+      // A plain post's title column is not written by editPost, so mirroring
+      // null here would blank something the server kept.
+      onSaved?.({ content, title: isLetter ? title.trim() || null : (initialTitle ?? null) });
       onClose();
     } finally {
       setSubmitting(false);

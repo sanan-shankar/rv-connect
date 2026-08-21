@@ -84,7 +84,14 @@ export default async function FeedPage({
           />
         </div>
         <aside className={RAIL_ASIDE}>
-          <FeedRail userId={session.user.id} />
+          <FeedRail
+            userId={session.user.id}
+            viewer={{
+              cities: userPlaces.map((p) => p.city),
+              batch: `${session.user.batchType}-${session.user.batchYear}`,
+              isAdmin: session.user.role === "admin",
+            }}
+          />
         </aside>
       </div>
     </>

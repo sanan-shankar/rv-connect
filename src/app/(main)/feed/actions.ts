@@ -444,6 +444,37 @@ export async function editPost(postId: string, formData: FormData) {
   }
   if (imagesError) return { error: imagesError };
 
+  /* The audience, on the author's own letter DRAFT only (bug audit B-048).
+     editPost used to write nothing but content, title and images, so choosing
+     a city -- or choosing "Everyone" -- while resuming a draft was silently
+     discarded, and the desk did not show the stored audience either, so a
+     letter saved as "Bangalore only" looked like it was going to everybody
+     right up until it published to nobody outside Bangalore.
+
+     Sent UNCONDITIONALLY by the desk (an absent field cannot express "clear
+     it"), so the presence of the key is what says the author touched the
+     control: empty string means Everyone. Re-validated against the author's
+     own UserPlace list exactly as createPost does, so a tampered field cannot
+     scope a letter to a city they have never lived in. A published row's
+     audience never changes here -- readers have already seen it. */
+  let cityScopeUpdate: { cityScope: string | null } | undefined;
+  const cityScopeRaw = formData.get("cityScope");
+  if (cityScopeRaw !== null && isLetter && post.status === "draft" && !post.groupId) {
+    const wanted = String(cityScopeRaw).trim();
+    if (!wanted) {
+      cityScopeUpdate = { cityScope: null };
+    } else {
+      const ownPlace = await prisma.userPlace.findFirst({
+        where: {
+          userId: session.user.id,
+          city: { equals: wanted, ...searchInsensitive },
+        },
+        select: { city: true },
+      });
+      cityScopeUpdate = { cityScope: ownPlace?.city ?? null };
+    }
+  }
+
   await prisma.post.update({
     where: { id: postId },
     data: {
@@ -451,6 +482,7 @@ export async function editPost(postId: string, formData: FormData) {
       // A title belongs to a letter only; a plain post has nothing else here.
       ...(isLetter ? { title: title?.trim() || null } : {}),
       ...imagesUpdate,
+      ...cityScopeUpdate,
     },
   });
 

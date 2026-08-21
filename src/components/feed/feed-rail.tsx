@@ -14,7 +14,21 @@ import { PulseModule } from "./rail/pulse-module";
  *   3. New in the directory
  *   4. Signs of life (last, and only when the week is genuinely alive)
  */
-export async function FeedRail({ userId }: { userId: string }) {
+/**
+ * Who is looking. The rail's modules are server components that show real
+ * content, so anything audience-scoped has to be scoped HERE too -- a teaser
+ * is a disclosure (bug audit B-045).
+ */
+export type RailViewer = {
+  /** UserPlace cities, for cityScope matching. */
+  cities: string[];
+  /** e.g. "isc-2017", for targetBatches matching. */
+  batch: string;
+  /** Admins read everything, so they skip both filters. */
+  isAdmin: boolean;
+};
+
+export async function FeedRail({ userId, viewer }: { userId: string; viewer: RailViewer }) {
   return (
     /* The sticky box is a DIRECT child of the <aside> grid cell on purpose.
        A sticky element can only travel inside its containing block, and the
@@ -32,7 +46,7 @@ export async function FeedRail({ userId }: { userId: string }) {
        top-7 (28px) is the shell's own sm:p-7 padding, so the pinned rail keeps
        the page's top margin rather than kissing the viewport edge. */
     <div className="sticky top-7 space-y-4">
-      <LettersModule />
+      <LettersModule viewer={viewer} />
       <CollectionModule />
       <DirectoryModule userId={userId} />
       <PulseModule />

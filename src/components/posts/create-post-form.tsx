@@ -86,6 +86,7 @@ export function CreatePostForm({
   initialTitle,
   initialContent,
   initialImages,
+  initialCityScope,
   onDraftSaved,
   onAutosaveState,
 }: {
@@ -109,12 +110,14 @@ export function CreatePostForm({
   initialTitle?: string;
   initialContent?: string;
   initialImages?: string[];
+  /** A resumed draft's saved audience; null or absent is "Everyone". */
+  initialCityScope?: string | null;
   /** First "Save as draft" on a FRESH letter: called with the new row's id so
    *  the page can adopt it (router.replace to the edit route) instead of the
    *  editor wiping itself, which is exactly the failure the owner hit. */
   onDraftSaved?: (id: string) => void;
   /** Quiet autosave status for the desk chrome ("Saving..." / "Saved"). */
-  onAutosaveState?: (s: "saving" | "saved") => void;
+  onAutosaveState?: (s: "saving" | "saved" | "failed") => void;
 } = {}) {
   // Resolve scope: explicit prop wins, else infer from defaultLetter / groupId.
   const resolvedScope: ComposerScope =
@@ -153,7 +156,7 @@ export function CreatePostForm({
   // City-scoped audience: null = "Everyone" (the default); otherwise one of the
   // poster's own cities. Never offered for a group post -- the group's own
   // membership already scopes who reads it.
-  const [audienceCity, setAudienceCity] = useState<string | null>(null);
+  const [audienceCity, setAudienceCity] = useState<string | null>(initialCityScope ?? null);
   const audienceOptions = resolvedScope === "group" ? [] : userPlaces ?? [];
   // Explicit, measured height for the one clean downward growth / contraction.
   const [colHeight, setColHeight] = useState<number>(COLLAPSED_H);
@@ -199,6 +202,71 @@ export function CreatePostForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* ---- The crash net (bug audit B-043) --------------------------------- *
+   *
+   * A letter is a 20,000-character composition and the owner's own chaos
+   * question about it was "is the half-written letter lost?". It was: a fresh
+   * letter has no row until the first explicit "Save as draft", and a resumed
+   * draft whose autosave was failing had nothing but the DOM holding the words.
+   *
+   * So the browser keeps a copy. Written only when there is genuinely nothing
+   * else holding the text -- a letter with no row yet, or one whose last save
+   * failed -- and cleared the moment a save lands, so a stale local copy can
+   * never shadow a good server one. Restored silently on mount, because in both
+   * of those cases the local copy is unambiguously the newest thing there is.
+   */
+  const draftKey = `rv:letter-draft:${postId ?? "new"}`;
+  const writeLocalDraft = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        draftKey,
+        JSON.stringify({ content, title, at: Date.now() })
+      );
+    } catch {
+      // Private mode, or the quota is full. The editor still has the text on
+      // screen; this was only ever the belt.
+    }
+  }, [draftKey, content, title]);
+  const clearLocalDraft = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+      // as above
+    }
+  }, [draftKey]);
+
+  // A fresh letter, still with no row of its own: keep the words on this
+  // device on the same idle rhythm autosave uses for a saved draft.
+  useEffect(() => {
+    if (postId || !defaultLetter || !content.trim()) return;
+    const t = setTimeout(writeLocalDraft, 2500);
+    return () => clearTimeout(t);
+  }, [postId, defaultLetter, content, writeLocalDraft]);
+
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || !defaultLetter || initialContent || !richRef.current) return;
+    restoredRef.current = true;
+    let saved: { content?: string; title?: string } | null = null;
+    try {
+      const raw = window.localStorage.getItem(draftKey);
+      saved = raw ? JSON.parse(raw) : null;
+    } catch {
+      saved = null;
+    }
+    if (!saved?.content?.trim()) return;
+    setContent(saved.content);
+    if (saved.title) setTitle(saved.title);
+    richRef.current.innerHTML = renderRichText(saved.content);
+    hydratedRef.current = true;
+    toast("Picked up where you left off", {
+      description: "This letter was still on this device from last time.",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* Quiet autosave, resumed drafts only (a fresh letter has no row to update
      until the first explicit "Save as draft"). 2.5s of idle after the last
      keystroke; skipped while a real submit is in flight and when the body is
@@ -206,6 +274,9 @@ export function CreatePostForm({
      "saved" out from under the writer). */
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autosaveSkipFirst = useRef(true);
+  // Toast once per run of failures, not once per attempt: a dropped connection
+  // fails every 2.5 seconds and a stack of identical toasts helps nobody.
+  const autosaveToldRef = useRef(false);
   useEffect(() => {
     if (!postId) return;
     if (autosaveSkipFirst.current) {
@@ -222,8 +293,40 @@ export function CreatePostForm({
       fd.set("content", content);
       if (title.trim()) fd.set("title", title.trim());
       fd.set("images", JSON.stringify(images));
-      const result = await editPost(postId, fd);
-      if (!result.error) onAutosaveState?.("saved");
+      // Unconditionally, because an absent field cannot express "Everyone"
+      // (bug audit B-048). Empty string is the clear.
+      fd.set("cityScope", audienceCity ?? "");
+      /* The failure path used to be genuinely empty: on `result.error` -- which
+         the app's own credentialVersion mechanism produces the instant a
+         password is reset or a deletion requested on another device -- nothing
+         happened at all. No toast, no state change, and the desk chrome sat on
+         "Saving..." while every later autosave failed the same way. Somebody
+         could write for an hour believing the letter was persisting and lose
+         all of it by navigating away (bug audit B-043). A rejected action (a
+         network drop, version skew right after a deploy) was not caught either. */
+      let failed: string | null = null;
+      try {
+        const result = await editPost(postId, fd);
+        if (result.error) failed = result.error;
+      } catch {
+        failed = "That did not save. Check your connection.";
+      }
+      if (!failed) {
+        autosaveToldRef.current = false;
+        clearLocalDraft();
+        onAutosaveState?.("saved");
+        return;
+      }
+      // Keep the words somewhere the browser owns, so a close or a crash
+      // during an outage does not take them.
+      writeLocalDraft();
+      onAutosaveState?.("failed");
+      if (!autosaveToldRef.current) {
+        autosaveToldRef.current = true;
+        toast.error(failed, {
+          description: "Your writing is kept on this device until it saves.",
+        });
+      }
     }, 2500);
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
@@ -504,7 +607,12 @@ export function CreatePostForm({
     formData.set("kind", kind);
     if (isLetter && title.trim()) formData.set("title", title.trim());
     if (groupId) formData.set("groupId", groupId);
-    if (audienceCity) formData.set("cityScope", audienceCity);
+    // Set unconditionally when resuming a draft: an absent field cannot express
+    // "actually, Everyone", so a member who cleared the audience on a saved
+    // draft could never clear it (bug audit B-048). createPost still treats an
+    // empty value as no scope, so the fresh-post path is unchanged.
+    if (postId) formData.set("cityScope", audienceCity ?? "");
+    else if (audienceCity) formData.set("cityScope", audienceCity);
     if (images.length > 0) formData.set("images", JSON.stringify(images));
     if (!isLetter && pollOptions) {
       const validOptions = pollOptions.filter((o) => o.trim());
@@ -1056,7 +1164,7 @@ export function CreatePostForm({
               <button
                 type="button"
                 onClick={() => handleSubmit(true)}
-                disabled={!content.trim() || submitting || savingDraft}
+                disabled={!content.trim() || submitting || savingDraft || uploading}
                 // Full 40px, not size="sm" (owner, 2026-08-02: "the publish
                 // letter and save as a draft ctas can be as big as the normal
                 // cta size. Now it's kind of vertically compressed"). See the
@@ -1064,7 +1172,7 @@ export function CreatePostForm({
                 // sizes differently from the feed composer.
                 className={cn(buttonVariants({ variant: "outline" }), "px-4 text-sm")}
               >
-                {savingDraft ? "Saving..." : "Save as draft"}
+                {savingDraft ? "Saving..." : uploading ? "Adding photo..." : "Save as draft"}
               </button>
             )}
 
@@ -1083,8 +1191,18 @@ export function CreatePostForm({
                 shrunken primary action was the more visible cost. */}
             <motion.button
               type="button"
+              // `uploading` belongs here as much as `submitting` does. Without
+              // it, a member on a slow connection could attach photos, type,
+              // and hit Post before the batch finished: the post was created
+              // from the images state as it stood, without them, and when the
+              // upload landed it appended the URLs to the now-cleared arrays --
+              // so thumbnails reappeared inside an empty composer and the NEXT
+              // post silently carried the previous one's photos (bug audit
+              // B-044). The photo control was already gated on `uploading`;
+              // the two submit buttons were not. message-composer.tsx has
+              // always had this right: `const busy = sending || uploading`.
               onClick={() => handleSubmit(false)}
-              disabled={!content.trim() || submitting || savingDraft}
+              disabled={!content.trim() || submitting || savingDraft || uploading}
               className={cn(
                 buttonVariants({ variant: "primary", size: "default" }),
                 "px-6 text-sm"
@@ -1097,9 +1215,11 @@ export function CreatePostForm({
                 ? isLetter
                   ? "Publishing..."
                   : "Posting..."
-                : isLetter
-                  ? "Publish letter"
-                  : "Post"}
+                : uploading
+                  ? "Adding photo..."
+                  : isLetter
+                    ? "Publish letter"
+                    : "Post"}
             </motion.button>
           </div>
         </div>
