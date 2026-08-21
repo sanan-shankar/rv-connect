@@ -52,7 +52,7 @@ export async function requestVerification(): Promise<RequestVerificationResult> 
   if (!already) {
     const flagged = await prisma.user.updateMany({
       where: { id: session.user.id, verifyState: "unverified" },
-      data: { verifyState: "pending" },
+      data: { verifyState: "pending", verifyStateAt: new Date() },
     });
     // Notify only if THIS call is the one that actually made the transition.
     // `already` above reads the session's cached verifyState, which can be

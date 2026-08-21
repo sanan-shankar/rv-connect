@@ -78,6 +78,7 @@ export async function tryRosterAutoVerify(userId: string): Promise<boolean> {
     where: { id: userId, verifyState: { in: ["unverified", "pending"] } },
     data: {
       verifyState: "verified",
+      verifyStateAt: new Date(),
       verifyMethod: "office_list",
       verifiedAt: new Date(),
     },

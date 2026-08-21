@@ -50,6 +50,20 @@ model User {
   subjects      String?   // comma list, e.g. "Biology, Nature Club"
   role          String    @default("member") // "member" | "admin"
   verifyState   String    @default("unverified") // unverified | pending | verified | flagged
+  // When verifyState last changed. STAMP THIS WHENEVER YOU WRITE verifyState:
+  // it is the only honest ordering the admin worklist has.
+  //
+  // WHY: the queue used `updatedAt`, which Prisma bumps on every write to the
+  // row -- including the fifteen-minute lastSeenAt stamp from the (main)
+  // layout. So "who has waited longest to be verified" really read "who has
+  // been away longest", and a member browsing the site sat at the top of the
+  // owner's worklist saying "3m ago" for as long as their tab was open, whether
+  // they had asked that minute or a fortnight ago (audit M04).
+  //
+  // NOT NULL, defaulting to now(): a new account's state ("unverified") does
+  // begin at signup, so there is no meaningful null and the queues never need a
+  // fallback ordering.
+  verifyStateAt DateTime  @default(now())
   verifiedAt    DateTime?
   verifyMethod  String?   // office_list | community | admin_manual
   isBlocked     Boolean   @default(false)
