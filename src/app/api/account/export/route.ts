@@ -18,7 +18,51 @@ import { writeAudit } from "@/lib/audit";
  * person. Deleted comments are rows kept only as thread structure with the
  * content already blanked, so they are excluded rather than exported as
  * fifteen identical "[deleted]" stubs.
+ *
+ * STREAMED, a page at a time (audit M48). It used to run ten unbounded
+ * findMany calls in parallel, hold every row in memory at once and then
+ * `JSON.stringify` the lot into a single pretty-printed string — so a member
+ * with years of writing needed the whole history resident twice over (rows,
+ * then the string) inside one serverless invocation, and the response had to
+ * be materialised before a single byte could be sent. Capping the queries was
+ * not an option: an export that silently omits half a person's data is worse
+ * than a slow one, and this is the request the law says must be complete. So
+ * neither end holds it all: each table is walked in id order in pages, and each
+ * row is written out and dropped.
  */
+
+/** Rows per query while walking a table. Big enough that an ordinary member is
+ *  one round trip, small enough that no page is a memory problem. */
+const PAGE = 500;
+
+/**
+ * Walk one table in id order, yielding rows and never holding more than a page.
+ *
+ * Keyset on the primary key rather than `skip`, because an offset walk re-scans
+ * everything it has already passed — and because a row written while the export
+ * runs must not shift the window and make a row appear twice.
+ */
+async function* paged<T extends { id: string }>(
+  fetchPage: (after: string | null) => Promise<T[]>
+): AsyncGenerator<T> {
+  let after: string | null = null;
+  for (;;) {
+    const rows: T[] = await fetchPage(after);
+    for (const row of rows) yield row;
+    if (rows.length < PAGE) return;
+    after = rows[rows.length - 1].id;
+  }
+}
+
+/** The keyset arguments every paged query shares. */
+function keyset(after: string | null) {
+  return {
+    orderBy: { id: "asc" } as const,
+    take: PAGE,
+    ...(after ? { cursor: { id: after }, skip: 1 } : {}),
+  };
+}
+
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -40,99 +84,43 @@ export async function GET() {
     );
   }
 
-  const [user, places, posts, comments, likes, photos, catchupEntries, adminMessages, reportsFiled, contributions] =
-    await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          name: true,
-          email: true,
-          displayEmail: true,
-          phone: true,
-          phones: true,
-          instagram: true,
-          linkedin: true,
-          facebook: true,
-          links: true,
-          bio: true,
-          about: true,
-          workplace: true,
-          jobTitle: true,
-          accountType: true,
-          batchType: true,
-          batchYear: true,
-          yearJoined: true,
-          yearLeft: true,
-          gradeJoined: true,
-          admissionNumber: true,
-          taughtFrom: true,
-          taughtUntil: true,
-          subjects: true,
-          houses: true,
-          currentCity: true,
-          secondaryCity: true,
-          photoUrl: true,
-          coverPhoto: true,
-          verifyState: true,
-          verifiedAt: true,
-          consentAt: true,
-          createdAt: true,
-        },
-      }),
-      prisma.userPlace.findMany({
-        where: { userId },
-        orderBy: { position: "asc" },
-        select: { label: true, city: true, lat: true, lng: true },
-      }),
-      prisma.post.findMany({
-        where: { authorId: userId },
-        orderBy: { createdAt: "asc" },
-        select: { kind: true, title: true, content: true, images: true, status: true, createdAt: true },
-      }),
-      prisma.comment.findMany({
-        where: { authorId: userId, deletedAt: null },
-        orderBy: { createdAt: "asc" },
-        select: { content: true, postId: true, createdAt: true },
-      }),
-      prisma.like.findMany({
-        where: { userId },
-        select: { postId: true },
-      }),
-      prisma.photo.findMany({
-        where: { uploaderId: userId },
-        orderBy: { createdAt: "asc" },
-        select: {
-          url: true,
-          caption: true,
-          area: true,
-          era: true,
-          photoYear: true,
-          photoMonth: true,
-          approved: true,
-          createdAt: true,
-        },
-      }),
-      prisma.catchupEntry.findMany({
-        where: { authorId: userId },
-        orderBy: { createdAt: "asc" },
-        select: { body: true, images: true, songUrl: true, songTitle: true, createdAt: true },
-      }),
-      prisma.adminMessage.findMany({
-        where: { authorId: userId },
-        orderBy: { createdAt: "asc" },
-        select: { body: true, createdAt: true },
-      }),
-      prisma.report.findMany({
-        where: { reporterId: userId },
-        orderBy: { createdAt: "asc" },
-        select: { reason: true, targetType: true, status: true, createdAt: true },
-      }),
-      prisma.contribution.findMany({
-        where: { userId },
-        orderBy: { createdAt: "asc" },
-        select: { amount: true, currency: true, status: true, method: true, createdAt: true, paidAt: true },
-      }),
-    ]);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      name: true,
+      email: true,
+      displayEmail: true,
+      phone: true,
+      phones: true,
+      instagram: true,
+      linkedin: true,
+      facebook: true,
+      links: true,
+      bio: true,
+      about: true,
+      workplace: true,
+      jobTitle: true,
+      accountType: true,
+      batchType: true,
+      batchYear: true,
+      yearJoined: true,
+      yearLeft: true,
+      gradeJoined: true,
+      admissionNumber: true,
+      taughtFrom: true,
+      taughtUntil: true,
+      subjects: true,
+      houses: true,
+      currentCity: true,
+      secondaryCity: true,
+      photoUrl: true,
+      coverPhoto: true,
+      verifyState: true,
+      verifiedAt: true,
+      consentAt: true,
+      createdAt: true,
+    },
+  });
 
   if (!user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
@@ -145,23 +133,169 @@ export async function GET() {
     targetId: userId,
   });
 
-  const body = {
-    exportedAt: new Date().toISOString(),
-    site: "Rishi Valley alumni website (rishivalley.space)",
-    note: "Amounts are in paise. Image URLs point at the site's storage and stay live only while the content exists.",
-    profile: user,
-    places,
-    posts,
-    comments,
-    likes,
-    collectionPhotos: photos,
-    catchupAnswers: catchupEntries,
-    messagesToAdmin: adminMessages,
-    reportsFiled,
-    contributions,
-  };
+  /* Every collection in the file, in the order they are written. Each one is a
+     page-fetcher; `id` is selected only to drive the keyset and is stripped
+     before the row is written, so the file's shape is exactly what it was. */
+  const sections: Array<[string, (after: string | null) => Promise<{ id: string }[]>]> = [
+    [
+      "places",
+      (after) =>
+        prisma.userPlace.findMany({
+          where: { userId },
+          select: { id: true, label: true, city: true, lat: true, lng: true },
+          ...keyset(after),
+        }),
+    ],
+    [
+      "posts",
+      (after) =>
+        prisma.post.findMany({
+          where: { authorId: userId },
+          select: {
+            id: true,
+            kind: true,
+            title: true,
+            content: true,
+            images: true,
+            status: true,
+            createdAt: true,
+          },
+          ...keyset(after),
+        }),
+    ],
+    [
+      "comments",
+      (after) =>
+        prisma.comment.findMany({
+          where: { authorId: userId, deletedAt: null },
+          select: { id: true, content: true, postId: true, createdAt: true },
+          ...keyset(after),
+        }),
+    ],
+    [
+      "likes",
+      (after) =>
+        prisma.like.findMany({
+          where: { userId },
+          select: { id: true, postId: true },
+          ...keyset(after),
+        }),
+    ],
+    [
+      "collectionPhotos",
+      (after) =>
+        prisma.photo.findMany({
+          where: { uploaderId: userId },
+          select: {
+            id: true,
+            url: true,
+            caption: true,
+            area: true,
+            era: true,
+            photoYear: true,
+            photoMonth: true,
+            approved: true,
+            createdAt: true,
+          },
+          ...keyset(after),
+        }),
+    ],
+    [
+      "catchupAnswers",
+      (after) =>
+        prisma.catchupEntry.findMany({
+          where: { authorId: userId },
+          select: {
+            id: true,
+            body: true,
+            images: true,
+            songUrl: true,
+            songTitle: true,
+            createdAt: true,
+          },
+          ...keyset(after),
+        }),
+    ],
+    [
+      "messagesToAdmin",
+      (after) =>
+        prisma.adminMessage.findMany({
+          where: { authorId: userId },
+          select: { id: true, body: true, createdAt: true },
+          ...keyset(after),
+        }),
+    ],
+    [
+      "reportsFiled",
+      (after) =>
+        prisma.report.findMany({
+          where: { reporterId: userId },
+          select: { id: true, reason: true, targetType: true, status: true, createdAt: true },
+          ...keyset(after),
+        }),
+    ],
+    [
+      "contributions",
+      (after) =>
+        prisma.contribution.findMany({
+          where: { userId },
+          select: {
+            id: true,
+            amount: true,
+            currency: true,
+            status: true,
+            method: true,
+            createdAt: true,
+            paidAt: true,
+          },
+          ...keyset(after),
+        }),
+    ],
+  ];
 
-  return new NextResponse(JSON.stringify(body, null, 2), {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const write = (text: string) => controller.enqueue(encoder.encode(text));
+      try {
+        /* Written by hand rather than stringified whole, because the whole is
+           the thing that must never exist in memory. Two-space indentation is
+           kept: this file is meant to be openable by the person who asked for
+           it, not only by a program. */
+        write("{\n");
+        write(`  "exportedAt": ${JSON.stringify(new Date().toISOString())},\n`);
+        write('  "site": "Rishi Valley alumni website (rishivalley.space)",\n');
+        write(
+          '  "note": "Amounts are in paise. Image URLs point at the site\'s storage and stay live only while the content exists.",\n'
+        );
+        write(`  "profile": ${JSON.stringify(user, null, 2).replace(/\n/g, "\n  ")},\n`);
+
+        for (const [name, fetchPage] of sections) {
+          write(`  ${JSON.stringify(name)}: [`);
+          let first = true;
+          for await (const row of paged(fetchPage)) {
+            const { id: _id, ...rest } = row;
+            void _id;
+            write(`${first ? "" : ","}\n    ${JSON.stringify(rest)}`);
+            first = false;
+          }
+          write(first ? "]" : "\n  ]");
+          write(name === sections[sections.length - 1][0] ? "\n" : ",\n");
+        }
+
+        write("}\n");
+        controller.close();
+      } catch (err) {
+        /* The headers have already gone, so there is no status code left to
+           change: the download simply ends early, which is visible as a JSON
+           file that will not parse. Logged so the cause is findable. */
+        console.error("[export] stream failed", err);
+        controller.error(err);
+      }
+    },
+  });
+
+  return new NextResponse(stream, {
     headers: {
       "content-type": "application/json; charset=utf-8",
       "content-disposition": 'attachment; filename="rishi-valley-your-data.json"',

@@ -263,12 +263,19 @@ export function ContentList({
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px]">
                   <Chip label={KIND_LABEL[item.kind]} tone="info" />
-                  <Link
-                    href={`/admin/people/${item.authorId}`}
-                    className="rounded-sm font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    {item.authorName}
-                  </Link>
+                  {/* No link when the account behind it has been purged: the row
+                      survives as an anchor for other members' replies and there
+                      is no person page to open (audit M34). */}
+                  {item.authorId ? (
+                    <Link
+                      href={`/admin/people/${item.authorId}`}
+                      className="rounded-sm font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      {item.authorName}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-muted-foreground">{item.authorName}</span>
+                  )}
                   <span className="text-muted-foreground">
                     {formatTimeAgo(new Date(item.createdAt))}
                   </span>
@@ -339,10 +346,12 @@ export function ContentList({
                           See it on the site
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem render={<Link href={`/admin/content?author=${item.authorId}`} />}>
-                        <Search className="mr-2 size-4" strokeWidth={2} />
-                        Everything by {item.authorName.split(" ")[0]}
-                      </DropdownMenuItem>
+                      {item.authorId && (
+                        <DropdownMenuItem render={<Link href={`/admin/content?author=${item.authorId}`} />}>
+                          <Search className="mr-2 size-4" strokeWidth={2} />
+                          Everything by {item.authorName.split(" ")[0]}
+                        </DropdownMenuItem>
+                      )}
                       {!item.isHidden && (
                         <DropdownMenuItem variant="destructive" onClick={() => setRemoving(item)}>
                           <Trash2 className="mr-2 size-4" strokeWidth={2} />

@@ -64,7 +64,9 @@ export interface ContentItem {
   excerpt: string;
   /** Photos only. */
   thumbUrl: string | null;
-  authorId: string;
+  /** Null once the account behind it has been purged: the row survives as an
+   *  anchor for other members' replies and has nobody to link to (audit M34). */
+  authorId: string | null;
   authorName: string;
   createdAt: string;
   isHidden: boolean;

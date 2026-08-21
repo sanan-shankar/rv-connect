@@ -855,8 +855,10 @@ export async function createComment(formData: FormData) {
       where: { id: parentId },
       select: { authorId: true },
     });
+    /* `authorId` is nullable since audit M34: a comment whose author has been
+       purged survives as an authorless stub, and there is nobody to tell. */
     if (
-      parentComment &&
+      parentComment?.authorId &&
       parentComment.authorId !== session.user.id &&
       parentComment.authorId !== post?.authorId
     ) {
@@ -945,7 +947,8 @@ export async function adminRemoveComment(commentId: string, note?: string) {
   await prisma.comment.update({ where: { id: commentId }, data: { isHidden: true } });
 
   const trimmedNote = note?.trim();
-  if (trimmedNote) await notifyAdminNote(comment.authorId, trimmedNote);
+  // No author left to write to when the account has been purged (audit M34).
+  if (trimmedNote && comment.authorId) await notifyAdminNote(comment.authorId, trimmedNote);
 
   revalidatePath("/feed");
   return { success: true };
@@ -1324,7 +1327,7 @@ export async function toggleCommentLike(commentId: string) {
       select: { authorId: true, postId: true, post: { select: { kind: true } } },
     });
 
-    if (comment && comment.authorId !== session.user.id) {
+    if (comment?.authorId && comment.authorId !== session.user.id) {
       const link = postNotificationLink({ id: comment.postId, kind: comment.post?.kind });
       const message = `${session.user.name} liked your comment`;
       // Same one-per-unread rule as toggleLike (audit M33).
@@ -1452,7 +1455,7 @@ export async function loadComments(
         likeCount: c._count.commentLikes,
         liked: c.commentLikes.length > 0,
         deleted: false,
-        isOwn: c.author.id === userId,
+        isOwn: c.author?.id === userId,
         viewerIsAdmin,
       })),
       ...stubs,
