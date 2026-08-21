@@ -125,6 +125,28 @@ export default async function CatchupAnswerPage({
       );
     }
 
+    // A paused Catch-up is frozen: its home shows a calm banner and no way in,
+    // so the direct /answer URL says the same thing rather than quietly working
+    // (audit B-061). Checked before the advance, which is itself a no-op while
+    // frozen.
+    if (catchup.status !== "active") {
+      return (
+        <NotAvailableCard
+          title={
+            catchup.status === "paused"
+              ? "This Catch-up is paused."
+              : "This Catch-up has ended."
+          }
+          body={
+            catchup.status === "paused"
+              ? "Answering picks up where it left off when the Keeper resumes it."
+              : "Its published Rounds are still there to read."
+          }
+          cta={{ href: `/catchups/${catchup.id}`, label: "Go to the Catch-up" }}
+        />
+      );
+    }
+
     const latestEdition = await prisma.catchupEdition.findFirst({
       where: { catchupId: catchup.id },
       orderBy: { number: "desc" },
