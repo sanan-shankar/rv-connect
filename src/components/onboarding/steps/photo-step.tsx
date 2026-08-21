@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { shrinkForUpload } from "@/lib/image-downscale";
 import { ArrowLeft, ArrowRight, ImagePlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -44,8 +45,20 @@ export function PhotoStep({
       return;
     }
     setBusy(true);
+    // Shrunk in the BROWSER before it goes anywhere. A normal phone photo is
+    // 5 to 12MB, and Vercel rejects a request body over about 4.5MB at the
+    // platform, before this Server Action runs -- so the very first thing a
+    // new member does used to fail with a stuck spinner and no message
+    // (bug audit B-030). The profile page's avatar path already cropped
+    // client-side; this one had nothing.
+    const ready = await shrinkForUpload([file]);
+    if (!ready.ok) {
+      setBusy(false);
+      toast.error(ready.error);
+      return;
+    }
     const fd = new FormData();
-    fd.set("file", file);
+    fd.set("file", ready.files[0]);
     const result = await updateAvatar(fd);
     setBusy(false);
     if (result.error) {

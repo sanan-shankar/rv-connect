@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { shrinkForUpload } from "@/lib/image-downscale";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Send, X } from "lucide-react";
@@ -59,8 +60,16 @@ export function MessageComposer({
   async function handlePickImage(file: File) {
     setUploading(true);
     try {
+      // A screenshot straight off a phone is routinely over Vercel's ~4.5MB
+      // body cap, which refuses the request before /api/upload runs. This path
+      // had no size check of any kind (bug audit B-030).
+      const ready = await shrinkForUpload([file]);
+      if (!ready.ok) {
+        toast.error(ready.error);
+        return;
+      }
       const form = new FormData();
-      form.append("files", file);
+      form.append("files", ready.files[0]);
       const res = await fetch("/api/upload", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {

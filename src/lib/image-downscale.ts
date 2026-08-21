@@ -75,3 +75,61 @@ export async function downscaleImage(file: File): Promise<File> {
     bitmap.close?.();
   }
 }
+
+/**
+ * The most bytes a request body may carry to this app's own server.
+ *
+ * Vercel rejects request bodies above roughly 4.5MB at the PLATFORM, with a
+ * 413 the function never sees, before any of our code runs -- and
+ * `serverActions: { bodySizeLimit: "25mb" }` in next.config.ts only lifts
+ * Next's own guard, so it cannot raise this. 4MB leaves room for the multipart
+ * framing and the other form fields that travel alongside the file.
+ */
+export const UPLOAD_BODY_LIMIT = 4 * 1024 * 1024;
+
+/**
+ * Get a set of picked files ready to be POSTed to our own server, or say why
+ * they cannot be.
+ *
+ * Every path that sends bytes through a Server Action or through /api/upload
+ * goes through here. Before this existed, the onboarding photo step, the
+ * Catch-up answer attachments and the admin-thread composer all shipped the
+ * ORIGINAL file: a normal phone photo is 5 to 12MB, so the very first thing a
+ * new member does -- set a profile picture -- failed at Vercel's edge with a
+ * stuck spinner and no message (bug audit B-030).
+ *
+ * Downscaling handles the ordinary case invisibly. The size check afterwards
+ * exists for what downscaling deliberately passes through: an animated GIF
+ * (re-rasterising would drop the animation) and HEIC (no browser can decode
+ * it). Those get a sentence that names the real reason instead of a silent
+ * platform refusal.
+ */
+export async function shrinkForUpload(
+  files: File[]
+): Promise<{ ok: true; files: File[] } | { ok: false; error: string }> {
+  const shrunk = await Promise.all(files.map((f) => downscaleImage(f)));
+  const total = shrunk.reduce((n, f) => n + f.size, 0);
+  if (total <= UPLOAD_BODY_LIMIT) return { ok: true, files: shrunk };
+
+  const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)}MB`;
+  if (shrunk.some((f) => f.type === "image/gif")) {
+    return {
+      ok: false,
+      error: `An animated GIF has to be sent as it is, and ${
+        shrunk.length > 1 ? "these come" : "this one comes"
+      } to ${mb(total)}. Try a shorter one, or a still picture.`,
+    };
+  }
+  if (shrunk.some((f) => /hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name))) {
+    return {
+      ok: false,
+      error:
+        "HEIC photos cannot be resized in the browser. Export as JPG or PNG, or " +
+        'turn off "High Efficiency" in your camera settings.',
+    };
+  }
+  return {
+    ok: false,
+    error: `That is still ${mb(total)} after shrinking, which is too large to upload. Try a smaller picture.`,
+  };
+}

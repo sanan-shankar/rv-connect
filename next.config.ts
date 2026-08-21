@@ -108,6 +108,14 @@ const nextConfig: NextConfig = {
     // almost every real Collection photo (contributePhoto in
     // src/app/(main)/collection/actions.ts is a Server Action). 25mb covers a
     // 20MB photo plus multipart/form-data overhead.
+    //
+    // It does NOT raise the real ceiling. On Vercel the PLATFORM refuses a
+    // request body over roughly 4.5MB with a 413 the function never sees, so
+    // this only lifts Next's own guard and nothing here can lift that one. The
+    // way a big photo actually reaches storage is the presigned direct PUT
+    // (src/lib/upload-client.ts), which never touches a function; everything
+    // that does go through a function is shrunk in the browser first
+    // (shrinkForUpload in src/lib/image-downscale.ts, bug audit B-030).
     serverActions: {
       bodySizeLimit: "25mb",
     },
