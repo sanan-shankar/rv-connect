@@ -1193,9 +1193,13 @@ export async function loadPosts(opts?: {
  * caller lands on someone else's profile. Group posts only surface while the
  * member still belongs to that group.
  */
+/** How many saved posts the Saved tab loads. It is a keepsake shelf rather
+ *  than a feed, so it is one page; it now says so when it fills up. */
+const SAVED_POSTS_LIMIT = 120;
+
 export async function loadSavedPosts() {
   const session = await auth();
-  if (!session?.user?.id) return { posts: [] };
+  if (!session?.user?.id) return { posts: [], capped: false };
   const userId = session.user.id;
 
   // Only surface group posts the viewer can still legitimately read.
@@ -1224,7 +1228,10 @@ export async function loadSavedPosts() {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 120,
+    /* One more than the cap, purely so the caller can say it stopped short.
+       This was a bare `take: 120` and the 121st saved post simply did not
+       exist: no link, no count, no indication (audit Low 76). */
+    take: SAVED_POSTS_LIMIT + 1,
     include: {
       post: {
         include: {
@@ -1253,8 +1260,14 @@ export async function loadSavedPosts() {
     },
   });
 
+  const capped = rows.length > SAVED_POSTS_LIMIT;
+  const page = capped ? rows.slice(0, SAVED_POSTS_LIMIT) : rows;
+
   return {
-    posts: rows.map(({ post: p }) => ({
+    /* True when there are older saved posts this page did not load, so the
+       shelf can say so rather than end silently (audit Low 76). */
+    capped,
+    posts: page.map(({ post: p }) => ({
       id: p.id,
       kind: p.kind,
       title: p.title,
@@ -1482,6 +1495,13 @@ export async function markFeedSeen(newestCreatedAt: string): Promise<void> {
 
   const seenAt = new Date(newestCreatedAt);
   if (Number.isNaN(seenAt.getTime())) return;
+  /* A marker cannot be in the future, and this one only ever moves FORWARD --
+     so a single crafted call with a date in the year 3000 would have retired
+     the "New since you were last here" divider for that member permanently,
+     with no way back short of editing the row by hand (audit Low 81). Nothing
+     legitimate ever sends a future date: the value is the createdAt of a post
+     already on screen. */
+  if (seenAt.getTime() > Date.now()) return;
 
   try {
     await prisma.user.updateMany({

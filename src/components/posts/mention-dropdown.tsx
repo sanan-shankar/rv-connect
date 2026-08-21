@@ -23,7 +23,15 @@ interface MentionDropdownProps {
 }
 
 export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
-  const [users, setUsers] = useState<MentionUser[]>([]);
+  /* The results AND the query that produced them, held together (audit
+     Low 100). Held apart, the list kept showing the previous query's people
+     while a new one was in flight: type "@as", see Asha, add a "h", and Asha
+     stayed on screen under "@ash" until the next response landed -- long
+     enough to press Enter on the wrong person. */
+  const [result, setResult] = useState<{ query: string; users: MentionUser[] }>({
+    query: "",
+    users: [],
+  });
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const trimmedQuery = query.trim();
@@ -43,7 +51,7 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
         );
         if (res.ok && !cancelled) {
           const data = await res.json();
-          setUsers(data);
+          setResult({ query: trimmedQuery, users: data });
         }
       } catch {
         // ignore
@@ -57,13 +65,14 @@ export function MentionDropdown({ query, onSelect }: MentionDropdownProps) {
     };
   }, [trimmedQuery]);
 
-  const visibleUsers = trimmedQuery.length > 0 ? users : [];
+  const visibleUsers =
+    trimmedQuery.length > 0 && result.query === trimmedQuery ? result.users : [];
 
   if (!trimmedQuery || (visibleUsers.length === 0 && !loading)) return null;
 
   return (
     <div className="absolute left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
-      {loading && users.length === 0 ? (
+      {loading && visibleUsers.length === 0 ? (
         <div className="px-3 py-2 text-sm text-muted-foreground">
           Searching...
         </div>

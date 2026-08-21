@@ -116,6 +116,8 @@ export function SavedPostsFeed() {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  /** True when there are older saved posts this page did not load. */
+  const [capped, setCapped] = useState(false);
   const { ref, cols } = useContainerColumns();
   const bookmarkRef = useRef<HTMLDivElement>(null);
 
@@ -135,6 +137,7 @@ export function SavedPostsFeed() {
         return;
       }
       setPosts(data.posts as PostData[]);
+      setCapped(Boolean(data.capped));
       setLoading(false);
     })();
     return () => {
@@ -208,6 +211,14 @@ export function SavedPostsFeed() {
           <MasonryColumn key={i} posts={col} onUnsave={handleUnsave} />
         ))}
       </div>
+
+      {/* The shelf holds one page. It used to simply end at the hundred and
+          twentieth with nothing to say the rest existed (audit Low 76). */}
+      {capped && (
+        <p className="text-center text-[12.5px] text-muted-foreground">
+          Your most recent {visibleCount} saved. Un-save a few and older ones come back into view.
+        </p>
+      )}
     </div>
   );
 }

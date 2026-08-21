@@ -80,6 +80,15 @@ export function PollDisplay({
 
   async function handleVote(optionId: string) {
     if (submitting) return;
+    /* Tapping the option you already chose is not a vote.
+     
+       The optimistic map below adds one to the tapped option, and subtracts one
+       from the previously-chosen option only in its OTHER branch -- so when
+       they are the same option the subtraction never runs, the count went up
+       by one while the total stayed put, and the percentages walked past 100
+       (audit Low 74). Voting is a switch, so re-choosing what is already
+       chosen has nothing to change on the server either. */
+    if (optionId === voted) return;
     setSubmitting(true);
 
     // Optimistic update
