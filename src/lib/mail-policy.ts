@@ -168,3 +168,41 @@ export function retryDelayMs(deferrals: number): number {
  * and the attempt ceiling already stops them repeating for long.
  */
 export const ATTEMPT_RETRY_MS = 5 * 60_000;
+
+/**
+ * Which recipients THIS process is allowed to take out of the queue.
+ *
+ * `null` means "anybody", and ONLY production ever gets it. Every other
+ * environment gets exactly one address: the owner's. An environment with no
+ * `ADMIN_EMAIL` gets the empty string, which matches no row, because no queued
+ * message is ever addressed to nothing.
+ *
+ * The problem it solves (bug audit M53): local dev and production share ONE
+ * database, so the queue on this machine holds real members' verification and
+ * password-reset mail. With `EMAIL_DEV_SEND=1` set -- which exists for the
+ * deliberate case of checking how a template renders in a real inbox -- the
+ * next page view on localhost drains whatever is queued and sends it, from the
+ * production sending domain, to real people, off a half-finished branch.
+ *
+ * Applied at ROW SELECTION, never as a refusal inside the send. A refusal at
+ * the send is a non-transient failure: the row would burn its attempts and end
+ * up `failed`, which is the 2026-08-12 incident wearing a different hat. Not
+ * claiming the row at all leaves it exactly as it was, for production to send.
+ *
+ * The empty-string case is the FAIL-CLOSED direction, and it is deliberate.
+ * This function first returned `null` there, reasoning that `queueIsSendable`
+ * had already decided the process may send -- but that gate looks only at
+ * `EMAIL_DEV_SEND`, so a developer with the flag on and no `ADMIN_EMAIL` in
+ * their env would have drained the whole real queue: the missing variable
+ * reintroducing the exact incident the set one is guarded against
+ * (write-path review, 2026-08-21). A stalled local queue is the harmless
+ * failure; sending is not. `queueIsSendable` now refuses that environment
+ * outright and says why, so this is the second of two locks on one door.
+ */
+export function localDrainRecipient(env: {
+  NODE_ENV?: string;
+  ADMIN_EMAIL?: string;
+}): string | null {
+  if (env.NODE_ENV === "production") return null;
+  return env.ADMIN_EMAIL?.trim().toLowerCase() ?? "";
+}

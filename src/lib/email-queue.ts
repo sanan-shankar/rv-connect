@@ -9,6 +9,7 @@ import {
   MAX_DEFERRALS,
   PRIORITY,
   eligibleKindsFor,
+  localDrainRecipient,
   retryDelayMs,
   type MailKind,
 } from "./mail-policy";
@@ -123,7 +124,23 @@ function queueIsSendable(): boolean {
     }
     return true;
   }
-  return process.env.EMAIL_DEV_SEND === "1";
+  if (process.env.EMAIL_DEV_SEND !== "1") return false;
+  /* Outside production the drain is narrowed to the owner's own address
+     (`localDrainRecipient`, audit M53), and that narrowing is the only thing
+     standing between a developer's page view and every real member's queued
+     mail. With no ADMIN_EMAIL there is nothing to narrow TO, so this refuses
+     rather than falling back to "everybody" -- the same fail-closed shape,
+     and the same loud console line, as the production missing-key branch
+     above. */
+  if (!process.env.ADMIN_EMAIL?.trim()) {
+    console.error(
+      "[email] EMAIL_DEV_SEND=1 but ADMIN_EMAIL is unset; refusing to drain. " +
+        "This database is production's, so a dev drain with no recipient scope " +
+        "would send real members' mail. Set ADMIN_EMAIL, or unset EMAIL_DEV_SEND.",
+    );
+    return false;
+  }
+  return true;
 }
 
 /** The fields `claimAndSend` needs off a queue row. */
@@ -585,6 +602,8 @@ async function drainWithLease(): Promise<DrainReport> {
     return { sent: 0, failed: 0, backlog: waiting > 0 };
   }
 
+  const drainRecipient = localDrainRecipient(process.env);
+
   let sent = 0;
   let failed = 0;
 
@@ -601,6 +620,16 @@ async function drainWithLease(): Promise<DrainReport> {
       where: {
         status: "queued",
         kind: { in: eligibleKinds },
+        // On a development machine with EMAIL_DEV_SEND=1, only the owner's own
+        // address. This database is production's, so the rows here are real
+        // members' verification and reset mail, and a localhost drain must not
+        // be able to CLAIM one -- let alone send it (bug audit M53). Narrowing
+        // the selection rather than refusing the send is deliberate: a refusal
+        // inside the send is a non-transient failure, so the row would burn its
+        // attempts and end up `failed`, which is the 2026-08-12 incident
+        // wearing a different hat. Not selecting it leaves it untouched for
+        // production to send. `undefined` in production, where it is a no-op.
+        to: drainRecipient ? { equals: drainRecipient, mode: "insensitive" } : undefined,
         attempts: { lt: MAX_ATTEMPTS },
         deferrals: { lt: MAX_DEFERRALS },
         // Only what is due. A row that just failed names the moment it may be
@@ -737,7 +766,13 @@ export async function verificationMailState(userId: string): Promise<Verificatio
   // moment it may be tried again, and re-sending on every page load would walk
   // straight through that budget one refresh at a time (B-002).
   const due = !row.nextAttemptAt || row.nextAttemptAt <= new Date();
-  if (row.status === "queued" && due) {
+  // The same recipient scope the batch pass uses. This path claims a row
+  // directly rather than selecting one, so the filter has to be spelled out:
+  // without it, a developer looking at any member's verify banner locally
+  // would send that member's mail (M53).
+  const scope = localDrainRecipient(process.env);
+  const mine = !scope || row.to.trim().toLowerCase() === scope;
+  if (row.status === "queued" && due && mine) {
     // Deliberately NOT behind the drain lease. This is one targeted send for
     // the member looking at the page, and making it wait on a batch pass is
     // exactly the 2026-08-13 incident this function exists to prevent. It
