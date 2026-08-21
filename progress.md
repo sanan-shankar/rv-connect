@@ -1,5 +1,56 @@
 # Progress Log
 
+## Session 2026-08-21 — The pre-release fix session, part two
+
+Picked up the "Still open" list from part one. **Fifteen of the sixteen remaining canonical findings
+are closed**; the sixteenth (B-063, the Catch-up leave/archive/delete feature) is designed, has the
+owner's two decisions recorded, and is not built. Eight commits on `main`, none pushed.
+`npm run check` green (46 unit tests, up from 38), `npm run visual` 23/23.
+
+- **Pausing a Catch-up now actually pauses it.** Pause and End wrote only the Catch-up's own status,
+  so the live Round kept advancing, kept sending every non-answerer a daily reminder for the whole
+  week, and published itself, all while the home page said "This Catch-up is paused" with no way to
+  answer and the header counted down above that banner. The semantics chosen is FREEZE (the spec's
+  paused state is a calm banner plus Resume, which only makes sense if the clock stops with it);
+  resume shifts every unreached deadline forward by exactly the paused duration, so the group gets
+  back the window it had. New nullable `Catchup.pausedAt`. The reviewer caught that stopping the
+  clock covered only half of it: five Keeper controls and both member submissions write the Round
+  directly and checked only the ROUND's status, which does not change on a pause, so a stale tab
+  could still publish a paused Catch-up and announce it to everyone. All seven share `refuseIfFrozen`
+  now.
+- **A Round nobody asks a question in goes quiet** instead of opening for answers, nudging everyone
+  daily to answer nothing, publishing an empty keepsake and starting again next cadence, forever. It
+  extends the question window once, then goes dormant; the first question revives it.
+- **A Round that published while paused no longer leaves the Catch-up dead** with no future Round and
+  no control anywhere to start one.
+- **Every date on the site is the valley's day.** The helpers named no time zone, so they used the
+  server's (UTC) or the reader's, and a letter written at 00:30 showed yesterday to everyone,
+  permanently. Sixteen surfaces, one convention (`VALLEY_TIME_ZONE` and friends in `utils.ts`), plus
+  a test that sweeps the whole app and fails on any date rendered without a zone. The year ceilings
+  on sign-up were frozen the first time their module loaded, so a server started in December kept
+  rejecting January.
+- **A double-tap no longer breaks a like.** All five toggles are delete-first and idempotent; the
+  client holds one tap in flight. Proved live in a rolled-back transaction that the racing insert is
+  rejected by the unique index, which is the exact error the action now answers.
+- **Notifications land somewhere.** A comment on a letter took you to the feed, where letters'
+  comments are not shown. Four admin notifications pointed at a route retired months ago. Tapping a
+  notification whose row had been pruned did nothing at all.
+- **A dropped connection no longer freezes the page.** Nothing handled a request that fails to
+  arrive at all: the feed sat on grey placeholders forever, and forty-odd controls disabled
+  themselves for the rest of the visit with no message. One `callAction` helper, 77 await-sites, 46
+  stuck-button cases. Fanned out to a subagent; the whole diff was read here.
+- **The bell badge tells the truth**, having been computed once per hard page load and able only to
+  count down since.
+- **You can take your email off your profile.** The X on that row used to write "no chosen address",
+  which the profile read as "fall back", and it published your private sign-in address instead.
+- Plus: the post edit cap, place validation on both writers, the admin inbox's unreachable archive,
+  the unread-flag lost update, deterministic pagination in the Collection and the feed, and the
+  deletion of the dead `/onboarding` route.
+
+**Two net-new findings**, neither in the audit: `createPost` still accepted a `groupId` for the
+removed Groups feature and made posts visible on no page in the app (refused now); and a non-async
+export in a `"use server"` file 500s every importing route at RUNTIME while `tsc` passes it clean.
+
 ## Session 2026-08-21 — The pre-release fix session, part one
 
 The formal bug audit finished this morning with 45 canonical findings; this session fixed the two
