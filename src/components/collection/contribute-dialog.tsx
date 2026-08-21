@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { shrinkForUpload } from "@/lib/image-downscale";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -132,8 +133,25 @@ export function ContributeDialog({
           ...dateMeta(),
         });
       } else {
+        // The fallback carries the bytes through our own server, where Vercel
+        // refuses a body over about 4.5MB before the action runs -- so a full
+        // resolution original, which is exactly what the Collection wants,
+        // cannot go this way (bug audit, Low 62). Shrink it rather than lose
+        // the contribution, and say so, because for a heritage archive the
+        // difference between the original and a 2048px copy is worth knowing.
+        const ready = await shrinkForUpload([file]);
+        if (!ready.ok) {
+          setSubmitting(false);
+          toast.error(ready.error);
+          return;
+        }
+        if (ready.files[0].size < file.size) {
+          toast("Uploading a smaller copy of this photo", {
+            description: "The full-size original could not be sent from here.",
+          });
+        }
         const fd = new FormData();
-        fd.set("file", file);
+        fd.set("file", ready.files[0]);
         if (caption.trim()) fd.set("caption", caption.trim());
         if (area.trim()) fd.set("area", area.trim());
         const meta = dateMeta();

@@ -14,6 +14,7 @@
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
+import { shrinkForUpload } from "@/lib/image-downscale";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -55,8 +56,18 @@ export function PhotoAttachments({
     }
 
     setUploading(true);
+    // Shrunk here, not on the server: three 5MB photos are 15MB on the wire and
+    // Vercel refuses a body over about 4.5MB before /api/upload ever runs
+    // (bug audit B-030). The check that follows is for what downscaling
+    // deliberately passes through, an animated GIF or a HEIC.
+    const ready = await shrinkForUpload(picked);
+    if (!ready.ok) {
+      setUploading(false);
+      toast.error(ready.error);
+      return;
+    }
     const formData = new FormData();
-    picked.forEach((file) => formData.append("files", file));
+    ready.files.forEach((file) => formData.append("files", file));
 
     try {
       const res = await fetch("/api/upload", { method: "POST", body: formData });
