@@ -286,6 +286,35 @@ async function loadCatchupContext(catchupId: string, userId: string) {
   return { catchup, membership };
 }
 
+/**
+ * The refusal every write into a live Round shares.
+ *
+ * `advanceEdition` freezes the CLOCK for a paused or ended Catch-up, which is
+ * the whole of B-061's automatic half. It is not the whole story: five Keeper
+ * controls (open answering, close and prepare, extend, publish now, nudge) and
+ * the two member submissions write the edition directly, in their own
+ * transactions, and each of them only ever checked the ROUND's status --
+ * `answering` stays `answering` through a pause, so "Publish now" on a paused
+ * Catch-up still published it and notified the whole group under a home page
+ * saying it was paused. A stale tab opened before the pause is enough to reach
+ * every one of them.
+ *
+ * So the freeze is enforced in two places by construction, not one: the clock
+ * in `advanceEdition`, and every hand-driven write through here.
+ */
+function refuseIfFrozen(
+  status: string,
+  pausedHint: string
+): { error: string } | null {
+  if (status === "active") return null;
+  return {
+    error:
+      status === "paused"
+        ? `This Catch-up is paused. ${pausedHint}`
+        : "This Catch-up has ended.",
+  };
+}
+
 // ─── Catchup lifecycle (spec 3.2, 3.3 settings) ───────────────────────────────
 
 /**
@@ -640,8 +669,12 @@ export async function resumeCatchup(catchupId: string) {
     const pausedAt = ctx.catchup.pausedAt;
 
     await prisma.$transaction(async (tx) => {
+      // Pinned on pausedAt as well as status: another Keeper completing a
+      // whole pause -> resume -> pause cycle between the read above and this
+      // write would leave status back at "paused" with a DIFFERENT freeze
+      // stamp, and every shift below would then credit the wrong duration.
       const resumed = await tx.catchup.updateMany({
-        where: { id: catchupId, status: "paused" },
+        where: { id: catchupId, status: "paused", pausedAt },
         data: { status: "active", pausedAt: null },
       });
       if (resumed.count === 0) return; // someone else resumed it first
@@ -768,6 +801,11 @@ export async function submitPrompt(input: {
     if (edition.status !== "collecting") {
       return { error: "The question window for this Round is closed." };
     }
+    const frozen = refuseIfFrozen(
+      edition.catchup.status,
+      "You can add a question again when the Keeper resumes it."
+    );
+    if (frozen) return frozen;
 
     const keeper = isEffectiveKeeper({
       viewerId: session.user.id,
@@ -946,6 +984,8 @@ export async function openAnswering(editionId: string) {
     ) {
       return { error: "Only the Keeper can open answering." };
     }
+    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
+    if (frozen) return frozen;
     if (edition.status !== "collecting") {
       return { error: "This Round is not collecting questions right now." };
     }
@@ -999,6 +1039,8 @@ export async function closeAndPrepare(editionId: string) {
     ) {
       return { error: "Only the Keeper can close and prepare early." };
     }
+    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
+    if (frozen) return frozen;
     if (edition.status !== "answering") {
       return { error: "This Round is not open for answers right now." };
     }
@@ -1081,6 +1123,8 @@ export async function extendDeadline(editionId: string, days: number) {
     ) {
       return { error: "Only a Keeper can extend the deadline." };
     }
+    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
+    if (frozen) return frozen;
 
     const now = new Date();
     const patch = extendPhasePatch(edition, parsedDays.data, now);
@@ -1138,6 +1182,8 @@ export async function publishNow(editionId: string) {
     ) {
       return { error: "Only the Keeper can publish early." };
     }
+    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
+    if (frozen) return frozen;
     if (edition.status !== "preparing") {
       return { error: "This Round is not ready to publish yet." };
     }
@@ -1219,16 +1265,11 @@ export async function submitEntry(input: {
     if (edition.status !== "answering") {
       return { error: "Answering is not open for this Round right now." };
     }
-    // A paused Catch-up is frozen, and its home page says so with no way in.
-    // This closes the direct-action path to the same door (audit B-061).
-    if (edition.catchup.status !== "active") {
-      return {
-        error:
-          edition.catchup.status === "paused"
-            ? "This Catch-up is paused. Answering opens again when the Keeper resumes it."
-            : "This Catch-up has ended.",
-      };
-    }
+    const frozen = refuseIfFrozen(
+      edition.catchup.status,
+      "Answering opens again when the Keeper resumes it."
+    );
+    if (frozen) return frozen;
 
     const hasBody = parsed.data.body !== undefined;
     const hasImages = parsed.data.images !== undefined;
@@ -1580,6 +1621,8 @@ export async function nudgeGroup(editionId: string) {
     ) {
       return { error: "Only the Keeper can nudge the group." };
     }
+    const frozen = refuseIfFrozen(edition.catchup.status, "Resume it to pick the Round back up.");
+    if (frozen) return frozen;
     if (edition.status !== "answering") {
       return { error: "Nudges only make sense while answers are open." };
     }
