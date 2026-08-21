@@ -93,10 +93,47 @@ Fourteen commits on `main`, none pushed. `npm run check` green (38 unit tests), 
 
 ---
 
+## Session 2 — what shipped
+
+**Session 2: 2026-08-21.** Continues from the "Still open" list below, which is updated as each
+piece lands.
+
+### Catch-up lifecycle
+
+| ID | | Outcome |
+|---|---|---|
+| B-060 | F | `4ad863e`. `resumeCatchup` re-arms a missing `nextOpensAt` (conditional `updateMany`, so it cannot stamp over a live schedule) and credits a surviving one with the paused duration. Freezing on pause makes the original hole unreachable; this is the belt, and it repairs any row already stuck. |
+| B-061 | F | `4ad863e`, `9dd9fd9`. **Semantics decided: PAUSE FREEZES THE ROUND.** The spec's paused state is "a calm banner and, for the Keeper, Resume" (`docs/spec/catchups.md:250`) — the home already replaced the whole console, so members literally could not answer, and letting the clock keep spending their answer window was the contradiction. Option (b) (keep the console live under a slim banner) would have meant rebuilding that UI against the spec. New nullable `Catchup.pausedAt`; resume shifts every deadline still ahead of the freeze forward by exactly the paused duration, so the group gets back the window it had. Enforced in **two** places by construction: the clock in `advanceEdition`, and `refuseIfFrozen` on all seven hand-driven writes. |
+| B-062 | F | `4ad863e`. A question window closing empty extends once (new bit 3, same trick as `REMINDER_EXTENDED`, no migration) and then the Round goes **dormant** — no transition, no reminder, no empty publish, so the abandoned-Catch-up loop cannot start. `submitPrompt` revives it with a fresh window on the first question. |
+
+### Dates and IST
+
+| ID | | Outcome |
+|---|---|---|
+| B-100 | F | `5451ec1`. One convention in `src/lib/utils.ts` (`VALLEY_TIME_ZONE`, `valleyYear`, `valleyDayKey`, `valleyMidnight`, `valleyDayStart`), applied to sixteen surfaces. Pinning IST on the client too is deliberate: it is what makes server and client agree, which is the hydration half of the same bug. `visual` stayed 23/23 — the baseline letters happen to sit on days where UTC and IST agree. |
+| Lows 19, 45, 47, 91, 94, 117 | F | `5451ec1`. Deletion-scheduled email purge date, member messages, admin money surfaces: all through the two fixed helpers or given the zone directly. |
+| Lows 40, 50, 108, 112 | F | `5451ec1`. Year ceilings were `.max(new Date().getFullYear())` — a NUMBER Zod evaluates once at module load, so a warm instance kept last year's ceiling. Now a `yearField()` `.refine` against `valleyYear()`, per parse. |
+| Low 48 | F | `5451ec1`. `getTimeFilterDate` built its boundaries from the server's local midnight; now from the valley's. |
+| Lows 30, 49 | F | `5451ec1`. Client components formatting dates during SSR produced server/client disagreement; pinning one zone everywhere is the fix, rather than a hydration guard per site. |
+
+### Review findings acted on
+
+- **write-path-reviewer** on `4ad863e` found the freeze was NOT the single choke point it claimed to
+  be: five Keeper early-trigger controls (`openAnswering`, `closeAndPrepare`, `extendDeadline`,
+  `publishNow`, `nudgeGroup`) and `submitPrompt` write the edition directly and checked only the
+  ROUND's status, which does not change on a pause — so a tab opened before the pause could still
+  publish the Round and notify the whole group. Also caught `resumeCatchup`'s outer compare-and-swap
+  pinning only `status`, not `pausedAt`. All three verified against the live code and fixed in
+  `9dd9fd9`; the overstated "ONE gate" comment was corrected too. Its other checks (authorization
+  ordering unchanged, migration idempotent, demo layers untouched, no stray reader of the new column)
+  came back clean.
+
+---
+
 ## Still open
 
-**Canonical (16):** B-040, B-042, B-046, B-047, B-050, B-060, B-061, B-062, B-063, B-100, B-110,
-B-111, B-120, B-122, B-200, B-201.
+**Canonical (11):** B-040, B-042, B-046, B-047, B-050, B-063, B-110, B-111, B-120, B-122, B-200,
+B-201. *(B-060, B-061, B-062, B-100 done in session 2.)*
 
 **§3.M:** 63 of the 68 Medium roots (M02, M26, M27, M55, M57 done).
 
