@@ -1,5 +1,7 @@
 import { prisma } from "./prisma";
 import { delImage } from "./storage";
+import { chooseGroupSuccessor } from "./group-succession";
+import type { Prisma } from "@/generated/prisma/client";
 
 /**
  * The one place that knows how to erase a member COMPLETELY (audit H9).
@@ -25,24 +27,82 @@ import { delImage } from "./storage";
  */
 export const DELETION_GRACE_DAYS = 60;
 
+/** Anything that can run a query: the client, or a transaction's client. */
+type Db = Prisma.TransactionClient | typeof prisma;
+
 /**
- * Every stored-image URL the member's rows point at, collected BEFORE the
- * delete cascades those rows away. `delImage` ignores URLs that are not ours
- * (an external song artwork, a legacy host), so collecting generously is safe.
+ * Leave every group this member ran with somebody at the wheel.
+ *
+ * `Group.creatorId` is SetNull now (2026-08-21), so the group itself survives
+ * the delete — but the member's own `GroupMember` row cascades away with them,
+ * and if that row was the only admin the group is left with nobody able to
+ * curate questions, pause a Catch-up or publish a Round. Promoting the
+ * longest-standing remaining member closes that, inside the purge transaction
+ * so it can never half-happen.
+ */
+async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
+  const ownRoles = await db.groupMember.findMany({
+    where: { userId, role: { in: ["admin", "keeper"] } },
+    select: { groupId: true },
+  });
+  // Groups they created but are somehow no longer an admin of count too: the
+  // creator column is about to go null and nothing else would notice.
+  const created = await db.group.findMany({ where: { creatorId: userId }, select: { id: true } });
+  const groupIds = [...new Set([...ownRoles.map((r) => r.groupId), ...created.map((g) => g.id)])];
+  if (groupIds.length === 0) return 0;
+
+  const members = await db.groupMember.findMany({
+    where: { groupId: { in: groupIds } },
+    select: { groupId: true, userId: true, role: true, joinedAt: true },
+  });
+
+  let promoted = 0;
+  for (const groupId of groupIds) {
+    const successor = chooseGroupSuccessor(
+      members.filter((m) => m.groupId === groupId),
+      userId
+    );
+    if (!successor) continue;
+    await db.groupMember.update({
+      where: { groupId_userId: { groupId, userId: successor } },
+      data: { role: "admin" },
+    });
+    promoted += 1;
+  }
+  return promoted;
+}
+
+/**
+ * Every stored-image URL the member's rows point at, read INSIDE the purge
+ * transaction so nothing uploaded between the reading and the delete can slip
+ * past. `delImage` ignores URLs that are not ours (an external song artwork, a
+ * legacy host), so collecting generously is safe.
  *
  * `coverPhoto` is deliberately absent: it is a Collection photo REUSED as a
  * profile cover, so its bytes belong to whoever contributed it — if that was
  * this member, it is already collected from their Photo rows.
+ *
+ * `Group.coverImage` is absent for the same class of reason: since 2026-08-21
+ * a group outlives the member who started it, so its cover is still displayed
+ * and still has a row pointing at it.
  */
-async function collectImageUrls(userId: string): Promise<string[]> {
-  const [user, posts, photos, entries] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { photoUrl: true } }),
-    prisma.post.findMany({ where: { authorId: userId }, select: { images: true } }),
-    prisma.photo.findMany({
+async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
+  const [user, posts, photos, entries, adminMessages] = await Promise.all([
+    db.user.findUnique({ where: { id: userId }, select: { photoUrl: true } }),
+    db.post.findMany({ where: { authorId: userId }, select: { images: true } }),
+    db.photo.findMany({
       where: { uploaderId: userId },
       select: { thumbUrl: true, url: true, originalUrl: true },
     }),
-    prisma.catchupEntry.findMany({ where: { authorId: userId }, select: { images: true } }),
+    db.catchupEntry.findMany({ where: { authorId: userId }, select: { images: true } }),
+    // EVERY message in the member's own admin threads, not just the ones they
+    // wrote: AdminThread.member is Cascade, so the whole conversation dies
+    // with them, taking the only rows that point at the screenshots attached
+    // to it — including the ones an admin attached while replying (B-012).
+    db.adminMessage.findMany({
+      where: { thread: { memberId: userId } },
+      select: { imageUrl: true },
+    }),
   ]);
 
   const urls: string[] = [];
@@ -50,6 +110,9 @@ async function collectImageUrls(userId: string): Promise<string[]> {
   for (const p of photos) {
     urls.push(p.thumbUrl, p.url);
     if (p.originalUrl) urls.push(p.originalUrl);
+  }
+  for (const m of adminMessages) {
+    if (m.imageUrl) urls.push(m.imageUrl);
   }
   // Post and Catch-up images are JSON-encoded string arrays; a malformed
   // column is skipped rather than failing the whole purge.
@@ -68,7 +131,15 @@ async function collectImageUrls(userId: string): Promise<string[]> {
 }
 
 export type PurgeResult =
-  | { ok: true; imagesDeleted: number }
+  | {
+      ok: true;
+      /** Objects actually gone from R2, not delete attempts. */
+      imagesDeleted: number;
+      /** Objects R2 refused. They stay in PendingImagePurge for the sweep. */
+      imagesFailed: number;
+      /** Groups left with a new admin because this member was the last one. */
+      groupsRehomed: number;
+    }
   | { ok: false; error: string };
 
 /**
@@ -81,34 +152,97 @@ export type PurgeResult =
  *    delete throws and rolls back, the member still exists and their images
  *    must keep rendering.
  *
- * `delImage` is best-effort and never throws, so a flaky R2 call cannot turn
- * a completed deletion into an error page; the audit entry the CALLER writes
- * records how many objects were actually removed.
+ * The gap between those two is what `PendingImagePurge` closes: the collected
+ * URLs are written as a worklist in the SAME transaction as the delete, so a
+ * crash, a timeout or a bad minute at R2 leaves a durable record of exactly
+ * which bytes are still out there instead of losing them forever. Whatever the
+ * loop below cannot remove is left in the table for the nightly sweep.
+ *
+ * The count returned is objects actually gone, not attempts (B-013): the audit
+ * entry the CALLER writes quotes it, and it used to be a lie.
  */
 export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
-  const urls = await collectImageUrls(userId);
+  let urls: string[];
+  let groupsRehomed: number;
 
   try {
-    // Report.reporterId is RESTRICT, not cascade: a member who has EVER filed
-    // a report cannot be deleted until those rows are cleared, or the delete
-    // throws and rolls back (audit H8). Reports filed AGAINST them cascade.
-    // ONE transaction: if the user.delete fails, the report clearing rolls
-    // back with it, so a failed purge can never silently destroy the report
-    // history while leaving the account alive (write-path review, Phase 8 —
-    // this matters doubly now that the retention sweep runs this unattended).
-    await prisma.$transaction([
-      prisma.report.deleteMany({ where: { reporterId: userId } }),
-      prisma.user.delete({ where: { id: userId } }),
-    ]);
+    const outcome = await prisma.$transaction(
+      async (tx) => {
+        const rehomed = await promoteOrphanedGroups(tx, userId);
+        const collected = await collectImageUrls(tx, userId);
+        if (collected.length > 0) {
+          await tx.pendingImagePurge.createMany({
+            data: collected.map((url) => ({ url, reason: "purge" })),
+          });
+        }
+        // Report.reporterId is RESTRICT, not cascade: a member who has EVER
+        // filed a report cannot be deleted until those rows are cleared, or
+        // the delete throws and rolls back (audit H8). Reports filed AGAINST
+        // them cascade. ONE transaction: if the user.delete fails, the report
+        // clearing and the worklist roll back with it, so a failed purge can
+        // never silently destroy the report history while leaving the account
+        // alive (write-path review, Phase 8 — this matters doubly now that the
+        // retention sweep runs this unattended).
+        await tx.report.deleteMany({ where: { reporterId: userId } });
+        await tx.user.delete({ where: { id: userId } });
+        return { urls: collected, rehomed };
+      },
+      // The default 5s is a page-render budget, not a cascade budget: this one
+      // transaction deletes every row a long-standing member ever wrote.
+      { timeout: 30_000, maxWait: 10_000 }
+    );
+    urls = outcome.urls;
+    groupsRehomed = outcome.rehomed;
   } catch (err) {
     console.error("purgeUserAccount failed:", err);
     return { ok: false, error: "Could not delete the account." };
   }
 
+  const drained = await drainPendingImagePurges(urls);
+  return {
+    ok: true,
+    imagesDeleted: drained.deleted,
+    imagesFailed: drained.failed,
+    groupsRehomed,
+  };
+}
+
+/**
+ * Work through the pending-delete list: remove the object, then the row that
+ * remembered it. A row that survives is a byte that survived.
+ *
+ * Called twice: once by the purge that queued the URLs (so the common case
+ * finishes in the same request), and once a night by the retention sweep for
+ * anything left behind by a crash or a bad minute at R2.
+ */
+export async function drainPendingImagePurges(
+  onlyUrls?: string[],
+  limit = 500
+): Promise<{ deleted: number; failed: number }> {
+  const rows = await prisma.pendingImagePurge.findMany({
+    where: onlyUrls ? { url: { in: onlyUrls } } : {},
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: { id: true, url: true },
+  });
+
   let deleted = 0;
-  for (const url of urls) {
-    await delImage(url);
-    deleted += 1;
+  let failed = 0;
+  for (const row of rows) {
+    const gone = await delImage(row.url);
+    if (gone) {
+      await prisma.pendingImagePurge.delete({ where: { id: row.id } }).catch(() => {
+        // Row already taken by a concurrent drain; the object is gone either
+        // way, which is the part that matters.
+      });
+      deleted += 1;
+    } else {
+      failed += 1;
+      await prisma.pendingImagePurge.update({
+        where: { id: row.id },
+        data: { attempts: { increment: 1 }, lastError: "delete refused by storage" },
+      });
+    }
   }
-  return { ok: true, imagesDeleted: deleted };
+  return { deleted, failed };
 }

@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { writeAudit } from "./audit";
-import { purgeUserAccount, DELETION_GRACE_DAYS } from "./account-purge";
+import { purgeUserAccount, drainPendingImagePurges, DELETION_GRACE_DAYS } from "./account-purge";
 
 /**
  * The retention sweep (audit M34, GDPR Art. 5(1)(e)): personal data stops
@@ -48,6 +48,11 @@ export type SweepResult = {
   auditLogs: number;
   outboundEmails: number;
   accountsPurged: number;
+  /** Stored images an earlier purge could not remove, cleared on this pass. */
+  imagesRetried: number;
+  /** ...and how many R2 still refuses. A number that only ever grows is the
+   *  signal that credentials or the bucket name have drifted. */
+  imagesStillPending: number;
   errors: string[];
 };
 
@@ -129,12 +134,29 @@ export async function runRetentionSweep(): Promise<SweepResult> {
         action: "account.purge",
         targetType: "user",
         targetId: row.id,
-        detail: `${row.name} <${row.email}> — requested ${row.deletionRequestedAt?.toISOString().slice(0, 10)}, ${purged.imagesDeleted} stored image(s) removed`,
+        detail:
+          `${row.name} <${row.email}> — requested ${row.deletionRequestedAt?.toISOString().slice(0, 10)}, ` +
+          `${purged.imagesDeleted} stored image(s) removed` +
+          (purged.imagesFailed > 0 ? `, ${purged.imagesFailed} still queued` : "") +
+          (purged.groupsRehomed > 0 ? `, ${purged.groupsRehomed} group(s) handed on` : ""),
       });
     }
     return rows.length;
   });
   void due;
+
+  /* Anything an earlier purge could not remove from R2 (a bad minute, a
+     timeout, a crash between the row delete and the object delete) waits in
+     PendingImagePurge. This is the retry: the one path that can still find
+     those bytes, because the rows that named them are long gone (B-011). */
+  let imagesRetried = 0;
+  let imagesStillPending = 0;
+  await step("pendingImages", async () => {
+    const drained = await drainPendingImagePurges();
+    imagesRetried = drained.deleted;
+    imagesStillPending = await prisma.pendingImagePurge.count();
+    return drained.deleted;
+  });
 
   const result: SweepResult = {
     adminMessages,
@@ -145,6 +167,8 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     auditLogs,
     outboundEmails,
     accountsPurged,
+    imagesRetried,
+    imagesStillPending,
     errors,
   };
 

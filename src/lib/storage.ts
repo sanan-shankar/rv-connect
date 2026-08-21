@@ -213,17 +213,38 @@ export async function headObjectSize(key: string): Promise<number | null> {
   }
 }
 
-/** Delete an object by its raw key (for cleaning up presigned originals
- *  that fail validation or finish processing). Best-effort. */
-export async function delImageByKey(key: string): Promise<void> {
+/**
+ * Delete an object by its raw key (for cleaning up presigned originals that
+ * fail validation or finish processing). Never throws; returns whether the
+ * object is gone.
+ *
+ * The catch block used to be empty -- the one site in the codebase that broke
+ * the repo's own "a guard that hides its own breakage is worse than no guard"
+ * rule. It mattered most where it was quietest: the account purge deletes the
+ * pointing rows first, so a silent miss here left the bytes publicly fetchable
+ * with nothing left able to enumerate them, while the audit line said they had
+ * been removed. Callers that care now get a boolean, and every failure names
+ * its key in the log whatever the environment -- this is a moderation and GDPR
+ * path, not per-page telemetry.
+ */
+export async function delImageByKey(key: string): Promise<boolean> {
   try {
     if (useR2) {
       await r2().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
     } else {
       await unlink(path.join(process.cwd(), "public", key));
     }
-  } catch {
-    // best-effort cleanup
+    return true;
+  } catch (err) {
+    // Already gone counts as gone. R2's DeleteObject is idempotent and answers
+    // 204 for a key that was never there; on the local-dev filesystem the same
+    // situation surfaces as ENOENT, and neither is a failure worth reporting.
+    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return true;
+    console.error(
+      `[storage] could not delete ${key}:`,
+      err instanceof Error ? err.message : err
+    );
+    return false;
   }
 }
 
@@ -261,11 +282,18 @@ export function keyForUrl(url: string | null | undefined): string | null {
   return key;
 }
 
-/** Delete an image by its public URL (best-effort; never throws). Derives
- *  the object key and hands off to `delImageByKey`, so the actual R2-vs-local
- *  delete logic lives in exactly one place. */
-export async function delImage(url: string | null | undefined): Promise<void> {
+/**
+ * Delete an image by its public URL (never throws). Derives the object key and
+ * hands off to `delImageByKey`, so the actual R2-vs-local delete logic lives in
+ * exactly one place.
+ *
+ * True means "nothing of ours is left at that URL": either the object was
+ * deleted, or the URL was never ours to begin with (a legacy host, an external
+ * song artwork) and is left alone on purpose. False means we tried and failed,
+ * which only the purge currently acts on.
+ */
+export async function delImage(url: string | null | undefined): Promise<boolean> {
   const key = keyForUrl(url);
-  if (key) await delImageByKey(key);
-  // Any other remote URL (e.g. a legacy host) is left alone on purpose.
+  if (!key) return true;
+  return delImageByKey(key);
 }

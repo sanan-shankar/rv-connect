@@ -194,11 +194,19 @@ model Group {
   description String?
   coverImage  String?  // optional cover photo url (Collection or upload)
   visibility  String   @default("public") // "public" (browseable, auto-join) | "private" (invite-only, hidden)
-  creatorId   String
+  // Nullable, and SetNull, so the group outlives the person who happened to
+  // start it. It used to be Cascade, which meant the first alumnus of a batch
+  // to sign up silently owned "Batch of 2010", and whoever started a Catch-up
+  // owned its hidden Group -- so deleting that one account took the group, the
+  // Catch-up, every Round and every OTHER member's answers with it. A null
+  // creator is a group nobody owns; any remaining member may act as Keeper
+  // (spec 7, and `promoteOrphanedGroups` in account-purge.ts leaves an admin
+  // behind so the powers are never unreachable).
+  creatorId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  creator  User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator  User?         @relation(fields: [creatorId], references: [id], onDelete: SetNull)
   members  GroupMember[]
   posts    Post[]
   invites  GroupInvite[]
@@ -752,7 +760,12 @@ model CatchupEdition {
 model CatchupPrompt {
   id        String   @id @default(cuid())
   editionId String
-  authorId  String                          // always stored, even when shown anonymously
+  // Nullable and SetNull: a question is answered by everyone, so it cannot die
+  // with the person who asked it. Cascade here meant purging one member erased
+  // every prompt they had ever written in ANY Catch-up, and each prompt took
+  // all thirty answers under it out of a published Round. Null renders as an
+  // asker who left, which the anonymous path already draws.
+  authorId  String?                         // always stored, even when shown anonymously
   text      String
   category  String?                          // library set id (e.g. "valley-days") or null for custom
   source    String   @default("member")     // "library" | "member" | "keeper"
@@ -762,7 +775,7 @@ model CatchupPrompt {
   createdAt DateTime @default(now())
 
   edition CatchupEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
-  author  User           @relation("CatchupPromptsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+  author  User?          @relation("CatchupPromptsAuthored", fields: [authorId], references: [id], onDelete: SetNull)
   entries CatchupEntry[]
 
   @@index([editionId, position])
@@ -1098,4 +1111,30 @@ model RosterEntry {
 
   @@index([email])
   @@index([normalizedName, batchYear])
+}
+
+// ─── Stored images still owed a delete ───────────────────────────────────────
+//
+// A purge cannot delete R2 objects and database rows atomically: the rows have
+// to go first (a member is not erased until their rows are), and the rows are
+// the only thing that remembers where their images live. Before this table the
+// gap was fatal -- one flaky R2 minute during a purge left bytes publicly
+// fetchable at their pub-*.r2.dev URLs with nothing left anywhere able to
+// enumerate them, and the audit line still said they had been removed.
+//
+// So the worklist is written INSIDE the same transaction as the row delete.
+// Whatever the loop afterwards fails to remove stays here, with the error that
+// stopped it, and the nightly retention sweep tries again. A row's presence
+// means "these bytes are still out there"; its absence means they are gone.
+model PendingImagePurge {
+  id        String   @id @default(cuid())
+  url       String
+  // Why it was queued, so a backlog can be read without archaeology:
+  // "purge" (an account erased) is the only writer today.
+  reason    String   @default("purge")
+  attempts  Int      @default(0)
+  lastError String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

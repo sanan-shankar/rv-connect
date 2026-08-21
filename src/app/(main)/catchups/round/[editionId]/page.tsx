@@ -301,7 +301,9 @@ export default async function RoundPage({
       showAsker: p.showAsker,
       accepted: p.accepted,
       position: p.position,
-      asker: askerVisible ? toPersonRef(p.author) : null,
+      // Null once the asker has deleted their account: the question and every
+      // answer under it survive them, unattributed.
+      asker: askerVisible && p.author ? toPersonRef(p.author) : null,
     };
     const entries: RoundEntry[] = p.entries.map((e) => {
       // The songUrl/songTitle/songArt trio is Spotify-shaped: `songTitle` is

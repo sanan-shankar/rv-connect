@@ -265,6 +265,16 @@ export async function adminSetRole(
  *  DROPPED the auth substrate (sessions, accounts, tokens, queued mail) and
  *          their places. The surviving account has its own.
  *
+ *  INHERITED anything the duplicate happened to OWN: the groups it created,
+ *          the Catch-ups it keeps, and its group memberships. Without this the
+ *          merge quietly demoted the human -- `Group.creatorId` went null and
+ *          the duplicate's memberships cascaded away, so a member merged out of
+ *          their own Catch-up lost it (bug audit B-001).
+ *
+ * Where a move would collide with a row the survivor already has -- the same
+ * group, the same answer to the same question -- the duplicate's row is dropped
+ * rather than moved. It used to abort the entire merge instead (audit M02).
+ *
  * One transaction: a half-merged pair is worse than either state.
  */
 export async function adminMergeUsers(
@@ -294,9 +304,34 @@ export async function adminMergeUsers(
       prisma.photo.updateMany({ where: { uploaderId: sourceId }, data: { uploaderId: targetId } }),
       prisma.contribution.updateMany({ where: { userId: sourceId }, data: { userId: targetId } }),
       prisma.catchupPrompt.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } }),
+      // CatchupEntry carries @@unique([promptId, authorId]), so an answer the
+      // survivor already wrote to the same question blocks the move. Drop the
+      // duplicate's copy first and move the rest, rather than failing the whole
+      // merge on one shared question (audit M02).
+      prisma.catchupEntry.deleteMany({
+        where: { authorId: sourceId, prompt: { entries: { some: { authorId: targetId } } } },
+      }),
       prisma.catchupEntry.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } }),
       prisma.adminThread.updateMany({ where: { memberId: sourceId }, data: { memberId: targetId } }),
       prisma.adminMessage.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } }),
+
+      // Owned, not authored. Same shape: shed the collisions, move the rest.
+      prisma.group.updateMany({ where: { creatorId: sourceId }, data: { creatorId: targetId } }),
+      prisma.catchup.updateMany({ where: { createdById: sourceId }, data: { createdById: targetId } }),
+      // If the duplicate was the group's Keeper and the survivor is already an
+      // ordinary member of it, dropping the colliding row would quietly demote
+      // the human. Carry the role over first, then drop.
+      prisma.groupMember.updateMany({
+        where: {
+          userId: targetId,
+          group: { members: { some: { userId: sourceId, role: { in: ["admin", "keeper"] } } } },
+        },
+        data: { role: "admin" },
+      }),
+      prisma.groupMember.deleteMany({
+        where: { userId: sourceId, group: { members: { some: { userId: targetId } } } },
+      }),
+      prisma.groupMember.updateMany({ where: { userId: sourceId }, data: { userId: targetId } }),
 
       // Dropped: unique-keyed engagement that would collide on the way over.
       prisma.like.deleteMany({ where: { userId: sourceId } }),
