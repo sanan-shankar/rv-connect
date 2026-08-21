@@ -968,12 +968,17 @@ export async function advanceEdition(
     if (!meta) return;
     const prisma = await getPrisma();
 
-    // A paused or ended Catch-up's clock stops with it. This is the ONE gate:
-    // every caller (the app-shell sweep, the cron tick, each page's own
-    // freshen) comes through here, so freezing here freezes everywhere. Without
-    // it the Round kept advancing, kept sending a daily reminder to answer, and
-    // published itself, all while the home page showed "This Catch-up is
-    // paused" and no way to answer (audit B-061).
+    // A paused or ended Catch-up's clock stops with it. Without this the Round
+    // kept advancing, kept sending a daily reminder to answer, and published
+    // itself, all while the home page showed "This Catch-up is paused" and no
+    // way to answer (audit B-061).
+    //
+    // This gate covers the whole AUTOMATIC half: the app-shell sweep, the cron
+    // tick and every page's own freshen all advance through here. The
+    // hand-driven half -- the Keeper's early-trigger controls and the two
+    // member submissions, which write the edition directly -- is frozen by
+    // `refuseIfFrozen` in the actions. Both halves are needed; neither is
+    // reachable from the other.
     if (meta.catchupStatus !== "active") return;
 
     let ed: EditionTiming = toTiming(edition);

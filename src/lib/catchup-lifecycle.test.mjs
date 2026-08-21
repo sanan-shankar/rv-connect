@@ -51,13 +51,36 @@ test("B-061: pausing stamps the freeze, ending and resuming clear it", () => {
   );
 });
 
-test("B-061: answering is closed to a frozen Catch-up on both the action and the page", () => {
-  const action = decomment(read("src/app/(main)/catchups/actions.ts"));
-  assert.match(
-    action,
-    /edition\.catchup\.status !== "active"/,
-    "submitEntry no longer refuses an answer to a frozen Catch-up"
-  );
+test("B-061: every hand-driven write into a live Round refuses a frozen Catch-up", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+
+  // The clock gate in advanceEdition covers the automatic half only. These
+  // seven write the edition directly, in their own transactions, and each used
+  // to check the ROUND's status alone -- which does not change on a pause. A
+  // Keeper with a tab opened before the pause could still publish the Round and
+  // notify the whole group under a page saying it was paused.
+  const MUST_REFUSE_WHEN_FROZEN = [
+    "openAnswering",
+    "closeAndPrepare",
+    "extendDeadline",
+    "publishNow",
+    "nudgeGroup",
+    "submitPrompt",
+    "submitEntry",
+  ];
+  for (const name of MUST_REFUSE_WHEN_FROZEN) {
+    const start = src.indexOf(`export async function ${name}`);
+    assert.ok(start > -1, `${name} has been renamed or removed`);
+    const rest = src.slice(start);
+    const end = rest.indexOf("export async function", 1);
+    const body = end === -1 ? rest : rest.slice(0, end);
+    assert.match(
+      body,
+      /refuseIfFrozen\(/,
+      `${name} writes into a Round without refusing a paused or ended Catch-up`
+    );
+  }
+
   const page = decomment(read("src/app/(main)/catchups/[catchupId]/answer/page.tsx"));
   assert.match(
     page,
@@ -75,6 +98,14 @@ test("B-060: resume re-arms the rhythm rather than leaving a dead Catch-up", () 
   const body = resume.slice(0, resume.indexOf("export async function", 1));
   assert.match(body, /addCadenceGap/, "resumeCatchup no longer backfills nextOpensAt");
   assert.match(body, /shiftEditionPatch/, "resumeCatchup no longer gives back the paused time");
+  // The compare-and-swap pins the freeze stamp, not just the status: a
+  // pause/resume/pause cycle racing this one would otherwise credit the wrong
+  // duration to every deadline below.
+  assert.match(
+    body,
+    /status: "paused", pausedAt \}/,
+    "resumeCatchup's compare-and-swap no longer pins pausedAt"
+  );
 });
 
 test("B-062: the header does not count down a Catch-up whose clock is stopped", () => {
