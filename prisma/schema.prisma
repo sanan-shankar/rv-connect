@@ -175,6 +175,8 @@ model Photo {
 
   @@index([approved, isHidden, createdAt])
   @@index([era])
+  // 'Photos by this member', and the purge's own lookup (B-090).
+  @@index([uploaderId])
 }
 
 model PhotoLove {
@@ -186,6 +188,7 @@ model PhotoLove {
   photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
 
   @@unique([userId, photoId])
+  @@index([photoId])
 }
 
 model Group {
@@ -436,6 +439,8 @@ model Post {
   @@index([groupId, createdAt])
   @@index([kind, createdAt])
   @@index([createdAt])
+  // A profile's Posts and Letters tabs filter on the author (B-090).
+  @@index([authorId, createdAt])
 }
 
 model Bookmark {
@@ -448,6 +453,7 @@ model Bookmark {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@index([postId])
 }
 
 model Comment {
@@ -474,6 +480,9 @@ model Comment {
 
   @@index([postId, createdAt])
   @@index([postId, isHidden])
+  // Thread reads walk parentId. Unindexed, opening one comment thread
+  // scanned every comment in the database (B-090).
+  @@index([parentId])
 }
 
 model Like {
@@ -485,6 +494,12 @@ model Like {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  // Postgres does not index a foreign key for you, and the unique above
+  // leads with userId, so it cannot serve a postId-only predicate. Every
+  // feed page, the letters index, saved posts and the 'most liked' sort
+  // count likes per post: without this each one scans the whole table
+  // (bug audit B-090).
+  @@index([postId])
 }
 
 model Report {
@@ -636,6 +651,9 @@ model PollVote {
   post       Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  // Tallying a poll counts by option, and the unique leads with userId (B-090).
+  @@index([pollOptionId])
+  @@index([postId])
 }
 
 model CommentLike {
@@ -647,6 +665,7 @@ model CommentLike {
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commentId])
+  @@index([commentId])
 }
 
 // ─── Places: GeoNames gazetteer for the robust location picker ──────────────
@@ -826,6 +845,7 @@ model CatchupEntryLove {
   entry CatchupEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, entryId])
+  @@index([entryId])
 }
 
 model CatchupPref {
