@@ -20,7 +20,7 @@ import { YearInput } from "@/components/common/year-input";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { cn } from "@/lib/utils";
-import { TICK_HUMAN_BOX } from "@/lib/bot-check-message";
+import { BOT_CHECK_BLOCKED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 import { registerUser } from "./actions";
 import { TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
 
@@ -396,6 +396,14 @@ export function SignupForm({
       if (turnstileToken === "interaction") {
         // Cloudflare's checkbox is on screen, waiting for the human.
         setError(TICK_HUMAN_BOX);
+        hoopoe.react("error");
+        setLoading(false);
+        return;
+      }
+      // The check's script never loaded here, so nothing sent from this
+      // browser can carry a token and the server refuses all of it (M07).
+      if (turnstileToken === "blocked") {
+        setError(BOT_CHECK_BLOCKED);
         hoopoe.react("error");
         setLoading(false);
         return;

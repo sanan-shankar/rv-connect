@@ -25,6 +25,18 @@ class RateLimitedLogin extends CredentialsSignin {
 class BotCheckFailed extends CredentialsSignin {
   code = "bot-check";
 }
+/**
+ * Something broke that has nothing to do with the credentials: the database
+ * was unreachable, a query timed out, the pool was exhausted.
+ *
+ * Its own code because the alternative is silence. Any such throw used to
+ * leave `authorize` through NextAuth's generic channel, and the form prints
+ * that channel as "Invalid email or password." -- to somebody whose password
+ * was right (bug audit M18).
+ */
+class LoginUnavailable extends CredentialsSignin {
+  code = "unavailable";
+}
 
 /* A real bcrypt cost-12 hash of a throwaway string, compared against in the
    branches that reject BEFORE reaching the genuine bcrypt.compare below (no
@@ -54,170 +66,187 @@ const nextAuth = NextAuth({
         devBypass: { type: "text" },
       },
       async authorize(credentials, request) {
-        const email = credentials?.email as string | undefined;
-        const password = credentials?.password as string | undefined;
+        /* One net over everything below (bug audit M18). The two refusals
+           this function makes on purpose (rate-limited, bot-check) are
+           CredentialsSignin throws and are re-thrown untouched -- they are
+           the answer, not a failure to reach one. Anything else reaching
+           here is the database being unreachable, a query timing out, or the
+           pool being exhausted, and NextAuth would have handed all of it to
+           the form as the generic refusal, which the form prints as "Invalid
+           email or password." Telling somebody their correct password is
+           wrong sends them to the reset flow, which needs the same database,
+           so it fails too: a loop with no exit during exactly the minutes
+           when the thing to do is wait a moment and try again. */
+        try {
+          const email = credentials?.email as string | undefined;
+          const password = credentials?.password as string | undefined;
 
-        if (!email) return null;
+          if (!email) return null;
 
-        const ip = ipFromRequest(request);
-        const acctKey = normalizeEmail(email);
+          const ip = ipFromRequest(request);
+          const acctKey = normalizeEmail(email);
 
-        /* H6: the door itself is metered. Read-only here — a successful
-           sign-in must never spend anyone's budget, or the QA scripts and
-           any member who signs in often would rate-limit themselves — and
-           spent only in the failure branches below (see fail()). */
-        const [ipOk, acctOk] = await Promise.all([
-          hasBudget("login-ip", ip),
-          hasBudget("login-account", acctKey),
-        ]);
-        if (!ipOk || !acctOk) {
-          recordLoginAttempt({ email, ok: false, reason: "rate-limited" });
-          throw new RateLimitedLogin();
-        }
-
-        /* H22: prove a human before proving a password. Three doors, in
-           cost order: the five-minute pass a fresh signup or reset already
-           earned (no network), the QA bypass (refused outright in
-           production), then a live Turnstile token checked with
-           Cloudflare. bcrypt never runs for a caller with none of them. */
-        const human =
-          humanPassValid(
-            humanPassFromCookieHeader(request.headers.get("cookie")),
-            acctKey,
-            Date.now(),
-            appSecret(),
-          ) ||
-          devBypassAllowed(credentials?.devBypass as string | undefined) ||
-          (await verifyTurnstile(credentials?.turnstileToken as string | undefined, ip));
-        if (!human) {
-          recordLoginAttempt({ email, ok: false, reason: "bot-check" });
-          throw new BotCheckFailed();
-        }
-
-        /* Every refusal below is what the limiter counts: guesses, not
-           visits. Awaited so a serverless instance cannot freeze before
-           the count lands. */
-        const fail = () =>
-          Promise.all([consume("login-ip", ip), consume("login-account", acctKey)]);
-
-        // acctKey, not the raw submission. User.email is a case-sensitive
-        // unique column holding the canonical (trimmed, lowercased) form, so
-        // looking up what somebody typed refused a correct password whenever
-        // the capitalisation differed (bug audit B-020).
-        const user = await prisma.user.findUnique({
-          where: { email: acctKey },
-        });
-
-        /* Every branch below records its outcome. Purely additive: nothing
-           here changes what this function returns, and recordLoginAttempt
-           cannot throw or block. A member who cannot sign in was previously
-           invisible to every number in /admin/analytics, which is backwards --
-           they are the ones most likely to need help. */
-        if (!user) {
-          // Spend an equivalent bcrypt compare so this branch costs about what
-          // a real account's wrong-password branch does (see DUMMY_PASSWORD_HASH).
-          await bcrypt.compare(password ?? "", DUMMY_PASSWORD_HASH);
-          recordLoginAttempt({ email, ok: false, reason: "no-account" });
-          await fail();
-          return null;
-        }
-
-        /* There is deliberately no admin branch here. Until 2026-08-19 this
-           function short-circuited on `email === process.env.ADMIN_EMAIL` and
-           returned role:"admin" BEFORE bcrypt.compare ever ran, so the admin
-           address signed in with any password, including an empty one
-           (security audit C1-a). The role now comes from the database row
-           like everybody else's, by way of the ordinary path below. */
-
-        // Regular user: verify password
-        if (!password || !user.password) {
-          /* An account with no password set is an invited member who never
-             finished signing up. Different problem, different help. */
-          // Same constant-time reasoning as the no-account branch above.
-          await bcrypt.compare(password ?? "", DUMMY_PASSWORD_HASH);
-          recordLoginAttempt({
-            email,
-            ok: false,
-            reason: "no-password-set",
-            userId: user.id,
-          });
-          await fail();
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) {
-          recordLoginAttempt({ email, ok: false, reason: "wrong-password", userId: user.id });
-          await fail();
-          return null;
-        }
-
-        /* A blocked member may not sign in. Until now `isBlocked` was read by
-           six list queries and by nothing else -- not here, not in the session
-           callback, not in any write path -- so blocking somebody removed them
-           from the directory and left them posting, commenting, uploading and
-           messaging exactly as before (audit H4). The block starts at the door. */
-        if (user.isBlocked) {
-          recordLoginAttempt({ email, ok: false, reason: "blocked", userId: user.id });
-          /* Deliberately NOT counted: this is a correct password from a
-             known account. Counting it would let the block's own refusals
-             exhaust the member's budget and muddy the door for the account
-             they may be unblocked back into. */
-          return null;
-        }
-
-        /* A sign-in during the deletion grace window IS the cancel gesture
-           (audit M35): only the account's real owner can produce the
-           password, so nothing weaker than this may undo — or keep — a
-           deletion request. Best-effort around the notification: a failure
-           to say "we cancelled it" must not turn a successful sign-in into
-           an error, but the clearing itself is awaited, because signing
-           someone in while their purge date still stands is the one wrong
-           outcome here. */
-        if (user.deletionRequestedAt) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { deletionRequestedAt: null },
-          });
-          await writeAudit({
-            actorId: user.id,
-            action: "account.delete_cancel",
-            targetType: "user",
-            targetId: user.id,
-            detail: `${user.name} <${user.email}> signed in during the grace period`,
-          });
-          try {
-            await prisma.notification.create({
-              data: {
-                userId: user.id,
-                type: "admin",
-                message:
-                  "Welcome back. Your account was scheduled for deletion; signing in has cancelled that, and everything is exactly as you left it.",
-                link: "/settings",
-              },
-            });
-          } catch (err) {
-            console.error("delete-cancel notification failed:", err);
+          /* H6: the door itself is metered. Read-only here — a successful
+             sign-in must never spend anyone's budget, or the QA scripts and
+             any member who signs in often would rate-limit themselves — and
+             spent only in the failure branches below (see fail()). */
+          const [ipOk, acctOk] = await Promise.all([
+            hasBudget("login-ip", ip),
+            hasBudget("login-account", acctKey),
+          ]);
+          if (!ipOk || !acctOk) {
+            recordLoginAttempt({ email, ok: false, reason: "rate-limited" });
+            throw new RateLimitedLogin();
           }
-        }
 
-        recordLoginAttempt({ email, ok: true, reason: "ok", userId: user.id });
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          batchType: user.batchType,
-          batchYear: user.batchYear,
-          avatarColor: user.avatarColor,
-          /* MUST be carried, or the epoch check below rejects the very token
-             this call is minting. Anyone who had ever reset their password
-             would sign in successfully, receive a token stamped 0, be compared
-             against a row reading 1, and be thrown straight back out -- every
-             time, permanently. Caught by the Phase 2 behavioural probe; the
-             static checks were perfectly happy with it. */
-          credentialVersion: user.credentialVersion,
-        };
+          /* H22: prove a human before proving a password. Three doors, in
+             cost order: the five-minute pass a fresh signup or reset already
+             earned (no network), the QA bypass (refused outright in
+             production), then a live Turnstile token checked with
+             Cloudflare. bcrypt never runs for a caller with none of them. */
+          const human =
+            humanPassValid(
+              humanPassFromCookieHeader(request.headers.get("cookie")),
+              acctKey,
+              Date.now(),
+              appSecret(),
+            ) ||
+            devBypassAllowed(credentials?.devBypass as string | undefined) ||
+            (await verifyTurnstile(credentials?.turnstileToken as string | undefined, ip));
+          if (!human) {
+            recordLoginAttempt({ email, ok: false, reason: "bot-check" });
+            throw new BotCheckFailed();
+          }
+
+          /* Every refusal below is what the limiter counts: guesses, not
+             visits. Awaited so a serverless instance cannot freeze before
+             the count lands. */
+          const fail = () =>
+            Promise.all([consume("login-ip", ip), consume("login-account", acctKey)]);
+
+          // acctKey, not the raw submission. User.email is a case-sensitive
+          // unique column holding the canonical (trimmed, lowercased) form, so
+          // looking up what somebody typed refused a correct password whenever
+          // the capitalisation differed (bug audit B-020).
+          const user = await prisma.user.findUnique({
+            where: { email: acctKey },
+          });
+
+          /* Every branch below records its outcome. Purely additive: nothing
+             here changes what this function returns, and recordLoginAttempt
+             cannot throw or block. A member who cannot sign in was previously
+             invisible to every number in /admin/analytics, which is backwards --
+             they are the ones most likely to need help. */
+          if (!user) {
+            // Spend an equivalent bcrypt compare so this branch costs about what
+            // a real account's wrong-password branch does (see DUMMY_PASSWORD_HASH).
+            await bcrypt.compare(password ?? "", DUMMY_PASSWORD_HASH);
+            recordLoginAttempt({ email, ok: false, reason: "no-account" });
+            await fail();
+            return null;
+          }
+
+          /* There is deliberately no admin branch here. Until 2026-08-19 this
+             function short-circuited on `email === process.env.ADMIN_EMAIL` and
+             returned role:"admin" BEFORE bcrypt.compare ever ran, so the admin
+             address signed in with any password, including an empty one
+             (security audit C1-a). The role now comes from the database row
+             like everybody else's, by way of the ordinary path below. */
+
+          // Regular user: verify password
+          if (!password || !user.password) {
+            /* An account with no password set is an invited member who never
+               finished signing up. Different problem, different help. */
+            // Same constant-time reasoning as the no-account branch above.
+            await bcrypt.compare(password ?? "", DUMMY_PASSWORD_HASH);
+            recordLoginAttempt({
+              email,
+              ok: false,
+              reason: "no-password-set",
+              userId: user.id,
+            });
+            await fail();
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(password, user.password);
+          if (!isValid) {
+            recordLoginAttempt({ email, ok: false, reason: "wrong-password", userId: user.id });
+            await fail();
+            return null;
+          }
+
+          /* A blocked member may not sign in. Until now `isBlocked` was read by
+             six list queries and by nothing else -- not here, not in the session
+             callback, not in any write path -- so blocking somebody removed them
+             from the directory and left them posting, commenting, uploading and
+             messaging exactly as before (audit H4). The block starts at the door. */
+          if (user.isBlocked) {
+            recordLoginAttempt({ email, ok: false, reason: "blocked", userId: user.id });
+            /* Deliberately NOT counted: this is a correct password from a
+               known account. Counting it would let the block's own refusals
+               exhaust the member's budget and muddy the door for the account
+               they may be unblocked back into. */
+            return null;
+          }
+
+          /* A sign-in during the deletion grace window IS the cancel gesture
+             (audit M35): only the account's real owner can produce the
+             password, so nothing weaker than this may undo — or keep — a
+             deletion request. Best-effort around the notification: a failure
+             to say "we cancelled it" must not turn a successful sign-in into
+             an error, but the clearing itself is awaited, because signing
+             someone in while their purge date still stands is the one wrong
+             outcome here. */
+          if (user.deletionRequestedAt) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { deletionRequestedAt: null },
+            });
+            await writeAudit({
+              actorId: user.id,
+              action: "account.delete_cancel",
+              targetType: "user",
+              targetId: user.id,
+              detail: `${user.name} <${user.email}> signed in during the grace period`,
+            });
+            try {
+              await prisma.notification.create({
+                data: {
+                  userId: user.id,
+                  type: "admin",
+                  message:
+                    "Welcome back. Your account was scheduled for deletion; signing in has cancelled that, and everything is exactly as you left it.",
+                  link: "/settings",
+                },
+              });
+            } catch (err) {
+              console.error("delete-cancel notification failed:", err);
+            }
+          }
+
+          recordLoginAttempt({ email, ok: true, reason: "ok", userId: user.id });
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            batchType: user.batchType,
+            batchYear: user.batchYear,
+            avatarColor: user.avatarColor,
+            /* MUST be carried, or the epoch check below rejects the very token
+               this call is minting. Anyone who had ever reset their password
+               would sign in successfully, receive a token stamped 0, be compared
+               against a row reading 1, and be thrown straight back out -- every
+               time, permanently. Caught by the Phase 2 behavioural probe; the
+               static checks were perfectly happy with it. */
+            credentialVersion: user.credentialVersion,
+          };
+        } catch (err) {
+          if (err instanceof CredentialsSignin) throw err;
+          console.error("[auth] sign-in could not be completed:", err);
+          throw new LoginUnavailable();
+        }
       },
     }),
   ],

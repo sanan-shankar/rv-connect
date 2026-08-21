@@ -14,11 +14,25 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
  *
  *  The token is handed out through getToken() exactly once — siteverify
  *  burns a token on first use, so after every hand-out the widget is
- *  reset to brew a fresh one for the next attempt. If the script cannot
- *  load or the challenge errors, getToken() settles to null and the
- *  form submits without a token: the server is the judge anyway, and
- *  its own posture (refuse a bad token, fail open only when Cloudflare
- *  itself is down) matches — a broken third party never bricks sign-in.
+ *  reset to brew a fresh one for the next attempt.
+ *
+ *  What happens when it CANNOT produce one used to be described here as
+ *  "the form submits without a token, and a broken third party never
+ *  bricks sign-in". That was wrong, and it was the bug (audit M07).
+ *  `verifyTurnstile` fails open only when Cloudflare is unreachable from
+ *  the SERVER; a request that simply arrives with no token is a plain no
+ *  in every environment. So a visitor whose browser cannot reach
+ *  challenges.cloudflare.com got "We couldn't confirm you're human.
+ *  Refresh the page and try once more", refreshed, and got it again,
+ *  for ever. Two things changed:
+ *
+ *   - A challenge error no longer latches the widget dead for the life
+ *     of the page. It resets and tries again, up to ERROR_RETRIES, so a
+ *     blip costs one attempt rather than the session.
+ *   - A SCRIPT that never loads is reported as its own answer
+ *     ("blocked") rather than as a generic failure, because the two need
+ *     different advice: one is "try again", the other is "something in
+ *     this browser is stopping it, and refreshing will not help".
  * ------------------------------------------------------------------ */
 
 type TurnstileApi = {
@@ -32,6 +46,18 @@ declare global {
     turnstile?: TurnstileApi;
   }
 }
+
+/**
+ * How many times a challenge error is forgiven before the widget gives up for
+ * this page.
+ *
+ * Two, because the errors Cloudflare reports here are overwhelmingly transient
+ * (a dropped request, an expired challenge, a slow network) and a visitor
+ * should not lose their session to one; but a widget that resets for ever
+ * would spin against a genuinely hostile environment and never tell anybody.
+ * Three strikes is the point at which "try again" has stopped being true.
+ */
+const ERROR_RETRIES = 2;
 
 let scriptPromise: Promise<void> | null = null;
 
@@ -53,15 +79,20 @@ function loadScript(): Promise<void> {
   return scriptPromise;
 }
 
+/** What `getToken` can answer with, besides a real token.
+ *
+ *  - "interaction": Cloudflare is showing its checkbox and is waiting on the
+ *    HUMAN. Submitting cannot succeed until they tick it, so the form says so
+ *    immediately rather than hanging out the timeout and then sending a doomed
+ *    request (owner report, 2026-08-20: incognito visitors saw exactly that).
+ *  - "blocked": the widget SCRIPT never loaded. Nothing the visitor does on
+ *    this page will change that, so "refresh and try again" is the one piece
+ *    of advice that is certain to be wrong (audit M07).
+ *  - null: it tried and could not, this time. Trying again is reasonable. */
+export type TurnstileFailure = "interaction" | "blocked";
+
 export type TurnstileHandle = {
-  /** Resolves to a fresh single-use token; null when the widget could not
-   *  produce one (script blocked, challenge errored, 12s timeout); or the
-   *  sentinel "interaction" the moment Cloudflare is showing its checkbox
-   *  and is waiting on the HUMAN — submitting can't succeed until they
-   *  tick it, so the form should say that immediately rather than hang
-   *  out the timeout and then send a doomed request (owner report,
-   *  2026-08-20: incognito visitors saw exactly that hang). */
-  getToken: () => Promise<string | null | "interaction">;
+  getToken: () => Promise<string | null | TurnstileFailure>;
 };
 
 export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | null }>(
@@ -69,9 +100,11 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
     const holder = useRef<HTMLDivElement>(null);
     const widgetId = useRef<string | null>(null);
     const token = useRef<string | null>(null);
-    const dead = useRef(false); // script/challenge failed; stop waiting
+    const dead = useRef(false); // out of retries; stop waiting
+    const blocked = useRef(false); // the script itself never loaded
+    const errors = useRef(0);
     const interactive = useRef(false); // Cloudflare is showing its checkbox
-    const waiters = useRef<Array<(t: string | null | "interaction") => void>>([]);
+    const waiters = useRef<Array<(t: string | null | TurnstileFailure) => void>>([]);
 
     useEffect(() => {
       if (!siteKey || !holder.current) return;
@@ -104,15 +137,28 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
               token.current = null;
               if (widgetId.current) window.turnstile?.reset(widgetId.current);
             },
+            /* Settle the waiters either way, so nobody sits out the 12s
+               timeout; but only LATCH once the retries are spent. Resetting
+               gives the next attempt a fresh challenge instead of handing the
+               whole page session to one bad request (audit M07). */
             "error-callback": () => {
-              dead.current = true;
+              errors.current += 1;
+              if (errors.current > ERROR_RETRIES) {
+                dead.current = true;
+              } else if (widgetId.current) {
+                window.turnstile?.reset(widgetId.current);
+              }
               waiters.current.splice(0).forEach((w) => w(null));
             },
           });
         })
         .catch(() => {
+          // The script did not load at all: an extension, a DNS block or a
+          // network filter is in the way. That is a different sentence from
+          // "the challenge failed", and it is the one the form must show.
+          blocked.current = true;
           dead.current = true;
-          waiters.current.splice(0).forEach((w) => w(null));
+          waiters.current.splice(0).forEach((w) => w("blocked"));
         });
       return () => {
         removed = true;
@@ -133,15 +179,16 @@ export const TurnstileWidget = forwardRef<TurnstileHandle, { siteKey: string | n
           if (widgetId.current) window.turnstile?.reset(widgetId.current);
           return Promise.resolve(t);
         }
+        if (blocked.current) return Promise.resolve("blocked");
         if (dead.current) return Promise.resolve(null);
         if (interactive.current) return Promise.resolve("interaction");
-        return new Promise<string | null | "interaction">((resolve) => {
+        return new Promise<string | null | TurnstileFailure>((resolve) => {
           const timer = setTimeout(() => {
             const i = waiters.current.indexOf(settle);
             if (i >= 0) waiters.current.splice(i, 1);
             resolve(null);
           }, 12_000);
-          const settle = (t: string | null | "interaction") => {
+          const settle = (t: string | null | TurnstileFailure) => {
             clearTimeout(timer);
             if (t && t !== "interaction") {
               token.current = null;
