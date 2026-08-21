@@ -502,6 +502,28 @@ export async function enqueueMail(input: {
  * directly. Either way nothing here is awaited and nothing here can fail the
  * action that triggered it.
  */
+/**
+ * Send one specific queued row without making the caller wait for it.
+ *
+ * Same guarded shape as scheduleDrain below and for the same reason: `after()`
+ * throws SYNCHRONOUSLY outside a request scope, and this is reachable from a
+ * script or a test as well as from a page render.
+ */
+function scheduleSend(row: Parameters<typeof claimAndSend>[0]): void {
+  const run = async () => {
+    try {
+      await claimAndSend(row);
+    } catch (err) {
+      console.error("[email] targeted send failed", err);
+    }
+  };
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
+}
+
 function scheduleDrain(): void {
   const run = async () => {
     try {
@@ -800,7 +822,28 @@ export type VerificationMailState =
  * Cost: one Resend call inside one page load, once, for the member whose mail
  * is pending. Every later read takes the "sent" fast path.
  */
-export async function verificationMailState(userId: string): Promise<VerificationMailState> {
+/**
+ * Where a member's confirmation email has got to, and -- when it is due -- the
+ * push that sends it.
+ *
+ * `sendInline` decides whether the caller WAITS for the provider.
+ *
+ *  - The resend BUTTON passes true. Somebody has just pressed "send it again"
+ *    and is watching; the whole value of that button is an honest answer, and
+ *    "sent" has to mean the provider accepted it.
+ *
+ *  - The (main) LAYOUT passes nothing, and must. That layout renders on every
+ *    authenticated page, and this used to reach Resend from inside its
+ *    render-blocking Promise.all: a provider that accepted the connection and
+ *    then said nothing held an unconfirmed member's whole page for the ten
+ *    seconds of `SEND_TIMEOUT_MS`, showing them nothing at all (audit M20).
+ *    Deferred, the send happens the instant the response has streamed and the
+ *    banner reads "imminent" -- which is exactly what it means.
+ */
+export async function verificationMailState(
+  userId: string,
+  opts: { sendInline?: boolean } = {}
+): Promise<VerificationMailState> {
   const row = await prisma.outboundEmail.findFirst({
     where: { userId, kind: "verify" },
     orderBy: { createdAt: "desc" },
@@ -848,7 +891,12 @@ export async function verificationMailState(userId: string): Promise<Verificatio
     // Deliberately NOT behind the drain lease. This is one targeted send for
     // the member looking at the page, and making it wait on a batch pass is
     // exactly the 2026-08-13 incident this function exists to prevent. It
-    // still cannot double-send: claimAndSend's conditional claim decides.
+    // still cannot double-send: claimAndSend's conditional claim decides --
+    // which is also why deferring it below is safe.
+    if (!opts.sendInline) {
+      scheduleSend(row);
+      return { state: "imminent" };
+    }
     const outcome = await claimAndSend(row);
     if (outcome === "sent") return { state: "sent", at: new Date() };
   }

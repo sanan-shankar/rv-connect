@@ -83,7 +83,9 @@ export async function resendVerification(): Promise<{
   // this returns "sent" the provider has genuinely accepted the message. One
   // send path for the button, the page load and the drain (claimAndSend), so
   // there is no second copy of the bookkeeping to disagree.
-  const state = await verificationMailState(session.user.id);
+  // sendInline: somebody pressed "send it again" and is watching the button.
+  // The layout deliberately does not (audit M20).
+  const state = await verificationMailState(session.user.id, { sendInline: true });
 
   if (state.state === "failed" || state.state === "none") {
     // Honest, not "imminent" (M51): "failed" means the row already tried and

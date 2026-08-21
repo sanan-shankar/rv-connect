@@ -41,6 +41,12 @@ export default async function MainLayout({
     }),
     // Only asked for when it can change what the banner says. A confirmed
     // account never queries the queue at all.
+    //
+    // No `sendInline` here, deliberately: this is a render-blocking await on
+    // every authenticated page, and letting it reach Resend meant an
+    // unconfirmed member's page could hang for the provider's whole ten-second
+    // deadline showing nothing (audit M20). The send is scheduled behind the
+    // response instead and the banner says "on its way".
     session.user.emailConfirmed
       ? Promise.resolve(null)
       : verificationMailState(session.user.id),

@@ -128,6 +128,15 @@ const DEBOUNCE_MS = 250;
 function usePlaceSearch(query: string) {
   const [results, setResults] = useState<PlaceSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  /* Whether the last search FAILED, as opposed to finding nothing.
+     
+     Both used to land as an empty `results`, and an empty result list is what
+     puts the "Use what I typed" row on screen -- so a dropped connection, a
+     rate limit or a 500 from the places API quietly turned into a
+     coordinate-less free-typed place that looks exactly like a real one. The
+     member's pin then never appears on the map and nothing ever said why
+     (audit M40). */
+  const [failed, setFailed] = useState(false);
   const requestIdRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -137,6 +146,7 @@ function usePlaceSearch(query: string) {
       abortRef.current?.abort();
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Clears the result list the moment the query empties, before any request is issued.
       setResults([]);
+      setFailed(false);
       setLoading(false);
       return;
     }
@@ -156,11 +166,13 @@ function usePlaceSearch(query: string) {
         .then((data: PlaceSearchResult[]) => {
           if (requestIdRef.current !== requestId) return;
           setResults(data);
+          setFailed(false);
         })
         .catch((err) => {
           if (err instanceof DOMException && err.name === "AbortError") return;
           if (requestIdRef.current !== requestId) return;
           setResults([]);
+          setFailed(true);
         })
         .finally(() => {
           if (requestIdRef.current === requestId) setLoading(false);
@@ -170,7 +182,7 @@ function usePlaceSearch(query: string) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  return { results, loading };
+  return { results, loading, failed };
 }
 
 export function LocationPicker(props: LocationPickerProps) {
@@ -193,7 +205,7 @@ export function LocationPicker(props: LocationPickerProps) {
     }
   }, [props.mode, props.value]);
 
-  const { results, loading } = usePlaceSearch(query);
+  const { results, loading, failed } = usePlaceSearch(query);
 
   const options = useMemo<PlaceOption[]>(() => {
     const placeOptions: PlaceOption[] = results.map((result) => ({ kind: "place", result }));
@@ -284,9 +296,11 @@ export function LocationPicker(props: LocationPickerProps) {
 
   const statusText = loading
     ? "Searching places..."
-    : query.trim()
-      ? `${results.length} place${results.length === 1 ? "" : "s"} found`
-      : "";
+    : !query.trim()
+      ? ""
+      : failed
+        ? "Could not reach the place list"
+        : `${results.length} place${results.length === 1 ? "" : "s"} found`;
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -369,7 +383,16 @@ export function LocationPicker(props: LocationPickerProps) {
                       const isPlace = option.kind === "place";
                       const { primary, secondary } = isPlace
                         ? splitLabel(option.result.label)
-                        : { primary: `Use "${option.text}"`, secondary: "Not in our list -- we'll save it as typed" };
+                        : {
+                            primary: `Use "${option.text}"`,
+                            /* Two different situations, and they must not wear
+                               the same sentence: "not in our list" is a claim
+                               about the list, and we cannot make it when the
+                               list is the thing we could not reach (audit M40). */
+                            secondary: failed
+                              ? "We could not reach the place list. Saved as typed, with no map pin."
+                              : "Not in our list -- we'll save it as typed",
+                          };
                       return (
                         <ComboboxItemRow key={optionKey(option)} option={option} primary={primary} secondary={secondary} />
                       );
@@ -382,7 +405,11 @@ export function LocationPicker(props: LocationPickerProps) {
                       white space under the rishi valley place"). */}
                   {options.length === 0 && (
                     <ComboboxEmpty>
-                      {query.trim() ? "No matches yet -- keep typing" : "Start typing a city or town"}
+                      {!query.trim()
+                        ? "Start typing a city or town"
+                        : failed
+                          ? "Could not reach the place list. Try again in a moment."
+                          : "No matches yet -- keep typing"}
                     </ComboboxEmpty>
                   )}
                 </>
