@@ -107,6 +107,25 @@ Catch-up with a 30-day recently-deleted). B-063's dependency on B-001 is satisfi
 
 ---
 
+## One thing for the OWNER, found live (not in the audit's own words)
+
+**`EMAIL_DEV_SEND=1` is currently set in the local `.env`.** That flag makes this development
+machine send REAL mail, from the production sending domain, to real member addresses in the shared
+production database. It exists for the deliberate case of checking how a message renders in an
+inbox; it is not meant to stay on. Nothing was sent by session 1 (the queue was empty; the only two
+recent rows are from 2026-08-20 12:07 UTC, before it started), but the next drain from any local
+page view will send whatever is queued.
+
+Short answer for the owner: comment that line out in `.env` when you are not actively testing a
+mail template.
+
+This is audit item **M53** ("EMAIL_DEV_SEND marks real members' queued mail as sent in dev, shared
+DB"), now confirmed live. The code fix session 2 should make: keep `queueIsSendable()` all-or-
+nothing as it is, and give the drain's row selection a development-only `to: { in: [ADMIN_EMAIL] }`
+filter, so a local drain can never CLAIM a row addressed to somebody else. Do NOT make `sendMail`
+refuse the address instead — a refusal there is a non-transient failure, so the row would burn its
+attempts and end up `failed`, which is the 2026-08-12 incident wearing a different hat.
+
 ## Things a later session should know
 
 - **Another session shares this checkout.** It committed `d86005d copy(support): ...` mid-way
