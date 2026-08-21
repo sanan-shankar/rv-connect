@@ -89,7 +89,13 @@ export function normalizeHouse(input: string): string {
   const lower = cleaned.toLowerCase();
   const canonical = HOUSES.find((h) => h.toLowerCase() === lower);
   if (canonical) return canonical;
-  if (HOUSE_ALIASES[lower]) return HOUSE_ALIASES[lower];
+  // Object.hasOwn, not `HOUSE_ALIASES[lower]` truthiness: a plain object
+  // literal inherits from Object.prototype, so free-typed input like
+  // "constructor", "toString" or "hasOwnProperty" "resolves" to that
+  // inherited function instead of failing the lookup -- and the code below
+  // then tries to use a function as a house name (audit M41). hasOwn checks
+  // only the object's own keys, never the prototype chain.
+  if (Object.hasOwn(HOUSE_ALIASES, lower)) return HOUSE_ALIASES[lower];
   return cleaned
     .split(/\s+/)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())

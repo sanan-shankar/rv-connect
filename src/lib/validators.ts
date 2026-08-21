@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 import { ERA_VALUES } from "./collection";
 import { emailField } from "./email-address";
 import { POST_CONTENT_MAX, POST_TOO_LONG, postContentMax } from "./post-caps";
-import { valleyYear } from "./utils";
+import { FULL_NAME_MAX, fullNameFits, valleyYear } from "./utils";
 
 /**
  * A school year, bounded below by the year Rishi Valley opened and above by
@@ -61,6 +61,17 @@ export const signupSchema = z
   .refine((d) => d.accountType === "alumnus" || d.yearJoined != null, {
     message: "Please add the year you joined.",
     path: ["yearJoined"],
+  })
+  // registerUser joins firstName + " " + lastName into the one stored `name`
+  // that profileSchema below caps at FULL_NAME_MAX -- so without this check,
+  // a 50-character firstName and a 50-character lastName (each individually
+  // legal) could sign up successfully and produce a 101-character name that
+  // Settings' own schema would then refuse to ever save again (audit M45,
+  // Low 109). Checked against the same `fullNameFits` profileSchema's
+  // cousin below uses, so the two cannot drift apart a second time.
+  .refine((d) => fullNameFits(d.firstName, d.lastName), {
+    message: `Your full name is too long. Keep first and last name to ${FULL_NAME_MAX} characters combined.`,
+    path: ["lastName"],
   });
 
 // Settings uses the same direct-batch model as sign-up: batchYear is entered
@@ -70,7 +81,14 @@ export const signupSchema = z
 // The retired gradeJoined field is deliberately absent here; its DB column is
 // left untouched.
 export const profileSchema = z.object({
-  name: z.string().min(2).max(100),
+  // `.trim()` runs BEFORE `.min()`, not after: without it a whitespace-only
+  // value (two spaces) passed `.min(2)` on its raw, untrimmed length, then
+  // `titleCase` collapsed it to "" on save, leaving a member with an empty
+  // display name the schema had just called valid (audit M45, Low 109). The
+  // ceiling is the same FULL_NAME_MAX signup's combined-name check enforces
+  // (see signupSchema above), so the two can never again cap the same column
+  // at two different numbers.
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(FULL_NAME_MAX),
   bio: z.string().max(1000).optional(),
   about: z.string().max(4000).optional(),
   // The email shown on the profile. Blank means "use my sign-in email"; editing

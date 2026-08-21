@@ -152,10 +152,22 @@ export function parseHouseSpans(raw: string | null | undefined): HouseSpan[] {
   const spans: HouseSpan[] = [];
   for (const entry of entries) {
     const last = spans[spans.length - 1];
-    // Collapse a same-house run into one span; a different house naturally
-    // opens a new span even across a repeated or skipped year.
-    if (last && last.house.toLowerCase() === entry.house.toLowerCase() && entry.year >= last.toYear) {
-      last.toYear = entry.year;
+    // Collapse a same-house run into one span, but only across YEARS THE
+    // PERSON ACTUALLY RECORDED as consecutive: `entry.year <= last.toYear + 1`
+    // allows the next entry to repeat the last recorded year (a duplicate
+    // row) or pick straight up the year after it, and nothing further out.
+    // The old check was `entry.year >= last.toYear`, which -- since entries
+    // are sorted ascending -- is true for every later same-house entry
+    // regardless of gap, so Golden 2014, Golden 2015, (nothing recorded for
+    // 2016), Golden 2017 collapsed into one "Golden 2014-18" span asserting a
+    // year the member never actually said they were in that house (audit Low
+    // 99). A skipped year now correctly opens a new span.
+    if (
+      last &&
+      last.house.toLowerCase() === entry.house.toLowerCase() &&
+      entry.year <= last.toYear + 1
+    ) {
+      last.toYear = Math.max(last.toYear, entry.year);
     } else {
       spans.push({ house: entry.house, fromYear: entry.year, toYear: entry.year });
     }
