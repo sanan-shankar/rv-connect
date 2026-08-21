@@ -166,19 +166,114 @@ piece lands.
 
 ---
 
+## Session 3 — what shipped
+
+**Session 3: 2026-08-21.** Continues from the "Still open" list below.
+
+### The last canonical finding
+
+| ID | | Outcome |
+|---|---|---|
+| B-063 | F | `b332301`. Built to the approved design. **Leave** on the People panel; **Archive** and **Delete** on the /catchups card's own menu; an "Archived" and a "Recently deleted" section that render only when they hold something. State on `CatchupPref` (`archivedAt`, `deletedAt`, index on `deletedAt`), so per-member state cannot leak across members by construction. `groupMemberIds` in `catchups-notify.ts` excludes a binned member; an archived one still hears, because archiving is filing and muting has its own control. New nightly retention step empties the 30-day bin, capped at 200 and **serializable** (see the review findings below). **Two extensions beyond the approved design, both argued in the code:** (1) Delete is refused for the creator as well as Leave, because the sweep would strip the founder's `GroupMember` row while `Catchup.createdById` still pointed at them, leaving a Keeper every Keeper-scoped action then refuses as "not a member"; (2) the card's menu does not OFFER Delete to the creator, following this feature's own rule that an action refused server-side is not shown as a way to be told no. `RECENTLY_DELETED_DAYS` and the countdown live in one pure module (`catchup-shelf.ts`) shared with the sweep's cutoff, so the row and the sweep cannot disagree. `ConfirmDialog` moved `admin/` → `common/`; nothing about it was admin. **Proved live** with two throwaway accounts through the real signup flow: archive, delete, restore and leave each round-tripped at both viewports with a clean console, membership/pref/notification rows all landed as intended, and the sweep was proved in a rolled-back transaction (a copy binned 31 days ago loses that one membership row; one binned 29 days ago survives; the other twelve members' rows untouched). Throwaways deleted. |
+
+### Mail, auth, telemetry, money
+
+| ID | | Outcome |
+|---|---|---|
+| M53 | F | `16425be`. The drain's row SELECTION is narrowed to `ADMIN_EMAIL` outside production, exactly as the ledger's note specified — not a refusal inside `sendMail`, which would burn the row's attempts. **Fails closed both ways:** `queueIsSendable()` now also requires `ADMIN_EMAIL` outside production and says loudly why it declined, and `localDrainRecipient` returns an address matching nothing rather than "everybody" when it is missing. Without that second half the guard would have been undone by an UNSET variable (write-path review). Proved live: a throwaway signup's verify row sat `queued`, `attempts: 0`, through several local page views. |
+| M07 | F | `5fd8af0`. **The widget's own docblock was the bug written down** ("a broken third party never bricks sign-in"): `verifyTurnstile` fails open only when Cloudflare is unreachable from the SERVER, and a request arriving with no token is a plain no everywhere. So anyone whose browser could not load `challenges.cloudflare.com` was told "refresh and try once more", refreshed, and got it again, permanently. A challenge error now resets and retries twice before latching; a SCRIPT that never loaded is reported as its own sentinel, because "refresh" is the one piece of advice certain to be wrong for it. New `BOT_CHECK_BLOCKED` names the address to allow. All three auth forms handle it. |
+| M18 | F | `5fd8af0`. `authorize()` wrapped in one net: the two deliberate `CredentialsSignin` refusals re-throw untouched, anything else becomes a new `unavailable` code. A database outage used to reach the form through NextAuth's generic channel, which the form prints as "Invalid email or password." — to somebody whose password was right, who then went to reset it, which needs the same database. New `SIGN_IN_UNAVAILABLE` says it is us, not the password. |
+| M24 | D | Deferred **within session 3**, not skipped: `touchLastSeen` fires only on layout render, so soft client-side navigations go uncounted. The fix is a client-side reporter, which is design work rather than a correction; see "Still open". |
+| Lows 25, 35, 44, 72, 77, 82, 87 | F | `991c662`. Nine fire-and-forget writes moved to `after()`. The two LIBRARY sites (`auth-tokens.ts`, `login-attempt.ts`) guard the call and fall back to the old shape: `after()` throws SYNCHRONOUSLY outside a request scope — confirmed against the installed `next@16.3.1` source, not assumed — and both are reachable from callers that may not have one. That guard is the same one `scheduleDrain()` already carries. Low 87's ordering fix applied to the letter page AND to the Collection photo page, which had the same shape (the agent fixed only the one it was pointed at; the diff was read here). |
+| M59 | F | `220ebec`. Signature reject answered 400, which Razorpay counts against the endpoint and eventually DISABLES the webhook for — on a public, necessarily unauthenticated route, so a junk flood could silently stop real payment confirmations for everyone. Now: `unconfigured` → 500 (that payment is real and the retry records it once the variable is set); `unsigned`/`mismatch` → 2xx, because we have already decided to do nothing with the body. The failure signal 400 was really buying is replaced by an audit line **deduped to one an hour**, so the same flood cannot fill the table instead. `verifyWebhookSignature` returns a verdict rather than a boolean. |
+| M58 | F | `220ebec`. `refund.processed` and `payment.dispute.created` now move the row out of `paid`, which every sum in the app already filters on, so the arithmetic corrects itself everywhere at once. `refund.processed`, not `created`: created is the instruction, processed is the money having left. An audit line too — this is the only event that moves a money total DOWNWARDS after the fact. /admin/support grows a "Given back" section on the day it first has one. |
+| M03 | F | `220ebec`. The person page's contribution sum gained `livemode: true`, which every other money surface already had. |
+| M60 | F | `220ebec`. `razorpayLivemode()` read the keys through `credentials()`, which THROWS when they are unset — and it is called while a Prisma `where` is being built, so the throw escaped the surrounding `.catch()` and 500'd the page. Reads the env directly now. An environment with no keys has no live money in it, so `false` is the answer rather than a fallback. |
+| M56 | F | `220ebec`. **The report's diagnosis was half right.** The retry latch WAS cleared on failure; what killed the retry is that a failed `<script>` leaves its element in the DOM and the "already loaded?" check looked for the tag rather than for `window.Razorpay`, so every later attempt resolved instantly and handed the caller a checkout that did not exist. Checks the global now, and removes the corpse. |
+| Lows 8, 116 | F | `220ebec`. "Did not go through" counted test orders and was silently capped at the last hundred rows; it is now its own live-only count over the whole history, and the four windowed tiles say they are windowed. The ledger section below was renamed, because a tile and a list reading 21 and 23 under identical words is a number that looks wrong with no way to tell which is which. A failure reason surviving a successful retry is cleared on the paid transition. |
+
+### The demo database had received none of this
+
+Found by the write-path reviewer, confirmed live, and **it would have broken the
+demo on the owner's next push**. The demo deployment has its own Supabase project
+and there was no way to apply a manual migration to it, so it had drifted since
+2026-08-20: no `User.showEmail`, none of the Catch-up pause or filing columns,
+and three tables (`AuditLog`, `PendingImagePurge`, `QueueLease`) that did not
+exist. Every one of those is read by code already committed here.
+
+`scripts/dev/run-sql.mjs --env <file>` is the fix for the cause (`b3a2f4a`); all
+fourteen outstanding migrations were then applied to the demo database, in date
+order, and `verify-guard.mts` now passes **15 of 15** where it previously could
+not finish. A second database with no way to migrate it is a second database
+that will be wrong.
+
+### Review findings acted on
+
+- **write-path-reviewer** on the B-063 diff came back clean on authorization
+  ordering, the founder guards, `clearCatchupNotifications`' scoping, the P2002
+  retry, and the migration's idempotence — and found four real things, all fixed
+  before the commit:
+  1. **M53's guard failed open on a MISSING `ADMIN_EMAIL`**, reintroducing the
+     exact incident it was written to prevent. Fixed in two places (above).
+  2. **The retention sweep raced a restore.** Read the due list, then delete, and
+     a member pressing "Put back" in the gap had their restore silently undone:
+     membership gone, no error, the row that said "4 days left" simply absent in
+     the morning. The whole step is now one **serializable** transaction with the
+     read inside it — the same instrument the last-admin guard uses (M26). If it
+     aborts, `step()` records it and tomorrow's pass does the work; the sweep is
+     idempotent by design, so losing a night costs nothing and a member's undo is
+     the thing worth protecting.
+  3. **`addCatchupMembers` could clear another member's personal filing state.**
+     The stamp-clearing update was scoped to everyone named in the call rather
+     than to those actually added, so a Keeper re-listing an existing member
+     dragged their own copy back out of their bin. Scoped to genuinely new
+     members now — the picker never offers an existing one, so this only ever
+     mattered to a hand-made call, which is exactly the kind that must not be
+     able to do it.
+  4. **No `IS_DEMO` guard on the three new actions.** The demo is one shared
+     persona, so these three — personal everywhere else — would there change the
+     list for whoever else is looking. All three refuse with one honest sentence.
+  Its check on "a member with two binned Catch-ups in one group" came back
+  structurally impossible: `Catchup.groupId` is `@unique`, so a group has at most
+  one Catch-up and a member at most one pref row per group.
+
+### Net-new findings (not in the audit)
+
+- **B-203 — "Start one" on a group card creates a DUPLICATE group.** Found live
+  while testing B-063. `/catchups/new?group=<id>` preloads that group's name and
+  members, but `createCatchupWithPeople` always mints a NEW Group row, so the
+  original card stays on the list saying "No Catch-up here yet" with "Start one"
+  still on it — for ever, and pressing it again makes a third. Reproduced with
+  the throwaway accounts: two rows both named "Batch of 1965", one live and one
+  dormant. **Not fixed: it needs an owner decision**, because the two readings
+  lead to materially different work. Either (a) "Start one" means *for this
+  group*, and the Catch-up attaches to it — but then a custom name renames a
+  shared batch group and extra people picked join it, both of which are one
+  member's private choice with a shared side effect; or (b) it means *seeded
+  from this group*, which is what the page's own docblock says it means, and the
+  fix is on the index instead: stop rendering a card for a group that has no
+  Catch-up, since the header's permanent "Start a Catch-up" button and the
+  create page's one-tap "Everyone from <batch>" already cover it. (b) is the
+  cheaper and more honest reading, and it removes a row rather than adding
+  machinery; it also removes an affordance the owner has already reviewed, which
+  is why it is his call.
+
 ## Still open
 
-**Canonical (1):** B-063 (the Catch-up leave / archive / delete feature).
-*(Session 2 closed the other fifteen: B-040, B-042, B-046, B-047, B-050, B-060, B-061, B-062, B-100,
-B-110, B-111, B-120, B-122, B-200, B-201.)*
+**Canonical: NONE. All 45 are fixed** (session 3 closed the last, B-063, in `b332301`).
 
-**§3.M:** 61 of the 68 Medium roots. Done: M02, M26, M27, M33, M55, M57, M65.
+**§3.M:** 50 of the 68 Medium roots remain. Done: M02, M03, M07, M18, M26, M27, M33, M53, M55,
+M56, M57, M58, M59, M60, M65. Deferred with a reason: M24 (needs a client-side reporter, which is
+design work rather than a correction; a soft navigation inside `(main)` never re-runs the layout, so
+the fix is a route-change listener that pings a small endpoint, and that is a new surface rather than
+a corrected one).
 
-**§3.L:** ~97 of the 117 Low items. Done: 19, 30, 40, 45, 47, 48, 49, 50, 52, 58, 62, 64, 65, 67,
-79, 80, 85, 91, 94, 108, 112, 117.
+**§3.L:** ~88 of the 117 Low items remain. Done: 8, 19, 25, 30, 35, 40, 44, 45, 47, 48, 49, 50, 52,
+58, 62, 64, 65, 67, 72, 77, 79, 80, 82, 85, 87, 91, 94, 108, 112, 116, 117.
 
-**Feature builds:** B-050 shipped (`eedbb3e`). **B-063 is designed and approved but NOT built** —
-see the decisions below.
+**Feature builds: both shipped.** B-050 in `eedbb3e`, B-063 in `b332301`.
+
+**Needs an owner decision:** B-203 (see "Net-new findings" above).
 
 ### B-063 — the owner's decisions, taken 2026-08-21 (session 2), not yet implemented
 
