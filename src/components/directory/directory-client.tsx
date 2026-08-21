@@ -125,16 +125,36 @@ export function DirectoryClient({
   const [loadingMore, setLoadingMore] = useState(false);
   const [gridRef] = useAutoAnimate();
 
+  /* Which list the rows on screen belong to. Bumped every time the server
+     hands down a new first page, and captured by any "Load more" in flight:
+     a page fetched under the OLD filters used to be appended to the NEW list
+     when it landed a moment later, and its cursor adopted with it, so the
+     member saw two different result sets stitched together and every later
+     page continued the wrong one (audit M36). */
+  const listGeneration = useRef(0);
+
   useEffect(() => {
     // Resyncs the list from freshly server-rendered props when the query changes. The server is the source of truth here; this mirrors it into the local paging state.
+    listGeneration.current += 1;
     setResults(users);
     setCursor(nextCursor);
     setBrowseView(hasFilter ? "people" : "map");
   }, [users, nextCursor, hasFilter]);
 
+  /* The search debounce outlives this component without it. Type, then
+     navigate away inside the 300ms, and the timer still fires its
+     router.push("/directory?q=...") and hauls the member back to a page they
+     had left (audit Low 71). */
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
+
   async function handleLoadMore() {
     if (!cursor) return;
     setLoadingMore(true);
+    const generation = listGeneration.current;
     try {
       // callAction: a rejected page (deploy skew, dropped network, expired
       // session) used to leave "Load more" disabled for the rest of the
@@ -153,8 +173,15 @@ export function DirectoryClient({
             yearTo: initialFilters.yearTo || undefined,
           },
           cursor,
+          // Only read if the cursor row has left the result set; see the
+          // recovery in loadDirectoryPage (audit M39).
+          loaded: results.length,
         })
       );
+      // The filters changed while this was in flight, so these rows belong to
+      // a list that is no longer on screen (audit M36). Dropping them is the
+      // whole fix: the server has already sent the new first page.
+      if (generation !== listGeneration.current) return;
       if ("error" in data) {
         toast.error(data.error);
         return;

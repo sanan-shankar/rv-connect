@@ -40,9 +40,13 @@ export type DirectoryUser = {
 export async function loadDirectoryPage({
   filters,
   cursor,
+  loaded = 0,
 }: {
   filters: DirectoryFilters;
   cursor: string | null;
+  /** How many rows the caller is already showing. Only used to recover from a
+   *  cursor row that has left the result set; see the fallback below. */
+  loaded?: number;
 }): Promise<{ users: DirectoryUser[]; nextCursor: string | null }> {
   /* This was the one "use server" action in the codebase with no auth() call
      at all (audit H1), and it returns the complete membership roll of a
@@ -62,13 +66,43 @@ export async function loadDirectoryPage({
   const where = buildDirectoryWhere(filters);
   const orderBy = directoryOrderBy(filters.sort);
 
-  const rows = await prisma.user.findMany({
+  let rows = await prisma.user.findMany({
     where,
     select: PERSON_SELECT,
     orderBy,
     take: PAGE_SIZE + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
+
+  /* Recover from a cursor row that has left the result set (audit M39).
+   *
+   * Prisma's `cursor` needs the row it names to be INSIDE the filtered set, so
+   * if that member is blocked, asks for deletion, or is purged between one
+   * page and the next, this query answers "nothing" for a list with hundreds
+   * of rows left -- and "Load more" simply stopped, with nothing on screen to
+   * say the rest of the directory was now unreachable.
+   *
+   * Only checked when the page came back EMPTY, which is also the ordinary
+   * end-of-list case, so the extra query costs one round trip on the last page
+   * of a scroll-through and nothing at all on any other page. Falling back to
+   * an offset is not as exact as a cursor -- a row inserted above could be
+   * repeated or missed once -- but it is a page of the directory rather than
+   * the silent end of it. */
+  if (cursor && rows.length === 0) {
+    const cursorStillCounts = await prisma.user.findFirst({
+      where: { ...where, id: cursor },
+      select: { id: true },
+    });
+    if (!cursorStillCounts) {
+      rows = await prisma.user.findMany({
+        where,
+        select: PERSON_SELECT,
+        orderBy,
+        take: PAGE_SIZE + 1,
+        skip: Math.max(0, Math.trunc(loaded)),
+      });
+    }
+  }
 
   const hasMore = rows.length > PAGE_SIZE;
   const users = hasMore ? rows.slice(0, PAGE_SIZE) : rows;

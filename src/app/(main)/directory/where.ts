@@ -3,6 +3,7 @@ import { cityNameVariants } from "@/lib/city-coords";
 // R6: this file used to carry its own copy, which is the drift-by-copy-paste
 // pattern that produced M18 for real).
 import { insensitive, escapeLike } from "@/lib/db-text";
+import { parseBatchYear } from "@/lib/batch-year";
 
 export type DirectoryFilters = {
   q?: string;
@@ -24,10 +25,15 @@ export type DirectoryFilters = {
  * case-insensitive where the provider allows it.
  */
 export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, unknown> {
+  /* parseBatchYear, not Number(): `Number("abc")` is NaN, and NaN reached
+     Prisma as `batchYear: NaN`, which throws and 500s the whole directory --
+     a hand-edited or stale link took the page down rather than showing an
+     unfiltered list (audit M23). Shared with /api/users-by-batch, which had
+     the same class of hole from the other direction (Low 70). */
   const showingYear =
-    filters.year === "faculty" ? "faculty" : filters.year ? Number(filters.year) : null;
-  const yearFrom = filters.yearFrom ? Number(filters.yearFrom) : null;
-  const yearTo = filters.yearTo ? Number(filters.yearTo) : null;
+    filters.year === "faculty" ? "faculty" : parseBatchYear(filters.year);
+  const yearFrom = parseBatchYear(filters.yearFrom);
+  const yearTo = parseBatchYear(filters.yearTo);
 
   // deletionRequestedAt: an account inside its 60-day deletion grace window
   // (audit M35) leaves the directory immediately, exactly like a blocked one.
@@ -43,15 +49,19 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
   }
   if (showingYear === "faculty") {
     where.accountType = { in: ["teacher", "ex_teacher"] };
-  } else if (typeof showingYear === "number") {
-    where.batchYear = showingYear;
   }
-  if (yearFrom || yearTo) {
-    where.batchYear = {
-      ...(yearFrom ? { gte: yearFrom } : {}),
-      ...(yearTo ? { lte: yearTo } : {}),
-    };
-  }
+  /* One `batchYear` clause built from all three inputs, so they INTERSECT
+     rather than overwrite (audit Low 73). The range used to be assigned second
+     and simply clobbered an exact year picked from a batch tile, while the UI
+     went on rendering both as active filter tokens: the member could see two
+     filters and was getting one. Contradictory inputs (year 1990 inside the
+     range 2000-2010) now return nothing, which is honest and legible, because
+     both tokens are on screen to explain it. */
+  const batchYear: Record<string, number> = {};
+  if (typeof showingYear === "number") batchYear.equals = showingYear;
+  if (yearFrom !== null) batchYear.gte = yearFrom;
+  if (yearTo !== null) batchYear.lte = yearTo;
+  if (Object.keys(batchYear).length > 0) where.batchYear = batchYear;
   if (filters.city) {
     // A person counts for a city filter if ANY of their (unlimited) cities
     // match -- not just a primary one -- so this is a `places.some` EXISTS,
@@ -88,14 +98,29 @@ export function directoryOrderBy(sort?: string) {
       return [{ name: "asc" as const }, { id: "asc" as const }];
     case "name-desc":
       return [{ name: "desc" as const }, { id: "asc" as const }];
+    /* `nulls: "last"` on every batch sort (audit M38). Postgres orders NULLs
+       FIRST on a DESC column, so "Batch: newest first" opened with everybody
+       who has NO batch year at all -- teachers and half-finished profiles
+       ahead of the newest batch -- which is the opposite of what the label
+       promises. Spelled out on ASC too, where Postgres already does this, so
+       the two sorts read as one decision rather than one rule and one
+       accident. */
     case "batch-asc":
-      return [{ batchYear: "asc" as const }, { name: "asc" as const }, { id: "asc" as const }];
+      return [
+        { batchYear: { sort: "asc" as const, nulls: "last" as const } },
+        { name: "asc" as const },
+        { id: "asc" as const },
+      ];
     case "batch-desc":
-      return [{ batchYear: "desc" as const }, { name: "asc" as const }, { id: "asc" as const }];
+      return [
+        { batchYear: { sort: "desc" as const, nulls: "last" as const } },
+        { name: "asc" as const },
+        { id: "asc" as const },
+      ];
     default:
       return [
         { createdAt: "desc" as const },
-        { batchYear: "desc" as const },
+        { batchYear: { sort: "desc" as const, nulls: "last" as const } },
         { id: "asc" as const },
       ];
   }
