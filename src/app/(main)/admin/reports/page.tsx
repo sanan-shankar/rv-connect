@@ -2,12 +2,23 @@ import type { Metadata } from "next";
 import { requireAdminPage } from "@/lib/admin";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
-import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
+import {
+  ADMIN_MEASURE,
+  AdminCapped,
+  AdminEmpty,
+  AdminSection,
+} from "@/components/admin/admin-chrome";
 import { ReportList, type ReportRow } from "@/components/admin/reports/report-list";
 
 export const metadata: Metadata = {
   title: "Reports",
 };
+
+/** The waiting queue is meant to be emptied, so a page of it is plenty --
+ *  and a spam wave must not be able to load every row into one render. */
+const PENDING_LIMIT = 100;
+/** History, for spotting a pattern. Older than this is in the database. */
+const SETTLED_LIMIT = 50;
 
 const REPORT_SELECT = {
   id: true,
@@ -47,17 +58,22 @@ export default async function AdminReportsPage() {
   // layout is not re-evaluated on every move -- and this page reads member
   // data. One line, and the demotion window closes (bug audit B-024).
   await requireAdminPage();
+  /* Both lists are bounded. The waiting queue used to have no `take` at all,
+     so a flood of reports would have loaded every one of them into a single
+     page render (audit Low 55) -- and this is precisely the page a flood
+     arrives on. Both say when they have stopped short, below. */
   const [pending, settled] = await Promise.all([
     prisma.report.findMany({
       where: { status: "pending" },
       select: REPORT_SELECT,
       orderBy: { createdAt: "desc" },
+      take: PENDING_LIMIT,
     }),
     prisma.report.findMany({
       where: { status: { not: "pending" } },
       select: REPORT_SELECT,
       orderBy: { createdAt: "desc" },
-      take: 50,
+      take: SETTLED_LIMIT,
     }),
   ]);
 
@@ -101,7 +117,14 @@ export default async function AdminReportsPage() {
         {pending.length === 0 ? (
           <AdminEmpty>Nothing has been reported. Nobody is waiting.</AdminEmpty>
         ) : (
-          <ReportList reports={pending.map(toRow)} />
+          <>
+            <ReportList reports={pending.map(toRow)} />
+            {pending.length === PENDING_LIMIT && (
+              <AdminCapped>
+                The newest {PENDING_LIMIT}. Settle some to see the rest.
+              </AdminCapped>
+            )}
+          </>
         )}
       </AdminSection>
 
@@ -109,7 +132,12 @@ export default async function AdminReportsPage() {
         {settled.length === 0 ? (
           <AdminEmpty>Nothing has been settled yet.</AdminEmpty>
         ) : (
-          <ReportList reports={settled.map(toRow)} settled />
+          <>
+            <ReportList reports={settled.map(toRow)} settled />
+            {settled.length === SETTLED_LIMIT && (
+              <AdminCapped>The most recent {SETTLED_LIMIT}.</AdminCapped>
+            )}
+          </>
         )}
       </AdminSection>
     </div>

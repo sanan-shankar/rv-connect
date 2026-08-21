@@ -130,6 +130,16 @@ export async function adminUpdateNote(userId: string, note: string): Promise<Adm
   return { success: true };
 }
 
+/**
+ * Verify a member by hand.
+ *
+ * `method` defaults to "admin_manual" and both admin surfaces now let it,
+ * because that is what actually happened. They used to pass "office_list"
+ * explicitly, so a member an admin had checked themselves was recorded -- and
+ * displayed on their own page -- as "Off the office list" (audit Low 6). Only
+ * `tryRosterAutoVerifyQuietly`, which really does read the roster, writes
+ * "office_list".
+ */
 export async function adminVerifyUser(
   userId: string,
   method: "office_list" | "admin_manual" = "admin_manual"
@@ -137,8 +147,14 @@ export async function adminVerifyUser(
   const actor = await requireAdminActor();
   if (!actor.ok) return { error: actor.error };
 
-  await prisma.user.update({
-    where: { id: userId },
+  /* A conditional update, so the notification below follows the TRANSITION
+     rather than the click (audit Low 5). Verify had no in-flight guard in the
+     People list and minted a notification unconditionally, so a double-press --
+     or two admins clearing the queue together -- sent the member the same
+     "You're verified" twice. The same shape `requestVerification` carries for
+     the member's own side of this (Low 20). */
+  const became = await prisma.user.updateMany({
+    where: { id: userId, verifyState: { not: "verified" } },
     data: {
       verifyState: "verified",
       verifyStateAt: new Date(),
@@ -146,6 +162,15 @@ export async function adminVerifyUser(
       verifiedAt: new Date(),
     },
   });
+
+  if (became.count === 0) {
+    // Already verified. Nothing changed, so nothing is audited and nobody is
+    // told; the caller still gets a success, because the state it asked for is
+    // the state that holds.
+    revalidatePath("/admin", "layout");
+    revalidatePath(`/profile/${userId}`);
+    return { success: true };
+  }
 
   await writeAudit({
     actorId: actor.actorId,

@@ -4,7 +4,18 @@ import Link from "next/link";
 import { AlertTriangle, CalendarDays, CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
-import { ADMIN_MEASURE, AdminEmpty, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
+import {
+  ADMIN_MEASURE,
+  AdminCapped,
+  AdminEmpty,
+  AdminSection,
+  StatStrip,
+  StatTile,
+} from "@/components/admin/admin-chrome";
+
+/** How much of the ledger one page render loads. The tiles above it are
+ *  aggregates over the whole history, so nothing here is a total. */
+const LEDGER_LIMIT = 100;
 import { Chip } from "@/components/admin/admin-chip";
 import { formatDisplayDate, formatPaise, metaLine } from "@/lib/utils";
 
@@ -89,7 +100,7 @@ export default async function AdminSupportPage() {
         user: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
-      take: 100,
+      take: LEDGER_LIMIT,
     }),
   ]);
 
@@ -196,7 +207,19 @@ export default async function AdminSupportPage() {
         {paid.length === 0 ? (
           <AdminEmpty>Nobody has given anything yet.</AdminEmpty>
         ) : (
-          <Ledger rows={paid} />
+          <>
+            <Ledger rows={paid} />
+            {/* The three lists below are ONE window of the most recent
+                contributions, split by outcome. Saying so where it can be read
+                rather than only in a comment: a section headed "Given 43" over
+                a capped list reads as the whole history (audit Low 55). */}
+            {rows.length === LEDGER_LIMIT && (
+              <AdminCapped>
+                These three lists are the most recent {LEDGER_LIMIT} contributions of any
+                kind. The totals above count every one there has ever been.
+              </AdminCapped>
+            )}
+          </>
         )}
       </AdminSection>
 

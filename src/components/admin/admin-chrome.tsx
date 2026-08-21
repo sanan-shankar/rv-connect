@@ -77,6 +77,20 @@ export function AdminEmpty({ children }: { children: React.ReactNode }) {
 }
 
 /**
+ * A list that stops before the end says so.
+ *
+ * Several admin lists take the most recent N rows and rendered nothing to
+ * admit it, so a page whose count read "100" looked like the whole history
+ * and there was no way to tell (audit Low 55). A silent cap turns a page that
+ * is supposed to be the record into one that quietly is not.
+ */
+export function AdminCapped({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-0.5 pt-1 text-[12px] text-muted-foreground">{children}</p>
+  );
+}
+
+/**
  * One fact about the place, in a strip of them.
  *
  * Every tile is a LINK to the section that owns the number. The panel it

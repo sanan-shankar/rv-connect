@@ -6,6 +6,7 @@ import { requireAdminPage, overdueEditionWhere } from "@/lib/admin";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { Chip, type ChipTone } from "@/components/admin/admin-chip";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
+import { advanceDueCatchups } from "@/lib/catchups";
 
 export const metadata: Metadata = {
   title: "Catch-ups",
@@ -31,12 +32,22 @@ const STATUS: Record<string, { label: string; tone: ChipTone }> = {
  * Oversight, not a second control panel.
  *
  * Catch-ups is the app's largest subsystem: six models, twenty server
- * actions, and a lifecycle with real deadlines. It also has NO CRON. Rounds
- * advance in `advanceDueCatchups`, which runs off whoever happens to load a
- * page, and it only advances the Catch-ups THAT PERSON is in. So a Round
- * belonging to a group where nobody has visited lately can sit past its own
- * closing date indefinitely, and until now there was nowhere at all that
- * would say so.
+ * actions, and a lifecycle with real deadlines. Rounds advance in
+ * `advanceDueCatchups`, which runs off whoever happens to load a page, and
+ * when given a member id it only advances the Catch-ups THAT PERSON is in. So
+ * a Round belonging to a group where nobody has visited lately can sit past
+ * its own closing date, and there was nowhere at all that would say so.
+ * (A nightly cron sweeps them too, since audit M27; this page is what answers
+ * the question in between.)
+ *
+ * This page runs the UNSCOPED advance itself, before it reads anything. The
+ * copy under the stuck list used to tell the admin that "opening the Catch-up
+ * yourself is usually enough to nudge it along" -- which was not true, because
+ * the advance is scoped to the reader's own memberships and an admin is
+ * usually not in that group (audit Low 11). Rather than correct the sentence
+ * to say there was nothing they could do, the page now does the nudging: the
+ * sweep is idempotent, cannot throw, and an admin looking at a list of overdue
+ * Rounds is exactly the person who wants them moved on.
  *
  * The Keeper still runs their own Catch-up. This page answers one question:
  * is any of this stuck.
@@ -47,6 +58,11 @@ export default async function AdminCatchupsPage() {
   // layout is not re-evaluated on every move -- and this page reads member
   // data. One line, and the demotion window closes (bug audit B-024).
   await requireAdminPage();
+
+  /* Before the reads, so the list below reflects the advance rather than the
+     state that preceded it. Swallows its own errors by design. */
+  await advanceDueCatchups();
+
   const now = new Date();
 
   const [catchups, overdue] = await Promise.all([
@@ -163,7 +179,8 @@ export default async function AdminCatchupsPage() {
             <p className="px-0.5 pb-1 text-[12.5px] leading-relaxed text-muted-foreground">
               These Rounds are past a date they should have moved on from. Rounds advance when
               somebody in that group loads a page, so a quiet group can leave one sitting here.
-              Opening the Catch-up yourself is usually enough to nudge it along.
+              Loading this page has already tried to move every one of them on, so anything still
+              listed is stuck for a reason worth looking at.
             </p>
             <div className="flex flex-col gap-2">{stuck.map(card)}</div>
           </>

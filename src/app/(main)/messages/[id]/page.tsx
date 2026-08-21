@@ -8,6 +8,10 @@ import { threadTitle } from "@/lib/admin-threads";
 import { AdminMark, Conversation } from "@/components/messages/conversation";
 import { MessageComposer } from "@/components/messages/message-composer";
 
+/** How many messages of one conversation a page render loads. Its most recent
+ *  end: a thread is read for what was said last. */
+const THREAD_MESSAGE_LIMIT = 200;
+
 export const metadata: Metadata = {
   title: "Messages",
 };
@@ -38,7 +42,13 @@ export default async function ThreadPage({
       kind: true,
       status: true,
       messages: {
-        orderBy: { createdAt: "asc" },
+        /* The most recent page, newest first, then reversed for reading below.
+           This had no `take` at all, so one long conversation was an unbounded
+           query on a page render -- and a member may write forty messages an
+           hour (audit Low 86). The END of a conversation is the part anybody
+           opens it for, so the window is taken from that end. */
+        orderBy: { createdAt: "desc" },
+        take: THREAD_MESSAGE_LIMIT + 1,
         select: {
           id: true,
           body: true,
@@ -60,6 +70,15 @@ export default async function ThreadPage({
   if (!thread || thread.memberId !== session.user.id) {
     notFound();
   }
+
+  /* The query above asked for one more than the window so the page can say
+     whether it stopped short, and it read newest-first; the conversation reads
+     oldest-first (audit Low 86). */
+  const olderExist = thread.messages.length > THREAD_MESSAGE_LIMIT;
+  const shown = (olderExist ? thread.messages.slice(0, THREAD_MESSAGE_LIMIT) : thread.messages)
+    .slice()
+    .reverse();
+
 
   await prisma.adminThread.updateMany({
     where: { id: thread.id, memberId: session.user.id, memberUnread: true },
@@ -92,8 +111,13 @@ export default async function ThreadPage({
         </div>
 
         <div className="p-5 sm:p-6">
+          {olderExist && (
+            <p className="mb-4 text-[12.5px] text-muted-foreground">
+              Showing the most recent {THREAD_MESSAGE_LIMIT} messages of this conversation.
+            </p>
+          )}
           <Conversation
-            messages={thread.messages.map((m) => ({
+            messages={shown.map((m) => ({
               ...m,
               createdAt: m.createdAt.toISOString(),
             }))}

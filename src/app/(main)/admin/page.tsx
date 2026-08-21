@@ -17,10 +17,16 @@ import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { isOwner, requireAdminPage } from "@/lib/admin";
 import { mailHealth } from "@/lib/email-queue";
-import { loadWorklist } from "@/lib/admin-worklist-query";
+import { loadWorklist, worklistIsCapped } from "@/lib/admin-worklist-query";
 import { QUEUE_LABEL, QUEUE_TONE, type WorkItem } from "@/lib/admin-worklist";
 import { Chip } from "@/components/admin/admin-chip";
-import { ADMIN_MEASURE, AdminSection, StatStrip, StatTile } from "@/components/admin/admin-chrome";
+import {
+  ADMIN_MEASURE,
+  AdminCapped,
+  AdminSection,
+  StatStrip,
+  StatTile,
+} from "@/components/admin/admin-chrome";
 import { ADMIN_NAV } from "@/components/admin/admin-nav";
 import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
 import { formatPaise, formatTimeAgo } from "@/lib/utils";
@@ -95,11 +101,22 @@ export default async function AdminOverviewPage() {
             and the mail is going out.
           </p>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            {work.map((item) => (
-              <WorkRow key={item.key} item={item} />
-            ))}
-          </div>
+          <>
+            <div className="flex flex-col gap-1.5">
+              {work.map((item) => (
+                <WorkRow key={item.key} item={item} />
+              ))}
+            </div>
+            {/* The rail counts every waiting row; this list takes twenty per
+                queue. Past that they stop agreeing, and a rail reading 34 over
+                a list of 20 is worse than no count (audit Low 7). */}
+            {worklistIsCapped(work) && (
+              <AdminCapped>
+                The most pressing from each queue. The count in the sidebar is
+                everything; open a section to see the rest.
+              </AdminCapped>
+            )}
+          </>
         )}
       </AdminSection>
 

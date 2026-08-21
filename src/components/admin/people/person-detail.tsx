@@ -272,7 +272,9 @@ export function PersonDetail({
                     variant="primary"
                     disabled={busy}
                     onClick={() =>
-                      run(() => adminVerifyUser(person.id, "office_list"), "Verified")
+                      // No method: an admin pressing this checked by hand, and
+                      // recording it as the office roster was untrue (Low 6).
+                      run(() => adminVerifyUser(person.id), "Verified")
                     }
                   >
                     <BadgeCheck className="size-3" strokeWidth={2} />

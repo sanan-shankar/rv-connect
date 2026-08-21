@@ -34,6 +34,9 @@ export interface AdminThreadDetail {
     batchYear: number | null;
   };
   messages: ConversationMessage[];
+  /** True when the page loaded only the most recent window of a long
+   *  conversation (audit Low 86), so the view can say so. */
+  olderExist: boolean;
 }
 
 export function ThreadView({ thread }: { thread: AdminThreadDetail }) {
@@ -95,6 +98,11 @@ export function ThreadView({ thread }: { thread: AdminThreadDetail }) {
       </div>
 
       <div className="rounded-[var(--radius)] border border-border bg-card p-4">
+        {thread.olderExist && (
+          <p className="mb-4 text-[12.5px] text-muted-foreground">
+            Showing the most recent part of this conversation.
+          </p>
+        )}
         <Conversation messages={thread.messages} viewerId="" />
 
         <div className="mt-5 border-t border-border pt-4">

@@ -16,6 +16,7 @@ import { writeAudit } from "@/lib/audit";
 import { delImage } from "@/lib/storage";
 import { valleyYear } from "@/lib/utils";
 import { parsePlaces, resolvePlaces } from "@/lib/place-input";
+import { SPECIES_SLUGS } from "@/components/common/bird-avatar-v2";
 
 /* ------------------------------------------------------------------ *
  *  Everything you can do TO a person, from the panel.
@@ -47,13 +48,16 @@ function revalidateAdmin(userId?: string) {
  */
 export async function loadMorePeople(
   params: Record<string, string>,
-  cursor: string
+  cursor: string,
+  /** How many rows the caller is already showing. Only used to recover from a
+   *  cursor row that has left the result set (audit Low 12). */
+  loaded = 0
 ): Promise<PeoplePage | { error: string }> {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") {
     return { error: "Not authorized" };
   }
-  return loadPeoplePage(readPeopleFilters(params), cursor);
+  return loadPeoplePage(readPeopleFilters(params), cursor, loaded);
 }
 
 /* ---------------------------------------------------------------- *
@@ -107,7 +111,18 @@ export async function adminUpdatePerson(
     batchYear = parsed;
   }
 
-  const bird = edit.birdOverride.trim();
+  /* A misspelled slug used to "succeed" while changing nothing: the value went
+     into the column, `resolveSpeciesOverride` failed to find it and fell
+     through to the hash, and the admin was told it saved (audit Low 10). The
+     slug list is the same one the glyph resolves against, so what this accepts
+     and what actually renders cannot disagree. Reserved species (the Hoopoe,
+     the Indian Roller) are deliberately NOT excluded here -- the render layer
+     enforces those reservations per account, and second-guessing it in a form
+     validator would be a second copy of that rule. */
+  const bird = edit.birdOverride.trim().toLowerCase();
+  if (bird && !SPECIES_SLUGS.includes(bird)) {
+    return { error: `"${bird}" is not one of the bird species.` };
+  }
 
   await prisma.user.update({
     where: { id: userId },

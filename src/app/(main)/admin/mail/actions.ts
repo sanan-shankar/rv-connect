@@ -31,11 +31,24 @@ export async function retryMail(id: string): Promise<AdminActionResult> {
   });
   if (!row) return { error: "That message is no longer here." };
   if (row.status === "sent") return { error: "That one already went out." };
+  if (row.status === "sending") {
+    // A row a drain has CLAIMED and is mid-flight on. Requeueing it here would
+    // release the claim while the provider call is still in the air, so the
+    // next drain would pick it up and send the same real email twice (audit
+    // Low 4). The stale-claim window in the queue reclaims a genuinely stuck
+    // row on its own, so waiting costs nothing but a minute.
+    return { error: "That one is being sent right now. Give it a minute." };
+  }
 
-  await prisma.outboundEmail.update({
-    where: { id },
+  /* Conditional on the status it was read with, so the retry cannot land on a
+     row that moved between the read and the write. */
+  const requeued = await prisma.outboundEmail.updateMany({
+    where: { id, status: row.status },
     data: { status: "queued", attempts: 0, lastError: null, claimedAt: null },
   });
+  if (requeued.count === 0) {
+    return { error: "That message moved on while you were looking at it. Try again." };
+  }
 
   revalidatePath("/admin", "layout");
   return { success: true };
