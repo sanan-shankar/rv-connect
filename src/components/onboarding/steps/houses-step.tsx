@@ -29,8 +29,14 @@ import type { OnboardingUser } from "../onboarding-flow";
  *  after.
  *
  *  The years still come entirely from the yearJoined/yearLeft collected
- *  a step earlier (owner, 2026-07-30: "let it just show all the years I
- *  was there") - nobody builds a year list by hand.
+ *  at SIGN-UP (owner, 2026-07-30: "let it just show all the years I was
+ *  there") - nobody builds a year list by hand.
+ *
+ *  Which is why the empty state does not say "the previous step": the
+ *  previous step is Register, and it has no year fields on it, so anyone
+ *  sent back there found nothing to fill in and no way forward (audit
+ *  Low 113). The profile is where those years are edited afterwards, so
+ *  that is where the copy points.
  * ------------------------------------------------------------------ */
 
 export function HousesStep({
@@ -104,7 +110,7 @@ export function HousesStep({
         <p className="mx-auto max-w-[38ch] text-[15px] leading-relaxed text-muted-foreground">
           {knowsYears
             ? "Tap the grey pill, pick a house, and the next year appears. Stayed put? Pick the same one again and the two join up."
-            : "Tell us the years you joined and left in the previous step, and your years will be laid out here."}
+            : "We do not have the years you were here yet. Skip this for now, add them on your profile, and your years will lay themselves out."}
         </p>
       </div>
 

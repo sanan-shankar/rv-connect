@@ -25,6 +25,27 @@ function yearField(opts: { ahead?: number; tooLate: string } = { tooLate: "That 
     .refine((y) => y <= valleyYear() + ahead, opts.tooLate);
 }
 
+/**
+ * The phone-number list, in one place because two schemas write the same
+ * column and had drifted (audit Low 84).
+ *
+ * `min(4)` rejects a stray fragment left behind in a repeater row, `max(24)`
+ * matches signupSchema's single-phone cap (it was 20 once, so a number
+ * accepted at sign-up could fail to save afterwards), and five numbers is
+ * plenty of reach for one person.
+ */
+function phoneList() {
+  return z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(4, "That does not look like a phone number")
+        .max(24, "That phone number is too long")
+    )
+    .max(5, "Five numbers is the most we will show");
+}
+
 // Alumni now give their batch directly ("the year your 12th-grade class
 // graduated, even if you left earlier") plus the two plain years they joined
 // and left. batchYear is written straight through; batchType (the board
@@ -105,10 +126,8 @@ export const profileSchema = z.object({
   phone: z.string().max(24).optional(),
   // Multiple phone numbers (the settings repeater). Free-form here;
   // updateUserProfile runs each through normalizePhone before storing and
-  // mirrors the first into legacy `phone`. min(4) rejects stray fragments,
-  // max(24) matches the single-phone cap, and 5 numbers is plenty of reach
-  // for one person.
-  phones: z.array(z.string().trim().min(4).max(24)).max(5).optional(),
+  // mirrors the first into legacy `phone`.
+  phones: phoneList().optional(),
   instagram: z.string().max(100).optional(),
   linkedin: z.string().max(200).optional(),
   facebook: z.string().max(200).optional(),
@@ -160,9 +179,11 @@ export const contactMethodsSchema = z.object({
   displayEmail: z
     .union([z.literal(""), z.email("Please enter a valid email").max(200)])
     .nullable(),
-  // Free-form here (each is run through normalizePhone before storing); the cap
-  // matches signupSchema's phone, and five numbers is plenty of reach.
-  phones: z.array(z.string().trim().max(24)).max(5),
+  // The SAME rule the profile schema applies to the same column. It used to
+  // be spelled out separately here and had no minimum, so a three-character
+  // fragment saved through the contact editor and was then rejected by the
+  // other path (audit Low 84).
+  phones: phoneList(),
   instagram: z.string().max(100).nullable(),
   linkedin: z.string().max(200).nullable(),
   facebook: z.string().max(200).nullable(),

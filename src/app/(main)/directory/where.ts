@@ -68,8 +68,16 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
     // not an equality on a single column.
     const variants = cityNameVariants(filters.city);
     const targets = variants.length > 0 ? variants : [filters.city];
+    /* `equals`, not `contains` (audit Low 69). This is a FILTER -- the value
+       comes from a city already on somebody's profile, chosen from a chip or a
+       tile -- and a substring match made it quietly wider than the label it
+       shows: filtering Delhi also returned everyone in New Delhi, so the two
+       cities could never be told apart on the one page whose job is telling
+       people apart. `cityNameVariants` is what handles the genuinely different
+       names for one place (Bangalore/Bengaluru); a substring was never the
+       right instrument for that either. */
     where.places = {
-      some: { OR: targets.map((v) => ({ city: { contains: escapeLike(v), ...insensitive } })) },
+      some: { OR: targets.map((v) => ({ city: { equals: v, ...insensitive } })) },
     };
   }
   if (filters.profession) where.workplace = filters.profession;
@@ -77,6 +85,12 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
   // the URL param would otherwise reach Postgres as a live LIKE wildcard and
   // silently widen the filter (the last of the ~18 contains sites to get this).
   // Case-sensitivity is left exactly as it was -- only the wildcard escaping changes.
+  /* `contains` stays here, unlike the city filter above: `houses` is a JSON
+     string of [{year, house}] rows, so a substring is the only instrument
+     without parsing the column in SQL. Checked against the canonical list in
+     lib/houses.ts: no house name is a substring of another, and the only other
+     values in the blob are numeric years, so this cannot match the wrong
+     house (audit Low 69). */
   if (filters.house) where.houses = { contains: escapeLike(filters.house) };
   if (filters.type === "alumni") {
     where.accountType = "alumnus";
