@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { requireVerifiedEmail } from "@/lib/email-verification";
 import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
+import { parseBatchYearList } from "@/lib/batch-year";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -29,7 +30,12 @@ export async function GET(request: Request) {
   // and no legitimate picker asks for a range wider than that. Bounding the
   // `IN` list here is half of audit H18; the `take` on the query below is the
   // other half.
-  const batches = (searchParams.get("batches")?.split(",").map(Number).filter(Boolean) || []).slice(0, 120);
+  /* parseBatchYearList, not `.split(",").map(Number).filter(Boolean)`. That
+     dropped NaN by luck (NaN is falsy) but happily passed a FLOAT through --
+     "1.5" is truthy and then fails an Int column, 500ing the route (audit
+     Low 70). It also de-duplicates, so a crafted `batches=1990,1990,...`
+     cannot pad the IN list up to the 120 cap with one year. */
+  const batches = parseBatchYearList(searchParams.get("batches")).slice(0, 120);
 
   // `?detail=1` returns whole people instead of bare ids, for pickers that
   // have to render a name and an avatar (the Catch-up "everyone from my batch"
