@@ -258,24 +258,53 @@ that will be wrong.
   machinery; it also removes an affordance the owner has already reviewed, which
   is why it is his call.
 
+### Session 3, part two — the clusters after B-063
+
+| ID | | Outcome |
+|---|---|---|
+| B-203 | F | `31f84c9`. **Net-new, owner decided.** "Start one" on a group card minted a NEW group, so the original row stayed forever offering to do it again; pressing it twice gave two rows of the same name and a third on the next press. Offered the two readings, the owner chose **drop the row**: attaching would mean one member's private naming choice renaming a shared batch group and their picked people joining a batch they may not be from. `?group=` went with it (that row was its only producer, and the create page was spending two membership queries per load resolving a link nobody could send). |
+| M08 | F | `43b3d9b`. Cadence change now recomputes `nextOpensAt` from the last Round's publish moment, not from now: anchoring on now would let a Keeper push the next Round away by opening a menu. An already-overdue result lands on now. |
+| M09, M54 | F | `43b3d9b`. New `src/lib/report-error.ts`. Both the Catch-up engine and the retention sweep swallow their own errors by design, but only `console.error` saw them, so Sentry — which exists because "nobody reports a broken page, they leave" — never heard. The sweep route also answers **502** when a step failed, so the nightly job goes red instead of green. Imported dynamically in `catchups.ts` because that file must load under `node --test` with no database. |
+| M10 | F | `43b3d9b`. **The two render sites disagreed in both directions.** The home hid an anonymous asker from everyone but the asker; the published Round revealed them to any Keeper, with no cue. One `askerVisible` now decides, **with no role argument at all**, so the rule cannot grow an exception without its signature changing. The Round gained the cue: "asked anonymously", and "asked by you, anonymously" for the one person who does see it. |
+| M11, Low 37 | F | `43b3d9b`. "Answered" was derived from the text on screen, not from what reached the database, so a failed save still ticked the progress rail and showed the completion card. Now only `failed` disqualifies, the text always stays, and the card says "Not saved" in red. Saves for one question queue instead of racing. |
+| M12 | F | `43b3d9b`. New `catchup-caps.ts`; the picker adds as many as fit and says how many did not. |
+| M13 | F | `43b3d9b`. Archive was a query per published Round, each reading every answer BODY to count distinct authors. One `groupBy` that reads no bodies, plus a single-row teaser query for the six most recent. |
+| M23, M38, M39, M36, Lows 70, 71, 73 | F | `7855437`. New `batch-year.ts` (tested): `?year=abc` was NaN and 500'd the directory. `nulls: "last"` on every batch sort — verified live that the four members with no batch year now sort last. Load-more recovers from a cursor row that left the result set, and a page fetched under old filters is dropped rather than appended. Year + range now intersect instead of the range clobbering the tile. |
+| M53 | F | `16425be`. See above. |
+| M03, M56, M58, M59, M60, Lows 8, 116 | F | `220ebec`. **M59 has teeth**: a forged POST could get Razorpay to DISABLE the webhook, silently stopping real payment confirmations. Now 2xx for a body we will never trust, 500 only for a missing secret, and an audit line (deduped to one an hour) replacing the dashboard signal. **M56's diagnosis in the report was half wrong**: the retry latch WAS cleared; what killed the retry is that a failed `<script>` leaves its tag in the DOM and the "already loaded?" check looked for the tag rather than for `window.Razorpay`. |
+| M14, M15, M16, M17 | F | `74d2a18`. Row before bytes at all three delete sites, via `PendingImagePurge` inside the same transaction. Pixel-budget ceiling on stored images: **measured on a real 81MP image, 9000x9000 in, 6324x6324 (40.0MP) out in 1.3s**, thumbnail derived from the display copy in 69ms instead of a second full decode. Animated GIFs are still flattened (frame count multiplies the decode budget; an upload path is not where to discover that) but now SAY so at all three upload surfaces. |
+| M50, M51, M52, Lows 20, 22, 114 | F | `9e91c98`. Token burn and its effect are now one transaction. **Proved end to end on a throwaway account**: the reset moved credentialVersion 0→1, set emailVerified, changed the hash and burned the token together; replaying the link gave "That link has been used"; a verify link burned only itself. Two things were fixed in the agent's work before committing: it had **copied the token hash into a second file** (two implementations of one hash breaks every reset the day somebody edits one), and its claim had **dropped `readToken`'s "address has not moved on" check**. |
+| M05, M06, M28, M29, M30, M31, M32, M49 | F | `6aaefbb`. Error boundaries inside the shell and the auth group; five missing `loading.tsx`. **M30 is half wrong and worth recording**: it says the visibility RULE lacks an author self-exemption. The rule has carried one from the start, deliberately above the `isHidden` check so an author can still reach a post a moderator hid. Only `loadPosts` was missing it. A test pins the hidden-post case because it reads like an oversight and is not. M31 replaced two hand-rolled copies of the audience rules (each testing three of four, both omitting `targetBatches`) with the shared `canViewPost`. |
+| M61, M62, M63, M64, Lows 66, 68 | F | `c6cc339`. The demo reset is one transaction, so a visitor cannot land on a half-built world and get redirected to a `/login` that cannot work. `/api/places` reopened — the proxy comment justifying its closure described a metered geocoding provider the route has not been for a long time — and the demo now seeds the cities its own people live in. |
+| Lows 38, 88, 92, 99, 107, 109, 110, M41, M45 | F | `d08286d`. Grapheme-aware truncation everywhere (tests assert no lone surrogate survives, rather than checking one example string). `normalizeHouse` resolved through the prototype chain. Two schemas capped one name column at two different numbers. Checked the live data first: longest name is 20 characters, none blank, so nothing saved today became unsaveable. |
+| Lows 51, 102, 103, 104, 105 | F | `98c7073`. The metric snapshot ran at 21:00 UTC and asked PostHog for "today", permanently missing 02:30-05:30 IST every day. Moved to 00:10 UTC recording the day that just ended, which also resolves the collision the file's own comment denied. |
+| Low 43 | **N** | **Not a bug here.** GitHub's documented 60-day auto-disable of scheduled workflows applies to PUBLIC repositories; this one is private (`gh repo view --json isPrivate` → true). Recorded rather than "fixed". |
+| M21 | **N** | Already closed by session 1's pool config (`e98474a`): connect, query and pool-checkout timeouts are set. `statement_timeout` is deliberately absent and must stay absent — Supavisor drops it. |
+| M37 | **N** | Already fixed by session 2's B-042 sweep: load-more uses `callAction` + try/finally + a toast. |
+| M22 | **D** | **Deferred, owner's call.** The root layout reads the theme cookie, which opts every route into dynamic rendering including the six public pages that could be static. Every fix trades that for a flash of the wrong theme on a first visit, which is the exact thing the cookie read exists to prevent and which the owner would notice immediately. It is a latency optimisation on six pages, not a correctness bug. |
+| M24 | **D** | Deferred: `touchLastSeen` fires only on layout render, so soft navigations go uncounted. The fix is a client-side route-change reporter, which is a new surface rather than a correction. |
+| GitHub items | F | `61bb340`. Renovate had stopped opening ALL pull requests because `.github/renovate.json` carried an `_comment` key, which is not a Renovate option. `npm audit fix` cleared eleven of twelve advisories including both bumps Dependabot PR #10 wanted, so that PR can be closed rather than merged. Three left, none a production risk: npm's "fix" for Prisma is a DOWNGRADE to v6; puppeteer's is a semver-major to QA tooling nothing in `src/` imports (Renovate's own rules will now propose it alone); `xlsx` has no fix at any version and is used by one hand-run script over the owner's own files. |
+
 ## Still open
 
 **Canonical: NONE. All 45 are fixed** (session 3 closed the last, B-063, in `b332301`).
 
-**§3.M:** 50 of the 68 Medium roots remain. Done: M02, M03, M07, M18, M26, M27, M33, M53, M55,
-M56, M57, M58, M59, M60, M65. Deferred with a reason: M24 (needs a client-side reporter, which is
-design work rather than a correction; a soft navigation inside `(main)` never re-runs the layout, so
-the fix is a route-change listener that pings a small endpoint, and that is a new surface rather than
-a corrected one).
+**§3.M — 46 of 68 done, 22 left.** Done: M02, M03, M05, M06, M07, M08, M09, M10, M11, M12, M13,
+M14, M15, M16, M17, M18, M23, M26, M27, M28, M29, M30, M31, M32, M33, M36, M38, M39, M41, M45,
+M49, M50, M51, M52, M53, M54, M55, M56, M57, M58, M59, M60, M61, M62, M63, M64, M65. Not a bug:
+M21, M37. Deferred with a reason: M22, M24.
+**Still open (22):** M01, M04, M19, M20, M25, M34, M35, M40, M42, M43, M44, M46, M47, M48, M66,
+M67, M68.
 
-**§3.L:** ~88 of the 117 Low items remain. Done: 8, 19, 25, 30, 35, 40, 44, 45, 47, 48, 49, 50, 52,
-58, 62, 64, 65, 67, 72, 77, 79, 80, 82, 85, 87, 91, 94, 108, 112, 116, 117.
+**§3.L — roughly 70 of 117 done, ~47 left.** Done: 8, 19, 20, 22, 25, 30, 35, 37, 38, 40, 43 (not
+a bug), 44, 45, 47, 48, 49, 50, 51, 52, 58, 62, 64, 65, 66, 67, 68, 70, 71, 72, 73, 77, 79, 80,
+82, 85, 87, 88, 91, 92, 94, 99, 102, 103, 104, 105, 107, 108, 109, 110, 112, 114, 116, 117.
 
 **Feature builds: both shipped.** B-050 in `eedbb3e`, B-063 in `b332301`.
 
-**Needs an owner decision:** B-203 (see "Net-new findings" above).
+**Net-new, both fixed:** B-202 (session 2), B-203 (session 3, owner decided).
 
-### B-063 — the owner's decisions, taken 2026-08-21 (session 2), not yet implemented
+### B-063 — the owner's decisions, taken 2026-08-21 (session 2). BUILT in session 3 (`b332301`); kept here as the record of what was decided and why.
 
 Asked directly, because the two readings led to materially different work and different risk:
 
@@ -328,15 +357,43 @@ attempts and end up `failed`, which is the 2026-08-12 incident wearing a differe
 
 ## Things a later session should know
 
-- **Another session shares this checkout.** It committed `d86005d copy(support): ...` mid-way
-  through. Stage by name, never `git add -A`.
+- **Another session shares this checkout.** Stage by name, never `git add -A`. Session 3 hit this
+  from the other side: an agent's already-saved edit to a file was swept into an unrelated commit
+  because that file was staged by name for a different reason. Check `git status` before staging.
 - **`statement_timeout` does not work through Supavisor.** Proved twice. Don't add it back.
 - **`CREATE INDEX CONCURRENTLY` cannot be used with `run-sql.mjs`**: it sends the file as one simple
   query, which Postgres wraps in an implicit transaction. Plain `CREATE INDEX IF NOT EXISTS` is fine
   at this data size.
 - **A rolled-back transaction is the safest way to prove a destructive behaviour** against the shared
   production database: `BEGIN; DELETE ...; SELECT counts; ROLLBACK;` through `run-sql.mjs`. Used for
-  B-001 and B-121.
-- **`pg_trgm` lives in the `extensions` schema** on this project and the operator class is
-  schema-qualified in the migration, so the index does not depend on `search_path`.
-- **Avoid backticks in `git commit -m` strings** — zsh eats them. One commit message needed amending.
+  B-001, B-121 and B-063's retention sweep.
+- **`pg_trgm` lives in the `extensions` schema** and the operator class is schema-qualified in the
+  migration, so the index does not depend on `search_path`.
+- **Avoid backticks in `git commit -m` strings** — zsh eats them. Use a heredoc.
+
+### Added by session 3
+
+- **THE DEMO HAS ITS OWN DATABASE AND IT DRIFTS.** It had received NONE of the audit's migrations
+  and would have broken on the next push. `node scripts/dev/run-sql.mjs --env .env.demo <file>` is
+  how you apply one now (the `--env` flag was added for exactly this). **Any new manual migration
+  must be applied to BOTH databases.** There is no automation for this; it is a thing to remember.
+- **`npm run check` and a subagent's own gate at the same time will kill the process.** Session 3
+  lost a turn to an OOM kill (exit 137) doing this. Tell every agent explicitly NOT to run
+  `npm run check`, and give it `npx tsc --noEmit` + `npx eslint <files>` + `node --test <files>`
+  instead. Serialise the heavy gates.
+- **`Intl.Segmenter` is the right instrument for cutting text**, and it must be constructed ONCE at
+  module load. Constructing an Intl object is the expensive part of using one, and `getInitials`
+  runs per avatar.
+- **`after()` throws SYNCHRONOUSLY outside a request scope** (confirmed against the installed
+  next@16.3.1 source, error E468). A library function reachable from a non-request caller must use
+  the `try { after(x) } catch { void x() }` shape that `scheduleDrain()` already carries.
+- **npm's suggested audit fix can be a DOWNGRADE.** `npm audit fix --force` would take Prisma from
+  7.9.1 back to 6.12.0 and break the app. Always read what a fix actually does.
+- **Two agent reports in session 3 contained a real defect each**, both caught only by reading the
+  diff: a hash function copied into a second file, and a security check silently dropped from a
+  rewritten query. Both would have passed every gate. The rule holds: an agent's "passing" is a
+  claim.
+- **The audit is wrong sometimes, and saying so is worth more than a patch.** Session 3 found three:
+  M30 (the rule always had the author exemption; only the list query lacked it), M56 (the retry
+  latch was fine; the dead `<script>` tag was the cause), Low 43 (applies to public repositories,
+  and this one is private). Sessions 1 and 2 found two more.
