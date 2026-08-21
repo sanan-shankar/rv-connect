@@ -46,7 +46,14 @@ export function ReportDialog({
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Report submitted. Thank you.");
+        // A repeat report is a success, not a failure: it is already on the
+        // moderator's desk, and saying so is kinder than a second "thank you"
+        // that implies a second report was filed (audit M29).
+        toast.success(
+          "alreadyReported" in result && result.alreadyReported
+            ? "You have already reported this post. An admin is looking at it."
+            : "Report submitted. Thank you."
+        );
         onClose();
       }
     } finally {

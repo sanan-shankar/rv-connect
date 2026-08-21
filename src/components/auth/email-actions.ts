@@ -96,7 +96,11 @@ export async function resendVerification(): Promise<{
     // their retry button for reasons no one could see.
     return {
       ok: false,
-      error: "That did not go through. Check your email address in Settings, then try again.",
+      // Not "in Settings": there is no settings page, the profile is it
+      // (audit M49). Naming a screen that does not exist in the one message a
+      // stuck member reads is its own small dead end.
+      error:
+        "That did not go through. Check the email address on your profile, then try again.",
     };
   }
 

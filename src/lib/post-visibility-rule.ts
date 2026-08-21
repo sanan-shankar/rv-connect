@@ -70,7 +70,11 @@ export function decidePostVisibility(
   /* Your own post is always yours, including a draft you are still editing.
      Checked BEFORE isHidden on purpose: an author whose post an admin has
      hidden can still reach it to delete or edit it, which is the only way
-     they could respond to the moderation at all. */
+     they could respond to the moderation at all.
+
+     `loadPosts` did NOT mirror this until 2026-08-21 (audit M30), so a post
+     aimed at another city or another batch was reachable at its own URL and
+     yet absent from its own author's feed. The two now agree. */
   if (post.authorId === viewer.id) return { ok: true, post };
 
   if (post.isHidden) return { ok: false, reason: "hidden" };

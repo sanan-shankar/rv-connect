@@ -9,7 +9,7 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { LetterTitle } from "@/components/letters/letter-title";
 import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { LetterImages } from "@/components/letters/letter-images";
-import { canViewCityScope } from "@/lib/city-scope";
+import { canViewPost } from "@/lib/post-visibility";
 import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, renderRichText, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { recordView } from "@/lib/content-view";
 
@@ -24,36 +24,21 @@ export async function generateMetadata({
 
   const letter = await prisma.post.findUnique({
     where: { id },
-    select: {
-      title: true,
-      content: true,
-      kind: true,
-      isHidden: true,
-      groupId: true,
-      cityScope: true,
-      status: true,
-      authorId: true,
-    },
+    // Only what the TITLE needs: `canViewPost` below fetches the audience
+    // columns itself, so listing them here too was a second copy of a select
+    // that has to stay in step with a rule this file no longer implements.
+    select: { title: true, content: true, kind: true },
   });
-  if (!letter || letter.kind !== "letter" || letter.isHidden) return { title: "Letter" };
+  if (!letter || letter.kind !== "letter") return { title: "Letter" };
 
-  // A draft is only ever visible to its own author; never leak its title
-  // (even indirectly, via the tab title) to anyone else.
-  if (letter.status === "draft" && letter.authorId !== session.user.id) {
-    return { title: "Letter" };
-  }
-
-  // Group letters are private to members; do not leak the title to non-members.
-  if (letter.groupId) {
-    const membership = await prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId: letter.groupId, userId: session.user.id } },
-      select: { id: true },
-    });
-    if (!membership) return { title: "Letter" };
-  }
-
-  // Same city-scope visibility rule as the page body: do not leak the title.
-  if (!(await canViewCityScope(letter.cityScope, session.user))) return { title: "Letter" };
+  /* The SAME rule the page body uses, for the same reason (audit M31). This
+     had its own copy of three of the four audience checks and omitted
+     `targetBatches`, so a letter written for one batch put its title in the
+     browser tab, the history and every link preview for everybody else.
+     A tab title is a smaller leak than the letter, which is exactly why it
+     is the one that gets forgotten. */
+  const visible = await canViewPost(id, session.user);
+  if (!visible.ok) return { title: "Letter" };
 
   return { title: letterTitle(letter.title, letter.content) };
 }
@@ -81,26 +66,27 @@ export default async function LetterPage({
 
   if (!letter || letter.kind !== "letter" || letter.isHidden) notFound();
 
-  // A draft is only ever visible to its own author: a preview of a letter
-  // still being written, not a published page. Everyone else gets the same
-  // 404 as a letter that doesn't exist, so a draft's existence is never
-  // revealed by a different error.
-  const isAuthor = letter.authorId === session.user.id;
+  /* One rule, not four hand-rolled checks (audit M31).
+   *
+   * This page used to test draft, then group membership, then city scope,
+   * each written out again here because "this page reads the row directly
+   * instead of through loadPosts". It tested three of the four things the
+   * feed tests and quietly omitted the fourth: `targetBatches`. So a letter
+   * written for one batch was hidden from every feed and readable by anybody
+   * who had the link, which is the whole of what audience targeting is for.
+   *
+   * `canViewPost` is the same decision the feed, the bookmarks and the
+   * comment paths all use, it is unit-tested without a database, and it
+   * already exempts the author (so a draft still previews for the person
+   * writing it). A fifth audience rule added a year from now lands here for
+   * free; another copy of three of them would not.
+   *
+   * A 404 for every refusal, so a letter's existence is never revealed by a
+   * different error.
+   */
   const isDraft = letter.status === "draft";
-  if (isDraft && !isAuthor) notFound();
-
-  // Group letters are private to members.
-  if (letter.groupId) {
-    const membership = await prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId: letter.groupId, userId: session.user.id } },
-      select: { id: true },
-    });
-    if (!membership) notFound();
-  }
-
-  // City-scoped letters: same visibility rule as the feed query, checked here
-  // too since this page reads the row directly instead of through loadPosts.
-  if (!(await canViewCityScope(letter.cityScope, session.user))) notFound();
+  const visible = await canViewPost(id, session.user);
+  if (!visible.ok) notFound();
 
   /* The read side of "read click-through rates": a letter's hearts say who
      reacted, this says who actually opened it. Fires down here, after every

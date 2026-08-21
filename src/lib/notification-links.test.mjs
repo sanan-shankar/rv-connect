@@ -54,3 +54,34 @@ test("no notification writer hard-codes a feed fragment any more", () => {
     "a notification writer hard-codes /feed# again instead of using postNotificationLink"
   );
 });
+
+test("nothing links a member to /settings, which does not exist", () => {
+  /* The settings page was retired ("your profile IS it", sidebar.tsx) and the
+     links that pointed at it were not moved, so the notification a member gets
+     after cancelling their account deletion -- the exact moment they are most
+     likely to want to check their own details -- sent them to a 404 (audit
+     M49). Swept rather than spot-checked, and over `link:` / `href=` targets
+     only, so prose that happens to mention settings is not a false positive.
+     /lab is excluded: it is the dev index, and its rooms catalogue routes that
+     have been retired on purpose. */
+  const offenders = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = resolve(dir, name);
+      if (statSync(full).isDirectory()) {
+        if (name === "node_modules" || full.endsWith("/src/app/lab")) continue;
+        walk(full);
+        continue;
+      }
+      if (!/\.(ts|tsx)$/.test(name)) continue;
+      const src = readFileSync(full, "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+      if (/(link:\s*|href=\{?)["'`]\/settings\b/.test(src)) {
+        offenders.push(full.slice(ROOT.length + 1));
+      }
+    }
+  };
+  walk(resolve(ROOT, "src"));
+  assert.deepEqual(offenders, [], `linking to the retired /settings: ${offenders.join(", ")}`);
+});
