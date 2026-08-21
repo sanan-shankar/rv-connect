@@ -59,6 +59,11 @@ export function ReportList({
       const result = await callAction(fn);
       if (result && "error" in result && result.error) {
         toast.error(result.error);
+        // Refresh on the way out too. The commonest refusal here is "another
+        // admin has already settled this" (audit M01), and the row on screen is
+        // then the stale thing that produced the mistake -- leaving it there
+        // invites the same click again.
+        router.refresh();
         return;
       }
       toast.success(done);

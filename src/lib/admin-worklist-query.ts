@@ -62,8 +62,8 @@ export async function loadWorklist(): Promise<WorkItem[]> {
     }),
     prisma.user.findMany({
       where: { isBlocked: false, verifyState: "flagged" },
-      select: { id: true, name: true, email: true, updatedAt: true },
-      orderBy: { updatedAt: "desc" },
+      select: { id: true, name: true, email: true, verifyStateAt: true },
+      orderBy: { verifyStateAt: "desc" },
       take: PER_QUEUE,
     }),
     // Members who pressed "Ask to be verified" and whom the office roster
@@ -72,8 +72,8 @@ export async function loadWorklist(): Promise<WorkItem[]> {
     // if this queue is not on the worklist, the request went nowhere.
     prisma.user.findMany({
       where: { isBlocked: false, verifyState: "pending" },
-      select: { id: true, name: true, email: true, updatedAt: true },
-      orderBy: { updatedAt: "asc" },
+      select: { id: true, name: true, email: true, verifyStateAt: true },
+      orderBy: { verifyStateAt: "asc" },
       take: PER_QUEUE,
     }),
     prisma.outboundEmail.findMany({
@@ -136,7 +136,7 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       title: `${u.name} has been flagged`,
       detail: u.email,
       href: `/admin/people/${u.id}`,
-      at: u.updatedAt.toISOString(),
+      at: u.verifyStateAt.toISOString(),
     })),
     ...pendingVerify.map((u) => ({
       key: `verify-${u.id}`,
@@ -144,7 +144,7 @@ export async function loadWorklist(): Promise<WorkItem[]> {
       title: `${u.name} asked to be verified`,
       detail: u.email,
       href: `/admin/people/${u.id}`,
-      at: u.updatedAt.toISOString(),
+      at: u.verifyStateAt.toISOString(),
     })),
     ...failedMail.map((m) => ({
       key: `mail-${m.id}`,

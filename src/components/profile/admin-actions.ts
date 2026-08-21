@@ -141,6 +141,7 @@ export async function adminVerifyUser(
     where: { id: userId },
     data: {
       verifyState: "verified",
+      verifyStateAt: new Date(),
       verifyMethod: method,
       verifiedAt: new Date(),
     },
@@ -175,7 +176,12 @@ export async function adminUnverifyUser(userId: string): Promise<AdminActionResu
 
   await prisma.user.update({
     where: { id: userId },
-    data: { verifyState: "unverified", verifyMethod: null, verifiedAt: null },
+    data: {
+      verifyState: "unverified",
+      verifyStateAt: new Date(),
+      verifyMethod: null,
+      verifiedAt: null,
+    },
   });
 
   await writeAudit({
@@ -205,39 +211,62 @@ export async function adminHidePost(postId: string): Promise<AdminActionResult> 
   return { success: true };
 }
 
+/**
+ * Settle a report exactly once (bug audit M01).
+ *
+ * Both endings used a plain `update`, which has no precondition: two admins
+ * working the queue at the same moment — or one double-click — wrote the status
+ * twice, and each write dragged a note into the reporter's conversation and a
+ * notification with it. The reporter could be told "we left it as it is" and
+ * "we dealt with it" about the same flag, in whichever order the writes landed.
+ *
+ * `updateMany` with `status: "pending"` in the WHERE makes the transition the
+ * decision: the first admin to settle it moves the row, everyone after sees a
+ * count of 0 and stops before the note. The buttons are only ever rendered on
+ * the pending list, so a count of 0 always means somebody else got there first
+ * (or the same person clicked twice), never that the admin chose a settled row.
+ */
+async function settleReport(
+  reportId: string,
+  status: "dismissed" | "reviewed",
+  note: string
+): Promise<AdminActionResult> {
+  const { count } = await prisma.report.updateMany({
+    where: { id: reportId, status: "pending" },
+    data: { status },
+  });
+
+  if (count === 0) {
+    // Not a silent success: the admin pressed "Nothing wrong here" and the
+    // report may now read "reviewed". Say so, and let the list refresh.
+    return { error: "Another admin has already settled this report." };
+  }
+
+  // Close the loop with whoever filed it (see src/lib/admin-threads.ts).
+  await noteOnReportThread(reportId, note);
+
+  revalidatePath("/admin", "layout");
+  return { success: true };
+}
+
 export async function adminDismissReport(reportId: string): Promise<AdminActionResult> {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  await prisma.report.update({
-    where: { id: reportId },
-    data: { status: "dismissed" },
-  });
-
-  // Close the loop with whoever filed it (see src/lib/admin-threads.ts).
-  await noteOnReportThread(
+  return settleReport(
     reportId,
+    "dismissed",
     "An admin read this and decided to leave it as it is. Thank you for flagging it anyway. If there's more to it, write back here."
   );
-
-  revalidatePath("/admin", "layout");
-  return { success: true };
 }
 
 export async function adminResolveReport(reportId: string): Promise<AdminActionResult> {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  await prisma.report.update({
-    where: { id: reportId },
-    data: { status: "reviewed" },
-  });
-
-  await noteOnReportThread(
+  return settleReport(
     reportId,
+    "reviewed",
     "An admin looked at this and has dealt with it. Thank you for flagging it."
   );
-
-  revalidatePath("/admin", "layout");
-  return { success: true };
 }
