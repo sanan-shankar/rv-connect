@@ -22,6 +22,12 @@ model User {
   secondaryCity String?   // optional second base, shown on the profile and searchable
   houses        String?   // JSON string of [{year, house}]; canonical house list in src/lib/houses.ts
   displayEmail  String?   // profile may show a different email than the sign-in one
+  // Whether the profile prints an email address at all. Separate from
+  // displayEmail because NULL there means "no CUSTOM address chosen", which is
+  // the ordinary case and must keep showing the sign-in one. Without this
+  // column there was no way to say "show none", and clearing the row served the
+  // member's private login address instead (audit B-050).
+  showEmail     Boolean   @default(true)
   birdOverride  String?   // manual bird-species slug override (admin assignment + supporter perk)
   birdPickedAt  DateTime? // when the supporter last spent a pick; a paid contribution NEWER than this grants another (see chooseBird)
   workplace     String?

@@ -109,7 +109,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { cn, formatPhoneDisplay } from "@/lib/utils";
 import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
 
@@ -146,6 +146,8 @@ export interface ProfileDraft {
   houses: HouseYearEntry[];
   contacts: {
     displayEmail: string | null;
+    /** false = the member removed the email row and wants none shown (B-050) */
+    showEmail: boolean;
     email: string;
     phones: string[];
     instagram: string | null;
@@ -331,7 +333,7 @@ export function LetterheadProfile({
   const [places, setPlaces] = useState<PlaceSelection[]>(draft?.places ?? []);
   const [houses, setHouses] = useState<HouseYearEntry[]>(draft?.houses ?? []);
   const [contactRows, setContactRows] = useState<ContactRow[]>(() =>
-    draft ? buildRows(draft.contacts) : []
+    draft ? buildRows(draft.contacts, formatPhoneDisplay) : []
   );
   const [citiesOpen, setCitiesOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);

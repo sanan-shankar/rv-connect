@@ -191,6 +191,8 @@ export async function updateProfileField(field: ProfileField, raw: string) {
  */
 export async function updateContactMethods(input: {
   displayEmail: string | null;
+  /** Whether the profile offers an email at all. See the write below. */
+  showEmail?: boolean;
   phones: string[];
   instagram: string | null;
   linkedin: string | null;
@@ -227,6 +229,17 @@ export async function updateContactMethods(input: {
     where: { id: session.user.id },
     data: {
       displayEmail: parsed.data.displayEmail || null,
+      /* Two columns, because one cannot hold two facts. `displayEmail` says
+       * WHICH address; `showEmail` says whether to offer one at all. A member
+       * who removes the email row sends showEmail: false and gets a profile
+       * with no email on it -- which used to be impossible, because a null
+       * displayEmail was read as "fall back to the sign-in address" and
+       * published their private login email instead (audit B-050).
+       *
+       * Defaulted rather than required so an older client, or any other caller
+       * of this action, keeps the previous behaviour of showing an address.
+       */
+      showEmail: input.showEmail ?? true,
       // The mirror is the contract: legacy `phone` always holds the FIRST
       // number, so every reader that predates the list keeps working.
       phone: phoneArr[0] ?? null,

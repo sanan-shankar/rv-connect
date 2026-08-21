@@ -35,7 +35,13 @@ import {
   X,
 } from "lucide-react";
 import { SPRINGS } from "@/components/common/motion";
-import { formatPhoneDisplay } from "@/lib/utils";
+import {
+  buildRows,
+  newId,
+  rowsToPayload,
+  type ContactKind,
+  type ContactRow,
+} from "@/lib/contact-rows";
 import { PenValue } from "@/components/profile/pen";
 import {
   Popover,
@@ -44,16 +50,6 @@ import {
   PopoverPositioner,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-export type ContactKind = "email" | "phone" | "instagram" | "linkedin" | "facebook" | "link";
-
-export interface ContactRow {
-  id: string;
-  kind: ContactKind;
-  value: string;
-  /** only "link" carries one: the short name shown instead of the URL */
-  label?: string;
-}
 
 const ICON: Record<ContactKind, typeof Mail> = {
   email: Mail,
@@ -87,58 +83,10 @@ const KIND_LABEL: Record<ContactKind, string> = {
 const SINGLETON: ContactKind[] = ["email", "instagram", "linkedin", "facebook"];
 const ADDABLE: ContactKind[] = ["phone", "instagram", "linkedin", "facebook", "email", "link"];
 
-let seq = 0;
-const newId = () => `c${seq++}`;
-
-/** The stored shape the server action wants, rebuilt from the row list. */
-export function rowsToPayload(rows: ContactRow[]) {
-  const first = (k: ContactKind) => rows.find((r) => r.kind === k)?.value.trim() || null;
-  return {
-    displayEmail: first("email"),
-    phones: rows.filter((r) => r.kind === "phone").map((r) => r.value),
-    instagram: first("instagram"),
-    linkedin: first("linkedin"),
-    facebook: first("facebook"),
-    links: rows
-      .filter((r) => r.kind === "link")
-      .map((r) => ({ label: r.label ?? "", url: r.value })),
-  };
-}
-
-export function buildRows(source: {
-  displayEmail: string | null;
-  /** the account address, used when no display address has been chosen */
-  email: string;
-  phones: string[];
-  instagram: string | null;
-  linkedin: string | null;
-  facebook: string | null;
-  links: { label: string; url: string }[];
-}): ContactRow[] {
-  const rows: ContactRow[] = [];
-  /* The email people ACTUALLY see. The profile's Get in touch falls back to
-     the account address when displayEmail is unset, so seeding this list from
-     displayEmail alone showed nothing at all to everyone who never set one
-     (owner, 2026-08-07: "it only shows my phone number, but I'm pretty sure
-     that if people get in touch with me it'll also show my email"). Showing
-     the effective address is the honest thing: it is what is on the profile,
-     and editing it is how you change what is on the profile. */
-  if (source.displayEmail || source.email) {
-    rows.push({ id: newId(), kind: "email", value: source.displayEmail || source.email });
-  }
-  /* Spaced the way the profile prints it. Numbers are stored normalised (no
-     spaces), so the raw value reads "+919940055940" in a field the profile
-     shows as "+91 99400 55940". Saving re-normalises whatever is typed, so
-     showing the formatted form round-trips cleanly. */
-  for (const p of source.phones)
-    rows.push({ id: newId(), kind: "phone", value: formatPhoneDisplay(p) });
-  if (source.instagram) rows.push({ id: newId(), kind: "instagram", value: source.instagram });
-  if (source.linkedin) rows.push({ id: newId(), kind: "linkedin", value: source.linkedin });
-  if (source.facebook) rows.push({ id: newId(), kind: "facebook", value: source.facebook });
-  for (const l of source.links)
-    rows.push({ id: newId(), kind: "link", value: l.url, label: l.label });
-  return rows;
-}
+/* Re-exported so the profile keeps importing its editor's vocabulary from the
+   editor, while the round trip itself lives in a module a test can reach. */
+export { buildRows, rowsToPayload };
+export type { ContactKind, ContactRow };
 
 export function ContactsEditor({
   rows,

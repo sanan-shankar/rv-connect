@@ -174,7 +174,18 @@ export default async function ProfilePage({
       ? `${user.jobTitle} at ${user.workplace}`
       : user.jobTitle || user.workplace || null;
 
-  const contactEmail = user.displayEmail?.trim() || user.email;
+  /* The address this profile offers, or none.
+   *
+   * `showEmail` is what says "offer one at all"; `displayEmail` only says WHICH
+   * one when the member has chosen a different one from their sign-in address.
+   * Before the two were separated, clearing the email row wrote displayEmail =
+   * NULL, which this line read as "fall back" and answered by serving the
+   * member's PRIVATE LOGIN ADDRESS to every verified alumnus. The X on that row
+   * was a privacy control that did the opposite of what it looked like (audit
+   * B-050). Null here means the profile shows no email, which is now a thing a
+   * member can actually ask for.
+   */
+  const contactEmail = user.showEmail ? user.displayEmail?.trim() || user.email : null;
 
   // Every phone on file: the multi-number list, or the legacy single column
   // while `phones` is still null (saves that predate the repeater). Ordered as
@@ -207,7 +218,16 @@ export default async function ProfilePage({
   // want it everywhere, so the surface now shows no contact details at all and
   // this list carries the lot, custom links included.
   const methods: ContactMethod[] = !maySeeContacts ? [] : [
-    { kind: "email" as const, label: "Email", value: contactEmail, href: `mailto:${contactEmail}` },
+    ...(contactEmail
+      ? [
+          {
+            kind: "email" as const,
+            label: "Email",
+            value: contactEmail,
+            href: `mailto:${contactEmail}`,
+          },
+        ]
+      : []),
     ...phoneNumbers.map((p, i) => ({
       kind: "phone" as const,
       // The first number stays plain "Phone"; later ones are numbered from 2
@@ -271,7 +291,7 @@ export default async function ProfilePage({
     "BEGIN:VCARD",
     "VERSION:3.0",
     `FN:${user.name}`,
-    maySeeContacts ? `EMAIL:${contactEmail}` : null,
+    maySeeContacts && contactEmail ? `EMAIL:${contactEmail}` : null,
     ...(maySeeContacts ? phoneNumbers.map((p) => `TEL:${p}`) : []),
     occupation ? `TITLE:${occupation}` : null,
     ...cityLabels.map((c) => `ADR:;;${c};;;;`),
@@ -380,6 +400,7 @@ export default async function ProfilePage({
               houses: parseHouseYearEntries(user.houses),
               contacts: {
                 displayEmail: user.displayEmail,
+                showEmail: user.showEmail,
                 email: user.email,
                 phones: phoneNumbers,
                 instagram: user.instagram,
