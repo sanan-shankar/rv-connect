@@ -1,0 +1,219 @@
+{
+ "territory": "Shared utilities (src/lib/utils.ts, validators.ts, db-text.ts, normalize.ts, professions.ts, houses.ts, social.ts, geocode.ts, city-coords.ts, message constants, onboarding-local.ts, tour-local.ts, image.ts), lab actions, manifest, policies/about/notice/donate/dark-mode pages, hoopoe playground, next.config.ts, vercel.json, package.json, instrumentation/Sentry/PostHog wiring, plus catch-all sweep of files no sibling charter names (common components, ui primitives, mascot/tour helpers, prisma.ts, rate-limit.ts, wordle.ts, theme.ts, avatar.ts, house-spans.ts, rich-text-editing.ts, next-path.ts, mask-email.ts, search-log.ts, content-view.ts, account export route, proxy.ts, error/not-found pages)",
+ "findings": [
+  {
+   "title": "Server-rendered display dates show the UTC calendar day, not the IST day: formatDisplayDate and formatTimeAgo have no timeZone, so every letter/photo written between 00:00 and 05:30 IST reads as the previous day forever",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/utils.ts:151",
+    "src/lib/utils.ts:21",
+    "src/app/(main)/letters/page.tsx:163",
+    "src/app/(main)/letters/[id]/page.tsx:188",
+    "src/components/messages/thread-list.tsx:70"
+   ],
+   "expected": "A letter published at 00:30 IST on 15 June shows \"15 Jun 2026\" \u2014 the valley's day is an IST day (the codebase already states this rule in src/lib/wordle.ts: \"we ask for the IST date, because the valley's day is an IST day\").",
+   "actual": "formatDisplayDate is `new Date(date).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"short\", year: \"numeric\" })` with no timeZone option, and formatTimeAgo's >4-week fallback is `date.toLocaleDateString(\"en-IN\", {...})` with no timeZone. Both are called from genuine React Server Components running in UTC on Vercel: letters/page.tsx line 163 `metaLine(batchLine(l.author), formatDisplayDate(l.createdAt))` and letters/[id]/page.tsx line 188 `date={formatDisplayDate(letter.createdAt)}` (neither file is \"use client\"). A letter created at 00:30 IST 15 June is 19:00 UTC 14 June, so the server renders \"14 Jun 2026\" for every viewer, permanently. 00:00\u201305:30 IST is ~23% of the clock and includes India's late-night posting hours. The same helpers are also used server-side across admin pages (admin/page.tsx, admin/audit, admin/support, admin/catchups) and messages/thread-list.tsx (no \"use client\" directive; whether it inherits a client boundary needs one check).",
+   "evidence": "src/lib/utils.ts:151-157: `export function formatDisplayDate(date: Date | string): string { return new Date(date).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"short\", year: \"numeric\" }) }` \u2014 no timeZone. utils.ts:21-25 (formatTimeAgo fallback): `return date.toLocaleDateString(\"en-IN\", { day: \"numeric\", month: \"short\", year: \"numeric\" })` \u2014 no timeZone. Contrast with src/lib/wordle.ts:18-21 which does it right: `return date.toLocaleDateString(\"en-CA\", { timeZone: \"Asia/Kolkata\" })`. Server call sites quoted above; the letters pages import from \"@/lib/utils\" at src/app/(main)/letters/page.tsx:11 and are async server components with prisma calls, so this string is computed in the server's UTC zone, not the member's browser.",
+   "fixDirection": "Add `timeZone: \"Asia/Kolkata\"` to the toLocaleDateString options in formatDisplayDate and in formatTimeAgo's date fallback in src/lib/utils.ts (matching the site-wide IST-day convention wordle.ts already documents). Note this also changes what client components render (post-card, collection-client currently show the viewer's local day); pinning IST everywhere is the consistent choice for a site whose members' shared frame is the valley's day \u2014 the alternative (leave client sites local, fix only server) reintroduces server/client disagreement and hydration-adjacent mismatch. One helper change fixes every call site.",
+   "gateOrTest": "New unit test alongside the existing *.test.mjs suite: formatDisplayDate(new Date(\"2026-06-14T19:00:00Z\")) === \"15 Jun 2026\", and the formatTimeAgo fallback for a 5-week-old date constructed at a UTC/IST day boundary. The visual suite letters baseline would also move.",
+   "reproPlan": "Read-only: find any letter in production with createdAt between 18:30 and 24:00 UTC and compare the date shown on /letters against the IST timestamp of the row (or render locally with TZ=UTC on the dev server and screenshot /letters).",
+   "taxonomyRows": [
+    "6h-dates-ist-utc",
+    "6a-universal"
+   ]
+  },
+  {
+   "title": "normalizeHouse resolves alias lookups through the prototype chain: typing \"constructor\", \"toString\", \"valueOf\" (etc.) into the free-text \"Other house\" box returns a Function/Object instead of a string, crashing the picker or silently losing the entry",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/houses.ts:92",
+    "src/components/common/house-picker.tsx:129",
+    "src/components/onboarding/actions.ts:146"
+   ],
+   "expected": "Any free-typed house name is returned title-cased as a string (\"Constructor\"), stored, and rendered \u2014 the \"Other\" path keeps whatever the person typed, per the owner instruction in the file header.",
+   "actual": "For inputs that collide with Object.prototype members, `HOUSE_ALIASES[lower]` returns an inherited value: \"constructor\" \u2192 the Object constructor function (truthy \u2192 returned), \"toString\"/\"valueOf\"/\"hasOwnProperty\" \u2192 functions, \"__proto__\" \u2192 Object.prototype. Client path: house-picker.tsx addOther() does `const name = normalizeHouse(otherText); if (!name) return; ... onChange([...value, name])` \u2014 a Function is truthy, lands in the string[] state, and the trigger renders it via `<MetaDots parts={value.map(...)}>`, so React throws \"Functions are not valid as a React child\" and the onboarding/settings page falls to the error boundary. Server path: saveOnboardingHouses maps `house: normalizeHouse(r.house)` then `.filter((r) => r.house.length > 0)` \u2014 a Function's .length is its arity (Object has length 1, passes), and `JSON.stringify` OMITS function-valued properties, so `[{\"year\":2020}]` is stored with the house silently gone (parseHouseYearEntries later filters the malformed row out, so the member's entry just vanishes).",
+   "evidence": "src/lib/houses.ts:89-92: `const lower = cleaned.toLowerCase(); const canonical = HOUSES.find((h) => h.toLowerCase() === lower); if (canonical) return canonical; if (HOUSE_ALIASES[lower]) return HOUSE_ALIASES[lower];` \u2014 HOUSE_ALIASES is a plain object literal, so `HOUSE_ALIASES[\"constructor\"]` is `Object.prototype.constructor`, truthy, and returned where the signature promises `string`. The codebase already fixed exactly this class once, in src/lib/city-coords.ts:140-144: \"Object.hasOwn, not a bare `CITY_COORDS[key]`: a filter value like 'constructor' or '__proto__' ... would otherwise return an inherited member ... turning a member's `/directory?city=...` into an uncaught 500.\" houses.ts has no such guard. Downstream: src/components/common/house-picker.tsx:129-131 and src/components/onboarding/actions.ts:146-148 as quoted in \"actual\".",
+   "fixDirection": "In normalizeHouse, replace `if (HOUSE_ALIASES[lower]) return HOUSE_ALIASES[lower]` with an `Object.hasOwn(HOUSE_ALIASES, lower)` guard, exactly mirroring the city-coords.ts fix. Also check src/components/profile/house-chain-editor.tsx:236, the third call site with the same free-text path.",
+   "gateOrTest": "Unit test (new houses.test.mjs, same pattern as the existing *.test.mjs files): for every key of Object.prototype ('constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'isPrototypeOf', 'propertyIsEnumerable', 'toLocaleString'), assert typeof normalizeHouse(k) === \"string\" and it equals the title-cased input.",
+   "reproPlan": "Safe live proof on a test account: open the houses step (onboarding or settings house editor), type \"constructor\" in the Other box, press add \u2014 the client crashes to the error boundary before any write occurs, so nothing touches the shared database.",
+   "taxonomyRows": [
+    "6h-unicode-hostile-input",
+    "6a-missing-null-undefined-handling"
+   ]
+  },
+  {
+   "title": "PostHog identify never fires on a full page load into a (main) route: the child's effect runs before the provider's init effect, the __loaded guard returns, and its deps never change \u2014 so member sessions are counted anonymous and person-based funnels are empty",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/analytics/posthog-identify.tsx:32",
+    "src/components/analytics/posthog-provider.tsx:32",
+    "src/app/layout.tsx:78",
+    "src/app/(main)/layout.tsx:80"
+   ],
+   "expected": "Every signed-in session calls posthog.identify(userId, ...) so `person_profiles: \"identified_only\"` builds profiles and cross-page funnels can follow one member \u2014 the stated purpose of the component.",
+   "actual": "PostHogProvider (root layout) calls posthog.init() inside its own useEffect. PostHogIdentify is rendered by the nested (main) layout \u2014 a descendant \u2014 and its effect body is `if (!posthog.__loaded) return; posthog.identify(...)`. React flushes effects bottom-up (children before parents) within a commit, and both components hydrate in the same commit on a full page load (neither is inside a Suspense boundary \u2014 both are layout-level). So on every hard load of /feed (which is how essentially every authenticated session starts: login performs a full redirect to /feed, and proxy.ts 302s \"/\" to /feed for cookie-holders), the identify effect sees __loaded === false and returns. Its dependency array [userId, accountType, batchYear, isOwner] never changes during the session and the (main) layout persists across client navigations, so the effect never re-runs: the session is never identified. Identify only works in the rare path where posthog was already initialised in this JS context before (main) layout mounts (e.g. client-side navigation from the signed-out landing page into the app without a full load \u2014 which the login flow does not do).",
+   "evidence": "src/components/analytics/posthog-identify.tsx:31-39: `useEffect(() => { if (!posthog.__loaded) return; posthog.identify(userId, { accountType, batchYear, isOwner }); ... }, [userId, accountType, batchYear, isOwner]);` \u2014 a guard with no retry and constant deps. src/components/analytics/posthog-provider.tsx:32-35: `useEffect(() => { if (!KEY) return; posthog.init(KEY, {...` \u2014 init happens in the PARENT's effect, which React runs after all descendants' effects in the same commit. posthog-js sets __loaded synchronously inside init(), so the ordering is the entire question, and the ordering is child-first.",
+   "fixDirection": "Make identify resilient to init order: either call posthog.identify unconditionally (posthog-js queues calls made before init via its stub array \u2014 verify with the pinned posthog-js 1.418.1; if the imported instance queues, the __loaded guard can simply be dropped), or pass a `loaded` callback from the provider through context/state so PostHogIdentify re-renders and re-runs its effect once init completes, or move posthog.init to module scope of the provider file (guarded by typeof window) so it precedes all effects. Add the identified call to any manual verification checklist for analytics.",
+   "gateOrTest": "A Playwright spec that hard-loads /feed signed in and asserts a `/ingest` request whose body contains \"$identify\" (network assertion, written after the live confirmation per the repo's MCP-then-Playwright rule).",
+   "reproPlan": "Read-only live proof: sign in on production (or dev with NEXT_PUBLIC_POSTHOG_DEV=1), hard-reload /feed with the network panel filtered to /ingest, and observe that no $identify event is sent for the whole session; PostHog's Persons page showing (near-)zero identified members despite 49 active accounts corroborates.",
+   "taxonomyRows": [
+    "6b-react-effect-ordering",
+    "6a-boolean-guard-hides-failure"
+   ]
+  },
+  {
+   "title": "Fire-and-forget telemetry writes (void logSearch / void recordView) run after the response on Vercel with no after()/waitUntil, so search logging and view counters silently under-record in production",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/page.tsx:31",
+    "src/app/api/users/search/route.ts:72",
+    "src/app/api/places/search/route.ts:127",
+    "src/app/(main)/letters/[id]/page.tsx:85",
+    "src/app/(main)/collection/[id]/page.tsx:58",
+    "src/app/(main)/profile/[id]/page.tsx:117",
+    "src/app/(main)/catchups/round/[editionId]/page.tsx:194",
+    "src/lib/search-log.ts:38",
+    "src/lib/content-view.ts:20"
+   ],
+   "expected": "Every search a member makes and every profile/letter/photo/round view is recorded \u2014 these features exist because the owner explicitly asked \"what are people failing to find\" and \"who looked at what\" (the files' own headers).",
+   "actual": "All seven call sites use bare `void logSearch({...})` / `void recordView(...)` with no await and no next/server after()/waitUntil. On Vercel, execution after the response completes is not guaranteed: whenever the enclosing render/route finishes before the DB round-trip resolves (fast pages, warm caches, slow pooler moments), the write is frozen with the lambda and may never land \u2014 or lands unpredictably when the instance thaws for the next request. The API routes are worst: `void logSearch(...)` immediately precedes `return NextResponse.json(...)`, so the promise races the response by design. Dev always works (process stays alive), which is exactly why this class ships unnoticed; both helpers also swallow errors silently in production (`if (NODE_ENV !== \"production\") console.error`), so there is no signal when loss happens.",
+   "evidence": "src/app/api/users/search/route.ts:72: `void logSearch({ ... })` followed directly by the JSON return. src/app/(main)/feed/page.tsx:31: `void logSearch({ scope: \"feed\", query: q, userId: s?.user?.id });` inside an RSC render. src/lib/search-log.ts and content-view.ts are plain async Prisma writers with no after() anywhere (`grep -rn \"after(\" src/lib/search-log.ts src/lib/content-view.ts` is empty). The audit brief's 6f row states the platform contract: nothing runs after the response without after()/waitUntil.",
+   "fixDirection": "Wrap each fire-and-forget call in `after(() => logSearch(...))` / `after(() => recordView(...))` from next/server (stable in Next 16), which keeps the non-blocking behaviour while guaranteeing completion. Since the sites are few, a repo-wide grep for `void logSearch|void recordView` in the check script would pin the pattern.",
+   "gateOrTest": "Add a security-regressions-style static test asserting no bare `void logSearch(`/`void recordView(` remains outside an after() wrapper (grep-based, like src/lib/security-regressions.test.mjs pins the deleted admin-login route).",
+   "reproPlan": "code-argument-only (loss is probabilistic under production timing; proving it live would need production load). Corroborating read-only check: compare SearchLog row counts against PostHog search-box autocapture counts for the same window.",
+   "taxonomyRows": [
+    "6a-missing-await-fire-and-forget",
+    "6f-nothing-after-response"
+   ]
+  },
+  {
+   "title": "postSchema.targetBatches has no length cap or format validation and is stored raw, letting one crafted post write megabytes into a column every feed visibility query then filters against",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:159",
+    "src/app/(main)/feed/actions.ts:82",
+    "src/app/(main)/feed/actions.ts:159",
+    "src/lib/post-visibility.ts:40"
+   ],
+   "expected": "targetBatches is a short server-validated list of batch years (the composer builds it from picked batch chips); every free-form string reaching a column has a cap consistent with its use, as the sibling fields do (title max 160, content max 20000, cityScope max 120).",
+   "actual": "validators.ts line 159: `targetBatches: z.string().optional()` \u2014 no .max(), no format check. createPost (feed/actions.ts:82) reads it straight off FormData and line 159 stores it verbatim: `targetBatches: groupId ? null : parsed.data.targetBatches || null`. A verified member scripting the server action (server actions are public HTTP endpoints) can attach up to the request-body cap (~4MB effective through Vercel's edge, 25MB config) of arbitrary text per post, 10 posts per 10 minutes (the posts rate limit), i.e. ~500MB+/day of dead weight in the Post table. The column is then part of GUARD_SELECT in post-visibility.ts (fetched on every comment/like/bookmark/vote interaction with that post) and of the feed's batch-targeting where-clauses, so the bloat is re-read continuously. images, by contrast, is laundered through ownedUploadUrls before storage, and cityScope is checked against the poster's own UserPlace \u2014 targetBatches is the one field on this action that goes to the database exactly as the client sent it.",
+   "evidence": "src/lib/validators.ts:153-172 (postSchema): `targetBatches: z.string().optional(),` with no cap, while neighbours carry them (`title: z.string().max(160)`, `cityScope: z.string().max(120)`). src/app/(main)/feed/actions.ts:159: `targetBatches: groupId ? null : parsed.data.targetBatches || null,` \u2014 no transformation between parse and store. src/lib/post-visibility.ts:35-43 includes `targetBatches: true` in GUARD_SELECT fetched per interaction.",
+   "fixDirection": "Cap and shape it in postSchema: e.g. `z.string().max(400).regex(/^\\d{4}(,\\d{4})*$/).optional()` (or whatever the real wire format is \u2014 read the composer's serialization first), and/or parse-and-rebuild server-side in createPost the way images are rebuilt from ownedUploadUrls, storing only tokens that are valid years.",
+   "gateOrTest": "Unit test on postSchema: a 100k-char targetBatches string is rejected; a valid \"2009,2010\" passes.",
+   "reproPlan": "code-argument-only (proving it live means writing megabytes into the one shared production database).",
+   "taxonomyRows": [
+    "6h-six-value-rule-missing-cap",
+    "6j-over-fetching-big-text-columns",
+    "6f-request-body-abuse"
+   ]
+  },
+  {
+   "title": "Code-unit truncation and initials split surrogate pairs: plainExcerpt, letterTitle and getInitials cut strings with .slice()/[0] on UTF-16 units, rendering U+FFFD when an emoji or non-BMP character sits at the boundary",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/utils.ts:389",
+    "src/lib/utils.ts:356",
+    "src/lib/utils.ts:41"
+   ],
+   "expected": "A teaser truncated at its cap ends cleanly (\"...\" after a whole character); initials of a name are whole characters.",
+   "actual": "plainExcerpt: `return plain.slice(0, maxLen).trimEnd() + \"...\"` \u2014 if code unit 160 falls between the halves of a surrogate pair (any emoji, many Indic-adjacent and historic scripts), the teaser ends in a lone surrogate the browser paints as \ufffd before the ellipsis. letterTitle line 356 has the identical `firstLine.slice(0, maxLen).trimEnd() + \"...\"`. getInitials lines 41-42 take `parts[0][0]` / `parts[parts.length-1][0]` \u2014 for a name beginning with an emoji or non-BMP letter this is half a surrogate pair, so the avatar fallback shows \ufffd; additionally a whitespace-only name would make parts[0][0] undefined and `.toUpperCase()` throw, though current validators (firstName/lastName trim().min(1), profile name min 2) make an all-whitespace stored name unlikely rather than impossible (profileSchema's name has no .trim() before min(2), so \"  \" passes min(2) \u2014 two spaces \u2014 and getInitials(\"  \") then throws: `\"  \".trim().split(/\\s+/)` \u2192 [\"\"] \u2192 parts[0][0] undefined \u2192 TypeError).",
+   "evidence": "src/lib/utils.ts:388-389: `if (plain.length <= maxLen) return plain; return plain.slice(0, maxLen).trimEnd() + \"...\"`. utils.ts:356: `return firstLine.length > maxLen ? firstLine.slice(0, maxLen).trimEnd() + \"...\" : firstLine`. utils.ts:38-43: `const parts = name.trim().split(/\\s+/); if (parts.length === 0) return \"?\"; if (parts.length === 1) return parts[0][0].toUpperCase();` \u2014 the length-0 branch is unreachable (split of \"\" yields [\"\"]) and parts[0][0] is a bare code unit. profileSchema (validators.ts:54) is `name: z.string().min(2).max(100)` with no .trim(), so a two-space name passes validation.",
+   "fixDirection": "Truncate with Array.from (code points) or Intl.Segmenter (graphemes): `[...plain].slice(0, maxLen).join(\"\")`; take initials via `[...parts[0]][0] ?? \"?\"`; add .trim() to profileSchema.name so whitespace-only names cannot be stored.",
+   "gateOrTest": "Unit tests: plainExcerpt of a string whose 160th code unit is inside an emoji ends without a lone surrogate; getInitials(\"\ud83e\udd9c Ravi\") returns whole characters; getInitials(\"  \") does not throw; profileSchema rejects \"  \".",
+   "reproPlan": "code-argument-only; trivially demonstrable in a local node REPL with the quoted expressions.",
+   "taxonomyRows": [
+    "6h-unicode-hostile-input",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "Year validators evaluate new Date().getFullYear() in UTC at module scope: for 5.5 hours every New Year (and for as long as a warm lambda survives past it), the current year is rejected as \"hasn't happened yet\"",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:22",
+    "src/lib/validators.ts:104",
+    "src/lib/validators.ts:186",
+    "src/lib/utils.ts:294"
+   ],
+   "expected": "A member in IST on 1 January can enter the new year wherever a current year is legal: a photo taken today, a teacher who joined this year, yearJoined = this year in settings.",
+   "actual": "signupSchema/profileSchema/photoSchema build their caps with `new Date().getFullYear()` INSIDE the schema literal, which executes once at module import on the server (UTC). From 00:00 to 05:30 IST on 1 January the server year is still last year, so `photoYear: max(getFullYear(), \"That year hasn't happened yet\")` rejects the member's true current year; worse, because the value is captured at module scope, a Vercel lambda instance imported in December and kept warm into January keeps the stale cap for its entire lifetime, extending the window arbitrarily. computeBatchFromSchooling (utils.ts:294) re-reads the clock per call (no staleness) but is still UTC, giving the same 5.5-hour window for `yearJoined > thisYear` rejections.",
+   "evidence": "src/lib/validators.ts:22: `yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional()` \u2014 the .max argument is evaluated when validators.ts is imported, not per request. Same pattern at 104-109 (profileSchema batchYear/yearJoined/yearLeft/taughtFrom/taughtUntil) and 186-189 (photoSchema.photoYear). src/lib/utils.ts:294: `const thisYear = new Date().getFullYear()` inside computeBatchFromSchooling, UTC on the server.",
+   "fixDirection": "Compute the cap per validation rather than per import \u2014 Zod supports a function via .refine, or use a helper `currentISTYear()` (mirror wordle.ts's Asia/Kolkata rendering) and call it inside a .superRefine/.refine on each year field. Alternatively accept +1 headroom on every \"this year\" cap (as yearLeft already does), which makes both the timezone and the warm-lambda staleness harmless.",
+   "gateOrTest": "Unit test constructing the schemas with a faked clock (or refactored to accept a now() injection) asserting the cap tracks the IST year across the 31 Dec 18:30 UTC boundary.",
+   "reproPlan": "code-argument-only (the failing window is New Year's morning).",
+   "taxonomyRows": [
+    "6h-dates-ist-utc",
+    "6f-module-scope-init",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "Signup accepts a 101-character name (50 + space + 50) but profileSchema caps name at 100, so such a member's settings form can never save until they shorten the name they were allowed to register with",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:16",
+    "src/lib/validators.ts:54",
+    "src/lib/validators.ts:18"
+   ],
+   "expected": "Any name accepted at signup remains valid in every later write path to the same column; caps on the two paths to one column agree (the file's own contactMethodsSchema comment states this exact principle: \"a number accepted at sign-up could fail to save in settings\" is why the phone cap was aligned from 20 to 24).",
+   "actual": "signupSchema takes `firstName: ...max(50)` and `lastName: ...max(50)` which registerUser joins with a space into `name` \u2014 up to 101 characters stored. profileSchema line 54 is `name: z.string().min(2).max(100)`, so updateUserProfile rejects the prefilled, unedited name and the member cannot save any profile change. Also in the same family: signupSchema.email (`z.email(...)` line 18) has no length cap at all while displayEmail carries max(200) \u2014 an arbitrarily long format-valid address can be registered, bloating the unique-indexed email column and guaranteeing verification mail failure (SMTP caps addresses at 254).",
+   "evidence": "src/lib/validators.ts:16-18: `firstName: z.string().trim().min(1, \"First name is required\").max(50), lastName: z.string().trim().min(1, \"Surname is required\").max(50), email: z.email(\"Please enter a valid email\"),` versus line 54: `name: z.string().min(2).max(100)`. The header comment at lines 10-12 confirms the join: \"First name and surname are collected as two separate fields and joined with a single space into the stored `name` (see registerUser)\". The phone-cap comment at 65-66 documents the repo's own rule that these paths must agree.",
+   "fixDirection": "Raise profileSchema.name to max(101) (or lower the signup halves to 49+49); add `.max(254)` (or 200, matching displayEmail) to signupSchema.email.",
+   "gateOrTest": "Unit test: profileSchema.safeParse({ name: \"a\".repeat(50) + \" \" + \"b\".repeat(50), ... }).success is true; signupSchema rejects a 300-char email.",
+   "reproPlan": "code-argument-only (registering a 101-char name in the shared production DB just to prove it is not worth the junk row).",
+   "taxonomyRows": [
+    "6h-boundary-values",
+    "6e-signup-settings-consistency"
+   ]
+  },
+  {
+   "title": "batchTypeFromLeaving silently returns \"ISC\" for impossible input (batchYear earlier than yearLeft), so a swapped-fields typo at signup or settings stores a nonsense batch with a confident board credential and no error",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/utils.ts:250",
+    "src/components/auth/actions.ts:92"
+   ],
+   "expected": "Data implying the member was past 12th grade when they left (gradeAtLeaving > 12) is rejected with a message, exactly as the sibling helper computeBatchFromSchooling does (\"Those years add up to past 12th grade. Check your joining grade and years.\", utils.ts:324-329).",
+   "actual": "batchTypeFromLeaving is `const gradeAtLeaving = 12 - (batchYear - yearLeft); if (gradeAtLeaving >= 12) return \"ISC\"` \u2014 for batchYear < yearLeft (e.g. the member types batch 2003 and yearLeft 2023, swapping fields), gradeAtLeaving is 32, `>= 12` is satisfied, and \"ISC\" is returned. registerUser (auth/actions.ts:92) and updateUserProfile write the pair straight through: the member is stored as \"Batch of '03\" with an ISC credential and joined to the wrong batch group (joinBatchGroup at actions.ts:177 uses the same batchYear), with no validation error anywhere \u2014 signupSchema's cross-field refines only check presence and yearLeft >= yearJoined, never batchYear >= yearLeft.",
+   "evidence": "src/lib/utils.ts:250-258: `export function batchTypeFromLeaving(yearLeft: number, batchYear: number): \"ISC\" | \"ICSE\" | null { const gradeAtLeaving = 12 - (batchYear - yearLeft); if (gradeAtLeaving >= 12) return \"ISC\"; if (gradeAtLeaving >= 10) return \"ICSE\"; return null; }` \u2014 no upper guard. Contrast utils.ts:324-329 where the schooling-facts path rejects gradeAtLeaving > 12. src/components/auth/actions.ts:78-92 shows the only cross-field check is `yearLeft < yearJoined`.",
+   "fixDirection": "Return an error (or null plus a caller-visible rejection) when gradeAtLeaving > 12 \u2014 i.e. require batchYear >= yearLeft \u2014 in batchTypeFromLeaving, and surface it in registerUser/updateUserProfile as a field error on batchYear (\"Your batch year can't be before the year you left\").",
+   "gateOrTest": "Unit test: batchTypeFromLeaving(2023, 2003) does not return \"ISC\"; signup/profile actions reject batchYear < yearLeft.",
+   "reproPlan": "code-argument-only (would create a junk account in the shared production DB).",
+   "taxonomyRows": [
+    "6h-cross-field-validation",
+    "6a-boundary-values"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "6a fail-safe parsers: parseJsonArray, parseUserLinks (social.ts), parseHouseYearEntries (house-spans.ts), getOnboardingHouses all catch bad JSON and degrade to empty \u2014 clean",
+  "6a metaLine/MetaDots separator rule, normalizePhone, maskEmail (at<1 guard), titleCase (non-Latin scripts left alone, no-letter strings safe) \u2014 clean",
+  "6a/6h safeNextPath open-redirect guards (//, backslash, control chars) \u2014 clean; nextPathFromLocation SSR-safe \u2014 clean",
+  "6b use-user-search: monotonic request id kills out-of-order responses and stale spinner; empty-query bump prevents late landings \u2014 clean; TagInput commit/dedupe/blur \u2014 clean",
+  "6c: zero unstable_cache/'use cache' usages in all of src (grep) \u2014 no shared-cache-capturing-per-user-data risk in shared code; lab setArchived is admin-gated in production, revalidates /lab, handles the missing-table error explicitly \u2014 clean",
+  "6d prisma.ts: no SET/advisory locks/LISTEN anywhere in shared libs; single PrismaPg client through the transaction pooler; dev singleton schema-key mechanism sound (model names + ScalarFieldEnum columns, degrades to model-name behaviour) \u2014 clean",
+  "6f proxy matcher excludes manifest.webmanifest, icon.svg, apple-icon.png, images/ \u2014 the credential-less manifest/icon fetches that break PWA installs elsewhere are handled here \u2014 clean; manifest.ts itself static and consistent with layout themeColor \u2014 clean",
+  "6f Collection upload 4.5MB fallback: the direct-to-R2 path is primary and the server-action fallback's ~4.5MB Vercel cap is known, deliberate, and surfaced with a naming error message (upload-client.ts header, contribute-dialog catch) \u2014 examined, not a defect",
+  "6g image.ts: limitInputPixels 100MP decompression-bomb ceiling, sequentialRead, failOn:'error' rationale \u2014 clean",
+  "6h city-coords: Object.hasOwn guard against prototype-chain city keys present and correct; normalizePlaceString NFKD+strip-marks fold \u2014 clean; geocode.ts batched gazetteer fallback: bounded module cache, failures not cached, empty-batch early return, population-desc homonym rule \u2014 clean",
+  "6h wordle.ts: IST date key (timeZone Asia/Kolkata), 1h fetch cache, deterministic offline fallback \u2014 clean; theme.ts cookie validation \u2014 clean",
+  "6i search-log dedupe TOCTOU examined: worst case duplicate telemetry rows, no member-visible effect \u2014 accepted, not reported; content-view upsert race swallowed by catch \u2014 accepted",
+  "6j account export route: all findMany scoped to the requesting user, rate-limited 3/24h, audit awaited \u2014 clean at 2k users; rate-limit.ts: env-prefixed keys, sliding windows, fail-open posture documented and consistent across rateLimit/hasBudget/consume \u2014 clean",
+  "6k Sentry wiring: server-only by design, NEXT_REDIRECT/NEXT_NOT_FOUND/AbortError ignored, sendDefaultPii off, edge runtime covered via register() \u2014 clean; PostHog init options (proxied /ingest, replay off, DNT, dev opt-out) \u2014 clean apart from the identify-ordering finding",
+  "localStorage one-shot/onboarding-local/tour-local helpers: private-mode/quota safe, per-user-scoped keys \u2014 clean",
+  "avatar.ts + bird-avatar-v2 resolveBirdOverride: the slug prototype-chain lookup is unreachable because chooseBird validates via a Set (WEARABLE_SLUGS.has) before any write \u2014 defense-in-depth note only, not a bug; reserved Hoopoe/Roller precedence math (DRAWN vs BIRD_SPECIES_COUNT modulo) \u2014 clean",
+  "policies pages, about, donate (static redirect), hoopoe playground (no data access), error.tsx, guidelines \u2014 static/clean; dark-mode page cookie-gated logic \u2014 clean",
+  "next.config.ts: CSP/headers/rewrites ordering (versioned PostHog probe before general static rule), skipTrailingSlashRedirect rationale, Sentry release-mail suppression \u2014 examined clean; vercel.json cron schedules read (02:00 UTC = 07:30 IST tick, 20:00 UTC = 01:30 IST demo reset) \u2014 semantics deferred to the catchups-lifecycle/demo charters; package.json: prisma in dependencies for postinstall on Vercel, next-auth pinned exact \u2014 clean",
+  "renderRichText emphasis regexes: bounded lazy quantifiers only (no nested quantifiers), 2000-char span cap \u2014 no ReDoS; mention id charset strict \u2014 clean (XSS itself out of scope per the closed security audit)"
+ ],
+ "coverageNotes": "Named territory read in full: src/lib/utils.ts, validators.ts, db-text.ts, normalize.ts, professions.ts, houses.ts, social.ts, geocode.ts, city-coords.ts, bot-check-message.ts, rate-limit-message.ts, member-gate-message.ts, onboarding-local.ts, tour-local.ts, image.ts, src/app/lab/actions.ts, src/app/manifest.ts, next.config.ts, vercel.json, package.json, src/instrumentation.ts, posthog-provider.tsx, posthog-identify.tsx, src/app/hoopoe/page.tsx, donate/about/dark-mode pages, notice/[id]/page.tsx; (policies) pages grep-verified static (no auth/prisma/effects) rather than read line-by-line. Catch-all sweep (files no sibling charter names), read fully: prisma.ts, rate-limit.ts (uncommitted state), wordle.ts, theme.ts, next-path.ts, mask-email.ts, search-log.ts, content-view.ts, rich-text-editing.ts, house-spans.ts, avatar.ts, tour-auto-offer.ts, api/account/export/route.ts, proxy.ts, error.tsx, pick-bird/page.tsx, common/use-user-search.ts, common/tag-input.tsx, common/year-input.tsx, common/share-button.tsx, common/meta-dots.tsx, common/house-picker.tsx (relevant halves), mascot/moments/one-shot.ts, upload-client.ts, contribute-dialog.tsx (upload halves), collection/actions.ts (contributePhoto, to settle the 4.5MB question). Swept by targeted grep + spot-read rather than full read: common/image-viewer.tsx (effects/download path read), common/float-field, motion.tsx, segmented-pills, verified-mark, person-name, identity-row, info-tooltip, use-deferred-autofocus, filters/* (no effects/fetch/date logic found by scan), components/ui/* (no client logic found by scan), mascot tree and tour tree (timer/storage/random scan; hoopoe behaviors are owner-tracked territory), not-found.tsx (header + logic scan; it is the mascot playground), welcome/birds pages (scan), bird-avatar-v2.tsx (resolveBirdOverride and slug map only \u2014 the remaining ~1700 lines are SVG path data), onboarding/actions.ts (houses path only, to chase the houses.ts bug), feed/actions.ts and post-visibility.ts (targetBatches path only), auth/actions.ts (year cross-checks only). Consciously skipped as other charters' named territory: auth.ts/auth-tokens/turnstile/human-pass/login-attempt/password-rule/timing-safe/origin-rule/app-secret (auth-core), (auth) pages + components/auth + landing (auth-clients-landing), posts.ts/feed components (feed-posts), letters/messages/notifications trees (letters-messages-notifications), catchups* (two catchups charters), directory/roster/map-cluster/city-scope/places+users search routes incl. their uncommitted WIP state (directory-places), collection*/upload routes/storage.ts (collection-uploads), profile+settings trees incl. uncommitted settings/actions.ts (profile-settings), admin* (admin-surface), support/razorpay (support-razorpay), email* (email-pipeline), retention/account-purge/crons (crons-retention), demo* (demo-deployment), layouts/app-shell/sidebar/last-seen (shell-telemetry-client). Cross-charter findings I report anyway because the root lives in my shared helpers: the IST date helpers (surface in letters/admin), the fire-and-forget telemetry helpers (surface in feed/letters/profile/api routes), targetBatches (root in validators.ts). Known-tracked items not re-reported per brief: raw-SQL timestamp note, hoopoe items, bugs.md open list, everything in the closed 74-finding security audit (resolveBirdOverride prototype-chain noted only as defense-in-depth because its write path already blocks it)."
+}

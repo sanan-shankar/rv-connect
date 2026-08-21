@@ -1,0 +1,250 @@
+{
+ "territory": "Support page and the money path: src/app/(main)/support/** (actions, page), src/lib/razorpay.ts, src/app/api/razorpay/webhook/route.ts, src/components/support/** (support-contribute, costs-card, bird-plate, bird-picker, plate-data, wood), /pick-bird, the Contribution model, and every consumer of prisma.contribution (admin ledger, admin overview, admin person page, admin analytics, retention sweep, account export, people merge).",
+ "findings": [
+  {
+   "title": "Payment success callback has no error handling: a thrown confirmContribution after real money moved leaves the button stuck on 'Opening' forever with zero feedback",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/support/support-contribute.tsx:119",
+    "src/components/support/support-contribute.tsx:161",
+    "src/app/(main)/support/actions.ts:81"
+   ],
+   "expected": "Every await of a server action in the payment flow is wrapped so a transport failure (network blip on mobile right after a UPI payment, DB hiccup, action digest error) resets `working`, tells the payer what happened, and \u2014 on the confirm path \u2014 reassures them the payment itself is safe (the webhook records it).",
+   "actual": "Neither `await startContribution(amount)` (line 119) nor `await confirmContribution(res)` inside the Razorpay `handler` (line 161) has a try/catch. A server action that THROWS (as opposed to returning `{error}`) rejects the client-side promise; `pay()` and the async `handler` are fire-and-forget callbacks, so the rejection is unhandled, `setWorking(false)` never runs, no toast appears, and the button shows the 'Opening' spinner permanently. On the confirm path the member has just paid: the modal closes, then nothing \u2014 no toast, no redirect to /pick-bird, a dead button. Server side makes the throw realistic: in startContribution the `prisma.user.findUnique` phone read at actions.ts:81-84 sits OUTSIDE the try block that starts at line 86, so a transient DB error there throws to the client instead of returning the friendly `{error}` the rest of the action is built around. `auth()` throwing, a Vercel invocation error, or plain network loss in the seconds after payment (common during India UPI app-switch flows) all take the same unhandled path.",
+   "evidence": "support-contribute.tsx:119 `const started = await startContribution(amount as number);` \u2014 bare await, the enclosing `pay()` has try/catch only around `loadCheckout()`. Handler, lines 161-167: `handler: async (res: RazorpaySuccess) => { const confirmed = await confirmContribution(res); if (\"error\" in confirmed) { setWorking(false); ... }` \u2014 the error-object branch is handled, the rejection branch is not, and the success path deliberately never resets `working` (comment line 173-174: \"`working` stays true through the navigation\"), so a rejection strands it true. actions.ts:81-86: `const profile = await prisma.user.findUnique({ where: { id: session.user.id }, select: { phone: true } });` followed by `try {` \u2014 the read is outside the try whose catch returns `{ error: \"We could not reach the payment gateway...\" }`.",
+   "fixDirection": "Wrap the two awaits: in `pay()`, a try/catch around `startContribution` that resets working and toasts the generic gateway message; in `handler`, a try/catch around `confirmContribution` whose catch resets working and toasts something specific and calming \u2014 the payment went through at Razorpay and will be recorded by the webhook, e.g. 'Your payment went through. We could not update the page \u2014 it will show on Support shortly.' Server side, move the phone `findUnique` inside the existing try in startContribution (or give it its own `.catch(() => null)`, since an absent phone is already an accepted state).",
+   "gateOrTest": "A unit test on the component with a mocked `confirmContribution` that rejects: assert the button re-enables and a toast fires. For the server half, a test that startContribution returns `{error}` (not a throw) when the user read rejects.",
+   "reproPlan": "Code-argument-only for the money case. Safe live proof of the client half: in chrome-devtools, stub `confirmContribution` module or block the action's fetch via network emulation offline right after opening the modal in test mode, complete a test payment, observe the stuck 'Opening' state and the unhandled rejection in the console.",
+   "taxonomyRows": [
+    "6a-unhandled-promise-rejection",
+    "6k-db-down-mid-request",
+    "6b-missing-error-boundary"
+   ]
+  },
+  {
+   "title": "When the webhook (not the browser) records a payment, the supporter gets nothing: no notification, no email, no path to the promised bird perk",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/api/razorpay/webhook/route.ts:72",
+    "src/app/(main)/support/page.tsx:121",
+    "src/components/support/support-contribute.tsx:175"
+   ],
+   "expected": "The webhook exists precisely because 'the callback only runs if the payer's tab survives long enough to run it' (its own header). When it is the recorder, the member who paid \u20b9500+ should still receive some signal that the payment landed and that their pick is open \u2014 at minimum an in-app notification carrying the /pick-bird link.",
+   "actual": "The webhook's payment.captured branch updates the Contribution row and does nothing else \u2014 no Notification row, no email, no revalidation. Meanwhile /support deliberately never links /pick-bird (page.tsx:121-126: 'the ONLY way in is the redirect after a successful payment'). So the exact scenario the webhook was built for \u2014 Android kills the tab during the UPI app switch, or the payer closes the 3-D Secure page \u2014 ends with money recorded, the recovery bar advanced, and the supporter locked out of the perk they were promised ('Anyone who contributes picks their own bird') unless they guess the /pick-bird URL. The owner's no-standing-link decision covered members who completed the flow; it did not consider the flow dying between payment and redirect. Compounding cases that hit the same dead end with the tab still open: confirmContribution returning 'Not authenticated' (session expired mid-payment) or the finding-1 throw \u2014 the row still goes paid via webhook, the redirect still never happens.",
+   "evidence": "webhook/route.ts:72-83: the captured branch is exactly one `prisma.contribution.update({ ... status: \"paid\" ... })` \u2014 grep confirms no Notification/OutboundEmail write anywhere in the route. support/page.tsx:121-125: 'No standing door to /pick-bird here, even for members who have already contributed: the ONLY way in is the redirect after a successful payment (owner).' The redirect lives only in the browser handler, support-contribute.tsx:177 `router.push(\"/pick-bird\")`. /pick-bird/page.tsx:52-67 would ADMIT this member (paid sum \u2265 threshold, fresh unspent pick) \u2014 the gate works; the door is what is missing.",
+   "fixDirection": "In the webhook's captured branch (only when the row transitions created/failed \u2192 paid), create a Notification for contribution.userId along the lines of 'Your contribution was received \u2014 pick your bird', linking /pick-bird. That respects the owner's no-standing-link rule (it is a one-time consequence of a payment, not a standing door) and closes the loop for every browser-death case at once. Surface it to the owner as the product decision it is.",
+   "gateOrTest": "An integration test on the webhook route: signed payment.captured for a 'created' row asserts both the status flip and the notification row for the contributor.",
+   "reproPlan": "Live proof in test mode: start a checkout on localhost, pay in the Razorpay test modal but kill the tab before the handler runs, deliver the captured webhook (or manually flip the row as the webhook would), then sign in as that member and observe: bar advanced, no notification anywhere, /support shows no way into /pick-bird.",
+   "taxonomyRows": [
+    "6i-webhook-vs-callback-ordering",
+    "6k-session-dies-mid-form",
+    "6h-identity-states"
+   ]
+  },
+  {
+   "title": "Razorpay checkout script retry is permanently broken after one failed load: the dead <script> tag short-circuits every later attempt",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/support/support-contribute.tsx:71",
+    "src/components/support/support-contribute.tsx:76"
+   ],
+   "expected": "The onerror handler's stated intent (line 77-78: 'Cleared so a later attempt can retry rather than inherit the rejection forever (an ad blocker may be off by the time they try again)'): after a failed load, the next click re-injects the script and can succeed.",
+   "actual": "onerror clears `checkoutPromise` but never removes the failed `<script>` element from document.head. The next `loadCheckout()` call finds `checkoutPromise` null, creates a new promise, and its first line \u2014 `if (document.querySelector(`script[src=\"${CHECKOUT_SRC}\"]`)) return resolve();` \u2014 finds the DEAD tag and resolves immediately without ever re-requesting the script. `pay()` proceeds, `window.Razorpay` is undefined, and the member sees 'The payment window could not load. Please try again.' \u2014 advice that can never work, because the resolved promise is now memoised in `checkoutPromise` and every subsequent click takes the same path until a full page reload. One transient network failure, or an ad blocker toggled off after the first attempt, permanently blocks payment for that page session.",
+   "evidence": "Lines 70-83: `checkoutPromise = new Promise<void>((resolve, reject) => { if (document.querySelector(`script[src=\"${CHECKOUT_SRC}\"]`)) return resolve(); const el = document.createElement(\"script\"); ... el.onerror = () => { checkoutPromise = null; reject(new Error(\"checkout script failed to load\")); }; document.head.appendChild(el); });` \u2014 no `el.remove()` in onerror, and the querySelector guard cannot distinguish a loaded script from a failed one.",
+   "fixDirection": "In onerror, `el.remove()` before clearing checkoutPromise. Better still, make the querySelector guard check the thing that matters: `if ((window as any).Razorpay) return resolve();` \u2014 presence of the global, not presence of a tag, is what 'already loaded' means.",
+   "gateOrTest": "A jsdom unit test: make the first injected script fire onerror, call loadCheckout again, assert a second script element is injected (or that the promise rejects rather than resolving vacuously).",
+   "reproPlan": "Live: in chrome-devtools, block checkout.razorpay.com via network request blocking, click Contribute (toast: ad blocker message), unblock, click again \u2014 observe 'Please try again' forever, no new network request for checkout.js.",
+   "taxonomyRows": [
+    "6a-resource-leak-invalid-state",
+    "6k-third-party-script-unreachable"
+   ]
+  },
+  {
+   "title": "startContribution has no rate limit: any signed-in member can mint unbounded Razorpay orders and Contribution rows that retention keeps for 10 years",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/support/actions.ts:53",
+    "src/lib/rate-limit.ts:35",
+    "src/lib/retention.ts:84"
+   ],
+   "expected": "Every write action goes through the one rate limiter ('The default call for write actions: one line after the member gate' \u2014 rate-limit.ts). Order creation calls an external money API and inserts a row per click, so it is exactly the shape the LIMITS table exists for.",
+   "actual": "actions.ts imports nothing from rate-limit.ts, and the LIMITS table (rate-limit.ts:35-95) has no entry that could cover it \u2014 posts/comments/uploads/etc. only. A scripted session (or a stuck client retry loop) can call startContribution in a tight loop: each call is one authenticated POST to api.razorpay.com/v1/orders in the merchant account plus one Contribution insert. Consequences at the margin: unbounded 'created' rows in the shared production table (the retention sweep only deletes contributions older than 3650 days \u2014 retention.ts:84 with KEEP_DAYS.contributions=3650 \u2014 so nothing cleans them for a decade), a polluted admin ledger and funnel ('Did not go through' counts every one), a spammed Razorpay dashboard, and pressure on Razorpay's own API rate limits, which throttle the merchant account for genuine payers too.",
+   "evidence": "actions.ts imports: `import { createId } ...; import { revalidatePath } ...; import { auth } ...; import { IS_DEMO } ...; import { prisma } ...; import { createOrder, ... } from \"@/lib/razorpay\"; import { PERK_MIN_PAISE, WEARABLE_SLUGS } ...` \u2014 no rate-limit import. rate-limit.ts LIMITS keys: login-ip, login-account, signup, reset, trivia, posts, comments, uploads, reports, catchups, reauth, export, search \u2014 no contribution/order entry. retention.ts: `prisma.contribution.deleteMany({ where: { createdAt: { lt: cutoff(KEEP_DAYS.contributions) } } })` with `contributions: 3650`.",
+   "fixDirection": "Add a per-user limit to LIMITS (e.g. `contribute: { tokens: 10, window: \"1 h\" }` \u2014 nobody legitimately opens more than a handful of checkouts an hour) and call `rateLimit(\"contribute\", session.user.id)` in startContribution right after the auth/demo gates, before createOrder. chooseBird can share it or go unlimited (it is idempotent and payment-gated).",
+   "gateOrTest": "The existing security-regressions test pattern: assert actions.ts references the rate limiter; or a unit test that the 11th startContribution in the window returns the RATE_LIMITED error.",
+   "reproPlan": "Code-argument-only (a live proof would write real rows into the shared production table).",
+   "taxonomyRows": [
+    "6j-third-party-quotas-under-load",
+    "6j-unbounded-table-growth",
+    "6i-double-submit"
+   ]
+  },
+  {
+   "title": "Refunds are invisible to the system: no refund/dispute webhook handling and no status for them, so refunded money stays in the public recovered figure and keeps the bird perk",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/api/razorpay/webhook/route.ts:55",
+    "prisma/schema.prisma:848",
+    "src/app/(main)/support/page.tsx:38"
+   ],
+   "expected": "When the owner refunds a contribution from the Razorpay dashboard (a member changes their mind, a duplicate payment, a dispute), the row should stop counting: the public recovery bar, the admin totals, and the perk-eligibility sum should all reflect that the money went back.",
+   "actual": "The webhook drops every event except payment.captured and payment.failed (route.ts:55: `if (!orderId || (event.event !== \"payment.captured\" && event.event !== \"payment.failed\")) return NextResponse.json({ received: true });` \u2014 refund.processed / payment.refunded / payment.dispute.* are acknowledged and discarded), and the status column's documented domain is only \"created\" | \"paid\" | \"failed\" (schema.prisma:848). A refunded contribution therefore stays \"paid\" forever: it inflates the /support recovery bar (page.tsx:38-44 sums status paid + livemode true), the admin 'Given, all time' figures, and \u2014 because chooseBird sums the same rows \u2014 permanently retains perk eligibility and pick regrants for money that was returned. Related edge, config-dependent: confirmContribution marks \"paid\" on the browser signature, which Razorpay issues when the payment succeeds (authorization); if the merchant account is not set to auto-capture, an authorized payment that is never captured auto-refunds after Razorpay's window while the row stays \"paid\" \u2014 the same paid-but-no-money terminal state through a different door.",
+   "evidence": "The only status writes in the codebase are: startContribution \u2192 \"created\", confirmContribution \u2192 \"paid\", webhook \u2192 \"paid\"/\"failed\". Grep for \"refund\" across src/ hits nothing in the money path. schema.prisma:848 `status String @default(\"created\") // \"created\" | \"paid\" | \"failed\"`.",
+   "fixDirection": "Subscribe to refund.processed (and payment.dispute.won/lost if desired) in the Razorpay dashboard, and add a webhook branch: on a refund event whose payment maps to a paid row, set status \"refunded\" (new value) with a refundedAt stamp. Update the three sum sites to keep filtering status: \"paid\" (they already do \u2014 a new status value excludes itself automatically, which is why a status flip is safer than deleting the row). Decide with the owner whether a refund also invalidates an already-spent bird pick (probably not worth automating; the status flip alone fixes the money figures). Verify the auto-capture setting in the dashboard while there.",
+   "gateOrTest": "Webhook route test: a signed refund.processed event flips a paid row to refunded; the /support sum excludes it.",
+   "reproPlan": "Test-mode live proof: pay a test order, refund it from the Razorpay test dashboard, watch the webhook deliver refund.processed and the row stay 'paid'.",
+   "taxonomyRows": [
+    "6i-webhook-replay-after-refund",
+    "6i-webhook-event-coverage",
+    "6c-server-action-state-machine"
+   ]
+  },
+  {
+   "title": "Webhook signature rejection answers 400, but Razorpay retries ALL non-2xx and auto-disables persistently failing webhooks \u2014 a wrong or unset RAZORPAY_WEBHOOK_SECRET silently kills the closed-tab safety net",
+   "severity": "Medium",
+   "status": "suspected",
+   "files": [
+    "src/app/api/razorpay/webhook/route.ts:36",
+    "src/lib/razorpay.ts:135"
+   ],
+   "expected": "A forged body should be rejected without retries; a misconfigured or missing webhook secret should be loud and distinguishable, because in that state EVERY legitimate event fails and the one path that records payments when the payer's browser dies is dead.",
+   "actual": "route.ts:37-40 returns 400 on signature failure, on the premise commented at line 37-38: '400, not 401: Razorpay retries on 5xx, and a body we cannot authenticate is never going to authenticate on the third attempt either.' Razorpay's documented behavior is that any non-2xx (or timeout) counts as a failed delivery, is retried with backoff for ~24 hours, and a webhook that keeps failing is auto-deactivated (with an email to the account owner). Two consequences: (1) the 400 does not actually prevent the retry storm the comment believes it prevents; (2) if RAZORPAY_WEBHOOK_SECRET is unset or rotated out of sync, verifyWebhookSignature returns false for every event (razorpay.ts:136-137 `if (!secret || !signature) return false;`) with the same generic log line as a forgery, deliveries fail for days, and Razorpay quietly disables the endpoint \u2014 after which every closed-tab payment is recorded only if the browser callback happens to survive. Suspected because it rests on Razorpay's retry/deactivation policy, not on this repo's code alone.",
+   "evidence": "razorpay.ts:135-140: `export function verifyWebhookSignature(rawBody, signature) { const secret = process.env.RAZORPAY_WEBHOOK_SECRET; if (!secret || !signature) return false; ... }` \u2014 an absent secret is indistinguishable from a bad signature. route.ts:39 logs the same `\"[razorpay] webhook signature rejected\"` for both. `razorpayConfigured()` (razorpay.ts:42) checks only KEY_ID/KEY_SECRET, never the webhook secret, and is itself never called anywhere (grep: zero call sites).",
+   "fixDirection": "Confirm Razorpay's current retry semantics against their docs. In verifyWebhookSignature, treat 'secret unset' as its own loud condition (distinct console.error naming the env var, ideally a Sentry event) separate from 'signature mismatch'. Keep 400 for genuine mismatches (correct for forgeries) but document the deactivation risk; optionally add the webhook-secret presence to whatever env-check runs at deploy time.",
+   "gateOrTest": "Unit test: verifyWebhookSignature with secret unset logs the misconfiguration message; the security-regressions suite pins the distinct log/status.",
+   "reproPlan": "Code-argument-only plus a docs check; live proof would require breaking the production webhook secret.",
+   "taxonomyRows": [
+    "6i-webhook-retry-semantics",
+    "6k-misconfiguration-visibility",
+    "6a-swallowed-telemetry"
+   ]
+  },
+  {
+   "title": "Admin person page counts test-mode money as real: the contribution sum on /admin/people/[id] has no livemode filter",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/people/[id]/page.tsx:64"
+   ],
+   "expected": "The schema's own rule (schema.prisma Contribution comment): 'Anything summing this table for a public figure must filter on it', and the admin ledger's stated principle that test rows are 'shown, clearly marked, and never counted'. The per-person 'given' figure should match what the money ledger would say about that person.",
+   "actual": "The aggregate is `where: { userId: id, status: \"paid\" }` \u2014 no `livemode: true`. This database is shared by production and local dev, so every test payment a developer completes on localhost lands a paid livemode=false row under a real userId (typically the admin's own account, but any account a dev signs in as). The person page then reports that member as having given money they never gave, disagreeing with /admin/support and the public bar \u2014 the exact two-surfaces-disagree failure the admin ledger's header comment warns about, with the wrong one being the page the admin reads about a specific person.",
+   "evidence": "people/[id]/page.tsx:64-67: `prisma.contribution.aggregate({ _sum: { amount: true }, _count: true, where: { userId: id, status: \"paid\" } })` \u2014 compare admin/support/page.tsx:46 `where: { status: \"paid\", livemode: true }` and support/page.tsx:41 `where: { status: \"paid\", livemode: true }`.",
+   "fixDirection": "Add `livemode: true` to the where clause. If the owner wants test giving visible on a person page at all, show it as a separately-labelled test figure the way the ledger's Test chip does \u2014 but the headline sum must filter.",
+   "gateOrTest": "A unit test over the query shape, or extend the security-regressions grep-style suite to assert every `contribution.aggregate` on amount carries a livemode filter.",
+   "reproPlan": "Read-only live proof: open /admin/people/<admin's own id> and compare its given-total against /admin/support's per-person ledger for the same person; any localhost test payment makes them disagree.",
+   "taxonomyRows": [
+    "6h-shared-db-test-data-bleed",
+    "6a-boolean-filter-missing"
+   ]
+  },
+  {
+   "title": "Admin support funnel tiles are computed from the last 100 rows only, and the 'Did not go through' tile counts test-mode rows",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/support/page.tsx:59",
+    "src/app/(main)/admin/support/page.tsx:77",
+    "src/app/(main)/admin/support/page.tsx:107"
+   ],
+   "expected": "Tiles labelled as ledger-wide facts ('Did not go through', 'Opened a payment', 'Finished paying', 'Typical gift', 'Most used') either compute over the whole table (the aggregates above them already show how) or say they cover recent attempts. And per the page's own rule, test rows are 'never counted'.",
+   "actual": "`rows` is `findMany({ ..., orderBy: { createdAt: \"desc\" }, take: 100 })`; every second-strip stat plus the 'Did not go through' tile derives from it. Two defects: (1) once the table passes 100 rows \u2014 plausible well before 2,000 users, since every abandoned checkout is a row \u2014 the funnel silently becomes 'the last 100' while its labels read as all-time, so 'Finished paying %' and 'Typical gift' drift from the true figures with no visual cue; (2) `notPaid = rows.filter((r) => r.status !== \"paid\")` (line 77) has NO livemode filter, so the 'Did not go through' StatTile (line 107-112, with a warn tone) counts every abandoned localhost test checkout as a real failed payment \u2014 directly contradicting line 35's 'Test rows are shown, clearly marked, and never counted' and skewing the single 'most actionable number on this page' (its own words) with dev noise. The completion% and byMethod at lines 85-93 do filter livemode, making notPaid the odd one out.",
+   "evidence": "Lines 59-73 (take: 100), 76-77: `const paid = rows.filter((r) => r.status === \"paid\"); const notPaid = rows.filter((r) => r.status !== \"paid\");`, line 109: `value={notPaid.length}`, versus line 85: `const live = rows.filter((r) => r.livemode);` used for the funnel. The all-time aggregate at 43-47 shows the correct pattern (`_count` with `where: { status: \"paid\", livemode: true }`).",
+   "actual_note": null,
+   "fixDirection": "Compute the tile numbers with count/aggregate queries over the full table filtered on livemode (a count for status != 'paid' & livemode, a count for livemode, groupBy method over all paid live rows), keeping take:100 purely for the visible ledger list. At minimum, filter notPaid to livemode rows and relabel the funnel strip 'last 100 attempts'.",
+   "gateOrTest": "Component-level assertion that the notPaid tile's query carries livemode; or a data test seeding one test-mode created row and asserting the tile reads 0.",
+   "reproPlan": "Read-only live proof: /admin/support today \u2014 every localhost test checkout ever abandoned shows up inside the 'Did not go through' count while wearing a Test chip in the list below it.",
+   "taxonomyRows": [
+    "6h-shared-db-test-data-bleed",
+    "6j-windowed-stats-mislabelled",
+    "6h-pagination-boundaries"
+   ]
+  },
+  {
+   "title": "Paid-transition field hygiene: failureReason survives a failed-then-successful retry (red error under a successful gift), and method is never recorded when the browser callback wins the race",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/support/actions.ts:170",
+    "src/app/api/razorpay/webhook/route.ts:73",
+    "src/app/(main)/admin/support/page.tsx:228"
+   ],
+   "expected": "A row that ends 'paid' carries no stale failure fields, and carries the payment method whichever confirmation path won.",
+   "actual": "Two gaps. (1) Razorpay checkout lets a payer retry inside the same modal on the same order: attempt 1 fails \u2192 the payment.failed webhook writes status 'failed' + failureReason; attempt 2 succeeds \u2192 confirmContribution (actions.ts:170-175, data: `{ status: \"paid\", razorpayPaymentId, paidAt }`) or the captured webhook (route.ts:74-82, data adds `method`) flips it to paid \u2014 neither clears failureReason. The admin ledger renders failureReason unconditionally (admin/support/page.tsx:228 `{r.failureReason && <p ... text-destructive>`), so a successful gift in the 'Given' section displays attempt 1's error in destructive red. (2) Only the webhook writes `method`; confirmContribution does not, and the webhook's captured branch is skipped when the row is already paid (`if (contribution.status !== \"paid\")`). Since the browser handler usually fires before the webhook arrives, most completed payments store method = null, and the admin 'Most used' tile plus the methods sentence degrade toward 'unknown'.",
+   "evidence": "actions.ts:170-174: `if (contribution.status !== \"paid\") { await prisma.contribution.update({ where: { id: contribution.id }, data: { status: \"paid\", razorpayPaymentId: paymentId, paidAt: new Date() } }); }` \u2014 no method, no failureReason: null. route.ts:72-83: captured branch guarded by `contribution.status !== \"paid\"`, so it cannot backfill method after the browser won. admin/support/page.tsx:88-89 builds byMethod from `r.method ?? \"unknown\"`.",
+   "fixDirection": "In both paid transitions add `failureReason: null`. For method: let the captured webhook enrich an already-paid row when its fields are missing (an update limited to `method`/`razorpayPaymentId` when they are null keeps 'paid is terminal' intact), which fixes the browser-wins race without the browser needing data it does not have.",
+   "gateOrTest": "Webhook route test: failed event then captured event on one row ends with status paid, failureReason null, method set; a captured event for an already-paid row backfills method.",
+   "reproPlan": "Test-mode live proof: fail a test card attempt, retry with test UPI in the same modal, then view /admin/support \u2014 the paid row shows the earlier failure text and method only if the webhook happened to win.",
+   "taxonomyRows": [
+    "6i-webhook-vs-callback-ordering",
+    "6a-errors-logged-then-invalid-state"
+   ]
+  },
+  {
+   "title": "/pick-bird crashes (500) in any environment without Razorpay keys: razorpayLivemode() throws synchronously outside every catch, and razorpayConfigured() is exported but never used",
+   "severity": "Medium",
+   "status": "suspected",
+   "files": [
+    "src/app/(main)/pick-bird/page.tsx:33",
+    "src/lib/razorpay.ts:24"
+   ],
+   "expected": "A page render never depends on payment credentials being present; environments without Razorpay keys (the demo project keeps optional vendor env deliberately absent \u2014 rate-limit.ts documents that posture for Upstash) degrade to the redirect/empty state rather than an error page.",
+   "actual": "razorpayLivemode() \u2192 razorpayKeyId() \u2192 credentials(), which THROWS when RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET are unset (razorpay.ts:27-29). On /pick-bird the call sits inline in the `where` object literal (page.tsx:33 and again at 60), i.e. it executes synchronously while BUILDING the query, before any promise exists \u2014 so the `.catch(() => 0)` chained onto the aggregate never sees it and the whole page render throws. The demo's action-level guards don't help: IS_DEMO protects startContribution/confirmContribution/chooseBird but the /pick-bird PAGE has no demo or configured() guard, and every (main) route exists in the demo deployment. Suspected only because it depends on the demo project's env actually lacking the keys; the throw path itself is certain from the code.",
+   "evidence": "page.tsx:29-36: `prisma.contribution.aggregate({ _sum: { amount: true }, where: { userId: session.user.id, status: \"paid\", livemode: razorpayLivemode() } }).then(...).catch(() => 0)` \u2014 the catch guards the query, not the argument evaluation. razorpay.ts:24-31: `function credentials() { ... if (!keyId || !keySecret) { throw new Error(\"RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are not set\"); } }`. razorpay.ts:42 `razorpayConfigured()` \u2014 grep shows zero call sites.",
+   "fixDirection": "Guard the page: if (!razorpayConfigured()) redirect(\"/support\") (or treat livemode as false) before building the queries; same one-line guard wherever razorpayLivemode() is reachable without the IS_DEMO short-circuit. Alternatively make razorpayLivemode() itself safe (return false when unconfigured) since its only job is filtering \u2014 its comment already prefers false as the safe default for anything unrecognised.",
+   "gateOrTest": "A unit test calling razorpayLivemode()/the page loader with the env vars deleted; or the demo crawl (verify:crawl against the demo deployment) covering /pick-bird.",
+   "reproPlan": "Live proof on the demo deployment: navigate to /pick-bird signed in as the demo member; if the demo env lacks Razorpay keys it error-pages instead of redirecting to /support.",
+   "taxonomyRows": [
+    "6k-misconfiguration-visibility",
+    "6a-missing-null-handling",
+    "6f-module-vs-calltime-init"
+   ]
+  },
+  {
+   "title": "Admin money surfaces render UTC dates and UTC month boundaries to IST admins: payments between 00:00 and 05:30 IST display the previous day, and 'This month' rolls over 5.5 hours late",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/utils.ts:151",
+    "src/app/(main)/admin/support/page.tsx:38",
+    "src/app/(main)/admin/support/page.tsx:222",
+    "src/app/(main)/admin/page.tsx:63"
+   ],
+   "expected": "Members and the admin are in IST (+5:30); servers run UTC. Dates shown against money \u2014 the ledger's per-payment date line and the 'This month' totals \u2014 should agree with the payer's bank/Razorpay receipt and the Indian calendar month.",
+   "actual": "formatDisplayDate (utils.ts:151-157) calls `toLocaleDateString(\"en-GB\", {...})` with no timeZone, so in a server component it formats in the server's UTC. The admin ledger uses it for every row (admin/support/page.tsx:222 `formatDisplayDate(new Date(r.paidAt ?? r.createdAt))`): any payment made 00:00-05:30 IST \u2014 23% of the day \u2014 displays dated one day earlier than the payer's receipt, which is exactly the mismatch that makes bank reconciliation confusing. Likewise both 'This month' tiles compute the boundary as UTC month start (`monthStart.setDate(1); monthStart.setHours(0,0,0,0)` on a UTC clock \u2014 admin/support/page.tsx:38-40, admin/page.tsx:63-65), so by IST the month rolls over at 05:30 on the 1st and payments in the last 5.5 IST hours of a month count into the wrong month's tile. This is a territory-scoped instance of the repo-wide IST class (formatDisplayDate also serves photo/letter attribution outside this territory).",
+   "evidence": "utils.ts:152: `return new Date(date).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"short\", year: \"numeric\" })` \u2014 no timeZone option. admin/support/page.tsx:38-40: `const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);` executed on a UTC server.",
+   "fixDirection": "Give formatDisplayDate `timeZone: \"Asia/Kolkata\"` (the audience is single-timezone by design), and compute month starts in IST: take now, shift +5:30, zero the day/time, shift back \u2014 or use Intl parts. Coordinate with whichever repo-wide IST finding the audit produces so the fix is one utility, not per-page.",
+   "gateOrTest": "Unit test: formatDisplayDate(new Date(\"2026-08-21T20:00:00Z\")) renders '22 Aug 2026' (IST), not '21 Aug 2026'; month-boundary helper returns the IST 1st.",
+   "reproPlan": "Read-only: compare any /admin/support ledger row's date against the same payment's timestamp in the Razorpay dashboard (which shows IST) for a payment made early morning IST.",
+   "taxonomyRows": [
+    "6h-ist-utc-day-boundary",
+    "6h-digest-window-boundaries"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "6a currency/float math: amounts are integer paise end to end \u2014 one rupees\u2192paise conversion (actions.ts:65) behind Number.isInteger + range guard that rejects NaN/Infinity/fractions/negatives/zero/max+1 in one predicate; formatPaise divides by 100 on values that are always 100-multiples; no float arithmetic anywhere in the path \u2014 CLEAN",
+  "6c/6i double-submit on the Contribute button and chooseBird: `working` guard + disabled button client-side; server-side the razorpayOrderId @@unique is a true idempotency key and a double-fired startContribution only yields two independent (payable-once-each) orders, never duplicate confirmations; chooseBird is idempotent by design \u2014 CLEAN",
+  "6i webhook duplicate delivery: re-delivered payment.captured is a no-op behind the status !== 'paid' guard on a single unique-keyed row; all money figures are SUM-over-rows, never increments, so double delivery cannot double-count anywhere a sum is displayed \u2014 CLEAN",
+  "6i out-of-order failed-after-captured: the failed branch runs only from status 'created' (route.ts:84-86), so a late payment.failed can never regress a paid row; failed\u2192paid via either confirm path is allowed and correct \u2014 CLEAN",
+  "6i webhook-vs-browser race to confirm one order: both interleavings converge on status 'paid' with the same signature-authenticated paymentId; worst case is a paidAt overwrite by the seconds-later writer, which cannot interact with the pick ledger inside that window (the stale-field hygiene finding is the only residue) \u2014 CLEAN",
+  "6c ownership/authz on the actions: startContribution/confirmContribution/chooseBird each re-check auth; confirmContribution refuses rows owned by another user with strict inequality; chooseBird validates the slug against WEARABLE_SLUGS server-side \u2014 CLEAN (matches the closed security audit)",
+  "livemode end-to-end for the public figure and the perk: stamped at creation from the key prefix (never client-supplied), unknown prefixes default to false (the safe direction), /support sum and both perk gates filter on it, the webhook never touches it \u2014 a dev's test order confirmed by any path stays out of the public bar and the live perk ledger (the two ADMIN display gaps are reported above) \u2014 CLEAN",
+  "6i webhook for an order with no row (shared-DB dev order hitting prod): logged and answered 200, no retry storm, no write \u2014 CLEAN",
+  "signature checks: browser HMAC over orderId|paymentId with API secret, webhook HMAC over raw bytes with the separate webhook secret, both constant-time with length guard; raw request.text() preserved for the webhook \u2014 CLEAN",
+  "6d pgbouncer: no interactive $transaction, SET, advisory lock or session feature anywhere in the territory; the account-merge $transaction is the array/batch form, safe through the transaction pooler \u2014 CLEAN",
+  "6f Vercel: no fire-and-forget writes (every prisma/fetch awaited before the response in all three actions and the webhook); createOrder capped at 15s AbortSignal well inside the duration ceiling; Razorpay credentials read at call time, not module scope \u2014 CLEAN",
+  "6h amount six-value rule server-side: empty/NaN/'e'-notation/whitespace resolve through Number() then die on Number.isInteger or the 500..500000 range; type-forged non-number inputs die on the same predicate \u2014 CLEAN",
+  "6j scale to 2,000 users: every list query bounded (take:100 ledger; recent take:8 in analytics), aggregates over a small table with @@index([status,createdAt]) prefix coverage, no N+1, no per-user fanout loops \u2014 CLEAN",
+  "6h identity states: deleted user's contribution survives via onDelete SetNull and renders as 'Account since deleted' in the ledger; account-purge deliberately leaves money rows; merge moves them atomically \u2014 CLEAN",
+  "demo layers: all three money actions gate on IS_DEMO before any external call or write; the demo cannot mint orders (the /pick-bird page render crash is reported separately) \u2014 CLEAN",
+  "retention interplay: contributions are only deleted after 3650 days (owner-documented tax horizon); no undocumented deletion of paid rows inside the horizon; sweep steps are isolated per table \u2014 CLEAN",
+  "pick-ledger forgery/replay: paidAt is written only by signature-verified paths; redelivered webhooks cannot refresh paidAt on a paid row, so no free pick regrants; concurrent chooseBird double-fires spend at most one pick \u2014 CLEAN",
+  "client components (costs-card, bird-plate, bird-picker, wood): effect cleanup present (IntersectionObserver disconnect, rAF cancel), no conditional hooks, no index keys on reorderable lists, deterministic SSR-safe rendering in wood.tsx (lab-only) \u2014 CLEAN"
+ ],
+ "coverageNotes": "Read whole, line by line: src/app/(main)/support/actions.ts, src/lib/razorpay.ts, src/app/api/razorpay/webhook/route.ts, src/components/support/support-contribute.tsx, costs-card.tsx, bird-plate.tsx, bird-picker.tsx, plate-data.ts, wood.tsx, src/app/(main)/support/page.tsx, src/app/(main)/pick-bird/page.tsx, the Contribution model in prisma/schema.prisma, and src/lib/rate-limit.ts. Chased every consumer of prisma.contribution outside the territory: src/app/(main)/admin/support/page.tsx (whole), admin/page.tsx (money section), admin/people/[id]/page.tsx (aggregate), admin/people/actions.ts (merge transaction), src/lib/admin-analytics.ts (loadSupport), src/lib/retention.ts (sweep + KEEP_DAYS rationale), src/app/api/account/export/route.ts (contribution select), src/lib/account-purge.ts (grep: no contribution writes, SetNull relied on), formatPaise/formatDisplayDate in src/lib/utils.ts, and proxy.ts's /api/razorpay public entry (webhook is the only route under that prefix). Checked docs/planning/bugs.md for overlap \u2014 none of these findings are tracked. Consciously skipped: src/generated/prisma/** (generated), lab rooms referencing 'contribution' textually (static copy), demo-seed content (no contribution rows seeded), scripts/gen-support-qr.mjs (artifact of the pre-Razorpay UPI-QR era, not in the live path), and the note in bugs.md history about the old static BUILD_RECOVERED constant (superseded by the live sum). The one deliberate non-verification: Razorpay's exact retry/auto-deactivation policy and the account's auto-capture setting are vendor/dashboard facts I could not confirm read-only from this repo \u2014 the two findings resting partly on them are marked suspected with the code-side evidence quoted."
+}

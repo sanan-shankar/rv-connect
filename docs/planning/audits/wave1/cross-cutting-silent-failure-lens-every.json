@@ -1,0 +1,358 @@
+{
+ "territory": "Cross-cutting silent-failure lens: every catch/.catch/fallback/error-swallow in src/lib/** (70+ files), all 20 server-action files, and all 14 src/app/api/** routes, plus the failure-adjacent races, orderings, and date math those paths revealed",
+ "findings": [
+  {
+   "title": "Email case/whitespace never normalized at signup or login, but IS normalized at password reset: mixed-case signups can never reset their password (silently), one mailbox can register twice, and exact-case login lockouts",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/auth/actions.ts:103",
+    "src/components/auth/actions.ts:149",
+    "src/lib/auth.ts:62",
+    "src/lib/auth.ts:102",
+    "src/components/auth/email-actions.ts:160",
+    "prisma/schema.prisma:13"
+   ],
+   "expected": "One canonical form of an email address across signup, login, and reset: 'Ananya@Gmail.com ' and 'ananya@gmail.com' are the same account everywhere.",
+   "actual": "Signup stores the address exactly as typed; login looks it up exactly as typed; ONLY the reset flow lowercases+trims before lookup. A member whose stored email contains any uppercase (or who types a stray trailing space at login) gets 'Invalid email or password', and their password-reset request silently sends nothing \u2014 the anti-oracle design returns the identical { ok: true } either way, so there is no signal to anyone that it failed.",
+   "evidence": "registerUser stores raw: `const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } })` (actions.ts:103-105) and `email: parsed.data.email` in the create (actions.ts:149); signupSchema uses plain `z.email(...)` with no transform (validators.ts:18). authorize() lowercases ONLY the rate-limit key: `const acctKey = email.trim().toLowerCase();` (auth.ts:62) but queries raw: `const user = await prisma.user.findUnique({ where: { email } });` (auth.ts:102-104) \u2014 no trim, no lowercase. The reset flow does the opposite: `const raw = ((formData.get(\"email\") as string) ?? \"\").trim().toLowerCase();` then `findUnique({ where: { email: raw } })` (email-actions.ts:160-166), and by design 'ALWAYS returns the same bare { ok: true }' (comment at 138-143), so the miss is invisible. Schema: `email String @unique` (schema.prisma:13) \u2014 a case-SENSITIVE Postgres unique, and no lower(email) index or citext exists anywhere in prisma/ (grep confirmed). Neither login-client.tsx nor signup-form.tsx lowercases before submit (grep confirmed). Consequences chain: (1) signup 'Sanan@Gmail.com' \u2192 reset typed any way except that exact casing finds no row \u2192 no mail, forever, silently; (2) 'sanan@gmail.com' and 'Sanan@Gmail.com' can both register (case-sensitive unique allows both) \u2014 one human, two accounts, the exact duplicate problem adminMergeUsers exists to clean up; (3) login requires byte-exact case match of whatever was stored at signup.",
+   "fixDirection": "Normalize (trim + toLowerCase) at every boundary: in registerUser before the findUnique/create, in authorize() before the findUnique (keep acctKey as-is), and keep the reset flow as the reference. Then a one-time data migration: lowercase every existing User.email, first checking `SELECT lower(email), count(*) FROM \"User\" GROUP BY 1 HAVING count(*) > 1` for collisions to merge by hand. Optionally add a unique index on lower(email) in a migrations-manual file as the structural backstop.",
+   "gateOrTest": "New unit test in the security-regressions suite: register with 'MiXeD@Case.Com', assert authorize() succeeds with 'mixed@case.com' and that requestPasswordReset('mixed@case.com') enqueues a row. A second assert that registering the lowercase twin of an existing mixed-case address is refused.",
+   "reproPlan": "code-argument-only (a live proof would write a real user row into the shared production database)",
+   "taxonomyRows": [
+    "6e-email-normalization",
+    "6h-identity-states",
+    "6d-check-then-insert"
+   ]
+  },
+  {
+   "title": "Clicking a superseded verification link shows 'Already confirmed \u2014 nothing left to do' (happy bird, no resend button) to a member who is NOT confirmed",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/auth/email-actions.ts:106",
+    "src/lib/auth-tokens.ts:91",
+    "src/app/(auth)/verify-email/verify-client.tsx:31",
+    "src/app/(auth)/verify-email/verify-client.tsx:76"
+   ],
+   "expected": "A verify link that was invalidated by a newer 'resend' should say 'this link was replaced, use the newest email' (or offer a resend) \u2014 never claim the address is confirmed when it is not.",
+   "actual": "mintToken burns ALL outstanding tokens of a kind on every new mint, setting usedAt on tokens that were never redeemed. readToken cannot distinguish 'redeemed' from 'superseded' \u2014 both come back reason 'used' \u2014 and confirmEmailToken maps 'used' straight to 'already', which the page renders as 'Already confirmed / This address was confirmed earlier. Nothing left to do.' with the celebrating bird and, because 'already' is in the GOOD set, the resend button is suppressed (canResend = signedIn && !alreadyVerified && !good). The member walks away believing they are done; every Stage-1/Stage-2 gate stays closed.",
+   "evidence": "The burn: `prisma.authToken.updateMany({ where: { userId, kind, usedAt: null }, data: { usedAt: new Date() } })` inside every mintToken (auth-tokens.ts:91-95) \u2014 deliberate, but it makes usedAt ambiguous. The mapping: `if (read.reason === \"used\") { // Used token: if the address really is confirmed, say so plainly. return \"already\"; }` (email-actions.ts:106-110) \u2014 the comment claims a check ('if the address really is confirmed') that the code does not perform. The rendering: COPY.already = 'Already confirmed / This address was confirmed earlier. Nothing left to do.' (verify-client.tsx:31-34), GOOD includes 'already' (line 55), so `canResend = signedIn && !alreadyVerified && !good` (line 76) is false \u2014 no way forward is offered. Trigger sequence a launch member will hit: signup sends mail 1 (token A); mail is slow, member presses Resend on the banner; the first row is already status 'sent' so enqueueMail's fold does not apply (fold only matches status queued/sending, email-queue.ts:308-317) \u2192 new row \u2192 token B minted, token A burned; member opens the OLDER mail in their inbox \u2192 'Already confirmed', false.",
+   "fixDirection": "In confirmEmailToken, when readToken returns 'used', load the user via the token row (rows are kept 7 days past expiry precisely to answer this kind of question \u2014 auth-tokens.ts:102-106; readToken already selects userId before consuming) and return 'already' only when user.emailVerified != null; otherwise return a new 'superseded' outcome (or reuse 'expired') whose copy says a newer link replaced this one, with the resend button enabled. Alternatively store a distinct supersededAt instead of writing usedAt at mint time.",
+   "gateOrTest": "Unit test on the flow: mint token A, mint token B (burning A), then confirmEmailToken(A) for a user whose emailVerified is null must NOT return 'already'.",
+   "reproPlan": "code-argument-only (proving it live requires registering a real account and sending real mail from the shared production domain)",
+   "taxonomyRows": [
+    "6a-catch-then-continue",
+    "6e-credentials-flow",
+    "6h-identity-states"
+   ]
+  },
+  {
+   "title": "R2 delete failures are swallowed with no log anywhere (delImageByKey empty catch), and purgeUserAccount reports delete ATTEMPTS as deletions \u2014 a GDPR purge can leave every image publicly fetchable forever while the audit log says 'N stored image(s) removed'",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/storage.ts:218",
+    "src/lib/account-purge.ts:108",
+    "src/lib/retention.ts:127",
+    "src/components/profile/admin-actions.ts:64"
+   ],
+   "expected": "Deleting a member's stored images either succeeds, or the failure is at least logged with the failed keys and reflected in the audit entry so it can be retried \u2014 especially in the purge path, where the code itself documents that after the row cascade 'nothing can enumerate the objects' ever again.",
+   "actual": "delImageByKey's catch block is completely empty \u2014 not even the repo's own 'loud in dev' rule is honoured, making it the one catch site in the codebase that violates the stated contract. purgeUserAccount then counts `deleted += 1` for every URL regardless of outcome, and both the retention sweep and adminDeleteUser write that count into the audit log as fact. If R2 has a bad minute (or credentials rotate, or the bucket name env var drifts) during a purge, zero objects are deleted, the rows that pointed at them are already gone, the images stay live at their public pub-*.r2.dev URLs forever, and every record says the purge removed them.",
+   "evidence": "storage.ts:218-228: `export async function delImageByKey(key: string): Promise<void> { try { ... } catch { // best-effort cleanup } }` \u2014 empty catch, no console.error even in development. account-purge.ts:108-113: `let deleted = 0; for (const url of urls) { await delImage(url); deleted += 1; } return { ok: true, imagesDeleted: deleted };` \u2014 the counter increments unconditionally because delImage never throws. The header comment on purgeUserAccount even says 'the audit entry the CALLER writes records how many objects were actually removed' (account-purge.ts:85-86) \u2014 which this makes untrue. Consumed as fact at retention.ts:127-133 (`detail: \"...${purged.imagesDeleted} stored image(s) removed\"`) and admin-actions.ts:64-73. The irreversibility is documented in the same file: 'URLs are collected FIRST, because the cascade takes the pointing rows with it and afterwards nothing can enumerate the objects' (account-purge.ts:80-82). Every other delete caller (deletePost, declinePhoto, adminRemovePhoto, updateAvatar) shares the same invisible-failure property, but the purge is where it becomes unrecoverable.",
+   "fixDirection": "Make delImageByKey return a boolean (or throw-and-let-callers-decide) and log the key on failure in ALL environments (this is a moderation/GDPR path, not per-page telemetry). In purgeUserAccount, count real successes, include failures (count + keys) in PurgeResult, and have the retention sweep/adminDeleteUser record failures in the audit detail and errors[]. For durability, consider writing failed keys to a small table the next sweep retries \u2014 the row cascade means these keys exist nowhere else.",
+   "gateOrTest": "Unit test with a stubbed R2 client that rejects DeleteObjectCommand: purgeUserAccount must return imagesDeleted: 0 and surface the failed keys; the retention sweep result must carry the failure.",
+   "reproPlan": "code-argument-only (any live proof would delete real objects or real rows in the shared production bucket/database)",
+   "taxonomyRows": [
+    "silent-failure-census",
+    "6g-delete-path-ordering",
+    "6a-empty-catch"
+   ]
+  },
+  {
+   "title": "Feed 'Today / This week / This month / This year' filters compute day boundaries in server-local (UTC) time \u2014 wrong post sets for every IST member; server-rendered letter/photo dates shift a day before 05:30 IST",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/actions.ts:742",
+    "src/app/(main)/letters/[id]/page.tsx:165",
+    "src/app/(main)/collection/[id]/page.tsx:145",
+    "src/components/catchups/round/masthead.tsx:50"
+   ],
+   "expected": "'Today' for a member in India means the IST calendar day (the codebase already knows this rule: wordle.ts keys on Asia/Kolkata, admin-analytics.ts uses AT TIME ZONE 'Asia/Kolkata').",
+   "actual": "getTimeFilterDate builds boundaries from the server clock, which is UTC on Vercel: `new Date(now.getFullYear(), now.getMonth(), now.getDate())` (feed/actions.ts:748-749). UTC midnight is 05:30 IST, so a member filtering 'Today' at 02:00 IST gets a window that starts at 05:30 IST YESTERDAY (posts from a different day counted as today), and between 05:30 IST and midnight the window silently excludes anything posted 00:00-05:30 IST. 'This week' compounds it with `d.setDate(d.getDate() - d.getDay())` (Sunday-start in UTC, line 751-752); month and year shift the same way. Separately, server components render date-only stamps with no timeZone: letters/[id]/page.tsx:165 `new Date(letter.createdAt).toLocaleDateString(\"en-GB\", ...)` and collection/[id]/page.tsx:145 \u2014 a letter published at 01:00 IST on the 15th displays 'the 14th' to everyone, since server-side toLocaleDateString defaults to UTC.",
+   "evidence": "feed/actions.ts:742-760 \u2014 the whole switch runs on the server inside the loadPosts server action (all four cases quoted above); nothing passes a timezone. Contrast with the codebase's own correct handling: wordle.ts:20-22 `date.toLocaleDateString(\"en-CA\", { timeZone: \"Asia/Kolkata\" })` and admin-analytics.ts:584-585 `EXTRACT(HOUR FROM \"endedAt\" AT TIME ZONE 'Asia/Kolkata')` \u2014 the rule exists, these surfaces missed it. Members are stated IST (+5:30) in the brief; servers UTC.",
+   "fixDirection": "Compute filter boundaries in Asia/Kolkata: derive the IST calendar date (the en-CA/timeZone trick already used in wordle.ts, or Intl.DateTimeFormat parts), then construct the UTC instant for IST midnight (IST date minus 5h30m). For the rendered dates, pass timeZone: 'Asia/Kolkata' to every server-side toLocaleDateString of a member-facing date (letters, collection detail, catchup masthead/console/archive where those render on the server), or move formatting into client components where the browser's zone is correct.",
+   "gateOrTest": "Unit test getTimeFilterDate (extract it to a pure lib file): with a mocked now of 21:00 UTC (02:30 IST next day), 'today' must start at 18:30 UTC, not 00:00 UTC.",
+   "reproPlan": "Read-only live proof: sign in via dev-login, post nothing; at any time between 05:30 IST and midnight IST call loadPosts({timeFilter:'today'}) and compare its boundary against an IST-midnight query \u2014 or simply evaluate getTimeFilterDate on the server and read the returned instant.",
+   "taxonomyRows": [
+    "6h-ist-day-boundary",
+    "6h-date-render-shift"
+   ]
+  },
+  {
+   "title": "All five feed/collection toggle actions (toggleLike, toggleCommentLike, toggleBookmark, togglePhotoLove, votePoll) have no P2002/P2025 handler and no client pending-guard: a double-tap throws an unhandled server-action error and desyncs the optimistic heart",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/actions.ts:477",
+    "src/app/(main)/feed/actions.ts:1053",
+    "src/app/(main)/collection/actions.ts:508",
+    "src/app/(main)/feed/actions.ts:284",
+    "src/components/posts/post-card.tsx:134"
+   ],
+   "expected": "The DB @@unique constraints (Like [userId,postId] schema:465, CommentLike:627, Bookmark:428, PhotoLove:188, PollVote:616) are the real guard, so the second racer's P2002/P2025 must be caught and treated as 'already done', the way report-action.ts:189-192 and catchups' runAction already do.",
+   "actual": "Every toggle is check-then-write with no try/catch: `const existing = await prisma.like.findUnique(...); if (existing) { await prisma.like.delete({ where: { id: existing.id } }); } else { await prisma.like.create(...) }` (feed/actions.ts:477-495). Two overlapping requests (the heart has NO disabled state \u2014 handleLike in post-card.tsx:134-144 fires the action on every click with only optimistic setState) both read existing=null \u2192 the loser's create throws P2002 \u2192 the server action throws \u2192 on the client `await toggleLike(post.id)` REJECTS, `result.error` handling never runs, the rejection is unhandled, and the optimistic state is left inverted relative to the database (two clicks flipped the UI twice; the server recorded one like). The delete side throws P2025 the same way. votePoll's switch branch (`update({ where: { id: existing.id } })`, feed/actions.ts:295-297) throws P2025 if the vote row vanished between read and write. Catch-ups' toggleEntryLove is wrapped by runAction so it degrades to a friendly error (catchups/actions.ts:162-172) \u2014 the feed and collection toggles have no such wrapper.",
+   "evidence": "post-card.tsx:134-144: `async function handleLike() { const next = !liked; setLiked(next); setLikeCount(...); if (demo) return; const result = await toggleLike(post.id); if (result.error) { ... } }` \u2014 no busy flag, no try/catch, so a rejected action promise never reverts state or toasts. Same shape in comments-section.tsx and letter-engagement.tsx. Schema constraints confirmed present (the brief's required check): Like schema.prisma:465, CommentLike:627, Bookmark:428, PollVote:616, PhotoLove:188, CatchupEntryLove:801 \u2014 every one-per-user rule has its unique; only the handlers are missing.",
+   "fixDirection": "Two cheap layers: (a) in each toggle action, catch P2002 on create \u2192 return { success: true, liked: true } (it IS liked), and P2025 on delete/update \u2192 return the current truth instead of throwing; (b) in the client handlers, add a busy ref (or useTransition isPending) and a try/catch that reverts optimistic state and toasts on rejection.",
+   "gateOrTest": "Unit-test the action against a stubbed prisma that throws {code:'P2002'} on create: toggleLike must resolve with success, not reject. Playwright: double-click the heart, expect.poll the like count settles at 1 with no console error.",
+   "reproPlan": "Live: sign in via dev-login on localhost, open a post, fire two toggleLike calls concurrently from the console (Promise.all of two fetches to the action endpoint) and observe one rejection; harmless (a like on your own test post) but the shared-DB rule argues for code-argument-only unless done on the owner's own row.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6c-missing-p2002-handler",
+    "6b-optimistic-desync"
+   ]
+  },
+  {
+   "title": "deletePost / deleteDraft / declinePhoto delete the R2 bytes BEFORE the database row: a failed row-delete leaves live content with permanently dead images",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/actions.ts:336",
+    "src/app/(main)/feed/actions.ts:250",
+    "src/app/(main)/collection/actions.ts:544"
+   ],
+   "expected": "The ordering purgeUserAccount documents and follows: 'bytes are deleted only AFTER the row delete succeeds, because if the delete throws and rolls back, the member still exists and their images must keep rendering' (account-purge.ts:83-86).",
+   "actual": "deletePost runs `await deletePostImages(post.images); await prisma.post.delete({ where: { id: postId } });` (feed/actions.ts:336-339) \u2014 bytes first. If post.delete throws (DB blip, pooler timeout, or any future FK RESTRICT), the action errors, the post remains fully visible in the feed, and its images are 404s forever; retrying the delete works, but a member who gives up after the error leaves a broken post standing. deleteDraft (feed/actions.ts:250-252) and declinePhoto (collection/actions.ts:544-549: three delImage calls, then photo.delete) have the same inverted order. adminRemovePhoto does it correctly (hide row first, then bytes, collection/actions.ts:585-592).",
+   "evidence": "Quoted lines above; contrast with the explicitly-reasoned correct order in account-purge.ts:74-86. delImage never throws (storage.ts:267-271), so the images are already gone by the time the row delete runs \u2014 there is no rollback for object storage.",
+   "fixDirection": "Swap the order in all three: delete the row first, then best-effort delete the bytes (collect URLs before the row delete, as purgeUserAccount does). For declinePhoto also move the row delete ahead of the three delImage calls.",
+   "gateOrTest": "Unit test with a prisma stub whose post.delete rejects: assert delImage was not yet called.",
+   "reproPlan": "code-argument-only (forcing a row-delete failure against the shared production database is not safe)",
+   "taxonomyRows": [
+    "6g-delete-path-ordering",
+    "6d-multi-write-no-transaction"
+   ]
+  },
+  {
+   "title": "sendMail has no timeout, and verificationMailState performs the Resend send synchronously inside the (main) layout's render Promise.all: a hanging Resend blocks every page for every unconfirmed member, and a verificationMailState throw 500s their layout",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email.ts:181",
+    "src/lib/email-queue.ts:597",
+    "src/app/(main)/layout.tsx:34"
+   ],
+   "expected": "Third-party calls on a render path carry a timeout (the codebase's own pattern: turnstile.ts:98 `AbortSignal.timeout(5000)`, razorpay.ts:84 `AbortSignal.timeout(15_000)`, catchups.ts resolveSpotify 3s), and a mail-state read that fails must degrade, not take the page down.",
+   "actual": "email.ts:181-187 calls `await api.emails.send({...})` with no AbortSignal and the Resend SDK sets no default timeout of its own \u2014 a Resend endpoint that hangs (as opposed to erroring, which IS handled at email.ts:197) holds the caller until the function's 60s ceiling. verificationMailState is 'the sender, not just the reader': for an unconfirmed member with a queued row and budget available it awaits claimAndSend \u2192 sendMail inside the layout's `const [unreadCount, mailState] = await Promise.all([...])` (layout.tsx:34-51), i.e. inside first-byte render of EVERY authenticated page for that member. Additionally, verificationMailState can itself throw (e.g. the DB hiccups between claimAndSend's claim and its catch-block bookkeeping update at email-queue.ts:228-235 \u2014 a catch that performs another awaited DB write and rethrows on its failure), and because it sits in the same Promise.all as the notification count, one rejection fails the whole layout (the Promise.all sibling-abort class): the unconfirmed member gets an error page instead of a page with a degraded banner.",
+   "evidence": "email.ts:180-187 (fetch-based SDK call, no signal, no timeout option); the design note email-queue.ts:552-562 ('Sending from the read path makes the invariant structural... one Resend call inside one page load'); layout.tsx:41-45 `session.user.emailConfirmed ? Promise.resolve(null) : verificationMailState(session.user.id)` awaited in the render Promise.all; claimAndSend's catch block itself awaits prisma.outboundEmail.update (email-queue.ts:227-237) so a second failure there propagates out of verificationMailState.",
+   "fixDirection": "Give sendMail an AbortSignal.timeout (10-15s) mapped to { ok: false, error: 'timeout' } \u2014 the queue's retry machinery already handles that outcome cleanly. Wrap the verificationMailState call in the layout with its own .catch(() => null) (banner degrades to nothing) so it can never reject the layout's Promise.all; and wrap claimAndSend's catch-block update in its own try/catch that logs instead of rethrowing.",
+   "gateOrTest": "Unit test sendMail against a fetch stub that never resolves: must reject/return within the timeout. Test verificationMailState with a throwing prisma stub: must not propagate.",
+   "reproPlan": "code-argument-only (requires simulating a hung Resend endpoint; not reproducible safely against the live key)",
+   "taxonomyRows": [
+    "6k-provider-hang",
+    "6a-promise-all-sibling-abort",
+    "6a-catch-then-continue"
+   ]
+  },
+  {
+   "title": "A bounce or spam-complaint webhook rewrites OutboundEmail.status 'sent'\u2192'failed', which silently removes that send from dailyBudget's count \u2014 the queue can then overrun Resend's real 100/day cap on exactly the high-bounce launch day the queue was built for",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email-queue.ts:257",
+    "src/app/api/resend/webhook/route.ts:118",
+    "src/app/api/resend/webhook/route.ts:128"
+   ],
+   "expected": "dailyBudget counts what Resend actually accepted today (its own comment: 'Counted off sentAt rather than a counter column, so it cannot drift out of step with what actually went out').",
+   "actual": "dailyBudget counts `where: { status: \"sent\", sentAt: { gte: startOfUtcDay() } }` (email-queue.ts:258-260) \u2014 it requires status 'sent'. The Resend webhook deliberately flips bounced/complained rows to status 'failed' so they surface on the admin worklist (webhook route.ts:118 `status: \"failed\"` for bounces, :128 for complaints) but leaves sentAt set. Every same-UTC-day bounce therefore subtracts one from 'used', the drain believes it has more budget than Resend does, and sends past the provider's real 100/day \u2014 those late sends fail, burn retry attempts, and can consume the RESET_RESERVE arithmetic that exists to keep password resets deliverable. The 5-message safety margin (DAILY_CAP=95, email-queue.ts:73-80) absorbs five bounces; a launch-day address list stale enough to matter blows past five \u2014 the exact scenario the webhook's own header comment describes ('a few hundred invitations... half of them bouncing off stale addresses').",
+   "evidence": "Quoted both sides above; bounced rows keep sentAt (the webhook patch at route.ts:99-133 never touches sentAt), so the fix is purely a filter change. The interaction is invisible today because nothing has bounced; it activates precisely under launch load.",
+   "fixDirection": "Count budget by sentAt alone: `where: { sentAt: { gte: startOfUtcDay() } }` (a row with sentAt set was accepted by Resend regardless of its later delivery status), or `status: { in: [\"sent\", \"failed\"] }, sentAt: { gte: ... }`. One-line change in dailyBudget plus the mirror count in mailHealth (email-queue.ts:502-505) if the admin number should match.",
+   "gateOrTest": "Unit test: create a row with status 'failed' but sentAt today (the bounce shape); dailyBudget().used must include it.",
+   "reproPlan": "code-argument-only (proving it live requires generating a real bounce from the production sending domain)",
+   "taxonomyRows": [
+    "6i-webhook-state-interaction",
+    "6f-third-party-quota",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "joinBatchGroup find-or-create has no unique backstop (Group.name is not unique): two same-batch members signing up concurrently create two 'Batch of YYYY' groups and the batch splits",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/auth/actions.ts:208",
+    "prisma/schema.prisma:193"
+   ],
+   "expected": "Exactly one 'Batch of 2010' group ever exists; concurrent first-signups from one batch race safely (the codebase's own standard elsewhere: catchup creation catches P2002 on the unique Catchup.groupId, catchups/actions.ts:366-372).",
+   "actual": "`let group = await prisma.group.findFirst({ where: { name } }); if (!group) { group = await prisma.group.create({...}) }` (actions.ts:215-230) with the code's own admission one line up: 'Group.name is not unique in the schema, so match by exact name' (schema.prisma:191-208 confirms \u2014 only @@index([visibility, createdAt])). Two members of a new batch submitting within the same window both see null and both create. Members of the batch are then split across two identical-looking groups (later signups land in whichever findFirst returns first), group feeds diverge, and any batch-group Catch-up can only attach to one of them (Catchup.groupId unique). Launch day \u2014 many same-batch signups in the same hour \u2014 is the exact concurrency profile.",
+   "evidence": "Quoted above. The catch around joinBatchGroup (actions.ts:176-181) logs and continues, so even the loser of a hypothetical unique constraint would today be silently dropped from the group rather than upserted into the winner.",
+   "fixDirection": "Add a partial/functional unique backstop in migrations-manual (e.g. UNIQUE index on name for the batch groups, or a dedicated batchYear column on Group with a unique index), then rewrite joinBatchGroup as create-catch-P2002-then-findFirst-and-upsert-membership. A cleanup query for any already-duplicated batch groups belongs in the same change.",
+   "gateOrTest": "Unit test the race: stub findFirst to return null twice, assert the second create path recovers via the constraint instead of inserting a duplicate.",
+   "reproPlan": "code-argument-only (would create real Group rows in the shared production database)",
+   "taxonomyRows": [
+    "6d-check-then-insert",
+    "6c-race-double-submit"
+   ]
+  },
+  {
+   "title": "Two live write endpoints skip validation caps entirely: updateUserPlaces (settings) accepts unbounded label/city strings and unvalidated placeId/lat/lng, and the legacy onboarding updateProfile writes bio/city/workplace/socials with no length limit at all",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/settings/actions.ts:144",
+    "src/app/(auth)/onboarding/actions.ts:6",
+    "src/app/(auth)/onboarding/page.tsx:16"
+   ],
+   "expected": "Every server action Zod-validates everything including shapes and lengths (the repo standard: onboarding's own placeSchema caps label/city at 160 and validates placeId as int, components/onboarding/actions.ts:22-28; profileSchema caps bio at 1000).",
+   "actual": "updateUserPlaces takes `places: { placeId: number | null; label: string; city: string; lat: number | null; lng: number | null }[]` and writes them with only trim/titleCase/slice(0,30)-on-count \u2014 no schema, no length cap on label or city (a hand-crafted call stores multi-megabyte strings that then ride into every directory/map serialization), and placeId/lat/lng go to Prisma unchecked (a string placeId or NaN lat from a crafted JSON body throws a raw PrismaClientValidationError out of the action). The legacy (auth)/onboarding updateProfile \u2014 still live, imported by onboarding/page.tsx:16 \u2014 loops seven fields (`bio, currentCity, workplace, jobTitle, phone, instagram, linkedin`) and writes any non-empty string straight to prisma.user.update with no cap (actions.ts:12-27), bypassing every limit profileSchema enforces on the same columns elsewhere (bio 1000, phone 24, instagram 100...).",
+   "evidence": "settings/actions.ts:150-159: `.map((p) => ({ placeId: p.placeId, label: titleCase(p.label.trim()), city: titleCase(p.city.trim()), lat: p.lat, lng: p.lng })).filter(...).slice(0, 30)` \u2014 the only constraints applied. (auth)/onboarding/actions.ts:15-27 quoted in full: `for (const field of fields) { const value = formData.get(field) as string | null; if (value && value.trim()) { data[field] = value.trim(); } } ... await prisma.user.update({...data})`. Both are 'use server' exports, i.e. public POST endpoints regardless of what UI calls them. adminUpdatePlaces (admin/people/actions.ts:132-148) shares updateUserPlaces' shape but is admin-gated, lower risk.",
+   "fixDirection": "Give updateUserPlaces the exact placeSchema onboarding already has (z.array(placeSchema).max(30)) and let adminUpdatePlaces share it. For the legacy updateProfile, either delete it and move the onboarding page onto the validated components/onboarding actions, or bolt profileSchema's field caps onto it.",
+   "gateOrTest": "Unit test: updateUserPlaces with a 100k-char label and with placeId: 'x' must return a validation error, not throw or write.",
+   "reproPlan": "Live proof possible but writes to the caller's own row in the shared DB \u2014 code-argument-only preferred; the Zod-absence is self-evident from the quoted code.",
+   "taxonomyRows": [
+    "6h-unbounded-strings",
+    "6c-action-input-validation",
+    "6h-nan-from-number"
+   ]
+  },
+  {
+   "title": "Directory numeric URL params reach Prisma as NaN: /directory?year=1a (or yearFrom/yearTo) throws inside render and the page errors",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/directory/where.ts:27",
+    "src/app/(main)/directory/page.tsx:187",
+    "src/app/(main)/directory/actions.ts:62"
+   ],
+   "expected": "A malformed filter value in the URL degrades to 'filter ignored' (or empty results), never to an error page.",
+   "actual": "buildDirectoryWhere: `const showingYear = filters.year === \"faculty\" ? \"faculty\" : filters.year ? Number(filters.year) : null;` \u2014 Number('1a') is NaN, `typeof NaN === \"number\"`, so `where.batchYear = NaN` (where.ts:27-46); same for `yearFrom/yearTo` \u2192 `{ gte: NaN }` (where.ts:29-30, 48-53). Prisma rejects NaN for an Int filter with a thrown validation error. The SSR page feeds raw searchParams straight in (page.tsx:187, 216: `const where = buildDirectoryWhere(filters)`), so a shared/mangled/hand-edited link renders the error page; the loadDirectoryPage server action (actions.ts:62) throws the same way for a crafted filters object.",
+   "evidence": "Quoted above; no Number.isFinite guard exists anywhere in where.ts (the file was read in full, including the uncommitted working-tree state, which is what will ship).",
+   "fixDirection": "Sanitize in buildDirectoryWhere: parse with Number, then `Number.isFinite(n) ? n : null` for year/yearFrom/yearTo before use (three one-line guards). While there: note `where.batchYear = showingYear` is silently overwritten by the yearFrom/yearTo block when both are present (last-write-wins) \u2014 decide precedence explicitly.",
+   "gateOrTest": "Unit test buildDirectoryWhere with {year:'1a'}, {yearFrom:'x'}: resulting where must contain no NaN. E2E: GET /directory?year=1a returns 200.",
+   "reproPlan": "Read-only live proof: signed in via dev-login, navigate to http://localhost:3000/directory?year=1a and observe the error boundary; harmless read.",
+   "taxonomyRows": [
+    "6h-nan-from-number",
+    "6h-invalid-input"
+   ]
+  },
+  {
+   "title": "Abandoned presigned uploads are never cleaned up: staging/ and collection/*-o originals (the EXIF/GPS-bearing files) accumulate forever at public URLs with no lifecycle sweep",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/api/upload/presign/route.ts:102",
+    "src/app/api/upload/finalize/route.ts:121",
+    "src/app/(main)/collection/actions.ts:366"
+   ],
+   "expected": "A staged object whose finalize never arrives (tab closed, network drop, browser crash between the PUT and the finalize call) is eventually deleted \u2014 by an R2 lifecycle rule on the staging/ prefix or a sweep.",
+   "actual": "The presign route mints keys under `staging/<userId>/...` (kind 'post') and `collection/<userId>/...-o.<ext>` (kind 'collection') (presign route.ts:102-106); deletion happens ONLY in the finalize route's finally (finalize:121-124) and in contributePhotoDirect's success/error paths (collection/actions.ts:366-372). If the client dies between the browser\u2192R2 PUT and the finalize/contribute call, the object stays forever: grep confirms nothing else in src/ or scripts/ touches 'staging', and the retention sweep (retention.ts) only deletes DB rows. For the collection kind this is worse than cost: the staged file is the raw original whose EXIF/GPS the whole M12 re-encode exists to strip, sitting at a public R2_PUBLIC_BASE_URL/collection/... URL (unguessable cuid, but public and permanent). Related orphan paths in the same class: /api/upload's multi-file loop returns 422 after file 1 already hit R2 (upload/route.ts:128-136 \u2014 file 1's object is never referenced or deleted), and contributePhotoDirect orphans its two freshly-put webp objects if the subsequent prisma.photo.create throws (collection/actions.ts:361-364 vs 377).",
+   "evidence": "Quoted above; absence of any cleanup verified by `grep -rln staging src scripts` returning only the three files that create/consume the keys.",
+   "fixDirection": "Cheapest and most robust: an R2 lifecycle rule (dashboard, owner action) expiring `staging/` after 1 day and unreferenced `collection/*-o.*` after 7 days. Code-side alternative: a step in the nightly retention sweep listing the staging/ prefix and deleting objects older than 24h; and in contributePhotoDirect, delete the two put objects in the catch around photo.create.",
+   "gateOrTest": "After the lifecycle rule exists, docs/OPERATIONS.md records it; a unit test pins contributePhotoDirect deleting its puts when the row insert fails (stubbed prisma).",
+   "reproPlan": "code-argument-only (verifying live would write real objects into the production bucket)",
+   "taxonomyRows": [
+    "6g-orphaned-objects",
+    "6k-client-dies-mid-flow"
+   ]
+  },
+  {
+   "title": "Collection fallback upload path (used whenever presign/CORS fails) dies at Vercel's ~4.5MB platform body cap for full-resolution photos, with an opaque failure the 25mb bodySizeLimit cannot fix",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/upload-client.ts:17",
+    "src/app/(main)/collection/actions.ts:122",
+    "next.config.ts:112"
+   ],
+   "expected": "When the direct-to-R2 path is unavailable (new domain not in the bucket's CORS allowlist, presign hiccup), a >4.5MB Collection photo either still uploads or fails with a message that names the size problem.",
+   "actual": "upload-client.ts documents the fallback: presign failure \u2192 'the caller then falls back to its classic server-proxied upload, which is capped at ~4.5MB on Vercel'. That fallback is contributePhoto, a Server Action accepting the raw File (collection/actions.ts:122-133, allows up to 20MB); next.config.ts raises Next's serverActions.bodySizeLimit to '25mb' (112) and proxyClientMaxBodySize to '25mb', but Vercel's platform request cap (~4.5MB, acknowledged in presign/route.ts:12-14: 'Vercel caps serverless request bodies at ~4.5MB no matter what bodySizeLimit says') rejects the request before the action runs \u2014 the size checks and friendly HEIC/size messages inside contributePhoto are unreachable for exactly the files most likely to take this path (full-res heritage scans). storage.ts:145-149 notes the trigger is silent: an origin missing from the CORS allowlist 'quietly take[s] the slower proxied path instead of failing loudly'. Members on any future domain/preview deployment uploading real photos hit an unexplained failure.",
+   "evidence": "Quoted above from all three files; the pattern that fixed this for FEED images (client-side downscale, image-downscale.ts header comment describes the identical historical failure: 'sailed past the client check and then died at Vercel's edge with an opaque failure') was deliberately not applied to Collection uploads because full resolution is the point.",
+   "fixDirection": "In the contribute dialog's fallback branch, check file.size > ~4MB BEFORE attempting the proxied upload and show a specific message ('this photo is too large to upload from this connection right now \u2014 try again later or a smaller export'); optionally catch the failed action invocation and map it to the same sentence. Longer-term the real fix is CORS-allowlisting every serving origin, which is an owner/dashboard task already documented.",
+   "gateOrTest": "Unit/Playwright: stub directUploadPut to return null with an 8MB file selected; assert the dialog surfaces the size-specific message without calling the action.",
+   "reproPlan": "code-argument-only (needs a production-like platform cap; local dev has no 4.5MB limit, as upload-client's own comment notes)",
+   "taxonomyRows": [
+    "6f-body-cap-4.5mb",
+    "6k-degraded-path-opaque-failure"
+   ]
+  },
+  {
+   "title": "Client fetch-on-mount .then() chains with no .catch(): a transient action failure (deploy mid-session, network blip, expired session) leaves comments/feed/saved/profile lists in a permanent loading skeleton with an unhandled rejection",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/comments-section.tsx:140",
+    "src/components/posts/post-feed.tsx:118",
+    "src/components/profile/saved-posts-feed.tsx:125",
+    "src/components/profile/profile-author-feed.tsx:55",
+    "src/components/collection/collection-client.tsx:151",
+    "src/components/auth/trivia-gate.tsx:45"
+   ],
+   "expected": "A list that fails to load shows something actionable (an error line with a retry), not a skeleton forever (the 6k chaos-lite standard: 'does the member see something actionable?').",
+   "actual": "Six mount-time loads call a server action with bare .then(): `loadComments(postId, { take: FIRST_PAGE }).then((data) => {...})` (comments-section.tsx:140), `fetchPosts(null).then(...)` (post-feed.tsx:118), `loadSavedPosts().then(...)` (saved-posts-feed.tsx:125), `loadPosts({ authorId, kind }).then(...)` (profile-author-feed.tsx:55), `fetchPage(0).then(...)` (collection-client.tsx:151), `getTriviaQuestion().then(setQuestion)` (trivia-gate.tsx:45 \u2014 this one leaves the ENTRY GATE questionless, blocking signup until refresh). If the promise rejects \u2014 a redeploy invalidating the action id, a dropped connection, a mid-request sign-out \u2014 the success callback never runs, loading state never clears, and the rejection is unhandled in the browser.",
+   "evidence": "Quoted call sites (gathered by grep across src for .then without adjacent .catch, then read in context). None sits inside a try/catch or error boundary that catches promise rejections.",
+   "fixDirection": "Add .catch to each mount-load setting an error state with a retry affordance (the feed already has empty-state components to hang it on); for trivia-gate specifically, retry once then show 'could not load the question \u2014 refresh'.",
+   "gateOrTest": "Playwright: intercept and fail the first loadComments POST, assert an error/retry line renders instead of an eternal skeleton.",
+   "reproPlan": "Live: with devtools offline-mode toggled after page load, expand a post's comments; observe the skeleton never resolves. Read-only, safe.",
+   "taxonomyRows": [
+    "6k-transient-failure-ux",
+    "6a-unhandled-rejection",
+    "6b-loading-never-resolves"
+   ]
+  },
+  {
+   "title": "Retention sweep is one serverless invocation doing every table's delete plus every due account purge sequentially \u2014 approaching the 60s ceiling as purges with many images stack up, and a timeout loses the sweep's own audit entry",
+   "severity": "Low",
+   "status": "suspected",
+   "files": [
+    "src/lib/retention.ts:115",
+    "src/lib/account-purge.ts:109",
+    "src/app/api/retention/sweep/route.ts:34"
+   ],
+   "expected": "The nightly sweep completes comfortably inside the function duration limit at realistic scale, or degrades in a resumable way.",
+   "actual": "The purge step loops due accounts serially (`for (const row of rows) { const purged = await purgeUserAccount(row.id); ... }`, retention.ts:120-134), and each purge deletes R2 objects one-by-one (`for (const url of urls) { await delImage(url); }`, account-purge.ts:109-112). A member with hundreds of Collection photos means hundreds of sequential DeleteObject round trips (~100-200ms each from a Vercel function to R2); two or three heavy accounts falling due the same night plus the seven deleteMany steps can plausibly cross 60s. Because each step IS idempotent, a timeout mostly self-heals tomorrow \u2014 but the sweep's closing writeAudit (retention.ts:151-155) and the route's JSON result are lost, so the owner's 'is retention actually running' answer (the stated purpose of that audit entry) goes dark for that night, and a heavy account could conceivably time out mid-purge-loop repeatedly (its own purge is transactional and completes or not; the loop position is what's lost).",
+   "evidence": "Quoted loops above; no batching (delImage calls are not Promise.all'd in the purge, unlike deletePostImages), no maxDuration export on the route, no chunking of due accounts.",
+   "fixDirection": "Batch object deletes (Promise.allSettled in groups of ~20, or S3 DeleteObjects batch API), cap accounts purged per sweep (e.g. 10 oldest-due per night \u2014 idempotence makes the rest tomorrow's work), and write the audit entry per-purge rather than only at the end (it already does per-purge entries; keep the summary but make it best-effort early).",
+   "gateOrTest": "A timing assertion is impractical; pin the batching with a unit test that purgeUserAccount issues grouped deletes, and log sweep duration in the result JSON so the GitHub Action can alert past 30s.",
+   "reproPlan": "code-argument-only (cannot run the sweep against production data)",
+   "taxonomyRows": [
+    "6f-60s-duration-ceiling",
+    "6i-cron-partial-failure"
+   ]
+  },
+  {
+   "title": "markNotificationRead throws unhandled P2025 when the target row is gone (pruned by the KEEP=100 sweep or read from a second device)",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/notifications/actions.ts:77",
+    "src/app/(main)/notifications/actions.ts:44"
+   ],
+   "expected": "Marking an already-deleted notification read is a no-op.",
+   "actual": "`await prisma.notification.update({ where: { id: notificationId, userId: session.user.id }, data: { read: true } })` (actions.ts:77-80) throws P2025 when no row matches \u2014 and rows legitimately vanish underneath the bell: getNotifications prunes everything older than the 100th row on every first-page open (actions.ts:44-57), and a second device or stale tab can hold rows the prune deleted. The click then surfaces as an unhandled server-action rejection in the panel.",
+   "evidence": "Quoted above; update-by-unique-plus-filter throws (P2025) rather than no-oping, unlike updateMany.",
+   "fixDirection": "Use `updateMany({ where: { id, userId }, data: { read: true } })` and ignore count 0 \u2014 the exact pattern markThreadSeenByAdmin already uses (messages/actions.ts:244-247).",
+   "gateOrTest": "Unit test: markNotificationRead with a nonexistent id resolves { success: true } (or a soft no-op) instead of rejecting.",
+   "reproPlan": "Live read-safe-ish: call markNotificationRead('nonexistent') from a dev-login session on localhost and observe the rejection; it writes nothing.",
+   "taxonomyRows": [
+    "6a-missing-p2025-handling",
+    "6h-cursor-at-deleted-row"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "silent-failure census (the charter's core): ~60 catch/.catch/fallback sites in src/lib, all 20 actions files and all 14 API routes were individually read and classified. CORRECT and contract-compliant (log-in-dev or log-in-prod, documented fail-open/fail-soft): last-seen.ts:175 touchLastSeen; login-attempt.ts:55; audit.ts:67 writeAudit; search-log.ts:80; content-view.ts:34; feed/actions.ts:1247 markFeedSeen; auth-tokens.ts:111 token sweep; roster.ts:99 tryRosterAutoVerifyQuietly (logs in prod); rate-limit.ts:157/176/190 fail-open (logs, deliberate posture); turnstile.ts:83/102 fail-open (loud on missing prod key); email.ts:197 sendMail never-throws contract; email-queue.ts:227/368/374 claim bookkeeping and drain; catchups.ts:629/669 resolveSpotify fail-soft, :885/981/987 advanceEdition/advanceDueCatchups must-never-throw with logging; catchups/actions.ts:162 runAction (logs + friendly error + P2021 mapping); collection-intake.ts:133 (logs in prod, owner-decided best-effort); retention.ts:66 step() (logs + errors[] + audit); account-purge.ts:63 JSON skip and :103 purge failure (logged, returned); storage.ts:204 headObjectSize\u2192null; razorpay.ts:106 hmacMatches\u2192false; registerUser's joinBatchGroup and sendVerificationEmail best-effort catches (both log); email-actions.ts:193 reset-enqueue after() (logs); auth.ts:194 delete-cancel notification (logs); lab/actions.ts (logs + friendly); plus ~20 pure-parse fallbacks (parseJsonArray, parseUserLinks, parseHouseYearEntries, wordle fallback words, origin-rule, validators URL refines, onboarding-local/tour-local, rich-text execCommand, image-downscale, upload-client fallback contract, geocode). The ONLY empty catch with no logging in any environment is storage.ts delImageByKey (reported as the High purge finding)",
+  "6a-missing-await / fire-and-forget writes: every member-visible write in every action is awaited; the only unawaited promises are telemetry (logSearch x3, recordLoginAttempt, authToken sweep) which never throw and log their own failures in dev, and the three after() uses (mail drain in layout and enqueue, collection copy in createPost) which are the correct tool and carry their own try/catch \u2014 CLEAN",
+  "6a-promise-all-sibling-abort in fanout: notification fanout everywhere is a single createMany (catchups-notify.ts:74, notifyAdmins admin-threads-server.ts:50), never per-row Promise.all, so one bad row cannot abort a batch \u2014 CLEAN (the one harmful Promise.all found, the layout's, is reported in the sendMail finding)",
+  "6c-server-action auth/ownership: all 20 actions files re-check session (and admin role where applicable) as their first lines; loadDirectoryPage/users-search/users-by-batch carry the Stage-1 gate; no action trusts a client isAdmin \u2014 CLEAN (validation-cap gaps reported separately)",
+  "6d-@@unique backstops behind every one-per-user rule (the brief's explicit check): Like, CommentLike, Bookmark, PollVote, PhotoLove, CatchupEntryLove, CatchupEntry[promptId,authorId], CatchupPref, GroupMember, Report[reporter,reportedUser], Catchup.groupId, Contribution.razorpayOrderId all confirmed in schema.prisma \u2014 constraints CLEAN; missing P2002 handlers reported as a finding. P2002 IS handled where it matters most: registerUser (actions.ts:164-169), createCatchup (catchups/actions.ts:366-372), reportUser (report-action.ts:189-192), addCatchupMembers via skipDuplicates, joinCatchupByToken via upsert",
+  "6d-pgbouncer hazards: no SET/advisory locks/LISTEN anywhere; interactive $transactions (catchups applyEditionAction/openNextRoundIfDue, purge, merge, places rewrite, reply) are short, DB-only, CAS-guarded, and hold no network calls inside \u2014 CLEAN",
+  "6i-webhooks: Razorpay and Resend webhooks verify signatures over raw bytes, constant-time compare, 5-minute replay window (Resend), idempotent terminal states ('paid' terminal, bounce updateMany tolerates missing rows), correct 400-vs-200 retry semantics \u2014 CLEAN (the bounce/budget interaction is a separate reported finding)",
+  "6i-crons: catchups/tick and retention/sweep require CRON_SECRET compared constant-time, are idempotent by design (CAS transitions; hard-cutoff deleteMany), safe to double-fire \u2014 CLEAN (duration headroom reported as Low)",
+  "6f-module-scope init: no DB connections at import time (Prisma client construction is lazy-safe, Razorpay creds read per-call, R2/Resend clients lazy); no build-time DB during static generation observed \u2014 CLEAN",
+  "6j-scale to 2,000: every member-facing list is take-bounded (feed 20+keyset, comments 10-50+keyset, directory 60+keyset, notifications 20-50+keyset+prune-to-100, collection 24 offset, saved 120, users-by-batch hard 5000, people/place search 8); notification fanout is createMany; no O(n-users) per-request loop found; place gazetteer queries ride prefix-index LIKE with escapeLike; per-user data is never cached shared (no 'use cache'/unstable_cache anywhere; auth() is React cache() per-request only) \u2014 CLEAN",
+  "6e-credentialVersion revocation: bumped on password reset, block AND unblock, deletion request; session callback compares every read and invalidates on row-gone/blocked/stale-epoch; authorize carries the version into the fresh token \u2014 CLEAN",
+  "6g-presign contract: Content-Type pinned into the signature, HEAD-before-GET size check with belt-and-braces re-check, magic-byte sniff before sharp, owner-prefixed keys verified with keyBelongsTo, sharp hardened (limitInputPixels 100MP, sequentialRead, failOn error) \u2014 CLEAN apart from the reported orphan-lifecycle gap",
+  "6c-revalidatePath coverage: every mutating action revalidates the surfaces it changes; the two deliberate omissions (toggleLike/toggleCommentLike) are documented with the scroll-jump rationale and covered by optimistic UI \u2014 CLEAN"
+ ],
+ "coverageNotes": "Read whole: rate-limit, email-queue, email, auth-tokens, last-seen, login-attempt, audit, search-log, roster (guard region), content-view, geocode, turnstile, storage, account-purge, retention, collection-intake, razorpay, social, prisma, catchups (lines 400-993, the impure half plus spotify/guards), catchups-notify, admin-threads-server, admin-note, member-gate, email-verification, human-pass, city-scope, posts, upload-ownership, upload-shared, image, db-text, admin.ts, validators, verification-mail; all 20 actions files in full (feed, catchups, collection, messages, notifications, support, directory, admin mail, admin people, lab, auth actions, email-actions, trivia-actions, verification-actions, both onboarding actions files, profile-actions, admin-actions, settings actions, theme-actions) plus report-action.ts (found via grep, effectively the 21st); all 14 API routes in full except demo/reset (first 60 lines \u2014 its remaining half is demo-only cron plumbing behind IS_DEMO) and dev-login (first 80 \u2014 remainder is token encode); the (main) layout; verify-email page/client; directory where.ts and page wiring; next.config.ts (limits + CSP header region); schema.prisma constraint/index census. Consciously skimmed or skipped: pure display/lab components (src/app/lab/** rooms, mascot/hoopoe \u2014 tracked bug area, demo-seed content), admin read-only query builders (admin-analytics read only for its date handling, admin-content/people/worklist-query skimmed for take-bounds), e2e specs, generated prisma client, and client-side polish components \u2014 these are static-display surfaces the bug-likelihood ranking put last, and the grep-driven catch census covered their error paths. Client components were entered only where a server finding needed the client half (post-card like handler, create-post-form submit guard \u2014 which I checked and did NOT report: React's discrete-event sync flushing makes the disabled-button guard effective, unlike the guardless heart), the .then()-without-catch census, and trivia-gate. The 8 uncommitted working-tree files were audited as they stand per instructions; nothing was reported about their in-progress-ness. Two near-findings deliberately dropped under false-positive discipline: requestVerification double-click duplicating admin notifications (converges, cosmetic), and confirmEmailToken's non-transactional consume-then-update (double failure needed, self-heals via resend). The purge date in the deletion email formats in UTC (off-by-one-day for IST) \u2014 folded conceptually into the IST finding's fixDirection rather than reported separately."
+}

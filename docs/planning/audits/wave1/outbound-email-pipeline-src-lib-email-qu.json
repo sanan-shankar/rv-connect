@@ -1,0 +1,325 @@
+{
+ "territory": "Outbound email pipeline: src/lib/email-queue.ts, email.ts, email-templates.ts, verification-mail.ts, email-gate-message.ts, mask-email.ts, src/app/api/resend/webhook/route.ts, the OutboundEmail model, plus every caller of the queue (main layout drain, auth/email-actions, signup, settings deletion, admin mail panel, retention sweep, proxy allowlist) and auth-tokens.ts as the mint/redeem dependency.",
+ "findings": [
+  {
+   "title": "Transient Resend failures permanently fail queued mail: all 4 attempts burn back-to-back in one drain pass with no backoff and no transient/permanent error distinction",
+   "severity": "Critical",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email-queue.ts:461-483",
+    "src/lib/email-queue.ts:159-238",
+    "src/lib/email-queue.ts:105",
+    "src/lib/email.ts:180-200"
+   ],
+   "expected": "MAX_ATTEMPTS exists so 'a permanently bad address (someone typed gmial) must not be retried forever' (comment at email-queue.ts:103-105). A transient provider error (Resend 429 rate limit, 5xx, network blip) should be retried later, spread over time, and must never terminally fail a queued password reset.",
+   "actual": "A row whose send fails transiently is requeued with status 'queued' and its original createdAt, so the very next iteration of the SAME drain pass re-selects it (it is still the oldest eligible row under orderBy [priority asc, createdAt asc]). Four failures in four consecutive iterations, seconds apart, hit MAX_ATTEMPTS and the row is terminally 'failed'. One BATCH=8 pass during an outage terminally kills 2 rows; every authenticated page view spawns another pass (layout after()), so a ~5-minute Resend outage or 429 storm at launch traffic converts the entire backlog, resets included, to permanent 'failed'. Nothing retries after the outage ends ('failed' is terminal); recovery is the admin clicking retryMail one row at a time. A reset requester was already told { ok: true } ('check your inbox') and sees nothing, ever.",
+   "evidence": "The loop re-picks the same row: `const next = await prisma.outboundEmail.findFirst({ where: { status: \"queued\", kind: { in: eligibleKinds }, attempts: { lt: MAX_ATTEMPTS } }, orderBy: [{ priority: \"asc\" }, { createdAt: \"asc\" }], ... })` (461-475) \u2014 a requeued row keeps createdAt so it stays at the head. claimAndSend increments attempts on every claim (`attempts: { increment: 1 }`, 162) and computes `const afterFailure = spent >= MAX_ATTEMPTS ? \"failed\" : \"queued\"` (174); every failure path writes `status: afterFailure` (224, 231) with no delay, no nextAttemptAt, and no inspection of the error class \u2014 sendMail collapses a Resend 429, a 5xx and a genuinely invalid address into the same `{ ok: false, error }` (email.ts:188-199). There is no code path that returns a 'failed' row to 'queued' when the day or the provider recovers.",
+   "fixDirection": "Two changes. (1) Add a nextAttemptAt (or reuse claimedAt semantics) set with exponential backoff on failure, and add `nextAttemptAt: { lte: now }` to the drain's findFirst, so retries spread across passes instead of burning in one. (2) Classify errors in sendMail (Resend returns error names/status: rate_limit_exceeded, daily_quota_exceeded, validation errors): provider-level/transient errors must not increment toward terminal failure (or must use a much higher ceiling), while validation/'invalid to address' errors may fail fast. At minimum, a failure whose error indicates rate/quota should leave the row queued without burning an attempt.",
+   "gateOrTest": "New unit test beside the 14 in npm run check: stub sendMail to fail twice then succeed, run drainMailQueue once, assert the row ends 'sent' (or at least not 'failed') and that attempts were not all consumed within a single pass.",
+   "reproPlan": "code-argument-only (a live proof would require making real Resend calls fail, which risks real sends from the shared DB).",
+   "taxonomyRows": [
+    "6i-concurrency-jobs",
+    "6k-chaos-provider-down",
+    "6a-errors-continue-into-invalid-state"
+   ]
+  },
+  {
+   "title": "deletion-scheduled emails can never be sent: the drain's eligibleKinds list omits the kind, so every account-deletion confirmation sits queued forever",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email-queue.ts:468-469",
+    "src/lib/email-queue.ts:471-472",
+    "src/components/settings/actions.ts:338-350",
+    "src/lib/email-queue.ts:565-567",
+    "src/lib/retention.ts:103-106"
+   ],
+   "expected": "requestAccountDeletion enqueues kind 'deletion-scheduled' at priority 20 as 'the only warning a person gets that their account is going away' and the takeover alarm for the 60-day grace window. The drain should send it just behind resets, as PRIORITY, ENQUEUE_LIMIT and render() all provide for.",
+   "actual": "The drain can never select the row. `eligibleKinds` is `[\"verify\", \"reset\", \"password-changed\"]` or `[\"reset\", \"password-changed\"]` \u2014 'deletion-scheduled' appears in neither branch, and findFirst filters `kind: { in: eligibleKinds }`. The only other caller of claimAndSend is verificationMailState, which reads `kind: \"verify\"` rows only. So every deletion-scheduled row sits status 'queued' forever: the member who requested deletion never gets the written confirmation, a victim of an account takeover never gets the alarm during the 60-day undo window, the admin panel's 'Waiting to go' count is permanently inflated, admin retryMail cannot help (requeued rows are still ineligible) and dismissMail refuses non-'failed' rows. After 180 days the retention sweep silently deletes the never-sent row (deleteMany on createdAt with no status filter).",
+   "evidence": "email-queue.ts:468-469: `const eligibleKinds = live.verifyRemaining > 0 ? [\"verify\", \"reset\", \"password-changed\"] : [\"reset\", \"password-changed\"];` and 472: `where: { status: \"queued\", kind: { in: eligibleKinds }, ... }`. Yet the kind is fully wired everywhere else: type MailKind includes it (53), `\"deletion-scheduled\": 20` in PRIORITY (68), an ENQUEUE_LIMIT entry (281), a render branch (394), and settings/actions.ts:338-341 enqueues it: `await enqueueMail({ kind: \"deletion-scheduled\", to: me.email, userId, ... })`. verificationMailState's findFirst is `where: { userId, kind: \"verify\" }` (565-566), so it can never send it either.",
+   "fixDirection": "Add \"deletion-scheduled\" to both branches of eligibleKinds (it is a priority-20 security notice exactly like password-changed, so it belongs wherever password-changed is). Better: derive the always-eligible list from PRIORITY's keys minus 'verify' so a future fifth kind cannot repeat this bug. Then sweep the database for stranded queued deletion-scheduled rows and re-send or hand-notify.",
+   "gateOrTest": "Unit test: for every key of PRIORITY, enqueue a row and assert one drainMailQueue pass (with sendMail stubbed ok) marks it 'sent'. This pins the invariant that no MailKind is ever un-drainable.",
+   "reproPlan": "Read-only live proof: query OutboundEmail for kind='deletion-scheduled' rows with status='queued' and old createdAt (any that exist prove it in production data). Do not exercise the deletion flow on a real account.",
+   "taxonomyRows": [
+    "6a-boundary-missing-case",
+    "6c-server-action-state",
+    "6h-identity-states"
+   ]
+  },
+  {
+   "title": "Email case never normalized at signup/login but lowercased in the reset flow: a mixed-case account silently never receives password-reset mail, and one mailbox can register twice",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:18",
+    "src/components/auth/actions.ts:103-105",
+    "src/components/auth/actions.ts:146-149",
+    "src/components/auth/email-actions.ts:160-165",
+    "src/lib/auth.ts:103"
+   ],
+   "expected": "One address is one account regardless of casing, and a password-reset request for any casing of a registered address reaches that account (6e: email case normalization consistent between signup, login and reset).",
+   "actual": "Signup stores the email exactly as typed: the Zod schema is `email: z.email(\"Please enter a valid email\")` with no transform, and the create writes `email: parsed.data.email`. Login's authorize also looks up as-typed (`where: { email }`, auth.ts:103; only the rate-limit key is lowercased at line 62). But requestPasswordReset lowercases before lookup: `const raw = ((formData.get(\"email\") as string) ?? \"\").trim().toLowerCase();` then `findUnique({ where: { email: raw } })`. Any member whose stored address contains an uppercase letter (pasted 'Ravi.Kumar@gmail.com', a corporate autofill) gets `{ ok: true }` \u2014 'check your inbox' \u2014 and no email is ever enqueued; the anti-oracle design means no error surfaces anywhere. They are permanently locked out of password recovery. Separately, 'foo@x.com' and 'Foo@x.com' both pass the exact-match duplicate check and the case-sensitive Postgres unique, so one mailbox can hold two accounts.",
+   "evidence": "validators.ts:18 has no `.toLowerCase()`; auth/actions.ts:103-104 `const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } })` and 149 `email: parsed.data.email`; email-actions.ts:160-165 lowercases then `prisma.user.findUnique({ where: { email: raw } })`; the signup form input (signup-form.tsx:573-580) applies no client-side lowering either. schema.prisma User.email is a plain `String @unique` (case-sensitive).",
+   "fixDirection": "Normalize once, at the boundary: add .trim().toLowerCase() (on the local-part-preserving-display variant if the owner cares, but store the canonical lowercase in User.email) in the signup schema, in authorize(), and keep the reset flow as is. Then run a one-off data check for existing mixed-case rows and for case-duplicate pairs before enforcing (a manual SQL SELECT lower(email), count(*) GROUP BY 1 HAVING count(*)>1).",
+   "gateOrTest": "Unit test: register 'Foo@X.com' (mocked), assert requestPasswordReset('foo@x.com') enqueues a reset row; second registration with different casing is refused.",
+   "reproPlan": "Read-only live proof: SELECT count(*) FROM \"User\" WHERE email <> lower(email) \u2014 any nonzero count is a member already exposed.",
+   "taxonomyRows": [
+    "6e-email-normalization",
+    "6h-unicode-hostile-input"
+   ]
+  },
+  {
+   "title": "Bounce/complaint webhook flips a sent row's status to 'failed', which resurrects daily-budget slots and lets the app send past Resend's real 100/day cap",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/api/resend/webhook/route.ts:110-129",
+    "src/lib/email-queue.ts:257-267",
+    "src/lib/email-queue.ts:80",
+    "src/lib/email-queue.ts:502-509"
+   ],
+   "expected": "dailyBudget's 'used' should count every message Resend accepted today (that is what spends the provider's quota), so the app's DAILY_CAP=95 stays under Resend's 100 with the deliberate 5-message margin.",
+   "actual": "dailyBudget counts `{ status: \"sent\", sentAt: { gte: startOfUtcDay() } }`. The webhook's bounce patch sets `status: \"failed\"` (and complaint likewise) while leaving sentAt in place \u2014 so every same-day bounce or complaint removes a message from 'used' that Resend already counted against the real quota. Each bounce resurrects one phantom budget slot. The webhook file's own motivation is launch mail 'bouncing off stale addresses' in the hundreds; a dozen same-day bounces already exceeds the entire 5-message headroom, after which the drain keeps sending while Resend hard-rejects \u2014 and each rejection burns attempts toward terminal 'failed' (see the Critical retry finding), failing exactly the messages the reserve exists to protect. mailHealth.sentToday undercounts the same way, so the admin panel under-reports the day.",
+   "evidence": "route.ts:117-118: bounce patch includes `status: \"failed\"` (and 128 for complaints), with no compensating field; email-queue.ts:258-260: `const used = await prisma.outboundEmail.count({ where: { status: \"sent\", sentAt: { gte: startOfUtcDay() } } });`. The margin's whole justification (comment 74-79) is absorbing miscounts of ~a retry or two, not a launch-day bounce rate.",
+   "fixDirection": "Count acceptance, not current status: change dailyBudget (and mailHealth.sentToday) to `where: { sentAt: { gte: startOfUtcDay() } }` with no status filter (sentAt is only ever written on a real provider accept, and the webhook never clears it), or keep bounce state in bouncedAt/bounceKind without overwriting status. If status:'failed' stays (the admin worklist depends on it), the budget query must switch to sentAt-only. Also confirm with Resend docs/support whether the 100/day refusal is hard-fail (the code currently assumes it).",
+   "gateOrTest": "Unit test: create a row with status 'failed', sentAt = today, bouncedAt set; assert dailyBudget().used counts it.",
+   "reproPlan": "code-argument-only (proving it live needs a real bounce against the production sending domain, which damages reputation).",
+   "taxonomyRows": [
+    "6i-webhook-state-clash",
+    "6a-boolean-state-inversion",
+    "6j-third-party-quotas"
+   ]
+  },
+  {
+   "title": "Drain concurrency is unbounded: every authenticated page view and every enqueue schedules a full drain pass, so launch traffic fans out well past Resend's ~2 req/s and past the budget cap via uncounted in-flight sends",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/layout.tsx:63-69",
+    "src/lib/email-queue.ts:350",
+    "src/lib/email-queue.ts:364-377",
+    "src/lib/email-queue.ts:452-483"
+   ],
+   "expected": "The claim (one row, one sender) is safe, but the SYSTEM should also bound how many drain passes send concurrently, because Resend rate-limits to roughly 2 requests/second (the code's own comment at email-queue.ts:93-95) and the budget check must not be overshootable by more than the 5-message margin.",
+   "actual": "There is no global coordination at all. Every authenticated page view runs `after(drainMailQueue)` (layout.tsx:63-69) and every enqueueMail calls scheduleDrain (350). K overlapping passes do not collapse: when two race for the head row, the loser gets 'lost-claim' and simply moves to the NEXT row (comment at 481-482), so K concurrent passes send K different rows in parallel. At launch (steady page views over a 100+ row backlog) that is a self-inflicted 429 storm against a 2 rps provider limit \u2014 and every 429 burns an attempt toward terminal failure (Critical finding above). Independently, the budget check is per-pass check-then-send: rows in status 'sending' are not counted by dailyBudget (it counts 'sent' only), so with K passes in flight the cap can be exceeded by up to K messages, past the 5-message headroom, producing hard provider rejections.",
+   "evidence": "layout.tsx:63-65: `after(async () => { try { await drainMailQueue(); } ...` on every render of the authenticated layout; email-queue.ts:452/462: `const budget = await dailyBudget(); ... const live = await dailyBudget(); if (live.remaining === 0) break;` \u2014 both reads count `status: \"sent\"` rows only (258-260), never in-flight 'sending' rows; 481-482: `// lost-claim: another process took the row ... the loop just looks for the next one.` \u2014 the mechanism by which concurrent passes parallelize instead of deduplicating.",
+   "fixDirection": "Serialize or throttle drains with a lease row (NOT a pg advisory lock \u2014 session-level locks do not survive the pgbouncer transaction pooler): e.g. a single QueueLock row claimed with a conditional updateMany + stale takeover exactly like claimedAt, so at most one (or N) pass sends at a time; other passes return immediately. Alternatively count 'sending' rows into 'used' when computing remaining, which bounds overshoot even with concurrency. Add a small inter-send sleep or honor Resend's rate-limit headers inside the pass.",
+   "gateOrTest": "Unit test with sendMail stubbed slow: fire drainMailQueue twice concurrently over a 10-row queue with remaining=1 budget and assert total sent <= budget + lease bound (today it sends 2).",
+   "reproPlan": "code-argument-only (a live proof means real bulk sends).",
+   "taxonomyRows": [
+    "6c-race-check-then-act",
+    "6i-concurrency-jobs",
+    "6j-third-party-quotas",
+    "6f-fire-and-forget"
+   ]
+  },
+  {
+   "title": "sendMail reports ok:true without an API key in development when EMAIL_DEV_SEND=1, so a dev drain marks real members' queued mail 'sent' off a console print (shared production DB)",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email.ts:150-178",
+    "src/lib/email-queue.ts:125-138",
+    "src/lib/email-queue.ts:191-204"
+   ],
+   "expected": "The 2026-08-12 incident rule, stated twice in comments: 'Nothing may record a send on the strength of a console.log' (email.ts:155-159), and queueIsSendable's all-or-nothing contract \u2014 a process that cannot genuinely send must not touch queued rows (email-queue.ts:113-124).",
+   "actual": "Combination: a dev machine with EMAIL_DEV_SEND=1 whose RESEND_API_KEY is absent (removed for safety, renamed, or a fresh .env). queueIsSendable in dev checks ONLY `process.env.EMAIL_DEV_SEND === \"1\"` \u2014 never the key \u2014 so the process participates in draining real members' rows from the shared database. The suppression branch in sendMail is bypassed (EMAIL_DEV_SEND===1), then the no-key branch in non-production prints the message and returns `{ ok: true }`. claimAndSend records `status: \"sent\", sentAt: now, providerId: null` on a real member's row. 'sent' is terminal: the member's verification or reset is never retried and never arrives, and verificationMailState tells them to go look in their inbox.",
+   "evidence": "email.ts:150: `if (process.env.NODE_ENV !== \"production\" && process.env.EMAIL_DEV_SEND !== \"1\")` \u2014 passes when the flag is 1; email.ts:169-177: `if (!api) { if (production) {...} console.info(...); return { ok: true }; }` \u2014 the dev no-key branch answers ok:true, in direct contradiction of the suppressed-in-development branch 20 lines up which answers `{ ok: false, error: \"suppressed in development\" }` for exactly the stated reason. email-queue.ts:137: `return process.env.EMAIL_DEV_SEND === \"1\";` with no key check, unlike the production arm (128-134) which refuses without the key.",
+   "fixDirection": "Make the no-key dev branch return `{ ok: false, error: \"RESEND_API_KEY is not set\" }` (keep the console print as the dev convenience), and/or make queueIsSendable's dev arm require the key too: `EMAIL_DEV_SEND === \"1\" && !!process.env.RESEND_API_KEY`. Either alone closes it; both honor the all-or-nothing contract.",
+   "gateOrTest": "Add to src/lib/security-regressions.test.mjs (which already pins deleted endpoints): with NODE_ENV=test, EMAIL_DEV_SEND=1 and no RESEND_API_KEY, sendMail must not resolve ok:true.",
+   "reproPlan": "code-argument-only (a live repro would, by definition, corrupt a real member's queue row in the shared DB).",
+   "taxonomyRows": [
+    "6a-boolean-inversion",
+    "6k-chaos-misconfig",
+    "6h-identity-states"
+   ]
+  },
+  {
+   "title": "claimAndSend's outcome writes are not scoped to its claim, so a send slower than the 2-minute stale window causes duplicate emails and can flip an already-'sent' row back to 'queued' for a third send",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email-queue.ts:101",
+    "src/lib/email-queue.ts:160-164",
+    "src/lib/email-queue.ts:192-204",
+    "src/lib/email-queue.ts:222-236",
+    "src/lib/email-queue.ts:447-450",
+    "src/lib/email.ts:181-187"
+   ],
+   "expected": "After the stale-claim reclaim hands a row to a second sender, the first (slow, still-running) sender's eventual outcome must not overwrite the second's bookkeeping: writes should be conditional on still owning the claim.",
+   "actual": "The Resend call has no timeout (api.emails.send with no AbortSignal, email.ts:181-187), so a hung connection can easily outlive STALE_CLAIM_MS=2min. Sequence: drain A claims (attempts\u21921), its send hangs; after 2 min the reclaim (`where: { status: \"sending\", claimedAt: { lt: ... } }` \u2192 status 'queued') releases the row; drain B claims (attempts\u21922), sends successfully, writes status 'sent' + its providerId. Drain A's call finally errors; A's failure path runs `prisma.outboundEmail.update({ where: { id: row.id }, data: { status: afterFailure /* \"queued\" \u2014 A read attempts=1 */, ... } })` \u2014 unconditional on id \u2014 flipping the SENT row back to 'queued'. A later pass sends it a third time. The member gets 2-3 copies; for verify/reset each re-send's mint burns the prior token so earlier copies carry dead links (confusing 'already used' screens); budget is spent multiply; and B's providerId is overwritten on the failure path (lastError clobber) or, in the A-succeeds-too variant, A's success write replaces B's providerId so B's bounce webhook finds no row.",
+   "evidence": "Success write 192-204 and failure writes 222-225 / 228-235 all use `where: { id: row.id }` with no `status: \"sending\"` or claimedAt guard, while the claim itself (160-163) IS guarded (`where: { id: row.id, status: \"queued\" }`) \u2014 the pattern was applied to acquisition but not release. Reclaim at 447-450 has no way to tell a dead process from a slow one because nothing identifies the claimant.",
+   "fixDirection": "Stamp the claim with a unique value (the claimedAt Date already read into a local, or a random claim token column) and make every outcome write conditional: `updateMany({ where: { id, status: \"sending\", claimedAt: myClaim }, ... })`; treat count 0 as 'lost the row, do nothing'. Additionally set a timeout/AbortSignal (e.g. 30s) on the Resend call so a hang cannot outlive the stale window, and pass Resend's Idempotency-Key header (row.id + attempt) so an at-least-once retry cannot double-deliver.",
+   "gateOrTest": "Unit test: claim a row, manually reclaim + re-claim it (simulating drain B), then run the first claimant's failure path and assert the row still reads 'sent'.",
+   "reproPlan": "code-argument-only (needs an induced multi-minute provider hang).",
+   "taxonomyRows": [
+    "6c-race-lost-update",
+    "6i-two-surfaces-one-row",
+    "6a-resource-leaks"
+   ]
+  },
+  {
+   "title": "Stale-claim reclaim can return a row to 'queued' with attempts already at MAX_ATTEMPTS, where the drain's filter ignores it forever: a wedged row that is neither sent, failed, nor dismissible",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email-queue.ts:447-450",
+    "src/lib/email-queue.ts:472",
+    "src/lib/email-queue.ts:160-174",
+    "src/app/(main)/admin/mail/actions.ts:61-63"
+   ],
+   "expected": "Every queued row is eventually either sent or terminally 'failed' (visible in the admin 'Gave up' list); nothing can be permanently stuck in 'queued'.",
+   "actual": "The claim increments attempts BEFORE the send (162). If a process claims a row for its final attempt (attempts 3\u21924) and dies mid-send, the reclaim sweep writes it back to `status: \"queued\"` with attempts=4 and no attempts guard. The drain's findFirst requires `attempts: { lt: MAX_ATTEMPTS }`, so the row is invisible to every future pass, yet it is not 'failed': mailHealth counts it in 'waiting' forever, the admin 'Waiting to go' section shows it indefinitely, and dismissMail refuses it ('Only a message that gave up can be cleared', actions.ts:61-63). For kind 'verify' there is an accidental escape hatch \u2014 verificationMailState claims queued rows with no attempts filter (597-599), so the member's own page view un-wedges it \u2014 but a reset, password-changed or deletion-scheduled row has no such path: the member's reset silently never arrives and never surfaces as failed. The 180-day retention sweep then deletes the undelivered row silently (retention.ts:103-106 filters on createdAt only).",
+   "evidence": "Reclaim 447-450: `updateMany({ where: { status: \"sending\", claimedAt: { lt: new Date(Date.now() - STALE_CLAIM_MS) } }, data: { status: \"queued\", claimedAt: null } })` \u2014 attempts untouched; drain filter 472: `attempts: { lt: MAX_ATTEMPTS }`; claim-then-increment 160-163 means a claim always spends an attempt even when no send was ever transmitted.",
+   "fixDirection": "In the reclaim sweep, split by attempts: rows with attempts >= MAX_ATTEMPTS go to `status: \"failed\", lastError: \"process died mid-send on final attempt\"` (making them visible and dismissible), the rest to 'queued'. Alternatively increment attempts on outcome rather than on claim, so a died-mid-send claim does not consume the final attempt.",
+   "gateOrTest": "Unit test: row with status 'sending', attempts=4, stale claimedAt; run drainMailQueue; assert the row ends 'failed' (today it ends 'queued' and is never selected).",
+   "reproPlan": "Read-only live proof: SELECT * FROM \"OutboundEmail\" WHERE status='queued' AND attempts >= 4 \u2014 any hit is a wedged row.",
+   "taxonomyRows": [
+    "6a-off-by-one-boundary",
+    "6i-crons-partial-failure",
+    "6c-race-double-submit"
+   ]
+  },
+  {
+   "title": "resendVerification maps verificationMailState 'failed' to 'imminent', so after a terminal send failure the banner tells the member 'A link has been sent to your email'",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/auth/email-actions.ts:78-88",
+    "src/components/auth/verify-email-banner.tsx:182-190",
+    "src/lib/email-queue.ts:179-187",
+    "src/lib/email-queue.ts:607"
+   ],
+   "expected": "The state contract is explicit (email-actions.ts:47-50 and the whole 'the app must not lie about where a message is' design): 'sent' only when the provider accepted, 'queued' only when budget is spent, 'imminent' only when in flight or seconds from retry. A terminal failure must not be reported as mail on its way.",
+   "actual": "verificationMailState can return `{ state: \"failed\" }` immediately after the button-triggered send attempt (skip path 181-187 marks the row failed on token rate limit; 607 returns 'failed' after a failed inline claimAndSend, e.g. an address whose earlier mail hard-bounced, undeliverable-TLD refusal, or the last attempt burning out). resendVerification's mapping has no 'failed' arm: `state: state.state === \"sent\" ? \"sent\" : state.state === \"queued\" ? \"queued\" : \"imminent\"` \u2014 failed (and none) collapse to 'imminent'. The banner's imminent copy asserts 'A link has been sent to your email. Tap on it to verify your account.' with the resend button removed (banner 207-209: no button while imminent). The member with a broken address is told to check an inbox nothing was sent to, with the retry control hidden \u2014 the exact 2026-08-13 class of lie this subsystem was rebuilt to prevent.",
+   "evidence": "email-actions.ts:80-85 quoted above; email-queue.ts:184-186: `data: { status: \"failed\", lastError: built.skip }` then `return \"failed\";`; email-queue.ts:607: `if (fresh?.status === \"failed\") return { state: \"failed\" };`; verify-email-banner.tsx:187-190 imminent copy, 209 `{!queued && !imminent && (<button ...` hides the button for imminent.",
+   "fixDirection": "Add a 'failed' arm to the action's return type and mapping, and give the banner a failed presentation ('That address would not accept mail. Check it and try again') with the send button visible \u2014 the VerificationMailState type already models it; only the action and banner drop it.",
+   "gateOrTest": "Unit test on the mapping: given verificationMailState returning failed, resendVerification must not answer 'imminent'/'sent'.",
+   "reproPlan": "code-argument-only (forcing a real failed send would spend real budget).",
+   "taxonomyRows": [
+    "6a-missing-case-handling",
+    "6h-identity-states",
+    "6b-optimistic-state"
+   ]
+  },
+  {
+   "title": "Failed sends consume the token-mint rate limit (a mint per attempt), so after one dead row the member's next genuine reset request is terminally skipped as 'token rate limit' without a single send",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email-queue.ts:400-409",
+    "src/lib/auth-tokens.ts:40-43",
+    "src/lib/auth-tokens.ts:79-84",
+    "src/lib/email-queue.ts:181-187"
+   ],
+   "expected": "The token rate limit (reset: 4 per 30 min) exists to cap how many LIVE links reach an inbox. Send attempts that never left the building should not spend it, and the skip path's own justification ('one of them is almost certainly still live in their inbox', email-queue.ts:405-408) assumes mints correlate with delivered mail.",
+   "actual": "render() mints a fresh token on every claim attempt, including all retries of a failing row. A reset row that burns its 4 attempts during a transient provider failure (seconds, per the Critical finding) also creates 4 AuthToken rows in the 30-minute window \u2014 none of which produced an email. When the member then submits forgot-password again, the new row's first drain hits mintToken's `recent >= limit.max` (4 >= 4), render returns `{ skip: \"token rate limit\" }`, and claimAndSend marks the NEW row terminally 'failed' with that lastError \u2014 no retry when the window reopens, no signal to the member (requestPasswordReset already answered ok). Net: one transient provider blip locks that member out of password recovery for up to 30 minutes, with both rows dead and only the admin panel knowing.",
+   "evidence": "email-queue.ts:403: `const minted = await mintToken(row.userId, kind, row.to);` runs inside claimAndSend's per-attempt render; auth-tokens.ts:81-84: `const recent = await prisma.authToken.count({ where: { userId, kind, createdAt: { gte: since } } }); if (recent >= limit.max) return { ok: false, reason: \"rate-limited\" };` \u2014 counts every mint ever created in the window, sent or not; email-queue.ts:182-186 turns the skip into `status: \"failed\"` (terminal) rather than deferring.",
+   "fixDirection": "Two options, either sufficient: (a) treat the token-rate-limit skip as a deferral, not a failure \u2014 leave the row queued (without incrementing toward MAX_ATTEMPTS) with a nextAttemptAt past the window; (b) only count tokens that correspond to sent mail (e.g. mint after a successful provider accept is wrong for link-liveness, so instead pass a 'burnOnly' reuse: reuse the still-unused latest token when re-attempting the same queue row rather than minting anew per attempt).",
+   "gateOrTest": "Unit test: fail sendMail 4 times for one reset row, enqueue a second reset, drain, and assert the second row is not status 'failed' with lastError 'token rate limit'.",
+   "reproPlan": "code-argument-only.",
+   "taxonomyRows": [
+    "6a-errors-continue-into-invalid-state",
+    "6i-concurrency-jobs",
+    "6h-boundary-at-limit"
+   ]
+  },
+  {
+   "title": "verificationMailState performs a synchronous, timeout-less Resend send inside the authenticated layout's render for unconfirmed members, and repeats it on every page view while the send keeps failing",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/layout.tsx:35-52",
+    "src/lib/email-queue.ts:589-599",
+    "src/lib/email.ts:181-187"
+   ],
+   "expected": "The design accepts 'one Resend call inside one page load, once' (email-queue.ts:561-562). Page render must never be hostage to a third-party API's worst-case latency, and the 'once' must hold.",
+   "actual": "The layout awaits verificationMailState inside the render Promise.all (layout.tsx:44-46), and with a queued row plus available budget that path runs mintToken + a live Resend HTTP call (claimAndSend at email-queue.ts:598) before the page can stream. The Resend call has no timeout or AbortSignal (email.ts:181-187), so during a provider brown-out every page view by an unconfirmed member blocks for the full hang, up to the Vercel function ceiling \u2014 a blank page instead of a feed, on every route, for exactly the newest members. And 'once' is untrue under failure: a transient failure requeues the row (status back to 'queued', attempts+1), so the NEXT page view repeats the synchronous send, four page views burn the row to terminal 'failed' (see Critical finding). The comment's cost model only covers the success path.",
+   "evidence": "layout.tsx:44-46: `session.user.emailConfirmed ? Promise.resolve(null) : verificationMailState(session.user.id)` inside the awaited Promise.all that gates render; email-queue.ts:597-599: `if (row.status === \"queued\") { const outcome = await claimAndSend(row); ... }` \u2014 the synchronous send; contrast with the drain, which the same layout deliberately pushes into after() at 63-69 'because this one makes network calls to Resend ... or every page in the app would wait on somebody else's welcome email' \u2014 the identical network call is awaited pre-response three lines up when it is the member's own mail.",
+   "fixDirection": "Give the state function a fast path for render: return 'imminent' immediately and hand the actual send to after() (the claim mechanism already makes that safe), or keep the inline send but wrap it in a short timeout (2-3s AbortSignal) falling back to 'imminent'. Fixing the retry/backoff finding also caps the repeat-on-every-view behavior.",
+   "gateOrTest": "After the fix, an integration test with sendMail stubbed to hang: layout render (or verificationMailState) must resolve under the timeout budget.",
+   "reproPlan": "code-argument-only (live proof requires degrading the real provider).",
+   "taxonomyRows": [
+    "6b-sequential-awaits-blocking-render",
+    "6f-duration-ceiling",
+    "6k-chaos-provider-slow"
+   ]
+  },
+  {
+   "title": "Double-submit of forgot-password creates two reset rows: the dedupe fold is a check-then-insert TOCTOU with no unique constraint behind it",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/email-queue.ts:306-338",
+    "prisma/schema.prisma:330-387"
+   ],
+   "expected": "The fold rule ('a verify or reset for somebody who already has one WAITING is folded into the existing row', email-queue.ts:290-293) should hold under concurrency; per taxonomy 6c the DB unique constraint is the only real guard, and there is none.",
+   "actual": "Two concurrent requestPasswordReset submissions (double-click, or two tabs) each run enqueueMail; both findFirst fold checks (309-317) see no waiting row, both pass the ENQUEUE_LIMIT count (320-327, same race), both create rows (329-338). The drain sends both: the member receives two reset emails, and because the second send's mintToken burns the first token, one of the two carries a dead link \u2014 clicking it shows 'That link has already been used', the confusing outcome the fold comment exists to prevent \u2014 and two of the day's 95 messages are spent to say one thing. OutboundEmail has no @@unique over (userId, kind) for active statuses (schema lines 330-387: only indexes), so nothing structural prevents it.",
+   "evidence": "email-queue.ts:308-317: `const waiting = await prisma.outboundEmail.findFirst({ where: { userId: input.userId, kind: input.kind, status: { in: [\"queued\", \"sending\"] } } ...}); if (waiting) return ...` followed at 329 by an unconditional `prisma.outboundEmail.create(...)` \u2014 classic check-then-insert with no transaction and no P2002 handler (none is possible without a constraint).",
+   "fixDirection": "Postgres partial unique index in a dated manual migration: `CREATE UNIQUE INDEX ... ON \"OutboundEmail\"(\"userId\", kind) WHERE status IN ('queued','sending')` (Prisma schema can't express partial uniques; document it beside the model), and catch P2002 in enqueueMail returning the fold result. Client-side pending-state on the forgot form helps but is not the guard.",
+   "gateOrTest": "Unit test: two concurrent enqueueMail calls for the same user/kind resolve to one queued row.",
+   "reproPlan": "Live proof possible read-safely against a test account: double-fire the forgot-password action for a dev test address and count rows \u2014 but it writes rows to the shared DB, so prefer code-argument-only.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6d-check-then-insert-toctou"
+   ]
+  },
+  {
+   "title": "A very fast bounce webhook can outrun the providerId write and is silently dropped, leaving the row 'sent' forever",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/api/resend/webhook/route.ts:140-146",
+    "src/lib/email-queue.ts:189-204"
+   ],
+   "expected": "Every authentic delivery event should eventually land on its row; the webhook's whole purpose is that a bounced launch invitation does not look identical to a delivered one.",
+   "actual": "providerId is written only by claimAndSend's success update, which runs AFTER `sendMail` returns (email-queue.ts:189-204). A bounce for an instantly-rejecting address can be dispatched by Resend in the window between its API accepting the message and our row update committing. The webhook's `updateMany({ where: { providerId } })` matches 0 rows, logs a warning, and returns 200 \u2014 which tells Svix the event is handled, so it is never retried. The row keeps status 'sent' with no bouncedAt forever; at launch this is precisely the 'sent vs delivered' blindness the webhook was built to remove, restored for the fastest-failing (deadest) addresses.",
+   "evidence": "route.ts:140-146: `const { count } = await prisma.outboundEmail.updateMany({ where: { providerId }, data: patch }); if (count === 0) { console.warn(...); }` then unconditional `return NextResponse.json({ ok: true })` at 154 \u2014 a 2xx for an event that updated nothing; the comment at 137-139 justifies tolerating missing rows for cross-environment mail but that reasoning also swallows this same-environment race.",
+   "fixDirection": "When count === 0 for a bounce/complaint event, return a 5xx (or 404) so Svix retries \u2014 its backoff (seconds to minutes) comfortably clears the write race; keep 200 for delivered/delayed events where the loss is tolerable, or bound retries by checking event age before refusing.",
+   "gateOrTest": "Unit test on the handler: bounce event whose providerId matches no row must return non-2xx (so the provider retries), delivered event may return 200.",
+   "reproPlan": "code-argument-only (needs a real bounce).",
+   "taxonomyRows": [
+    "6i-webhook-out-of-order",
+    "6c-race-lost-update"
+   ]
+  },
+  {
+   "title": "Account-deletion email prints the purge date in server UTC: requests made 00:00-05:30 IST name a date one day earlier than the member's local purge day",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/settings/actions.ts:344-348",
+    "src/components/settings/actions.ts:315"
+   ],
+   "expected": "The deletion mail promises 'On {date} the account ... will be permanently removed' in the member's calendar. Members are in IST; a stated deadline should match their local date of the purge moment.",
+   "actual": "`purgeAt = new Date(Date.now() + DELETION_GRACE_DAYS * 86_400_000)` then `purgeAt.toLocaleDateString(\"en-GB\", { day, month, year })` runs on a UTC server with no timeZone option, so it formats the UTC date. For any request made between 00:00 and 05:30 IST (18:30-24:00 UTC), the purge instant falls on the NEXT IST calendar day, so the email understates the deadline by one day (e.g. says '19 October 2026' when the member's clock reads 20 October at the purge moment). Understating is the safe direction for the cancel-by-signing-in flow, but the letter that confirms an irreversible action names a wrong date. (Currently unreachable because deletion-scheduled mail never sends \u2014 see the High finding \u2014 but the fix session will surface it the moment that is repaired.)",
+   "evidence": "settings/actions.ts:344-348: `purgeDate: purgeAt.toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"long\", year: \"numeric\" })` \u2014 no `timeZone: \"Asia/Kolkata\"`, unlike admin/mail/page.tsx:94-100 which correctly passes `timeZone: \"Asia/Kolkata\"` for the budget refill line.",
+   "fixDirection": "Add `timeZone: \"Asia/Kolkata\"` to this toLocaleDateString (the audience is IST; the admin mail page already sets the precedent), or format at read-time in the recipient's terms. Fix together with the eligibleKinds repair since the same template is in play.",
+   "gateOrTest": "Unit test: with a fixed clock at 19:00 UTC, the formatted purgeDate equals the IST calendar date of purgeAt.",
+   "reproPlan": "code-argument-only.",
+   "taxonomyRows": [
+    "6h-ist-utc-date-render",
+    "6a-off-by-one"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "6d-claim-atomicity: the queue claim is a genuine atomic conditional update (updateMany where {id, status:'queued'}), not read-then-write TOCTOU; two racing drains cannot both send one row (email-queue.ts:160-164). The brief's headline race question is CLEAN.",
+  "6d-pgbouncer: no session-level Postgres features anywhere in the pipeline \u2014 no SET, no advisory locks, no LISTEN/NOTIFY; the one $transaction (mintToken, auth-tokens.ts:91-99) is the array/batch form, safe through the transaction pooler, and no transaction is held across the Resend network call.",
+  "two-valid-reset-tokens: impossible by construction \u2014 mintToken burns every outstanding same-kind token in the same $transaction that creates the new one, so the send-succeeded-but-DB-update-failed re-send yields a dead older link, never two live ones (auth-tokens.ts:91-99). readToken's consume is itself a conditional updateMany, so two clicks on one link cannot both win (auth-tokens.ts:186-190).",
+  "orphaned-token-on-failed-send: a minted-but-unsent token's raw form never persists anywhere (hash-only storage, no logging), so it is unredeemable and is burned by the next mint; harmless apart from the rate-limit consumption reported as a finding.",
+  "6f-send-loop-bounded: the drain is hard-bounded at BATCH=8 sends per pass (~seconds), enqueue paths are O(1), and the webhook does one updateMany; nothing in this territory can approach the 60s ceiling.",
+  "webhook-svix-verification: timing-safe compare with length guard, 5-minute replay window with NaN-safe check, missing-secret hard-rejects, signature-over-raw-bytes (never re-serialized JSON), multi-signature rotation support, 400-not-5xx on bad signatures so Svix does not retry garbage (route.ts:22-58, 73-78). Malformed JSON after a valid signature answers 400. Duplicate and out-of-order webhook deliveries are idempotent column patches.",
+  "proxy-allowlist: /api/resend is present on src/proxy.ts's public list (line 215 with rationale at 58), so the server-to-server webhook is not bounced to /login.",
+  "demo-mode: three independent refusals verified \u2014 enqueueMail returns {queued:false, reason:'demo'} (email-queue.ts:304), queueIsSendable() is false under IS_DEMO (127), and sendMail itself refuses (email.ts:132); the demo can neither write queue rows nor drain real members' rows nor emit mail from the real domain.",
+  "6a-missing-await: every enqueue/drain call site traced; the two deliberate fire-and-forgets (layout drain, requestPasswordReset's timing-oracle enqueue) run inside after() with their own catch, which is the correct Vercel-safe pattern; signup and resetPassword await their enqueues.",
+  "undeliverable-TLD-guard: .invalid/.test/.example/.localhost refused at the single choke point before the provider sees them, protecting the young domain's reputation from seeded demo addresses and test flows (email.ts:99-141).",
+  "6h-template-inputs: names are HTML-escaped in every interpolation (heading, body, title), firstNameOf handles empty/whitespace/odd names with a fallback, hrefs are internally generated with base64url tokens (no quote/injection surface), preheader is escaped, and payload name length is bounded upstream by the 50+50-char signup fields. passwordChangedTemplate's hard-coded /messages CTA target exists as a live route.",
+  "queue-starvation: a permanently failing head row blocks at most 4 loop iterations before going terminal, and failed rows are excluded from the drain's findFirst, so priority+oldest-first cannot be starved indefinitely by a bad address (though see the Critical finding for what those 4 attempts cost).",
+  "fold-ignores-recipient examined: enqueueMail's fold matches userId+kind but not `to`, which would misroute mail after an email change \u2014 but no code path anywhere updates User.email today (settings only edits displayEmail; grep across src), so the scenario has no live trigger. Flag for whoever adds an email-change flow.",
+  "budget-window-IST quantified as asked: the ledger day runs 05:30 IST to 05:30 IST (UTC midnight). For the owner's launch-day mental model this is benign: a morning/evening IST launch burst spends one whole window; only signups between 00:00 and 05:30 IST spend the previous day's budget. Deferred mail goes out at 05:30 IST next morning, and both surfaces state that moment exactly and correctly \u2014 the admin panel formats it explicitly in Asia/Kolkata (admin/mail/page.tsx:94-101) and the member banner formats in the browser's own zone via useSyncExternalStore with a hydration-safe fallback (verify-email-banner.tsx:43-54, 121-126). Whether Resend's own quota window is calendar-UTC (as the code assumes) vs rolling-24h could not be verified from code; noted in the budget findings.",
+  "retention-idempotency: the OutboundEmail purge is a hard-cutoff deleteMany safe to double-fire; its lack of a status filter only matters for the wedged/never-drained rows reported above.",
+  "6j-scale: every OutboundEmail query in the territory is covered by a schema index ([status,priority,createdAt] for the drain, [sentAt] for the budget, [userId,kind,status] for the state read, [providerId] for the webhook); admin mail lists all carry take:50/20; no findMany without take, no N+1, no per-user fanout loops."
+ ],
+ "coverageNotes": "Read in full: email-queue.ts (all 612 lines), email.ts, email-templates.ts, verification-mail.ts, email-gate-message.ts, mask-email.ts, the Resend webhook route, auth-tokens.ts, verify-email-banner.tsx, email-verification.ts, admin/mail/page.tsx and admin/mail/actions.ts, and the OutboundEmail model with its comments and indexes. Read the relevant portions of every caller: src/app/(main)/layout.tsx (the after() drain backstop and banner wiring), components/auth/email-actions.ts (resend button, reset request/redeem), components/auth/actions.ts (signup enqueue plus the Zod schema in validators.ts for the case-normalization chase), components/settings/actions.ts lines 280-353 (deletion enqueue; audited as it stands per the WIP rule), retention.ts (OutboundEmail purge), proxy.ts (public-list check), demo.ts (IS_DEMO), auth.ts (authorize's email lookup, needed to complete the 6e normalization row). Consciously skipped: admin-worklist-query.ts / admin-analytics.ts / admin-people-query.ts internals (read-only count/list consumers of OutboundEmail with take limits, no write paths), the MailRows presentational component, human-pass/turnstile/roster internals (other territories), and the generated Prisma client. Ran nothing live, wrote nothing. The drain-trigger question is fully answered: three triggers (enqueue-time scheduleDrain, verificationMailState's inline send on first page view, the authenticated layout's after() backstop) \u2014 there is no cron, and the retryMail admin action relies on the admin's own next page view to drain, which works because /admin sits under the (main) layout. The brief's marquee races (claim TOCTOU, two-valid-reset-tokens) came back clean; the real defects cluster instead around the retry/attempts design under provider failure, a kind missing from the drain's eligibility list, budget arithmetic vs the bounce webhook, and email case normalization."
+}

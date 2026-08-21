@@ -1,0 +1,288 @@
+{
+ "territory": "Collection (photos) + entire upload pipeline: src/app/(main)/collection/** (actions, page, [id], loading), src/lib/{collection,collection-intake,collection-facets,storage,image,image-downscale,upload-client,upload-shared,upload-ownership,upload-ownership-rule}.ts, src/app/api/upload/{route,presign/route,finalize/route}.ts, src/components/collection/**, src/components/settings/avatar-crop-dialog.tsx (+ avatar server path in settings/actions.ts, post-image delete paths in feed/actions.ts, account-purge.ts, admin content queue)",
+ "findings": [
+  {
+   "title": "\"Most loved\" sort has no deterministic tiebreaker, so offset pagination duplicates and drops photos (and produces duplicate React keys)",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/collection/actions.ts:466",
+    "src/app/(main)/collection/actions.ts:473",
+    "src/components/collection/collection-client.tsx:400"
+   ],
+   "expected": "Sorting by \"Most loved\" and pressing Load more walks the collection exactly once: every approved photo appears once across pages.",
+   "actual": "Rows tied on love count (which is almost all of them: most photos have 0-2 loves) are returned in arbitrary, non-stable order per query. Page 2 (skip 24) re-runs the sort and can return rows already shown on page 1 and omit others. The client appends with setPhotos(prev => [...prev, ...data.photos]) keyed by key={p.id}, so duplicates also collide as React keys.",
+   "evidence": "actions.ts:466-471: `const orderBy = opts?.sortBy === \"oldest\" ? { createdAt: \"asc\" as const } : opts?.sortBy === \"loved\" ? { loves: { _count: \"desc\" as const } } : { createdAt: \"desc\" as const };` then 473-480: `prisma.photo.findMany({ where, include: includeFor(...), orderBy, take: PAGE_SIZE + 1, skip: page * PAGE_SIZE })`. For \"loved\" the ONLY sort key is the aggregate count; Postgres gives no stable order for ties, and each page is a fresh query, so tied rows shuffle between pages. collection-client.tsx:399-402 renders `photos.map((p, i) => (<Tile key={p.id} ...>))` after handleLoadMore's `setPhotos((prev) => [...prev, ...data.photos])` (line 167), so a repeated id is a duplicate key. Reachable the moment the collection holds more than PAGE_SIZE=24 approved photos and someone opens the \"Most loved\" sort and loads more. (\"newest\"/\"oldest\" sort on createdAt is also un-tiebroken but ms-precision ties are rare; the loved sort is tied by construction.)",
+   "fixDirection": "Add a secondary deterministic key to every orderBy in loadPhotos, e.g. orderBy: [{ loves: { _count: \"desc\" } }, { createdAt: \"desc\" }, { id: \"desc\" }] (and [{ createdAt }, { id }] for newest/oldest). Optionally dedupe by id in handleLoadMore as a belt (`const seen = new Set(prev.map(p=>p.id))`).",
+   "gateOrTest": "New unit/e2e test: seed 25+ photos with equal love counts, fetch page 0 and page 1 via loadPhotos({sortBy:\"loved\"}), assert the id sets are disjoint and their union covers take*2 distinct rows.",
+   "reproPlan": "Live proof possible read-only once >24 approved photos exist: open /collection, sort Most loved, Load more, look for repeated tiles / React duplicate-key console warning. Until then: code-argument-only.",
+   "taxonomyRows": [
+    "6h-pagination",
+    "6j-offset-pagination",
+    "6b-index-keys-adjacent"
+   ]
+  },
+  {
+   "title": "Direct-upload staged originals (full-EXIF, GPS-bearing) leak permanently in R2: several refusal paths skip cleanup and no sweep exists for abandoned/crashed uploads",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/collection/actions.ts:271",
+    "src/app/(main)/collection/actions.ts:289",
+    "src/app/api/upload/finalize/route.ts:60",
+    "vercel.json:5"
+   ],
+   "expected": "A presigned original staged under collection/<id>/...-o.jpg or staging/<id>/... either becomes a photo (and is deleted) or is cleaned up; nothing EXIF-bearing sits at a public URL indefinitely, and storage cost does not accrete from abandoned uploads.",
+   "actual": "The raw original (which still carries EXIF/GPS \u2014 the exact thing audit M12 re-encodes to remove, per the comment at actions.ts:243-248 \"a phone photo's EXIF carries the GPS coordinates... serving the untouched original published those\") stays in the bucket forever, publicly fetchable at its R2 URL, whenever: (a) contributePhotoDirect is refused by the rate limiter, (b) contributePhotoDirect is refused by Zod validation, (c) /api/upload/finalize 429s before reading keys, (d) the member closes the tab between the PUT and the finalize/contribute call (the everyday case), or (e) the function crashes/times out mid-processing. There is no lifecycle sweep: vercel.json's only crons are /api/catchups/tick and /api/demo/reset, and `staging` appears only in presign/finalize/storage.ts.",
+   "evidence": "actions.ts:271-272: `const limited = await rateLimit(\"uploads\", session.user.id); if (!limited.ok) return { error: limited.error };` \u2014 returns with the staged key intact (contrast the quota path at 282-287, which does `await delImageByKey(input.key)`). actions.ts:289-297: `const parsed = photoSchema.safeParse({...}); if (!parsed.success) return { error: parsed.error.issues[0].message };` \u2014 same, no cleanup. finalize/route.ts:60-63: `const limited = await rateLimit(\"uploads\", session.user.id); if (!limited.ok) return NextResponse.json({ error: limited.error }, { status: 429 });` \u2014 before keys are even parsed, so the staged post originals stay. The rate-limit case is reachable in normal use: each photo costs 2 tokens (presign + contribute) from the 40/hour \"uploads\" bucket (rate-limit.ts:69 `uploads: { tokens: 40, window: \"1 h\" }`), so a member whose presign takes the last token PUTs 20MB and then gets 429'd, orphaning it. Objects are up to MAX_UPLOAD_BYTES (20MB) each.",
+   "fixDirection": "Two halves: (1) add `await delImageByKey(input.key)` to every refusal path in contributePhotoDirect after the key-shape/ownership check passes (rate-limit, gate, Zod), and delete validated keys when finalize refuses; (2) add a reaper \u2014 either an R2 lifecycle rule on the `staging/` prefix and on `collection/**/-o.*` objects older than ~24h (dashboard, owner action), or a daily cron that lists those prefixes and deletes objects older than a day. The lifecycle rule is the robust answer since it also covers crashes and abandoned tabs that no server code can see.",
+   "gateOrTest": "Unit test asserting contributePhotoDirect's rate-limited and Zod-failure branches call delImageByKey (mock storage); an ops checklist entry pinning the R2 lifecycle rule.",
+   "reproPlan": "code-argument-only (proving it live would write real objects into the shared production bucket).",
+   "taxonomyRows": [
+    "6g-orphaned-objects",
+    "6g-presign-finalize-never-comes",
+    "6k-cron-absent",
+    "privacy-exif-retention"
+   ]
+  },
+  {
+   "title": "CollectionClient never handles a failed loadPhotos call: transient DB/network failure leaves an infinite skeleton or a stuck \"Loading...\" button, and a stale Load more response appends into a newer filtered list",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/collection/collection-client.tsx:151",
+    "src/components/collection/collection-client.tsx:163"
+   ],
+   "expected": "If the photos fetch fails, the member sees something actionable (an error state or a retry); changing a filter while Load more is in flight discards the stale response.",
+   "actual": "(1) The initial effect does `fetchPage(0).then((data) => { ... setLoading(false); })` with no `.catch`: a rejected server-action call (DB blip through pgbouncer, dropped connection) leaves `loading` true forever \u2014 the page shows the skeleton indefinitely with an unhandled rejection in the console. (2) `handleLoadMore` has no try/catch: a rejection leaves `loadingMore` true, so the button reads \"Loading...\" and is disabled forever. (3) `handleLoadMore` has no cancellation/sequence guard: tap Load more on a slow connection, then change a filter \u2014 the effect refetches page 0 and replaces `photos`, then the in-flight load-more resolves and runs `setPhotos((prev) => [...prev, ...data.photos])`, appending page 2 of the OLD, unfiltered result set into the new filtered list (wrong photos shown under the active filter, wrong total, possible duplicate keys).",
+   "evidence": "Lines 146-161: `useEffect(() => { let cancelled = false; setLoading(true); setPage(0); fetchPage(0).then((data) => { if (cancelled) return; ... setLoading(false); }); return () => { cancelled = true; }; }, [fetchPage]);` \u2014 the `cancelled` flag guards only the effect's own fetch, and there is no rejection handler anywhere. Lines 163-172: `async function handleLoadMore() { const next = page + 1; setLoadingMore(true); const data = await fetchPage(next); setPhotos((prev) => [...prev, ...data.photos]); ... }` \u2014 no try/finally, no check that the filters that produced `data` are still current.",
+   "fixDirection": "Add .catch/finally to both fetch paths (surface a toast + a retry affordance, always clear loading flags), and carry a request-sequence number (or reuse the `cancelled` pattern via a ref incremented on every filter change) that handleLoadMore checks before appending.",
+   "gateOrTest": "Component test: mock loadPhotos to reject \u2192 assert skeleton is replaced by an error/retry state and loadingMore resets; mock a delayed page-2 response racing a filter change \u2192 assert it is discarded.",
+   "reproPlan": "Live proof read-only: open /collection with devtools offline mode toggled after page load, click Load more \u2192 observe the stuck button; or throttle to Slow 3G, click Load more, immediately change the When filter \u2192 observe unfiltered photos appended.",
+   "taxonomyRows": [
+    "6b-out-of-order-races",
+    "6k-db-down-mid-request",
+    "6a-unhandled-promise-rejection"
+   ]
+  },
+  {
+   "title": "togglePhotoLove is a check-then-act race with no P2002/P2025/P2003 handling, and the client button neither serializes clicks nor catches a thrown action, leaving the heart in a wrong state",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/collection/actions.ts:508",
+    "src/components/collection/photo-love-button.tsx:20",
+    "src/components/common/love-button.tsx:74"
+   ],
+   "expected": "Double-clicking the heart lands on a consistent final state; a lost race resolves silently; an invalid photoId returns a clean error.",
+   "actual": "actions.ts:508-518 does `const existing = await prisma.photoLove.findUnique(...); if (existing) { await prisma.photoLove.delete({ where: { id: existing.id } }); } else { await prisma.photoLove.create(...); }`. Two rapid clicks (LoveButton's handleClick calls onToggle with no pending guard, love-button.tsx:74-80, and PhotoLoveButton.handle has no in-flight lock) run two overlapping actions: both can read `existing = null` \u2192 the second `create` throws P2002 (schema @@unique([userId, photoId])); or both read the same row \u2192 the second `delete` throws P2025. A crafted/stale photoId (photo just declined) makes `create` throw a foreign-key error. None of these are caught, so the action rejects; on the client, photo-love-button.tsx:24 `const result = await togglePhotoLove(photoId);` has no try/catch, so the rollback branch (`if (result.error)`) never runs \u2014 the optimistic setLoved/setCount state is left disagreeing with the database until a reload, plus an unhandled rejection.",
+   "evidence": "Quoted above; additionally the action does not verify the photo exists/is visible before writing (no findUnique on Photo), unlike toggleLike for posts which calls `canViewPost` first (feed/actions.ts:474-475), so the Collection heart is the one love path that can hit the FK error and also the one that lets a member love an unapproved photo by id.",
+   "fixDirection": "Make the toggle idempotent and error-tolerant: wrap in try/catch mapping P2002 to \"already loved\" (treat as success), P2025 to \"already unloved\", and return { error } for a missing photo (precheck `prisma.photo.findUnique({ select: { approved, isHidden } })` like canViewPost). On the client, wrap the await in try/catch performing the same rollback, and/or ignore clicks while a call is in flight.",
+   "gateOrTest": "Unit test firing two concurrent togglePhotoLove calls for the same (user, photo) asserting both resolve without throwing and the table ends with exactly 0 or 1 row; a test asserting a bogus photoId yields { error } not a throw.",
+   "reproPlan": "Live proof on a test account: rapid-double-click a photo heart with the network throttled and watch the console for the unhandled rejection and the count desync after reload.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6d-check-then-insert-toctou",
+    "6a-unhandled-promise-rejection"
+   ]
+  },
+  {
+   "title": "Animated GIFs are silently flattened to a static first frame by every server encode path, while the client-side downscaler deliberately passes GIFs through untouched \"to preserve the animation\"",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/image.ts:27",
+    "src/app/api/upload/route.ts:119",
+    "src/app/api/upload/finalize/route.ts:111",
+    "src/lib/image-downscale.ts:16"
+   ],
+   "expected": "Either animated GIFs post as animations, or they are refused/explained; the pipeline should not half-support them.",
+   "actual": "GIF is an accepted input everywhere (upload-shared.ts:83 sniffImageType returns \"gif\"; presign EXT_BY_TYPE includes \"image/gif\"), and image-downscale.ts:16-18 documents the pass-through: \"GIF: re-rasterising would drop the animation.\" But every server path constructs the pipeline as `sharp(input, { limitInputPixels, sequentialRead, failOn })` (image.ts:27-39) WITHOUT `animated: true` (or `pages: -1`), so libvips decodes only the first frame, and `.webp({ quality: 80 })` encodes a single-frame WebP (upload/route.ts:119-126, finalize/route.ts:111-115, collection actions.ts:346-359). Net: a member attaches an animated GIF, the composer preview (object URL of the original) animates, the published post shows a frozen frame.",
+   "evidence": "image.ts:26-40: `return sharp(input, { limitInputPixels: MAX_INPUT_PIXELS, sequentialRead: true, failOn: \"error\" });` \u2014 no `animated` option; sharp's documented default is first-frame-only for multi-page input. upload-shared.ts:83: `if (b.length >= 6 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return \"gif\";` \u2014 GIFs pass the sniff. presign/route.ts:33: `\"image/gif\": \"gif\"`.",
+   "fixDirection": "Owner decision, two clean options: (1) support animation: pass `animated: true` to sharp for GIF-sniffed inputs and encode animated WebP (mind memory: limitInputPixels applies per-frame stack, so cap frames/pixels); or (2) drop the pretense: reject animated GIFs with a friendly \"animations aren't supported\" message at sniff time (a static GIF still passes), and delete the misleading pass-through comment in image-downscale.ts.",
+   "gateOrTest": "Unit test feeding a 2-frame GIF through the upload transform asserting either the output WebP has >1 frame (option 1) or the request is refused with the friendly message (option 2).",
+   "reproPlan": "code-argument-only for production (would write objects); locally provable by posting any animated GIF in dev and inspecting the stored WebP.",
+   "taxonomyRows": [
+    "6g-animated-gif",
+    "6h-input-six-value"
+   ]
+  },
+  {
+   "title": "Photo detail page renders the contribution date in server UTC, so any photo contributed 00:00-05:30 IST shows the previous day's date",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/collection/[id]/page.tsx:145"
+   ],
+   "expected": "A member in India who contributes a photo at 1am on Aug 21 sees \"21 Aug 2026\" beside their name on /collection/[id].",
+   "actual": "The date is computed in the server's timezone (UTC on Vercel): a 01:00 IST Aug 21 contribution is 19:30 UTC Aug 20, so the page shows \"20 Aug 2026\". Every contribution between midnight and 05:30 IST (a meaningful slice of evening-scrolling uploads) is off by one day. Note the asymmetry that proves the inconsistency: the grid's full-screen viewer formats the same timestamp CLIENT-side via formatDisplayDate (collection-client.tsx:77, a \"use client\" component, so IST) \u2014 the same photo can show different dates in the viewer vs its own permalink page.",
+   "evidence": "[id]/page.tsx:145-149 (a server component): `meta={new Date(photo.createdAt).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"short\", year: \"numeric\" })}` \u2014 no timeZone option, so it uses the server locale timezone (UTC). utils.ts:151-157 formatDisplayDate is the identical call but executed in the browser for the viewer path.",
+   "fixDirection": "Pass `timeZone: \"Asia/Kolkata\"` in the server-side call (or move the formatting into a client component / reuse formatDisplayDate client-side), and grep the repo for other server-component toLocaleDateString/toLocaleTimeString calls without an explicit timeZone \u2014 this is a class, not a one-off (the audit brief's other territories should cross-check).",
+   "gateOrTest": "Unit test on a date-formatting helper with a fixed 19:30Z timestamp asserting the rendered day is the IST day; lint-style grep gate for toLocaleDateString without timeZone in server components.",
+   "reproPlan": "Live proof read-only: find (or wait for) any photo whose createdAt falls between 18:30Z and 00:00Z and compare the permalink date against the viewer date on the same photo.",
+   "taxonomyRows": [
+    "6h-ist-utc-date-shift"
+   ]
+  },
+  {
+   "title": "Fallback (non-presigned) upload paths ship bodies far over Vercel's ~4.5MB request cap the codebase itself documents: avatar accepts 15MB originals and the contribute fallback sends up to 20MB, contradicting next.config's belief that 25MB bodies arrive",
+   "severity": "Medium",
+   "status": "suspected",
+   "files": [
+    "src/components/settings/actions.ts:215",
+    "src/components/collection/contribute-dialog.tsx:135",
+    "next.config.ts:111",
+    "src/lib/upload-client.ts:13"
+   ],
+   "expected": "Every byte path that traverses a Vercel function stays under the platform request-body cap, or fails with the friendly size message.",
+   "actual": "The repo holds two contradictory beliefs. Belief A (\"the cap is real\"): avatar-crop-dialog.tsx:10-12 \"comfortably under Vercel's ~4.5MB serverless body cap\"; presign/route.ts:12 \"Vercel caps serverless request bodies at ~4.5MB no matter what bodySizeLimit says\"; upload-client.ts:13-15 \"capped at ~4.5MB on Vercel\". Belief B (\"25MB bodies arrive\"): next.config.ts:107-124 raises serverActions.bodySizeLimit and proxyClientMaxBodySize to \"25mb\" explicitly so \"a 20MB photo\" reaches contributePhoto, and attributes real-world 1-in-6 Collection failures to the 10MB proxy default \u2014 implying >4.5MB bodies were surviving the platform. If Belief A is right: updateAvatar's fallback (settings/actions.ts:215 `if (file.size > MAX_AVATAR_INPUT) return { error: \"Photo must be under 15MB\" }` \u2014 reached when the crop dialog cannot decode a file and hands the ORIGINAL to the plain path, per avatar-crop-dialog.tsx:19-22) and the contribute dialog's fallback (contribute-dialog.tsx:135-144 `fd.set(\"file\", file)` with files up to 20MB, taken whenever presign/CORS hiccups per upload-client.ts) both die at the platform edge with an opaque 413 instead of the friendly messages the code promises. If Belief B is right, several load-bearing comments and the presign design rationale are stale and the real constraint is only the configured 25mb.",
+   "evidence": "Quoted above. The two beliefs cannot both be true, and each direction leaves a member-visible failure or a design built on a false premise.",
+   "fixDirection": "Orchestrator should settle it empirically once (see reproPlan), then either (A) cap the avatar fallback input and the contribute fallback at ~4MB with browser downscaling first (downscaleImage already exists and the composer's fallback uses it \u2014 contribute dialog's does not), or (B) correct the comments and simplify. Either way, wire downscaleImage into ContributeDialog's fallback branch: it costs nothing and makes the fallback survive under any cap.",
+   "gateOrTest": "A production smoke test (manual, post-deploy): upload a ~6MB photo with the presign path artificially disabled (devtools request blocking on /api/upload/presign) and record whether contributePhoto succeeds.",
+   "reproPlan": "Live proof on production with a test account: block /api/upload/presign in devtools, attempt a 6MB contribution; also attempt a 6MB undecodable-in-browser avatar. Observe 413 vs success.",
+   "taxonomyRows": [
+    "6f-4.5mb-body-cap",
+    "6k-fallback-path-degradation"
+   ]
+  },
+  {
+   "title": "contributePhotoDirect re-encodes up to 100-megapixel originals at full resolution (two full decodes + q90 WebP encode) with no maxDuration configured: an at-limit legitimate scan can exceed the function ceiling, failing the upload and leaking the staged original",
+   "severity": "Medium",
+   "status": "suspected",
+   "files": [
+    "src/app/(main)/collection/actions.ts:345",
+    "src/lib/image.ts:24"
+   ],
+   "expected": "Any input the validators accept (<=20MB file, <=100MP pixels) processes within the function's time and memory budget, or is refused with a clear message and cleaned up.",
+   "actual": "The accepted envelope is generous: MAX_INPUT_PIXELS = 100_000_000 (image.ts:24) and MAX_UPLOAD_BYTES 20MB. contributePhotoDirect then (a) GETs up to 20MB from R2, (b) fully decodes for the display encode `sharpImage(original).rotate().resize(WEBP_MAX_DIM=16383, ...).webp({ quality: 90 }).toBuffer()` (actions.ts:345-350) \u2014 at 100MP that is a ~400MB RGBA working set and a very slow q90 encode \u2014 then (c) decodes the SAME original a second time for the 480px thumb (actions.ts:355-359), then (d) PUTs both outputs. No route/action in the repo sets maxDuration (grep: zero hits) and vercel.json sets none, so the platform default applies. If the default tier duration (10-60s depending on plan/Fluid settings) is exceeded, the invocation is killed: the member gets an opaque failure, the catch block's `delImageByKey(input.key)` never runs (the process is gone), and the EXIF-bearing staged original leaks (compounding the orphan finding). A 90MP flatbed scan of a heritage panorama is exactly the input this feature courts (\"high-res in the Collection is the point\", actions.ts:241).",
+   "evidence": "Quoted above; also the comment at actions.ts:341-344 shows the 16383 ceiling was added for WebP's dimension limit, not as a duration/memory bound \u2014 nothing bounds encode TIME below the 100MP pixel guard.",
+   "fixDirection": "Set an explicit generous `export const maxDuration` (e.g. 60-300s per plan) on the collection actions file and finalize route; reuse the decoded pipeline for the thumb (`.clone()` on one sharp instance, or resize the display buffer) to halve decode work; consider lowering MAX_INPUT_PIXELS to ~60MP or encoding q80 above a pixel threshold. Keep the staged-key cleanup robust via the lifecycle-rule fix from the orphan finding.",
+   "gateOrTest": "A load-shaped local benchmark committed as a script (not CI): time the current pipeline on a synthetic 95MP PNG; assert budget with margin. Plus the orphan-sweep gate covers the leak half.",
+   "reproPlan": "Live proof on a test account: contribute a synthetic large-dimension image (e.g. 12000x8000, under 20MB as PNG) in production and observe duration/outcome in Vercel logs. Safe: worst case is one failed upload and one orphan object.",
+   "taxonomyRows": [
+    "6f-60s-duration-ceiling",
+    "6g-decompression-bomb-adjacent",
+    "6a-resource-leak"
+   ]
+  },
+  {
+   "title": "approvePhoto throws (unhandled P2025) when the photo was just declined by another admin, and the admin UI's act() helper then leaves the row stuck on its busy spinner",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/collection/actions.ts:525",
+    "src/components/admin/content/content-list.tsx:104"
+   ],
+   "expected": "Two admins working the queue concurrently: the loser of an approve-vs-decline race sees \"Photo not found\" (like declinePhoto's own guard) and the row clears.",
+   "actual": "approvePhoto does a blind `await prisma.photo.update({ where: { id: photoId }, data: { approved: true, ... } })` (actions.ts:525-528) with no existence check and no P2025 handling \u2014 on a row declinePhoto just deleted (actions.ts:549 `await prisma.photo.delete(...)`), the update throws, the server action rejects, and content-list.tsx act() (lines 99-113: `setBusy(id); const result = await fn(); setBusy(null); ...`) has no try/finally, so `setBusy(null)` never runs: the Approve/Decline buttons for that row stay disabled on \"\u2026\" until a page reload, with an unhandled rejection. declinePhoto shows the intended pattern (findUnique \u2192 `if (!photo) return { error: \"Photo not found\" }`), approvePhoto just lacks it.",
+   "evidence": "Quoted above; adminRemovePhoto also races declinePhoto the same way but both of its Prisma calls follow a findUnique-null-check, leaving only the narrow window between check and update \u2014 approvePhoto has no check at all.",
+   "fixDirection": "In approvePhoto: findUnique first and return { error: \"Photo not found\" } on null, or wrap the update in try/catch mapping P2025 to that error. In content-list act(): wrap `await fn()` in try/finally (finally: setBusy(null)) and toast a generic failure on throw \u2014 this hardens every admin action routed through it, not just photos.",
+   "gateOrTest": "Unit test: approvePhoto on a nonexistent id resolves to { error } rather than rejecting.",
+   "reproPlan": "Live proof on production is safe-ish but needs two admin sessions racing; code-argument-only is sufficient \u2014 the throw path is unconditional for a deleted id.",
+   "taxonomyRows": [
+    "6i-two-surfaces-same-row",
+    "6a-missing-error-handling",
+    "6b-stuck-pending-state"
+   ]
+  },
+  {
+   "title": "deletePost deletes image bytes BEFORE the row delete, inverting the codebase's own stated ordering invariant: a failed row delete leaves a live post with permanently broken images",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/actions.ts:336",
+    "src/lib/account-purge.ts:80"
+   ],
+   "expected": "Per account-purge.ts:80-86's explicit rule \u2014 \"bytes are deleted only AFTER the row delete succeeds, because if the delete throws and rolls back, the member still exists and their images must keep rendering\" \u2014 the same holds for a single post.",
+   "actual": "feed/actions.ts:336-339: `// Delete image files\\n  await deletePostImages(post.images);\\n\\n  await prisma.post.delete({ where: { id: postId } });`. If prisma.post.delete throws (transient pgbouncer/DB failure, timeout), the R2 objects are already gone (delImage is not undoable) but the post survives: every reader sees the post with dead image URLs forever, and re-clicking delete is the author's only remedy (which does work \u2014 delImage is best-effort on missing objects \u2014 but nothing tells them to). The declinePhoto/adminRemovePhoto/purge paths all order row-first or row-in-transaction; deletePost is the outlier.",
+   "evidence": "Quoted above; deletePostImages (line 32-35) = `await Promise.all(parseImageUrls(images).map((img) => delImage(img)))` runs to completion before the row delete is attempted.",
+   "fixDirection": "Swap the order: delete the row first, then best-effort delImage the collected URLs (they were selected at line 317-320 before deletion, so nothing is lost). One-line move.",
+   "gateOrTest": "Unit test with a mocked prisma.post.delete that throws: assert delImage was NOT called.",
+   "reproPlan": "code-argument-only (forcing a DB failure mid-delete in production is not acceptable).",
+   "taxonomyRows": [
+    "6g-delete-path-ordering",
+    "6d-partial-write-crash"
+   ]
+  },
+  {
+   "title": "Photo.uploaderId and PhotoLove.photoId have no index: every /collection visit and every contribution runs sequential scans on the hot per-user queries",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "prisma/schema.prisma:176",
+    "src/app/(main)/collection/actions.ts:96",
+    "src/app/(main)/collection/actions.ts:492"
+   ],
+   "expected": "The queries the page runs on every load are index-backed (charter: @@index coverage vs actual query shapes).",
+   "actual": "Photo has only `@@index([approved, isHidden, createdAt])` and `@@index([era])` (schema.prisma:176-177); Postgres does not auto-index FK columns. But myPendingPhotos runs `where: { uploaderId, approved: false, isHidden: false }` on EVERY /collection page view (page.tsx:23-24), photoQuotaError runs `prisma.photo.count({ where: { uploaderId } })` on every contribution, and account purge/merge/export all filter by uploaderId \u2014 all sequential scans. PhotoLove has only `@@unique([userId, photoId])` (userId-prefixed), so `_count.loves` per photo and the loves-count sort resolve photoId lookups without an index. At the 2,000-user ceiling with a few thousand photos this is milliseconds \u2014 degradation, not breakage \u2014 but it is the one hot query shape with zero index support and costs two lines to fix.",
+   "evidence": "Quoted above from schema and actions.",
+   "fixDirection": "Add `@@index([uploaderId])` to Photo (or `[uploaderId, approved, isHidden]` to cover the pending query exactly) and `@@index([photoId])` to PhotoLove via the repo's manual-migration flow (prisma/migrations-manual/ + run-sql.mjs; never db push).",
+   "gateOrTest": "Schema review in the fix session; optionally EXPLAIN in Supabase console confirming index usage.",
+   "reproPlan": "Read-only EXPLAIN via Supabase dashboard if desired; code-argument-only otherwise.",
+   "taxonomyRows": [
+    "6j-index-coverage"
+   ]
+  },
+  {
+   "title": "Two small date traps: photoYear's max is frozen at module load in UTC (New-Year IST rejections of a valid year), and eraFromYear buckets any 2030+ year to \"unknown\"",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:188",
+    "src/lib/collection.ts:57",
+    "src/components/collection/contribute-dialog.tsx:39"
+   ],
+   "expected": "A year the contribute dialog offers is always accepted, and an exact year always maps to a real era bucket.",
+   "actual": "(1) validators.ts:184-189: `photoYear: z.number().int().min(1926, ...).max(new Date().getFullYear(), \"That year hasn't happened yet\")` \u2014 `new Date()` runs once at module initialization, in the server's UTC. The dialog's yearOptions() (contribute-dialog.tsx:39-47) computes currentYear() in the member's browser (IST). Every Jan 1 from 00:00 to 05:30 IST the browser offers the new year while the UTC server still rejects it; a warm serverless instance loaded before midnight keeps rejecting even longer. The member picking \"2027\" for a photo taken at the New Year gathering gets \"That year hasn't happened yet.\" (2) collection.ts:57-62: `eraFromYear` builds `\"${decade}s\"` and falls back: `return (ERA_VALUES as readonly string[]).includes(bucket) ? bucket : \"unknown\"` \u2014 ERA_VALUES ends at \"2020s\" (collection.ts:28-38), so from Jan 2030 every exact-year contribution silently files under era \"unknown\" (\"Undated\" in the filter) despite the member giving a precise year.",
+   "evidence": "Quoted above.",
+   "fixDirection": "(1) Make the max a per-parse check: `.superRefine` or `.max(...)` replaced with a refine comparing against `new Date().getFullYear() + 1` (accepting IST's next-day year costs nothing \u2014 the value is a memory of the past). (2) Either generate ERA buckets programmatically through the current decade, or have eraFromYear return the computed bucket and append unseen buckets to the filter options from live data (the area facet already uses the live-values pattern).",
+   "gateOrTest": "Unit tests: photoSchema accepts currentYear during a mocked Dec-31-UTC/Jan-1-IST boundary; eraFromYear(2031) !== \"unknown\" after the fix.",
+   "reproPlan": "code-argument-only (time-dependent).",
+   "taxonomyRows": [
+    "6h-ist-utc-date-shift",
+    "6a-module-scope-init-staleness",
+    "6h-boundary-values"
+   ]
+  },
+  {
+   "title": "Blank-MIME image files (a mobile-browser quirk the codebase itself documents and accommodates elsewhere) dead-end: the contribute dialog refuses them at pick time and the composer's presign path throws a misleading \"format isn't supported\" without trying the sniff-based fallback",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/collection/contribute-dialog.tsx:85",
+    "src/app/api/upload/presign/route.ts:75",
+    "src/lib/upload-client.ts:45",
+    "src/lib/image-downscale.ts:32"
+   ],
+   "expected": "A real JPG whose File.type arrives blank (the exact case image-downscale.ts:27-33 handles by extension: `if (file.type === \"\" && /\\.(jpe?g|png|webp)$/i.test(file.name)) return true;` and upload-shared.ts:32 acknowledges: \"`type` is occasionally blank for these on some mobile browsers\") still uploads \u2014 the server's magic-byte sniff, not the client MIME string, is the design's source of truth (M13).",
+   "actual": "Two dead ends: (1) ContributeDialog.pickFile line 85: `if (!f.type.startsWith(\"image/\")) { toast.error(\"Please choose an image\"); return; }` \u2014 a blank-type JPG cannot even be selected. (2) In the composer, handleImageFiles has no type gate, so the file reaches directUploadPut, which posts contentType \"\" to presign; presign/route.ts:75-86: `const ext = contentType ? EXT_BY_TYPE[contentType] : undefined; if (!ext) { return NextResponse.json({ error: \"That photo format isn't supported. Export it as JPG or PNG...\" }, { status: 400 }); }` \u2014 and upload-client.ts:45 treats every 400 as a definitive verdict: `if (status === 400 && presign.error) throw new Error(presign.error);`, so the /api/upload fallback \u2014 whose sniffImageType would have accepted the actual JPEG bytes \u2014 is never attempted. The member holds a valid photo and is told to export it as JPG.",
+   "evidence": "Quoted above.",
+   "fixDirection": "In both pickFile and presign, extend the type check with the extension fallback already written in isDownscalable (or better: infer contentType from extension client-side before presigning, e.g. map .jpg\u2192image/jpeg when file.type is empty). Alternatively have directUploadPut return null (fallback) rather than throw when the 400 stems from a blank/unknown contentType rather than a known-bad one.",
+   "gateOrTest": "Unit test: directUploadPut-equivalent logic with a File of type \"\" and name \"x.jpg\" reaches the fallback rather than throwing.",
+   "reproPlan": "Hard to reproduce without the affected mobile browser; code-argument-only, anchored on the repo's own comments asserting the case occurs in the wild.",
+   "taxonomyRows": [
+    "6h-input-six-value",
+    "6k-fallback-path-degradation"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "6g R2 1-write/sec-per-key: examined every key-generation site \u2014 /api/upload (`${createId()}.webp`), finalize (`${createId()}.webp`), presign (`${id}.${ext}` / `${id}-o.${ext}` from createId), contributePhoto (`${id}.webp`/`${id}-t.webp`), contributePhotoDirect (createId per object), collection-intake (createId per object), avatar (settings/actions.ts `${id}.webp`). Every object key is a fresh cuid2; no path ever rewrites an existing key, so the 1-write/sec limit is unreachable. CLEAN",
+  "6g presign expiry vs slow uploads: presign happens at submit time (directUploadPut is called with the file in hand) and R2 validates the signature at request start; 600s expiresIn is ample. CLEAN",
+  "6g content-type declared vs bytes uploaded: every server consumer of staged bytes re-verifies with magic-byte sniffImageType before sharp (finalize:104, contributePhotoDirect:329, contributePhoto:161, upload route:107, avatar:221); the presigned PUT also signs Content-Type so a mismatched header 403s. CLEAN",
+  "6g decompression bombs / malformed inputs: sharpImage is the single entry point with limitInputPixels=100MP, sequentialRead, failOn:'error'; zero-byte and truncated files fall to sniff-null or describeProcessingError with friendly copy. Guard present and consistent (duration at the 100MP extreme reported separately). CLEAN",
+  "6g EXIF-rotated portraits: .rotate() on every server encode; client paths bake orientation via createImageBitmap imageOrientation:'from-image' (crop dialog + downscaler); intake's width/height swap handles orientations 5-8. CLEAN",
+  "6g finalize with someone else's key: STAGING_KEY/COLLECTION_ORIGINAL_KEY shape regexes + keyBelongsTo(session user, purpose) on both finalize paths; keyForUrl refuses non-KNOWN_ROOTS and '..' segments; decideOwnedUploads enforces own-prefix + MAX_IMAGES at post-write time. CLEAN (matches the closed C2 audit)",
+  "6g delete ordering on decline/adminRemove/avatar/account-purge: declinePhoto and adminRemovePhoto fetch URLs first, delImage is best-effort-never-throws; purgeUserAccount collects URLs, deletes rows in one $transaction, then bytes (correct per its own invariant); avatar replaces new-put \u2192 row update \u2192 old delete. Only deletePost inverts the order (reported). Otherwise CLEAN",
+  "6c server-action auth/ownership: all seven collection actions re-check auth; admin actions check role; contribute paths stack IS_DEMO + requireVerifiedMember + rateLimit; loadPhotos/myPendingPhotos degrade to empty for no session. CLEAN",
+  "6c double-submit on contribute: the dialog's `submitting` flag disables the button, and a replayed contributePhotoDirect naturally fails (the staged key is deleted on success, so a duplicate row cannot be recorded). CLEAN (love button double-click reported separately)",
+  "6d pgbouncer/session features: no SET/advisory locks/LISTEN in the territory; the only $transaction (purge) is a short batch array, not interactive. CLEAN",
+  "6h caption/area/year/month six-value rule: Zod trims and caps (300/100), int+range on year/month, 'A month needs a year' refine, era enum-gated, client mirrors the caps. CLEAN except the two date traps reported",
+  "6j grid query vs indexes: the hot gallery query (approved+isHidden filter, createdAt order) exactly matches @@index([approved,isHidden,createdAt]); era filter has @@index([era]); groupBy(area) and count are bounded by collection size, fine at 2k users. CLEAN (uploaderId/photoId FK indexes reported as the one gap)",
+  "6j fanout/N+1: no per-user loops; includeFor batches loves/_count per query; intake copies at most 3 images with bounded Promise.all. CLEAN",
+  "6k R2 down mid-request: putImage failures surface through describeProcessingError with a friendly sentence; delImage/delImageByKey swallow by design with the rationale documented. CLEAN",
+  "quota TOCTOU on MAX_PHOTOS_PER_ACCOUNT: concurrent contributions can exceed 1000 by the concurrency width; examined and deemed immaterial at that ceiling. CLEAN",
+  "collection-intake after() path: errors caught per-image and logged, post deletion racing the copy degrades gracefully (getImageBuffer throws \u2192 caught \u2192 skipped); independent byte copies deliberately avoid the aliased-delete trap. CLEAN"
+ ],
+ "coverageNotes": "Read in full: docs/spec/media.md; all 15 named territory files (collection actions 600L, storage 271L, intake, facets, collection.ts, image.ts, image-downscale, upload-client, upload-shared, upload-ownership + rule, all three /api/upload routes); all four src/components/collection/* components; avatar-crop-dialog.tsx; collection page.tsx, [id]/page.tsx, loading.tsx. Read the surrounding pipeline where the charter's questions pointed: settings/actions.ts updateAvatar/removeAvatar (audited in its uncommitted state), feed/actions.ts createPost/editPost/deletePost/toggleLike image handling and the after() intake call, account-purge.ts, content-view.ts, admin content page + content-list, admin-worklist-query photo section, account export route photo query, love-button.tsx, attach-image-dialog.tsx, next.config.ts serverActions block, vercel.json crons, Photo/PhotoLove schema, photoSchema validator, rate-limit 'uploads' allowance, bugs.md open items (no overlap with my findings). Consciously skipped: ImageViewer and the shared filter-kit internals (shared-component territory; used here only as consumers), generated Prisma client, demo-seed (separate deployment), rate-limit.ts internals beyond the uploads config (uncommitted WIP, likely another investigator's core file), member-gate internals (auth territory), and deep verification of revalidatePath-inside-after() semantics (impact limited to rail staleness either way). Deliberately not reported per brief: the tracked stale collection landing screenshot; security-audit-covered authz/XSS/traversal items (spot-checked the C2 ownership chain anyway); minor concurrent-avatar-replace object orphan (bounded, best-effort by design); myPendingPhotos unbounded findMany (capped at 1000 by quota); togglePhotoLove missing revalidatePath (optimistic UI covers it); admin 'show removed' rendering dead thumbUrls for byte-deleted hidden photos (deliberate M11 tradeoff, cosmetic)."
+}
