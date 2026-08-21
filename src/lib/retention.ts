@@ -17,6 +17,9 @@ import { purgeUserAccount, drainPendingImagePurges, DELETION_GRACE_DAYS } from "
  */
 
 const DAY_MS = 86_400_000;
+
+/** Accounts purged per nightly pass. See the comment at its use site. */
+const PURGE_BATCH = 10;
 const cutoff = (days: number) => new Date(Date.now() - days * DAY_MS);
 
 /** Owner's schedule. Days, not "2y", so the cutoff arithmetic stays exact. */
@@ -121,6 +124,16 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     const rows = await prisma.user.findMany({
       where: { deletionRequestedAt: { lt: cutoff(DELETION_GRACE_DAYS) } },
       select: { id: true, name: true, email: true, deletionRequestedAt: true },
+      orderBy: { deletionRequestedAt: "asc" },
+      // Capped, because this is the one step whose cost is unbounded: each
+      // purge is its own transaction with a 30s ceiling, run one at a time, all
+      // inside a single serverless invocation that has a platform duration
+      // limit. Uncapped, a night with a dozen due accounts gets killed
+      // mid-loop and the GitHub Actions job fails loudly for something that is
+      // working. Oldest first, and the remainder rolls to tomorrow BY DESIGN --
+      // the sweep is idempotent, so a backlog drains a batch a night rather
+      // than taking the whole run down with it (bug audit, Low 64).
+      take: PURGE_BATCH,
     });
     for (const row of rows) {
       const purged = await purgeUserAccount(row.id);
@@ -143,7 +156,10 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     }
     return rows.length;
   });
-  void due;
+  // A full batch means there is more waiting; the next sweep takes the rest.
+  if (due >= PURGE_BATCH) {
+    console.info(`[retention] purge batch full (${due}); more accounts are due tomorrow`);
+  }
 
   /* Anything an earlier purge could not remove from R2 (a bad minute, a
      timeout, a crash between the row delete and the object delete) waits in
