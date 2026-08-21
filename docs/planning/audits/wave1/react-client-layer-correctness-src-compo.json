@@ -1,0 +1,305 @@
+{
+ "territory": "React client-layer correctness: src/components/** and page-level client components \u2014 effects/cleanup, async cancellation, optimistic UI, forms and double-submit, list keys, hydration/date rendering, list scale, image handling (taxonomy 6b in full, plus the client half of 6c races and 6k failure modes)",
+ "findings": [
+  {
+   "title": "Deleting or editing a post never updates the on-screen list: the deleted card stays, the edited card shows the old text, on every surface that renders PostCard",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/post-card.tsx:147",
+    "src/components/posts/post-card.tsx:463",
+    "src/components/posts/edit-post-dialog.tsx:46",
+    "src/components/posts/post-feed.tsx:114",
+    "src/components/posts/feed-column.tsx:43",
+    "src/app/(main)/feed/actions.ts:340",
+    "src/app/(main)/feed/actions.ts:457"
+   ],
+   "expected": "After 'Delete this post? This cannot be undone.' is confirmed and the server succeeds, the card disappears. After 'Save' in the edit dialog, the card shows the new text.",
+   "actual": "Nothing visible happens. Every surface that renders PostCard (main feed, group feed, profile Posts/Letters tabs, Saved) holds its posts in client useState populated by the loadPosts/loadSavedPosts server actions. revalidatePath('/feed') in deletePost/editPost only re-renders the server component tree; the client `posts` state persists, so the deleted post remains on screen (clicking delete again errors) and the edited card keeps the pre-edit content until the member navigates away and back.",
+   "evidence": "post-card.tsx handleDelete does nothing locally on success: `const result = await deletePost(post.id); if (result.error) toast.error(result.error);` \u2014 no setRemoved, no callback, no router.refresh. Contrast the ADMIN path four lines below, which the author knew needed it: `async function handleModerationConfirm(note) { const result = await adminRemovePost(...); if (!result.error) setRemoved(true); }` with the comment 'Removed optimistically ... rather than waiting on the revalidatePath round trip.' EditPostDialog on success only does `toast.success(...); onClose();` \u2014 PostCard renders `post.content` from props, which never change. The lists are client state: post-feed.tsx `const [posts, setPosts] = useState<PostData[]>([]);` filled by `fetchPosts(null).then((data) => { setPosts(data.posts); ... })`; only creation refreshes it (feed-column.tsx `onPosted={() => setReloadKey((k) => k + 1)}` \u2014 there is no onDeleted/onEdited equivalent, confirmed by grep: reloadKey's only bump site is onPosted). deletePost's revalidatePath (actions.ts:340) cannot reach this state.",
+   "fixDirection": "Mirror the existing patterns: give PostCard an internal `setRemoved(true)` on successful member delete (exactly like handleModerationConfirm), and have EditPostDialog return the saved content/title to PostCard via an onSaved callback that PostCard mirrors into local state (add `const [content, setContent] = useState(post.content)` or an override state). Alternatively bump FeedColumn's reloadKey via an onChanged callback threaded down, but the local-state fix avoids a refetch and matches the admin path.",
+   "gateOrTest": "Playwright spec: create a post, delete it, expect.poll the card count to drop without navigation; edit a post, assert the card text updates. Pin in e2e/ next to sidebar.spec.ts.",
+   "reproPlan": "Live proof possible but writes to the shared production DB \u2014 use the demo deployment or code-argument-only. In demo: post, delete, observe the card persist until reload.",
+   "taxonomyRows": [
+    "6c-revalidate-vs-client-state",
+    "6b-optimistic-destructive"
+   ]
+  },
+  {
+   "title": "A fresh letter (and any long feed post) has zero draft persistence: tab close, back-navigation, crash, or a failed submit silently loses everything written",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/create-post-form.tsx:209",
+    "src/components/letters/letter-desk.tsx:41",
+    "src/components/posts/create-post-form.tsx:548"
+   ],
+   "expected": "The 6k question answered concretely: a session expiry or misnav mid-letter should not lose the draft \u2014 either a beforeunload/unsaved-changes guard, localStorage mirroring, or autosave from the first keystroke.",
+   "actual": "Autosave exists ONLY for resumed drafts: `useEffect(() => { if (!postId) return; ...`. /letters/new mounts CreatePostForm without postId (letter-desk.tsx passes it only on /letters/[id]/edit), so nothing is saved until the writer manually clicks 'Save as draft'. There is no beforeunload handler and no localStorage draft anywhere in src (grep for beforeunload/localStorage confirms: only tour/onboarding/celebration/theme keys exist). The 'All letters' back link in letter-desk.tsx is a plain <Link> with no unsaved-changes check. The feed composer is the same: content lives only in component state and an uncontrolled contentEditable. If createPost/publishDraft rejects (network drop, session revoked in another tab), handleSubmit has no try/catch, so the button also wedges (see the systemic finding) and the only recovery is a reload that erases the text.",
+   "evidence": "create-post-form.tsx:202-211: '/* Quiet autosave, resumed drafts only (a fresh letter has no row to update until the first explicit \"Save as draft\") */ ... useEffect(() => { if (!postId) return;'. letter-desk.tsx:41-50: `<Link href=\"/letters\" ...>All letters</Link>` \u2014 no guard. Grep across src: zero `beforeunload` listeners; localStorage usage is only tour-local.ts, onboarding-local.ts, one-shot.ts, theme.",
+   "fixDirection": "Two cheap layers: (1) a beforeunload listener while `content.trim() && !submitting` in CreatePostForm (letter mode at minimum); (2) mirror the fresh-letter title/content into localStorage keyed by user id, offered back on next /letters/new mount ('Pick up where you left off?'), cleared on publish/save. Optionally create the draft row on first blur so the existing autosave takes over.",
+   "gateOrTest": "Unit test the localStorage mirror round-trip; Playwright: type into /letters/new, reload, assert the restore offer appears.",
+   "reproPlan": "Read-only live proof: type into /letters/new on the demo deployment, press the browser back button, return \u2014 the text is gone, no warning shown.",
+   "taxonomyRows": [
+    "6k-session-expiry-mid-form",
+    "6b-forms-unsaved-changes"
+   ]
+  },
+  {
+   "title": "Systemic: no client component handles a rejected server action \u2014 one network blip, deploy version-skew, or auth redirect leaves buttons wedged in their busy state, skeletons eternal, and optimistic state lying",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/post-feed.tsx:118",
+    "src/components/posts/comments-section.tsx:161",
+    "src/components/posts/comments-section.tsx:191",
+    "src/components/posts/poll-display.tsx:103",
+    "src/components/messages/message-composer.tsx:88",
+    "src/components/posts/create-post-form.tsx:497",
+    "src/components/catchups/answer/answer-experience.tsx:93",
+    "src/components/directory/directory-client.tsx:136",
+    "src/components/collection/collection-client.tsx:151",
+    "src/components/layout/notification-bell.tsx:140",
+    "src/components/profile/letterhead-profile.tsx:355"
+   ],
+   "expected": "A server action call can REJECT (it does not return {error}) on: network failure, 'Failed to find Server Action' version skew right after a deploy, and the proxy redirecting an expired/revoked session to /login. Each await site needs try/catch (or .catch) that resets its pending flag, reverts optimistic state, and tells the member something actionable \u2014 the standard the codebase itself sets in edit-post-dialog.tsx (try/finally), contribute-dialog.tsx (catch with a worded toast), avatar-crop-dialog.tsx, signup-form.tsx, and pen.tsx's useAutoSave ('That did not save. Check your connection.').",
+   "actual": "Almost every other await-an-action site assumes resolution. Consequences by class: (a) ETERNAL LOADING \u2014 post-feed.tsx initial load `fetchPosts(null).then((data) => {...})` has no .catch, so a rejection leaves `loading` true forever: the app's main page shows skeletons with no retry path. Same shape in comments-section initial load, saved-posts-feed, profile-author-feed, collection-client. (b) WEDGED CONTROLS \u2014 comments-section handleSubmit: `setSubmitting(true); ... await createComment(formData); ... setSubmitting(false)` with no try: a throw leaves submitting true and the comment box disabled forever; identical pattern wedges poll-display (whole poll disabled), message-composer Send, create-post-form Post/Save-as-draft (stranding the typed letter), notification-bell load-more (loadingMoreRef stuck true kills infinite scroll), comments-section IO callback (same ref), directory/collection/people-list Load more, people-panel keeper/remove/add, extend-deadline-card, console-collecting submit, accept-invite, publish-now-button, keeper-settings, letterhead-profile uploadAvatarBlob/handlePhotoRemove (photoBusy stuck). (c) LYING OPTIMISTIC STATE \u2014 post-card handleLike/handleBookmark, entry-love-button, photo-love-button, letter-engagement only revert when the action RESOLVES with {error}; on rejection the heart/ribbon stays flipped though the server never wrote it, until reload.",
+   "evidence": "Representative quotes. post-feed.tsx:118 `fetchPosts(null).then((data) => { if (cancelled) return; setPosts(data.posts); ... setLoading(false); });` \u2014 no .catch on the promise chain, setLoading(false) unreachable on rejection. comments-section.tsx:184-206 `setSubmitting(true); ... const result = await createComment(formData); if (result.error) {...} else {...} setSubmitting(false);` \u2014 no try/finally. poll-display.tsx:103-111 same. notification-bell.tsx:149-157 `loadingMoreRef.current = true; const data = await getNotifications({cursor}); ... loadingMoreRef.current = false;`. love callers: entry-love-button.tsx:34 `const result = await toggleEntryLove(entryId); if (result && \"error\" in result ...) { revert }` \u2014 a rejection skips the revert entirely. The correct in-repo counter-pattern proves feasibility: edit-post-dialog.tsx:49-59 wraps in try/finally; pen.tsx:354-359 `try { const result = await fn(); ... } catch { failed = \"That did not save. Check your connection.\"; }`.",
+   "fixDirection": "Introduce one helper (e.g. `callAction(fn): Promise<{error?...}>` that catches rejection into `{ error: 'That did not go through. Check your connection.' }`) and route every client await-an-action through it; convert each setBusy pair to try/finally. Priority order: post-feed initial load and load-more, comments-section (all three sites), create-post-form handleSubmit, poll-display, message-composer, the four love/bookmark callers (revert in catch), notification-bell, directory/collection load-more, letterhead avatar paths, catchups controls.",
+   "gateOrTest": "Unit-test the helper; add one Playwright spec that blocks the action route (route.abort) and asserts the comment button re-enables with an error toast instead of wedging.",
+   "reproPlan": "Read-only live proof on any account: chrome-devtools emulate offline, click Load more on the feed \u2014 the button sticks at 'Loading...' forever and the console shows an unhandled rejection; go offline and submit a comment \u2014 composer wedges.",
+   "taxonomyRows": [
+    "6a-unhandled-promise-rejection",
+    "6k-db-down-mid-request",
+    "6b-optimistic-no-revert",
+    "6a-errors-then-invalid-state"
+   ]
+  },
+  {
+   "title": "Composer Post/Save buttons stay enabled while photo uploads are in flight: the post publishes without its photos, and the late uploads then attach themselves to the emptied composer",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/create-post-form.tsx:1087",
+    "src/components/posts/create-post-form.tsx:1059",
+    "src/components/posts/create-post-form.tsx:453",
+    "src/components/posts/create-post-form.tsx:473"
+   ],
+   "expected": "While `uploading` is true, Post and Save-as-draft are disabled (or the submit waits for the batch), so what the member attached is what publishes. message-composer.tsx gets this right: `const busy = sending || uploading; const canSend = body.trim().length > 0 && !busy;`.",
+   "actual": "On a slow connection a member attaches photos (spinner on the photo icon), types, and hits Post before the batch finishes: the post is created from the current `images` state \u2014 without the in-flight photos. When handleImageFiles later completes, it appends the uploaded URLs to the now-cleared arrays, so thumbnails reappear inside the empty, collapsed composer; the next post the member writes silently carries the previous post's photos. The uploaded R2 objects are orphaned if they never post.",
+   "evidence": "create-post-form.tsx:1087 `disabled={!content.trim() || submitting || savingDraft}` and :1059 the same for Save as draft \u2014 `uploading` absent from both, while it IS used to disable only the photo button itself (:832 `disabled: images.length >= 3 || uploading`). handleImageFiles is async and finishes with `setImages((prev) => [...prev, ...uploadedUrls]); setPreviews((prev) => [...prev, ...uploadedPreviews]);` (473-475) \u2014 functional updates that append to whatever the arrays hold at completion, including the `[]` a successful handleSubmit just set (564-570).",
+   "fixDirection": "Add `uploading` to both disabled conditions (label the button 'Uploading photo...' while so), and/or stamp a batch id when uploads start and drop the results if the composer was cleared meanwhile.",
+   "gateOrTest": "Unit-testable if the upload helper is injectable; otherwise Playwright with a throttled route: attach, submit immediately, assert the created post contains the image or the button was disabled.",
+   "reproPlan": "Requires a write \u2014 demo deployment: throttle to Slow 3G in chrome-devtools, attach a 5MB photo, type, press Post immediately; observe the post arrive without the photo and the thumbnail materialise in the empty composer.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6g-orphaned-objects",
+    "6a-missing-state-guard"
+   ]
+  },
+  {
+   "title": "Double-tapping a heart (Instagram instinct) races an unguarded check-then-act toggle: unhandled P2002/P2025 rejection, heart desynced from the database until reload",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/common/love-button.tsx:73",
+    "src/components/posts/post-card.tsx:134",
+    "src/app/(main)/feed/actions.ts:477",
+    "prisma/schema.prisma:465"
+   ],
+   "expected": "Either the client serialises toggles per target (ignore clicks while one is in flight), or the server handles the P2002 (concurrent double-create) and P2025 (concurrent double-delete) that its own check-then-act shape makes inevitable, returning a coherent final state.",
+   "actual": "LoveButton fires onToggle on every click with no in-flight guard. Two rapid taps issue two concurrent toggleLike calls; both read `existing` before either writes (actions.ts:477 findUnique then create/delete with no transaction and no P2002/P2025 catch). The Like @@unique([userId,postId]) protects the DB, but the losing create/delete THROWS, the client has no catch (systemic finding), and PostCard's revert is additionally built on a stale snapshot \u2014 `setLiked(liked); setLikeCount(likeCount)` from the click-time closure (post-card.tsx:141-143) \u2014 so with two toggles in flight an error revert clobbers the newer state. Net: heart and count disagree with the server until reload, plus a Sentry exception per double-tap that races. Same shape in toggleCommentLike and the comment hearts.",
+   "evidence": "love-button.tsx handleClick: no disabled/pending state, calls `onToggle()` unconditionally. post-card.tsx:134-145: `const next = !liked; setLiked(next); setLikeCount(next ? likeCount + 1 : likeCount - 1); ... if (result.error) { setLiked(liked); setLikeCount(likeCount); }` \u2014 closure snapshot, not functional updates (entry-love-button/photo-love-button/letter-engagement use functional updates, correctly). actions.ts:477-489: `const existing = await prisma.like.findUnique(...); if (existing) { await prisma.like.delete(...) } else { await prisma.like.create(...) }` \u2014 no try, no upsert. schema.prisma:465 `@@unique([userId, postId])` makes the concurrent second create throw P2002.",
+   "fixDirection": "Client: track an in-flight ref per LoveButton caller and drop clicks while pending (still feels instant \u2014 the optimistic flip already happened), and use functional-update reverts in post-card. Server: wrap create in a try that treats P2002 as 'already liked' and delete P2025 as 'already unliked', returning the settled state.",
+   "gateOrTest": "Unit test on the server action with two interleaved calls (or a targeted test of the P2002 handler); the client guard is a cheap unit test on a wrapper hook if extracted.",
+   "reproPlan": "Requires writes \u2014 demo deployment: chrome-devtools evaluate_script dispatching two immediate clicks on a heart with network throttled; observe one rejected action in the network log and the heart state diverging from a fresh reload.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6d-check-then-insert-toctou",
+    "6a-stale-closure"
+   ]
+  },
+  {
+   "title": "The notification badge can never rise during a session: no poll, no resync, and the 'new notification' shake is unreachable code",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/layout/notification-bell.tsx:98",
+    "src/components/layout/notification-bell.tsx:109",
+    "src/components/layout/notification-bell.tsx:166",
+    "src/components/layout/sidebar.tsx:740"
+   ],
+   "expected": "A member who keeps the app open (the feed is designed to be sat on) learns of new likes/comments/catchup events: the badge climbs and the bell plays its one decaying shake \u2014 which is exactly what the shake effect's comment says it is for ('one gentle decaying shake per new notification').",
+   "actual": "`unreadCount` is `useState(initialUnreadCount)` \u2014 the prop is read once at mount and every later prop value is ignored. The only setters are the decrement on read (:166 `Math.max(0, c - 1)`) and zero on mark-all (:177). Nothing polls; handleOpen refetches the LIST but never the count. The sidebar bell mounts from the (main) layout, which persists across all soft navigations, so on mobile the badge shows the count from first page-load for the whole session. The header bell remounts only when the member navigates onto a page that passes unreadCount (the feed). The shake effect (:109-115, `if (unreadCount > prevUnread.current) setShakeKey(...)`) requires a rise no code path can produce \u2014 dead feature. Not the tracked bugs.md item 5 (that is about the bell being ABSENT from some page headers).",
+   "evidence": "Grep across src confirms the only setUnreadCount call sites are notification-bell.tsx:166 and :177, both decrements; initialUnreadCount flows from layout.tsx:35 / feed/page.tsx:34 into `useState(initialUnreadCount)` (:98) with no sync effect. No setInterval/poll exists in the file (verified in the timer sweep).",
+   "fixDirection": "Cheapest honest fix: have getNotifications also return the server's unread count and sync it in handleOpen; plus sync state when the prop changes (the adjust-state-during-render pattern already used in post-feed/image-viewer), so any router.refresh caused by other actions updates the badge. A slow interval poll (60-120s) would make the shake real; decide with the owner.",
+   "gateOrTest": "Unit test the reducer-ish sync (prop change updates state); or a Playwright two-context test: like a post from account B, refresh-free assert on account A after an action-triggered refresh.",
+   "reproPlan": "Live read-only-ish: sign in on two demo accounts; from B like A's post; observe A's badge never change despite navigation and actions.",
+   "taxonomyRows": [
+    "6a-boolean-inversions",
+    "6e-token-denormalized-stale",
+    "6b-props-ignored-by-state"
+   ]
+  },
+  {
+   "title": "'Load more' in flight across a filter change appends the old query's page to the new list, adopts the old cursor, and (feed/collection) can duplicate React keys",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/post-feed.tsx:152",
+    "src/components/collection/collection-client.tsx:163",
+    "src/components/directory/directory-client.tsx:133"
+   ],
+   "expected": "A page arriving for a superseded query is dropped, the way the same files' FIRST-page effects already do with their `cancelled` flags, and appended pages are deduped by id the way comments-section.mergeComments and notification-bell already do.",
+   "actual": "post-feed handleLoadMore: `const data = await fetchPosts(cursor); setPosts((prev) => [...prev, ...data.posts]); setCursor(data.nextCursor);` \u2014 no staleness token and no dedupe. Click Load more, then type a search or flip a filter while it flies: the filter effect replaces posts with the new query's page 1, then the old request lands and appends the OLD query's page 2 (possibly containing posts already present \u2192 duplicate `key={post.id}` \u2192 React key errors and auto-animate glitches), and the cursor now continues the OLD query for subsequent pages. collection-client is the same, plus offset pagination (`page: next`), so even without a filter change a photo approved between clicks shifts pages and duplicates a tile \u2014 and it has no dedupe either. directory-client dedupes ids but still adopts the stale cursor and mixes filtered sets.",
+   "evidence": "post-feed.tsx:152-159 quoted above; contrast :114-141 where the first-page effect carries `let cancelled = false; ... return () => { cancelled = true; }`. collection-client.tsx:163-172 `const data = await fetchPage(next); setPhotos((prev) => [...prev, ...data.photos]);` with fetchPage keyed on `page: p` (offset). directory-client.tsx:150-155 dedupes (`const seen = new Set(prev.map((u) => u.id))`) but `setCursor(data.nextCursor)` still lands after the filter-change resync.",
+   "fixDirection": "Give each list a monotonically bumped request/filter generation (the useUserSearch requestId pattern already in-repo); capture it before the await and discard results if it moved. Dedupe appended pages by id everywhere (lift mergeComments' pattern). Collection should also move to keyset (createdAt/id cursor) like the feed, but the client-side generation guard alone kills the mixed-list bug.",
+   "gateOrTest": "Component-level test with a deferred mock action: resolve the load-more after a filter change and assert the list contains only new-filter items.",
+   "reproPlan": "Read-only live proof: throttle network, click Load more on the feed, immediately type in search; observe old-filter posts appended below new results and a duplicate-key warning in the console.",
+   "taxonomyRows": [
+    "6b-out-of-order-responses",
+    "6h-pagination-concurrent-insert",
+    "6c-race-lost-update"
+   ]
+  },
+  {
+   "title": "Server-rendered calendar dates format in UTC with an unpinned locale: IST members see yesterday's date on anything from 00:00-05:30 IST, and SSR'd client components hydrate to a different string (hydration failure)",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/utils.ts:151",
+    "src/lib/utils.ts:21",
+    "src/app/(main)/letters/page.tsx:163",
+    "src/app/(main)/letters/[id]/page.tsx:188",
+    "src/app/(main)/collection/[id]/page.tsx:145",
+    "src/components/catchups/home/extend-deadline-card.tsx:48",
+    "src/components/catchups/home/archive-shelf.tsx:21",
+    "src/components/catchups/home/console-published.tsx:32",
+    "src/components/letters/drafts-strip.tsx:97",
+    "src/components/catchups/round/masthead.tsx:50"
+   ],
+   "expected": "Members are in IST (+5:30); servers run UTC. Every absolute date shown should be computed for Asia/Kolkata (the repo already knows this: wordle.ts pins `timeZone: \"Asia/Kolkata\"`), and any client component whose date string can differ between server and client render must guard it the way verify-email-banner.tsx does (its comment records the identical hydration crash 'caught live, 2026-08-13' and fixes it with useSyncExternalStore).",
+   "actual": "formatDisplayDate (`toLocaleDateString(\"en-GB\", {day, month, year})` \u2014 no timeZone) and formatTimeAgo's >4-week branch (en-IN, no timeZone) render the UTC day. Two symptom classes. (a) Pure server components \u2014 letters index and reading page, collection permalink, catchups masthead/footer-tease/fresh-off-the-press, admin support/catchups \u2014 show a letter published at 00:30 IST on the 22nd as '21 Aug 2026' to everyone, permanently. (b) 'use client' components SSR'd with real props \u2014 archive-shelf, console-published, extend-deadline-card (locale `undefined` = server ICU vs browser), drafts-strip \u2014 produce a server string that differs from the client's re-render whenever the UTC and IST day (or server/browser locale format) differ: React 19 logs a hydration failure and re-renders the tree client-side (Sentry noise, animation replays), then shows the IST-correct date the server page never shows. formatTimeAgo in any SSR'd client tree (conversation.tsx inside the admin thread-view) adds occasional boundary mismatches ('just now' vs '1m ago').",
+   "evidence": "utils.ts:151-157: `return new Date(date).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"short\", year: \"numeric\" })` \u2014 no timeZone option, so the server formats in UTC. extend-deadline-card.tsx:48 `at.toLocaleDateString(undefined, { weekday: \"long\", ... })` \u2014 locale AND zone unpinned in a component that SSRs (it is rendered with server-passed props inside catchup-home-shell). The proven-in-repo trap: verify-email-banner.tsx:113-120 'SSR said \"5:30 am\" where a 24-hour browser said \"5:30\", and React threw a hydration mismatch over the difference (caught live, 2026-08-13)'. The proven-in-repo fix for zone: wordle.ts:20 `toLocaleDateString(\"en-CA\", { timeZone: \"Asia/Kolkata\" })`.",
+   "fixDirection": "Add `timeZone: \"Asia/Kolkata\"` (and pin locales) inside formatDisplayDate and formatTimeAgo's date branch \u2014 one change fixes both symptom classes at every call site, and is correct for this audience per the wordle precedent. Sweep the remaining raw toLocaleDateString sites (archive-shelf, console-published, extend-deadline-card, drafts-strip, masthead, footer-tease, fresh-off-the-press, collection/[id], admin pages) onto the shared helpers.",
+   "gateOrTest": "Unit test formatDisplayDate with 2026-08-21T20:00:00Z asserting '22 Aug 2026'; visual suite would catch any format wobble across routes.",
+   "reproPlan": "Code-argument-only for the day-shift (needs a row timestamped 18:30-24:00 UTC); the hydration half is live-provable read-only: load /catchups as a keeper whose deadline crosses the boundary and read the hydration error in the console.",
+   "taxonomyRows": [
+    "6h-ist-utc-day-boundary",
+    "6b-hydration-date-locale"
+   ]
+  },
+  {
+   "title": "Catch-up question reorder/remove is stale-props read-modify-write with no pending guard: quick successive clicks undo themselves or land out of order",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/catchups/home/console-collecting.tsx:236",
+    "src/components/catchups/home/console-collecting.tsx:227"
+   ],
+   "expected": "A Keeper can click 'Move up' twice to move a question two slots; each click builds on the order the previous click produced, or the controls disable while a move is in flight.",
+   "actual": "handleMove swaps within `accepted` \u2014 a prop that only updates after onChanged() \u2192 router.refresh() completes a full roundtrip. A second click before the refresh recomputes from the ORIGINAL order: swapping the same pair again sends the original arrangement back to the server, so double-click-to-move-two-slots nets zero movement; and the two curatePrompt calls can also complete out of order server-side, letting the older order win. No busy state disables the arrows or the remove X (double-click remove fires a second call that errors).",
+   "evidence": "console-collecting.tsx:236-251: `const reordered = [...accepted]; [reordered[index], reordered[target]] = [reordered[target], reordered[index]]; const result = await curatePrompt({ action: \"reorder\", ..., orderedPromptIds: reordered.map((p) => p.id) }); ... onChanged();` \u2014 `accepted` comes from `edition.prompts` props (line 48), refreshed only by router.refresh; no useState mirror, no disabled flag on the arrow buttons (272-289) beyond boundary checks.",
+   "fixDirection": "Keep an optimistic local ordering in state (seeded from props, resynced on prop change) so consecutive clicks compound, and disable the row's controls while a curatePrompt is in flight; send the full ordered list (already the API shape) so the last write is self-consistent.",
+   "gateOrTest": "Component test: two rapid handleMove calls with a mocked slow action; assert the second payload reflects the first move.",
+   "reproPlan": "Requires writes \u2014 demo deployment: as Keeper with 4+ questions, double-click Move up on the last question with throttled network; observe it end where it started.",
+   "taxonomyRows": [
+    "6c-race-lost-update",
+    "6c-race-double-submit"
+   ]
+  },
+  {
+   "title": "Letter autosave failure is silent and the desk shows 'Saving...' forever: a writer signed out in another tab keeps writing an hour of letter that is never being saved",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/create-post-form.tsx:218",
+    "src/components/letters/letter-desk.tsx:54",
+    "src/components/posts/create-post-form.tsx:117"
+   ],
+   "expected": "Autosave failure surfaces: the status flips to an error state that persists ('Not saved \u2014 check your connection'), the way pen.tsx's useAutoSave does for profile fields ('An error stays put. It is the one state that must not time itself out, because the value on screen is not the value on file').",
+   "actual": "The autosave timer runs `const result = await editPost(postId, fd); if (!result.error) onAutosaveState?.(\"saved\");` \u2014 on an {error} result NOTHING is emitted, so the desk's status line (letter-desk.tsx:55) stays on whatever it last said ('Saving...' indefinitely, or a stale 'Saved' from the previous success); on a thrown rejection it is an unhandled rejection with the same stuck display. The onAutosaveState contract itself is `(s: \"saving\" | \"saved\")` \u2014 an error state is unrepresentable. A member whose session was revoked (password reset elsewhere bumps credentialVersion, ending every live session by design) gets a refusal from editPost every 2.5s-idle and no signal; their letter survives only as DOM state.",
+   "evidence": "create-post-form.tsx:218-227 quoted above; :117 `onAutosaveState?: (s: \"saving\" | \"saved\") => void;`. letter-desk.tsx:54-56 `{saveState === \"saving\" ? \"Saving...\" : saveState === \"saved\" ? \"Saved\" : \"\"}`. Contrast pen.tsx:331 `export type SaveState = \"idle\" | \"saving\" | \"saved\" | \"error\";` with catch at :357.",
+   "fixDirection": "Widen the contract to include \"error\" (message optional), emit it on {error} and in a catch around the editPost await, and render it persistently in letter-desk; on auth-flavoured errors offer the sign-in link. Pair naturally with finding 2's localStorage mirror.",
+   "gateOrTest": "Component test: mock editPost returning {error}, assert onAutosaveState('error'); letter-desk snapshot for the error line.",
+   "reproPlan": "Live provable on demo: open /letters/[id]/edit, sign out in a second tab, type; watch 'Saving...' persist with failed actions in the network panel.",
+   "taxonomyRows": [
+    "6k-session-expiry-mid-form",
+    "6a-swallowed-errors",
+    "6a-errors-then-invalid-state"
+   ]
+  },
+  {
+   "title": "Profile field save error cannot be retried by re-blurring: the 'already saved' guard is stamped before the save succeeds",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/profile/letterhead-profile.tsx:392",
+    "src/components/profile/pen.tsx:362"
+   ],
+   "expected": "After 'That did not save. Check your connection.' the natural retry \u2014 click into the field, blur again \u2014 re-attempts the save.",
+   "actual": "commitField writes the dedupe ref optimistically: `if (saved.current[key] === value) return; saved.current[key] = value; void run(...)` \u2014 the ref is updated BEFORE the action runs, so after a failure every subsequent blur with the same (still-unsaved) text short-circuits on the first line. The persistent error banner (whose own comment says 'the value on screen is not the value on file') is then unfixable except by changing the text to something different, or editing away and back. Same pattern risk applies to any field the member retypes identically.",
+   "evidence": "letterhead-profile.tsx:392-401 quoted above; pen.tsx:362-367 shows the error state is designed to demand a retry ('must not time itself out').",
+   "fixDirection": "Move `saved.current[key] = value` into the success path of the run callback (set it after `!result.error`), or clear the key in the failure path; run() already reports which.",
+   "gateOrTest": "Component/unit test: mock updateProfileField to fail once then succeed; assert the second blur fires the action.",
+   "reproPlan": "Live on demo: edit About on your own profile, go offline, blur (error appears), go online, blur again \u2014 nothing is sent (network panel shows no second call).",
+   "taxonomyRows": [
+    "6a-errors-then-invalid-state",
+    "6b-optimistic-no-revert"
+   ]
+  },
+  {
+   "title": "Mention dropdown shows the previous query's stale results while a new mention query loads",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/mention-dropdown.tsx:31",
+    "src/components/posts/mention-dropdown.tsx:60"
+   ],
+   "expected": "Starting a new @mention shows a fresh 'Searching...' (or nothing) rather than the candidate list from the last mention typed minutes ago.",
+   "actual": "`users` is never cleared: the effect early-returns when the query empties (`if (trimmedQuery.length < 1) return;`) and never resets state when the query changes. `visibleUsers = trimmedQuery.length > 0 ? users : []` means the instant a member types '@j' after an earlier '@san' search, the dropdown renders the 'san' candidates for the 200ms debounce plus the fetch, clickable, and `loading && users.length === 0` prevents the 'Searching...' row from replacing them. Clicking is not data-corrupting (you insert who you clicked) but the wrong people flash and can be mis-tapped on mobile.",
+   "evidence": "Lines 31-34 early return without cleanup of `users`; line 60 `const visibleUsers = trimmedQuery.length > 0 ? users : [];`; line 66 `loading && users.length === 0 ? \"Searching...\" : visibleUsers.map(...)`.",
+   "fixDirection": "setUsers([]) when trimmedQuery empties, and/or track the query each result set belongs to (the useUserSearch hook one directory over already does this \u2014 reusing it deletes the file's own fetch logic).",
+   "gateOrTest": "Component test: type q1, resolve, clear, type q2, assert no q1 rows render before q2 resolves.",
+   "reproPlan": "Read-only-ish on demo: in the composer type '@' + a name, erase it, type '@' + a different letter with throttled network; watch the old list flash.",
+   "taxonomyRows": [
+    "6b-stale-response-display",
+    "6h-typeahead-edge"
+   ]
+  },
+  {
+   "title": "Feed and letter images render without dimensions: the page reflows under the reader as each lazy image loads",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/posts/post-card.tsx:367",
+    "src/components/letters/letter-images.tsx:35"
+   ],
+   "expected": "Images reserve their space (width/height attributes or aspect-ratio) so lazy loads don't shift the layout \u2014 the standard the Collection already meets: its Tile passes `width={photo.width} height={photo.height}` from the DB.",
+   "actual": "Post images are `<img src={img} loading=\"lazy\" className=\"w-full object-cover max-h-\u2026\" />` with no width/height and no stored dimensions (Post.images is a JSON array of URLs), so a card's height jumps when each image arrives \u2014 mid-scroll on the feed this yanks content, and on the letter reading page (letter-images.tsx, same shape) it jumps the paragraph the reader is on. With multi-image grids the max-h caps bound the shift but do not remove it (anything shorter than the cap lands at its own height).",
+   "evidence": "post-card.tsx:367-377 quoted shape; letter-images.tsx:35 `<img src={img} alt=\"\" loading=\"lazy\" className=\"w-full object-cover\" />`. Counter-example in-repo: collection-client.tsx:38-45 `width={photo.width} height={photo.height}`.",
+   "fixDirection": "Persist dimensions at upload time (sharp already decodes every image server-side; store w/h alongside the URL in the images JSON) and emit them on the img tags, or apply a CSS aspect-ratio placeholder per slot as an interim.",
+   "gateOrTest": "Lighthouse CLS on /feed via the existing chrome-devtools audit; visual suite masks won't catch this (it is transient), so pin with a CLS budget check.",
+   "reproPlan": "Read-only: chrome-devtools performance trace on /feed with cache disabled; read the layout-shift events attributed to post images.",
+   "taxonomyRows": [
+    "6b-image-layout-shift",
+    "6j-over-fetching-none"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "6b missing-cleanup sweep: every addEventListener/setInterval/setTimeout/IntersectionObserver/ResizeObserver/rAF site in src/components and (auth)/(main) pages was enumerated by grep and checked \u2014 all carry cleanup or cancelled flags (mascot layer, landing canvases, tour spotlight/offer, image-viewer, avatar-crop non-passive wheel, house-picker/tour-panel matchMedia, comments RO/IO, signup-form hoopoe poll loop, celebration-detector). No leak found.",
+  "6b conditional hooks / useEffect deps: none found; the repo lint config enforces exhaustive-deps with argued disables at each site.",
+  "6b stale-response guards on typeaheads and first-page loads: use-user-search (monotonic requestId), usePlaceSearch (requestId + AbortController), post-feed/comments/collection/saved/author first-page effects (cancelled flags) \u2014 all correct. Only the load-more paths lack guards (reported).",
+  "6b index keys on stateful/reorderable lists: poll-creator inputs are fully controlled (index keys safe), masonry columns are positional, post/letter image lists are static per post; no index-key state-corruption path exists.",
+  "6b useFormStatus/useOptimistic: not used anywhere; manual pending flags are flushed synchronously by React discrete-event handling, and Enter implicit submission is gated by disabled default buttons \u2014 no double-fire window found in comment composer, message composer, tag-input, signup.",
+  "6b hydration guards where authored: verify-email-banner (useSyncExternalStore for locale time) and people-panel InviteLink (useSyncExternalStore for origin) are correct implementations of the pattern the date sites miss.",
+  "Lens (7) virtualization at 2,000 users: every list surface is paginated or capped \u2014 directory 60/page keyset, feed PAGE_SIZE keyset, comments 5/10 with IO, notifications paged with IO, saved posts capped at take:120, admin people cursor pages with filter-keyed remount (page.tsx key prop verified), collection paged. No unbounded 2,000-row render exists in the client.",
+  "Auth-flow client components: signup-form (full try/catch/finally, validation, turnstile sentinel handling), turnstile-widget (waiter/timeout/reset lifecycle), avatar-crop-dialog (bitmap close, URL revoke, try/finally, dismissal-while-uploading guard), onboarding-flow (Strict-Mode-idempotent mount decisions) \u2014 examined closely, clean.",
+  "Optimistic-revert correctness on resolved {error}: entry-love-button, photo-love-button, letter-engagement, poll-display all snapshot-and-revert correctly for the resolved-error path (the rejection path is the reported systemic finding; post-card's stale-snapshot revert is reported).",
+  "Double-submit on Load more buttons: guarded by disabled={loadingMore} plus React 18 discrete-event synchronous flush; comments/notifications additionally guard with loadingMoreRef. Clean for the double-click case (the cross-filter race is the reported finding).",
+  "AttachImageWell/AttachImageDialog: paste listener gated on `active`, deliverRef pattern avoids listener churn, input value reset for same-file re-pick. Clean.",
+  "contribute-dialog, edit-post-dialog, admin people-list, admin moderation-dialog, admin thread-view: proper busy flags and (where uploads occur) real catch blocks with worded errors."
+ ],
+ "coverageNotes": "Read in full: post-card, post-feed, feed-column, comments-section, create-post-form, letter-desk, edit-post-dialog, attach-image-dialog, message-composer, conversation, directory-client, collection-client, contribute-dialog (action half), poll-display, poll-creator, love-button, bookmark-button and all four love-toggle callers, letter-engagement, letter-images, notification-bell, people-panel, answer-experience, answer-card, onboarding-flow, register-step, avatar-crop-dialog, signup-form, turnstile-widget, verify-email-banner, saved-posts-feed, profile-author-feed, admin people-list + its page, catchup-home-shell, console-collecting, extend-deadline-card, search-pill, location-picker, use-user-search, mention-dropdown, image-viewer (interaction/cleanup core), tour-offer and celebration-detector (poll/cleanup sections), pen.tsx useAutoSave, letterhead-profile save paths (348-434; the remaining ~1,000 decorative lines skimmed), src/lib/utils.ts whole. Server actions consulted only where needed to prove client claims (feed/actions.ts toggleLike, loadSavedPosts, revalidatePath sites, page sizes; admin people page key). Grep-swept the entire src tree for: timers/listeners/observers (each site's cleanup verified), index keys, beforeunload/localStorage, suppressHydrationWarning, useFormStatus/useOptimistic/useActionState, toLocale* date sites, setUnreadCount setters, reloadKey wiring. Skimmed at grep level (busy-flag/catch patterns confirmed, not line-read): keeper-settings-dialog, accept-invite, publish-now-button, reminder-pref-control, cadence-control, create-catchup-form, drafts-strip, report-dialog, flag-person-dialog, moderation-dialog, thread-view, photo-attachments, tag-input, house-picker, demo-bar, get-in-touch. Consciously skipped: src/app/lab/** (dev-only rooms, no member impact), landing ambient canvases and mascot hoopoe internals beyond their cleanup contracts (decorative; hoopoe Safari bug is tracked and off-limits), shadcn ui primitives, admin display-only rows, the mid-edit catchups round page named as concurrent WIP. Cross-checked bugs.md so no finding re-reports a tracked item (notification finding verified distinct from tracked item 5)."
+}

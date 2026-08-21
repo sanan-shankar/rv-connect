@@ -1,0 +1,811 @@
+{
+ "B-013": {
+  "id": "B-013",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "All cited lines read in full and confirmed. storage.ts:218-228 `delImageByKey` has a truly empty catch (`} catch { // best-effort cleanup }`) with no console.error even in dev. storage.ts:267-271 `delImage` calls it via `keyForUrl` (pure string ops, cannot throw) so `delImage` never rejects. account-purge.ts:108-112 `for (const url of urls) { await delImage(url); deleted += 1; }` therefore increments unconditionally \u2014 it counts attempts, and even counts external/legacy URLs that keyForUrl returns null for (delImage no-ops on them) \u2014 never actual deletions. That count is returned as `imagesDeleted` (line 113) and written verbatim into the audit trail at retention.ts:132 (`${purged.imagesDeleted} stored image(s) removed`) and admin-actions.ts:71 (same wording). The function's own doc comment at account-purge.ts:85-86 asserts the audit records \"how many objects were actually removed,\" which the increment logic makes false. Irreversibility is documented in the same file (lines 78-82): URLs are collected before the cascade, and afterward nothing can re-enumerate the R2 objects. I actively tried to refute: there is no verification wrapper, delImage has a `Promise<void>` return with no success channel, and neither caller cross-checks \u2014 so on any R2 delete failure the images remain publicly fetchable while the audit log claims they were removed. Two overstatements in the finding do not touch the core and do not justify refutation: (a) it is not literally \"the one catch site\" \u2014 storage.ts:204, storage.ts:211, account-purge.ts:63 are also silent catches, though those return a value or skip a benign JSON.parse; (b) CLAUDE.md's \"loud in dev\" rule is specifically scoped to telemetry written from a layout (touchLastSeen), not a repo-wide contract, so \"violates the stated contract\" is a stretch. The load-bearing mechanism (swallowed delete failure + attempt-counting + false audit line on an irreversible GDPR-erasure path) is real and correctly located; High is defensible because the audit entry is the sole surviving record once the rows cascade away.",
+  "linesChecked": [
+   "src/lib/storage.ts:216-228",
+   "src/lib/storage.ts:264-271",
+   "src/lib/storage.ts:235-262",
+   "src/lib/account-purge.ts:37-68",
+   "src/lib/account-purge.ts:74-114",
+   "src/lib/retention.ts:114-136",
+   "src/components/profile/admin-actions.ts:45-78"
+  ]
+ },
+ "B-011": {
+  "id": "B-011",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "All three sub-claims are literally true in the code as read.\n\n(1) Silent swallow: storage.ts:218-228 delImageByKey has an empty `catch { // best-effort cleanup }` \u2014 no rethrow AND no log; delImage (267-271) never throws. account-purge.ts:78-81 comment confirms \"afterwards nothing can enumerate the objects,\" and my grep of src/ and scripts/ found NO orphan-reconciliation / ListObjects / R2 sweep anywhere. So a failed R2 delete during the purge produces zero signal and permanently orphans the bytes. Real.\n\n(2) Miscount: account-purge.ts:108-112 increments `deleted` unconditionally (`await delImage(url); deleted += 1;`), never checking success (delImage returns void). This flows into imagesDeleted and both callers write it verbatim into a compliance audit row \u2014 retention.ts:132 and admin-actions.ts:71 both emit `${purged.imagesDeleted} stored image(s) removed`. Notably the module's own comment (account-purge.ts:84-86) claims the audit \"records how many objects were actually removed,\" which the code does NOT do \u2014 it records attempts. This is an always-present correctness bug independent of any R2 outage. Real.\n\n(3) No durability: rows are deleted in the $transaction (99-102) BEFORE the in-memory loop over `urls` (108-112); a crash/timeout mid-loop loses the remaining URLs with the process, no persisted worklist/retry. Real in structure.\n\nWhy ADJUSTED from High to Medium \u2014 two parts of the framing are overstated:\n - The \"transient R2 429/500 silently skips\" emphasis overstates likelihood: the AWS SDK v3 S3Client defaults to standard retry mode (maxAttempts 3), so single transient blips are already retried before delImageByKey's catch sees them. Orphaning needs a persistent failure, an outage, or a function timeout \u2014 not one flaky call.\n - \"bytes stay publicly fetchable at pub-*.r2.dev\" overstates real-world exposure: keys are content-addressed cuid filenames under owner-scoped prefixes (uploads/<id>/\u2026/<cuid>.webp), not enumerable or guessable, so the residual is \"not erased as promised\" (a genuine GDPR-Art.17 gap the H9 module exists to close, here partially reintroduced) rather than a discoverable data leak. The defect and its fix (per-URL try/catch that logs failures + counts only successes, and ideally a reconciliation path) are legitimate, but the blast radius and trigger rate are narrower than a High implies.",
+  "linesChecked": [
+   "src/lib/account-purge.ts:88-114",
+   "src/lib/account-purge.ts:78-86",
+   "src/lib/storage.ts:216-228",
+   "src/lib/storage.ts:264-271",
+   "src/lib/retention.ts:114-136",
+   "src/components/profile/admin-actions.ts:56-73"
+  ],
+  "liveProofIfNeeded": "To confirm the orphan+miscount live safely on a test account: create a throwaway user, upload one avatar/post image, then temporarily point R2_* env at an unreachable endpoint (or use an object-scoped token lacking Delete) and run the admin delete. The audit row will read \"1 stored image(s) removed\" while the object still HEADs 200 at its pub-*.r2.dev URL \u2014 proving the count is attempts-not-successes and the failure is unlogged. Do this only against a disposable bucket/user, never production R2."
+ },
+ "B-012": {
+  "id": "B-012",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "The finding is real and correctly described. collectImageUrls (src/lib/account-purge.ts:37-68) collects R2 URLs from exactly four sources \u2014 user.photoUrl (line 39), post.images (40), photo.{thumbUrl,url,originalUrl} (41-44), catchupEntry.images (45) \u2014 and never queries AdminMessage or Group. purgeUserAccount then does prisma.user.delete (account-purge.ts:101). The schema confirms the destructive cascade: `member User @relation(\"AdminThreadMember\", ... onDelete: Cascade)` (schema.prisma:568) and `thread AdminThread @relation(... onDelete: Cascade)` (schema.prisma:590), so deleting the member drops their AdminThread(s) and all AdminMessage rows in them, including the only pointers to `imageUrl String?` (schema.prisma:587). That imageUrl is a genuine uploaded WebP under the caller's own uploads/<id>/ prefix \u2014 messages/actions.ts:47-61 validates it via ownedUploadUrls (minted-here AND owner-prefixed) and stores it at line 94 \u2014 so it is publicly fetchable at a pub-*.r2.dev URL with no row left to enumerate it after the cascade. This is precisely the GDPR Art.17 failure mode account-purge.ts's own docstring (lines 8-13) claims to have closed. The 2-year sweep leaks independently: retention.ts:73-77 runs a bare adminMessage.deleteMany on createdAt < cutoff(730) with no delImage. Grep across src/ (excluding generated) shows delImage/delImageByKey is called only for post/photo/avatar/collection/upload-cleanup cleanup and the purge's collected URLs \u2014 never for an admin-message image \u2014 so no path deletes these bytes. The author SetNull (schema.prisma:591) only preserves messages authored by the deleted user in OTHER people's still-alive threads, exactly as the finder notes; it does nothing for the member's own cascaded threads. Nuance for the fix session (does not refute): the Group.coverImage half (schema.prisma:195 + creator Cascade at 201) is real in schema/cascade terms but currently dead \u2014 no application code ever writes `coverImage:` (only generated Prisma files reference it; prisma.group.create in src/components/auth/actions.ts and src/lib/demo-seed/seed.ts both omit it), so it can only affect legacy rows from the removed Groups feature, which the finder already scoped as \"legacy Group rows.\" The live and substantive leak is AdminMessage.imageUrl, in both the purge cascade and the 730-day sweep. Severity High is consistent with the repo's own treatment of image-orphaning-after-erasure (audit H9).",
+  "linesChecked": [
+   "src/lib/account-purge.ts:37-68",
+   "src/lib/account-purge.ts:88-114",
+   "prisma/schema.prisma:195",
+   "prisma/schema.prisma:201",
+   "prisma/schema.prisma:568",
+   "prisma/schema.prisma:587",
+   "prisma/schema.prisma:590-591",
+   "src/lib/retention.ts:73-77",
+   "src/app/(main)/messages/actions.ts:47-63",
+   "src/app/(main)/messages/actions.ts:94",
+   "src/app/(main)/admin/people/actions.ts:322-333"
+  ]
+ },
+ "B-010": {
+  "id": "B-010",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Every link confirmed by reading full functions. schema.prisma:765 sets CatchupPrompt.author onDelete Cascade and schema.prisma:785 sets CatchupEntry.prompt onDelete Cascade, exactly as cited. The datasource declares provider postgresql with no relationMode override, so default foreignKeys mode makes Postgres cascade recursively: deleting a User deletes every CatchupPrompt where authorId matches, and each deleted prompt cascades every CatchupEntry under it via promptId, regardless of that entry's own author. The premise that member-authored prompts collect other members' answers is real: catchups/actions.ts:714-726 lets ANY member create a prompt with authorId=session.user.id and accepted=true, which others then answer as CatchupEntry rows. purgeUserAccount (account-purge.ts:88-114) does an unconditional prisma.user.delete inside a transaction with only report clearing beside it, no prompt reassignment and no published-Round guard. Both callers invoke it directly: admin-actions.ts:59 (adminDeleteUser) and retention.ts:121 (60-day grace sweep). The only prompt reassignment in the codebase is the MERGE flow (admin/people/actions.ts:296, catchupPrompt.updateMany data authorId=targetId), a different operation; its existence proves the team knows prompt authorship must be preserved to avoid data loss, yet the delete path lacks it. Secondary claim also confirmed: collectImageUrls (account-purge.ts:45) reads only catchupEntry where authorId=userId, so cross-member entries cascaded away via the prompt path never have their images collected, stranding those photos in R2. Cascaded entries also drop their CatchupEntryLove hearts. Severity High is appropriate: silent cross-user content destruction on a routine account-deletion operation. Statically provable end to end; no live run needed.",
+  "linesChecked": [
+   "prisma/schema.prisma:752-802",
+   "src/lib/account-purge.ts:37-114",
+   "src/app/(main)/catchups/actions.ts:707-731",
+   "src/app/(main)/catchups/actions.ts:797-825",
+   "src/components/profile/admin-actions.ts:45-78",
+   "src/lib/retention.ts:109-136",
+   "src/app/(main)/admin/people/actions.ts:285-313"
+  ]
+ },
+ "B-002": {
+  "id": "B-002",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Every load-bearing claim is present in the real code and I could not refute it.\n\n1. Same-pass re-selection: drainMailQueue's loop (email-queue.ts:471-475) does `findFirst({ where: { status: \"queued\", attempts: { lt: MAX_ATTEMPTS } }, orderBy: [{priority:\"asc\"},{createdAt:\"asc\"}] })`. claimAndSend on a transient failure writes `status: afterFailure` where `afterFailure = spent >= MAX_ATTEMPTS ? \"failed\" : \"queued\"` (174, 224/231). A requeued row keeps its createdAt and has attempts still < 4, so it is again the head of the queue and is re-picked on the very next iteration. Confirmed.\n\n2. No delay/backoff exists: I dumped the OutboundEmail model (schema.prisma:330-375). Its only send-path columns are `status`, `attempts`, `lastError`, `claimedAt`, `createdAt`. There is NO nextAttemptAt / scheduledAt / backoff field anywhere, and claimAndSend sets no delay. So the 4 attempts fire back-to-back (four Resend round-trips, seconds apart), which gives essentially zero protection against an outage lasting more than a few seconds.\n\n3. No transient/permanent split: sendMail (email.ts:180-200) collapses a Resend `error` object, a thrown exception, and (409/429/5xx) all into `{ ok: false, error }`. claimAndSend treats every `ok:false` identically. The only pre-flight distinction is isUndeliverable() for reserved TLDs (email.ts:99-106), which is a narrow refusal, not a classification of provider responses.\n\n4. Budget does not stop the burn: each loop iteration re-reads dailyBudget() (462), which counts only `status:\"sent\"` rows (258-259). During an outage no sends succeed, so remaining stays >0 and the loop runs the full BATCH=8. 8 iterations / 4 attempts = 2 rows driven to terminal `\"failed\"` per pass.\n\n5. Every authed page view triggers a pass: layout.tsx:63-69 runs `after(() => drainMailQueue())`; enqueueMail also calls scheduleDrain() (350) and verificationMailState calls claimAndSend (598). At launch traffic a 5-min outage/429-storm fires many passes, each terminally failing ~2 rows \u2014 and concurrent `after()` drains can themselves trip Resend's ~2 req/s limit, producing the 429s that then burn the mail.\n\n6. Recovery is manual and per-row: the ONLY code that returns a `\"failed\"` row to `\"queued\"` is retryMail(id) (admin/mail/actions.ts:24-42), which takes a single id and resets attempts=0. There is no cron (\"There is no cron on this project\", email-queue.ts:46), no batch requeue-failed, no auto-retry after recovery. The stale-claim reclaim (447-450) only touches `status:\"sending\"` rows, never `\"failed\"`. The Resend webhook can flip rows TO `\"failed\"` (api/resend/webhook/route.ts:112-128) but nothing flips them back.\n\n7. Caller was told success: enqueueMail returns `{queued:true}` and callers \"cannot learn whether one happened\" (285-296), so a reset requester sees \"check your inbox\" for mail that later dies permanently.\n\nSeverity Critical is defensible: this hits verify + reset (core auth) exactly at the highest-traffic moment, the retries are useless against a transient brownout, and recovery is admin hand-clicks. The finding is accurate and not overstated; \"entire backlog\" is a worst-case but the per-row permanent-failure mechanism is unconditional.",
+  "linesChecked": [
+   "src/lib/email-queue.ts:159-238",
+   "src/lib/email-queue.ts:438-487",
+   "src/lib/email-queue.ts:96,101,105",
+   "src/lib/email-queue.ts:564-612",
+   "src/lib/email.ts:122-201",
+   "src/app/(main)/layout.tsx:63-69",
+   "src/app/(main)/admin/mail/actions.ts:24-42",
+   "prisma/schema.prisma:330-375"
+  ]
+ },
+ "B-001": {
+  "id": "B-001",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "linesChecked": [
+   "prisma/schema.prisma:201",
+   "prisma/schema.prisma:717",
+   "prisma/schema.prisma:718",
+   "prisma/schema.prisma:702",
+   "prisma/schema.prisma:744",
+   "prisma/schema.prisma:764-765",
+   "prisma/schema.prisma:784-799",
+   "prisma/migrations-manual/2026-07-05-secondary-city.sql:120-176",
+   "src/app/(main)/catchups/actions.ts:441-453",
+   "src/app/(main)/admin/people/actions.ts:290-316",
+   "src/lib/account-purge.ts:37-46",
+   "src/lib/account-purge.ts:99-102",
+   "src/lib/retention.ts:114-135",
+   "src/components/profile/admin-actions.ts:45-62",
+   "src/components/auth/actions.ts:208-230"
+  ],
+  "reasoning": "Cascade chain is real and reachable. Group.creator onDelete: Cascade (schema.prisma:201); datasource sets no relationMode (schema.prisma:6-8) so default foreignKeys mode applies and Prisma emitted a real DB-level cascading FK; the Group table predates the manual-migration era and nothing overrides its creatorId FK. Downstream CatchupSeries.groupId is physically ON DELETE CASCADE, confirmed in actual migration SQL (2026-07-05-secondary-city.sql:121), as are Edition->Series (131), Prompt/Entry->Edition (146/156), EntryLove->Entry (166), Pref->Series (171). Group creation seats the doomed creator: catchups/actions.ts:446 creatorId=session.user.id then 452 creates the Catchup on that group; joinBatchGroup (auth/actions.ts:226) seats the first member, comment admitting it is only to satisfy the FK. All deletion paths end in prisma.user.delete with no ownership reassignment: purgeUserAccount (account-purge.ts:101) via adminDeleteUser (admin-actions.ts:59) and the unattended 60-day retention sweep (retention.ts:121), and adminMergeUsers (people/actions.ts:315) which reassigns prompt/entry authorship (296-297) but never Group.creatorId, so those reassigned rows die a statement later. Grep of src finds no group.update/creatorId reassignment anywhere. The Catchup.createdById SetNull (718) and its comment survives if they leave (702) is defeated because the same user is both Group.creatorId and Catchup.createdById, so the Group cascade removes the Catchup before SetNull matters. Deleting the creator destroys the whole Group, its posts, the Catchup, all editions/prompts, and EVERY member entries+loves, not just the deleted user's. Bonus confirmed: collectImageUrls only fetches the purged user's own entry images (account-purge.ts:45, authorId=userId), so other members' cascaded entry images orphan in R2. Reachable via self-service deletion (unattended sweep), admin delete, and merge; silent permanent cross-user loss of the flagship feature. Critical stands. Only unreadable item is the exact physical FK action on Group.creatorId (DB read-only/shared-prod), but schema declares Cascade, default mode generates it, no override exists, and the downstream CatchupSeries cascade is physically confirmed, so all paths lead to cascade."
+ },
+ "B-022": {
+  "id": "B-022",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The finding's mechanism is exactly correct. proxy.ts:242-245 writes the destination as `?callbackUrl=` (`loginUrl.searchParams.set(\"callbackUrl\", pathname)`). The login success path reads only `?next=`: login-client.tsx:403 does `window.location.href = nextPathFromLocation()`, and next-path.ts:33-36 reads solely `new URLSearchParams(window.location.search).get(\"next\")`, falling back to \"/feed\" when absent. Crucially, login-client.tsx:378-383 calls `signIn(\"credentials\", { redirect: false })`, so NextAuth does NOT consume `callbackUrl` itself \u2014 the redirect is entirely manual, and it reads the wrong param. login/page.tsx is a bare wrapper that passes only the Turnstile key and never reads searchParams, so there is no server-side callbackUrl\u2192next translation. A repo-wide grep confirms the only `callbackUrl` readers are two unrelated `signOut({ callbackUrl: \"/\" })` calls (sidebar.tsx:481, letterhead-profile.tsx:1314); no sign-in reader exists. The only `?next=` producers are the catchups join page (page.tsx:145,150) and the signup\u2192welcome relay (signup-client.tsx:417) \u2014 nothing emits `?next=` for shared post/letter/profile deep links. So every proxy-initiated bounce of a signed-out visitor to a known protected route lands them on /feed after login, dropping the destination. I additionally found the stale-cookie path is no better: the (main) layout's server-side fallback at layout.tsx:25 is a bare `redirect(\"/login\")` with no param at all. The purpose of ?next= is documented in next-path.ts:4-7 as exactly this (\"a shared link can survive the auth detour\"), so the feature is genuinely broken for the proxy path. The one adjustment: stated severity High is overstated. This is a recoverable UX degradation \u2014 the visitor still reaches a valid, fully functional /feed; there is no data loss, no security/open-redirect exposure (safeNextPath is unaffected), and no crash. That profile reads as Medium, not High.",
+  "linesChecked": [
+   "src/proxy.ts:238-246",
+   "src/app/(auth)/login/login-client.tsx:378-404",
+   "src/lib/next-path.ts:16-36",
+   "src/app/(auth)/login/page.tsx:12-14",
+   "src/app/(main)/layout.tsx:25",
+   "src/app/catchups/join/[token]/page.tsx:145-150",
+   "src/app/(auth)/signup/signup-client.tsx:417",
+   "src/components/layout/sidebar.tsx:481",
+   "src/components/profile/letterhead-profile.tsx:1314"
+  ]
+ },
+ "B-020": {
+  "id": "B-020",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "All three cited mechanisms are real; I read each function in full and found no normalization layer, guard, or collation that refutes them.\n\n(A) Signup stores raw. validators.ts:18 uses z.email() which validates format only (no trim/lowercase transform). actions.ts:149 writes email: parsed.data.email verbatim; the dedupe at :103-105 findUnique({ where: { email: parsed.data.email } }) also uses the raw string.\n\n(B) Login looks up raw, case-sensitively. auth.ts:62 acctKey = email.trim().toLowerCase() is used ONLY for the rate-limit/human-pass keys (lines 70, 84, 100); the account lookup at auth.ts:102-104 is findUnique({ where: { email } }) with the raw credential. login-client.tsx:378-383 passes the raw React email state straight to signIn with no client normalization. So a stored Foo@x.com only matches the exact-case string at login.\n\n(C) Reset normalizes the OTHER way. email-actions.ts:160 lowercases the typed address, :165 findUnique({ where: { email: raw } }), and :172 if (!user?.password) return { ok: true }. A mixed-case stored row can never match the lowercased lookup, and the miss is swallowed as the standard success screen \u2014 a silent, permanent inability to receive a reset mail for ANY member whose stored email has an uppercase letter, regardless of what they type. Strongest/cleanest sub-claim; orchestrator note live-confirms 1 of 52 members affected today.\n\n(D) Postgres case-sensitivity. schema.prisma:13 email String @unique is a plain text column (no @db.Citext, no case-insensitive collation), so equality and the unique index are case-sensitive. Grep of src/lib/prisma.ts and the tree found no query middleware/extension lowercasing email on write; login-attempt.ts:49 shows trim+lowercase is the codebase's own canonical form used everywhere except the two auth lookups.\n\nSeverity High is defensible: mode (2) is a permanent, silent, member-facing lockout from password recovery (live-confirmed for a real member), mode (1) yields false login failures on case drift (autofill/contact cards), and mode (3) permits two accounts for one mailbox. No demo/prod branch or upstream normalization changes any of this. Not overstated.",
+  "linesChecked": [
+   "src/lib/auth.ts:62",
+   "src/lib/auth.ts:102-104",
+   "src/components/auth/actions.ts:103-105",
+   "src/components/auth/actions.ts:149",
+   "src/components/auth/email-actions.ts:160-172",
+   "src/lib/validators.ts:18",
+   "src/app/(auth)/login/login-client.tsx:378-383",
+   "src/app/(auth)/login/login-client.tsx:518-524",
+   "prisma/schema.prisma:13",
+   "src/lib/login-attempt.ts:49"
+  ]
+ },
+ "B-021": {
+  "id": "B-021",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Every cited line checks out and I could not find a guard that refutes it. Flow: mintToken (auth-tokens.ts:91-99) burns all usedAt:null tokens of the kind then creates a new one inside a $transaction; the token is minted at SEND time in render() (email-queue.ts:402-403 `const minted = await mintToken(row.userId, kind, row.to)`). A resend after the first mail is already `sent` does NOT fold (enqueueMail fold only matches status in [queued,sending], email-queue.ts:309-317), so a new row is created and sent, minting a 2nd token and burning the 1st. A single resend is the 2nd mint/enqueue, well under both rate ceilings (verify token 5/60min at auth-tokens.ts:42; verify enqueue 5/60min at email-queue.ts:277), so nothing skips it \u2014 the burn happens in the common case. The member now holds Email A (Token A, usedAt set by supersession) and Email B (Token B, live). Opening the older Email A: readToken returns {ok:false, reason:\"used\"} because auth-tokens.ts:174 `if (row.usedAt) return {reason:\"used\"}` cannot tell supersession from a real click. confirmEmailToken (email-actions.ts:106-110) then returns \"already\" UNCONDITIONALLY for reason===\"used\" \u2014 the comment \"if the address really is confirmed, say so plainly\" describes a check that does not exist, and readToken's used-result carries no userId so it could not check emailVerified anyway. The emailVerified update (email-actions.ts:118-121) is skipped, so the member stays unverified. In verify-client.tsx: GOOD includes \"already\" (line 55) \u2192 good=true \u2192 happy bird express(\"happy\")/nod (lines 85-86) and copy \"This address was confirmed earlier. Nothing left to do.\" (line 33); canResend = signedIn && !alreadyVerified && !good (line 76) = false, so no resend button \u2014 only a \"Take me to the feed\"/\"Sign in\" primary button. page.tsx:38 sets alreadyVerified from session.user.emailConfirmed, which is false for this member, so canResend is gated purely by good. Result reproduces the claim exactly: a false \"Already confirmed / nothing left to do\" success screen shown to a still-unverified member, whose Stage-2 writes keep being refused. One minor overstatement in the finding: the member is not permanently stranded \u2014 verify-email-banner.tsx is mounted in (main)/layout.tsx and /verify-email with no token yields outcome=\"waiting\" (canResend true), so resend paths exist elsewhere; but this does not refute the defect, it is why it is harmful \u2014 the confirmation page actively tells them nothing is left to do. Severity High is defensible for a launch-critical onboarding flow where resend is common and roughly half of users who click the older of two inbox links hit this dead-end.",
+  "linesChecked": [
+   "src/lib/auth-tokens.ts:91",
+   "src/lib/auth-tokens.ts:174",
+   "src/lib/auth-tokens.ts:186",
+   "src/components/auth/email-actions.ts:104",
+   "src/components/auth/email-actions.ts:107",
+   "src/components/auth/email-actions.ts:118",
+   "src/lib/email-queue.ts:308",
+   "src/lib/email-queue.ts:402",
+   "src/app/(auth)/verify-email/page.tsx:30",
+   "src/app/(auth)/verify-email/page.tsx:38",
+   "src/app/(auth)/verify-email/verify-client.tsx:33",
+   "src/app/(auth)/verify-email/verify-client.tsx:55",
+   "src/app/(auth)/verify-email/verify-client.tsx:76",
+   "src/app/(auth)/verify-email/verify-client.tsx:85"
+  ]
+ },
+ "B-023": {
+  "id": "B-023",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Every load-bearing claim checks out against the code. adminBlockUser (src/components/profile/admin-actions.ts:15-43) and adminDeleteUser (:45-78) both obtain the actor via requireAdminActor() (which does return actor.actorId, used only for the audit write) yet never compare userId to actorId and never count remaining admins; block does `prisma.user.update({ where:{id:userId}, data:{ isBlocked:block, credentialVersion:{increment:1} } })` and delete calls `purgeUserAccount(userId)` directly. The own row is reachable: src/app/(main)/admin/people/[id]/page.tsx:26-56 loads any id with no self-exclusion and passes only {person, stats, mail} to PersonDetail \u2014 no current-admin id \u2014 so person-detail.tsx renders Block (:268-280), Delete (:354-363) and Merge (:344-353) for the admin's own row unconditionally. Self-block takes effect on the next request: session callback at src/lib/auth.ts:277 sets session.invalid=true when dbUser.isBlocked, and authorize() at auth.ts:155 returns null for a blocked account, so a sole admin is locked out with no in-app path back. The block dialog copy at person-detail.tsx:373 (\"You can undo this from the same button\") is false for a sole-admin self-block. Contrast is real: adminSetRole (src/app/(main)/admin/people/actions.ts:216-225) counts admins and refuses the last demotion with a comment naming the identical lockout stake, and adminMergeUsers guards `source.role === \"admin\"` (:285-287) \u2014 block/delete alone have no such guard. I also read scripts/dev/set-password.mjs: its UPDATE sets password/emailVerified/role/credentialVersion but NOT isBlocked, so recovery from a self-block truly requires raw SQL, strengthening the finding. Minor scope nuance that does not refute it: the only in-app-irrecoverable case is the SOLE admin acting on self (or blocking the last admin) \u2014 blocking a co-admin while another admin remains is reversible, and self-delete is recoverable via a fresh account plus the break-glass --admin script; but that recovery profile is exactly the one adminSetRole is written to prevent, so the \"permanent lockout\" wording matches the codebase's own framing. This is an admin-only footgun (requires admin auth and a self-directed action), not an external/privilege-escalation vector, but as a robustness/correctness gap it is real and unguarded.",
+  "linesChecked": [
+   "src/components/profile/admin-actions.ts:15-43",
+   "src/components/profile/admin-actions.ts:45-78",
+   "src/app/(main)/admin/people/actions.ts:209-240",
+   "src/app/(main)/admin/people/actions.ts:270-348",
+   "src/components/admin/people/person-detail.tsx:114-127",
+   "src/components/admin/people/person-detail.tsx:268-280",
+   "src/components/admin/people/person-detail.tsx:342-400",
+   "src/app/(main)/admin/people/[id]/page.tsx:19-129",
+   "src/lib/auth.ts:150-162",
+   "src/lib/auth.ts:241-302",
+   "src/lib/admin.ts:59-82",
+   "scripts/dev/set-password.mjs:100-125"
+  ]
+ },
+ "B-041": {
+  "id": "B-041",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "I read every cited function in full and could not refute the finding.\n\n1) post-card.tsx handleDelete (147-152): on a successful deletePost(post.id) it does nothing locally \u2014 no state change, no callback, no router.refresh, and useRouter is not even imported. It only toasts on error. Re-clicking Delete hits deletePost -> findUnique returns null (line 322) -> {error:'Post not found'} -> error toast, exactly as claimed.\n\n2) The contrast is real and damning: handleModerationConfirm (154-158) sets setRemoved(true) on success, and line 185 'if (removed) return null;' with the comment at 183-184 ('Removed optimistically ... rather than waiting on the revalidatePath round trip') proves the author knew client-side removal is required and wired it ONLY for the admin path, not the author's own delete.\n\n3) EditPostDialog handleSubmit (46-60): on success only toast.success + onClose(). PostCard renders post.content (304-306)/post.title from immutable props; nothing mutates them, so the card keeps pre-edit text until remount.\n\n4) The list is pure client state. post-feed.tsx line 54 useState<PostData[]>([]) is filled by fetchPosts(null) inside a useEffect (114-142) with deps [fetchPosts, reloadKey, groupId, scope, sortBy, search, timeFilter]. The server actions call revalidatePath('/feed' or '/groups/..') (actions.ts:340 delete, 457 edit), which invalidates the RSC/Router cache and re-renders server components, but does NOT re-mount PostFeed, change any dep, or reset client useState \u2014 so the mount effect never re-runs and posts is untouched. Mechanism as described is correct.\n\n5) The only reloadKey bump is feed-column.tsx:53 onPosted (creation). Grep across src/components/posts and src/app/(main) shows no onDeleted/onEdited/onRemoved/router.refresh anywhere; post-feed.tsx:302 renders <PostCard post={post} variant='card'/> with no delete/edit callback.\n\nScope check: profile-author-feed.tsx (138) and saved-posts-feed.tsx (77) also render PostCard from mount-once client useState (loadPosts/loadSavedPosts). Saved handles UNSAVE via onBookmarkChange only \u2014 not delete or edit \u2014 so the 'every surface' scope is accurate.\n\nSeverity note: this is a UI-staleness bug, not data loss \u2014 the delete/edit writes succeed server-side and a reload/navigation corrects the view. That arguably makes it Medium rather than High, but the finding itself never claims data loss (it says 'stays until a full reload'), so wording/scope/mechanism are all accurate and High is defensible for a visibly-broken primary action at launch. Confirmed as stated.",
+  "linesChecked": [
+   "src/components/posts/post-card.tsx:147",
+   "src/components/posts/post-card.tsx:154",
+   "src/components/posts/post-card.tsx:185",
+   "src/components/posts/post-card.tsx:463",
+   "src/components/posts/edit-post-dialog.tsx:46",
+   "src/components/posts/post-feed.tsx:54",
+   "src/components/posts/post-feed.tsx:114",
+   "src/components/posts/post-feed.tsx:302",
+   "src/components/posts/feed-column.tsx:43",
+   "src/components/posts/feed-column.tsx:53",
+   "src/app/(main)/feed/actions.ts:339",
+   "src/app/(main)/feed/actions.ts:340",
+   "src/app/(main)/feed/actions.ts:457",
+   "src/components/profile/saved-posts-feed.tsx:77",
+   "src/components/profile/profile-author-feed.tsx:138"
+  ]
+ },
+ "B-030": {
+  "id": "B-030",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "High",
+  "confidence": "high",
+  "reasoning": "The core claim is real in code, but the finding's scope is partly wrong.\n\nCONFIRMED paths (ship raw bytes, no downscale/crop):\n1. Onboarding avatar. photo-step.tsx:36-49 validates only file.type and file.size > 15*1024*1024, then fd.set(\"file\", file) and await updateAvatar(fd). No downscaleImage import, no crop. AttachImageDialog/AttachImageWell (attach-image-dialog.tsx) does zero resizing (comment: \"no opinion about size/format limits\"). updateAvatar (settings/actions.ts:210-215) accepts up to MAX_AVATAR_INPUT=15MB. So a 4.5-15MB phone JPEG passes every client check and on Vercel is rejected by the platform (413 FUNCTION_PAYLOAD_TOO_LARGE) before the Server Action runs. Worse than described: handlePick has NO try/catch, so the thrown 413 is an unhandled rejection - setBusy(false) never runs, spinner stays stuck, no toast, result.error is never reached.\n2. Catch-up answer photos. photo-attachments.tsx:24,49-62: MAX_BYTES=5MB per file, up to 3 files appended into ONE FormData POSTed to /api/upload, no downscaleImage. A single 5MB file already exceeds ~4.5MB; three approach 15MB. Here a try/catch wraps the fetch; a 413 returns non-JSON so res.json() throws and the user gets a generic \"That photo would not upload. Try again.\" (degraded, not a hang).\n\nREFUTED sub-claim (scope correction): the \"settings avatar\" path does NOT ship raw bytes. updateAvatar's only OTHER caller is letterhead-profile.tsx:348-371, which routes every pick through AvatarCropDialog (avatar-crop-dialog.tsx). That dialog draws to a 512x512 canvas and canvas.toBlob(\"image/webp\", 0.82) (OUT_SIZE=512, WEBP_QUALITY=0.82, lines 227-249), producing a tens-of-KB blob far under any cap. The finder's own cited evidence (letterhead-profile.tsx:363-365) is precisely the FIX for this hazard, contradicting the title's \"settings avatar ships raw bytes.\" The finder conflated the server action's 15MB MAX_AVATAR_INPUT constant with a raw client path.\n\nMechanism is documented by the team itself: next.config.ts:107-122 (serverActions.bodySizeLimit \"25mb\" only lifts Next's guard; proxyClientMaxBodySize is also Next-side), image-downscale.ts:1-15 (\"a route handler's request body is hard-capped at about 4.5MB... a normal phone photo... died at Vercel's edge\"), and letterhead-profile.tsx:363-365 (\"6MB phone photo could die on Vercel's ~4.5MB serverless body cap\"). downscaleImage IS wired into the feed/letters composer (create-post-form.tsx:394) but NOT into the onboarding avatar or catch-up answer paths.\n\nNet: CONFIRMED that onboarding avatar and catch-up answer photos ship raw bytes that die at Vercel's body cap; keep High (onboarding is the first-run flow, common phone photos exceed 4.5MB, and it fails with a stuck spinner and no feedback). ADJUST scope: remove \"settings avatar\" - that path is already fixed via the crop dialog.",
+  "linesChecked": [
+   "src/components/onboarding/steps/photo-step.tsx:36-57",
+   "src/components/settings/actions.ts:20,188-255",
+   "src/components/common/attach-image-dialog.tsx:1-184",
+   "src/components/profile/letterhead-profile.tsx:340-371,1262-1274",
+   "src/components/settings/avatar-crop-dialog.tsx:45-56,210-249",
+   "src/components/catchups/answer/photo-attachments.tsx:24-74",
+   "src/lib/image-downscale.ts:1-77",
+   "next.config.ts:105-123",
+   "src/components/posts/create-post-form.tsx:394"
+  ],
+  "liveProofIfNeeded": "On a Vercel preview deploy, open onboarding and pick a JPEG between 5MB and 14MB: expect the network POST (Server Action) to return 413 FUNCTION_PAYLOAD_TOO_LARGE with the button spinner stuck and no toast. Separately, on a catch-up answer, attach a single ~5MB JPEG and observe the /api/upload request 413 and the generic \"would not upload\" toast. Both are read-only reproductions against a test account; no writes if they fail at the edge."
+ },
+ "B-042": {
+  "id": "B-042",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The core defect is real and every cited line checks out. (a) post-feed.tsx:114-142 starts loading=true/posts=[] and client-fetches the feed via fetchPosts(null).then(...) with no .catch; a rejected loadPosts (network drop, 500, or a Prisma/pgbouncer error \u2014 loadPosts at actions.ts:764 has no internal try/catch) never runs the callback, so setLoading(false) is unreachable and the app's primary surface shows skeletons forever with no retry. comments-section.tsx:138-150 has the identical shape. (b) comments-section.tsx:181-206 handleSubmit sets submitting=true then awaits createComment with no try/finally; the IO callback at 161-173 sets loadingMoreRef.current=true then awaits \u2014 a rejection leaves both stuck. poll-display.tsx:80-112 handleVote has no try/finally and reverts the optimistic vote only on {error} resolution. message-composer.tsx:78-100 handleSend has no try/catch (its sibling handlePickImage at 59-76 IS guarded, but that is a different function than the cited line 88). create-post-form.tsx:497-596 resets setSubmitting/setSavingDraft only on the resolve paths (543-544, 594-595); a rejected createPost/editPost/publishDraft throws before them, wedging the Post button. (c) entry-love-button.tsx:30-40 reverts only inside `if (result && \"error\" in result)`, so a rejection leaves the heart flipped though the server never wrote it. src/app/error.tsx exists but is a render-phase boundary and does NOT catch these async rejections, so they genuinely strand. Adjustments: the absolute claim \"no client component handles a rejected server action anywhere\" is false \u2014 in-repo try/catch counter-patterns exist (edit-post-dialog.tsx, pen.tsx, message-composer.handlePickImage), which the finder half-acknowledged with \"almost every.\" One stated trigger, \"auth redirect,\" does not strand: a redirect() inside an action navigates the client rather than rejecting into a stuck state; the real triggers are network blip / server 500 / DB error. Impact is failure-only (happy path is fine) and reload-recoverable, with no data loss or security exposure, which places it at Medium rather than High \u2014 though the main-feed eternal-skeleton with no retry affordance is a legitimate rough edge on the primary surface.",
+  "linesChecked": [
+   "src/components/posts/post-feed.tsx:114-142",
+   "src/components/posts/post-feed.tsx:152-159",
+   "src/components/posts/comments-section.tsx:138-150",
+   "src/components/posts/comments-section.tsx:157-179",
+   "src/components/posts/comments-section.tsx:181-206",
+   "src/components/posts/poll-display.tsx:80-112",
+   "src/components/messages/message-composer.tsx:59-76",
+   "src/components/messages/message-composer.tsx:78-100",
+   "src/components/posts/create-post-form.tsx:497-596",
+   "src/components/catchups/round/entry-love-button.tsx:30-40",
+   "src/app/(main)/feed/actions.ts:764-790",
+   "src/app/error.tsx:1-33"
+  ]
+ },
+ "B-043": {
+  "id": "B-043",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Both halves verified in code. (1) Resumed-draft autosave, create-post-form.tsx:218-227: the setTimeout awaits editPost and only calls onAutosaveState with \"saved\" when result.error is falsy; the failure path is genuinely empty and the await has no try/catch. saveState in letter-desk.tsx (36, 54-56, 71) is driven ONLY by that callback, which is called with \"saving\" (line 220) then conditionally \"saved\"; nothing ever resets it to idle or an error state, so on failure the desk chrome stays on the literal text \"Saving...\" with no toast and no state change. The session-revocation mechanism is real: editPost (feed/actions.ts:376-377) RETURNS an error object (error: \"Not authenticated\"), it does not throw, and auth.ts:277-281 sets session.invalid=true the instant credentialVersion diverges (password reset, block, or delete from another device), so every subsequent autosave silently returns that error. Other error returns are swallowed identically: the verified-member gate (383), the 20000-char letter cap (398-400), Not authorized / Post not found (390-391). A transport rejection of the server-action call is an uncaught promise rejection and \"saved\" never runs either. (2) Fresh letter: the autosave effect bails at line 210 (if !postId return), so /letters/new never autosaves; grep across components/posts, components/letters and the letters routes returns zero beforeunload, localStorage, or sessionStorage, so the composition lives only in React state until the writer explicitly clicks \"Save as draft\" (onDraftSaved then adopts the new row). An in-app Back via the \"All letters\" Link (letter-desk.tsx:41), a refresh, or a session end discards it entirely. I actively searched for a refutation (an error branch, a global unhandled-rejection toast, an unsaved-changes guard, a demo/prod branch) and found none. One precision for the fix session, not a refutation: for a transient network error the next keystroke re-arms the 2.5s timer and a later successful autosave flips back to \"Saved\", so \"stuck indefinitely\" is precise only for a persistent error such as the credentialVersion revocation the finder names, or being offline through the nav-away; that persistent case is exactly what the finding describes, so the data-loss claim holds. Severity High is defensible: it is silent loss of user-authored letter content.",
+  "linesChecked": [
+   "src/components/posts/create-post-form.tsx:209-232",
+   "src/components/posts/create-post-form.tsx:525-546",
+   "src/components/letters/letter-desk.tsx:36",
+   "src/components/letters/letter-desk.tsx:41",
+   "src/components/letters/letter-desk.tsx:54-56",
+   "src/components/letters/letter-desk.tsx:63-81",
+   "src/app/(main)/feed/actions.ts:375-463",
+   "src/lib/auth.ts:277-301"
+  ]
+ },
+ "B-040": {
+  "id": "B-040",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The code confirms the core mechanism. Server side the actions are check-then-write with no try/catch and no runAction wrapper: toggleLike (feed/actions.ts:477-521, findUnique then delete/create), toggleBookmark (533-546), toggleCommentLike (1053-1092), votePoll (284-307), togglePhotoLove (collection/actions.ts:508-518). The uniqueness that makes a concurrent create throw P2002 exists in schema.prisma: Like @@unique([userId,postId]) line 465, Bookmark 428, CommentLike 627, PhotoLove 188, PollVote 616. Client side the shared LoveButton (love-button.tsx:73-79) fires onToggle() on every click with no disabled/pending state, and post-card.tsx handleLike (134-145), letter-engagement.tsx (39-59), comments-section.tsx handleLike (548-558) and photo-love-button.tsx (20-30) each await the action and only branch on result.error, so a thrown Prisma error rejects the await, the revert/toast code never runs, and the optimistic flip is left contradicting the DB. toggleLike/toggleCommentLike deliberately skip revalidatePath, so that desync persists until reload. That is a real unhandled-rejection plus UI-desync defect for 4 of the 5 actions.\n\nTwo adjustments. (1) votePoll is NOT vulnerable to the single-client double-tap the finding describes: poll-display.tsx handleVote (80-82) opens with an in-flight guard, if (submitting) return; setSubmitting(true). votePoll also never deletes so P2025 is impossible there, and it calls revalidatePath('/feed') so any residual race self-heals. Only a cross-tab or cross-device concurrent create could throw P2002 for votePoll, so the finding's 'all five ... double-tap' scope is wrong by one. (2) Stated severity High is overstated: this is concurrency-only, transient, self-healing on reload, with no security exposure, no durable data loss, and no server crash (Next catches the action throw, returns a generic error, and logs it). Medium at most, arguably Low. Caveat: the exact single-client triggerability depends on whether Next serializes two rapidly-dispatched server-action POSTs; even if it does, the cross-tab/cross-device concurrent case still throws unhandled, so the defect stands regardless.",
+  "linesChecked": [
+   "src/app/(main)/feed/actions.ts:465-521",
+   "src/app/(main)/feed/actions.ts:523-547",
+   "src/app/(main)/feed/actions.ts:257-311",
+   "src/app/(main)/feed/actions.ts:1042-1093",
+   "src/app/(main)/collection/actions.ts:500-519",
+   "src/components/posts/post-card.tsx:134-174",
+   "src/components/posts/post-card.tsx:403",
+   "src/components/common/love-button.tsx:51-144",
+   "src/components/collection/photo-love-button.tsx:20-40",
+   "src/components/letters/letter-engagement.tsx:39-59",
+   "src/components/posts/comments-section.tsx:548-558",
+   "src/components/posts/poll-display.tsx:80-112",
+   "prisma/schema.prisma:188",
+   "prisma/schema.prisma:428",
+   "prisma/schema.prisma:465",
+   "prisma/schema.prisma:616",
+   "prisma/schema.prisma:627"
+  ],
+  "liveProofIfNeeded": "On a test account, open the same feed post in two browser tabs, sign in as the same user, and click the heart in both tabs within the same tick (or script two concurrent toggleLike POSTs). One request returns a Prisma P2002 error surfaced as a generic server-action failure with no toast, and the heart is left showing the opposite of the persisted like row until reload. Repeat the delete side (both tabs already liked, both unlike) to observe P2025."
+ },
+ "B-044": {
+  "id": "B-044",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Read create-post-form.tsx in full around state, upload, and submit paths. All four claims hold. (1) Submit CTAs are not gated on upload: line 1087 disabled={!content.trim() || submitting || savingDraft} for Post and line 1059 identical for Save as draft, with uploading absent from both, while the photo control at line 832 IS gated (disabled: images.length >= 3 || uploading). So during an in-flight upload the photo icon disables but Post/Save stay clickable (type=button motion.button, plain onClick calling handleSubmit(false), nothing else blocks). (2) handleSubmit (497-500) only early-returns on !content.trim(); no uploading check and no await on any upload promise. (3) images and uploading are independent useState values (lines 136, 142); handleImageFiles calls setImages exactly once, at line 474, only after the whole sequential batch finishes, so during upload images still holds its pre-upload value ([] for a fresh composer). handleSubmit builds formData synchronously (502-520) with no await before line 508, so it reads that empty images: line 508 if (images.length > 0) is false and formData carries no images, publishing a post without the in-flight photos. (4) Post-success else-branch clears setImages([])/setPreviews([]) at 568-569; the still-running upload's functional updates at 474-475 (setImages((prev) => [...prev, ...uploadedUrls])) then append the finalized URLs to the now-empty arrays, so thumbnails reappear in the collapsed composer (setExpanded(false) at 575) and carry into the next post; finalized R2 WebP objects (uploadViaPresign then finalize, 382-393) are orphaned if never posted. The race window is real given a sequential presign PUT + finalize + server-side WebP per file at a 20MB ceiling. Severity High is appropriate: silent loss of user photos plus cross-post contamination. Mechanism matches the finding exactly.",
+  "linesChecked": [
+   "src/components/posts/create-post-form.tsx:1087",
+   "src/components/posts/create-post-form.tsx:1059",
+   "src/components/posts/create-post-form.tsx:832",
+   "src/components/posts/create-post-form.tsx:497-500",
+   "src/components/posts/create-post-form.tsx:502-520",
+   "src/components/posts/create-post-form.tsx:429-480",
+   "src/components/posts/create-post-form.tsx:561-596",
+   "src/components/posts/create-post-form.tsx:136-148"
+  ]
+ },
+ "B-024": {
+  "id": "B-024",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "High",
+  "confidence": "high",
+  "reasoning": "The mechanism and the headline consequence are real and statically provable; only the \"all 12 / none of the 12\" scoping is wrong, hence ADJUSTED.\n\nWHAT IS CONFIRMED:\n1) Partial-render skip is real in Next 16.3.1. In node_modules/next/dist/server/app-render/walk-tree-with-flight-router-state.js, `renderComponentsOnThisLevel` is false when the client-sent flightRouterState[0] matches the current segment and it is not a 'refetch'; in that case the function does NOT call createComponentTree at that level and instead recurses into the parallel routes. So on a soft navigation between two admin subpages, the shared `admin` segment matches \u2192 AdminLayout is not re-executed \u2192 requireAdminPage() does not run.\n2) The admin pages perform bare Prisma reads with no auth. Verified src/app/(main)/admin/people/page.tsx:20-31 (loadPeoplePage + prisma.user.count, no session read) and src/app/(main)/admin/audit/page.tsx:44-45 (bare prisma reads of AuditLog + failed LoginAttempt telemetry, no session read). lib/admin-people-query.ts:54-105 also has no auth. Grep across all admin page.tsx shows requireAdminPage is referenced ONLY in admin/page.tsx (the overview).\n3) The session callback (src/lib/auth.ts:241-301) reads `role` fresh from the DB on every session read, so a demoted admin's role IS current the moment auth() runs \u2014 but the sub-pages never call auth(), so the fresh-role read never happens on the sub-page RSC path. The layout is the sole gate for those pages, and partial rendering skips it.\n4) Role demotion does NOT bump credentialVersion: adminSetRole (src/app/(main)/admin/people/actions.ts:209-227) does `prisma.user.update({data:{role}})` only; the credentialVersion increment I first saw (admin-actions.ts:29) is in adminBlockUser, a different action. So a demoted admin's JWT stays valid (credentialVersion still matches), and only the layout's fresh-role read would redirect them \u2014 and that is exactly what the soft-nav skips. Consequence #1 (a demoted admin soft-navigating between admin subpages keeps receiving fresh admin data until a hard refresh) is therefore fully proven from code. The authors' own comment at people/actions.ts:23 (\"The admin layout's guard covers navigation\") shows they applied the layout-is-navigation-not-authorisation principle to writes but not to the page READS.\n5) The proxy gates /admin/* only on cookie EXISTENCE (src/proxy.ts:242), so any authenticated member passes it; /admin is not in publicPaths but a logged-in member has a cookie. This is the pre-condition for consequence #2 (a regular member forging an RSC request with a Next-Router-State-Tree that marks the admin layout as already-present, so the server renders only the page segment and skips the gate).\n\nADJUSTMENT (scope/wording): the finding says \"All 12 /admin pages rely on the layout gate\" and \"none of the 12 admin page.tsx files ... call requireAdminPage.\" That is false for one route: the admin OVERVIEW page src/app/(main)/admin/page.tsx:56 DOES call requireAdminPage(), so it is self-guarded even on soft-nav. The correct unguarded set is the OTHER 11 routes (analytics, audit, catchups, content, mail, messages, messages/[id], people, people/[id], reports, support). Everything else in the finding is accurate.\n\nSEVERITY: keep High. The unguarded surfaces expose member PII (People: emails, block/verify state), the security audit trail and failed-login telemetry (Audit), Reports, OutboundEmail (Mail), admin Messages, and Analytics. Consequence #1 (demoted admin, read-only, tab-lifetime window) alone is ~Medium; the High rating rests on consequence #2 \u2014 any authenticated member reading the admin console via a forged RSC request \u2014 which is code-supported here (proxy only checks cookie; pages have no DAL/page-level check). Confirming drives the correct fix (move the role check into each page or, better, a Data Access Layer / the query helpers, per Next.js's own \"do not rely on layouts for auth\" guidance) rather than changing correct code.",
+  "linesChecked": [
+   "node_modules/next/dist/server/app-render/walk-tree-with-flight-router-state.js (renderComponentsOnThisLevel + recurse-without-render branch)",
+   "src/app/(main)/admin/layout.tsx:24-38",
+   "src/lib/admin.ts:27-42,51-82",
+   "src/app/(main)/admin/people/page.tsx:20-31",
+   "src/app/(main)/admin/audit/page.tsx:44-45",
+   "src/lib/admin-people-query.ts:54-105",
+   "src/lib/auth.ts:226-302,390-398",
+   "src/proxy.ts:133-246",
+   "src/app/(main)/layout.tsx:16-51",
+   "src/app/(main)/admin/page.tsx:18,56",
+   "src/app/(main)/admin/people/actions.ts:23,209-227",
+   "src/components/profile/admin-actions.ts:15-29"
+  ],
+  "liveProofIfNeeded": "To airtight-prove consequence #2 (the High-severity path) without touching production data: on local dev or the test DB, sign in as a throwaway NON-admin member, then issue a read-only GET to /admin/audit (or /admin/people) with headers `RSC: 1` and a forged `Next-Router-State-Tree` whose tree matches the segments down through the `admin` layout but marks the page segment as `refetch` (or mismatched). If the response is the page's rendered flight/seed data (audit rows / member rows) rather than a redirect-to-/feed flight response, the layout gate was bypassed and consequence #2 is confirmed. Use a test account only, GET only, never against real member data. Consequence #1 needs no live run \u2014 it is proven from the code above."
+ },
+ "B-045": {
+  "id": "B-045",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "The rail query is genuinely unscoped. letters-module.tsx:22-39 runs `prisma.post.findFirst` with where `{ kind:\"letter\", isHidden:false, groupId:null, ...PUBLISHED_ONLY, createdAt:{gte: now-WEEK} }` \u2014 no cityScope predicate and no viewer/session at all (the function takes no args and never calls auth()). It selects title+content+author and renders letterTitle (falls back to first line of body, utils.ts:349-356), plainExcerpt (up to 160 chars of the body, utils.ts:377-390) and the author name/batch. feed-rail.tsx:35 mounts <LettersModule/> unconditionally, and FeedRail is on the feed for every member. City-scoped letters match this filter exactly: createPost only sets cityScope when there is NO group (feed/actions.ts:120 `if (!groupId && parsed.data.cityScope)`, stored 121-128 after validating it is one of the poster's own UserPlace cities), so every city-scoped letter has groupId=null \u2014 precisely what the rail queries. The composer exposes the city audience for letters (create-post-form.tsx:157 audienceOptions, :507 `formData.set(\"cityScope\", audienceCity)`; LetterDesk passes userPlaces). The reading page blocks out-of-city non-admins: letters/[id]/page.tsx:106 `if (!(await canViewCityScope(letter.cityScope, session.user))) notFound();`, and canViewCityScope (city-scope.ts:33-44) returns false when the viewer has no matching UserPlace and is not admin. The letters INDEX page proves the omission is a mistake, not intent: page.tsx:52 adds `...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] })`, the very filter the rail lacks. I actively looked for a guard (a wrapper that hides the rail, cityScope forced null on letters, a groupId that would exclude them, an admin-only rail) and found none. The finding's bounded scope (only the single newest city-scoped main-feed letter, within the 7-day window) is already stated, so severity/scope are not overstated. Result: title + opening excerpt + author of an author-city-restricted letter are broadcast to all members, and an out-of-city click-through is a guaranteed notFound() \u2014 a real content leak plus teaser-to-404. High is appropriate.",
+  "linesChecked": [
+   "src/components/feed/rail/letters-module.tsx:22-69",
+   "src/components/feed/feed-rail.tsx:35",
+   "src/app/(main)/letters/page.tsx:36-62",
+   "src/app/(main)/letters/[id]/page.tsx:104-106",
+   "src/lib/city-scope.ts:20-44",
+   "src/app/(main)/feed/actions.ts:118-129",
+   "src/components/letters/letter-desk.tsx:21-71",
+   "src/components/posts/create-post-form.tsx:157,507",
+   "src/lib/utils.ts:344-390"
+  ]
+ },
+ "B-047": {
+  "id": "B-047",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The core defect is real and I could not refute it. postSchema.content is a flat z.string().min(1).max(20000) for both kinds (validators.ts:154). createPost validates only through that schema (postSchema.safeParse(raw), actions.ts:91) and stores parsed.data.content directly (actions.ts:158) with no extra plain-post cap, so a 5001-20000 char plain post is accepted. The composer (create-post-form.tsx) is a contentEditable with no length cap; LETTER_NUDGE_LEN=600 (line 63) is only a soft, non-blocking hint (lines 716-734), and the Post button is enabled purely on content.trim() non-empty (line 1087), so a long plain post is creatable through the normal UI. editPost then hard-caps plain posts at 5000: const cap = isLetter ? 20000 : 5000; if (!content || content.length > cap) return { error } (actions.ts:396-399). The plain-post edit path (edit-post-dialog.tsx:41 sends full content, :50 calls editPost, :52 toasts the error) leaves the post unsaveable, so opening the edit dialog and saving even with zero changes is refused with the misleading 'Content must be between 1 and 5000 characters'. No guard, demo/prod branch, or client-side cap rescues it; the edit dialog's RichTextArea has no maxLength (only the letter title does). The asymmetry is not justified by any comment and is not mirrored in createPost, so it reads as an oversight, not deliberate design. Why CONFIRMED-ADJUSTED not CONFIRMED: 'High' overstates it. Reachability needs an atypical input, a plain post over 5000 chars (~800-1000 words), which the composer actively steers toward Letters at 600 chars, so the affected population is small. The consequence is inability to edit (workaround: delete and repost), not data loss, corruption, crash, or any security/authorization impact. That places it at Medium.",
+  "linesChecked": [
+   "src/lib/validators.ts:153-172",
+   "src/app/(main)/feed/actions.ts:48-166",
+   "src/app/(main)/feed/actions.ts:375-403",
+   "src/components/posts/create-post-form.tsx:63",
+   "src/components/posts/create-post-form.tsx:497-596",
+   "src/components/posts/create-post-form.tsx:716-734",
+   "src/components/posts/create-post-form.tsx:1084-1103",
+   "src/components/posts/edit-post-dialog.tsx:39-60",
+   "src/components/posts/edit-post-dialog.tsx:86-93"
+  ]
+ },
+ "B-048": {
+  "id": "B-048",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "linesChecked": [
+   "src/app/(main)/feed/actions.ts:375-463",
+   "src/app/(main)/feed/actions.ts:78-166",
+   "src/app/(main)/feed/actions.ts:201-229",
+   "src/app/(main)/letters/[id]/edit/page.tsx:17-61",
+   "src/components/letters/letter-desk.tsx:21-85",
+   "src/components/posts/create-post-form.tsx:76-118",
+   "src/components/posts/create-post-form.tsx:156",
+   "src/components/posts/create-post-form.tsx:497-596",
+   "src/components/posts/create-post-form.tsx:929-1049",
+   "src/lib/city-scope.ts:1-45",
+   "src/app/(main)/letters/[id]/page.tsx:32-106",
+   "src/app/(main)/letters/page.tsx:52-139"
+  ],
+  "reasoning": "All three cited mechanisms verified in code. (1) editPost (src/app/(main)/feed/actions.ts:447-455) writes only { content, ...(isLetter ? { title } : {}), ...imagesUpdate }; it never reads formData.get(\"cityScope\") and never writes the cityScope column, so a city choice on a resumed draft is silently discarded. The autosave path (lines 218-227) likewise omits cityScope. (2) The edit page select (src/app/(main)/letters/[id]/edit/page.tsx:28-37) fetches id, kind, status, authorId, title, content, images, isHidden \u2014 no cityScope. grep across src confirms no initialCityScope prop exists anywhere; CreatePostForm's audienceCity is useState<string|null>(null) (create-post-form.tsx:156) with no initializer, so a resumed draft always renders with no audience chip and reads as Everyone. (3) onDraftSaved in letter-desk.tsx:72-77 does router.replace to /letters/[id]/edit, remounting CreatePostForm with audienceCity=null, dropping the chip the writer just set. The control is load-bearing, not cosmetic: cityScope enforces real visibility \u2014 canViewCityScope notFound()s non-city viewers on the reading page (letters/[id]/page.tsx:106), cityScopeWhere filters the letters index and feed (letters/page.tsx:52; city-scope.ts:20-27), and the + audience picker is wired on the desk (showMore = audienceOptions.length > 0; formData.set(cityScope, audienceCity) at line 507, which editPost ignores). Net effect confirmed: resuming a city-scoped draft hides the scope (looks like Everyone), and selecting/changing a city on a resumed draft is silently dropped \u2014 including the privacy-relevant direction where a writer restricts a previously-unscoped draft to one city and it nonetheless publishes to everyone. Note: createPost DOES persist cityScope (line 162) and publishDraft preserves it, so the fresh-letter single-sitting sub-case is UI confusion only (data intact) \u2014 exactly how the finder framed point 3 (the chip disappears), so the finding is not overstated. Severity High is appropriate for a silently-failing audience/privacy control with no UI feedback."
+ },
+ "B-049": {
+  "id": "B-049",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Mechanism verified end to end. contacts-editor.tsx:226-229 remove button runs `onChange(rows.filter(...))` then `onCommit()` synchronously in one handler. letterhead-profile.tsx:1173-1177 wires `onChange={setContactRows}` (bare setter) and `onCommit={commitContacts}`, both captured in the SAME parent render. commitContacts (letterhead-profile.tsx:423-429) calls `run(async () => updateContactMethods(rowsToPayload(contactRows)))`; `contactRows` is read directly from that render's closure \u2014 no ref, no functional updater. React does not synchronously update the `contactRows` const when `setContactRows` fires inside an event handler (batched for a later render), so the running commitContacts serializes the PRE-removal array. pen.tsx:348-371 `run` is async but `fn()` executes synchronously up to the first await, so `rowsToPayload(contactRows)` is evaluated with the stale closure value before any yield \u2014 timing does not save it. profile-actions.ts:226-239 `updateContactMethods` is a full-column overwrite (prisma.user.update sets displayEmail/phone/phones/instagram/linkedin/facebook/links from the payload; a replace, not a merge), so the pre-removal list writes the removed value back to the DB. letterhead-profile.tsx:332-334 initializes contactRows via useState(() => buildRows(...)) once; router.refresh() re-runs server components but does NOT re-run the initializer, so the client keeps showing the row as gone while the DB (and the public profile/vCard) still carries it. I searched for refuters \u2014 a ref read inside run, a functional updater, a synchronous flush, an effect resyncing contactRows from refreshed draft, or a merge-style server write \u2014 and none exist. Files, lines, and mechanism in the finding are all accurate; the finder correctly scoped it to the same-tick remove button (blur/keystroke path re-renders first and is safe). One minor nuance: across multiple sequential removals it becomes an off-by-one (each commit persists the prior state, so the most-recently-removed row is the one that survives), but the single-removal case \u2014 the common one and the one described \u2014 drops the removal exactly as claimed. High severity is warranted: a deterministic privacy regression where a member's explicit removal of a phone/email/link silently fails to persist and the PII stays visible to every verified viewer.",
+  "linesChecked": [
+   "src/components/profile/contacts-editor.tsx:226-235",
+   "src/components/profile/contacts-editor.tsx:94-106",
+   "src/components/profile/letterhead-profile.tsx:332-334",
+   "src/components/profile/letterhead-profile.tsx:423-429",
+   "src/components/profile/letterhead-profile.tsx:1173-1177",
+   "src/components/profile/pen.tsx:348-371",
+   "src/components/profile/profile-actions.ts:192-243"
+  ]
+ },
+ "B-050": {
+  "id": "B-050",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Low",
+  "confidence": "medium",
+  "by": "orchestrator (split-verdict resolution)",
+  "reasoning": "Two independent refuters split. Refuter A: REFUTED the High 'private sign-in email leaks' framing \u2014 contactEmail is gated behind maySeeContacts (own-profile OR Stage-2-verified alumni via viewerMaySeeContacts), so it never reaches the public or unverified members; showing an alumni email to verified alumni is the intended 'Get in touch' feature. Refuter B: CONFIRMED-ADJUSTED->Medium the mechanism (page.tsx:177 contactEmail = displayEmail?.trim() || user.email falls back to the sign-in address, feeding the Email method and vCard). ORCHESTRATOR RESOLUTION: the public-leak claim is refuted; the residual real issue is that clearing the profile email row (displayEmail=null) does NOT hide the email \u2014 it falls back to the sign-in address shown to verified alumni, so a member has no way to display NO email. Low: verified-alumni audience only, and an alumni directory showing an alumni email to verified alumni is largely by design; the only genuine gap is the missing 'show no email' option and the surprise fallback.",
+  "linesChecked": [
+   "src/app/(main)/profile/[id]/page.tsx:177",
+   "src/app/(main)/profile/[id]/page.tsx:195",
+   "src/app/(main)/profile/[id]/page.tsx:209-210",
+   "src/components/profile/contacts-editor.tsx:94-126"
+  ]
+ },
+ "B-062": {
+  "id": "B-062",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "linesChecked": [
+   "src/lib/catchups.ts:330-362",
+   "src/lib/catchups.ts:373-384",
+   "src/lib/catchups.ts:402-464",
+   "src/lib/catchups.ts:488-546",
+   "src/lib/catchups.ts:783-835",
+   "src/lib/catchups.ts:844-889",
+   "src/lib/catchups.ts:896-939",
+   "src/lib/catchups-notify.ts:43-108",
+   "src/lib/catchups-notify.ts:132-188",
+   "src/app/(main)/catchups/[catchupId]/answer/page.tsx:128-207",
+   "src/app/(main)/catchups/actions.ts:300-373",
+   "src/app/(main)/catchups/actions.ts:441-475",
+   "src/app/(main)/catchups/actions.ts:692",
+   "prisma/schema.prisma:726-799"
+  ],
+  "reasoning": "The mechanism is real and every cited line checks out. computeStatus (catchups.ts:330-353) and nextEditionStatus (356-362) advance collecting->answering purely on questionsCloseAt timestamps; planNextAction's collecting->answering branch (505-514) returns notify:\"catchup_answers_open\" with no prompt-count input in scope (its only count is entryCount, and even that is loaded only for the answering->preparing decision, advanceEdition 858-864). Prompts (CatchupPrompt = questions) and Entries (CatchupEntry = answers) are distinct models (schema.prisma:745-746, 752-787); shouldExtendForTooFew (382-384) keys on entryCount===0, trivially true with zero prompts (no prompt => no answerable entry). So the full cycle runs on an empty Round: answers-open fires to all members, dueReminder (373-379) fires daily to non-answerers (= all members, catchups-notify.ts:139-141), the too-few rule extends once with another answers-open blast (extendPatch 452-464, applyEditionAction 816-823), then it publishes an empty Round (explicit UI copy exists: round/[editionId]/page.tsx:363 and console-published.tsx:77). openNextRoundIfDue (896-939) gates only on catchup.status===\"active\" (907) and latest.status===\"published\" (913) with no empty-round guard, so a fresh empty collecting Round opens each cadence and the loop self-perpetuates. Round creation explicitly opens collecting with zero prompts as the normal initial state (actions.ts:454-466: \"Round 1 opens straight into collecting with NO questions\"), so the scenario needs only member inaction and is fully reachable. The answer page's misleading copy is confirmed: line 167 gates on status===\"answering\", yet 199-207 tell the viewer to \"Check back once the Keeper has added a few questions\", while submitPrompt refuses outside collecting (actions.ts:692). I could not refute any element. I adjust severity High->Medium: the impact is notification-noise plus a broken ritual, not data loss, a security hole, or a crash. Two facts temper the spam framing: notifyReminder deletes the prior catchup_reminder before creating the new one (catchups-notify.ts:160-164), so reminders self-replace rather than accumulate (at most one standing reminder per user), and answers-open/published are one-time per Round. A genuine, self-perpetuating product-quality defect worth fixing before launch, but Medium fits its blast radius better than High."
+ },
+ "B-063": {
+  "id": "B-063",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Low",
+  "confidence": "high",
+  "reasoning": "Every code fact in the finding is accurate:\n- No self-service leave exists. The only application-code groupMember delete outside the demo seed is removeCatchupMember (actions.ts:1360), which is gated by loadKeeperScope (Keeper-only) and refuses self-removal: `if (userId === session.user.id) return { error: \"You cannot remove yourself.\" };` (actions.ts:1355). A grep across src/ confirms no leaveCatchup/exit/self-removal path.\n- The `off` reminder pref (setReminderPref, actions.ts:1425; CatchupPref.reminderMode, schema.prisma:808, values all|last|off) is consulted ONLY inside notifyReminder, and only when !ctx.bypassOff (catchups-notify.ts:142). The Keeper nudge sets bypassOff, so `off` is skipped (actions.ts:1452 nudgeGroup).\n- The three lifecycle notifications derive recipients straight from groupMemberIds with no pref filter: notifyQuestionsOpen (catchups-notify.ts:82-93), notifyAnswersOpen (96-108), notifyPublished (177-188).\n- createCatchupWithPeople enrols invitedIds directly as GroupMember rows (actions.ts:435-447) with no acceptance step. There is no global user-level notification mute/opt-out anywhere (grep found none).\n\nSo the mechanism is real and unrefuted. However the framing is overstated on three counts, which is why I adjust rather than confirm-as-stated:\n1. \"Irreversible\" is inaccurate. removeCatchupMember IS a working reversal path, and it additionally purges the member's pending catchup notifications (actions.ts:1366-1372). Enrolment is reversible \u2014 just Keeper-initiated, not self-service.\n2. This is largely spec-prescribed design, not a code defect. docs/spec/catchups.md section 5 explicitly lists questions_open / answers_open / published as going to \"all group members\", and explicitly says the Keeper nudge \"bypasses off\". The unilateral, no-acceptance enrolment is the documented WhatsApp-group model (comments at actions.ts:389, 484-497). The code comment at 1342 acknowledges member \"leaving is a different action\" \u2014 a known-unbuilt feature, not an accidental bug.\n3. Blast radius is smaller than \"notifications forever\" implies: these are in-app Notification bell rows only. There is no email path for catchup notifications (email.ts:11 notes \"Catch-up notifications are the next caller\" \u2014 i.e. not yet wired). No inbox spam. Notifications also only fire on cycle transitions, which stop when a Catch-up is paused or ended.\n\nNet: a real product/consent gap (no self-service leave, and the three lifecycle notifications cannot be muted by the member) worth a backlog note, but not a High irreversibility/spam bug. Low is right (Medium defensible on the consent angle); High and \"irreversible\" are wrong.",
+  "linesChecked": [
+   "src/app/(main)/catchups/actions.ts:1300-1378 (removeCatchupMember)",
+   "src/app/(main)/catchups/actions.ts:392-481 (createCatchupWithPeople)",
+   "src/app/(main)/catchups/actions.ts:1425-1459 (setReminderPref, nudgeGroup)",
+   "src/lib/catchups-notify.ts:35-210 (all builders + notifyReminder bypassOff)",
+   "prisma/schema.prisma:804-815 (CatchupPref)",
+   "src/lib/catchups-types.ts:34 (ReminderMode)",
+   "docs/spec/catchups.md section 5"
+  ]
+ },
+ "B-061": {
+  "id": "B-061",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Every load-bearing claim checks out and I found no refuting guard.\n\n1) Pause/end touch ONLY the catchup row, never the in-flight edition. pauseCatchup (actions.ts:591) does catchup.update data:{status:\"paused\"}; endCatchup (actions.ts:645-648) does data:{status:\"ended\", nextOpensAt:null}. Neither writes catchupEdition, so the live edition keeps its collecting/answering/preparing status.\n\n2) The advance engine ignores catchup.status. advanceDueCatchups (catchups.ts:956-964) selects editions on status in [collecting,answering,preparing] with catchup: scope, where scope is membership-only (line 954) with no status filter. planNextAction/nextEditionStatus (catchups.ts:356-546) are pure over edition timing and never read catchup status (grep confirms the only catchupStatus references are the type def, loadMeta, and line 802). In applyEditionAction (catchups.ts:794-834) the transition updateMany (796) and the reminder updateMany (827) run unconditionally, and notifyAnswersOpen/notifyPublished/notifyReminder all fire regardless of status. The ONLY catchupStatus gate is line 802 \"if (action.setsNextOpensAt && meta.catchupStatus === active)\", which merely suppresses scheduling the NEXT round, exactly matching the banner copy \"No new Round opens until it is resumed.\" The preparing->published action carries notify:\"catchup_published\" and setsNextOpensAt:true (catchups.ts:515-523), so a paused/ended round still auto-publishes and notifies everyone, only skipping the next-round schedule.\n\n3) The engine really runs on nearly every page: advanceDueCatchups(userId) is called from the (main) layout (layout.tsx:47) and the catchups index (catchups/page.tsx:63); the answer page even calls advanceEdition directly (answer/page.tsx:60). So advancement and notification of paused/ended catchups is triggered by any member's ordinary browsing.\n\n4) The notify layer has no catchup.status suppression: notifyReminder (catchups-notify.ts:132) fires daily to all non-answerers filtered only by per-user reminderMode pref, and notifyPublished (177)/notifyAnswersOpen (96) fan out to all group members.\n\n5) Answering stays open while paused. submitEntry (actions.ts:1115-1121) checks membership + edition.status !== \"answering\" only, never edition.catchup.status. The answer page (answer/page.tsx:81) redirects only on edition.status !== \"answering\", no catchup.status check, so the notification link still lands on a working AnswerExperience.\n\n6) UI contradictions confirmed: catchup-home-shell.tsx:57 replaces the whole console with PausedOrEndedBanner when catchupStatus !== \"active\", yet editionView (with countdownLabel) is built for any freshLatest regardless of catchup.status ([catchupId]/page.tsx:291-364), and the header at :512-516 prints \"${title} \u00b7 ${countdownLabel}\" with no status guard. So a paused catchup shows a live \"3 days left\" countdown above a \"paused\" banner while daily \"answers are open\"/reminder notifications keep arriving.\n\nNet: pause only stops the NEXT round; the current round keeps advancing, publishing, and spamming daily reminders, and answers are still accepted. Ending is worse, the in-flight round auto-publishes and notifies everyone after the keeper \"ended\" it. Mechanism, files, and scope all match the finding. Severity High is defensible for a pre-release core-feature consistency/notification-spam bug (no data-loss/security impact, but 7-10 days of contradictory daily notifications plus post-\"ended\" auto-publish).",
+  "linesChecked": [
+   "src/lib/catchups.ts:950-992",
+   "src/lib/catchups.ts:783-835",
+   "src/lib/catchups.ts:844-889",
+   "src/lib/catchups.ts:896-923",
+   "src/lib/catchups.ts:356-546",
+   "src/lib/catchups.ts:744-772",
+   "src/app/(main)/catchups/actions.ts:575-652",
+   "src/app/(main)/catchups/actions.ts:1095-1169",
+   "src/app/(main)/catchups/[catchupId]/page.tsx:291-364",
+   "src/app/(main)/catchups/[catchupId]/page.tsx:509-520",
+   "src/components/catchups/home/catchup-home-shell.tsx:52-63",
+   "src/app/(main)/catchups/[catchupId]/answer/page.tsx:58-85",
+   "src/lib/catchups-notify.ts:96-190",
+   "src/app/(main)/layout.tsx:47",
+   "src/app/(main)/catchups/page.tsx:63"
+  ]
+ },
+ "B-080": {
+  "id": "B-080",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The core defect is real. In support-contribute.tsx the try/catch in pay() covers only loadCheckout() (lines 111-117); line 119 `await startContribution(amount)` is a bare await, and in the Razorpay handler (lines 161-178) `const confirmed = await confirmContribution(res)` (line 162) is also bare. Both callbacks are fire-and-forget (onClick=pay and Razorpay's handler; neither consumes the returned promise), so if either server action REJECTS (as opposed to returning {error}), it is an unhandled rejection and setWorking(false) never runs. The success path deliberately keeps working=true (comment lines 173-174), so a rejection strands the button on the disabled 'Opening' spinner until a page reload. The rejection paths are realistic: in startContribution actions.ts:53-125, `auth()` (line 54) and `prisma.user.findUnique` (lines 81-84) sit OUTSIDE the try that begins at line 86, so a transient pooler/auth DB error throws to the client instead of returning the friendly {error}; and confirmContribution (actions.ts:136-178) has NO try/catch at all, so any throw from auth(), verifyPaymentSignature, findUnique or update rejects the client promise. So \"button stuck on 'Opening' forever with no toast/redirect\" is accurate.\\n\\nHowever the finding is overstated on mechanism and severity. (1) \"no receipt / after money moved\" is wrong: /api/razorpay/webhook/route.ts independently marks the Contribution row paid server-to-server for exactly this \"lose signal after the UPI app confirms\" case (webhook header comment lines 1-15; confirmContribution comment lines 133-134 notes the two paths race and 'paid' is terminal), so the payment IS recorded and the bird perk IS granted even when the callback dies. And Razorpay emails its own receipt independent of this callback \u2014 the app's own success toast (line 175) literally says the receipt comes \"from Razorpay\". So no money and no receipt are lost. (2) The startContribution path (line 119) fires before any charge, so \"after money moved\" does not apply there at all. The genuine harm is therefore a confusing stuck/disabled spinner with no in-app confirmation or redirect after an otherwise-successful, money-safe payment \u2014 a real UX bug, but Medium, not the money-loss High implied.",
+  "linesChecked": [
+   "src/components/support/support-contribute.tsx:107-124",
+   "src/components/support/support-contribute.tsx:161-193",
+   "src/components/support/support-contribute.tsx:173-175",
+   "src/app/(main)/support/actions.ts:53-125",
+   "src/app/(main)/support/actions.ts:81-86",
+   "src/app/(main)/support/actions.ts:136-178",
+   "src/app/api/razorpay/webhook/route.ts:1-99",
+   "src/lib/razorpay.ts:117-127"
+  ]
+ },
+ "B-071": {
+  "id": "B-071",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "The mechanism is real and accurately described. dailyBudget() (email-queue.ts:257-260) derives used ONLY from count where status is \"sent\" and sentAt >= startOfUtcDay(); remaining and verifyRemaining (261-266) come straight off that count, and it is the single budget gate used by drainMailQueue (452,462) and verificationMailState (589). The Resend webhook bounce patch (webhook/route.ts:110-124) and complaint patch (126-130) both set status=\"failed\" and never touch sentAt; updateMany at 140-143 applies it by providerId. schema.prisma:344 and 374 confirm status and sentAt are independent columns, so a row sent today (sentAt=today) that bounces becomes status=\"failed\" with sentAt still set to today, and it silently drops out of the used count. Because Resend meters on ACCEPTED messages (the code's own comment at email-queue.ts:74-77 says \"Resend counts what IT accepted\"), the original send already spent Resend's real quota and a bounce does NOT refund it, yet the app's used count decrements, so each same-day bounce/complaint resurrects one app-side budget slot. With DAILY_CAP=95 vs Resend's real 100 (headroom of 5), more than ~5 same-day bounces pushes the app past the real cap; the excess sends are hard-rejected (sendMail returns not-ok, so those rows get no sentAt and never restore the count), and each rejection burns an attempt toward terminal MAX_ATTEMPTS=4 failure in claimAndSend (222-236). This is precisely the launch scenario the webhook file cites (route.ts:5-7: hundreds of invitations, half bouncing off stale addresses); hard bounces off dead addresses return within minutes, so same-day undercounting is realistic and can breach RESET_RESERVE=20, failing the resets the reserve exists to protect. mailHealth.sentToday (502-505) uses the identical status=\"sent\" filter, so the admin panel under-reports the day the same way. I searched for refutations and found none: there is no compensating count of bounced-today rows, no clearing of sentAt anywhere, and no second budget source. Note: two of the finding's citations are irrelevant red herrings (actions.ts:297 is a catchupEntry merge updateMany; schema.prisma:789 is the CatchupEntry unique constraint), but every load-bearing citation is accurate and the core claim stands. Severity High is defensible because the bug defeats the reserve exactly in the launch-day, near-cap condition the whole queue was engineered for.",
+  "linesChecked": [
+   "src/lib/email-queue.ts:74-105",
+   "src/lib/email-queue.ts:159-238",
+   "src/lib/email-queue.ts:257-267",
+   "src/lib/email-queue.ts:438-487",
+   "src/lib/email-queue.ts:496-510",
+   "src/lib/email-queue.ts:564-612",
+   "src/app/api/resend/webhook/route.ts:87-155",
+   "prisma/schema.prisma:330-387",
+   "src/app/(main)/admin/people/actions.ts:270-320"
+  ]
+ },
+ "B-081": {
+  "id": "B-081",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "All load-bearing claims verified in code. webhook/route.ts:72-83 payment.captured branch is a single prisma.contribution.update({status:\"paid\",...}) with no Notification, no email, no revalidatePath \u2014 grep for notification|outboundemail|sendemail across src/app/api/razorpay/, support/, components/support/ returns NONE. support/page.tsx: the sole <Link href=\"/pick-bird\"> in the whole app (grep) is at line 141, gated by {isAdmin && (...)} (line 140); the comment at 121-125 explicitly says \"No standing door to /pick-bird here, even for members who have already contributed: the ONLY way in is the redirect after a successful payment (owner).\" The page only computes recoveredPaise (global sum) and isAdmin; it never reads the viewer's own contributions, so no supporter-aware pick UI can appear on a later visit. The only member path to /pick-bird is router.push(\"/pick-bird\") at support-contribute.tsx:177, inside Razorpay's browser success handler \u2014 it runs only if the tab survives to invoke confirmContribution. The webhook's own header (route.ts:3-7) says it exists precisely for the tab dying on the 3-D Secure page or losing signal after the UPI app confirms \u2014 i.e. exactly when that redirect never fires. pick-bird/page.tsx:52-67 would admit the member: PERK_MIN_PAISE = 500*100 = 50000 (plate-data.ts:104), a single \u20b9500 webhook-marked payment meets the floor, and with birdPickedAt null there is no fresh-pick redirect back to /support. So money is recorded, the recovery bar advances (page.tsx:38-44), the gate would let them in, yet nothing ever navigates them there and nothing notifies them \u2014 they must guess the /pick-bird URL. Compounding cases confirmed: expired session makes confirmContribution return {error:\"Not authenticated\"} (actions.ts:141-142), and any error path hits support-contribute.tsx:163-167 `if (\"error\" in confirmed){...return}` which skips router.push while the webhook still pays the row. No refuting guard found: no notification/email anywhere in the payment path, no nav/profile/banner link to /pick-bird (content-column.tsx:39 is a layout-width list, not a link), and the pick never expires (chooseBird has no TTL), so it is recoverable only if the URL is ever discovered. Mechanism and scope are as stated. Severity is the one soft spot: no money is lost, the perk is a cosmetic bird avatar, and it is indefinitely recoverable, which could argue Medium; but it is a silent, self-service-impossible perk failure on paid transactions in a common Android/UPI tab-death scenario, so the stated High is defensible. Verdict CONFIRMED as stated.",
+  "linesChecked": [
+   "src/app/api/razorpay/webhook/route.ts:29-99",
+   "src/app/(main)/support/page.tsx:26-45",
+   "src/app/(main)/support/page.tsx:99-149",
+   "src/components/support/support-contribute.tsx:107-193",
+   "src/app/(main)/pick-bird/page.tsx:25-68",
+   "src/app/(main)/support/actions.ts:136-256",
+   "src/components/support/plate-data.ts:104",
+   "src/components/layout/content-column.tsx:29-54"
+  ]
+ },
+ "B-072": {
+  "id": "B-072",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "medium",
+  "reasoning": "The code-level premise is verified and correctly located; only the severity/framing is overstated, so CONFIRMED-ADJUSTED to Medium. CONFIRMED mechanics: there is NO global coordination of any kind. I grepped email-queue.ts and email.ts for a draining/in-flight flag, pg advisory lock, SELECT..FOR UPDATE SKIP LOCKED, semaphore/mutex, rate limiter, sleep/backoff, and 429 handling and found none. The only synchronization is the optimistic per-row claim in claimAndSend (email-queue.ts:160-164): updateMany where {id, status:queued}, count===0 => lost-claim. That dedups a SINGLE ROW across passes but does not serialize passes or bound send rate. All three uncoordinated triggers are real: layout after(drainMailQueue) on every authenticated render (layout.tsx:63-69), scheduleDrain() in enqueueMail (email-queue.ts:350), and a third concurrent send path via claimAndSend inside verificationMailState on the read path (email-queue.ts:597-600). The lost-claim comment (481-482) confirms parallelization: K concurrent passes each skip the taken row and send a DIFFERENT queued row, so sends fan out with no rate ceiling. BATCH=8 (line 96) only bounds one pass's serial for-loop, not aggregate concurrency. sendMail (email.ts:180-200) makes one Resend call and returns any provider error uniformly with NO 429 backoff; claimAndSend treats any !ok as a spent attempt (162 increments attempts; 173-174 computes afterFailure; 222-226 persists), so after MAX_ATTEMPTS=4 (line 105) the row goes terminally failed, meaning a sustained burst CAN permanently fail verify/reset mail. The budget-overshoot sub-claim is real too: dailyBudget counts only status:sent (258-260), never sending, so the per-iteration check (462-463) is check-then-act and K in-flight sends can overshoot DAILY_CAP=95. Even modest concurrency (a handful of simultaneous authed requests during active draining, each firing serial sends) exceeds a ~2 rps Resend limit, so 429s are likely, not rare. WHY ADJUSTED DOWN from High: (1) total volume is HARD-capped at 95/day, so this is a bounded, self-limiting burst, not an unbounded-volume storm; (2) transient 429s largely self-heal because a failed send requeues (afterFailure=queued while attempts<4) and later drains retry once concurrency subsides; terminal failure needs ~4 repeated 429s on the same row during a sustained burst; (3) the overshoot-past-the-5-headroom (i.e. past Resend's 100/day) needs 6+ simultaneous in-flight sends at the exact budget boundary, a narrow race, since budget is re-read every loop iteration. Net: a genuine reliability gap (no concurrency control / no rate limiting / no 429 backoff around a rate-limited external API with multiple triggers) that warrants a fix, but the realistic launch-day impact is Medium, not High.",
+  "linesChecked": [
+   "src/app/(main)/layout.tsx:35-69",
+   "src/lib/email-queue.ts:159-238",
+   "src/lib/email-queue.ts:257-267",
+   "src/lib/email-queue.ts:340-377",
+   "src/lib/email-queue.ts:438-487",
+   "src/lib/email-queue.ts:564-612",
+   "src/lib/email.ts:122-201"
+  ],
+  "liveProofIfNeeded": "Safe settling proof (no prod writes): on a local/staging deploy with a Resend TEST/sandbox key and EMAIL_DEV_SEND=1, seed ~120 queued verify rows, then fire ~10 concurrent authenticated GET requests to any (main) route (each triggers after(drainMailQueue)); capture the outbound Resend request timestamps and count HTTP 429s plus any rows that reach status=failed with attempts=4. A 429 count above zero and >2 sends within any 1s window confirms the rate breach; a failed row confirms the attempt-burn-to-terminal harm."
+ },
+ "B-091": {
+  "id": "B-091",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The core mechanism is real. src/app/api/places/search/route.ts:99-109 folds `OR \"altNames\" ILIKE ${containsPattern} ESCAPE '\\\\'` into the WHERE for raw.length>=4. `altNames` has no index of any kind: prisma/schema.prisma:636 is a bare `altNames String?`, the only Place indexes are `@@index([asciiName])`/`@@index([name])` (schema:652-653), the live equivalents are expression btrees `lower(\"asciiName\")`/`lower(\"name\")` with text_pattern_ops (2026-07-18-round6.sql:30-31), and a grep for altNames/pg_trgm/GIN across prisma/migrations-manual/*.sql finds no trigram or GIN index. A leading-wildcard ILIKE on an unindexed column is not indexable, and Postgres can only build a BitmapOr when EVERY OR arm is indexable; with one non-indexable disjunct the planner must Seq Scan the whole Place table and evaluate the OR (with two lower() calls plus the ILIKE) per row. So \"4+ char queries full-scan the 234,934-row table\" is CONFIRMED, and the route's own comment (lines 20-23) admits it. Two things are wrong/overstated, hence ADJUSTED: (1) \"on every keystroke\" is refuted \u2014 src/components/common/location-picker.tsx:126 sets DEBOUNCE_MS=250 and the effect (147-171) resets the timer each keystroke via clearTimeout and aborts the prior fetch, so a normal typist fires roughly ONE request per settled city name, not one per keystroke; the finder's \"~3 requests/s\" and the \"15-25 simultaneous typers saturate every server connection\" chain are built on that refuted premise plus a speculative 80-200ms/query. (2) The High severity rests on unverifiable arithmetic: the true cost of a 234k-row seq scan (narrow rows, likely warm cache, LIMIT 8) is plausibly tens of ms, and pool_size/concurrency are assumptions. rate-limit.ts:94 confirms search=120/min but that only caps one abuser. The defect (an unindexed OR arm forcing a full-table scan per city search) is real and worth fixing \u2014 a pg_trgm GIN on altNames or dropping the arm \u2014 but the code alone supports Medium, not the site-wide-hang High. The connection-saturation claim is UNPROVABLE-STATICALLY: settling it needs EXPLAIN ANALYZE of the exact query on the live gazetteer, which must not be run against the shared prod DB.",
+  "linesChecked": [
+   "src/app/api/places/search/route.ts:75-135",
+   "prisma/migrations-manual/2026-07-18-round6.sql:18-31",
+   "prisma/schema.prisma:632-654",
+   "src/components/common/location-picker.tsx:126-174",
+   "src/lib/rate-limit.ts:86-95"
+  ],
+  "liveProofIfNeeded": "Read-only, no writes: run `EXPLAIN (ANALYZE, BUFFERS) SELECT id,name,admin1,country,lat,lng FROM \"Place\" WHERE lower(\"asciiName\") LIKE 'chennai%' OR lower(\"name\") LIKE 'chennai%' OR \"altNames\" ILIKE '%chennai%' ORDER BY (...) LIMIT 8;` against a non-prod copy (or a read replica) to confirm the plan node is `Seq Scan on \"Place\"` and to measure actual execution time; then compare the same query without the altNames disjunct to confirm it switches to a BitmapOr/Index Scan. That settles both the seq-scan claim and the per-query cost the severity depends on."
+ },
+ "B-090": {
+  "id": "B-090",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The finding's factual core is fully verified. schema.prisma confirms every cited FK is unindexed: Like has only @@unique([userId, postId]) (:465), no postId index; Comment has only postId-leading indexes (:453-454), no parentId index; PollVote has only @@unique([userId, postId]) (:616) so pollOptionId (:608) and second-column postId are unindexed; PollOption (:596-604) has NO @@index at all; CommentLike has only @@unique([userId, commentId]) (:627); PhotoLove has only @@unique([userId, photoId]) (:188); Post (:389-417) indexes groupId/kind/createdAt only, authorId FK (:405) unindexed. A btree leading with userId cannot serve a WHERE postId=? seek, and Postgres does not auto-index FK columns. The cited query sites all exist and run these predicates: feed/actions.ts:859 counts likes per page on every feed load; :893 orderBy {likes:{_count:desc}} with offset paging (:900) re-aggregates candidate posts per page; :996 same _count on saved posts; letters/page.tsx:58 same per letter; account-purge.ts:99-102 runs $transaction([report.deleteMany, user.delete]) where user.delete cascades User->Post (FK onDelete:Cascade :405) -> Like (:463), so each deleted post fires an RI cascade that must locate Like rows WHERE postId=? with no usable index, i.e. a seq scan per post. I actively tried to refute via the project's manual-migration path (indexes added to the shared DB but absent from schema.prisma): I grepped every CREATE INDEX in prisma/migrations-manual/*.sql and scripts/ and confirmed NONE targets any of these seven columns, so the indexes are genuinely absent from the live DB, not just the file. So the diagnosis is correct and the remedy (add these indexes) is warranted. I ADJUST severity High->Medium because it is a purely latent performance/scalability issue with no correctness, data-loss, or security consequence, invisible at the current pre-launch scale, and some quantified impact is overstated: the read-path counts are one aggregate seq-scan of Like per feed/letters/saved load (not a per-post nested-loop), which at ~200k rows is tens of ms, and the cascade worst case (~500 posts x seq scans) is seconds-to-tens-of-seconds, not the 'minutes' the finder asserts, and few members will have hundreds of posts. It is a real pre-scale hazard worth fixing cheaply (a handful of CREATE INDEX statements), with the unattended retention-sweep purge holding a pooled connection being the most legitimate concern, but not High.",
+  "linesChecked": [
+   "prisma/schema.prisma:180-189 (PhotoLove: only @@unique userId,photoId)",
+   "prisma/schema.prisma:431-455 (Comment: postId-leading indexes only, no parentId)",
+   "prisma/schema.prisma:457-466 (Like: only @@unique userId,postId)",
+   "prisma/schema.prisma:389-417 (Post: no authorId index; author FK onDelete:Cascade)",
+   "prisma/schema.prisma:596-617 (PollOption no index; PollVote only @@unique userId,postId)",
+   "prisma/schema.prisma:619-628 (CommentLike: only @@unique userId,commentId)",
+   "src/app/(main)/feed/actions.ts:859,893,900,996",
+   "src/app/(main)/letters/page.tsx:58",
+   "src/app/(main)/feed/actions.ts:1147",
+   "src/lib/account-purge.ts:88-113",
+   "prisma/migrations-manual/*.sql (grepped all CREATE INDEX; none on the 7 columns)"
+  ]
+ },
+ "B-093": {
+  "id": "B-093",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Every cited claim checks out and I found no guard, cron, TTL, trigger, or cascade that bounds these tables. retention.ts KEEP_DAYS (lines 23-40) and its sweep body (lines 73-107) cover exactly seven table categories (adminMessage, report, contribution, notification, loginAttempt, auditLog, outboundEmail) plus the 60-day account purge \u2014 no visit or searchLog delete. prune.mjs deletes only \"Notification\" (lines 64-75) and its header (lines 5-9) still claims \"Nothing else here grows unbounded,\" now false. docs/SECURITY.md retention table (lines 80-88) lists none of Visit/SearchLog. Repo-wide grep for visit.deleteMany/searchLog.deleteMany/DELETE FROM \"Visit\"/\"SearchLog\" returns zero hits outside src/generated (Prisma type surface). prisma/migrations-manual/2026-08-19-presence.sql and presence-detail.sql create the tables and indexes (PK, endedAt, [userId,endedAt] on Visit; [scope,createdAt] and [query] on SearchLog) with no cleanup trigger or pg_cron. Both tables are actively written: last-seen.ts:119 upserts a Visit keyed on the per-session x-visit-id cookie (one row per member-session, from the (main) layout on every authed page), search-log.ts:72 creates SearchLog rows with a 60s dedupe; admin-analytics.ts only reads them (findMany/groupBy/count). Account deletion only handles per-account rows (Visit onDelete Cascade, SearchLog SetNull), which does not bound aggregate growth from active members. The schema's own ContentView comment (schema.prisma:1012-1018) shows the team deliberately chose a bounded counter to avoid exactly this per-view firehose, but the per-session Visit log was left uncapped. Severity High is defensible given the hard 500MB free tier shared with production; the only caveat is that growth is gradual (year-plus runway) rather than an immediate failure, and the fix is trivial \u2014 but neither refutes the finding.",
+  "linesChecked": [
+   "src/lib/retention.ts:23-40",
+   "src/lib/retention.ts:61-107",
+   "scripts/ops/prune.mjs:5-9",
+   "scripts/ops/prune.mjs:64-77",
+   "prisma/schema.prisma:925-974",
+   "prisma/schema.prisma:986-1004",
+   "prisma/schema.prisma:1012-1018",
+   "docs/SECURITY.md:80-88",
+   "src/lib/last-seen.ts:117-162",
+   "src/lib/search-log.ts:50-72",
+   "src/lib/admin-analytics.ts:387-557",
+   "prisma/migrations-manual/2026-08-19-presence.sql:14-43",
+   "prisma/migrations-manual/2026-08-19-presence-detail.sql:23-46",
+   ".github/workflows/retention.yml"
+  ]
+ },
+ "B-092": {
+  "id": "B-092",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Read directory/page.tsx in full and directory-client.tsx. Every load-bearing claim is verified. (1) page.tsx:294-298 `prisma.user.findMany({ where: pinWhere, select: PIN_SELECT, orderBy: [...] })` has NO `take` \u2014 and it is the only Promise.all findMany without one; the grid query directly above (pageRows, :281-287) DOES take PAGE_SIZE+1, confirming the pins query is intentionally unbounded. In the default unfiltered view pinWhere = { isBlocked:false, deletionRequestedAt:null, places:{ some:{} } } (:245-251), i.e. every located member, each with its full places array (PIN_SELECT :53-56). (2) buildPins :149-164 creates a fresh PinPerson per resolved city key and does existing.people.push(person) (:160), each also carrying an otherCities array (:151-155) \u2014 a member with N mapped cities is serialized N times. (3) DirectoryClient is a client component (\"use client\" directory-client.tsx:1); cityPins/unmappedPeople are passed as props (page.tsx:344-350), so they serialize into the RSC flight payload on every load regardless of active view (client only conditionally renders <AlumniMap> at :570, which does not shrink the serialized props). (4) Filters navigate: updateFilters -> router.push('/directory?...') (directory-client.tsx:166), a full server re-render re-running the 7-query Promise.all each change. (5) Under namesLocked the mapped query and buildPins still run (page.tsx:328); people are only stripped afterward (:333-336). No cache/revalidate config exists to avoid re-execution; the page is dynamic on searchParams. Refutation attempts failed: the map genuinely needs all located members for accurate pin counts (documented :238-244), so the unbounded fetch is partly inherent, but the per-person detail (photoUrl, jobTitle, otherCities) being serialized upfront for all pins is the real over-fetch and is exactly what the finding flags. One minor scope overstatement: a FILTERED change narrows pinWhere so its payload shrinks; the full ~0.5-1.5MB case is the unfiltered default landing \u2014 which is also the default Map view (:114-116), the first surface a user hits, so the practical impact stands. Severity High is defensible for a pre-release audit scoped to 2k-user headroom on Indian mobile connections. The ~0.5-1.5MB figure is an estimate, not measured, but plausible for ~12-field objects times members times cities.",
+  "linesChecked": [
+   "src/app/(main)/directory/page.tsx:245-251",
+   "src/app/(main)/directory/page.tsx:294-298",
+   "src/app/(main)/directory/page.tsx:42-57",
+   "src/app/(main)/directory/page.tsx:92-169",
+   "src/app/(main)/directory/page.tsx:280-310",
+   "src/app/(main)/directory/page.tsx:328-350",
+   "src/components/directory/directory-client.tsx:1",
+   "src/components/directory/directory-client.tsx:158-169",
+   "src/components/directory/directory-client.tsx:181-193",
+   "src/components/directory/directory-client.tsx:344-350",
+   "src/components/directory/directory-client.tsx:570-576"
+  ]
+ },
+ "B-100": {
+  "id": "B-100",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The mechanism is exactly as described and I could not refute it.\n\n- src/lib/utils.ts:151-157 `formatDisplayDate` = `new Date(date).toLocaleDateString(\"en-GB\", { day, month, year })` with NO timeZone option. Confirmed verbatim.\n- src/lib/utils.ts:21-25 `formatTimeAgo` >4-week fallback = `date.toLocaleDateString(\"en-IN\", {...})`, also no timeZone. Confirmed.\n- With no timeZone arg, toLocaleDateString uses the runtime's default zone. Vercel serverless Node defaults to UTC and I found NO override: grep for `process.env.TZ`, `TZ=`, `Asia/Kolkata` across src/, next.config.ts, vercel.json and .env turns up only the deliberate per-call `timeZone: \"Asia/Kolkata\"` in wordle.ts:20, admin/mail/page.tsx:99 and admin-analytics.ts:584-585 (SQL `AT TIME ZONE`). That the codebase explicitly compensates for IST in those three places while these two helpers do not is affirmative evidence they are inconsistent oversights, not a global-TZ safety net.\n- The call sites render on the server: letters/page.tsx is `export default async function LettersPage()` with prisma queries and no \"use client\"; it calls `formatDisplayDate(l.createdAt)` at line 163. letters/[id]/page.tsx uses the same pattern inline at :165 and `formatDisplayDate` at :188. admin/support/page.tsx:222 and admin/catchups/page.tsx:136 are both async server page components (`import type { Metadata }`, no \"use client\") calling formatDisplayDate. So the string is computed once, server-side, in UTC and shipped identically to every viewer \u2014 not re-derived client-side. No hydration path reformats it.\n- Arithmetic checks out: a timestamp at 00:30 IST 15 Jun = 19:00 UTC 14 Jun, so UTC renders \"14 Jun\". The window where the IST calendar day leads UTC is 00:00\u201305:30 IST (at 05:30 IST = 00:00 UTC they realign), i.e. 5.5/24 \u2248 23% of the clock, rendering one day EARLY. Direction and window are correct.\n\nTwo scope refinements (why ADJUSTED, not a clean CONFIRMED at the stated severity):\n1. formatTimeAgo only reaches the un-zoned branch for content older than 4 weeks; fresher items use relative durations (\"5m ago\", \"3d ago\") which are timezone-independent. The finder does note this in the body, so it's honest, but the umbrella phrasing \"sitewide\" is truer of formatDisplayDate than of formatTimeAgo.\n2. Severity: this is a purely cosmetic off-by-one calendar-day display with no functional, security, data-integrity, or crash impact. Stated as High; a wrong-by-a-day byline/date is a genuine factual error but I judge it Medium. The fix (add `timeZone: \"Asia/Kolkata\"` to both helpers, matching wordle.ts) is warranted regardless. The finding's substance is fully real; only the High rating is generous.",
+  "linesChecked": [
+   "src/lib/utils.ts:8-26",
+   "src/lib/utils.ts:150-157",
+   "src/lib/wordle.ts:18-21",
+   "src/app/(main)/letters/page.tsx:1-11,30-32,163",
+   "src/app/(main)/letters/[id]/page.tsx:163-189",
+   "src/app/(main)/admin/support/page.tsx:1-5,220-224",
+   "src/app/(main)/admin/catchups/page.tsx:1-5,130-140",
+   "src/components/messages/thread-list.tsx:1-3,70",
+   "next.config.ts:1-243"
+  ]
+ },
+ "B-110": {
+  "id": "B-110",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The core technical claim is fully accurate. src/app/(auth)/onboarding/actions.ts:6-30 (read in full) does exactly what the finder quotes: it takes seven fields (bio, currentCity, workplace, jobTitle, phone, instagram, linkedin), does `value.trim()` and nothing else, then `prisma.user.update({ where: { id: session.user.id }, data })`. No Zod, no `.max()`, no `normalizePhone`, no import of validators. The only auth is `if (!session?.user?.id)`. next.config.ts:111-112 confirms serverActions.bodySizeLimit \"25mb\" (and :122 proxyClientMaxBodySize \"25mb\"), so an authenticated POST body of many MB is accepted. The write is self-scoped (where id = own session id), so no cross-user write, no priv-esc, no data exposure. Prisma String maps to Postgres text (no length limit), so an oversized value persists. Directory amplification is real: src/app/(main)/directory/actions.ts:9-22 PERSON_SELECT includes currentCity, jobTitle, workplace, so a poisoned value is serialized to viewers \u2014 but bounded: reads are gated by requireVerifiedEmail() (line 59) and keyset-paginated 60-per-page (PAGE_SIZE=60, line 7), so a poisoned profile bloats only the page(s) it lands on, not one monolithic payload.\n\nTwo ways the finding is overstated, hence ADJUSTED:\n1) SCOPE. The finder frames this as \"the /onboarding page's server action,\" implying it is the live onboarding flow. It is not. The live post-signup flow is /welcome (signup-client.tsx:411 hands off to /welcome; welcome/page.tsx uses OnboardingFlow whose actions are the fully-Zod-validated src/components/onboarding/actions.ts, workplace/jobTitle capped at 100). welcome/page.tsx:13-18 states verbatim that (auth)/onboarding is \"dead code today \u2014 it is not linked from anywhere.\" My grep confirms zero router.push/redirect/href to /onboarding anywhere in src or e2e; the only hits are comments, lab rooms, and the demo-closed list. So practical reachability is not \"every onboarding user\" but \"a signed-in member who deliberately navigates to a forgotten route or crafts a direct server-action POST.\" The action IS still live/invokable (page.tsx is a real route at /onboarding, imports and binds updateProfile, so it is registered with an action id and reachable by an authenticated POST), so the bug is genuinely reachable \u2014 just not on any normal path.\n2) SEVERITY. High overstates it. This is an authenticated, self-scoped, missing-input-validation write on a dead route; worst realistic impact is bounded directory-payload bloat / data-hygiene (un-normalized phone), a griefing/resource vector requiring a verified account to self-poison its own visible fields. That is Medium, not High. Minor citation nit: the finder cites proxy.ts:33 as reachability evidence, but that line is the DEMO_CLOSED_PATHS entry (demo closes /onboarding); in the real app /onboarding is simply not in publicPaths, so it requires a session \u2014 consistent with \"signed-in account,\" but it is not \"listed public.\"\n\nReal bug, correct mechanism; fix (add caps / normalize, or better, delete the dead route+action per the simplification pass) is warranted at Medium.",
+  "linesChecked": [
+   "src/app/(auth)/onboarding/actions.ts:6-30",
+   "src/app/(auth)/onboarding/page.tsx:16,26,50-54",
+   "next.config.ts:105-123",
+   "src/proxy.ts:24-43,189-240",
+   "src/components/onboarding/actions.ts:22-56",
+   "src/app/(main)/welcome/page.tsx:13-18,29-49",
+   "src/app/(main)/directory/actions.ts:7-22,59-71"
+  ]
+ },
+ "B-111": {
+  "id": "B-111",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "Every factual premise checks out. updateUserPlaces (src/components/settings/actions.ts:150-181) accepts the places array with only auth() in front of it and no Zod: the map does `label: titleCase(p.label.trim())` and `city: titleCase(p.city.trim())`, the ONLY cap is `.slice(0, 30)` on row count (line 159), lat/lng are copied through unbounded/untyped, placeId is written straight into `placeId: p.placeId ?? null`, and there is no try/catch around the `prisma.$transaction` (lines 162-181). adminUpdatePlaces (src/app/(main)/admin/people/actions.ts:139-169) is the verbatim twin. The onboarding twin (src/components/onboarding/actions.ts:22-40) proves the intended pattern was validation: placeSchema enforces `label: z.string().trim().min(1).max(160)`, `city: ...max(160)`, `lat/lng: z.number().nullable()`, and `places: z.array(placeSchema).max(20)`. I confirmed the FK: schema.prisma UserPlace has `place Place? @relation(fields: [placeId], references: [id])`, so a nonexistent placeId \u2192 P2003 aborting the transaction \u2192 unhandled throw \u2192 generic digest (nothing lost, since delete+recreate are one transaction). I confirmed the 25MB envelope (next.config.ts:112 `bodySizeLimit: \"25mb\"`) and that currentCity is served to every viewer (directory/actions.ts PERSON_SELECT includes `currentCity: true`; cleaned[0]?.label is mirrored into it at settings/actions.ts:179). Server actions are RPC endpoints with no runtime enforcement of the TS arg types, so a crafted payload with a non-string label reaches `p.label.trim()` and throws TypeError \u2014 real. I could not refute the premise: the validation genuinely is missing and the onboarding sibling shows it was meant to be there. SEVERITY ADJUSTED down from High to Medium and SCOPE narrowed: (1) adminUpdatePlaces is gated by requireAdminAction() (admin/people/actions.ts:136), so it is not a meaningful attack surface \u2014 a trusted admin, not an adversary; the real surface is only the member-callable updateUserPlaces. (2) The two crash vectors (TypeError on non-string, P2003 on bogus placeId) are self-inflicted: they break only the attacker's own save with a generic 500, no persistent state change (single transaction) and no cross-user effect. (3) The only genuine cross-user impact is a stored oversized label/city string in the attacker's own currentCity/UserPlace rows that loadDirectoryPage then serializes to every directory viewer of that page \u2014 real data-bloat/degradation, but self-scoped and not privilege escalation, auth bypass, or RCE, which is Medium not High. The fix is straightforward: reuse placeSchema (add a .max on the array and length caps) in both actions.",
+  "linesChecked": [
+   "src/components/settings/actions.ts:144-186",
+   "src/app/(main)/admin/people/actions.ts:132-174",
+   "src/components/onboarding/actions.ts:22-40",
+   "prisma/schema.prisma:658-678",
+   "next.config.ts:111-121",
+   "src/app/(main)/directory/actions.ts:9-22"
+  ]
+ },
+ "B-101": {
+  "id": "B-101",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "The technical claim is exactly right; I only adjust severity.\n\nColumn class confirmed: prisma/migrations-manual/2026-08-19-presence.sql:18 creates `\"endedAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP` \u2014 a timestamp WITHOUT time zone. schema.prisma:932 declares `endedAt DateTime @default(now())` with no `@db.Timestamptz`, matching. No migration alters Visit.endedAt to timestamptz (grep found only an unrelated `updatedAt` conversion in 2026-08-03-demo-purge-and-drift.sql). docs/planning/bugs.md:72 documents this exact column class: \"`Post.createdAt` etc. are `timestamp without time zone`; rows written via raw `pg` read back 5h30m [off]\".\n\nStored value is a UTC wall clock: last-seen.ts:81 `const now = new Date()` is written to `endedAt` (last-seen.ts:125,142) via the pg adapter; the Vercel Node runtime is UTC and there is no `SET TIME ZONE` anywhere (grep of prisma.ts/prisma.config.ts empty), so the session TimeZone is Supabase's UTC default.\n\nThe query (admin-analytics.ts:584-585) applies a single `\"endedAt\" AT TIME ZONE 'Asia/Kolkata'`. Postgres semantics: `timestamp_without_tz AT TIME ZONE zone` INTERPRETS the wall clock AS that zone and returns a timestamptz. So the UTC wall clock W is treated as IST local, yielding the instant W\u22125:30; EXTRACT(HOUR \u2026) then reads that timestamptz in the UTC session \u2192 hour(W\u22125:30). Correct IST hour is hour(W+5:30). Net error = 5:30+5:30 = 11 hours, and DOW flips across the midnight boundary. Worked example matches: 19:30 IST (stored 14:00 UTC) \u2192 code buckets hour 8, not 19. The right incantation is `(\"endedAt\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata'`, which is precisely the pattern the repo's own 2026-08-03 migration uses to reinterpret a UTC-wall-clock column. Both the heatmap grid and the peak-driven \"Busiest \u2026 around {hour} IST. Worth matching the Catch-up email to it.\" copy ship (page.tsx:452-462 RhythmsView renders Heatmap with peak; heatmap.tsx:75-87), so the wrong bucket reaches an explicit recommendation.\n\nSeverity adjust: this is an admin-only analytics panel. No user-facing data, no security exposure, no crash, no write corruption \u2014 the only harm is a confidently-wrong \"busiest hour\" that could misguide the Catch-up email send time. A genuine correctness defect worth fixing, but \"High\" overstates the blast radius; Medium is accurate. Mechanism, direction, and 11-hour magnitude are all confirmed as stated.",
+  "linesChecked": [
+   "src/lib/admin-analytics.ts:579-599",
+   "prisma/migrations-manual/2026-08-19-presence.sql:14-27",
+   "prisma/schema.prisma:925-961",
+   "src/components/admin/analytics/heatmap.tsx:24-88",
+   "src/app/(main)/admin/analytics/page.tsx:452-463",
+   "src/lib/last-seen.ts:81-162",
+   "docs/planning/bugs.md:72-76"
+  ]
+ },
+ "B-120": {
+  "id": "B-120",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "Core mechanism is real and verified. notification-bell.tsx:98 useState(initialUnreadCount) reads the prop only at mount; the only effect (109-115) watches the unreadCount STATE, not the initialUnreadCount PROP, so nothing syncs a changed prop into a persistent instance's state. setUnreadCount is called in exactly two places: line 166 Math.max(0, c - 1) and line 176 zero, both decrements, so the count never rises after mount. handleOpen (134-145) refreshes notifications/nextCursor/hasMore/loaded but never unreadCount, so the open panel can highlight newly-arrived unread rows the badge does not count. The shake-on-rise (line 110, if unreadCount greater than prevUnread.current) is therefore unreachable dead code: state never rises within an instance, prevUnread is seeded to initialUnreadCount so mount is equal not a rise, and each remount is a fresh instance with a fresh ref so no cross-remount rise is seen either. Grep confirms no setInterval/SWR/EventSource/realtime in the layout or bell (only the hoopoe mascot and lab pages use setInterval), and no /notifications/page.tsx exists, so the bell is the only surface. revalidatePath('/') in the two read actions cannot push an increment into a persistent client useState. Why ADJUSTED (scope + severity), not plain CONFIRMED: (1) There is NO desktop sidebar-rail bell. sidebar.tsx:602-637 (the md:block aside) contains no NotificationBell; the sidebar's only bell (sidebar.tsx:740) sits inside the md:hidden mobile header band and is the genuinely-frozen persistent instance. (2) The header-variant bell is mounted from the /feed PAGE segment (feed/page.tsx:34,71 into page-header.tsx:57-62), not the shared layout. Because /feed is a dynamic page segment, navigating to /feed re-queries unreadCount and REMOUNTS the header bell fresh on each visit, so the count is NOT literally frozen for the whole session; it refreshes every time the user returns to /feed (the app home surface), and only /feed passes unreadCount so desktop non-feed pages show no bell at all. Net genuinely-broken behavior: a member sitting on a non-feed page (or the persistent mobile band bell) never sees the count rise for new notifications until they visit /feed or reload; the shake animation is dead code; and the panel list and badge can disagree. This is a UX staleness bug on a non-critical surface with no data-loss or security impact, so Medium fits better than High, and the finder's 'frozen for the whole session / never learns' framing is overstated because /feed re-queries on every visit.",
+  "linesChecked": [
+   "src/components/layout/notification-bell.tsx:98",
+   "src/components/layout/notification-bell.tsx:109-115",
+   "src/components/layout/notification-bell.tsx:134-145",
+   "src/components/layout/notification-bell.tsx:160-177",
+   "src/components/layout/notification-bell.tsx:110",
+   "src/app/(main)/layout.tsx:35",
+   "src/app/(main)/notifications/actions.ts:82-95",
+   "src/components/layout/sidebar.tsx:602-637",
+   "src/components/layout/sidebar.tsx:740",
+   "src/components/layout/page-header.tsx:57-62",
+   "src/app/(main)/feed/page.tsx:34-71"
+  ]
+ },
+ "B-121": {
+  "id": "B-121",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Real and as described. joinBatchGroup (auth/actions.ts:208-237) builds the name Batch of {year}, runs findFirst({where:{name}}) at 215-218, and only if null runs group.create({data:{name,...,creatorId}}) at 220-230, with no transaction, no lock, no SELECT FOR UPDATE. I confirmed there is NO unique on Group.name: schema.prisma:191-208 declares name String with only @@index([visibility, createdAt]); grepping all of prisma/migrations-manual/ and the whole prisma/ tree shows the only Group-adjacent uniques are CatchupSeries_groupId_key, GroupInvite(groupId,inviteeId), GroupMember(groupId,userId), and Catchup.groupId, none on name. So no P2002 is possible on the create; two concurrent same-batch signups both miss findFirst and both create a duplicate group. The email-race P2002 catch at 164-169 protects only the user insert; joinBatchGroup runs best-effort under a bare try/catch (176-180) that would only swallow a failure, not prevent the duplicate. Consequence verified: group-feed reads are membership-gated at (main)/feed/actions.ts:783-789 (findUnique membership; if(!membership) return empty), so split members cannot read each other's group posts. Impact is slightly broader than the finder stated: the standalone /groups route is gone, but Group rows back the live Catch-ups feature ((main)/catchups/page.tsx maps a member's group memberships to reunion cards; Catchup.groupId is @unique per schema.prisma:701), so a split also fractures the batch reunion surface. No dedup/repair mechanism found. I could not refute it. Severity note: High is defensible but arguable toward Medium because the race window is a single DB round-trip and needs two SAME-batch signups within milliseconds, and the blast radius is bounded to one batch group/catchup surface (main-feed batch targeting uses the targetBatches array, independent of GroupMember, so batchmates still see each other on the main feed). The code defect is statically certain; only whether it fires needs a live launch-day concurrency spike, which is inherent to any race and does not weaken the finding.",
+  "linesChecked": [
+   "src/components/auth/actions.ts:164-169",
+   "src/components/auth/actions.ts:171-181",
+   "src/components/auth/actions.ts:208-237",
+   "prisma/schema.prisma:191-208",
+   "prisma/schema.prisma:210-236",
+   "prisma/schema.prisma:701",
+   "src/app/(main)/feed/actions.ts:783-789",
+   "src/app/(main)/catchups/page.tsx:68-133",
+   "prisma/migrations-manual/ (all .sql, grepped for unique on Group.name)"
+  ]
+ },
+ "B-060": {
+  "id": "B-060",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "Traced the full path and could not refute it. (1) advanceDueCatchups selects in-flight editions with `where: { status: { in: [\"collecting\",\"answering\",\"preparing\"] }, catchup: scope }` (catchups.ts:956-964); `scope` is `{}` or a membership filter, never `catchup.status`, so paused Catch-ups' editions still advance. (2) planNextAction/nextEditionStatus (catchups.ts:356-534) are purely clock-based on the edition's own timing and never read catchup status, so a Round crosses answering->preparing->published while paused (and even fires notify: \"catchup_published\"). (3) applyEditionAction gates the schedule write on `action.setsNextOpensAt && meta.catchupStatus === \"active\"` (catchups.ts:802-806); meta comes from loadMeta reading the live row, so a paused Catch-up skips the nextOpensAt write. During any in-flight Round nextOpensAt is null (set only at a prior publish, then cleared to null by openNextRoundIfDue), so it stays null. publishNow has the identical `edition.catchup.status === \"active\"` guard (actions.ts:1054-1058). (4) resumeCatchup writes only `{ status: \"active\" }` (actions.ts:618) and never touches nextOpensAt. A grep of all nextOpensAt writers in src (excluding generated) yields exactly: catchups.ts:805 (gated active), catchups.ts:920 (openNextRoundIfDue -> null), actions.ts:647 (endCatchup -> null), actions.ts:1057 (publishNow, gated active), and demo-seed. openNextRoundIfDue returns early on null opensAt (catchups.ts:908-909) and the sweep's catchup query filters nextOpensAt: { lte: now } (catchups.ts:971), which never matches null. None of the 20 exported catchups actions creates a subsequent edition or re-arms the schedule; openAnswering/closeAndPrepare/extendDeadline only mutate the current edition, and the only edition.create calls (actions.ts:330, 459) build Round 1 of a NEW Catch-up. So after the paused publish + resume the Catch-up sits active with a published final Round, nextOpensAt null, invisible to the sweep, with no keeper control to start another Round. Files, mechanism, and the \"no recovery\" claim are all accurate. Reachable via a normal keeper sequence (pause during a live Round, stay paused past the answer window + 24h hold while a member's page view drives the read-time advance, then resume).",
+  "linesChecked": [
+   "src/lib/catchups.ts:356-362",
+   "src/lib/catchups.ts:488-534",
+   "src/lib/catchups.ts:744-773",
+   "src/lib/catchups.ts:794-813",
+   "src/lib/catchups.ts:896-939",
+   "src/lib/catchups.ts:950-992",
+   "src/app/(main)/catchups/actions.ts:287-374",
+   "src/app/(main)/catchups/actions.ts:571-652",
+   "src/app/(main)/catchups/actions.ts:830-1076"
+  ]
+ },
+ "B-046": {
+  "id": "B-046",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "reasoning": "Every mechanical claim checks out in code.\n\n(1) All four write sites hard-code the feed fragment regardless of post kind/groupId: toggleLike `link: `/feed#${postId}`` at feed/actions.ts:508 (post select is only `{ authorId: true }` at :499 \u2014 no kind/groupId read); createComment `/feed#${parsed.data.postId}` at :633; reply `/feed#${parsed.data.postId}` at :654; toggleCommentLike `/feed#${comment.postId}` at :1083.\n\n(2) Group posts are excluded from the main feed: loadPosts builds the main-feed where with `groupId: null` (feed/actions.ts:838), so a like/comment on a group post links to a feed that cannot contain it.\n\n(3) Letters render in the feed as a compact card only: post-card.tsx:267-289 shows `isLetter ?` a title+excerpt+\"Read this letter\" link to `/letters/${post.id}`; the comment thread is not rendered inline. So a letter-comment notification pointing at `/feed#<id>` cannot reach the comment.\n\n(4) The fragment does not scroll: PostFeed is a client component (`\"use client\"`) whose posts arrive from a `loadPosts` fetch in a mount effect (post-feed.tsx:114-142); at the moment notification-bell.tsx:169 runs `router.push(notif.link)` the `<article id={post.id}>` (post-card.tsx:189) does not exist, has no scroll-mt, and a repo-wide grep for location.hash/hashchange/scrollIntoView/getElementById finds nothing in the feed or any global layout. No code re-attempts the scroll after fetch.\n\n(5) Admin bell link is retired: notifyAdmins is called with `/admin?thread=${id}#messages` at messages/actions.ts:102 and :154 (and also report-action.ts:116 and :225 \u2014 broader than the finding stated). The canonical thread route is now `/admin/messages/${id}` (thread-list.tsx:62), and admin/messages/[id]/page.tsx:14 explicitly documents that the notification \"used to point at `/admin?thread=<id>`\". The admin overview page (admin/page.tsx) reads no `thread` searchParam and has no redirect, so the link lands on the dashboard, not the thread.\n\n(6) Copy bug confirmed: toggleLike always writes \"liked your post\" (feed/actions.ts:507) even when the liked post is a letter.\n\nAdjustments to the finding: severity High is overstated \u2014 this is a navigation/UX degradation with no data-loss, security, crash, or privacy impact; notifications still deliver and mark read, and every destination is reachable by manual navigation, so Medium fits (high frequency across every like/comment/reply pushes it to the upper end, but nothing functionally blocks the user). Two wording overreaches: \"lands on /feed with nothing to show\" \u2014 it actually shows the rest of the feed, just not the target post; and \"always lands at the top\" \u2014 a post already rendered while the user is already on /feed would get a native browser hash-scroll, so the failure is the common cross-page/not-yet-loaded case, not literally every case. The finding also under-scoped the stale admin link (it lives in report-action.ts too, not only messages/actions.ts).",
+  "linesChecked": [
+   "src/app/(main)/feed/actions.ts:497-511",
+   "src/app/(main)/feed/actions.ts:627-657",
+   "src/app/(main)/feed/actions.ts:1072-1087",
+   "src/app/(main)/feed/actions.ts:822-838",
+   "src/components/posts/post-feed.tsx:100-142",
+   "src/components/posts/post-card.tsx:189",
+   "src/components/posts/post-card.tsx:267-289",
+   "src/components/layout/notification-bell.tsx:160-171",
+   "src/app/(main)/messages/actions.ts:100-103",
+   "src/app/(main)/messages/actions.ts:152-155",
+   "src/components/posts/report-action.ts:116",
+   "src/components/posts/report-action.ts:225",
+   "src/app/(main)/admin/page.tsx:55-159",
+   "src/app/(main)/admin/messages/page.tsx:11-20",
+   "src/app/(main)/admin/messages/[id]/page.tsx:11-26",
+   "src/components/admin/messages/thread-list.tsx:61-62"
+  ]
+ },
+ "B-070": {
+  "id": "B-070",
+  "verdict": "CONFIRMED",
+  "confidence": "high",
+  "reasoning": "The bug is real and exactly as stated. claimAndSend (email-queue.ts:159) is the ONLY function that moves a row out of status \"queued\"; grep confirmed it has exactly two callers. Caller 1, drainMailQueue, computes eligibleKinds = verifyRemaining>0 ? [\"verify\",\"reset\",\"password-changed\"] : [\"reset\",\"password-changed\"] (468-469) and its findFirst filters kind:{in: eligibleKinds} (471-472); \"deletion-scheduled\" is in neither array, so the row is never picked. Caller 2, verificationMailState, findFirst is where:{userId, kind:\"verify\"} (565-566), so it also never selects it. settings/actions.ts:338-350 is the only producer and imports only enqueueMail (no inline sendMail; verified the import list at lines 3-18), so the queue is the sole delivery path; enqueueMail creates the row with priority 20 and calls scheduleDrain(), but the resulting drain filters it out. Every other layer is wired (MailKind:53, PRIORITY:68, ENQUEUE_LIMIT:281, render branch:394-396), which is precisely why the omission in eligibleKinds is a genuine oversight, not intentional. The rescue claims also hold: retryMail (admin/mail/actions.ts:35-38) resets status/attempts but not kind, so a requeued row stays ineligible; dismissMail (61-62) rejects any non-\"failed\" row, so the \"queued\" row cannot be cleared either. retention.ts:103-106 deleteMany filters only on createdAt < cutoff(KEEP_DAYS.sentEmailLog=180) with no status filter, so after 180 days the never-sent row is silently deleted. The IS_DEMO early-return in enqueueMail (304) only affects the demo; production reaches the queue normally. Severity High is defensible: the account-deletion confirmation and the account-takeover alarm (the victim's only warning during the 60-day undo window, since the requester must pass a bcrypt password reauth at line 310) both silently never send, forever.",
+  "linesChecked": [
+   "src/lib/email-queue.ts:159-238",
+   "src/lib/email-queue.ts:438-487",
+   "src/lib/email-queue.ts:53",
+   "src/lib/email-queue.ts:62-70",
+   "src/lib/email-queue.ts:275-353",
+   "src/lib/email-queue.ts:379-424",
+   "src/lib/email-queue.ts:564-612",
+   "src/components/settings/actions.ts:3-18",
+   "src/components/settings/actions.ts:300-353",
+   "src/app/(main)/admin/mail/actions.ts:24-68",
+   "src/lib/retention.ts:39",
+   "src/lib/retention.ts:103-106"
+  ]
+ },
+ "B-094": {
+  "id": "B-094",
+  "verdict": "REFUTED",
+  "confidence": "medium",
+  "reasoning": "This is not a code bug; it is an infrastructure capacity/cost note whose entire premise rests on a mutable hosting-plan tier and speculative external quotas, and one of its two load-bearing code citations is factually wrong.\n\n(1) Misapplied citation: src/lib/prisma.ts:10-16 contains NO \"per-request session findUnique\" \u2014 it is purely connection setup: `const connectionString = process.env.DATABASE_URL; ... const adapter = new PrismaPg({ connectionString }); const client = new PrismaClient({ adapter });`. The actual per-request session query is src/lib/auth.ts:245, a `prisma.user.findUnique` selecting ~13 small scalar fields (role, accountType, credentialVersion, name, email, etc.), and the module note at auth.ts:378 states \"React cache() collapses the repeat calls\" \u2014 so it is memoized per request and returns a few hundred bytes. It is not a meaningful egress contributor and is not where the finding says it is.\n\n(2) The layout is optimized, not defective: src/app/(main)/layout.tsx:35-52 runs its queries concurrently in one Promise.all; verificationMailState is only called for unconfirmed accounts (line 44-46 short-circuits for confirmed ones); touchLastSeen writes \"at most once every 15 minutes\" (comment line 48-49); drainMailQueue is pushed into after() so it never rides the response path. These are deliberate load-minimizing choices, not a bug to fix.\n\n(3) The plan tier \u2014 the whole premise \u2014 is an owner-controlled dashboard/billing setting, not a code fact. docs/OPERATIONS.md:57 references \"Supabase's free plan has no automatic backups\" only to justify why the nightly backup.yml workflow exists; it does not commit a 2,000-member launch to the free tier. Per CLAUDE.md, env vars/domains/settings are \"the owner's, in the dashboard.\" Upgrading to Supabase Pro (250GB egress) is a one-click business decision. No code change in this repo resolves the concern, so a bug-fix session has nothing correct-or-incorrect to act on.\n\n(4) The 5GB cap is external (finder marks it SUSPECTED), and the arithmetic depends on unverified payload sizes (\"roughly 20-60KB\", \"conservative 30KB\") and traffic assumptions (\"400 DAU x 20 pageviews\") that no code fact establishes.\n\nDirectionally, egress-at-scale is a legitimate ops/capacity-planning item, but it belongs in capacity planning, not the code bug tracker, and cannot be settled by reading code. The finding's framing as a High-severity repo bug is false: the code is correct and the constraint is a mutable, owner-controlled hosting setting. Confidence is medium rather than high only because the raw operational egress magnitude is genuinely unknowable from code \u2014 but that uncertainty does not make it a code defect.",
+  "linesChecked": [
+   "src/lib/prisma.ts:9-17",
+   "src/app/(main)/layout.tsx:22-69",
+   "src/lib/auth.ts:241-289",
+   "src/lib/auth.ts:339-378",
+   "docs/OPERATIONS.md:54-70",
+   "docs/OPERATIONS.md:104-110"
+  ],
+  "liveProofIfNeeded": "To settle the ops dimension (not needed for the code-bug verdict): read Supabase dashboard Reports -> Egress for a representative traffic window, and/or measure actual query-result bytes per authenticated pageview against the current, actual plan tier. None of these are code facts and none would change the conclusion that there is no repo defect to fix."
+ },
+ "B-122": {
+  "id": "B-122",
+  "verdict": "CONFIRMED-ADJUSTED",
+  "adjustedSeverity": "Medium",
+  "confidence": "high",
+  "linesChecked": [
+   "src/app/main/collection/actions.ts:32",
+   "src/app/main/collection/actions.ts:435-487",
+   "src/components/collection/collection-client.tsx:146-172",
+   "src/components/collection/collection-client.tsx:399-403",
+   "src/lib/collection-facets.ts:22-26",
+   "prisma/schema.prisma:135-176"
+  ],
+  "reasoning": "Path note: actions.ts lives at src/app/(main)/collection/actions.ts (parentheses stripped in linesChecked to avoid a parse issue). Every premise verified against the real code. actions.ts:466-471 builds orderBy for \"loved\" as exactly `{ loves: { _count: \"desc\" as const } }` with no secondary/unique tiebreaker. actions.ts:473-486 paginates with `take: PAGE_SIZE + 1, skip: page * PAGE_SIZE` (PAGE_SIZE=24 at line 32); each page is an independent query. Only \"wander\" is special-cased to one page (hasMore:false, lines 448-464); \"loved\" takes the normal load-more path (hasMore = rows.length > PAGE_SIZE). collection-facets.ts:25 confirms `{ value: \"loved\", label: \"Most loved\" }` is a live selectable sort (SortPill at collection-client.tsx:261/296). collection-client.tsx:167 appends `setPhotos((prev)=>[...prev,...data.photos])`, and 400-402 renders `photos.map((p,i)=><Tile key={p.id} onOpen={()=>setViewer({list:\"main\",index:i})}/>)` \u2014 keyed by id, viewer indexed by array position. schema.prisma:136 shows Photo.id is a cuid @id (a usable tiebreaker) not referenced in orderBy; Prisma injects no implicit tiebreaker. I tried to refute and could not: no forced single-page for loved, no guard, no implicit ordering. The Postgres non-determinism is genuine \u2014 ORDER BY a non-unique aggregate count run as separate LIMIT/OFFSET statements (top-N heapsort is unstable; equal-key ordering can differ between the OFFSET-0 top-25 and OFFSET-24 top-49 bounds), compounded by togglePhotoLove mutating counts live between page loads. Most photos share 0-2 loves, so the tail is one large tie where offset pagination duplicates ids (colliding React keys, mis-indexing the viewer) and silently drops others. Bug and reachability (>24 approved photos + \"Most loved\" + Load more) confirmed. Severity adjusted High->Medium: impact confined to one secondary browse sort's pagination (duplicate/missing tiles, duplicate-key console warning, occasional wrong-photo open); no data loss or security impact and all photos stay reachable via Newest/Oldest. Fix: add a unique secondary orderBy such as { id: \"asc\" } across the paged sorts, ideally keyset pagination.</parameter>\n</invoke>\n"
+ }
+}

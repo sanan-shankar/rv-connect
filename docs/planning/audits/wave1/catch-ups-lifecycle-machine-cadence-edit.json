@@ -1,0 +1,260 @@
+{
+ "territory": "Catch-ups lifecycle machine: cadence, editions, reminders, the tick cron (src/lib/catchups.ts, catchups-types.ts, catchups-notify.ts, src/app/api/catchups/tick/route.ts, plus the actions and pages that drive advanceEdition and the components that render its timestamps)",
+ "findings": [
+  {
+   "title": "A Catch-up whose Round publishes while paused never schedules another Round; resume does not re-arm nextOpensAt and there is no manual recovery",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/catchups.ts:802-806",
+    "src/app/(main)/catchups/actions.ts:591",
+    "src/app/(main)/catchups/actions.ts:618",
+    "src/lib/catchups.ts:907-909",
+    "src/app/(main)/catchups/actions.ts:1054-1058"
+   ],
+   "expected": "Pausing suspends the rhythm; resuming restores it. After resume, the next Round should eventually open on the cadence.",
+   "actual": "If the live Round crosses answering->preparing->published while the Catch-up is paused (the clock advance in advanceEdition does not stop for paused Catch-ups), nextOpensAt is never written. resumeCatchup only flips status back to active. openNextRoundIfDue requires a non-null nextOpensAt, and nothing else in the codebase ever sets it, so the Catch-up sits 'active' forever with no future Round, no error, and no Keeper control to start one.",
+   "evidence": "In applyEditionAction the publish transition guards the schedule write on live status: `if (action.setsNextOpensAt && meta.catchupStatus === \"active\") { await tx.catchup.update({ where: { id: meta.catchupId }, data: { nextOpensAt: addCadenceGap(now, meta.cadence) } }); }` (catchups.ts:802-806); publishNow has the identical guard `if (edition.catchup.status === \"active\")` (actions.ts:1054). pauseCatchup writes only `data: { status: \"paused\" }` (actions.ts:591) and resumeCatchup writes only `data: { status: \"active\" }` (actions.ts:618) \u2014 neither touches nextOpensAt. openNextRoundIfDue begins `const opensAt = catchup.nextOpensAt; if (!opensAt || now.getTime() < opensAt.getTime()) return;` (catchups.ts:908-909), and a repo-wide grep shows the ONLY writers of nextOpensAt are the two publish paths (both gated on active) and endCatchup (sets null). advanceDueCatchups also filters `where: { status: \"active\", nextOpensAt: { lte: now } }` (catchups.ts:971), so a null nextOpensAt is permanently invisible to the sweep. Meanwhile editions of paused Catch-ups DO keep advancing: the editions query at catchups.ts:956-964 does not filter on catchup.status, so a Round in flight at pause time will publish (members even get the catchup_published notification) \u2014 exactly the sequence that strands the series.",
+   "fixDirection": "In resumeCatchup, after flipping status to active, backfill the schedule when it is missing: read the latest edition; if it is published and nextOpensAt is null, set nextOpensAt = max(now, addCadenceGap(latest.publishedAt, cadence)) (or simply addCadenceGap(now, cadence) to restart the rhythm from resume). Alternatively/additionally have the publish transition write nextOpensAt unconditionally and let the status:'active' filter in advanceDueCatchups/openNextRoundIfDue be the sole pause gate \u2014 that second shape also removes the stale-meta corner where a pause/resume racing the publish transaction picks the wrong branch.",
+   "gateOrTest": "New integration-style test (or a node:test against a stubbed prisma) : pause -> clock-publish -> resume -> assert nextOpensAt is non-null; plus a regression assertion that resumeCatchup on a series whose latest edition is published never leaves nextOpensAt null.",
+   "reproPlan": "Code-argument-only in this shared DB (would require creating and pausing a real Catch-up). The grep for nextOpensAt writers plus the quoted guards is a complete proof.",
+   "taxonomyRows": [
+    "6c-state-machine",
+    "6a-boolean-guard-interaction",
+    "6k-stuck-state"
+   ]
+  },
+  {
+   "title": "Changing cadence does not reschedule an already-set nextOpensAt, so the new rhythm silently takes effect only after the NEXT publish",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:564",
+    "src/lib/catchups.ts:805",
+    "src/components/catchups/round/footer-tease.tsx:26"
+   ],
+   "expected": "A Keeper switching a quarterly Catch-up to biweekly expects the next Round to open ~14 days after the last publish, not ~3 months later.",
+   "actual": "updateCatchupCadence writes only the cadence column. nextOpensAt was already computed at the previous publish from the OLD cadence (`nextOpensAt: addCadenceGap(now, meta.cadence)`), and nothing recomputes it, so the pending open keeps the old rhythm for one full cycle. Worst case quarterly->biweekly: the group waits ~3 months for a 'biweekly' Catch-up, and the Round footer keeps announcing the stale date ('Next Round opens 20 November').",
+   "evidence": "`await prisma.catchup.update({ where: { id: catchupId }, data: { cadence: parsedCadence.data } });` (actions.ts:564) is the entire mutation \u2014 no nextOpensAt recompute. The pending date was fixed at publish time: `data: { nextOpensAt: addCadenceGap(now, meta.cadence) }` (catchups.ts:805). openNextRoundIfDue then trusts the stored value verbatim (catchups.ts:908-919). The stale date is member-visible via footer-tease.tsx:26 ('Next Round opens {date}').",
+   "fixDirection": "In updateCatchupCadence, when the Catch-up is active and nextOpensAt is non-null, recompute it from the latest published edition's publishedAt with the new cadence: nextOpensAt = max(now, addCadenceGap(latestPublishedAt, newCadence)). Clamp to now so shortening the cadence past an already-elapsed gap opens the next Round on the next sweep rather than backdating.",
+   "gateOrTest": "Unit test on the recompute helper (pure), plus an action-level test: publish (monthly), switch to biweekly, assert nextOpensAt == publishedAt + 14d.",
+   "reproPlan": "Code-argument-only (write path on the shared production DB).",
+   "taxonomyRows": [
+    "6c-stale-denormalized-schedule",
+    "6h-date-math"
+   ]
+  },
+  {
+   "title": "Server-rendered Catch-up dates show the UTC calendar day, one day earlier than the IST day members live in",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/catchups/round/masthead.tsx:50-55",
+    "src/components/catchups/round/footer-tease.tsx:24-31",
+    "src/components/catchups/index/fresh-off-the-press.tsx:21-24"
+   ],
+   "expected": "All members are IST (UTC+5:30). A Round that publishes at 01:00 IST on 21 August should read 'Published 21 August 2026', and 'Next Round opens' should name the IST day it actually opens.",
+   "actual": "RoundMasthead, FooterTease and FreshOffThePress are server components; toLocaleDateString runs on Vercel in UTC with no timeZone option, so any timestamp falling in 18:30-24:00 UTC (00:00-05:30 IST) renders as the previous day. The lazy advance makes such timestamps common: a transition fires whenever the first page view lands after a deadline, so a night-owl member opening the app at 00:30 IST stamps publishedAt/nextOpensAt in exactly the shifted window. The masthead date is permanent archive copy, so the wrong day is engraved forever; the footer promises 'Next Round opens 20 September' when it opens on the 21st IST.",
+   "evidence": "masthead.tsx:50: `new Date(publishedAt).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"long\", year: \"numeric\" })` \u2014 no timeZone, no \"use client\" directive in the file, imported by the (server) round page. footer-tease.tsx:26 is identical for nextOpensAt; fresh-off-the-press.tsx:23 identical for publishedAt (en-US). Concrete failure: publishedAt = 2026-08-20T19:30:00Z is 01:00 IST on 21 Aug; server renders 'Published 20 August 2026'. Contrast: the countdown copy (daysUntilLabel/describeEditionStatus in catchups.ts:550-601) is deliberately relative and immune \u2014 only these absolute-date renders shift.",
+   "fixDirection": "Pass timeZone: \"Asia/Kolkata\" to every toLocaleDateString/Intl.DateTimeFormat that renders a Catch-up timestamp in a server component (a small shared formatCatchupDate helper next to catchupTitle would end the per-file drift, and would also unify the currently inconsistent en-GB/en-US/en-IN locales). Members are a single-timezone community, so a fixed zone is correct here.",
+   "gateOrTest": "Unit test on the shared formatter: new Date('2026-08-20T19:30:00Z') formats to '21 August 2026'. The visual suite will not catch this (baselines are generated in the same TZ).",
+   "reproPlan": "Orchestrator can prove read-only: TZ=UTC node -e \"console.log(new Date('2026-08-20T19:30:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}))\" prints 20 August 2026.",
+   "taxonomyRows": [
+    "6h-ist-utc-day-shift"
+   ]
+  },
+  {
+   "title": "A wholesale Catch-up engine failure is invisible: every error is swallowed to console.error, Sentry never sees it, and the tick cron always answers 200 ok",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/catchups.ts:885-888",
+    "src/lib/catchups.ts:987-991",
+    "src/app/api/catchups/tick/route.ts:31-32",
+    "src/instrumentation.ts:42-72"
+   ],
+   "expected": "If the engine starts failing persistently (schema drift, permission change, a bad deploy), something should alarm: a Sentry event, a failing cron, anything. The project's own CLAUDE.md rule: 'A guard that hides its own breakage is worse than no guard.'",
+   "actual": "advanceEdition and advanceDueCatchups catch everything and only console.error (`console.error(\"[catchups] advanceEdition failed\", err)` at catchups.ts:887; same at 983 and 989). Sentry is initialized without any console-capture integration (instrumentation.ts registers Sentry.init with no consoleLoggingIntegration), so those lines never become events. The tick route then reports success unconditionally: `await advanceDueCatchups(); return NextResponse.json({ ok: true });` \u2014 Vercel cron monitoring shows green while every Round in the community silently stops advancing. Detection currently depends on the owner happening to open /admin/catchups (which does list overdue Rounds) or on members complaining. Compounding it: until CRON_SECRET is set (still owed by the owner), the nightly tick 401s every night with the same zero telemetry, so the belt-and-braces layer is already silently off.",
+   "evidence": "catchups.ts:885-888: `} catch (err) { if (isMissingCatchupTable(err)) return; console.error(\"[catchups] advanceEdition failed\", err); }` \u2014 swallow-and-continue is correct for the page-view piggyback but is the ONLY handling on the cron path too. tick/route.ts:31-32: `await advanceDueCatchups(); return NextResponse.json({ ok: true });` with no way for failures to surface. instrumentation.ts:42-72 shows the full Sentry config: dsn/enabled/environment/sendDefaultPii/tracesSampleRate/debug/ignoreErrors \u2014 no captureConsole/consoleLogging integration, so console.error is not captured.",
+   "fixDirection": "Inside the catch blocks (after the isMissingCatchupTable early-return) call Sentry.captureException(err) in addition to console.error \u2014 the engine already imports lazily, so a small dynamic import of @sentry/nextjs there keeps the pure-test property. Separately, make advanceDueCatchups return a { advanced, failed } summary and have the tick include it in the JSON (and return 500 or a distinct field when failed > 0) so Vercel cron logs show real health. Keep the layout call fire-and-forget on the summary.",
+   "gateOrTest": "A unit test that advanceDueCatchups returns a failure count when advanceEdition throws (stubbed prisma); plus eyeballing one induced Sentry event in preview.",
+   "reproPlan": "Code-argument-only; inducing a real engine failure against the shared DB is not acceptable.",
+   "taxonomyRows": [
+    "6a-errors-logged-then-continue",
+    "6k-chaos-db-down",
+    "6i-cron-partial-failure"
+   ]
+  },
+  {
+   "title": "Reminder compare-and-swap omits the status guard, so a daily reminder can fire just after the Round closed or was closed by the Keeper",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/catchups.ts:826-833",
+    "src/lib/catchups.ts:816-819",
+    "src/app/(main)/catchups/actions.ts:936-941"
+   ],
+   "expected": "A 'N days left to answer' nudge must only ever commit while the Round is still answering \u2014 the sibling extend branch encodes exactly this with status in its WHERE.",
+   "actual": "The reminder branch CASes only on remindersSent: `where: { id: editionId, remindersSent: before.remindersSent }` (no status). Two concurrent drivers (the layout piggyback runs on every authenticated page view, the cron sweeps with a single now for its whole run, and closeAndPrepare is a Keeper click) can interleave: driver A plans a reminder while the Round is answering; driver B commits answering->preparing (which does not change remindersSent \u2014 preparingPatch touches only status/publishAt, and closeAndPrepare's CAS at actions.ts:937-940 likewise); A's reminder CAS still matches and commits, sending 'Last day to answer / N days left' notifications for a Round whose answers just closed, linking to an answer page that will refuse.",
+   "evidence": "catchups.ts:827-832: `const cas = await tx.catchupEdition.updateMany({ where: { id: editionId, remindersSent: before.remindersSent }, data: action.patch }); if (cas.count === 0) return false; await notify.notifyReminder(...)`. Contrast the extend branch three lines above: `where: { id: editionId, status: \"answering\", remindersSent: before.remindersSent }` (catchups.ts:818). The transition that races it leaves remindersSent untouched: preparingPatch returns `{ status: \"preparing\", publishAt: ... }` only (catchups.ts:439-444), and closeAndPrepare's non-extend path updates with that patch under `where: { id: editionId, status: \"answering\" }` (actions.ts:937-940). The plan-time guard (dueReminder requires status === \"answering\", catchups.ts:374) does not survive the gap between plan and apply, and the cron's single `now` for a whole sweep (catchups.ts:951) widens the divergence window between drivers.",
+   "fixDirection": "Add `status: \"answering\"` to the reminder branch's WHERE, matching the extend branch. One-line change; the losing driver already handles cas.count === 0 by re-reading and replanning.",
+   "gateOrTest": "Code-review pin plus a stubbed-prisma test: apply a reminder action against a row whose status already moved to preparing and assert no notification write.",
+   "reproPlan": "Code-argument-only; the race window is milliseconds and forcing it live needs writes.",
+   "taxonomyRows": [
+    "6c-race-lost-update",
+    "6i-two-surfaces-one-row"
+   ]
+  },
+  {
+   "title": "The (main) layout comment claims the Catch-up advance cannot hold up page render, but it is awaited in the render-blocking Promise.all",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/layout.tsx:31-52"
+   ],
+   "expected": "Per the comment ('it also runs concurrently with (not blocking) the count query, so a slow or stale advance can never hold up page render'), the advance should not delay TTFB.",
+   "actual": "advanceDueCatchups(session.user.id) sits inside the awaited Promise.all, so every authenticated page view waits for it to settle. Normally that is two indexed queries, but the unlucky first request after a boundary pays the whole transition inline: entry count, the CAS transaction, group-member fetch, reminder deleteMany + notification createMany for the whole group \u2014 before their page renders. The comment documents an intent (after()-style, like drainMailQueue ten lines below) that the code does not implement, which invites the next editor to trust the wrong contract.",
+   "evidence": "layout.tsx:35-52: `const [unreadCount, mailState] = await Promise.all([ prisma.notification.count({...}), ..., advanceDueCatchups(session.user.id), touchLastSeen(...) ]);` \u2014 Promise.all resolves only when ALL settle, so render waits on the advance. The mail queue, by contrast, is correctly deferred: `after(async () => { await drainMailQueue(); ... })` (layout.tsx:63-69) precisely because 'every page in the app would wait on somebody else's welcome email' \u2014 the same argument applies to somebody else's Round transition.",
+   "fixDirection": "Either move advanceDueCatchups into the same after() block (it makes no network calls, only DB writes, so after() is safe and the notification count already races it today), or fix the comment to state honestly that render waits on it. Preferred: after(), keeping the awaited path to the count + mailState reads only.",
+   "gateOrTest": "None mechanical; verify by reading the diff and one TTFB spot-check on a page view that triggers a publish in dev-style conditions.",
+   "reproPlan": "Code-argument-only (timing proof would need a live transition).",
+   "taxonomyRows": [
+    "6f-blocking-work-before-response",
+    "6a-comment-code-divergence"
+   ]
+  },
+  {
+   "title": "void recordView on the Round page (and three sibling pages) is a fire-and-forget DB write that serverless may kill after the response",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/round/[editionId]/page.tsx:193-194",
+    "src/lib/content-view.ts:28-38",
+    "src/app/(main)/profile/[id]/page.tsx:117",
+    "src/app/(main)/letters/[id]/page.tsx:85",
+    "src/app/(main)/collection/[id]/page.tsx:58"
+   ],
+   "expected": "A write started during render either completes or is scheduled via after()/waitUntil so the platform keeps the instance alive for it.",
+   "actual": "`void recordView(session?.user?.id, \"round\", edition.id)` floats a Prisma upsert with no await and no after(). On Vercel, once the RSC response finishes streaming the function may be suspended before the upsert reaches Postgres, so 'round' view counts (and the same pattern on profile/letters/collection) silently undercount in production \u2014 precisely the failure mode the audit brief's 6a row names. The in-code comment ('the page renders at the same speed either way') optimizes latency but picks the one mechanism with no completion guarantee when after() gives the same latency WITH the guarantee.",
+   "evidence": "round/[editionId]/page.tsx:193-194: `/* Not awaited: the page renders at the same speed either way. */ void recordView(session?.user?.id, \"round\", edition.id);`. content-view.ts:28-33 shows it is a real DB write: `await prisma.contentView.upsert({ where: { viewerId_kind_targetId: {...} }, create: {...}, update: { count: { increment: 1 }, lastAt: new Date() } })`. The codebase itself models the correct pattern one layer up: layout.tsx wraps drainMailQueue in `after(...)` for exactly this reason.",
+   "fixDirection": "Wrap the call in next/server's after(): `after(() => recordView(...))` at all four call sites (recordView already never throws). Zero latency change, guaranteed execution.",
+   "gateOrTest": "A grep-style regression check (like security-regressions.test.mjs) asserting no `void recordView(` remains outside an after() callback.",
+   "reproPlan": "Code-argument-only; the loss is probabilistic on production infrastructure and unobservable locally.",
+   "taxonomyRows": [
+    "6a-missing-await-fire-and-forget",
+    "6f-work-after-response-without-after"
+   ]
+  },
+  {
+   "title": "toggleEntryLove races surface a raw 'Something went wrong' on double-click, and notifyLove's check-then-insert can double-notify",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:1213-1233",
+    "src/lib/catchups-notify.ts:196-209"
+   ],
+   "expected": "A double-tap on a heart settles to a consistent state with no error toast; the love notification is coalesced to at most one unread per author per Round.",
+   "actual": "toggleEntryLove is check-then-act with no P2002/P2025 handling: two rapid taps both read `existing` as null, both create; the second hits the @@unique([userId, entryId]) and runAction converts it to the generic 'Something went wrong. Please try again.' toast (and the client's toggle state can end opposite to reality). The mirrored delete path can throw P2025 the same way. Separately, notifyLove coalesces via findFirst-then-create (`const existing = await db.notification.findFirst({... read: false }); if (existing) return;`) with no unique backstop and called on the shared client (not a transaction), so two members hearting the same answer concurrently produce two notifications \u2014 the comment's 'cannot spam' claim holds per-day practically but the invariant is not enforced.",
+   "evidence": "actions.ts:1213-1221: `const existing = await prisma.catchupEntryLove.findUnique({ where: { userId_entryId: {...} } ... }); if (existing) { await prisma.catchupEntryLove.delete({ where: { id: existing.id } }); } else { await prisma.catchupEntryLove.create({ data: {...} });` \u2014 no isUniqueConstraintError branch (the helper exists at actions.ts:174 and is used by createCatchup only). runAction's fallback (actions.ts:169-170) is the generic error. catchups-notify.ts:197-201: `const existing = await db.notification.findFirst({ where: { userId: ctx.authorId, type: \"catchup_love\", link, read: false }, select: { id: true } }); if (existing) return; // coalesce` \u2014 classic TOCTOU with no constraint behind it.",
+   "fixDirection": "In toggleEntryLove, treat P2002 on create as 'already loved' and P2025 on delete as 'already unloved' (return the truthful loved state instead of an error). For notifyLove, either accept the rare duplicate explicitly in the comment or make it race-safe with deleteMany-then-create of the single coalesced row (matching notifyReminder's replace pattern).",
+   "gateOrTest": "Action-level test: two concurrent toggles on one entry resolve without an error return; a stubbed test that a P2002 from create yields { success, loved: true }.",
+   "reproPlan": "Live proof possible on a demo/test account: double-click a heart fast on a published Round and watch for the error toast; but code argument suffices.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6d-check-then-insert-toctou"
+   ]
+  },
+  {
+   "title": "submitPrompt assigns position by count outside any transaction: concurrent submissions get duplicate positions and an unstable question order",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:707-725"
+   ],
+   "expected": "Each accepted question gets a distinct position so the Round renders in one stable order everywhere.",
+   "actual": "Two members submitting simultaneously both read acceptedCount = N and both insert position N. There is no unique on (editionId, position), so both commit; every surface ordering by position asc then breaks the tie nondeterministically, so the question order can differ between the home console, the answer page, and successive loads \u2014 until a Keeper reorder rewrites positions. The MAX_ACCEPTED_PROMPTS cap is the same read-then-write, so the 40 ceiling can be pierced by one under concurrency (harmless \u2014 it is a runaway guard).",
+   "evidence": "actions.ts:707-710: `const acceptedCount = await prisma.catchupPrompt.count({ where: { editionId, accepted: true } });` then actions.ts:714-724: `await prisma.catchupPrompt.create({ data: { ... position: acceptedCount } })` \u2014 no transaction, no unique constraint (schema.prisma CatchupPrompt has only `@@index([editionId, position])`, line 768). Reads order by `{ position: \"asc\" }` with no secondary key (answer/page.tsx:179).",
+   "fixDirection": "Cheapest complete fix: add a stable secondary sort (position asc, createdAt asc, id asc) at every prompt read so duplicate positions can never reorder between loads; optionally also compute position inside a short $transaction or via `position: { set: }`-free create with a subquery-style raw insert. The secondary sort alone removes the member-visible symptom.",
+   "gateOrTest": "Unit-level: two creates with equal position render in a fixed order given the added tiebreaker; grep gate that every catchupPrompt.findMany orderBy includes the tiebreaker.",
+   "reproPlan": "Code-argument-only (needs concurrent writes).",
+   "taxonomyRows": [
+    "6c-race-lost-update",
+    "6h-pagination-ordering"
+   ]
+  },
+  {
+   "title": "'Answers close today' is a 24-hour-window claim wearing calendar-day words: it shows a day early for deadlines that fall tomorrow morning IST",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/[catchupId]/answer/page.tsx:56-63"
+   ],
+   "expected": "'Answers close today' should be true in the member's calendar: the close instant falls before their next midnight.",
+   "actual": "closesLabel computes days = ceil(diff/24h) and prints 'Answers close today.' whenever diff <= 24h. A window closing at 09:00 IST tomorrow, read at 10:00 IST today (diff 23h), reads 'close today' \u2014 factually wrong by the member's calendar, though it errs on the rush-them side. The engine's own copy elsewhere says 'last day' for this exact state (daysUntilLabel, catchups.ts:556-557), which is accurate language for a 24h bucket; this one surface upgraded it to a calendar claim.",
+   "evidence": "answer/page.tsx:56-63: `const diff = at.getTime() - Date.now(); if (diff <= 0) return \"Answers are closing.\"; const days = Math.ceil(diff / (24 * 60 * 60 * 1000)); if (days <= 1) return \"Answers close today.\"; return `Answers close in ${days} days.`;` \u2014 pure duration math, no calendar/timezone awareness, while the string asserts a calendar day.",
+   "fixDirection": "Change the copy to the bucket-truthful 'Last day to answer.' (matching daysUntilLabel and the reminder copy), or compute the member-calendar day with Asia/Kolkata and say today/tomorrow correctly. Copy change is one line and keeps the no-timezone-machinery fence.",
+   "gateOrTest": "Unit test on closesLabel at the 23h boundary once extracted or duplicated into the tested lib.",
+   "reproPlan": "Read-only proof trivial: evaluate the function with a close 23h away.",
+   "taxonomyRows": [
+    "6h-ist-day-boundary-copy"
+   ]
+  },
+  {
+   "title": "createCatchupWithPeople has no server-side idempotency: a duplicated invocation mints two whole Catch-ups and double-notifies up to 100 people",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:441-475",
+    "src/lib/rate-limit.ts:75",
+    "src/components/catchups/create/create-catchup-form.tsx:65-85"
+   ],
+   "expected": "Taxonomy 6c: for every 'create exactly one' action, a DB unique constraint is the real guard behind the disabled button. createCatchup (group-based) has it \u2014 Catchup.groupId is unique and P2002 is handled (actions.ts:366-372).",
+   "actual": "createCatchupWithPeople creates a brand-new Group each call, so no unique can fire: two executions of the same submission yield two private groups, two Catchups, two Round-1s, and two notifyQuestionsOpen fanouts to every invited member. The rate limit ('catchups: { tokens: 5, window: \"1 h\" }') admits both, and it fails open when Upstash blinks. The only guard is the client's `disabled={submitting}` \u2014 which covers the human double-click in practice but nothing else (a second tab, a replayed POST, a future second caller of the action).",
+   "evidence": "actions.ts:441-452: `const catchupId = await prisma.$transaction(async (tx) => { const group = await tx.group.create({ data: { name, visibility: \"private\", creatorId, members: { create: memberRows } } ... }); const catchup = await tx.catchup.create({ data: { groupId: group.id, ... } });` \u2014 fresh group per call, so the groupId unique that protects createCatchup can never collide here. rate-limit.ts:75 shows the 5/h budget. The form's guard is client state only: `setSubmitting(true); const result = await createCatchupWithPeople({...})` with `disabled={submitting || !trimmedName}` (create-catchup-form.tsx:69-71,132).",
+   "fixDirection": "Lightweight server-side dedupe: before creating, refuse (returning the existing id) if this creator already created a Catchup with an identical group name within the last few minutes; or accept a client-generated idempotency key in the input and stash it on the Catchup row with a unique. Either turns a duplicate into a friendly no-op like createCatchup's raced branch.",
+   "gateOrTest": "Action test: two sequential identical calls within the window return the same catchupId (second one via the dedupe branch).",
+   "reproPlan": "Code-argument-only (write path, real notifications).",
+   "taxonomyRows": [
+    "6c-race-double-submit"
+   ]
+  },
+  {
+   "title": "Client components format Catch-up dates during SSR with server timezone/locale, guaranteeing hydration mismatches around IST midnights",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/catchups/home/console-published.tsx:30-46",
+    "src/components/catchups/home/archive-shelf.tsx:19-49",
+    "src/components/catchups/home/extend-deadline-card.tsx:44-52"
+   ],
+   "expected": "A date rendered in a \"use client\" component should produce identical text on server and client, or be deliberately client-only.",
+   "actual": "console-published and archive-shelf call `toLocaleDateString(\"en-IN\", {...})` and extend-deadline-card calls `toLocaleDateString(undefined, { weekday, day, month })` with no timeZone. During SSR these evaluate in the server's UTC (and, for the undefined locale, the server's ICU default rather than the member's), then hydrate to the browser's IST/locale. Whenever the timestamp falls 00:00-05:30 IST the server HTML shows the previous day: the member sees the wrong date flash (and React logs a hydration text mismatch) before it corrects. extend-deadline-card is the Keeper's 'Closes Tuesday 12 Aug' line \u2014 the fact the four extend buttons hang off \u2014 so the flash shows the wrong weekday exactly when it matters.",
+   "evidence": "console-published.tsx:31-36: `return new Date(iso).toLocaleDateString(\"en-IN\", { day: \"numeric\", month: \"long\", year: \"numeric\" });` inside a file whose first line is \"use client\". extend-deadline-card.tsx:48-52: `return at.toLocaleDateString(undefined, { weekday: \"long\", day: \"numeric\", month: \"short\" });` \u2014 undefined locale + no timeZone in a \"use client\" file. Client components render on the server first in the App Router, so both halves execute.",
+   "fixDirection": "Same shared formatter as the server-component finding: fixed locale + timeZone: \"Asia/Kolkata\" makes server and client output byte-identical, killing both the mismatch and the flash. (suppressHydrationWarning would hide the warning but keep the wrong first paint; prefer the deterministic formatter.)",
+   "gateOrTest": "The shared-formatter unit test from the masthead finding covers this; optionally a dev-console check that no hydration warnings fire on /catchups/[id] with a 01:00-IST publishedAt.",
+   "reproPlan": "Orchestrator could reproduce read-only in dev chrome-devtools: load a Catch-up home whose publishedAt sits in the shifted window and read the hydration warning in the console.",
+   "taxonomyRows": [
+    "6h-ist-utc-day-shift",
+    "6b-hydration-mismatch"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "6c double-transition races on every big transition: collecting->answering, answering->preparing, preparing->published, and the too-few extend all commit through updateMany CAS on status (+ remindersSent for extend) inside a transaction that also carries the notification write, so under READ COMMITTED the loser re-evaluates the WHERE after the winner's commit and touches 0 rows \u2014 clock vs Keeper (openAnswering/closeAndPrepare/publishNow) double-fires cannot double-send (catchups.ts:794-834, actions.ts:856-870/936-941/1048-1068)",
+  "6c edition-number race: editions are created in exactly three places (createCatchup number 1, createCatchupWithPeople number 1 on a fresh group, openNextRoundIfDue latest+1); the nextOpensAt CAS serializes the latter, @@unique([catchupId, number]) is the backstop, and a P2002 there rolls back the whole transaction including the nextOpensAt consumption so the next sweep retries cleanly; createCatchup handles P2002 on the groupId unique with a friendly raced branch (actions.ts:366-372)",
+  "6i cron overlap/double-fire: two simultaneous ticks, or tick racing page-view advances, are idempotent via the same CAS guards; partial failure mid-sweep leaves each edition individually consistent (one transaction per action) and the next sweep resumes \u2014 nothing half-transitions",
+  "6f tick duration at 2k users: settled editions cost zero queries beyond the initial findMany (planNextAction is pure, meta comes from the include), so the sweep is O(due work) not O(editions); with ~200 groups and same-region (bom1/ap-south-1) latencies the nightly tick stays far under the duration ceiling; both sweep queries are index-covered (@@index([status, publishAt]) on CatchupEdition, @@index([status, nextOpensAt]) on Catchup)",
+  "6j fanout: all notification writes are single createMany statements over a deduplicated recipient list (catchups-notify.ts createMany), audiences derived set-based (no N+1, no per-member loop); reminder replace-not-stack delete shares the transaction so no reader catches the gap; deleteMany hits the (userId, ...) index",
+  "6d pgbouncer: no SET/advisory locks/LISTEN-NOTIFY anywhere in the engine; interactive transactions are short (worst: reminder = 5 fast queries) and comfortably inside Prisma's 5s default; every multi-table write (edition + notifications + nextOpensAt) shares one transaction",
+  "remindersSent bit math: dailyBucket/withDailyBucket verified against DAILY_BUCKET_SHIFT=8 \u2014 flags preserved, bucket strictly self-clearing because days-left is strictly decreasing within a window and an extension re-seeds it; legacy rows carrying retired bits 1|2 decode to bucket 0 and simply receive their next daily reminder once; seeding at answeringPatch (bucket=7) correctly delays the first nudge a full day; the 02:00-UTC cron plus lazy advance can never skip the last-day bucket because daysLeft is computed from now, not calendar days, and every final-24h contains one cron firing",
+  "daysLeftUntil boundaries: 0 exactly at/after close (transition, not nudge), floor at 1 across the whole final day, ceil above \u2014 matches the unit tests at catchups.test.mjs:155-224 and the copy in daysUntilLabel",
+  "month-end cadence math: addMonths via setUTCMonth overflows Jan 31 +1mo to Mar 3 and Aug 31 +1mo to Oct 1; examined and accepted as inside the spec's explicit '~1 calendar month' tolerance (gap stays 28-34 days) and self-re-anchoring since every cycle derives from actual publish time \u2014 no compounding error, no skipped or doubled month",
+  "advanceEdition loop safety: bounded at 12 iterations, entryCount cache invalidated on status change and on lost CAS, stale rounds cascade answering->preparing->published in one visit but a stale collecting round correctly re-opens a fresh 7-day answer window rather than skipping to published",
+  "advance-trigger authorization ordering: all three pages gate on group membership BEFORE calling advanceEdition (answer/page.tsx:108-150, [catchupId]/page.tsx:220-251, and the WIP round page's split loadEditionBase/advanceAndReload at round/[editionId]/page.tsx:170-179), so a non-member URL hit cannot drive state transitions",
+  "loadFreshEdition inputs: every AdvanceEditionInput construction site selects the full timing slice including remindersSent and catchupId (actions.ts editionSelect, answer page editionSelect, LIGHT_EDITION_SELECT), so no undefined field can corrupt the CAS guards",
+  "tick auth: CRON_SECRET required, compared with timingSafeEqualStrings, missing secret fails closed (401); /api/catchups/tick present in proxy.ts publicPaths so the header-bearing server-to-server GET reaches the handler",
+  "reminder recipient rules match spec 5: non-answerers only, pref default 'all', 'last' only at daysLeft<=1, 'off' skipped except Keeper bypassOff; removeCatchupMember clears the removed member's pending catch-up notifications",
+  "no Resend/email involvement anywhere in the catch-up notify path (Notification rows only), so publish fanout cannot burn the 100/day mail budget"
+ ],
+ "coverageNotes": "Read in full: src/lib/catchups.ts (all 992 lines), src/lib/catchups-types.ts, src/lib/catchups-notify.ts, src/app/api/catchups/tick/route.ts, src/app/(main)/catchups/actions.ts (all 1490 lines), src/app/(main)/layout.tsx, the Catchup* models in prisma/schema.prisma, spec sections 2 and 5 of docs/spec/catchups.md, src/instrumentation.ts, src/lib/timing-safe.ts, src/lib/content-view.ts, vercel.json, and the test inventory of src/lib/catchups.test.mjs. Read in relevant part: the four advance-calling pages (index, [catchupId] home, answer, the WIP round page \u2014 audited as it stands, gate-before-advance verified; its TS error not reported per instructions), admin/catchups/page.tsx, create-catchup-form.tsx, rate-limit.ts limits table, Notification model indexes, and the six date-formatting components (masthead, footer-tease, fresh-off-the-press, console-published, archive-shelf, extend-deadline-card). Consciously skipped as other territories: the published-Round reader rendering internals, prompt/entry UI widgets, upload/image handling inside entries (R2 territory), joinCatchup UI, demo seed, and the notification bell surfaces. Not re-reported though observed: CRON_SECRET still unset (tracked in memory as owed by the owner \u2014 noted only as an amplifier inside the observability finding); the stale comment in admin/catchups/page.tsx:34 claiming the feature 'has NO CRON' (doc drift, linter-class); en-GB/en-US/en-IN locale inconsistency across date surfaces (style \u2014 folded into the timezone fix direction); nudgeGroup having no rate limit (abuse-vector shaped, deliberately left to the closed security audit's ambit); pause-continues-reminders semantics (product call, spec-consistent). The IST/UTC hypothesis the brief flagged was hunted hard: the engine's relative-time design is genuinely immune (verifiedClean), and the class surfaced exactly where predicted \u2014 in the absolute-date renders (two findings) and one calendar-word copy line."
+}

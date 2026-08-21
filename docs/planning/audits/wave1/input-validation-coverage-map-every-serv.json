@@ -1,0 +1,311 @@
+{
+ "territory": "Input-validation coverage map: every server action (21 \"use server\" files) and all 14 API routes \u2014 what validates each argument, length/array/numeric caps, Number()/parseInt sites, JSON.parse readers, FormData casts, enum writers, unicode/whitespace handling, cross-path cap consistency",
+ "findings": [
+  {
+   "title": "Email normalization inconsistent across signup/login/reset: mixed-case signups can never receive a password reset and must match case exactly at login",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/auth/actions.ts:146",
+    "src/lib/validators.ts:18",
+    "src/lib/auth.ts:102",
+    "src/components/auth/email-actions.ts:160",
+    "src/app/api/dev-login/route.ts:91"
+   ],
+   "expected": "One email address = one account, findable by every flow regardless of how the case was typed. Signup, login lookup, and reset lookup should all normalize (trim + lowercase) identically before touching User.email.",
+   "actual": "Signup stores the address AS TYPED (zod v4 z.email() validates format only, no lowercasing; registerUser writes parsed.data.email straight through). Login looks up the RAW typed value case-sensitively. Password reset is the only flow that lowercases before lookup, so it can never find a row stored with any uppercase letter \u2014 and it answers { ok: true } either way, so the member gets no error and no mail, forever.",
+   "evidence": "Signup (src/components/auth/actions.ts:146-149): `user = await prisma.user.create({ data: { name, email: parsed.data.email, ...` \u2014 validators.ts:18 is `email: z.email(\"Please enter a valid email\")`, no .toLowerCase(), and signup-form.tsx does not lowercase client-side (verified by grep). Login (src/lib/auth.ts:102-104): `const user = await prisma.user.findUnique({ where: { email } })` \u2014 the raw credentials value; only the rate-limit key is normalized (`const acctKey = email.trim().toLowerCase()` at auth.ts:62), so the lookup itself is case-sensitive against a case-sensitive Postgres unique. Reset (src/components/auth/email-actions.ts:160-166): `const raw = ((formData.get(\"email\") as string) ?? \"\").trim().toLowerCase(); ... prisma.user.findUnique({ where: { email: raw } })` then `if (!user?.password) return { ok: true };` \u2014 a mixed-case-stored account silently falls into the no-account branch. Three concrete symptoms: (a) a member who signed up as \"Ravi@Gmail.com\" (phone keyboards capitalize; habit) requests a reset with any casing and receives nothing, with a success message on screen; (b) the same member typing \"ravi@gmail.com\" at login gets \"Invalid email or password\" (reason no-account); (c) the same mailbox can register twice under two casings \u2014 User.email @unique (schema.prisma:13) is case-sensitive, so both rows coexist, confounding roster matching and the reset flow. dev-login (route.ts:91) also looks up raw. LoginAttempt (schema.prisma:1063) documents \"Lowercased as submitted\" for its own analytics, showing normalization was understood as needed but never applied to the account flows.",
+   "fixDirection": "Introduce one normalizeEmail(s) = s.trim().toLowerCase() helper and apply it at every entry: registerUser before validation/store, authorize() before findUnique, requestPasswordReset (already does), dev-login. Then a one-off manual migration lowercasing existing User.email rows \u2014 first SELECT for case-insensitive duplicates (lower(email) collisions) and resolve any by hand (the adminMergeUsers action exists for this) before adding/relying on the lowercase invariant. Also lowercase AuthToken.sentTo comparisons if any are case-sensitive.",
+   "reproPlan": "code-argument-only (a live proof requires creating a mixed-case account in the SHARED production database; the quoted lookups make the argument complete without it)",
+   "gateOrTest": "New unit test (e.g. src/lib/normalize-email.test.mjs) asserting the shared helper is used by feeding a mixed-case address through signupSchema+registerUser path and asserting the stored/queried value; add to the 14-test suite npm run check runs.",
+   "taxonomyRows": [
+    "6e-email-normalization",
+    "6h-unicode-whitespace"
+   ]
+  },
+  {
+   "title": "Onboarding updateProfile action validates nothing: seven profile columns writable with no length caps (up to the 25MB action body limit)",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(auth)/onboarding/actions.ts:6",
+    "src/app/(auth)/onboarding/page.tsx:52",
+    "next.config.ts:112"
+   ],
+   "expected": "Every write path to a profile column enforces the same caps profileSchema does (bio 1000, currentCity 100, workplace 100, jobTitle 100, phone 24, instagram 100, linkedin 200), because the server, not a maxLength attribute, is the guard.",
+   "actual": "The /onboarding page's server action writes bio, currentCity, workplace, jobTitle, phone, instagram, linkedin with zero validation \u2014 no Zod, no length caps, no phone normalization, nothing but a trim. The page's own <textarea maxLength={1000}> is the only cap, and it is client-side. With serverActions.bodySizeLimit raised to \"25mb\" (next.config.ts:112, for photo uploads), a signed-in account can POST a multi-megabyte bio or currentCity directly to this action.",
+   "evidence": "src/app/(auth)/onboarding/actions.ts:12-27 in full: `const data: Record<string, string | null> = {}; const fields = [\"bio\", \"currentCity\", \"workplace\", \"jobTitle\", \"phone\", \"instagram\", \"linkedin\"]; for (const field of fields) { const value = formData.get(field) as string | null; if (value && value.trim()) { data[field] = value.trim(); } } if (Object.keys(data).length > 0) { await prisma.user.update({ where: { id: session.user.id }, data }); }` \u2014 no schema import, no caps. Reachable: page.tsx:16 `import { updateProfile } from \"./actions\"` and :26 `await updateProfile(formData)`; /onboarding is listed in src/proxy.ts:33. Contrast the settings path writing the same columns: profileSchema (validators.ts:53-111) caps every one, and the newer wizard actions (src/components/onboarding/actions.ts:30-40) Zod-validate everything. Blast radius: currentCity and workplace are serialized into the directory page for every viewer (directory/actions.ts PERSON_SELECT includes currentCity, jobTitle, workplace), so one oversized value bloats the directory HTML for the whole community \u2014 a stability problem, not just a data-hygiene one. phone is stored un-normalized here (every other path runs normalizePhone).",
+   "fixDirection": "Run the collected fields through the corresponding subset of profileSchema (or a local zod object with identical caps) before the update; run phone through normalizePhone; alternatively delete this legacy action/page if the /welcome wizard (components/onboarding) has superseded it \u2014 verify with the owner which onboarding surface ships.",
+   "reproPlan": "Local dev, own test account: submit the /onboarding form with devtools after removing maxLength, with a ~5k-char bio \u2014 confirm it stores. (Write to a test account only; shared DB.) Code argument is sufficient without it.",
+   "gateOrTest": "Extend src/lib/gate-coverage.test.mjs (or add a validation-coverage test) asserting every \"use server\" file that writes User columns imports a validator; minimally a unit test calling updateProfile with an oversized field and asserting an error.",
+   "taxonomyRows": [
+    "6h-missing-length-caps",
+    "6j-overfetch-render-blast",
+    "validation-map"
+   ]
+  },
+  {
+   "title": "updateUserPlaces and adminUpdatePlaces have no schema: unbounded label/city strings, unbounded lat/lng, FK crash on bogus placeId",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/settings/actions.ts:144",
+    "src/app/(main)/admin/people/actions.ts:132",
+    "src/components/onboarding/actions.ts:22"
+   ],
+   "expected": "The same placeSchema the onboarding wizard already has (label/city trimmed, 1..160 chars; placeId int-or-null; lat/lng bounded) applied to both bulk city writers, since UserPlace.label mirrors into User.currentCity and renders on the directory for every member.",
+   "actual": "Both actions accept the places array on faith: no length cap on label/city (25MB possible per the action body limit), no numeric bounds or type check on lat/lng, no existence/int check on placeId, and .map(p => p.label.trim()) throws a raw TypeError on any non-string payload. cleaned[0].label is mirrored into User.currentCity, which the directory serializes for every viewer; lat/lng feed the alumni map's cluster math.",
+   "evidence": "src/components/settings/actions.ts:150-159: `const cleaned = places.map((p) => ({ placeId: p.placeId, label: titleCase(p.label.trim()), city: titleCase(p.city.trim()), lat: p.lat, lng: p.lng })).filter((p) => p.label.length > 0).slice(0, 30);` \u2014 the ONLY cap is the row count (30). Then :162-181 writes them wholesale and `currentCity: cleaned[0]?.label ?? null`. adminUpdatePlaces (admin/people/actions.ts:139-169) is a verbatim twin. Compare src/components/onboarding/actions.ts:22-28 which validates the identical shape: `label: z.string().trim().min(1).max(160), city: z.string().trim().min(1).max(160), lat: z.number().nullable()...` \u2014 the settings/admin twins simply skipped the schema. A nonexistent placeId hits the UserPlace\u2192Place FK (schema.prisma:671) \u2192 P2003 aborts the $transaction \u2192 unhandled throw (no try/catch) \u2192 generic digest error; because delete+recreate share one transaction nothing is lost, but the save fails opaquely. A multi-MB city string stored here is returned by loadDirectoryPage's PERSON_SELECT (directory/actions.ts:9-22, currentCity included) to every member browsing the directory.",
+   "fixDirection": "Export placeSchema from components/onboarding/actions (or move to validators.ts), and in both actions parse `z.array(placeSchema).max(30)` before any .map; add lat -90..90 / lng -180..180 bounds and Number.isFinite; on placeId either verify existence (findMany in) or null it on FK failure.",
+   "reproPlan": "Local dev against own test account: call updateUserPlaces from the console with a 100k-char city and confirm the directory card renders it; or code-argument-only.",
+   "gateOrTest": "Unit test feeding oversized label / non-finite lat / unknown placeId to the (extracted) validation and asserting refusal; visual suite would catch the directory blowup after the fact.",
+   "taxonomyRows": [
+    "6h-missing-length-caps",
+    "6h-numeric-bounds",
+    "validation-map",
+    "6j-render-blast"
+   ]
+  },
+  {
+   "title": "/directory?year=<non-integer> passes NaN or a float into a Prisma Int filter and error-pages the whole directory",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/directory/where.ts:27",
+    "src/app/(main)/directory/page.tsx:198",
+    "src/app/(main)/directory/actions.ts:62"
+   ],
+   "expected": "A mangled or hand-edited URL param (?year=abc, ?year=2004.5, a truncated shared link) degrades to \"no filter\" or an empty result, never an error page.",
+   "actual": "buildDirectoryWhere does `filters.year ? Number(filters.year) : null` and then `typeof showingYear === \"number\"` \u2014 NaN IS typeof \"number\", so where.batchYear becomes NaN; \"2004.5\" becomes a float. Prisma rejects a non-integer for an Int filter with PrismaClientValidationError, thrown during the page's Promise.all of queries; the only boundary is the root src/app/error.tsx, so the visitor gets the full error page. The same filters flow through the loadDirectoryPage server action (Load more), which throws a digest error.",
+   "evidence": "src/app/(main)/directory/where.ts:27-33: `const showingYear = filters.year === \"faculty\" ? \"faculty\" : filters.year ? Number(filters.year) : null; ... } else if (typeof showingYear === \"number\") { where.batchYear = showingYear; }` \u2014 no Number.isInteger guard. yearFrom/yearTo (:29-30, 49-54) are only accidentally NaN-safe because NaN is falsy in `if (yearFrom || yearTo)`, but \"2004.5\" passes and lands as `{ gte: 2004.5 }` \u2014 same throw. The page feeds raw searchParams: page.tsx:205-216 builds filters from params and calls buildDirectoryWhere(filters) with no sanitization; find over src/app shows only the root error.tsx exists, so the crash is a whole-page error state. Prisma's runtime validation of Int arguments rejects float/NaN values (\"Invalid value provided. Expected Int\").",
+   "fixDirection": "In buildDirectoryWhere, parse year/yearFrom/yearTo with Number.parseInt(v, 10) and require Number.isInteger + a sane range (1926..currentYear+10), else treat as absent. One helper used by both the page and the action.",
+   "reproPlan": "Local dev, read-only: load http://localhost:3000/directory?year=abc and /directory?year=2004.5 signed in; expect the error boundary today, empty/unfiltered results after the fix.",
+   "gateOrTest": "Add /directory?year=abc to verify:crawl's route list (it asserts status + console errors); or a unit test on buildDirectoryWhere asserting no NaN/float ever reaches the where.",
+   "taxonomyRows": [
+    "6h-number-nan-radix",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "createPost accepts 20,000 chars for a plain post but editPost caps plain posts at 5,000 \u2014 long posts become uneditable",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:154",
+    "src/app/(main)/feed/actions.ts:396",
+    "src/components/posts/create-post-form.tsx:624"
+   ],
+   "expected": "The create cap and the edit cap for the same kind of content are the same number, so any post a member was allowed to write they are allowed to edit.",
+   "actual": "postSchema.content is `z.string().min(1).max(20000)` regardless of kind (the 20000 was sized for letters but applies to plain posts too, and the composer's textarea has no maxLength \u2014 only the title has 160). editPost then applies `const cap = isLetter ? 20000 : 5000` \u2014 so a 5,001-20,000-char plain post is created fine and every subsequent edit is refused with \"Content must be between 1 and 5000 characters\" until the member deletes content.",
+   "evidence": "validators.ts:153-155: `export const postSchema = z.object({ content: z.string().min(1, \"Post cannot be empty\").max(20000), kind: z.enum([\"post\", \"letter\"]).optional(), ...` \u2014 no kind-conditional refinement. feed/actions.ts:395-399: `const isLetter = post.kind === \"letter\"; const cap = isLetter ? 20000 : 5000; if (!content || content.length > cap) { return { error: \\`Content must be between 1 and ${cap} characters\\` }; }`. create-post-form.tsx has maxLength only at :624 (the title, 160) and a soft letter nudge at 600 chars (:716) that does not block; grep shows no content maxLength. So the server is the only cap and the two paths disagree by 4x.",
+   "fixDirection": "Pick one number per kind and enforce it in both places: add a superRefine to postSchema (content \u2264 5000 unless kind === \"letter\") and reuse the same constants in editPost; optionally add the client maxLength for the friendlier failure.",
+   "reproPlan": "Local dev, own test account: create a 6,000-char plain post, open edit, change one letter, save \u2192 observe the refusal.",
+   "gateOrTest": "Unit test on postSchema (plain post at 5001 chars refused; letter at 20000 accepted) plus a matching assertion against the editPost caps so the constants cannot drift again.",
+   "taxonomyRows": [
+    "6h-boundary-at-limit",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "Post.targetBatches has no length cap or format validation and is LIKE-scanned by every main-feed query",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:159",
+    "src/app/(main)/feed/actions.ts:159",
+    "src/app/(main)/feed/actions.ts:839"
+   ],
+   "expected": "targetBatches is a short comma list of \"ISC-2004\"-style tokens: capped (~500 chars) and shape-validated, since it participates in the feed's hot-path where clause.",
+   "actual": "`targetBatches: z.string().optional()` \u2014 no max, no format. With the 25MB action body limit, a verified member can store a multi-megabyte string in the column. Every main-feed page for every member then evaluates `{ targetBatches: { contains: userBatch } }` against that value, and because loadPosts uses `include` (not select), the full scalar row \u2014 the giant column included \u2014 is shipped from Postgres to the function whenever the row matches the page window.",
+   "evidence": "validators.ts:158-159: `targetBatches: z.string().optional(),` \u2014 the only uncapped string in postSchema (title 160, cityScope 120, pollOptions 200 each). createPost stores it verbatim: feed/actions.ts:159 `targetBatches: groupId ? null : parsed.data.targetBatches || null`. The hot path: feed/actions.ts:836-843 \u2014 main-feed where always contains `OR: [ { targetBatches: null }, { targetBatches: \"\" }, { targetBatches: { contains: userBatch } } ]`, an unindexed LIKE against the column for every row scanned on every feed load. loadPosts' `include` at :846-867 returns all Post scalars, so the oversized value also rides back over the pgbouncer connection. There is also no membership check that the named batches are real (\"garbage\" simply hides the post from everyone including its author, a lesser confusion).",
+   "fixDirection": "Cap at e.g. .max(400) and validate shape (comma-joined `(ISC|ICSE)-\\d{4}` tokens, \u2264 ~40 entries) in postSchema; reject rather than store anything else. Optionally switch loadPosts to an explicit select to stop over-fetching big text columns (images/content) it does not need for hidden branches.",
+   "reproPlan": "code-argument-only (storing the oversized value would pollute the shared feed).",
+   "gateOrTest": "Unit test on postSchema refusing an oversized/misshapen targetBatches.",
+   "taxonomyRows": [
+    "6h-missing-length-caps",
+    "6j-hot-path-like-scan",
+    "validation-map"
+   ]
+  },
+  {
+   "title": "Lookup endpoints accept unbounded query strings: users/search builds one AND-clause per whitespace token",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/api/users/search/route.ts:30",
+    "src/app/api/places/search/route.ts:89"
+   ],
+   "expected": "Type-ahead endpoints cap query length (~100 chars) and token count (~8) before building SQL, so one request is bounded work regardless of what is pasted.",
+   "actual": "users/search splits the raw q on whitespace with no cap on length or token count and emits one `{ name: { contains: term } }` AND-condition per token \u2014 a single request with tens of thousands of space-separated tokens produces tens of thousands of ILIKE clauses and bind params (Postgres caps bind parameters at 65,535; below that it is just an expensive parse+plan per request). places/search interpolates the raw q (any length) into prefix/contains ILIKE patterns over the 234k-row gazetteer. The 120/min rate limit bounds request count, not per-request cost.",
+   "evidence": "users/search/route.ts:30-41: `const q = req.nextUrl.searchParams.get(\"q\")?.trim(); ... const terms = q.split(/\\s+/).filter(Boolean); const users = await prisma.user.findMany({ where: { AND: terms.map((term) => ({ name: { contains: escapeLike(term), ...insensitive } })), ...` \u2014 no q.length cap, no terms.slice(). places/search/route.ts:89-104: `const raw = req.nextUrl.searchParams.get(\"q\")?.trim() ?? \"\"; if (raw.length < 1) ...` \u2014 a minimum but no maximum; `containsPattern = \\`%${escaped}%\\`` goes into `\"altNames\" ILIKE ${containsPattern}` for any q \u2265 4 chars. logSearch truncates to 120 chars for storage (search-log.ts:19,45) \u2014 the endpoints themselves never got the same cap.",
+   "fixDirection": "At the top of both routes: refuse or truncate q beyond ~100 chars; in users/search additionally `terms.slice(0, 8)`. Mirror in the feed search path (loadPosts opts.search is a single contains, lower risk, but a cap costs nothing).",
+   "reproPlan": "Local dev: GET /api/users/search?q=<10k tokens> signed in and watch the query time / error; harmless read-only.",
+   "gateOrTest": "Unit test on a extracted buildPeopleWhere(q) asserting the token cap; or an e2e asserting 400/trimmed behavior for an oversized q.",
+   "taxonomyRows": [
+    "6h-missing-length-caps",
+    "6j-unbounded-query-shape",
+    "6k-db-load"
+   ]
+  },
+  {
+   "title": "Whitespace-only display name passes profileSchema then titleCase collapses it to empty string",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:54",
+    "src/components/settings/actions.ts:94",
+    "src/lib/normalize.ts:81"
+   ],
+   "expected": "A name that is only whitespace is refused (the letterhead path already does this: updateProfileField trims first, then checks length \u2265 2).",
+   "actual": "profileSchema declares `name: z.string().min(2).max(100)` with NO .trim(), so two spaces pass min(2); updateUserProfile then stores `titleCase(parsed.data.name)`, and titleCase trims and collapses whitespace \u2014 `titleCase(\"  \")` returns \"\" \u2014 so User.name is written as the empty string. The member's byline, directory card, comment attribution and notifications (`${session.user.name} liked your post`) all render blank. BirdAvatar happens to guard (`!user.name ? null : getInitials(...)` at bird-avatar.tsx:700), which also means getInitials' own crash on empty input is dodged, but every text surface shows a nameless account.",
+   "evidence": "validators.ts:54: `name: z.string().min(2).max(100),` \u2014 contrast signupSchema:16-17 (`firstName: z.string().trim().min(1...`) and profile-actions.ts:80-87 (`const value = raw.trim(); ... if (value.length < 2) return { error: ... }`), both of which trim before the length check. settings/actions.ts:94 `const cleanName = titleCase(parsed.data.name);` and :112 `name: cleanName,` \u2014 normalize.ts:81-82: `const trimmed = input.trim().replace(/\\s+/g, \" \"); if (!trimmed) return trimmed;` returns \"\" for whitespace-only input. So \"  \" (or NBSP/ideographic spaces, which JS \\s and trim() both match) \u2192 stored name \"\".",
+   "fixDirection": "Change profileSchema to `name: z.string().trim().min(2).max(100)` (zod applies trim before min). While there, reconcile the three name caps (settings 100, letterhead 80, signup up to 101 joined) to one constant.",
+   "reproPlan": "Local dev, own test account: save the settings form with a two-space name; reload and observe the blank byline.",
+   "gateOrTest": "Unit test on profileSchema: \"  \" refused; \" Ravi \" accepted and trimmed.",
+   "taxonomyRows": [
+    "6h-whitespace-only",
+    "6h-unicode-hostile"
+   ]
+  },
+  {
+   "title": "Negative pagination values reach Prisma unclamped and throw: loadPosts \"offset:-1\" cursor and loadPhotos page:-1",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/actions.ts:888",
+    "src/app/(main)/collection/actions.ts:445"
+   ],
+   "expected": "Pagination inputs are clamped to \u2265 0 so a crafted or corrupted cursor degrades to page one, not a thrown server-action error.",
+   "actual": "loadPosts parses the offset cursor with `parseInt(opts.cursor.slice(7), 10) || 0` \u2014 radix and NaN are handled but a NEGATIVE offset (\"offset:-5\") passes straight into `skip: offset`; loadPhotos uses `const page = opts?.page ?? 0` then `skip: page * PAGE_SIZE` with no bound. Prisma rejects negative skip with a PrismaClientValidationError, which neither action catches, so the caller gets the generic digest error instead of an empty page.",
+   "evidence": "feed/actions.ts:887-901: `const offset = opts?.cursor?.startsWith(\"offset:\") ? parseInt(opts.cursor.slice(7), 10) || 0 : 0; ... rows = await prisma.post.findMany({ where, include, orderBy, take: PAGE_SIZE + 1, skip: offset });` \u2014 `-5 || 0` is -5. collection/actions.ts:445 `const page = opts?.page ?? 0;` and :473-481 `skip: page * PAGE_SIZE`. Server actions are public POST endpoints, so the values are attacker-choosable; no legitimate client sends them, hence Low.",
+   "fixDirection": "`Math.max(0, ...)` at both sites (and clamp an upper bound, e.g. 10_000, while there).",
+   "reproPlan": "Local dev: invoke loadPosts({cursor:\"offset:-1\"}) from the console on any feed page; observe the digest error.",
+   "gateOrTest": "Unit-level test of the two clamps.",
+   "taxonomyRows": [
+    "6h-pagination-negative",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "Check-then-create toggles have the unique constraints but no P2002 handler; togglePhotoLove and markNotificationRead also throw raw on stale ids",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/actions.ts:489",
+    "src/app/(main)/collection/actions.ts:516",
+    "src/app/(main)/notifications/actions.ts:77",
+    "src/app/(main)/feed/actions.ts:300"
+   ],
+   "expected": "Per the double-submit rule: the DB unique is the guard AND a P2002 handler turns the losing race into an idempotent success (the pattern reportUser at report-action.ts:185-193 and createCatchup already implement).",
+   "actual": "toggleLike, toggleBookmark, toggleCommentLike, votePoll, togglePhotoLove, toggleEntryLove all do findUnique-then-create with no try/catch: two rapid invocations both see \"no existing\", both create, the loser hits the @@unique (Like/Bookmark/CommentLike/PollVote/PhotoLove/CatchupEntryLove all carry one in schema.prisma) and the action THROWS \u2014 surfacing as a digest error/toast instead of a no-op. togglePhotoLove additionally never checks the photo exists, so an unknown photoId raises a P2003 FK error. markNotificationRead uses `update` with a compound where, so a stale/foreign notification id raises P2025.",
+   "evidence": "feed/actions.ts:477-494 (toggleLike): `const existing = await prisma.like.findUnique(...); if (existing) { await prisma.like.delete(...) } else { await prisma.like.create({ data: { userId: session.user.id, postId } });` \u2014 no P2002 catch anywhere in the file (grep for P2002 in feed/actions.ts: none). collection/actions.ts:508-517 (togglePhotoLove) identical shape, and no `prisma.photo.findUnique` precedes the create. notifications/actions.ts:77-81: `await prisma.notification.update({ where: { id: notificationId, userId: session.user.id }, data: { read: true } });` \u2014 P2025 on no-match. Catchups' toggleEntryLove is wrapped by runAction (catchups/actions.ts:162-172) so it degrades to a friendly error, showing the intended pattern; the feed/collection files have no equivalent wrapper.",
+   "fixDirection": "Wrap each create in try/catch treating P2002 as success (liked: true); for deletes treat P2025 as success (liked: false); markNotificationRead \u2192 updateMany; togglePhotoLove \u2192 catch P2003 or precheck the photo. Alternatively give feed/collection actions a runAction-style wrapper like catchups has.",
+   "reproPlan": "Local dev: fire toggleLike(postId) twice concurrently from the console (Promise.all) on own test post; second call throws today.",
+   "gateOrTest": "Unit/integration test double-invoking one toggle and asserting both resolve without throw.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6a-unhandled-promise-rejection"
+   ]
+  },
+  {
+   "title": "markFeedSeen accepts arbitrary future dates and its monotonic guard makes the mistake permanent",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/actions.ts:1232"
+   ],
+   "expected": "The \"new since you were last here\" marker only ever advances to a timestamp \u2264 now (it is defined as the createdAt of a post that exists).",
+   "actual": "The action validates only that the string parses as a date: `const seenAt = new Date(newestCreatedAt); if (Number.isNaN(seenAt.getTime())) return;` then writes it through `updateMany({ where: { OR: [{ feedSeenAt: null }, { feedSeenAt: { lt: seenAt } }] }, data: { feedSeenAt: seenAt } })`. A call with \"9999-01-01\" (crafted, or a future client bug passing the wrong field) sets feedSeenAt to year 9999, and the deliberately monotonic WHERE then refuses every legitimate smaller value forever \u2014 the divider is permanently dead for that account with no self-serve fix.",
+   "evidence": "feed/actions.ts:1236-1246 quoted above; no upper bound anywhere. Only self-harm (the where pins the row to session.user.id), which caps severity, but the failure is irreversible without SQL.",
+   "fixDirection": "Clamp: `if (seenAt.getTime() > Date.now() + 60_000) seenAt = new Date()` (small skew allowance), or refuse future values.",
+   "reproPlan": "code-argument-only (the write is permanent per account; do not run against the shared DB).",
+   "gateOrTest": "Unit test the clamp.",
+   "taxonomyRows": [
+    "6h-date-boundary",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "Fire-and-forget telemetry writes without after(): search logs and login attempts can be lost when the serverless instance freezes",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/api/users/search/route.ts:72",
+    "src/app/api/places/search/route.ts:127",
+    "src/lib/login-attempt.ts:47"
+   ],
+   "expected": "Per the platform rule the codebase itself applies elsewhere (requestPasswordReset wraps its enqueue in after(), email-queue.ts:373 tries after() first): post-response work is scheduled with after()/waitUntil so it survives the response.",
+   "actual": "Both lookup routes fire `void logSearch({...})` and return the response immediately; recordLoginAttempt internally does `void prisma.loginAttempt.create(...).catch(...)` and authorize() returns (or throws CredentialsSignin) without awaiting it. On Vercel the instance can freeze after the response is sent, silently dropping the insert \u2014 undercounting exactly the zero-result searches and failed logins the analytics room was built to surface. Telemetry-only loss; nothing user-facing breaks.",
+   "evidence": "users/search/route.ts:72-78: `void logSearch({ scope: \"people\", query: q, userId: session.user.id, results: users.length }); return NextResponse.json(users);`. places/search/route.ts:127-134 same shape. login-attempt.ts:46-58: `void prisma.loginAttempt.create({...}).catch(...)` with the comment \"Deliberately not awaited\" \u2014 deliberate for latency, but after() gives the same latency without the loss. Contrast email-actions.ts:185 `after(async () => { ... enqueueMail ... })` \u2014 the codebase knows the pattern.",
+   "fixDirection": "Wrap the logSearch calls in after(() => logSearch(...)); in recordLoginAttempt, accept an optional scheduling: keep void-in-authorize (authorize runs outside a request scope where after() may not be available \u2014 verify) but at minimum move route-level calls to after().",
+   "reproPlan": "code-argument-only (loss is probabilistic on production infra; not reproducible deterministically in dev).",
+   "gateOrTest": "grep-based lint/check: no `void logSearch` outside after() \u2014 add to the check suite's static assertions (security-regressions.test.mjs style).",
+   "taxonomyRows": [
+    "6f-fire-and-forget",
+    "6a-missing-await"
+   ]
+  },
+  {
+   "title": "Actions that shape input with .map/.trim before validating throw raw TypeErrors on crafted non-string/non-array payloads",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/profile/profile-actions.ts:209",
+    "src/components/settings/actions.ts:150",
+    "src/components/profile/profile-actions.ts:80",
+    "src/app/(main)/admin/people/actions.ts:84"
+   ],
+   "expected": "A server action is a public POST endpoint; its very first move on caller data is a schema parse (the pattern joinCatchupByToken and every catchups action follow: typeof checks / zod before any property access).",
+   "actual": "updateContactMethods calls `input.phones.map((p) => p.trim())` and `input.links.map(...)` BEFORE contactMethodsSchema runs \u2014 a payload where phones is a string or links is null throws TypeError; updateUserPlaces/adminUpdatePlaces call `p.label.trim()` on unvalidated entries; updateProfileField calls `raw.trim()` on an unvalidated second argument; adminUpdatePerson calls `titleCase(edit.name)` / `edit.batchYear.trim()` on unvalidated fields. All throw before any write (no corruption), surfacing as generic digest errors rather than the friendly { error } contract every action otherwise keeps.",
+   "evidence": "profile-actions.ts:207-216: `const cleaned = { ... phones: input.phones.map((p) => p.trim()).filter(...), ... links: input.links.map((l) => ({ label: l.label.trim(), url: l.url.trim() }))... }; const parsed = contactMethodsSchema.safeParse(cleaned);` \u2014 the map precedes the parse. settings/actions.ts:150-153 `places.map((p) => ({ ... label: titleCase(p.label.trim()) ...`. profile-actions.ts:80 `const value = raw.trim();`. people/actions.ts:84 `const name = titleCase(edit.name);` and :93 `const yearRaw = edit.batchYear.trim();`. No throw reaches a write in any of them (verified by reading each function to its first await of prisma).",
+   "fixDirection": "Parse first: give each a zod schema over the RAW input (z.array(z.string()) etc.) and only then normalize; or wrap the shaping in try/catch returning { error: \"Invalid request.\" }.",
+   "reproPlan": "Local dev: invoke updateContactMethods({ phones: \"x\", links: null, ... }) from the console; observe the digest error today.",
+   "gateOrTest": "Unit tests feeding wrong-typed payloads to each and asserting { error } instead of a throw.",
+   "taxonomyRows": [
+    "validation-map",
+    "6h-invalid-type",
+    "6a-unhandled-promise-rejection"
+   ]
+  },
+  {
+   "title": "Cross-path validation caps disagree for the same columns: name 100 vs 80 vs 101, years capped at current-year vs 2100, phone min 4 vs none",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:54",
+    "src/components/profile/profile-actions.ts:86",
+    "src/components/auth/actions.ts:118",
+    "src/components/profile/profile-actions.ts:28"
+   ],
+   "expected": "One cap per column, whichever write path carries the value, so a value accepted by one surface is never refused (or silently out-of-range) on another.",
+   "actual": "(a) name: settings allows 100 (validators.ts:54), the profile letterhead allows 80 (profile-actions.ts:86 `if (value.length > 80)`), signup can store up to 101 (two 50-char halves + space, actions.ts:118) \u2014 an 85-char name saved in settings cannot be edited on the profile. (b) years: profileSchema caps yearJoined at the current year and batchYear at +7 (validators.ts:104-106), but updateProfileField accepts any year up to 2100 for the same columns (profile-actions.ts:28-29 `const YEAR_MAX = 2100` used in the default branch :130-133) \u2014 \"Batch of 2100\" is storable from the letterhead but would be refused by settings. (c) phones: profileSchema requires min(4) per entry (validators.ts:73) while contactMethodsSchema has no min (validators.ts:127), so \"+\" survives normalizePhone (normalize.ts:132-137 returns \"+\" for a bare plus) and stores as a one-character phone via the contact block.",
+   "actual_note": "",
+   "evidence": "All lines quoted in `actual`; each pair is two live write paths to the same User column with different bounds. None corrupts data; each produces a confusing refusal or a nonsense-but-stored value a member can hit when editing the same field from two surfaces.",
+   "fixDirection": "Extract shared per-column constants (NAME_MAX, YEAR_MIN/MAX, PHONE_MIN/MAX) into validators.ts and use them in profile-actions.ts and signup; make signup's joined-name length respect NAME_MAX; give contactMethodsSchema the same phone min(4).",
+   "reproPlan": "Local dev, own test account: save a 90-char name in settings, then try to edit it on the profile letterhead \u2192 refused.",
+   "gateOrTest": "A validation-consistency unit test asserting the letterhead caps equal the schema caps for the shared fields.",
+   "taxonomyRows": [
+    "6h-boundary-at-limit",
+    "validation-map"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "Zod/manual caps present and correct on: postSchema (content/title/cityScope/pollOptions 2-4x200/images-via-ownership), commentSchema (1000/postId/parentId re-checked in DB), reportPost/reportUser (manual trim + 500 cap + P2002 handled + per-pair dedupe), adminMessageSchema (4000 + owned-image re-check), all catchup schemas (name 80, prompt 300, entry body 6000, images max 3 + ownedUploadUrls, songUrl 2000 + resolveSpotify allowlist, memberIds max 100 + teacher/blocked/deletion-pending filtering, cadence/reminderMode/extendDays as strict enums), photoSchema (caption 300, area 100, year 1926..now, month 1..12, month-needs-year refine, era/datePrecision enums), signupSchema (names trimmed 1..50, password 8..128, years bounded, accountType enum), contactMethodsSchema and profileSchema links (https-only + URL-parse + label 60 + max 10), onboarding wizard registerStep/houses schemas (place labels 160, houses 60 rows x 60 chars, admissionNumber 0..10000)",
+  "JSON.parse reader guards: parseImageUrls (feed/actions.ts:22-30), settings links/phones (try/catch to undefined), getOnboardingHouses, house-spans.ts, social.ts parseUserLinks, account-purge.ts images, parseJsonArray (utils.ts) \u2014 all tolerate corrupt columns; email-queue render()'s unguarded JSON.parse is wrapped by claimAndSend's try/catch (email-queue.ts:227) so a poison payload burns attempts instead of killing the drain",
+  "FormData .get() as-cast null-to-\"null\" bug: examined every FormData site (feed, settings, collection, auth, onboarding) \u2014 all use `|| undefined` / explicit null checks; no \"null\"-string writes found",
+  "Enum-ish string columns: writers restricted at every site examined \u2014 kind post|letter (schema), theme light|dark (explicit !== check, theme-actions.ts:21), thread status open|closed (explicit), upload kind post|collection (explicit), verifyState transitions via fixed literals with state preconditions (verification-actions.ts:53 updateMany where verifyState:\"unverified\"), GroupMember.role written only from literals (member/admin/keeper), Report.targetType/status literals; readers tolerant (batchLine falls through, readPeopleFilters narrows unknown values to \"any\")",
+  "Money paths: startContribution (Number.isInteger + 500..500000 bounds, paise conversion exactly once, order-before-row insert ordering reasoned, receipt = cuid \u2264 40), confirmContribution (signature verified, ownership strict-inequality check, idempotent), razorpay webhook (raw-bytes signature, event allowlist, paid-terminal state machine, failed only from created), chooseBird (WEARABLE_SLUGS allowlist, livemode-filtered ledger, pick-spend logic)",
+  "Upload paths (all four): MIME-sniff of actual bytes, HEIC refusal, 20MB cap with HEAD-before-GET on presigned objects, staging/collection key regex + keyBelongsTo ownership, MAX_FILES/MAX_IMAGES 3, per-account photo quota, shared hourly uploads rate limit on /api/upload, /api/upload/presign, /api/upload/finalize, contributePhoto(Direct), updateAvatar; origin check (originAllowed) on the three API upload routes",
+  "Rate limiting present at every metered entry point read: signup/reset/trivia per IP, login per IP+account (failures only), posts/comments/uploads/reports/catchups/reauth/export per user, search bucket (120/min) on all three lookup endpoints; fail-open posture is documented and deliberate",
+  "Webhooks: razorpay and resend both verify signatures over raw bytes, bound replay (svix 5-min window), handle duplicates/out-of-order idempotently, use updateMany for possibly-absent rows",
+  "LIKE-wildcard escaping: escapeLike applied at every user-supplied contains examined (feed search incl. author name, collection area/search, directory q/city/house, users/search terms, admin people q, places raw SQL with parameterized Prisma.sql)",
+  "IDs taken on faith: no interpolation of caller ids into raw SQL anywhere in the audited surface; the one raw-SQL route (places/search) is fully parameterized; cuid params are used only in equality lookups with ownership re-checks",
+  "Pagination take clamps: loadComments take 1..50, getNotifications take 1..50, users-by-batch IN-list sliced to 120 + take 5000, directory/feed/collection fixed page sizes",
+  "Cron/dev routes: catchups/tick and retention/sweep require CRON_SECRET constant-time; dev-login 404s in production and requires a \u226532-char secret constant-time; demo/reset gated on DEMO_MODE with best-effort throttle",
+  "Trivia gate: server-held answers, normalized comparison bounded, per-IP limit, HMAC pass bound to browser id with TTL and future-skew check",
+  "readPeopleFilters and admin people/mail/content actions: enum-narrowed filters, throw-free URL parsing, role re-checked per action, last-admin demotion guard, merge collision failure is transactional and reported",
+  "users-by-batch NaN handling: .map(Number).filter(Boolean) drops NaN safely (float \"2004.5\" would still throw, noted in coverage as a sub-case of the Number() class but not separately reported \u2014 the endpoint 500s only for a hand-built URL)"
+ ],
+ "coverageNotes": "Read in full: all 21 \\\"use server\\\" files (the three extra grep hits \u2014 verification-mail.ts, lab/_archive-state.ts, support/plate-data.ts \u2014 are comment-only matches and are NOT action files; verified each), plus report-action.ts; all 14 API route files in full; prisma/schema.prisma in full; the validation substrate (validators.ts, normalize.ts, utils.ts, upload-ownership(-rule).ts, upload-shared usage, member-gate.ts, human-pass(-rule).ts, search-log.ts, login-attempt.ts, rate-limit.ts bucket table, email-queue.ts render/claim region, auth.ts whole); directory where.ts + page.tsx (filter flow), admin-people.ts readPeopleFilters, next.config.ts serverActions/proxy body limits (the 25mb limit is the enabling fact for the uncapped-length findings), post-card.tsx truncation (read-more at 300 chars \u2014 render truncation EXISTS for long posts, so 20k-char bodies do not blow up the feed card), create-post-form caps, bird-avatar getInitials guard. Built the full action\u2192validation table; the findings list every NOTHING/partial cell (onboarding updateProfile = nothing; updateUserPlaces/adminUpdatePlaces = count-only; targetBatches = uncapped; lookup q = uncapped), and verifiedClean lists every cell that checked out. Consciously skipped: src/app/(main)/catchups/round/[editionId]/page.tsx (mid-edit by a concurrent session, per brief), lab pages (dev-only surfaces; setArchived was audited and is clean), demo-seed internals, admin-analytics raw-SQL internals (admin-only reads; Number(bigint) conversions are benign), rich-text XSS/injection depth (security audit closed it; I verified only the ReDoS bound {0,2000} on emphasis and the strict mention-id charset), catchups.ts state-machine math (another investigator's 6c/6i territory \u2014 I audited only its input validation, which is clean). Known-tracked items not re-reported: raw-SQL timestamp trap note, signed-out 404 bounce, demo items. The BLNS fuzz targets for the orchestrator, in priority order: /onboarding form fields (no server caps), settings name field (whitespace-only), directory ?year=/?yearFrom= params (non-integer), users/places search q (length/token count), updateUserPlaces payload (types, lat/lng, placeId), any toggle double-fired (P2002 surfacing)."
+}

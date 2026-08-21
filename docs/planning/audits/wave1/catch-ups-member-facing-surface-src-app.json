@@ -1,0 +1,429 @@
+{
+ "territory": "Catch-ups member-facing surface: src/app/(main)/catchups/** (actions.ts 1489 lines read in full; index, home, answer, round reader, create pages), src/app/catchups/join/[token], all 30 files under src/components/catchups/**, plus their load-bearing deps: src/lib/catchups.ts, catchups-notify.ts, catchups-types.ts, member-gate.ts, upload-ownership.ts, account-purge.ts, prisma/schema.prisma Catchup*+Group models, (main)/layout.tsx piggyback, proxy.ts allowlist, docs/spec/catchups.md",
+ "findings": [
+  {
+   "title": "Purging (or admin-deleting/merging) a Catch-up creator's account cascades away the entire Catch-up: every Round, every member's published answers, permanently",
+   "severity": "Critical",
+   "status": "confirmed-in-code",
+   "files": [
+    "prisma/schema.prisma:201",
+    "prisma/schema.prisma:717",
+    "src/lib/account-purge.ts:101",
+    "src/app/(main)/catchups/actions.ts:442",
+    "src/app/(main)/admin/people/actions.ts:315"
+   ],
+   "expected": "A Catch-up survives its creator leaving. The schema comment says Catchup.createdById is 'nullable so the Catch-up survives if they leave' (SetNull); removal copy promises 'their words stay where they are'; spec 2.2 says published Rounds are 'readable forever'.",
+   "actual": "The hidden Group under every Catch-up is created with creatorId = the Catch-up creator, and Group.creatorId is onDelete: Cascade. prisma.user.delete (the 60-day retention purge, adminDeleteUser, and adminMergeUsers all end in it) deletes the Group, cascading Catchup (groupId Cascade) -> CatchupEdition -> CatchupPrompt -> CatchupEntry -> loves/prefs. Everyone else's published answers and the whole archive vanish. createdById SetNull is unreachable in practice because the Group dies first. Bonus damage: collectImageUrls() in account-purge.ts only collects the purged member's OWN entry images (catchupEntry.findMany where authorId=userId), so every other member's answer images in the cascaded rows become orphaned R2 bytes nothing can ever find again.",
+   "evidence": "schema.prisma:201 'creator  User @relation(fields: [creatorId], references: [id], onDelete: Cascade)' on model Group; actions.ts:442-449 'const group = await tx.group.create({ data: { name, visibility: \"private\", creatorId, ... } })' with creatorId = session.user.id, then 'tx.catchup.create({ data: { groupId: group.id, ... } })'; schema.prisma:717 'group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)' on Catchup, and CatchupEdition/Prompt/Entry each cascade down from there; account-purge.ts:99-102 'await prisma.$transaction([ prisma.report.deleteMany(...), prisma.user.delete({ where: { id: userId } }) ])'; admin/people/actions.ts:315 'prisma.user.delete({ where: { id: sourceId } })' inside adminMergeUsers, which reassigns catchupPrompt/catchupEntry authorship (296-297) but never reassigns Group.creatorId, so the reassigned rows are cascade-deleted a statement later if the duplicate created the group.",
+   "fixDirection": "Change Group.creatorId to a nullable FK with onDelete: SetNull (mirroring Catchup.createdById), via a dated idempotent file in prisma/migrations-manual/ (ALTER COLUMN DROP NOT NULL + drop/re-add FK), and make purge/merge reassign or null creatorId first. Then implement the spec's 'any remaining member may re-adopt' rule or at least keep the group alive. Also make collectImageUrls collect images for ALL entries that will cascade (entries under editions of catchups on groups the user created), or stop the cascade so the question does not arise.",
+   "gateOrTest": "New unit/integration test: create user A, catchup via createCatchupWithPeople with member B, B submits an entry, purgeUserAccount(A), assert B's CatchupEntry and the CatchupEdition still exist. Pin the schema with a security-regressions-style test asserting Group.creatorId is not Cascade.",
+   "reproPlan": "code-argument-only (the live proof is destructive: it deletes real rows in the shared production database).",
+   "taxonomyRows": [
+    "6d-cascade-vs-app-cleanup",
+    "6h-identity-states",
+    "6g-orphaned-objects"
+   ]
+  },
+  {
+   "title": "Deleting any member's account cascades away every question they ever asked, taking every OTHER member's answers to it out of published Rounds",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "prisma/schema.prisma:765",
+    "prisma/schema.prisma:785",
+    "src/lib/account-purge.ts:101"
+   ],
+   "expected": "Account deletion removes the member's own content. Other members' answers in a published Round (a keepsake, 'readable forever') survive; a question with a gone asker can render as 'asked by someone who left'.",
+   "actual": "CatchupPrompt.authorId is onDelete: Cascade, and CatchupEntry.promptId is onDelete: Cascade. Purging member A deletes every prompt A authored in ANY catch-up (not just ones A created), which cascades every entry anyone wrote answering those prompts. In a 30-person Round where A asked one of the questions, 30 people's answers (text, photos, hearts) silently disappear from the published Round. The cascaded entries' images are also not collected by collectImageUrls (it only reads entries where authorId = the purged user), so those photos are stranded in R2.",
+   "evidence": "schema.prisma:765 'author  User @relation(\"CatchupPromptsAuthored\", fields: [authorId], references: [id], onDelete: Cascade)'; schema.prisma:785 'prompt  CatchupPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)'; account-purge.ts:45 collects only 'prisma.catchupEntry.findMany({ where: { authorId: userId }, select: { images: true } })' before the delete at 101.",
+   "fixDirection": "Make CatchupPrompt.authorId nullable with onDelete: SetNull (migration in prisma/migrations-manual/), and teach the three asker-render sites (round page, loadPublishedIssue, home consoles) to render a null author as anonymous/'a member who left' (they already have a null-author branch for anonymity, so the render path exists). Alternatively reassign prompts to a tombstone user during purge.",
+   "gateOrTest": "Integration test: A asks a prompt, B answers it, purge A, assert B's entry still exists and the round renders the prompt with a null asker.",
+   "reproPlan": "code-argument-only (destructive against the shared production database).",
+   "taxonomyRows": [
+    "6d-cascade-vs-app-cleanup",
+    "6h-identity-states"
+   ]
+  },
+  {
+   "title": "Pausing or ending a Catch-up does not stop the in-flight Round: it keeps advancing, keeps sending daily reminders, and publishes itself while the home shows only a paused/ended banner",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/catchups.ts:956",
+    "src/lib/catchups.ts:802",
+    "src/lib/catchups.ts:827",
+    "src/components/catchups/home/catchup-home-shell.tsx:57",
+    "src/app/(main)/catchups/[catchupId]/page.tsx:513",
+    "src/app/(main)/catchups/actions.ts:1119"
+   ],
+   "expected": "After the Keeper pauses (or ends) a Catch-up, members stop being nudged and the live cycle visibly freezes (or, if 'the current round finishes' is the intended semantics, the home keeps showing the live console so members can still answer from it).",
+   "actual": "advanceDueCatchups selects live editions with no filter on catchup.status, and applyEditionAction only consults catchupStatus for setsNextOpensAt. So a paused/ended Catch-up's Round keeps auto-advancing collecting->answering->preparing->published, keeps firing catchup_answers_open/catchup_published to every member, and non-answerers keep receiving a DAILY catchup_reminder for the whole 7-10 day window. Meanwhile the home replaces the entire console with 'This Catch-up is paused.' (no Answer CTA, no question list), yet the page header still prints the live countdown ('{name} \u00b7 3 days left') above that banner, the notification links to /catchups/[id]/answer still work, and submitEntry accepts answers (it checks only membership + edition.status). Pause also does not stop the clock: a Keeper pausing mid-answering to 'freeze' silently loses the window, and resume does not shift deadlines.",
+   "evidence": "catchups.ts:956-963 'const editions = await prisma.catchupEdition.findMany({ where: { status: { in: [\"collecting\", \"answering\", \"preparing\"] }, catchup: scope } ...' where scope filters only membership; catchups.ts:802 'if (action.setsNextOpensAt && meta.catchupStatus === \"active\")' is the ONLY status check in applyEditionAction, and the reminder branch at 826-833 fires notify.notifyReminder unconditionally; catchup-home-shell.tsx:57-63 'catchupStatus !== \"active\" ? <PausedOrEndedBanner .../>' replaces the whole left console; [catchupId]/page.tsx:512-516 header title uses result.edition?.countdownLabel with no catchupStatus guard; actions.ts submitEntry 1115-1121 checks membership and edition.status !== \"answering\" but never edition.catchup.status; answer/page.tsx has no catchup.status check either. The banner's own copy 'No new Round opens until it is resumed' admits pause only gates openNextRoundIfDue.",
+   "fixDirection": "Decide the semantics and enforce them in one place: either (a) exclude paused/ended catchups from advanceDueCatchups' edition query and from advanceEdition (freeze), shifting deadlines by the pause duration on resume; or (b) let the current Round finish but keep rendering the live console + countdown under a slim paused banner and keep reminders consistent with what the page shows. Also gate submitEntry and the /answer page on catchup.status if (a).",
+   "gateOrTest": "Unit test on planNextAction/advanceEdition with a paused catchup asserting no transition and no reminder fires; e2e: pause mid-answering, assert no new notification rows appear after a simulated day.",
+   "reproPlan": "Live-provable in dev: pause a test catch-up mid-answering, set answersCloseAt into the past via a test row, load any page as another member, read the Notification table (read-only inspection) and the home page.",
+   "taxonomyRows": [
+    "6c-state-machine",
+    "6i-jobs",
+    "6a-boolean-inversion"
+   ]
+  },
+  {
+   "title": "A Catch-up nobody adds questions to still runs the full cycle forever: answering opens with zero questions, everyone gets daily reminders to answer nothing, an empty Round publishes, and the next Round opens on cadence, repeating monthly for eternity",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/catchups.ts:505",
+    "src/lib/catchups.ts:896",
+    "src/app/(main)/catchups/[catchupId]/answer/page.tsx:199",
+    "src/lib/catchups-notify.ts:132"
+   ],
+   "expected": "A Round with no accepted questions should not open answering on the clock (there is nothing to answer), should not nudge every member daily about it, and should not publish an empty keepsake; an abandoned Catch-up should quiesce, not loop.",
+   "actual": "computeStatus/planNextAction advance collecting->answering purely on questionsCloseAt with no prompt-count guard, firing catchup_answers_open to all members. With zero prompts nobody CAN answer, so every member is a non-answerer and receives a daily catchup_reminder for the 7-day window; at close, the too-few rule extends once (+3 more days of dailies, another answers-open blast), then it publishes an empty Round ('This Round did not gather any questions.') and notifies 'ready to read'. openNextRoundIfDue only requires latest.status === 'published', so a fresh empty Round opens next cadence and the whole loop repeats forever until a human ends the catch-up. The /answer page's zero-prompt state even says 'Check back once the Keeper has added a few questions' during answering, when adding questions is impossible (submitPrompt requires status collecting). Note the UI knows better: OpenAnsweringButton only renders when a prompt exists (shell line 121-125), but the clock path has no such guard.",
+   "evidence": "catchups.ts:505-514 'if (next === \"answering\") { return { kind: \"transition\", ..., patch: answeringPatch(ed, now), notify: \"catchup_answers_open\" ... } }' with no prompt count in scope (planNextAction's inputs are timing + entryCount only); catchups.ts:908-913 'if (!latest || latest.status !== \"published\") return;' is openNextRoundIfDue's only content gate; catchups-notify.ts:139-141 non-answerers = all members when entries are zero; answer/page.tsx:199-207 zero-prompt card copy 'Check back once the Keeper has added a few questions to answer.' while edition.status === 'answering'; actions.ts:692-694 submitPrompt refuses when status !== 'collecting'.",
+   "fixDirection": "In planNextAction (or advanceEdition, which already counts entries lazily), when the collecting window lapses with zero accepted prompts, either extend the question window once (mirroring the too-few-answers rule) and then auto-pause the catchup, or skip straight to a quiet no-op state that never notifies; and make openNextRoundIfDue refuse (or auto-pause) after publishing an edition with zero entries, so an abandoned catch-up goes dormant instead of looping. Fix the /answer zero-prompt copy to not promise an impossible action.",
+   "gateOrTest": "Unit tests on planNextAction: (collecting, 0 prompts, past close) does not transition to answering / does not notify; (published empty, nextOpensAt past) does not open the next Round.",
+   "reproPlan": "Live-provable in dev with a test catch-up: create one, add no questions, backdate questionsCloseAt, load a page, inspect edition.status and Notification rows (read-only after setup).",
+   "taxonomyRows": [
+    "6c-state-machine",
+    "6h-empty-states",
+    "6i-jobs",
+    "6k-chaos"
+   ]
+  },
+  {
+   "title": "A member cannot leave a Catch-up, and enrolment is unilateral: anyone can be added by a Keeper and then receives cycle notifications forever with no self-service exit",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:1355",
+    "src/lib/catchups-notify.ts:82",
+    "src/lib/catchups-notify.ts:142",
+    "src/app/(main)/catchups/actions.ts:420"
+   ],
+   "expected": "Someone enrolled in a Catch-up (they never accepted an invite; createCatchupWithPeople and addCatchupMembers enrol up to 100 people without consent) can remove themselves, or at minimum silence it completely.",
+   "actual": "The only membership-removal path is removeCatchupMember, which is Keeper-only (loadKeeperScope) and explicitly refuses self-removal ('You cannot remove yourself.'); no leave/exit action exists anywhere in the feature (the only groupMember.deleteMany in the app is that Keeper action). The reminder pref 'off' silences only the daily catchup_reminder, and even that is bypassed by Keeper nudges (bypassOff); catchup_questions_open, catchup_answers_open and catchup_published go to ALL group members unconditionally, every cycle, on a recurring cadence, forever. So a member who wants out of a monthly catch-up they were added to must personally ask a Keeper, and until then keeps being notified monthly for life.",
+   "evidence": "actions.ts:1355 'if (userId === session.user.id) return { error: \"You cannot remove yourself.\" };' inside the Keeper-gated removeCatchupMember; grep confirms no other groupMember delete in src/ outside demo seed; catchups-notify.ts:82-93 notifyQuestionsOpen and 177-188 notifyPublished derive recipients from groupMemberIds with no pref filter; 142 'if (!ctx.bypassOff)' shows the off pref is skipped for Keeper nudges; actions.ts:420-434 createCatchupWithPeople enrols invitedIds directly as GroupMember rows with no acceptance step.",
+   "fixDirection": "Add a leaveCatchup(catchupId) server action: auth + membership check, refuse only when the caller is the creator (offer end/handover instead), delete own GroupMember row and own pending catchup notifications, revalidate. Surface it in PeoplePanel ('Leave this Catch-up'). Optionally make questions_open/answers_open/published respect reminderMode 'off' as a full mute.",
+   "gateOrTest": "Unit test on the new action (member can leave; creator refused; notifications cleared); e2e: leave, assert home shows the not-member card.",
+   "reproPlan": "code-argument-only until the action exists; the absence is provable by grep.",
+   "taxonomyRows": [
+    "6h-identity-states",
+    "6e-consent",
+    "6c-server-action-coverage"
+   ]
+  },
+  {
+   "title": "Anonymous question askers are unmasked to Keepers in published Rounds with no visual cue, while being hidden from the same Keepers during collecting, when curation actually needs it",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/round/[editionId]/page.tsx:295",
+    "src/app/(main)/catchups/[catchupId]/page.tsx:150",
+    "src/app/(main)/catchups/[catchupId]/page.tsx:331",
+    "src/components/catchups/round/question-section.tsx:91"
+   ],
+   "expected": "One consistent anonymity rule. Either 'showAsker=false hides the asker from everyone in the UI' (what the 'Ask anonymously' toggle implies and what the home's own comment demands: 'never send another member's identity for a question they asked anonymously'), or Keeper-visibility everywhere, clearly labelled as Keeper-only.",
+   "actual": "Two contradictory rules ship. During collecting/answering the home sends author: null unless showAsker or isOwn, so even Keepers see 'Someone in the group' while deciding what to remove. But once published, both the round reader and the home's inline issue compute askerVisible = p.showAsker || keeper and render a plain 'asked by {name}' with the asker's avatar, identical to a named question. A Keeper (including anyone later handed the hat via setCatchupKeeper) has no way to know this identity is private to them, and can casually out the anonymous asker in conversation or a screenshot. The unmask also reaches co-Keepers who were not moderating anything.",
+   "evidence": "round/[editionId]/page.tsx:295 'const askerVisible = p.showAsker || keeper;' and [catchupId]/page.tsx:150 'const askerVisible = p.showAsker || isKeeper;' (published paths) versus [catchupId]/page.tsx:318-319 comment 'Anonymity boundary: never send another member's identity for a question they asked anonymously' and line 331 'const revealAsker = p.showAsker || isOwn;' (collecting path). question-section.tsx:91-108 renders prompt.asker with no keeper-only marker. catchups-types.ts:132 documents the keeper unmask as intended, directly contradicting the home comment.",
+   "fixDirection": "Pick one rule. Simplest and safest: drop '|| keeper' from both published-path askerVisible computations so anonymity is absolute in the UI (authorId stays stored for admin moderation). If Keeper visibility is truly wanted, apply it in collecting too and render a distinct '(visible only to you as Keeper)' treatment in QuestionSection/AnswerCard so it cannot be mistaken for public attribution.",
+   "gateOrTest": "Unit test on the section-building code: showAsker=false + keeper viewer yields asker null (or the labelled variant); e2e reading a published round as keeper.",
+   "reproPlan": "Live-provable in dev: submit an anonymous question in a test catch-up, publish, view as the Keeper and as a plain member; compare the 'asked by' line.",
+   "taxonomyRows": [
+    "6h-anonymity",
+    "6c-serialization-leak"
+   ]
+  },
+  {
+   "title": "Published/next-Round dates render in server UTC, so members in IST see the wrong calendar day for anything that happens between midnight and 5:30am IST",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/catchups/round/masthead.tsx:49",
+    "src/components/catchups/round/footer-tease.tsx:26",
+    "src/components/catchups/index/fresh-off-the-press.tsx:21",
+    "src/components/catchups/home/console-published.tsx:30",
+    "src/components/catchups/home/archive-shelf.tsx:19"
+   ],
+   "expected": "'Published 21 August' and 'Next Round opens {date}' match the member's calendar (all members are IST, UTC+5:30).",
+   "actual": "RoundMasthead, RoundFooterTease and FreshOffThePress are server components (no 'use client'), so toLocaleDateString with no timeZone runs on the UTC server: a Round published at 00:30 IST on the 21st prints 'Published 20 August' for everyone, permanently; 'Next Round opens' can likewise show the previous day. Window times inherit the creation/open hour, so any catch-up whose Keeper acts between 00:00 and 05:30 IST (late-night usage is normal for alumni) has EVERY subsequent date in this band. The client-side copies (ConsolePublished en-IN, ArchiveShelf, ExtendDeadlineCard's closesLine) SSR with the UTC value then hydrate with the browser value, producing a hydration text mismatch plus a visible day flicker in the same band, and the two surfaces (masthead vs console) can disagree about the same Round's date.",
+   "evidence": "masthead.tsx:49-55 'const dateLabel = publishedAt ? new Date(publishedAt).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"long\", year: \"numeric\" }) : null;' in a file with no 'use client'; footer-tease.tsx:24-31 same pattern for nextOpensAt; fresh-off-the-press.tsx:21-24 same with en-US; console-published.tsx:30-37 and archive-shelf.tsx:19-22 are 'use client' so they SSR-UTC/hydrate-IST. Servers run UTC (audit brief), members IST.",
+   "fixDirection": "Format all Catch-up dates with an explicit timeZone: 'Asia/Kolkata' (the spec's 'single community timezone' fence makes this legitimate), ideally via one shared helper in lib so masthead/footer/rail/archive/console cannot drift; that also makes SSR and hydration agree for the client components.",
+   "gateOrTest": "Unit test on the shared formatter: an ISO instant at 19:30Z prints the next IST day. Visual suite covers the render.",
+   "reproPlan": "Live-provable in dev: publish a test round with publishedAt set to ~20:00Z and read the masthead.",
+   "taxonomyRows": [
+    "6h-ist-day-boundary",
+    "6b-hydration-mismatch"
+   ]
+  },
+  {
+   "title": "Catch-up home archive is an N+1 that fetches every entry body of every published Round on every home view; the index rail similarly over-fetches all entries of 6 editions",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/[catchupId]/page.tsx:374",
+    "src/app/(main)/catchups/page.tsx:199"
+   ],
+   "expected": "Computing a 140-char teaser and a contributor count per archived Round costs a bounded query, not one sequential full-table pull per Round growing linearly with the catch-up's age.",
+   "actual": "loadHome loops 'for (const ed of publishedEditions) { const entries = await prisma.catchupEntry.findMany({ where: { editionId: ed.id }, select: { authorId: true, body: true, _count: {...} } }) }' - sequential awaits, one query per published Round, each fetching EVERY entry's full body (up to 6000 chars each) just to pick the most-loved teaser. A 2-year-old monthly catch-up with 100 members and ~15 questions/Round means 24 sequential queries moving up to ~36k rows of prose on every single home visit, added to page latency. The index's freshEditions query has the same shape (entries with body, no take, for 6 editions) once per index view. At 2,000 users this is the page members hit most.",
+   "evidence": "[catchupId]/page.tsx:374-396 the for-await loop quoted above (note also publishedEditions itself has no take); catchups/page.tsx:199-213 'entries: { select: { authorId: true, body: true, _count: { select: { loves: true } } } }' nested with no take inside the freshEditions findMany.",
+   "fixDirection": "Compute teasers at publish time (store teaser + contributorCount on CatchupEdition when it publishes - publishNow/applyEditionAction are the two writers), or replace the loop with one groupBy for contributor counts plus one query fetching only the top-loved entry per edition (orderBy loves count, take 1 per edition via a raw query or per-edition take inside a single include). At minimum, Promise.all the loop and select a truncated substring instead of full bodies.",
+   "gateOrTest": "A query-count assertion in a unit/integration test around loadHome (e.g. Prisma query event counter: home view issues O(1) archive queries regardless of published count).",
+   "reproPlan": "Live-provable in dev with Prisma query logging while loading a catch-up home that has several published rounds.",
+   "taxonomyRows": [
+    "6j-n-plus-1",
+    "6j-overfetch-text-columns",
+    "6b-sequential-awaits"
+   ]
+  },
+  {
+   "title": "Answering UI marks a question 'shared' and shows the completion card even when the save failed, so a member can leave believing an unsaved answer was submitted",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/catchups/answer/answer-experience.tsx:104",
+    "src/components/catchups/answer/answer-experience.tsx:51",
+    "src/components/catchups/answer/completion-card.tsx:48"
+   ],
+   "expected": "The progress ring, the per-question check, and 'That is you in this Round.' reflect what the server actually stored; a failed autosave leaves the question visibly unsaved.",
+   "actual": "handleBodyBlur calls updateEntry(promptId, { body }) BEFORE the async persist, and a persist error only toasts and resets saveStatus to idle - the optimistic entries state is never rolled back. answeredIds (which drives the rail checks, the ring, the mobile dots, and the CompletionCard's 'That is you in this Round') is computed from that local entries state. So when submitEntry fails - body over the 6000-char Zod cap ('Keep it under 6000 characters.'), the window auto-closing at answersCloseAt mid-session ('Answering is not open...'), the member having been removed, or a network drop - the question still turns green, the count still increments, and finishing shows the completion moment while the server has nothing. A sonner toast is the only counter-signal and is easy to miss on mobile; closing the tab loses the text entirely (drafts live only in client state).",
+   "evidence": "answer-experience.tsx:104-107 'function handleBodyBlur(promptId, body) { updateEntry(promptId, { body }); void persist(promptId, { body }); }' and persist's error branch (96-99) only toasts + sets saveStatus idle, never reverts entries; 51-55 'answeredIds' derives from entries via isMeaningfulEntry; completion-card.tsx:48 'answeredCount > 0 ? \"That is you in this Round.\"'. handleImagesChange has the same shape (109-112).",
+   "fixDirection": "Track per-prompt saved-vs-draft state: only add a prompt to answeredIds when its last persist resolved success (e.g. keep a savedEntries map updated in persist's success branch and derive answeredIds from it), and render a visible failed-save state on the card/rail row (red dot + retry) instead of relying on a toast. Enforce the 6000 cap in the editor (live counter) so the common failure cannot occur.",
+   "gateOrTest": "Component test: persist rejection leaves the rail row unchecked and completion card unreachable; e2e with a stubbed failing action.",
+   "reproPlan": "Live-provable in dev: type >6000 chars into an answer, blur, watch the rail tick green while the toast reports the rejection; reload to see the empty entry.",
+   "taxonomyRows": [
+    "6b-optimistic-state",
+    "6a-errors-logged-then-continue",
+    "6h-limit-plus-one",
+    "6k-session-expiry-midform"
+   ]
+  },
+  {
+   "title": "adminMergeUsers aborts wholesale when both accounts answered the same Catch-up prompt, and silently drops the survivor from every Catch-up the duplicate belonged to",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/people/actions.ts:297",
+    "src/app/(main)/admin/people/actions.ts:315",
+    "prisma/schema.prisma:789"
+   ],
+   "expected": "Merging duplicate accounts preserves catch-up participation: entries dedupe like the other unique-keyed engagement, and the surviving account keeps the duplicate's memberships.",
+   "actual": "Two defects. (1) 'prisma.catchupEntry.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } })' violates @@unique([promptId, authorId]) the moment both accounts answered the same prompt, aborting the entire merge transaction with 'Could not merge those accounts.' - exactly the duplicate-account pair most likely to exist (one human, both accounts in the same batch catch-up). (2) GroupMember is in neither the kept nor the dropped list, so the source's memberships die in the user.delete cascade and the target is never enrolled: after a merge, the person silently vanishes from every catch-up (and its notifications) that only the duplicate was in, while their reassigned prompts/entries remain inside rounds they can no longer open.",
+   "evidence": "admin/people/actions.ts:290-316 transaction: kept list has catchupPrompt/catchupEntry updateMany (296-297) but no groupMember reassignment; dropped list (302-309) deletes loves/prefs but not memberships; user.delete at 315 cascades GroupMember (schema @@unique(groupId,userId) plus onDelete: Cascade on user). schema.prisma:789 '@@unique([promptId, authorId])' is what the entry updateMany trips.",
+   "fixDirection": "Before the updateManys: delete source entries whose (promptId, targetId) already exists (keep the target's), then reassign the rest; and add 'reassign GroupMember where no (groupId, targetId) row exists, else delete' using createMany skipDuplicates + deleteMany, keeping it inside the one transaction.",
+   "gateOrTest": "Integration test: two users answer the same prompt and share a group; merge succeeds, one entry survives, target is a member of the group.",
+   "reproPlan": "code-argument-only (merge is destructive on the shared database).",
+   "taxonomyRows": [
+    "6d-unique-collision-on-write",
+    "6h-identity-states"
+   ]
+  },
+  {
+   "title": "'Everyone from my batch' can hand the create form more than 100 people, and submission then fails flat against the max-100 cap with no guidance",
+   "severity": "Medium",
+   "status": "suspected",
+   "files": [
+    "src/components/catchups/create/people-picker.tsx:103",
+    "src/app/(main)/catchups/actions.ts:124",
+    "src/app/api/users-by-batch/route.ts:59"
+   ],
+   "expected": "The batch shortcut - the feature's headline flow ('the batch Catch-up being the one everybody wants') - produces a submittable roster, or the UI explains and enforces the cap before submit.",
+   "actual": "addMyBatch fetches /api/users-by-batch (take: 5000, no cap at 100) and chips in every result; createCatchupWithPeopleSchema rejects memberIds over 100 ('A Catch-up can start with up to 100 people.'). The cap comment sizes a batch at '~100 people at the expected ~1,000-member ceiling', but this audit's stated ceiling is 2,000 users; any batch crossing 100 members makes the one-tap shortcut load 100+ chips and then fail the whole creation on submit, leaving the member to hand-remove chips with no count shown anywhere. Suspected because it requires a real batch >100 (needs the live member distribution to confirm).",
+   "actual_note": "",
+   "evidence": "people-picker.tsx:99-118 addMyBatch appends all fetched users with no cap; users-by-batch/route.ts:59 'take: 5000'; actions.ts:122-124 '.max(100, \"A Catch-up can start with up to 100 people.\")' with the sizing comment '(~100 people at the expected ~1,000-member ceiling)'.",
+   "fixDirection": "Cap the shortcut client-side at the same constant (import a shared MAX_CATCHUP_PEOPLE), show 'first 100 of N added' with a visible count near the roster, or raise the server cap in step with the 2,000-user ceiling since creation is already rate-limited (5/hour) and notifications are batched.",
+   "gateOrTest": "Unit test pinning the shared constant is used by both the picker and the schema; component test that addMyBatch never exceeds it.",
+   "reproPlan": "Read-only check against the database: count users per batchYear; if any exceeds 100 the failure is certain, else it is future headroom.",
+   "taxonomyRows": [
+    "6h-boundary-max-plus-one",
+    "6j-third-party-own-quota"
+   ]
+  },
+  {
+   "title": "A member removed from a Catch-up keeps dead 'ready to read' notifications, and the round reader gives them (and any non-member) a bare 404 instead of the sibling pages' friendly wall",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:1366",
+    "src/app/(main)/catchups/round/[editionId]/page.tsx:177",
+    "src/lib/catchups-notify.ts:186"
+   ],
+   "expected": "Removal cleans up the notifications that now lead nowhere, and a round link opened without membership shows the same 'This Catch-up is for group members' card the home and answer pages show.",
+   "actual": "removeCatchupMember deletes only types catchup_reminder/answers_open/questions_open with link startsWith '/catchups/{catchupId}' - but catchup_published and catchup_love link to '/catchups/round/{editionId}', which matches neither the type list nor the prefix, so they survive removal. Clicking one lands on the round page, where a missing membership is notFound() (line 177) - a raw 404 with no explanation, unlike the home/answer pages' NotAvailableCard. The same 404 greets anyone forwarded a round URL who is not a member.",
+   "evidence": "actions.ts:1366-1372 'type: { in: [\"catchup_reminder\", \"catchup_answers_open\", \"catchup_questions_open\"] }, link: { startsWith: `/catchups/${catchupId}` }'; catchups-notify.ts:186-187 published link is '`/catchups/round/${ctx.editionId}`'; round/[editionId]/page.tsx:176-177 'membership = await loadMembership(...); if (!membership) notFound();'.",
+   "fixDirection": "In removeCatchupMember, also delete catchup_published/catchup_love rows whose link matches this catchup's edition ids (query editions once, use link in [...]), and swap the round page's non-member notFound() for the shared NotAvailableCard used by its two sibling pages.",
+   "gateOrTest": "Unit test on the removal action's notification cleanup; e2e asserting the friendly card renders for a non-member round URL.",
+   "reproPlan": "Live-provable in dev: remove a test member mid-cycle after a publish, inspect their Notification rows, follow the published link as them.",
+   "taxonomyRows": [
+    "6h-identity-states",
+    "6a-incomplete-cleanup"
+   ]
+  },
+  {
+   "title": "Rapid double-click on the love heart can strand the UI out of sync with the database and surface 'Something went wrong' for a benign race",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:1213",
+    "src/components/catchups/round/entry-love-button.tsx:30"
+   ],
+   "expected": "toggleEntryLove is idempotent under the double-fire every button gets; the @@unique constraint outcome is absorbed, not surfaced as an error.",
+   "actual": "The action is read-then-write: findUnique then create or delete-by-id, with no P2002/P2025 handling of its own, so two overlapping toggles race. Concurrent creates: the loser throws P2002, runAction returns the generic 'Something went wrong. Please try again.', and the client rolls back its optimistic flip - toast + count flicker for a state that is actually fine. Concurrent deletes: the loser throws P2025 on the stale id, same toast, and the rollback leaves the button showing loved while the row is gone until a reload. EntryLoveButton has no in-flight guard (handleToggle is not disabled while awaiting).",
+   "evidence": "actions.ts:1213-1233 'const existing = await prisma.catchupEntryLove.findUnique(...); if (existing) { await prisma.catchupEntryLove.delete({ where: { id: existing.id } }); } else { await prisma.catchupEntryLove.create(...)' - no unique/not-found catch (isUniqueConstraintError exists in the file but is unused here); entry-love-button.tsx:30-40 optimistic flip + rollback on any error, no busy guard.",
+   "fixDirection": "Treat P2002 as 'already loved' and P2025 as 'already unloved' (return success with the settled state instead of an error), or replace with deleteMany/createMany+skipDuplicates keyed on the unique; optionally ignore clicks while a toggle is in flight in EntryLoveButton.",
+   "gateOrTest": "Unit test invoking the action twice concurrently for both directions, asserting neither returns an error.",
+   "reproPlan": "Live-provable in dev: throttle the network in devtools and double-click a heart on a published round.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6a-empty-catch-shape"
+   ]
+  },
+  {
+   "title": "Invite flow dead-ends for brand-new signups at the Stage-2 gate with a message about 'posting', and the invite context is lost by the time they are verified",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/catchups/join/[token]/page.tsx:139",
+    "src/app/(main)/catchups/actions.ts:505",
+    "src/lib/member-gate-message.ts:14"
+   ],
+   "expected": "The owner's stated flow: 'if they don't have an account, it takes you through the entire process and then brings you to catch ups' - ending in a join, or at least in a message that explains what happens next for THIS invite.",
+   "actual": "joinCatchupByToken requires requireVerifiedMember (email confirmed AND profile verified against the sheets/owner). A new alumni signing up via the invite link completes signup + onboarding, lands back on the invitation, clicks 'Join this Catch-up' - and gets a toast reading 'Your profile is waiting to be verified. Posting and contact details open once that is done.', which talks about posting, not joining, and offers no next step. AcceptInvite does not use the member-gate dialog the other surfaces use, so it is a bare toast. Verification can take days; nothing stores the pending invite, so unless they re-find the WhatsApp link, the join never completes. (The gate itself is a deliberate trust-model choice; the dead-end and the mismatched copy are the defect.)",
+   "evidence": "actions.ts:504-506 'const gate = await requireVerifiedMember(); if (!gate.ok) return { error: gate.error };' inside joinCatchupByToken; member-gate-message.ts MEMBER_UNVERIFIED text quoted above; accept-invite.tsx:22-27 'if (\"error\" in result && result.error) { toast.error(result.error); ... }' with no gate dialog; join page comment (lines 26-33) documents the intended full-circle flow.",
+   "fixDirection": "On the MEMBER_UNVERIFIED sentinel, show invite-specific copy on the join page ('You're almost in - once your profile is verified, this invitation will finish on its own') and persist the pending token (e.g. a PendingCatchupJoin row or a field on User) that a post-verification hook or the next sign-in consumes to complete the join automatically.",
+   "gateOrTest": "E2e: unverified account follows an invite, sees the tailored state; flipping verifyState to verified completes the join on next visit.",
+   "reproPlan": "Live-provable in dev with a fresh unverified test account following a test invite link.",
+   "taxonomyRows": [
+    "6k-chaos-mid-flow",
+    "6h-identity-states",
+    "6e-verification-window"
+   ]
+  },
+  {
+   "title": "Concurrent question submissions produce duplicate positions and can overshoot the 40-question ceiling (count-then-insert TOCTOU)",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:707",
+    "src/app/(main)/catchups/actions.ts:723"
+   ],
+   "expected": "Each accepted prompt gets a distinct position and the MAX_ACCEPTED_PROMPTS_PER_EDITION cap holds under concurrency.",
+   "actual": "submitPrompt does 'const acceptedCount = await prisma.catchupPrompt.count(...)' then creates with 'position: acceptedCount' - two members submitting in the same instant both read N and both write position N, so the Round's order has a tie that renders in arbitrary DB order (both list surfaces sort by position alone) and flips between loads until a Keeper reorders. The same read-then-write lets the count pass at 39 twice, landing 41 accepted prompts past the cap; the reorder schema (max 40 ids) then rejects any reorder of that Round with 'Invalid request.' until one is removed. Low because the cap is a runaway guard and duplicate positions self-heal on reorder, but the arbitrary flip is member-visible.",
+   "evidence": "actions.ts:707-712 count + cap check; 714-724 create with 'position: acceptedCount'; ordering consumers sort only by position ([catchupId]/page.tsx:322-324 '.sort((a, b) => a.position - b.position)'; round reader orderBy position asc); curateReorderSchema max is MAX_ACCEPTED_PROMPTS_PER_EDITION (actions.ts:143).",
+   "fixDirection": "Compute position in the insert itself (raw INSERT ... SELECT COALESCE(MAX(position)+1,0), or use createdAt as the tiebreaker in every orderBy: [position, createdAt]), and either accept mild cap overshoot explicitly or move the cap check into the same statement.",
+   "gateOrTest": "Unit/integration test firing two submitPrompt calls concurrently and asserting distinct positions.",
+   "reproPlan": "Live-provable in dev by dispatching two submissions in parallel against a test round and reading the two rows.",
+   "taxonomyRows": [
+    "6c-race-lost-update",
+    "6d-check-then-insert-toctou",
+    "6h-boundary-max"
+   ]
+  },
+  {
+   "title": "recordView on the round reader is fire-and-forget during a serverless render, so round-view telemetry is silently lossy in production",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/round/[editionId]/page.tsx:194",
+    "src/lib/content-view.ts:29"
+   ],
+   "expected": "Work that must outlive the response on Vercel goes through after()/waitUntil (the codebase already does this for drainMailQueue in (main)/layout.tsx:63).",
+   "actual": "'void recordView(session?.user?.id, \"round\", edition.id);' starts an un-awaited prisma upsert during the RSC render; once the response finishes streaming the function can be frozen with the promise unresolved, dropping or delaying the write. ContentView counts for rounds will undercount unpredictably under production load - invisible until someone reads the stats and trusts them. Members never see it, hence Low; it is exactly the fire-and-forget class the 6f row exists to catch.",
+   "evidence": "round/[editionId]/page.tsx:193-194 the comment 'Not awaited: the page renders at the same speed either way.' plus the void call; content-view.ts:29-33 the awaited prisma.contentView.upsert inside recordView; contrast (main)/layout.tsx:63 'after(async () => { ... drainMailQueue() ... })' which does it correctly.",
+   "fixDirection": "Wrap the call in next/server after(): 'after(() => recordView(...))' - one-line change, matching the layout's established pattern.",
+   "gateOrTest": "Grep-style regression check that no 'void record' remains outside after(); the existing check gate's lint could pin it.",
+   "reproPlan": "code-argument-only (loss is probabilistic on Vercel's freeze timing; not reproducible locally).",
+   "taxonomyRows": [
+    "6f-after-response-work",
+    "6a-missing-await"
+   ]
+  },
+  {
+   "title": "A member who erases their answer still publishes as an empty card and is counted in 'N of the group wrote in'; there is no way to withdraw an answer before the Round seals",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/actions.ts:1160",
+    "src/app/(main)/catchups/round/[editionId]/page.tsx:335",
+    "src/components/catchups/round/answer-card.tsx:93"
+   ],
+   "expected": "Clearing everything you wrote before answers close withdraws you from the Round: no card, not counted as a contributor, and the too-few-answers rule sees the true count.",
+   "actual": "submitEntry upserts; clearing a field nulls it but the CatchupEntry row is never deleted, and no delete path exists. A member who wrote something personal and then erased every field before close is still published: an answer card reading 'Showed up for this Round without adding anything here.', their bird in the masthead strip, and inclusion in the contributor count ('12 of the group wrote in' can include people who wrote nothing). The empty row also counts as an entry for shouldExtendForTooFew (entryCount is a bare count), so a Round whose only 'entry' is an erased one skips the zero-answers extension and publishes with nothing readable. The 'Showed up' copy shows empty cards were anticipated, but as a state you can end up trapped in, not choose.",
+   "evidence": "actions.ts:1160-1178 upsert with update-only-sent-fields, no delete branch anywhere in the file for entries; round page 335-341 contributorMap iterates ALL entries including empty ones; answer-card.tsx:93-96 the 'Showed up for this Round without adding anything here.' branch; actions.ts:907 'const entryCount = await prisma.catchupEntry.count({ where: { editionId } })' and catchups.ts:382-384 shouldExtendForTooFew uses that raw count.",
+   "fixDirection": "In submitEntry, delete the row when the update leaves body, images, and song all null (one post-update check inside the same call), which fixes withdrawal, the contributor count, and the too-few evaluation at once. Alternatively filter meaningless entries out of contributors/counts at read time and in the entryCount query.",
+   "gateOrTest": "Unit test: save then clear an answer, assert the row is gone and the member is absent from the published contributors.",
+   "reproPlan": "Live-provable in dev: answer, erase, publish a test round, read the masthead count and the empty card.",
+   "taxonomyRows": [
+    "6h-empty-states",
+    "6h-identity-states",
+    "6c-state-machine"
+   ]
+  },
+  {
+   "title": "Autosave has no ordering guarantee: a slow earlier save can overwrite a newer one after the member saw 'Saved'",
+   "severity": "Low",
+   "status": "suspected",
+   "files": [
+    "src/components/catchups/answer/answer-experience.tsx:93"
+   ],
+   "expected": "The last thing the member typed is what persists; concurrent saves of the same field resolve newest-wins.",
+   "actual": "persist() fires submitEntry per blur with no sequence number, no abort of the in-flight save, and no per-prompt queue. Two blurs on the same prompt in quick succession (edit, blur, refocus, fix a typo, blur) put two upserts in flight; server actions can complete out of order (separate lambdas), so save A (older body) can commit after save B (newer body), silently persisting the typo'd version while the UI shows the corrected text and 'Saved'. The two-tab variant of the same class also applies (each tab's blur last-writes its own stale field). Field-level patches limit the blast to one field. Suspected: the code has no defense, but the window needs out-of-order completion to manifest.",
+   "evidence": "answer-experience.tsx:93-102 'async function persist(promptId, patch) { setSaveStatus(...\"saving\"); const result = await submitEntry({ promptId, ...patch }); ... }' - no versioning, no serialization; answer-card.tsx flushBody only dedupes identical values, not orderings; actions.ts submitEntry upsert applies whatever it was sent.",
+   "fixDirection": "Serialize saves per prompt client-side (a per-prompt promise chain, or drop the in-flight save when a newer one starts), which is sufficient for a single-author row; a monotonic client sequence echoed through the action and compared in the update would harden the two-tab case.",
+   "gateOrTest": "Component test with two stubbed submitEntry calls resolving in reverse order, asserting the final persisted payload is the newer body.",
+   "reproPlan": "Live-provable in dev with devtools request blocking: hold the first save, let the second land, release the first, reload and read the row.",
+   "taxonomyRows": [
+    "6c-race-out-of-order",
+    "6i-two-surfaces-same-row"
+   ]
+  },
+  {
+   "title": "Teasers slice raw markdown mid-character: formatting markers print verbatim and a cut inside an emoji/surrogate pair renders a broken glyph",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/catchups/page.tsx:55",
+    "src/app/(main)/catchups/[catchupId]/page.tsx:384"
+   ],
+   "expected": "The archive/rail teaser ('a one-line teaser pulled from the most-loved answer') reads as prose.",
+   "actual": "Answer bodies are markdown (RichTextArea writes markers; the reader honours them via renderRichText), but both teaser builders slice the raw body: truncate() at page.tsx:55 ('clean.slice(0, max)') and the home archive's 'top.body.slice(0, 140)'. A bolded most-loved answer shows '**We finally moved to...' in the rail, and String.prototype.slice cuts UTF-16 units, so a boundary landing inside an emoji or ZWJ sequence prints U+FFFD. Cosmetic-with-teeth: it sits on the index rail, the most-seen catch-ups surface.",
+   "evidence": "page.tsx:55-58 truncate() slicing raw body chosen at 215-227 from e.body; [catchupId]/page.tsx:384-388 'top.body.length > 140 ? `${top.body.slice(0, 140).trimEnd()}...`'; answer-card.tsx:100-106 shows bodies are markdown rendered with renderRichText elsewhere.",
+   "fixDirection": "Strip markdown markers before truncating (a tiny stripRichText helper next to renderRichText) and slice with Array.from(clean).slice(0, max).join('') or Intl.Segmenter to respect grapheme boundaries; share the one helper between both call sites.",
+   "gateOrTest": "Unit test on the shared teaser helper with a bolded body and an emoji at the boundary.",
+   "reproPlan": "Live-provable in dev: love an answer containing bold text + emoji past position 110 and read the index rail.",
+   "taxonomyRows": [
+    "6h-unicode-hostile",
+    "6a-off-by-one"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "6c double-join via invite link: joinCatchupByToken uses groupMember.upsert on @@unique(groupId,userId) with empty update - two taps or a re-followed link cannot throw (actions.ts:530-534). CLEAN",
+  "6c double-submit answer: submitEntry is a single prisma upsert on @@unique(promptId,authorId) with field-level patches (only sent fields written), qualifying for Prisma's native INSERT..ON CONFLICT; concurrent body-blur and photo-save cannot clobber each other's fields. CLEAN",
+  "6c createCatchup group race: groupId @unique plus an explicit P2002 catch that re-reads and returns the winner's id (actions.ts:366-372). CLEAN",
+  "6c editing after answersCloseAt / prompting after questionsCloseAt: every mutating action goes through loadFreshEdition -> advanceEdition first, then re-checks status server-side (submitEntry 1119, submitPrompt 692, curatePrompt 773/816); a held stale page cannot write past a closed window. CLEAN",
+  "6c auth/ownership on every action: all 18 exported actions re-derive session, membership (loadMembership on fresh rows) and Keeper power (isEffectiveKeeper from DB reads) themselves; none trusts a client flag; IDs are Zod- or typeof-validated. CLEAN",
+  "6d advanceEdition idempotency: every transition/extension/reminder is a compare-and-swap updateMany (on status, or on remindersSent) inside one transaction that also carries the notification writes, so a double visit fires side effects exactly once (catchups.ts:783-835); the loop is bounded (12) and re-reads on CAS loss. CLEAN",
+  "6d openNextRoundIfDue double-fire: CAS on nextOpensAt set to null inside the transaction, with @@unique(catchupId, number) as backstop; a failed create rolls the CAS back (catchups.ts:917-938). CLEAN",
+  "6d Keeper concurrent extends: extendDeadline CAS matches the exact deadline both keepers saw, so two stale '+2 days' clicks add two days total and the loser is told 'The deadline just moved' (actions.ts:993-1000). CLEAN",
+  "6d pgbouncer: no SET/advisory locks/LISTEN in the feature; all transactions are short Prisma interactive or batch transactions compatible with the transaction pooler. CLEAN",
+  "anonymous prompt payload during collecting/answering: loadHome filters non-accepted prompts to keeper/own and nulls the author server-side before serialization; no authorId or createdAt-correlation leak in the RSC payload for anonymous prompts to plain members (the KEEPER-in-published inconsistency is reported separately). CLEAN",
+  "preparing-window secrecy: both the home and the round reader load entry bodies only after the fresh status is confirmed published (two-phase load; loadPublishedIssue called only when status===published), Keeper included. CLEAN",
+  "member removed mid-edition answering via a held page: submitEntry re-checks GroupMember on every autosave, so the held /answer page fails closed with an error toast. CLEAN",
+  "joining mid-edition: a token-join creates a plain GroupMember, so the joiner immediately sees prompts and can answer while the window is open (membership is the only gate) - matches intent. CLEAN",
+  "invite token quality: 128-bit CSPRNG hex, format-validated (^[a-f0-9]{32}$) on both the page and the action, unique column, not derivable from public ids; ended catchups refuse, paused accept (documented). CLEAN",
+  "images JSON parse sites: every read goes through parseJsonArray (try/catch, array-check) in utils.ts; the purge's own parse is guarded too - a malformed column degrades to []. CLEAN",
+  "entry image ownership: submitEntry runs ownedUploadUrls against the session user (minted-URL + own-prefix checks), so foreign or external image URLs cannot be attached. CLEAN",
+  "P2021 pre-migration: every page wraps loads in isMissingCatchupTable -> AlmostReady, every action in runAction -> friendly error; advanceDueCatchups swallows it. CLEAN",
+  "6f request-size: catch-up actions receive JSON (URLs, ids, <=6000-char text), never files; uploads ride the separate /api/upload; nothing here approaches the 4.5MB cap; no loops over rows that approach 60s (creation notify is one createMany). CLEAN",
+  "6h input six-value on prompt text (trim/min1/max300), entry body (max 6000), song URL (max 2000 + strict https://open.spotify.com host+path allowlist, 3s timeout, fail-soft) and cadence/reminder/extend enums (Zod literals). CLEAN",
+  "resolveSpotify SSRF boundary: exact-host, path regex, normalized rebuild of the URL before fetch, timeout+abort, never blocks the save. CLEAN",
+  "open-redirect on the join detour: ?next= passes safeNextPath (must start with single /, no backslashes/control chars) on login, signup and /welcome. CLEAN",
+  "proxy allowlist drift: /catchups/join is prefix-listed public and cannot expose /catchups or /catchups/<id> (prefix semantics verified in proxy.ts:157-231); teacher accounts are turned around by the catchups layout AND re-checked in joinCatchupByToken. CLEAN",
+  "loading.tsx exists for every async catchups route (index, new, [catchupId], answer, round). CLEAN",
+  "daily reminder dedup: the days-left bucket CAS makes each day's reminder exactly-once under concurrent page views, and notifyReminder delete+create share the caller's transaction so the bell never shows a gap or a stack. CLEAN",
+  "reminder prefs honoured: all/last/off filtering verified in notifyReminder, defaults to all with no pref row; keeper nudge bypass is explicit and documented. CLEAN",
+  "index/home/answer empty states: no groups, no catchup, no edition, zero prompts (collecting), brand-new member - each has a designed surface; the zero-prompt ANSWERING copy defect is reported in the death-spiral finding. CLEAN otherwise"
+ ],
+ "coverageNotes": "Read whole: actions.ts (all 1489 lines), lib/catchups.ts (992), lib/catchups-notify.ts, lib/catchups-types.ts, all five route pages plus join/[token]/page.tsx and catchups/layout.tsx, docs/spec/catchups.md (889 lines), the Catchup*/Group/GroupMember schema models, and every component under src/components/catchups (30 files; four small presentational ones - almost-ready, not-available, group-first-guidance, cadence-control - read to line 60, enough to cover their entire logic since the remainder is markup). Chased dependencies where hypotheses demanded: member-gate.ts, email/member gate sentinel files, upload-ownership.ts, content-view.ts, account-purge.ts (whole), adminMergeUsers excerpt in admin/people/actions.ts, next-path.ts, (main)/layout.tsx piggyback, proxy.ts allowlist grep, rate-limit config line, users-by-batch caps, login/signup next-param wiring. Consciously skipped: loading.tsx contents (pure skeletons), /api/catchups/tick and admin/catchups page (other investigators' territory; only their call into advanceDueCatchups was verified), RichTextArea/renderRichText internals (2026-08-20 security audit closed XSS), /api/upload internals (uploads territory), demo-seed. The four uncommitted-WIP files touching this territory (round/[editionId]/page.tsx, users-by-batch, users/search, auth.ts, rate-limit.ts) were audited as they stand; the known TS error in round page was not reported per instruction. Findings 1-2 (cascade data loss) and 11 (merge) anchor in schema/admin files shared with other territories - reported anyway per the brief since Catch-ups is where the loss lands; expect possible duplication with the schema investigator. Nothing was executed beyond read-only grep/find/wc/head."
+}

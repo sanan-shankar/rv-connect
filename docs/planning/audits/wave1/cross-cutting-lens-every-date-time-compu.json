@@ -1,0 +1,309 @@
+{
+ "territory": "Cross-cutting lens: every date/time computation and render across the UTC (server) / IST (members) seam \u2014 day-boundary math, server-rendered date formatting, relative-time helpers and hydration, email budget window, catchup cadence, admin analytics bucketing, MetricSnapshot, Visit/session math, feedSeenAt, token expiry displays",
+ "findings": [
+  {
+   "title": "Admin analytics rhythm heatmap applies AT TIME ZONE 'Asia/Kolkata' in the wrong direction, shifting every hour bucket by -11 hours",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/admin-analytics.ts:583",
+    "src/lib/admin-analytics.ts:584",
+    "src/lib/admin-analytics.ts:585",
+    "prisma/migrations-manual/2026-08-19-presence.sql:17"
+   ],
+   "expected": "loadRhythm() buckets visits into IST hour-of-day and weekday, so the 8pm IST evening rush shows at hour 20; the code comment states this is the whole point: \"IST, not UTC ... a UTC heatmap would put the evening rush at 2pm and make the whole thing meaningless.\"",
+   "actual": "Every bucket is shifted -11 hours (and DOW shifts across the boundary). A visit at 20:00 IST is stored as naive 14:30 (UTC wall time, since Visit.endedAt is TIMESTAMP(3) without time zone); `\"endedAt\" AT TIME ZONE 'Asia/Kolkata'` INTERPRETS that naive 14:30 as IST wall time, producing the instant 09:00 UTC; EXTRACT(HOUR FROM timestamptz) then converts using the session TimeZone (UTC on Supabase, node-postgres never sets one), yielding hour 9. The 5:30 offset is applied twice in the wrong direction instead of once forward. The heatmap and its \"peak\" tile are systematically wrong yet look plausible, which is worse than obviously broken: the owner built this to decide when the community is awake.",
+   "evidence": "src/lib/admin-analytics.ts:583-585: `SELECT EXTRACT(DOW  FROM \"endedAt\" AT TIME ZONE 'Asia/Kolkata')::int AS dow, EXTRACT(HOUR FROM \"endedAt\" AT TIME ZONE 'Asia/Kolkata')::int AS hour`. The column is naive: prisma/migrations-manual/2026-08-19-presence.sql:18: `\"endedAt\"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP` \u2014 and Prisma writes UTC wall-time into naive columns (bugs.md item 6 documents the app's columns are `timestamp without time zone`). Postgres semantics: naive AT TIME ZONE zone = \"interpret this wall time as being IN zone, return timestamptz\"; EXTRACT on a timestamptz renders in the session TimeZone first. So stored 14:30 (true instant 14:30 UTC = 20:00 IST) \u2192 interpreted as 14:30 IST \u2192 09:00 UTC instant \u2192 EXTRACT under UTC session = 9. Correct value is 20; the correct expression needs the naive value anchored to UTC first.",
+   "fixDirection": "Change both expressions to double conversion: `EXTRACT(DOW FROM (\"endedAt\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')` (same for HOUR). The inner AT TIME ZONE 'UTC' turns the naive UTC wall time into a real timestamptz; the outer one converts it to IST wall time (a naive value, on which EXTRACT is session-independent).",
+   "gateOrTest": "A node --test unit in the src/lib/*.test.mjs style cannot run SQL; instead pin it with a read-only SQL assertion in a script test or add a JS-side sanity check: insert-free \u2014 SELECT EXTRACT(HOUR FROM (TIMESTAMP '2026-08-21 14:30:00' AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata') must be 20. At minimum, a comment-pinned example in loadRhythm and a one-off verification query in the fix session.",
+   "reproPlan": "Read-only: run `SELECT EXTRACT(HOUR FROM TIMESTAMP '2026-08-21 14:30:00' AT TIME ZONE 'Asia/Kolkata') AT TIME ZONE ...` \u2014 concretely, `SELECT EXTRACT(HOUR FROM (TIMESTAMP '2026-08-21 14:30:00') AT TIME ZONE 'Asia/Kolkata') AS wrong, EXTRACT(HOUR FROM ((TIMESTAMP '2026-08-21 14:30:00') AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata') AS right;` via a read-only session \u2014 expect wrong=9, right=20. No table access needed.",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "bugs.md-item-6-deeper-instance"
+   ]
+  },
+  {
+   "title": "Catch-ups Round reader renders 'Published {date}' and 'Next Round opens {date}' in server UTC, one day early for late-night IST times",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/catchups/round/masthead.tsx:50",
+    "src/components/catchups/round/footer-tease.tsx:26",
+    "src/app/(main)/catchups/round/[editionId]/page.tsx:1"
+   ],
+   "expected": "A Round published at 00:20 IST on 22 Aug reads \"Published 22 August 2026\"; \"Next Round opens 5 September\" names the IST calendar day members will actually find it open.",
+   "actual": "Both components are server components (no \"use client\"; rendered by the server page catchups/round/[editionId]/page.tsx) and call toLocaleDateString without a timeZone, so they format in the server's UTC zone. Any publishedAt/nextOpensAt instant falling 18:30-24:00 UTC (00:00-05:30 IST, i.e. any round auto-published past midnight India time \u2014 transitions fire lazily on page views, so late-night publishes are common) renders the previous day. Worst is footer-tease: nextOpensAt = publishedAt + cadence gap; \"Next Round opens 4 September\" for a round that opens 02:00 IST Sep 5 sends members to check on the 4th and find nothing.",
+   "evidence": "masthead.tsx:49-55: `const dateLabel = publishedAt ? new Date(publishedAt).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"long\", year: \"numeric\" }) : null;` \u2014 no timeZone. footer-tease.tsx:24-31: `showNextOpens && nextOpensAt ? new Date(nextOpensAt).toLocaleDateString(\"en-GB\", {...})` \u2014 no timeZone. Neither file carries \"use client\"; both are imported only by the server page (grep: catchups/round/[editionId]/page.tsx). Server runs UTC on Vercel, so toLocaleDateString uses the UTC calendar day.",
+   "fixDirection": "Add `timeZone: \"Asia/Kolkata\"` to both toLocaleDateString option objects (the site's editorial day is the Valley's day). Consider routing both through a single shared IST-pinned formatter (see the utils.ts finding) so no future surface repeats this.",
+   "gateOrTest": "Unit test in node --test style: with TZ=UTC (CI default), format new Date('2026-08-21T19:30:00Z') and assert '22 August 2026', not '21 August 2026'. Runs under the existing npm run check test harness if the formatter moves into src/lib/utils.ts.",
+   "reproPlan": "code-argument-only (a live proof would need a round whose publishedAt sits in the 18:30-24:00 UTC window; equivalent one-liner: `TZ=UTC node -e \"console.log(new Date('2026-08-21T19:30:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}))\"` prints 21 August where IST says 22).",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-c-formatted-date"
+   ]
+  },
+  {
+   "title": "Catch-ups index rail 'Fresh off the press' dates render in server UTC (and in en-US, unlike every other surface)",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/catchups/index/fresh-off-the-press.tsx:22",
+    "src/components/catchups/index/fresh-off-the-press.tsx:23",
+    "src/app/(main)/catchups/page.tsx:1"
+   ],
+   "expected": "The publish date chip beside each recently-published Round names the IST day it published, in the app's date style.",
+   "actual": "Server component (no \"use client\", imported by the server page catchups/page.tsx) formats publishedAt without a timeZone \u2192 UTC day, one day early for 00:00-05:30 IST publishes. It also uses locale \"en-US\" (\"Aug 21\") where the rest of the app is en-GB/en-IN \u2014 a consistency note to fix in passing.",
+   "evidence": "fresh-off-the-press.tsx:21-24: `function formatDate(d: Date | string | null): string { if (!d) return \"\"; return new Date(d).toLocaleDateString(\"en-US\", { month: \"short\", day: \"numeric\" }); }` \u2014 no timeZone, server-rendered.",
+   "fixDirection": "Same fix as the Round reader: add timeZone \"Asia/Kolkata\" (and align the locale with the shared formatter while there).",
+   "gateOrTest": "Covered by the same shared-formatter unit test if the call sites converge on utils.ts.",
+   "reproPlan": "code-argument-only (same TZ=UTC node one-liner as the Round reader finding).",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-c-formatted-date"
+   ]
+  },
+  {
+   "title": "Letters reading page renders the letter's date in server UTC \u2014 and disagrees with the feed card, which formats the same timestamp in the browser",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/letters/[id]/page.tsx:165",
+    "src/app/(main)/letters/[id]/page.tsx:188",
+    "src/lib/utils.ts:151",
+    "src/components/posts/post-card.tsx:108"
+   ],
+   "expected": "A letter posted at 11:50pm-plus IST (00:00-05:30 IST window) shows the IST date, and the same letter shows the same date everywhere it appears.",
+   "actual": "The reading page is a server component: the header meta formats createdAt inline with toLocaleDateString(\"en-GB\") and the image caption uses formatDisplayDate() \u2014 both without timeZone, so both print the UTC day (one earlier for the 00:00-05:30 IST window). Meanwhile the feed's letter card runs post-card.tsx in the browser AFTER a client-side fetch (PostFeed loads via useEffect \u2192 loadPosts, no SSR of post data), so formatDisplayDate there uses the member's IST \u2014 the SAME letter can carry different dates on the feed card versus its own reading page. bugs.md item 6 tracks this class for the letters INDEX only; the reading page is a distinct, untracked surface.",
+   "evidence": "letters/[id]/page.tsx:165-169 (server component): `new Date(letter.createdAt).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"long\", year: \"numeric\" })`; :188: `date={formatDisplayDate(letter.createdAt)}`. utils.ts:151-157: `export function formatDisplayDate(date: Date | string): string { return new Date(date).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"short\", year: \"numeric\" }) }` \u2014 no timeZone. Client-side contrast: post-feed.tsx loads posts in `useEffect` (line 92+, calling the loadPosts action), so post-card.tsx:108 `date: formatDisplayDate(post.createdAt)` executes only in the browser (IST).",
+   "fixDirection": "Add `timeZone: \"Asia/Kolkata\"` to formatDisplayDate in utils.ts (one line fixes the caption, the letters index tracked in bugs.md, admin surfaces, and keeps client callers consistent \u2014 IST is right for members abroad too, since the site's day is the Valley's day), and to the inline long-form call in letters/[id]/page.tsx:165.",
+   "gateOrTest": "Unit test beside the existing utils tests (node --test, TZ=UTC): formatDisplayDate(new Date('2026-08-21T19:30:00Z')) === '22 Aug 2026'.",
+   "reproPlan": "code-argument-only (TZ=UTC node one-liner shows the off-by-one for any 18:30-24:00 UTC instant).",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-c-formatted-date"
+   ]
+  },
+  {
+   "title": "Collection photo detail page renders the uploader date in server UTC while the grid renders it in the browser \u2014 same photo, two dates",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/collection/[id]/page.tsx:145",
+    "src/components/collection/collection-client.tsx:77",
+    "src/components/collection/collection-client.tsx:91"
+   ],
+   "expected": "A photo uploaded 00:00-05:30 IST shows its IST date, identically on the collection grid and the photo's own page.",
+   "actual": "collection/[id]/page.tsx is a server component formatting `photo.createdAt` with toLocaleDateString(\"en-GB\") and no timeZone \u2192 UTC day (one early in the window). The grid (collection-client.tsx) starts with `useState<PhotoData[]>([])` and fetches in useEffect, so its formatDisplayDate call runs only in the browser (IST) \u2192 correct. The two surfaces disagree for window uploads.",
+   "evidence": "collection/[id]/page.tsx:145-149: `meta={new Date(photo.createdAt).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"short\", year: \"numeric\" })}` in a file with no \"use client\". collection-client.tsx:91 `const [photos, setPhotos] = useState<PhotoData[]>([]);` + :146 useEffect fetch \u2192 :77 `date: formatDisplayDate(p.createdAt)` executes client-side only.",
+   "fixDirection": "Route the detail page through the IST-pinned formatDisplayDate (after adding timeZone there) instead of the inline call.",
+   "gateOrTest": "Same shared-formatter unit test as the letters finding.",
+   "reproPlan": "code-argument-only.",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-c-formatted-date"
+   ]
+  },
+  {
+   "title": "Admin pages render member-activity dates in server UTC via the shared formatters (payments, catchup Sent/Due, audit/worklist absolute fallbacks)",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/support/page.tsx:222",
+    "src/app/(main)/admin/catchups/page.tsx:136",
+    "src/app/(main)/admin/catchups/page.tsx:138",
+    "src/app/(main)/admin/page.tsx:178",
+    "src/app/(main)/admin/audit/page.tsx:91",
+    "src/app/(main)/admin/audit/page.tsx:110",
+    "src/lib/utils.ts:21",
+    "src/lib/utils.ts:152"
+   ],
+   "expected": "The owner reads these pages as fact; a payment made 1:00am IST on the 22nd should read the 22nd.",
+   "actual": "All are server components. admin/support formats each contribution's paidAt with formatDisplayDate (UTC day \u2192 one early in the 00:00-05:30 IST window, which is also exactly the window where 'Given this month' misbuckets, so a first-of-month 1am IST payment shows the previous month's last day). admin/catchups formats Sent/Due dates the same way. admin overview and audit use formatTimeAgo, whose >4-weeks fallback (utils.ts:21-25) prints a UTC toLocaleDateString(\"en-IN\") date.",
+   "evidence": "admin/support/page.tsx:222: `formatDisplayDate(new Date(r.paidAt ?? r.createdAt))`; admin/catchups/page.tsx:136-138: `? \\`Sent ${formatDisplayDate(round.publishedAt)}\\` : due ? \\`${isStuck ? \"Was due\" : \"Due\"} ${formatDisplayDate(due)}\\``; utils.ts:21-25 fallback: `return date.toLocaleDateString(\"en-IN\", { day: \"numeric\", month: \"short\", year: \"numeric\" })` \u2014 no timeZone in either helper; all listed pages are server components.",
+   "fixDirection": "The one-line fix in utils.ts (timeZone \"Asia/Kolkata\" in both formatTimeAgo's fallback and formatDisplayDate) covers every listed site at once.",
+   "gateOrTest": "Shared-formatter unit test (TZ=UTC in CI) pinning both helpers' output for an 18:30-24:00 UTC instant.",
+   "reproPlan": "code-argument-only.",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-c-formatted-date"
+   ]
+  },
+  {
+   "title": "Member messages surfaces show UTC dates for messages older than 4 weeks (formatTimeAgo fallback, server-rendered)",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/messages/thread-list.tsx:70",
+    "src/components/messages/conversation.tsx:88",
+    "src/lib/utils.ts:21"
+   ],
+   "expected": "An old admin-conversation message sent 00:30 IST on 15 July reads '15 Jul 2026'.",
+   "actual": "thread-list.tsx and conversation.tsx have no \"use client\" and are rendered by the server pages /messages and /messages/[id]; timestamps within 4 weeks go through the TZ-safe relative branch, but anything older falls to `toLocaleDateString(\"en-IN\")` with no timeZone \u2192 the UTC day, one early for the 00:00-05:30 IST window. Member-facing, narrow.",
+   "evidence": "conversation.tsx:88 `{formatTimeAgo(new Date(message.createdAt))}` and thread-list.tsx:70 `{formatTimeAgo(new Date(t.lastMessageAt))}` in files without \"use client\", imported by app/(main)/messages/page.tsx and messages/[id]/page.tsx (server components). Fallback at utils.ts:21-25 has no timeZone.",
+   "fixDirection": "Covered by the utils.ts formatter fix (timeZone \"Asia/Kolkata\" on the fallback).",
+   "gateOrTest": "Same shared-formatter unit test.",
+   "reproPlan": "code-argument-only.",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-c-formatted-date",
+    "class-d-relative-time"
+   ]
+  },
+  {
+   "title": "Admin aggregates bucket days and months at UTC boundaries (5:30 IST shift): 'Given this month', distinct-day loyalty, daysActive, returning, growth-by-month",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/page.tsx:63",
+    "src/app/(main)/admin/support/page.tsx:38",
+    "src/lib/admin-analytics.ts:622",
+    "src/lib/admin-analytics.ts:443",
+    "src/lib/admin-analytics.ts:956",
+    "src/lib/admin-analytics.ts:811"
+   ],
+   "expected": "Day- and month-bucketed admin numbers count the community's IST days/months.",
+   "actual": "All boundaries are UTC: monthStart (setDate(1); setHours(0,0,0,0) under a UTC process) = the 1st at 05:30 IST, so payments made 00:00-05:30 IST on the 1st count into the previous month's 'Given this month'; date_trunc('day', ...) on naive-UTC timestamps splits days at 05:30 IST for the loyalty leaderboard (distinct days), MemberRow.daysActive, and the 'returning' count (a member visiting 11pm and 6am IST \u2014 one IST night \u2014 counts as two 'days'; one visiting 4am and 11pm IST \u2014 two IST days \u2014 counts as one); loadGrowth buckets joins with date_trunc('month') at UTC. Systematic 5.5-hour skew on admin-only aggregates; individually small, collectively the page's day-numbers are all shifted the same way.",
+   "evidence": "admin/page.tsx:63-65: `const monthStart = new Date(now); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);` then :77 `paidAt: { gte: monthStart }`. admin-analytics.ts:622 `count(DISTINCT date_trunc('day', v.\"startedAt\"))`; :443 `HAVING count(DISTINCT date_trunc('day', \"startedAt\")) > 1`; :956 `count(DISTINCT date_trunc('day', \"startedAt\")) days`; :810-815 `date_trunc('month', \"createdAt\")`. All operate on naive columns holding UTC wall time.",
+   "fixDirection": "In SQL, use `date_trunc('day', (\"startedAt\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')` (same double-conversion as the rhythm fix; one helper SQL fragment shared across the file). In JS, compute monthStart as the IST month boundary (e.g. build from the Asia/Kolkata Y-M via Intl, or add the 5:30 offset explicitly with a comment).",
+   "gateOrTest": "The rhythm-heatmap SQL assertion generalizes; alternatively a fix-session read-only query comparing bucket counts under both expressions for a known window.",
+   "reproPlan": "Read-only SQL: for one userId, `SELECT count(DISTINCT date_trunc('day', \"startedAt\")), count(DISTINCT date_trunc('day', (\"startedAt\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')) FROM \"Visit\" WHERE ...` \u2014 values diverge whenever visits straddle 05:30 IST.",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-b-day-boundary",
+    "bugs.md-item-6-deeper-instance"
+   ]
+  },
+  {
+   "title": "Deletion-scheduled email names a purge date formatted in UTC \u2014 one day earlier than the IST purge day for late-night requests",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/settings/actions.ts:344",
+    "src/components/settings/actions.ts:315",
+    "src/lib/email-templates.ts:361"
+   ],
+   "expected": "The account-deletion confirmation names the IST calendar day on which the 60-day grace window ends.",
+   "actual": "A server action formats purgeAt (= now + 60d, an instant) with toLocaleDateString(\"en-GB\") and no timeZone. For requests made 00:00-05:30 IST, purgeAt's UTC day is one before its IST day, so the email promises e.g. \"20 October\" for a purge whose instant is 01:00 IST on the 21st. Direction is conservative (signing in before the stated date always cancels in time), so severity is Low, but the date in a legally-flavoured email is simply wrong for the member's calendar. (Same-pattern cosmetic: the audit strings at settings/actions.ts:333 and retention.ts:132 record the UTC day via toISOString().slice(0,10).)",
+   "evidence": "settings/actions.ts:315: `const purgeAt = new Date(Date.now() + DELETION_GRACE_DAYS * 86_400_000);` and :344-348: `purgeDate: purgeAt.toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"long\", year: \"numeric\" })` \u2014 executed inside the server action (UTC), then baked into the queued email payload (email-queue.ts:395 passes it straight to deletionScheduledTemplate).",
+   "fixDirection": "Add `timeZone: \"Asia/Kolkata\"` to this toLocaleDateString call (the payload is a prerendered string, so it must be fixed at enqueue time, not render time).",
+   "gateOrTest": "Unit test on a small extracted formatPurgeDate helper with TZ=UTC pinning an 18:30-24:00 UTC instant to the next-day IST date.",
+   "reproPlan": "code-argument-only (the write path sends real mail; do not exercise live).",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-c-formatted-date"
+   ]
+  },
+  {
+   "title": "Feed time filter ('today'/'week'/'month'/'year') computes boundaries in server UTC \u2014 latent, since the filter UI is currently unreachable",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/feed/actions.ts:742",
+    "src/app/(main)/feed/actions.ts:749",
+    "src/app/(main)/feed/actions.ts:752",
+    "src/app/(main)/feed/page.tsx:79",
+    "src/components/posts/post-feed.tsx:236"
+   ],
+   "expected": "\"Today\" means since IST midnight; \"This week/month/year\" start at IST boundaries.",
+   "actual": "getTimeFilterDate builds boundaries from server-local (UTC) date parts: \"today\" = since 05:30 IST (posts from 00:00-05:30 IST missing), and for a member browsing 00:00-05:30 IST the server's date is still yesterday, so \"today\" returns since 05:30 IST of the PREVIOUS day \u2014 nearly a full extra day labelled today. Week starts Sunday-at-UTC, month/year likewise. Mitigating fact making this latent: the only consumer of PostFeed's filter UI is the feed page, which passes showControls={false} (feed/page.tsx:79), and the select at post-feed.tsx:236 renders only under showControls \u2014 so no member can currently reach it. But loadPosts is a public server action that honours timeFilter for any caller, and re-surfacing the control re-exposes the bug untouched.",
+   "evidence": "feed/actions.ts:747-759: `case \"today\": return new Date(now.getFullYear(), now.getMonth(), now.getDate()); case \"week\": { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate()); d.setDate(d.getDate() - d.getDay()); ... case \"month\": return new Date(now.getFullYear(), now.getMonth(), 1);` \u2014 all server-local constructors in a \"use server\" actions file running UTC.",
+   "fixDirection": "Compute the boundaries in IST: derive the IST Y/M/D (e.g. via Intl.DateTimeFormat with timeZone Asia/Kolkata or by adding 330 minutes before taking date parts, with a comment), then build the UTC instant of that IST midnight (istMidnightUtc = Date.UTC(y, m, d) - 5.5h). Do it now while the code is latent, so the control can return safely.",
+   "gateOrTest": "Unit test on an extracted pure getTimeFilterDate(now) with fixed inputs: now = 2026-08-21T20:00:00Z (01:30 IST Aug 22) must yield today-boundary 2026-08-21T18:30:00Z, not 2026-08-21T00:00:00Z.",
+   "reproPlan": "code-argument-only (UI unreachable; the action would need a hand-rolled invocation).",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-b-day-boundary"
+   ]
+  },
+  {
+   "title": "SSR'd client components format dates without a hydration guard \u2014 recoverable hydration errors and a wrong-date/wrong-format flash",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/catchups/home/extend-deadline-card.tsx:48",
+    "src/components/catchups/home/archive-shelf.tsx:21",
+    "src/components/catchups/home/console-published.tsx:32",
+    "src/components/letters/drafts-strip.tsx:97",
+    "src/components/admin/mail/mail-rows.tsx:110",
+    "src/components/admin/content/content-list.tsx:267",
+    "src/components/admin/people/person-detail.tsx:236",
+    "src/components/auth/verify-email-banner.tsx:113"
+   ],
+   "expected": "Client components whose date props arrive server-side render identical text on the SSR pass and at hydration \u2014 the codebase already knows this rule: verify-email-banner.tsx:113-126 routes its time label through useSyncExternalStore with an empty server snapshot precisely because \"SSR said '5:30 am' where a 24-hour browser said '5:30', and React threw a hydration mismatch\" (caught live 2026-08-13).",
+   "actual": "Several \"use client\" components receiving server-fetched data still format during SSR with browser-dependent output. Strongest: ExtendDeadlineCard (rendered inside CatchupHomeShell, a client shell fed by the server page) formats with locale `undefined` \u2014 Node's default (en-US) on the server vs the member's own locale in the browser, so \"Replies close Tuesday, Aug 12\" vs \"Tuesday 12 Aug\" mismatches for every non-en-US Keeper on every render; plus the TZ window shifts the weekday/day for 18:30-24:00 UTC deadlines. ArchiveShelf/ConsolePublished (en-IN) and DraftsStrip (en-GB, letters page) mismatch for timestamps in the 18:30-24:00 UTC window; the admin client lists (mail-rows, content-list, person-detail, report-list) same. React recovers by patching the text, so the end state is correct, but each occurrence logs a hydration error (Sentry noise) with a brief wrong-value flash. The main feed, comments, notification bell and collection grid are NOT affected \u2014 they fetch client-side.",
+   "evidence": "extend-deadline-card.tsx:48-52: `return at.toLocaleDateString(undefined, { weekday: \"long\", day: \"numeric\", month: \"short\" });` in a \"use client\" file; catchup-home-shell.tsx is \"use client\" and is rendered by the server page app/(main)/catchups/[catchupId]/page.tsx, so the SSR pass executes this with Node's locale and UTC. archive-shelf.tsx:21: `new Date(iso).toLocaleDateString(\"en-IN\", { day: \"numeric\", month: \"short\", year: \"numeric\" })`; drafts-strip.tsx:97 (imported by the server page letters/page.tsx): `new Date(d.updatedAt).toLocaleDateString(\"en-GB\", {...})` \u2014 none guarded. Contrast the in-repo precedent: verify-email-banner.tsx:122-126 `useSyncExternalStore(subscribeNever, () => (sendingAtIso ? sendTimeLabel(sendingAtIso) : \"\"), () => \"\")`.",
+   "fixDirection": "Pin every such call to an explicit locale AND timeZone \"Asia/Kolkata\" (making server and client output byte-identical \u2014 the cheap fix, right for date-only strings), or for genuinely browser-local values copy the verify-banner useSyncExternalStore pattern. Fix extend-deadline-card's `undefined` locale first; it mismatches independent of the TZ window.",
+   "gateOrTest": "e2e: the visual/e2e suite can assert zero hydration-error console messages on /catchups/[id] and /letters for a keeper fixture; unit: pinned-locale formatter output test.",
+   "reproPlan": "Live-provable read-only: open a Catch-up home as a Keeper (dev login) in chrome-devtools with a non-en-US browser locale and read list_console_messages for the hydration error.",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-d-hydration-mismatch",
+    "6b-react-ssr"
+   ]
+  },
+  {
+   "title": "Zod year ceilings snapshot getFullYear() at module load in server TZ \u2014 rejects the new year for 5.5 IST hours (longer on a warm lambda)",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/validators.ts:22",
+    "src/lib/validators.ts:23",
+    "src/lib/validators.ts:105",
+    "src/lib/validators.ts:106",
+    "src/lib/validators.ts:188"
+   ],
+   "expected": "On 1 January (IST), a member can enter the new year where the form allows the current year \u2014 e.g. the collection photo's year field, or yearLeft for schooling.",
+   "actual": "Two stacked staleness sources: (1) `new Date().getFullYear()` runs on the server in UTC, which is still last year until 05:30 IST on 1 Jan, so \"That year hasn't happened yet\" (validators.ts:188) rejects the year that has already begun in India; (2) the expressions sit in module-scope schema definitions, evaluated once per process \u2014 a warm serverless instance loaded in December keeps last year's ceiling until recycled, extending the window past 05:30. Fields with +1/+7 slack (yearLeft, batchYear) only pinch at their own edges; the exact-current-year ceilings (yearJoined, taughtFrom/Until at :105-109, the photo year at :188) hit every New Year's night.",
+   "evidence": "validators.ts:188: `.max(new Date().getFullYear(), \"That year hasn't happened yet\")` \u2014 module scope, no timeZone, evaluated at import. Same pattern :22-23, :104-109. These schemas validate server actions, so the server's clock and module lifetime govern, not the member's.",
+   "fixDirection": "Make the ceiling request-time and IST: replace the static .max() with a .refine() (or superRefine) that computes the current IST year per validation call \u2014 e.g. Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Kolkata', year: 'numeric' }).format(new Date())).",
+   "gateOrTest": "Unit test on the extracted currentIstYear() helper: for a mocked instant 2026-12-31T19:00:00Z it must return 2027.",
+   "reproPlan": "code-argument-only (needs a New Year boundary or clock mock).",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-b-day-boundary",
+    "6f-module-scope-init"
+   ]
+  },
+  {
+   "title": "Nightly PostHog snapshot queries a UTC day 3 hours before it ends \u2014 every day's posthog.* metrics permanently undercount",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    ".github/workflows/snapshot.yml:16",
+    "scripts/ops/snapshot.mjs:28",
+    "scripts/ops/snapshot.mjs:202"
+   ],
+   "expected": "MetricSnapshot's posthog.events/people/pageviews for day N cover all of day N.",
+   "actual": "The cron fires at 21:00 UTC ('0 21 * * *' = 02:30 IST); DAY resolves to the current UTC day; the HogQL filter `toDate(timestamp) = toDate(DAY)` therefore counts only 00:00-21:00 UTC of a day with 3 hours left. Events from 21:00-24:00 UTC (02:30-05:30 IST \u2014 small for this community, but nonzero) are never attributed to any day: the next night's run queries the NEXT date, and the day/source/metric upsert key means no later run revisits it. The db.* metrics are unaffected (they are totals-as-of, and 02:30 IST is a sensible IST-day close); this is specific to the range-queried PostHog source.",
+   "evidence": "snapshot.yml:15-16: `schedule: - cron: '0 21 * * *'`. snapshot.mjs:28: `const DAY = args.includes(\"--day\") ? ... : startOfUtcToday();` and :199-203: `SELECT count() AS events, ... FROM events WHERE toDate(timestamp) = toDate('${iso}')` where iso = DAY. Nothing ever re-runs a finished day.",
+   "fixDirection": "Query yesterday for PostHog: use `daysAgo(1)` as the PostHog date (the just-finished UTC day) while leaving the db totals stamped on DAY \u2014 or simplest, have collectPostHog subtract one day from iso and store under that same shifted day key for posthog.* metrics.",
+   "gateOrTest": "A --dry run assertion in the script (log which date window each source covered) plus a comment; hard to unit-test beyond pinning the date arithmetic of daysAgo(1).",
+   "reproPlan": "Read-only: workflow_dispatch snapshot.mjs --dry (no writes) and inspect the logged PostHog date vs run time; or compare a stored posthog.events row against PostHog's own UI number for the same date.",
+   "taxonomyRows": [
+    "6h-dates-utc-ist",
+    "class-b-day-boundary",
+    "6i-cron-partial"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "Email queue daily budget window at UTC midnight (email-queue.ts:107-110, 257-267) \u2014 deliberate and correct: matches Resend's own UTC reset, documented in code; refill time is shown IST-explicitly on /admin/mail (admin/mail/page.tsx:94-100, timeZone 'Asia/Kolkata') and browser-locally in the member banner",
+  "verify-email-banner sendTimeLabel + same-day check \u2014 client-side and hydration-guarded via useSyncExternalStore with empty server snapshot (verify-email-banner.tsx:113-126); the one place this class was already fixed",
+  "Catch-ups cadence, window, countdown and reminder math (catchups.ts) \u2014 pure duration arithmetic (addDays via DAY_MS, addMonths via setUTCMonth, daysLeftUntil ceil, days-left reminder bucket) per the spec's explicit 'no timezone machinery' fence; monthly Jan-31 rollover to Mar-3 is the documented '~1 month'; countdown labels are durations, TZ-safe",
+  "Wordle daily answer key \u2014 correctly IST-pinned (wordle.ts:20, en-CA + timeZone Asia/Kolkata)",
+  "feedSeenAt 'new since last visit' divider \u2014 instant comparisons end to end with a monotonic conditional updateMany (feed/actions.ts:1232-1252, feed/page.tsx:83); no day boundary anywhere",
+  "Visit session-gap across midnight \u2014 no day math at all: the 30-minute window is a rolling cookie TTL in proxy.ts (VISIT_COOKIE, maxAge VISIT_TTL_SECONDS); a visit spanning IST midnight stays one visit; last-seen.ts is instants only",
+  "User.lastSeenAt throttle and active_7d/30d windows \u2014 rolling instant windows (last-seen.ts:24,167-173; admin-analytics.ts ago(); snapshot.mjs daysAgo ISO strings against naive-UTC columns, consistent)",
+  "AuthToken expiry displays \u2014 emails state durations only ('expires in N hours/minutes', email-templates.ts:253,295); comparisons are instants (auth-tokens.ts); no date rendered",
+  "Retention sweep and account purge timing \u2014 pure duration cutoffs (retention.ts:20, cutoff()); idempotent, no day bucketing",
+  "Rate limiting \u2014 all sliding windows by design (rate-limit.ts:26-29), nobody 'locked out until midnight'",
+  "API routes (razorpay webhook paidAt, resend webhook timestamp tolerance, account export exportedAt, dev-login expiry) \u2014 pure instants",
+  "MetricSnapshot db.* metrics and day label \u2014 @db.Date at UTC written by a 21:00 UTC run = totals as of 02:30 IST labelled with the just-ended IST day; coherent; loadTrends label via toISOString().slice(0,10) on a DATE column is exact (the posthog.* range query is the one exception, reported)",
+  "Feed rail letters/pulse modules \u2014 rolling 7-day instant windows (WEEK_MS), no boundary",
+  "Feed/comments/notification-bell/collection-grid date rendering \u2014 client-fetched (PostFeed and CollectionClient load in useEffect), so all formatting runs in the member's browser at IST: correct dates, no hydration exposure",
+  "storage.ts year/month R2 key prefix (getFullYear/getMonth server-local) \u2014 object-key naming only, never member-visible",
+  "catchups-notify reminder copy \u2014 daysLeft durations only, no dates",
+  "prune.mjs / snapshot workflow notification pruning \u2014 duration cutoff (Date.now() - days), no boundary (note, outside my charter: retention.ts KEEP_DAYS.notifications=365 is dead-in-practice since prune.mjs deletes at 30 days nightly; prune.mjs:48-50 records this as the owner's flat-30-days ask, so behaviour is intentional, but the two owner-decision comments contradict \u2014 worth one doc reconciliation, not a bug)"
+ ],
+ "coverageNotes": "Method: exhaustive greps across src/ and scripts/ for toLocaleDateString/toLocaleTimeString/toLocaleString/Intl.DateTimeFormat, setHours/setUTCHours/getHours/getDay/getDate/getMonth/getFullYear, toISOString().slice/split, toDateString, date-fns/dayjs/luxon (none exist), day-arithmetic constants (86_400_000, 24*60*60), AT TIME ZONE, timeZone; every non-lab hit classified. Read whole: email-queue.ts, catchups.ts, admin-analytics.ts, last-seen.ts, retention.ts, wordle.ts, tour-auto-offer.ts, snapshot.mjs (+workflow), prune.mjs, feed/page.tsx, verify-email-banner (guard pattern), extend-deadline-card, footer-tease, fresh-off-the-press, masthead head, admin overview page. Verified server-vs-client for every formatting component (use-client headers + importer traces + data-flow: PostFeed/CollectionClient fetch client-side, so feed/grid surfaces are safe; catchup home shell, letters drafts strip, and all admin lists SSR their props). Site-by-site map (class a=instant/safe, b=day-boundary, c=server-rendered formatted date, d=relative/hydration): CONFIRMED-DIRTY \u2014 admin-analytics.ts:584-585 (b/heatmap, High), masthead.tsx:50 + footer-tease.tsx:26 (c), fresh-off-the-press.tsx:22 (c), letters/[id]/page.tsx:165+188 (c), collection/[id]/page.tsx:145 (c), utils.ts:21+152 helpers (c; callers: admin/support:222, admin/catchups:136-138, admin/page:178, admin/audit:91+110, messages thread-list:70, conversation:88), admin/page.tsx:63-65 + admin/support:38-40 monthStart (b), admin-analytics date_trunc sites 622/443/956/811 (b), settings/actions.ts:344 purge email (c), feed/actions.ts:742-760 time filter (b, latent), validators.ts:22-188 year ceilings (b), extend-deadline-card:48/archive-shelf:21/console-published:32/drafts-strip:97/admin client lists (d), snapshot.mjs:202 posthog window (b). CLEAN \u2014 everything in verifiedClean. Consciously skipped: /lab and /preview rooms (dev-only surfaces, many toLocale hits, not member-facing product), letters INDEX date (tracked bugs.md item 6 \u2014 the reading page, a distinct surface, IS reported), demo-seed timestamps (demo project only), the raw-SQL write trap note itself (tracked; its deeper read-side instance \u2014 the heatmap \u2014 IS reported), hoopoe/mascot idle month check (client-only decorative), scripts/dev/* (operator-facing). Uncommitted WIP files audited as they stand: where.ts, api/users*/places routes, settings/actions.ts, auth.ts, rate-limit.ts contain no date-seam issues beyond the settings purge-date finding; the mid-edit catchups round page only renders dates through the masthead/footer components already reported. Recommended umbrella fix for the class-c cluster: one commit adding timeZone 'Asia/Kolkata' to utils.ts formatTimeAgo-fallback + formatDisplayDate and to the five inline server call sites, which also closes tracked bugs.md item 6's letters-index example."
+}

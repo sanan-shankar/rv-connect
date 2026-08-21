@@ -1,0 +1,478 @@
+{
+ "territory": "Admin surface: src/app/(main)/admin/** (11 routes + actions), src/lib/admin*.ts (admin.ts, admin-people, admin-people-query, admin-content, admin-content-query, admin-note, admin-worklist, admin-worklist-query, admin-analytics, admin-threads-server), src/components/admin/** (person-detail, people-list, content-list, analytics components, dialogs, rows), plus the shared actions they invoke (admin-actions.ts, collection/feed moderation actions, mail actions, account-purge, retention, email-queue, storage, audit) and docs/spec/admin.md",
+ "findings": [
+  {
+   "title": "An admin can block or delete their own (or the last admin's) account with no guard, permanently locking the whole site out of admin",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/profile/admin-actions.ts:15",
+    "src/components/profile/admin-actions.ts:45",
+    "src/components/admin/people/person-detail.tsx:268",
+    "src/components/admin/people/person-detail.tsx:369",
+    "src/app/(main)/admin/people/actions.ts:216"
+   ],
+   "expected": "The panel refuses (or at least loudly warns about) blocking/deleting yourself, and refuses blocking/deleting the last remaining admin, exactly as adminSetRole already refuses demoting the last admin (\"This is the only admin. Make somebody else one first.\").",
+   "actual": "adminBlockUser and adminDeleteUser have no self-check and no last-admin check. The owner's own row is reachable at /admin/people/<own-id> and PersonDetail renders Block, Delete and Merge for it unconditionally (no current-admin id is even passed to the component). Blocking yourself takes effect on the very next request: the session callback in src/lib/auth.ts:277 invalidates any session whose row reads isBlocked, and authorize() (auth.ts:155) refuses a blocked account at login, so the sole admin can never unblock himself. The block dialog's copy makes it worse: \"You can undo this from the same button\" (person-detail.tsx:373) is false for self-block.",
+   "evidence": "adminBlockUser body is only: `const actor = await requireAdminActor(); ... await prisma.user.update({ where: { id: userId }, data: { isBlocked: block, credentialVersion: { increment: 1 } } });` \u2014 no comparison of userId against actor.actorId and no count of remaining admins. adminDeleteUser likewise goes straight to `purgeUserAccount(userId)`. Contrast adminSetRole (people/actions.ts:216-225) which counts admins and refuses the last demotion, and whose comment explains the stake: \"demoting the only admin locks everybody out of moderation permanently, and the only way back would be editing the database by hand\" \u2014 the identical lockout exists via block and delete and is unguarded. Recovery script scripts/dev/set-password.mjs --admin restores role but nothing documents clearing isBlocked, and delete is unrecoverable.",
+   "fixDirection": "In adminBlockUser and adminDeleteUser, after requireAdminActor: (1) if userId === actor.actorId, refuse with copy like \"You cannot block your own account from here.\"; (2) for block=true and for delete, if the target row has role admin and prisma.user.count({where:{role:\"admin\", isBlocked:false}}) <= 1, refuse like adminSetRole does. Also hide/disable Block, Delete and Merge on your own detail page (pass the acting admin's id into PersonDetail) and fix the block dialog copy for the other-admin case.",
+   "reproPlan": "code-argument-only (a live proof would block/delete a real admin on the shared production database).",
+   "gateOrTest": "Extend src/lib/security-regressions.test.mjs (or a new unit test) asserting adminBlockUser/adminDeleteUser return an error for self-target and for the last unblocked admin; write-path-reviewer on admin-actions.ts.",
+   "taxonomyRows": [
+    "6c-server-action-guards",
+    "6h-identity-states",
+    "6k-chaos-lite"
+   ]
+  },
+  {
+   "title": "Analytics Rhythms heatmap converts timezones the wrong way: every visit is bucketed 11 hours off the IST hour it claims",
+   "severity": "High",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/admin-analytics.ts:583",
+    "src/app/(main)/admin/analytics/page.tsx:452",
+    "src/components/admin/analytics/heatmap.tsx:75",
+    "prisma/schema.prisma:929"
+   ],
+   "expected": "The 7x24 heatmap and its \"Busiest: <day> around <hour> IST\" line show visits at their Indian wall-clock hour, since Visit.endedAt stores a UTC wall time in a `timestamp without time zone` column.",
+   "actual": "The query applies `\"endedAt\" AT TIME ZONE 'Asia/Kolkata'` directly to a timestamp-without-time-zone. In Postgres that means \"interpret this wall time AS Kolkata local\", producing an instant 5h30 EARLIER in UTC; EXTRACT then reads it in the session timezone (UTC on Supabase). A 19:30-IST visit (stored 14:00 UTC wall) buckets at hour 8 instead of 19 \u2014 11 hours off, with DOW shifting wrongly near midnight too. The peak hour the page tells the owner to schedule Catch-up email against is fiction.",
+   "evidence": "admin-analytics.ts:584-585: `SELECT EXTRACT(DOW FROM \"endedAt\" AT TIME ZONE 'Asia/Kolkata')::int AS dow, EXTRACT(HOUR FROM \"endedAt\" AT TIME ZONE 'Asia/Kolkata')::int AS hour`. schema.prisma Visit model: `endedAt DateTime @default(now())` with no @db.Timestamptz, i.e. `timestamp(3) without time zone` holding UTC wall time (bugs.md #6 documents exactly this column class). Postgres semantics: `timestamp AT TIME ZONE zone` -> timestamptz (interprets AS that zone); the correct incantation for a UTC wall time is `(\"endedAt\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata'`. The component then prints \"Busiest: {day} around {hour} IST. Worth matching the Catch-up email to it.\" (heatmap.tsx:75-87) \u2014 an explicit recommendation drawn from wrong buckets. This is the 6h IST class the audit brief predicts, in the one query that tried to handle it.",
+   "fixDirection": "Change both EXTRACT expressions to `(\"endedAt\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata'`. While there, apply the same double-conversion to any future raw-SQL IST bucketing; note loadRhythm is the only AT TIME ZONE use in the repo today (verified by grep).",
+   "reproPlan": "Read-only SQL proves it without touching app data: `SELECT EXTRACT(HOUR FROM TIMESTAMP '2026-08-21 14:00:00' AT TIME ZONE 'Asia/Kolkata')` returns 8 on a UTC-session connection where the member's IST hour is 19. Alternatively load /admin/analytics?view=rhythms and compare a known recent visit's IST time to its cell.",
+   "gateOrTest": "A unit test on the corrected SQL expression via a raw query fixture, or pin loadRhythm output for a synthetic Visit row at a known UTC instant.",
+   "taxonomyRows": [
+    "6h-dates-IST",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "Worklist 'flagged' and 'asked to be verified' queues sort and timestamp on User.updatedAt, which the 15-minute presence stamp rewrites \u2014 order is wrong and timestamps read 'just now' forever",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/admin-worklist-query.ts:63",
+    "src/lib/admin-worklist-query.ts:73",
+    "src/lib/admin-worklist-query.ts:139",
+    "src/lib/admin-worklist-query.ts:147",
+    "src/lib/last-seen.ts:167",
+    "prisma/schema.prisma:94"
+   ],
+   "expected": "\"X asked to be verified\" is ordered by when they asked (the comment says orderBy updatedAt asc = waited longest first) and carries the time of the request; flagged rows likewise carry when they were flagged.",
+   "actual": "User has `updatedAt DateTime @updatedAt` (schema line 94), and Prisma bumps @updatedAt on every update/updateMany \u2014 including touchLastSeen's `prisma.user.updateMany({... data: { lastSeenAt: now }})` (last-seen.ts:167-173) which fires from the (main) layout every 15 minutes of activity, plus any profile edit or admin-note save. So: (1) the pendingVerify queue's \"oldest first\" is actually \"least recently active first\" \u2014 an active member who asked days ago sorts below an inactive member who asked an hour ago; (2) the mixed Overview worklist sorts newest-`at` first, so any flagged or pending member who is currently browsing permanently squats at the top with a timestamp that reads \"just now\"/\"3m ago\" no matter when the flag or request happened.",
+   "evidence": "admin-worklist-query.ts:63-78: flagged `orderBy: { updatedAt: \"desc\" }` and pendingVerify `orderBy: { updatedAt: \"asc\" }`, then rows map `at: u.updatedAt.toISOString()` (139, 147); loadWorklist ends `items.sort((a, b) => b.at.localeCompare(a.at))` (177). last-seen.ts:167-173 writes User every LAST_SEEN_STALE_MS=15min. There is no verifyRequestedAt/flaggedAt column, so updatedAt is the only field available and it is actively churned.",
+   "fixDirection": "Add a real timestamp for each state change: e.g. `verifyRequestedAt DateTime?` set when verifyState flips to \"pending\" and `flaggedAt DateTime?` when it flips to \"flagged\" (dated idempotent migration in prisma/migrations-manual/ per house rules), then order and display on those. Cheaper stopgap: exclude lastSeenAt writes from bumping updatedAt is not possible with @updatedAt, so the column route is the honest fix.",
+   "reproPlan": "Read-only: open /admin with a member in verifyState \"pending\" who is actively browsing; their worklist row shows a fresh \"time ago\" each reload. Or compare AuditLog/roster timestamps against the shown 'at'.",
+   "gateOrTest": "Unit test on loadWorklist fixtures: a pending user whose lastSeenAt-driven updatedAt is newer must not outrank an older request once the dedicated column exists.",
+   "taxonomyRows": [
+    "6a-invalid-state",
+    "6h-dates",
+    "6i-two-surfaces-one-row"
+   ]
+  },
+  {
+   "title": "Report dismiss/resolve have no status precondition: double-click or two admins produce duplicate and even contradictory messages to the reporter",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/profile/admin-actions.ts:167",
+    "src/components/profile/admin-actions.ts:186",
+    "src/components/admin/reports/report-list.tsx:51",
+    "src/lib/admin-threads-server.ts:60"
+   ],
+   "expected": "Settling a report is once-only: the first admin's action wins, the second attempt is a no-op (\"already settled\"), and the reporter gets exactly one closing message.",
+   "actual": "adminDismissReport and adminResolveReport update `where: { id: reportId }` with no `status: \"pending\"` guard, then unconditionally post a thread note + notification via noteOnReportThread. Two admins triaging the same pending report (the exact worklist-claim race), or one admin double-clicking before React re-renders the disabled state (report-list.tsx act() sets state, so a second click in the same tick passes `busy === r.id` false), sends the reporter two notes. Worse, one admin clicking \"Nothing wrong here\" while another clicks resolve sends BOTH \"decided to leave it as it is\" AND \"has dealt with it\", with final status = last write.",
+   "evidence": "admin-actions.ts:171-174 `await prisma.report.update({ where: { id: reportId }, data: { status: \"dismissed\" } }); await noteOnReportThread(reportId, \"An admin read this and decided to leave it as it is...\")` \u2014 no precondition, and noteOnReportThread (admin-threads-server.ts:67-83) creates an adminMessage + notification every call. Same shape at 186-202 for resolve. No unique constraint exists to backstop the duplicate notification (Notification has no @@unique).",
+   "fixDirection": "Use updateMany with a precondition: `const r = await prisma.report.updateMany({ where: { id, status: \"pending\" }, data: { status } }); if (r.count === 0) return { error: \"Already settled.\" }` and only call noteOnReportThread when count === 1. Same conditional-claim pattern claimAndSend already uses in email-queue.ts:160.",
+   "reproPlan": "code-argument-only (would write duplicate notifications to a real reporter's account on the shared DB).",
+   "gateOrTest": "Unit test: two concurrent adminDismissReport calls on one pending report yield exactly one adminMessage row.",
+   "taxonomyRows": [
+    "6c-race-double-submit",
+    "6i-worklist-claim-race"
+   ]
+  },
+  {
+   "title": "Every admin client wrapper awaits server actions without try/catch, and several actions throw (not return) on concurrently-deleted rows \u2014 one thrown P2025 wedges the UI in a permanent busy state",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/admin/people/person-detail.tsx:128",
+    "src/components/admin/content/content-list.tsx:99",
+    "src/components/admin/reports/report-list.tsx:51",
+    "src/components/admin/confirm-dialog.tsx:61",
+    "src/components/admin/moderation-dialog.tsx:38",
+    "src/components/admin/mail/mail-rows.tsx:71",
+    "src/app/(main)/collection/actions.ts:525",
+    "src/components/profile/admin-actions.ts:157"
+   ],
+   "expected": "If a row was deleted by another admin (or the network blips) between page render and click, the action surfaces \"that's gone\" and the UI recovers.",
+   "actual": "The shared pattern is `setBusy(x); const result = await fn(); setBusy(false/null);` with no try/finally \u2014 in person-detail run() (128-139), the three card save()s (466-476, 543-553, 588-598), MailCard retry (641-651), content-list act() (104-113), report-list act() (56-65), ConfirmDialog run() (61-72, where close() also refuses while busy, so the dialog cannot even be dismissed), ModerationDialog handleConfirm (38-49), mail-rows act() (72-81), thread-view setStatus (43-53). Meanwhile approvePhoto (`prisma.photo.update` with no existence check, collection/actions.ts:525), adminHidePost (admin-actions.ts:157), adminVerifyUser (:99), adminSetPhotoTrusted, adminUpdatePerson and declinePhoto's `photo.delete` all THROW P2025 when the target vanished \u2014 a scenario two admins working the same photo queue or people list produce naturally. The await rejects, setBusy(false) never runs, the button says \"Saving...\"/\"Working...\" forever, and the admin sees no error (unhandled rejection in an event handler shows nothing in production). Related swallow: report-list's \"Hide the post\" composite (152-155) ignores adminHidePost's returned {error} and resolves the report anyway.",
+   "evidence": "person-detail.tsx:128-133: `async function run(fn, done) { setBusy(true); const result = await fn(); setBusy(false); ... }` \u2014 a rejection skips line 3. confirm-dialog.tsx:55-58: `function close() { if (busy) return; ... }` \u2014 a stuck busy makes the dialog unclosable. collection/actions.ts:521-528: `await prisma.photo.update({ where: { id: photoId }, ... })` with no findUnique guard, so the second admin's Approve after a concurrent Decline (row deleted at :549) throws.",
+   "fixDirection": "Wrap each wrapper's await in try/finally (finally: setBusy/setSaving reset; catch: toast a generic \"That didn't go through \u2014 reload and try again\"). Server-side, make the racy actions return {error} instead of throwing: precheck existence or catch P2002/P2025 (approvePhoto, adminHidePost, adminVerifyUser, adminUpdatePerson, adminSetPhotoTrusted, declinePhoto). In report-list's composite, check adminHidePost's result before resolving the report.",
+   "reproPlan": "Two tabs on the same photo in /admin/content?type=pending: Decline in tab A, then Approve in tab B \u2014 tab B's buttons stay disabled with no toast. Safe only against a test photo; otherwise code-argument-only.",
+   "gateOrTest": "Unit tests that the racy actions return {error} for a missing id; a Playwright spec pinning that a failed action re-enables its button.",
+   "taxonomyRows": [
+    "6a-unhandled-promise-rejection",
+    "6i-worklist-claim-race",
+    "6b-missing-cleanup"
+   ]
+  },
+  {
+   "title": "Person-detail 'Given' sums contributions without the livemode filter, so a developer's Razorpay test payment shows as real money on a member's admin record",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/people/[id]/page.tsx:64",
+    "src/components/admin/people/person-detail.tsx:322",
+    "src/app/(main)/admin/support/page.tsx:46",
+    "src/lib/admin-analytics.ts:279"
+   ],
+   "expected": "Every money figure filters `livemode: true` \u2014 the spec calls this load-bearing (docs/spec/admin.md 9.7: \"the ledger must honour the same split or the two surfaces disagree about how much money exists\"), and /admin/support, /admin (overview) and loadSupport all do it.",
+   "actual": "The person page aggregates `where: { userId: id, status: \"paid\" }` with no livemode, and the Tally renders it as \"Given \u20b9N\". A local-dev test order against a real member's account (the databases are shared) inflates that member's giving on the page an admin reads as fact, and disagrees with the Support ledger one click away.",
+   "evidence": "people/[id]/page.tsx:64-68: `prisma.contribution.aggregate({ _sum: { amount: true }, _count: true, where: { userId: id, status: \"paid\" } })` \u2014 compare support/page.tsx:46 `where: { status: \"paid\", livemode: true }` and admin/page.tsx:77 `where: { status: \"paid\", livemode: true, paidAt: { gte: monthStart } }`.",
+   "fixDirection": "Add `livemode: true` to the person-page aggregate (both _sum and _count). If test gifts should still be visible on the record, count them separately and mark them Test like the ledger does.",
+   "reproPlan": "Read-only: pick a member with a livemode:false contribution row (if any exist) and compare their /admin/people/[id] 'Given' tally with their rows on /admin/support.",
+   "gateOrTest": "Unit test on the query where-shape, or a lint-style grep gate: any contribution aggregate on amount must carry livemode.",
+   "taxonomyRows": [
+    "6a-boolean-condition-missing",
+    "6h-money"
+   ]
+  },
+  {
+   "title": "adminMergeUsers fails wholesale with an opaque error when both accounts answered the same Catch-up prompt (CatchupEntry unique not in the dropped set)",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/people/actions.ts:296",
+    "prisma/schema.prisma:789",
+    "src/app/(main)/admin/people/actions.ts:317"
+   ],
+   "expected": "Merging a duplicate account handles every unique-keyed collision: the comment's own rule is that everything carrying a `@@unique([userId, thingId])` is dropped rather than moved precisely because \"moving them throws the moment both accounts touched the same post\".",
+   "actual": "CatchupEntry carries `@@unique([promptId, authorId])` (schema:789) yet is in the MOVED set: `prisma.catchupEntry.updateMany({ where: { authorId: sourceId }, data: { authorId: targetId } })` (actions.ts:297). One human who answered the same prompt from both accounts \u2014 the definitional duplicate-account behavior \u2014 makes the updateMany violate the constraint, the whole transaction rolls back, and the admin gets only \"Could not merge those accounts. Nothing was changed. Check the server log.\" with no path forward inside the panel. (CatchupPrompt has no such unique; posts/comments/photos/contributions are safe.)",
+   "evidence": "actions.ts:290-316 lists catchupEntry.updateMany among \"Kept\" while the \"Dropped\" rationale (258-264) is exactly about @@unique collisions; schema.prisma:784-789: CatchupEntry relations plus `@@unique([promptId, authorId])`. The catch at 317-320 collapses every failure into one generic string.",
+   "fixDirection": "Before the transaction, find the source's entry promptIds that the target already answered (`prisma.catchupEntry.findMany({ where: { authorId: targetId, promptId: { in: sourcePromptIds } } })`) and delete those source entries inside the transaction (dropping the duplicate answer, consistent with the likes rationale) \u2014 or move them with per-row conflict handling. Also surface P2002 distinctly so a future collision names the table.",
+   "reproPlan": "code-argument-only (a live proof merges real accounts).",
+   "gateOrTest": "Unit test: merge two fixture users who both answered one prompt; assert success and that the target keeps its own answer.",
+   "taxonomyRows": [
+    "6c-p2002-handling",
+    "6d-multi-table-transaction",
+    "6h-identity-states"
+   ]
+  },
+  {
+   "title": "purgeUserAccount deletes R2 objects one-by-one after the row cascade: an image-heavy member (or a multi-account sweep night) can blow the function time ceiling and permanently orphan the remainder",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/account-purge.ts:108",
+    "src/lib/storage.ts:218",
+    "src/lib/retention.ts:115",
+    "src/app/api/retention/sweep/route.ts:23"
+   ],
+   "expected": "Deletion of a member with hundreds of images finishes inside a serverless invocation, or the cleanup continues after the response; nothing can leave publicly-fetchable bytes with no row pointing at them (the audit-H9 guarantee this module exists to keep).",
+   "actual": "After the DB transaction commits, `for (const url of urls) { await delImage(url); deleted += 1; }` issues one sequential DeleteObject per URL. A Collection contributor at 2,000-user scale can own hundreds of objects (each photo is thumb+url+original = 3 objects); at ~50-150ms per R2 round trip, 400+ objects approaches or exceeds the 60s Vercel ceiling. Because the user row and every pointing row are ALREADY deleted (the transaction ran first, by design), a timeout mid-loop strands the uncollected remainder exactly in the unfindable-forever state H9 closed. The nightly sweep compounds it: runRetentionSweep purges every due account serially in one GET (retention.ts:115-127) with no maxDuration export on the route.",
+   "evidence": "account-purge.ts:99-113: transaction (report clear + user.delete) commits, then the serial loop; delImageByKey (storage.ts:218-228) is one DeleteObjectCommand per call and swallows failures, so nothing even records which objects were reached. sweep route has no `export const maxDuration`.",
+   "fixDirection": "Batch the deletes: S3/R2 DeleteObjects accepts 1,000 keys per request \u2014 one call replaces the loop (add a delImagesByKeys to storage.ts); or chunked Promise.all of 20. Export maxDuration on the sweep route and cap accounts purged per run (carry the rest to tomorrow's sweep, which the design already tolerates). Optionally persist the collected URL list before deleting rows so an interrupted cleanup is resumable.",
+   "reproPlan": "code-argument-only; arithmetic from a member's Photo count (3 objects per photo) x observed delImage latency suffices.",
+   "gateOrTest": "Unit test that purge uses the batch delete path; ops note in docs/OPERATIONS.md tying sweep batch size to the duration limit.",
+   "taxonomyRows": [
+    "6f-60s-ceiling",
+    "6g-orphaned-objects",
+    "6k-chaos-lite"
+   ]
+  },
+  {
+   "title": "Server-rendered admin dates and month windows are computed in UTC for an IST reader: events between 00:00 and 05:30 IST display the previous day, and 'this month' totals roll over 5h30 late",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/utils.ts:151",
+    "src/app/(main)/admin/page.tsx:63",
+    "src/app/(main)/admin/support/page.tsx:38",
+    "src/lib/admin-analytics.ts:810",
+    "src/lib/admin-analytics.ts:443"
+   ],
+   "expected": "Dates the owner reads (Joined, Confirmed, Sent, Due, ledger dates) and calendar windows (\"Given this month\", \"New members each month\", distinct active days) reflect the Indian calendar day, the way /admin/mail already formats its budget-reset clock with `timeZone: \"Asia/Kolkata\"` (mail/page.tsx:94-100).",
+   "actual": "formatDisplayDate (utils.ts:151-157) and formatTimeAgo's >4-week fallback call toLocaleDateString with NO timeZone, so on Vercel (UTC) every event stamped between 18:30 and 24:00 UTC \u2014 i.e. 00:00-05:30 IST, prime late-night India hours \u2014 renders as the previous day everywhere in admin (person-detail Joined/Confirmed/verified dates, mail history, support ledger, catch-up \"Due\" dates). The overview's and support page's monthStart (`new Date(now); setDate(1); setHours(0,0,0,0)` on a UTC server) means \"Given this month\" still shows last month until 05:30 IST on the 1st, and a gift paid 00:30 IST on the 1st counts into the old month; loadGrowth's `date_trunc('month', \"createdAt\")` buckets signups the same way, and the `date_trunc('day', \"startedAt\")` distinct-day counts (loyal/returning/daysActive) split or merge IST days at 05:30.",
+   "evidence": "utils.ts:151-157: `return new Date(date).toLocaleDateString(\"en-GB\", { day: \"numeric\", month: \"short\", year: \"numeric\" })` \u2014 no timeZone. admin/page.tsx:63-65 and support/page.tsx:38-40: monthStart from server-local midnight. admin-analytics.ts:811 and :443/:622/:956: UTC date_trunc. Counter-example in the same territory proving the intended standard: mail/page.tsx:94-100 formats with `timeZone: \"Asia/Kolkata\"`.",
+   "fixDirection": "Add `timeZone: \"Asia/Kolkata\"` to formatDisplayDate and formatTimeAgo's date fallback (one change fixes every admin call site; the audience is IST by product definition). Compute monthStart as IST midnight (e.g. shift now by +5:30, truncate, shift back) in overview and support. For the raw SQL month/day buckets use the corrected `AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata'` double conversion before truncating.",
+   "reproPlan": "Read-only: find any row with a UTC timestamp between 18:30 and 24:00 (e.g. an OutboundEmail.sentAt) and compare the rendered date in admin with its IST date.",
+   "gateOrTest": "Unit test on formatDisplayDate for an 18:45-UTC instant asserting the IST date; visual-suite masking unaffected.",
+   "taxonomyRows": [
+    "6h-dates-IST",
+    "6a-boundary-values"
+   ]
+  },
+  {
+   "title": "Visit, SearchLog and ContentView \u2014 the identifiable presence telemetry \u2014 have no retention window and grow unbounded, while analytics runs full-table scans over them on every load",
+   "severity": "Medium",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/retention.ts:23",
+    "src/lib/admin-analytics.ts:609",
+    "src/lib/admin-analytics.ts:939",
+    "scripts/ops/prune.mjs:46"
+   ],
+   "expected": "Every personal-data table has an expiry (the retention module's stated principle: \"personal data stops accumulating forever\"), and analytics queries stay bounded as data grows toward 2,000 users.",
+   "actual": "KEEP_DAYS (retention.ts:23-40) covers adminMessages, reports, contributions, notifications, security logs and outboundEmails \u2014 but not Visit, SearchLog or ContentView, the per-person, identifiable tables added 2026-08-19 (after the retention decisions were recorded). prune.mjs only prunes notifications. At 2,000 members these grow on the order of hundreds of thousands of rows a year (one Visit row per session, one SearchLog row per search), and the Faces/Compare analytics views run raw full-table scans with joins and `mode() WITHIN GROUP` over ALL of them with no time bound (loadFaces heartsGiven/loyal/longest/deepest at 609-684; loadMemberMetrics CTE at 939-1017 \u2014 its own comment concedes \"the moment that stops being true, this becomes a materialised table\"). Result: a privacy-posture gap now, and admin analytics pages that degrade toward multi-second loads within a year at target scale.",
+   "evidence": "retention.ts KEEP_DAYS object lists exactly six keys, none of them Visit/SearchLog/ContentView; grep across src+scripts finds no visit.deleteMany/searchLog.deleteMany/contentView.deleteMany outside generated client docs. loadFaces: `FROM \"Visit\" v JOIN \"User\" u ... GROUP BY u.\"name\"` with no WHERE clause on four of its eight queries.",
+   "fixDirection": "Add Visit/SearchLog/ContentView windows to KEEP_DAYS (the analytics reads need at most 90 days for rhythm/arrivals and 30 for presence; Faces' all-time superlatives should either accept a 1-year window or read MetricSnapshot) and extend runRetentionSweep with the three deleteMany steps. Record the windows in docs/SECURITY.md's retention table first, per the module's own rule.",
+   "reproPlan": "code-argument-only; row-count arithmetic and the absent deleteMany calls are the whole proof.",
+   "gateOrTest": "Extend whatever asserts the retention table's coverage (or add a unit test enumerating KEEP_DAYS against the schema's telemetry models).",
+   "taxonomyRows": [
+    "6j-unbounded-growth",
+    "6j-full-table-scans",
+    "6k-chaos-lite"
+   ]
+  },
+  {
+   "title": "adminSetRole's last-admin check is a read-then-write outside the transaction: two concurrent demotions can still leave zero admins",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/people/actions.ts:216",
+    "src/app/(main)/admin/people/actions.ts:227"
+   ],
+   "expected": "The \"never remove the last admin\" invariant holds under concurrency.",
+   "actual": "With two admins, if each demotes the other at the same time, both `prisma.user.count({ where: { role: \"admin\" } })` reads return 2, both pass the `admins <= 1` check, and both updates run \u2014 zero admins. TOCTOU: the check (216-225) and the update (227) are separate statements with no transaction or conditional write.",
+   "evidence": "`const admins = await prisma.user.count({ where: { role: \"admin\" } }); ... if (target?.role === \"admin\" && admins <= 1) { return ... } await prisma.user.update({ where: { id: userId }, data: { role } });` \u2014 nothing serializes the two demotions. Recovery does exist (`node scripts/dev/set-password.mjs <email> --admin`, documented in auth.ts:303-314), which caps the severity.",
+   "fixDirection": "Make the demotion conditional in one statement, e.g. a raw `UPDATE \"User\" SET role='member' WHERE id=$1 AND (SELECT count(*) FROM \"User\" WHERE role='admin') > 1` via $queryRaw, or wrap count+update in a serializable transaction / take an advisory-free approach with `updateMany({ where: { id, role: \"admin\" } })` plus a post-update count that restores on zero.",
+   "reproPlan": "code-argument-only (requires two live admin sessions racing on production).",
+   "gateOrTest": "Unit test simulating interleaved demotions against a two-admin fixture.",
+   "taxonomyRows": [
+    "6c-toctou",
+    "6i-two-surfaces-one-row"
+   ]
+  },
+  {
+   "title": "adminUpdatePlaces and the member's own updateUserPlaces are identical wipe-and-recreate transactions with no unique constraint: a concurrent save doubles the member's places",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/people/actions.ts:150",
+    "src/components/settings/actions.ts:162",
+    "prisma/schema.prisma:659"
+   ],
+   "expected": "Two surfaces editing one member's cities (admin fixing them while the member edits their own settings \u2014 the exact two-surfaces-one-row case the audit brief names) converge on one coherent set.",
+   "actual": "Both run `$transaction([ userPlace.deleteMany({where:{userId}}), ...creates, user.update(currentCity) ])`. Under READ COMMITTED, B's deleteMany snapshot cannot see rows A creates after B's delete begins, so interleaved saves commit BOTH sets: duplicate rows, two rows at position 0, doubled map pins, and currentCity from whichever committed last. UserPlace has no @@unique([userId, position]) (schema 659-677 shows only indexes) to make the second insert fail instead.",
+   "evidence": "people/actions.ts:150-169 and settings/actions.ts:162-181 are byte-for-byte the same transaction shape; schema UserPlace model: `@@index([userId])`, `@@index([city])`, no unique.",
+   "fixDirection": "Add `@@unique([userId, position])` (idempotent manual migration) so the loser's transaction aborts cleanly and the client retries; or make both writers upsert against that key. The window is narrow but the constraint also documents the invariant.",
+   "reproPlan": "code-argument-only (would need two racing sessions writing a real member's places).",
+   "gateOrTest": "Schema assertion in a unit test that UserPlace carries the unique; write-path-reviewer on both actions.",
+   "taxonomyRows": [
+    "6d-check-then-insert-toctou",
+    "6i-two-surfaces-one-row"
+   ]
+  },
+  {
+   "title": "purgeUserAccount collects image URLs before the delete transaction: anything the member uploads in between is cascaded away as rows but its R2 bytes are never collected \u2014 orphaned unfindably",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/account-purge.ts:89",
+    "src/lib/account-purge.ts:99"
+   ],
+   "expected": "Everything the deleted member's rows pointed at is enumerated for byte deletion (the delete-vs-post-create race the brief names).",
+   "actual": "`const urls = await collectImageUrls(userId);` runs, then the transaction deletes and cascades. A post, Collection photo or avatar change landing between the two (an admin deleting a member who is mid-session uploading) has its rows cascade-deleted while its R2 objects were never in `urls` \u2014 publicly fetchable forever with nothing left to find them by, the exact H9 failure mode reintroduced through a window of a few hundred milliseconds.",
+   "evidence": "account-purge.ts:88-102: collect at line 89, `prisma.$transaction([...user.delete...])` at 99-102, with no re-collection or upload freeze in between; nothing bumps credentialVersion before collecting, so the member's session is fully live during the window.",
+   "fixDirection": "Narrow the window: bump credentialVersion (ending their sessions) FIRST, then collect, then delete \u2014 an in-flight upload can still slip through, so alternatively collect inside the transaction (reads see a consistent snapshot) or re-collect-and-diff after commit while the Photo/Post rows are gone (requires collecting keys from R2 by ownerPrefix `avatars/<id>/`, `uploads/<id>/`, `collection/<id>/` instead of from rows \u2014 prefix listing survives the cascade and is the robust fix).",
+   "reproPlan": "code-argument-only.",
+   "gateOrTest": "Unit test on ordering (session-revocation before collection), or switch to prefix-based enumeration and pin that.",
+   "taxonomyRows": [
+    "6i-two-surfaces-one-row",
+    "6g-orphaned-objects"
+   ]
+  },
+  {
+   "title": "retryMail accepts rows in status 'sending': a stale failed-list plus an impatient second retry can double-send a real email",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/mail/actions.ts:33",
+    "src/lib/email-queue.ts:160"
+   ],
+   "expected": "Retry applies only to rows that are actually dead (status failed), matching what the UI offers it for.",
+   "actual": "The guard is `if (row.status === \"sent\") return { error }` \u2014 'queued' and 'sending' pass. Sequence: admin retries a failed row (now queued), a drain claims it (sending, mid-Resend-call), the admin's still-stale page shows Try again and they click again \u2014 retryMail resets it to `{ status: \"queued\", attempts: 0, claimedAt: null }` while the in-flight claimAndSend later completes its send and its bookkeeping; the next drain sends the SAME message a second time. claimAndSend's conditional claim (email-queue.ts:160-164) protects queued->sending, but nothing protects a sending row from being force-reset underneath it.",
+   "evidence": "mail/actions.ts:28-38: findUnique status, reject only \"sent\", then unconditional update to queued. The row read and the reset are also a read-then-write pair.",
+   "fixDirection": "Use a conditional write: `updateMany({ where: { id, status: \"failed\" }, data: {...} })` and return \"Only a message that gave up can be retried\" on count 0 \u2014 the same shape dismissMail already half-follows and claimAndSend fully follows.",
+   "reproPlan": "code-argument-only (a live proof emails a real member twice).",
+   "gateOrTest": "Unit test: retryMail on a 'sending' fixture returns an error and leaves the row untouched.",
+   "taxonomyRows": [
+    "6c-race-out-of-order",
+    "6i-webhook-job-overlap"
+   ]
+  },
+  {
+   "title": "Verify has no in-flight guard in the People list and creates a notification unconditionally: double-fire sends the member duplicate 'You're verified' notifications",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/admin/people/people-list.tsx:119",
+    "src/components/profile/admin-actions.ts:117"
+   ],
+   "expected": "Verifying is idempotent end-to-end: one click (or two admins clicking) yields one state change and at most one notification.",
+   "actual": "people-list's verify() (119-132) tracks no busy state at all \u2014 the row's Verify button stays enabled during the round trip, so a double-click fires adminVerifyUser twice; two admins triaging the same pending queue do the same. The action's user.update is idempotent but it then runs `prisma.notification.create` unconditionally (admin-actions.ts:117-124) with no unique constraint behind it, so the member's bell shows \"You're verified...\" two or three times, plus duplicate audit rows.",
+   "evidence": "PersonCard (people-list.tsx:296-303) renders `<Button ... onClick={onVerify}>` with no disabled binding; verify() has no state guard. admin-actions.ts:99-124: update then unconditional notification.create.",
+   "fixDirection": "Guard the write: `updateMany({ where: { id: userId, verifyState: { not: \"verified\" } }, ... })` and only notify when count === 1; also disable the row button while its action is in flight (people-list already has the loading pattern for showMore).",
+   "reproPlan": "code-argument-only (would notify a real member).",
+   "gateOrTest": "Unit test: two sequential adminVerifyUser calls create exactly one notification.",
+   "taxonomyRows": [
+    "6c-race-double-submit"
+   ]
+  },
+  {
+   "title": "Both admin UIs hard-code verifyMethod 'office_list', so a manual admin verification is recorded and displayed as an office-roster match ('admin_manual' is unreachable)",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/admin/people/people-list.tsx:120",
+    "src/components/admin/people/person-detail.tsx:261",
+    "src/components/profile/admin-actions.ts:94",
+    "src/components/admin/people/person-detail.tsx:211"
+   ],
+   "expected": "verifyMethod distinguishes how someone was verified \u2014 the action signature defaults to \"admin_manual\" and person-detail renders three distinct labels (\"Off the office list\" / \"Vouched for\" / \"By an admin\").",
+   "actual": "Every panel call site passes \"office_list\" explicitly (`adminVerifyUser(id, \"office_list\")` in both the list and the detail page), so an admin's judgment call is stored, audited (writeAudit detail: method) and displayed as a roster match; \"By an admin\" can never appear, and the roster.ts signup path's genuine office_list records become indistinguishable from manual ones.",
+   "evidence": "people-list.tsx:120 and person-detail.tsx:261 both pass \"office_list\"; admin-actions.ts:94 default \"admin_manual\" has zero callers using it; person-detail.tsx:210-215 branches on the three method values.",
+   "fixDirection": "Drop the second argument at both call sites (letting the admin_manual default apply), unless the owner's intent is that panel verification always means \"checked against the roster I hold\" \u2014 in which case delete the dead admin_manual branch and default so the code stops claiming a distinction it never records.",
+   "reproPlan": "Read-only: verify state of any member verified through the new panel shows \"Off the office list\" on their detail page regardless of how it happened.",
+   "gateOrTest": "Unit test asserting panel-driven verification records admin_manual.",
+   "taxonomyRows": [
+    "6a-boolean-inversions",
+    "6h-identity-states"
+   ]
+  },
+  {
+   "title": "The rail's 'waiting' count and the Overview worklist stop agreeing beyond 20 items in any queue \u2014 the exact drift the code declares must never happen",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/admin.ts:110",
+    "src/lib/admin-worklist-query.ts:19",
+    "src/app/(main)/admin/page.tsx:88"
+   ],
+   "expected": "admin.ts's stated invariant: \"`waiting` ... MUST equal what that list renders ... A count that disagrees with the list it points at is worse than no count at all.\"",
+   "actual": "worklistCounts() counts every matching row per queue, but loadWorklist fetches `take: PER_QUEUE` (20) per queue with no \"and N more\" affordance. On launch day the owner expects 100+ signups; 20+ pending verifications or 20+ failed mails makes the rail read e.g. \"Overview 45\" above a page whose own header says \"Waiting on you 32\" and silently truncates the rest \u2014 the oldest pending verifications (fetched asc) beyond 20 become unreachable from the worklist entirely.",
+   "evidence": "admin.ts:159-181 (unbounded counts, `total` summed); admin-worklist-query.ts:19 `const PER_QUEUE = 20;` with `take: PER_QUEUE` on all seven queries; admin/page.tsx:88 `<AdminSection label=\"Waiting on you\" count={work.length}>` renders the truncated length while the rail renders the full total.",
+   "fixDirection": "Either raise PER_QUEUE and render an explicit per-queue \"and N more -> section link\" row when count > fetched (each section page is unbounded/paginated, so nothing is lost), or cap the rail number at what the list shows with a \"+\" suffix. Keep the two reading from worklistCounts() as designed.",
+   "reproPlan": "code-argument-only; arithmetic on the take vs count queries.",
+   "gateOrTest": "Unit test with 21 fixtures in one queue asserting rail total equals rendered rows plus a disclosed remainder.",
+   "taxonomyRows": [
+    "6a-off-by-one",
+    "6j-scale-2000"
+   ]
+  },
+  {
+   "title": "Support page's 'Did not go through' tile counts test-mode rows and is silently windowed to the last 100 contributions, contradicting the page's own no-test-rows rule",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/support/page.tsx:59",
+    "src/app/(main)/admin/support/page.tsx:76",
+    "src/app/(main)/admin/support/page.tsx:107"
+   ],
+   "expected": "\"Test payments are shown, clearly marked, never summed into the real total\" (page copy and spec 9.7) \u2014 headline tiles included; and a funnel that claims completion across everyone who opened a payment.",
+   "actual": "`rows` is `findMany({ take: 100 })` with no livemode filter; `notPaid = rows.filter(r => r.status !== \"paid\")` feeds the first StatStrip's \"Did not go through\" tile, so every local-dev test order (status \"created\") inflates a headline number the page promises excludes tests. The funnel below (completion, \"Opened a payment\", \"Typical gift\", byMethod) does filter livemode but is computed over the same 100-row window, so once contributions exceed 100 these read as all-time facts while actually describing the most recent 100.",
+   "evidence": "support/page.tsx:59-73 (take:100, no livemode in where), :76-77 (`notPaid` unfiltered), :107-112 (tile renders notPaid.length), :85-93 (funnel over `rows.filter(r => r.livemode)`), against the page's own paragraph at :151-156.",
+   "fixDirection": "Compute the tile and funnel from aggregate queries with `livemode: true` (loadSupport in admin-analytics.ts:278-318 already has the correct shapes to reuse) and keep the 100-row window only for the ledger listing, labelled \"most recent\".",
+   "reproPlan": "Read-only: seed nothing; if any livemode:false row exists in the last 100, the tile disagrees with the count of non-paid live rows.",
+   "gateOrTest": "Unit test on the tile's query shape requiring livemode.",
+   "taxonomyRows": [
+    "6a-boolean-condition-missing",
+    "6j-windowed-aggregates",
+    "6h-money"
+   ]
+  },
+  {
+   "title": "Admin nav still describes Analytics as 'Not built yet.' although the nine-view analytics room shipped",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/components/admin/admin-nav.ts:122",
+    "src/app/(main)/admin/page.tsx:136"
+   ],
+   "expected": "The Overview's mobile section list (which renders each section's blurb) describes Analytics truthfully.",
+   "actual": "ADMIN_NAV's Analytics entry carries `blurb: \"Not built yet.\"` \u2014 stale from the spec's stub phase (9.9). The Overview's \"Everything else\" list on mobile (admin/page.tsx:136-156 renders `s.blurb`) tells the owner on his phone that the 859-line analytics room does not exist, inviting him never to tap it.",
+   "evidence": "admin-nav.ts:118-123: `{ href: \"/admin/analytics\", label: \"Analytics\", icon: ChartLine, blurb: \"Not built yet.\" }` while src/app/(main)/admin/analytics/page.tsx is a full nine-view page.",
+   "fixDirection": "Replace the blurb with a real one, e.g. \"Who is here, what gets read, and how each generation is doing.\"",
+   "reproPlan": "Read-only: view /admin at 390px width; the Analytics card shows the stale blurb.",
+   "gateOrTest": "None needed beyond the change; screenshot pass covers it.",
+   "taxonomyRows": [
+    "6a-stale-copy"
+   ]
+  },
+  {
+   "title": "The bird-override field accepts any string and saves it silently: a misspelled slug 'succeeds' while changing nothing, with no feedback",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/people/actions.ts:103",
+    "src/components/common/bird-avatar-v2.tsx:1745"
+   ],
+   "expected": "The one consumer of this field (resolveBirdOverride) only understands exact species slugs, so the editor either validates against the slug list or tells the admin the value did nothing.",
+   "actual": "adminUpdatePerson stores `edit.birdOverride.trim()` verbatim; resolveBirdOverride returns undefined for any unknown slug (`SLUG_TO_SPECIES_INDEX[birdOverride]` miss) and falls back to the deterministic bird. So \"Indian Roller\", \"indian_roller\" or a typo saves with a green \"Saved\" toast and visibly does nothing \u2014 the exact hand-fix scenario (a stale override hiding an Indian Roller, cited in the code's own comment) recurs as a silent no-op. Also a reserved-species slug (RESERVED_SPECIES_OWNERS) saves and is silently ignored for non-owners.",
+   "evidence": "people/actions.ts:103-115: `const bird = edit.birdOverride.trim(); ... birdOverride: bird || null` with no validation; bird-avatar-v2.tsx:1741-1751: unknown slug or disallowed reservation -> `return undefined` (deterministic fallback), no error surfaced anywhere.",
+   "fixDirection": "Validate in adminUpdatePerson against the exported slug set (or expose SLUG_TO_SPECIES_INDEX keys from a client-safe module) and return \"That isn't a bird slug this app knows\" on a miss; better, replace the free-text input with a datalist/select of the 50 slugs.",
+   "reproPlan": "Read-only equivalent: trace any User row whose birdOverride is not in the slug list \u2014 its avatar renders the hash bird.",
+   "gateOrTest": "Unit test: adminUpdatePerson rejects an unknown slug.",
+   "taxonomyRows": [
+    "6h-invalid-input",
+    "6a-optional-chaining-hiding-failure"
+   ]
+  },
+  {
+   "title": "Catch-ups page tells the admin that opening a stuck Catch-up 'is usually enough to nudge it along', but the advance is membership-scoped \u2014 for a group the admin is not in, it does nothing",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/app/(main)/admin/catchups/page.tsx:158",
+    "src/lib/catchups.ts:954",
+    "src/app/(main)/catchups/page.tsx:63"
+   ],
+   "expected": "The remedy the panel prescribes for a stuck Round actually unsticks it.",
+   "actual": "advanceDueCatchups(userId) scopes to `{ group: { members: { some: { userId } } } }` (catchups.ts:954), and both the layout tick and /catchups pass the viewer's id. A Round is stuck precisely because nobody in ITS group has loaded a page; if the admin is not a member of that group \u2014 the common case for someone overseeing all of them \u2014 following the page's advice (\"Opening the Catch-up yourself is usually enough to nudge it along\", catchups/page.tsx:158-162) advances nothing and the Round stays flagged. The unscoped advance exists only at /api/catchups/tick behind CRON_SECRET, which per the ops notes the owner has not configured yet.",
+   "evidence": "admin/catchups/page.tsx:160-161 copy; catchups.ts:950-964 scope; (main)/catchups/page.tsx:63 `await advanceDueCatchups(userId)`.",
+   "fixDirection": "Give the admin a real lever: on this page (admin-gated already), call `advanceDueCatchups()` with no userId on load, or add a \"Nudge it\" button per stuck row that runs the unscoped advance for that edition. At minimum correct the copy.",
+   "reproPlan": "code-argument-only (advancing a real Round is a member-visible state change).",
+   "gateOrTest": "Unit test that the admin catchups page (or its action) advances an overdue edition in a group the caller is not a member of.",
+   "taxonomyRows": [
+    "6i-jobs-no-cron",
+    "6a-stale-copy"
+   ]
+  },
+  {
+   "title": "People 'Show more' silently ends when the cursor row was deleted: the rest of the list becomes unreachable until reload",
+   "severity": "Low",
+   "status": "confirmed-in-code",
+   "files": [
+    "src/lib/admin-people-query.ts:65",
+    "src/components/admin/people/people-list.tsx:104"
+   ],
+   "expected": "Pagination survives a row deletion mid-scroll (the taxonomy's \"cursor at deleted row\" case), since this very surface is where admins delete users.",
+   "actual": "loadPeoplePage paginates with `cursor: { id: cursor }, skip: 1`; Prisma's documented behavior when the cursor row no longer exists is to return no results. If the last row of the loaded page is deleted (by this admin in another tab, or another admin) before \"Show more\" is clicked, the action returns `{ rows: [], nextCursor: null }`, the button disappears, and everyone after that point is silently unreachable until a full reload \u2014 no error, no retry.",
+   "evidence": "admin-people-query.ts:60-66: `...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})`; people-list.tsx:104-117: showMore sets `setCursor(result.nextCursor)` (null) and renders nothing when rows are empty-appended.",
+   "fixDirection": "Switch to a value cursor instead of a row cursor: the sort is (createdAt desc, id desc), so pass the last row's createdAt+id and use a WHERE tuple comparison (`OR [createdAt lt X, {createdAt: X, id: {lt}}]`) which needs no existing row \u2014 the loadPosts keyset pattern this file cites. Alternatively detect the empty-with-cursor case and retry from the previous surviving row.",
+   "reproPlan": "code-argument-only (deleting a user on production to prove pagination is not acceptable).",
+   "gateOrTest": "Unit test: page 1 of fixtures, delete the boundary row, assert page 2 still returns the remainder.",
+   "taxonomyRows": [
+    "6h-pagination-cursor-deleted-row",
+    "6a-missing-null-handling"
+   ]
+  }
+ ],
+ "verifiedClean": [
+  "6c server-action authz: every admin mutation re-checks role server-side, not just the layout \u2014 verified individually across people/actions.ts (loadMorePeople, adminUpdatePerson, adminUpdatePlaces, adminSetPhotoTrusted, adminSetRole, adminMergeUsers), admin-actions.ts (all eight), mail/actions.ts (retryMail, dismissMail), feed/collection moderation actions (adminRemovePost/Comment/Photo, approvePhoto, declinePhoto), messages actions used by admin (markThreadSeenByAdmin, setThreadStatus). CLEAN",
+  "6e block/unblock: credentialVersion bumped on BOTH block and unblock (admin-actions.ts:29); blocked users refused at login (auth.ts:155) and their live JWTs invalidated on next session read (auth.ts:277). CLEAN",
+  "6e role freshness: session.user.role is re-read from the DB row on every session read (auth.ts:245-284), so adminSetRole demote/promote takes effect on the target's next request with no stale-JWT admin window. CLEAN",
+  "Demo closure: /admin is in proxy.ts DEMO_CLOSED_PATHS (prefix-matched), demo session pins role to member (auth.ts:363), Prisma allowlist default-denies writes \u2014 the three layers the spec requires. CLEAN",
+  "Analytics division-by-zero / empty-cohort: every ratio is guarded (responsePerPost, answersPerPrompt, completion, participation, deliveryRate, retention rate, notif rate); GroupTable maxAvg floor 0.0001, groups always non-empty by construction; correlate() returns null for flat columns and n<3; CohortMatrix filters joined>0; Sparkline guards flat span and <2 points; BarList guards empty and max>=1; formatValue handles 0. CLEAN",
+  "Deleted-user re-joins: audit page resolves actor/target ids with a fallback ('someone') rather than joining unguarded; mail rows fall back to the raw address when userId is SetNull; support ledger renders 'Account since deleted'; worklist reports guard reportedUser/post with ?? 'somebody'; loadFaces/loadReading use inner joins that simply drop missing users. CLEAN",
+  "6f mail budget: no bulk-mail loop exists anywhere in admin; retryMail re-queues a single row into the drain (8 per pass inside after(), budget- and reserve-checked per send, conditional claim makes concurrent drains safe); dismissMail requires status failed before deleting. CLEAN",
+  "R2 cleanup on merge/delete: adminMergeUsers deletes the stranded source avatar only after commit and only when the target does not display it; delImage/delImageByKey never throw (best-effort by design) so R2 outages cannot fail a completed delete; keyForUrl refuses foreign roots and traversal. CLEAN (apart from the serial-loop ceiling and collect-race findings)",
+  "6d pgbouncer: no SET, advisory locks or LISTEN/NOTIFY anywhere in the admin path; all $transactions are batch (array) form, none held across network calls (merge's delImage runs after commit); email-queue claim is a conditional updateMany, not a lock. CLEAN",
+  "People pagination shape: keyset (createdAt desc, id desc) with page-scoped mail lookup; filters revalidated server-side per page via one shared where-builder; escapeLike applied to admin search input in both people and content queries. CLEAN (apart from the deleted-cursor edge)",
+  "Caching: analytics page is force-dynamic; no 'use cache'/unstable_cache anywhere in admin; AdminCountsSync is a client-side module store (per browser, cannot leak across users); revalidatePath('/admin','layout') on every mutation covers the rail counts. CLEAN",
+  "MetricSnapshot trends: single bounded query (~27 metrics x 90 days), day column is @db.Date so the ISO slice is stable. CLEAN",
+  "Catch-ups stuck detection: openNextRoundIfDue refuses to open a new Round until the previous one published (catchups.ts:913), so an overdue edition is always the latest and the admin page's editions[0] filter cannot miss one; worklist stuckCatchups uses the same overdueEditionWhere as the page. CLEAN",
+  "Admin layout guard: requireAdminPage in layout.tsx covers all eleven routes including audit and analytics; loading.tsx present on every route using the shared warm skeleton. CLEAN"
+ ],
+ "coverageNotes": "Read whole: docs/spec/admin.md; all 11 admin route files plus every loading.tsx; people/actions.ts and mail/actions.ts; src/lib/admin.ts, admin-people.ts, admin-people-query.ts, admin-content.ts, admin-content-query.ts, admin-note.ts, admin-worklist.ts, admin-worklist-query.ts, admin-threads-server.ts, admin-analytics.ts (all 1150 lines); all of src/components/admin/** (person-detail 823, people-list, content-list, report-list, thread-list, thread-view, mail-rows, confirm-dialog, moderation-dialog, admin-chrome, admin-chip, admin-counts, admin-nav, admin-person-row, admin-skeleton, analytics/{stat,compare,cohort,heatmap,presence,tabs}); and the support libraries the territory's write paths run through: profile/admin-actions.ts, account-purge.ts, retention.ts + sweep route, audit.ts, email-queue.ts (612 lines), storage.ts, last-seen.ts, auth.ts (session/role freshness \u2014 needed to settle the demote-stale-JWT question), the moderation actions in feed/actions.ts and collection/actions.ts that content-list invokes, catchups.ts advance/openNextRound (to settle the stuck-round claims), and targeted schema reads (User, UserPlace, Visit, all @@unique and onDelete lines). Verified Prisma cursor-on-missing-row and AT TIME ZONE semantics from documented behavior rather than live runs (read-only mandate). Consciously skipped: deep reads of IdentityRow/BirdAvatar internals beyond the override-resolution path, Conversation/MessageComposer (member-messages territory), the sidebar swap rendering, snapshot.mjs internals, and Razorpay webhook code (other investigators' territories). Deliberately NOT reported: the content list's '/feed#id' see-it-on-the-site links landing nowhere for older posts \u2014 already written up as finding feed-2 in src/app/lab/everything/_findings.ts; the bugs.md open items per the brief; the mid-edit TS error in catchups/round/[editionId]. Live confirmation was not attempted for anything involving writes; reproPlans mark those code-argument-only. The person-detail 'run' stuck-busy cluster, the two IST findings, the self-block lockout and the worklist updatedAt corruption are the four I would fix first."
+}
