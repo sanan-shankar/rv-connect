@@ -21,6 +21,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Megaphone } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { FadeRise } from "@/components/common/motion";
@@ -123,32 +124,40 @@ function KeeperAnsweringActions({
 
   async function handleNudge() {
     setBusy(true);
-    const result = await nudgeGroup(editionId);
-    setBusy(false);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => nudgeGroup(editionId));
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Nudged everyone who has not answered.");
+      onChanged();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // both buttons here disabled for the rest of the session (audit B-042).
+      setBusy(false);
     }
-    toast.success("Nudged everyone who has not answered.");
-    onChanged();
   }
 
   async function handleClose() {
     setBusy(true);
-    const result = await closeAndPrepare(editionId);
-    setBusy(false);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => closeAndPrepare(editionId));
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      // The too-few-answers rule (spec 2.6) can extend the window instead of
+      // closing it. Say which one happened rather than a blanket success.
+      toast.success(
+        "extended" in result && result.extended && "message" in result && result.message
+          ? String(result.message)
+          : "Closing the round. Answers are sealed until it publishes."
+      );
+      onChanged();
+    } finally {
+      setBusy(false);
     }
-    // The too-few-answers rule (spec 2.6) can extend the window instead of
-    // closing it. Say which one happened rather than a blanket success.
-    toast.success(
-      "extended" in result && result.extended && "message" in result && result.message
-        ? String(result.message)
-        : "Closing the round. Answers are sealed until it publishes."
-    );
-    onChanged();
   }
 
   return (

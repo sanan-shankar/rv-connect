@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { PauseCircle, PlayCircle, Settings2, XOctagon } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { motion } from "motion/react";
 import {
   Dialog,
@@ -50,7 +51,7 @@ export function KeeperSettingsDialog({
   async function handleCadence(value: Cadence) {
     if (value === localCadence) return;
     setLocalCadence(value);
-    const result = await updateCatchupCadence(catchupId, value);
+    const result = await callAction(() => updateCatchupCadence(catchupId, value));
     if (result && "error" in result) {
       toast.error(result.error);
       setLocalCadence(cadence);
@@ -62,30 +63,39 @@ export function KeeperSettingsDialog({
 
   async function handlePauseResume() {
     setBusy(true);
-    const result =
-      catchupStatus === "paused" ? await resumeCatchup(catchupId) : await pauseCatchup(catchupId);
-    setBusy(false);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() =>
+        catchupStatus === "paused" ? resumeCatchup(catchupId) : pauseCatchup(catchupId)
+      );
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(catchupStatus === "paused" ? "Catch-up resumed." : "Catch-up paused.");
+      onChanged();
+      setOpen(false);
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this button disabled for the rest of the session (audit B-042).
+      setBusy(false);
     }
-    toast.success(catchupStatus === "paused" ? "Catch-up resumed." : "Catch-up paused.");
-    onChanged();
-    setOpen(false);
   }
 
   async function handleEnd() {
     if (!confirm("End this Catch-up? Past Rounds stay readable, but no new one will open.")) return;
     setBusy(true);
-    const result = await endCatchup(catchupId);
-    setBusy(false);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => endCatchup(catchupId));
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Catch-up ended.");
+      onChanged();
+      setOpen(false);
+    } finally {
+      setBusy(false);
     }
-    toast.success("Catch-up ended.");
-    onChanged();
-    setOpen(false);
   }
 
   return (

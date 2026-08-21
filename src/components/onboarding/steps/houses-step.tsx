@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { HouseChainEditor } from "@/components/profile/house-chain-editor";
 import type { HouseYearEntry } from "@/lib/houses";
@@ -53,9 +54,17 @@ export function HousesStep({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { houses } = await getOnboardingHouses();
+      // callAction: a rejected fetch (deploy skew, dropped network) used to
+      // leave `loading` true forever, so this step stuck on its skeleton
+      // with no way out (audit B-042).
+      const result = await callAction(() => getOnboardingHouses());
       if (cancelled) return;
-      setEntries(parseHouseYearEntries(houses ? JSON.stringify(houses) : null));
+      if ("error" in result) {
+        toast.error(result.error);
+        setLoading(false);
+        return;
+      }
+      setEntries(parseHouseYearEntries(result.houses ? JSON.stringify(result.houses) : null));
       setLoading(false);
     })();
     return () => {
@@ -69,14 +78,21 @@ export function HousesStep({
       return;
     }
     setSaving(true);
-    const result = await saveOnboardingHouses([...entries].sort((a, b) => a.year - b.year));
-    setSaving(false);
-    if ("error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() =>
+        saveOnboardingHouses([...entries].sort((a, b) => a.year - b.year))
+      );
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Saved your houses");
+      onNext();
+    } finally {
+      // finally, not a trailing statement: a rejected save used to leave
+      // "Save & continue" disabled for the rest of onboarding (audit B-042).
+      setSaving(false);
     }
-    toast.success("Saved your houses");
-    onNext();
   }
 
   return (

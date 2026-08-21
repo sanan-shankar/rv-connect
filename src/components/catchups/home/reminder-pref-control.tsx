@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Bell } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { EASE_SEGMENT_GLIDE, FadeRise, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
 import { InfoTooltip } from "@/components/common/info-tooltip";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,7 @@ export function ReminderPrefControl({
     if (value === mode) return;
     const previous = mode;
     setMode(value);
-    const result = await setReminderPref(catchupId, value);
+    const result = await callAction(() => setReminderPref(catchupId, value));
     if (result && "error" in result) {
       toast.error(result.error);
       setMode(previous);

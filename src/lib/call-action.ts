@@ -24,7 +24,25 @@ export const ACTION_FAILED = "That did not go through. Check your connection and
 
 export type ActionFailure = { error: string };
 
-export async function callAction<T>(run: () => Promise<T>): Promise<T | ActionFailure> {
+/**
+ * The failure branch, shaped like one of the action's own branches.
+ *
+ * TypeScript builds an action's return type by unioning its `return` statements
+ * and giving every branch the OTHER branches' keys as `?: undefined` -- which
+ * is what lets a call site write `if (result.error)` and then reach
+ * `result.comment` on the far side. A bare `{ error: string }` added to that
+ * union breaks the trick: it has no `comment` key at all, and `if
+ * (result.error)` cannot narrow it away either, because `string` includes "".
+ * So the failure branch is given the same treatment, and every existing call
+ * site keeps compiling and narrowing exactly as it did.
+ */
+type ActionFailureLike<T> = ActionFailure & {
+  [K in Exclude<keyof T, "error">]?: undefined;
+};
+
+export async function callAction<T>(
+  run: () => Promise<T>
+): Promise<T | ActionFailureLike<T>> {
   try {
     return await run();
   } catch (err) {
@@ -32,6 +50,10 @@ export async function callAction<T>(run: () => Promise<T>): Promise<T | ActionFa
     // signal and the console is where a developer will look for it. The member
     // gets a sentence they can act on instead of a stack trace.
     console.error("[action] call failed", err);
-    return { error: ACTION_FAILED };
+    // The cast is the price of the mapped type above: at runtime this object
+    // IS the failure branch (every sibling key is genuinely absent, which is
+    // what `?: undefined` means), but TypeScript cannot see that a literal
+    // satisfies a mapped type over an unresolved generic.
+    return { error: ACTION_FAILED } as ActionFailureLike<T>;
   }
 }

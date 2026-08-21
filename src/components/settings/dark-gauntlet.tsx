@@ -29,6 +29,7 @@ import { SPRINGS } from "@/components/common/motion";
 import { setThemePreference } from "@/components/settings/theme-actions";
 import { Nightfall } from "./nightfall";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 
 /* One relieved line per escape hatch, cycled by step so repeat visitors
    read something new. The first is the owner's own line. */
@@ -98,7 +99,10 @@ export function DarkGauntlet({ word }: { word: string }) {
   }
 
   async function keepDark() {
-    const result = await setThemePreference("dark");
+    // callAction: a rejected save must not strand the ceremony here with an
+    // unhandled rejection and no way onward -- the preference not persisting
+    // is a minor annoyance, but the toast plus moving on is honest about it.
+    const result = await callAction(() => setThemePreference("dark"));
     if (result?.error) toast.error(result.error);
     router.push("/feed");
   }

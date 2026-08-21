@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { EMAIL_UNVERIFIED } from "@/lib/email-gate-message";
 import { MEMBER_UNVERIFIED } from "@/lib/member-gate-message";
+import { callAction } from "@/lib/call-action";
 import { MemberVerifyDialog } from "./member-verify-dialog";
 import { resendVerification } from "./email-actions";
 import { sendTimeLabel } from "./verify-email-banner";
@@ -94,25 +95,32 @@ export function VerifyEmailDialog({
     if (busy) return;
     setBusy(true);
     setFlash("");
-    const result = await resendVerification();
-    setBusy(false);
-
-    if (!result.ok) {
-      setFlash(result.error ?? "That did not work. Try again in a minute.");
-      return;
+    try {
+      // callAction: a rejected resend used to leave `busy` stuck true
+      // forever, so the button sat on "Sending..." for the rest of the
+      // session (audit B-042). Same "ok" in result check as the banner's
+      // twin of this handler, to tell a genuine { ok: false } apart from
+      // callAction's own ActionFailure.
+      const result = await callAction(() => resendVerification());
+      if (!("ok" in result) || !result.ok) {
+        setFlash(result.error ?? "That did not work. Try again in a minute.");
+        return;
+      }
+      // Three states, three sentences, because each is a lie if used for the
+      // others: "sent" means the provider accepted it, "imminent" means it is in
+      // flight, and only "queued" - the budget genuinely spent - may mention the
+      // limit, with the refill time named rather than "up to a day".
+      setFlash(
+        result.state === "sent"
+          ? `Sent to ${result.sentTo}. Check your spam folder if it does not arrive.`
+          : result.state === "queued" && result.sendingAt
+            ? `We have hit today's email limit. Your link goes out ${sendTimeLabel(result.sendingAt)}.`
+            : "Your link is on its way. Give it a minute, then check spam.",
+      );
+      router.refresh();
+    } finally {
+      setBusy(false);
     }
-    // Three states, three sentences, because each is a lie if used for the
-    // others: "sent" means the provider accepted it, "imminent" means it is in
-    // flight, and only "queued" - the budget genuinely spent - may mention the
-    // limit, with the refill time named rather than "up to a day".
-    setFlash(
-      result.state === "sent"
-        ? `Sent to ${result.sentTo}. Check your spam folder if it does not arrive.`
-        : result.state === "queued" && result.sendingAt
-          ? `We have hit today's email limit. Your link goes out ${sendTimeLabel(result.sendingAt)}.`
-          : "Your link is on its way. Give it a minute, then check spam.",
-    );
-    router.refresh();
   }
 
   return (

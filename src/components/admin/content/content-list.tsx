@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ExternalLink, EyeOff, MoreHorizontal, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,14 +103,19 @@ export function ContentList({
     done: string
   ) {
     setBusy(id);
-    const result = await fn();
-    setBusy(null);
-    if (result && "error" in result && result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(fn);
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(done);
+      router.refresh();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this row's controls disabled for the rest of the session (audit B-042).
+      setBusy(null);
     }
-    toast.success(done);
-    router.refresh();
   }
 
   async function removeItem(item: ContentItem, note: string) {

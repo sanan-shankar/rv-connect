@@ -11,6 +11,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 
 /**
  * Shared admin removal dialog for posts, letters, comments, and Collection
@@ -37,15 +38,22 @@ export function ModerationDialog({
 
   async function handleConfirm() {
     setSubmitting(true);
-    const result = await onConfirm(note.trim());
-    setSubmitting(false);
-    if (result && "error" in result && result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      // callAction: audit M65 -- several of the actions passed in here as
+      // `onConfirm` REJECT rather than returning { error }, which used to
+      // throw straight out of this handler and leave the dialog stuck on
+      // "Removing..." forever (audit B-042).
+      const result = await callAction(() => onConfirm(note.trim()));
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`Removed that ${itemLabel}.`);
+      setNote("");
+      onClose();
+    } finally {
+      setSubmitting(false);
     }
-    toast.success(`Removed that ${itemLabel}.`);
-    setNote("");
-    onClose();
   }
 
   function handleClose() {

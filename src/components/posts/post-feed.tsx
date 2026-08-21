@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
+import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 
 type SortBy = "recent" | "liked" | "commented";
 type TimeFilter = "all" | "today" | "week" | "month" | "year";
@@ -113,10 +115,19 @@ export function PostFeed({
   // First page whenever filters, group, or an external reload trigger change.
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Re-arms the skeleton whenever the filters, group or reload trigger change, so a filter change never leaves the old posts on screen.
+    // Re-arms the skeleton whenever the filters, group or reload trigger change, so a filter change never leaves the old posts on screen.
     setLoading(true);
-    fetchPosts(null).then((data) => {
+    (async () => {
+      // callAction, not a bare .then: a rejected fetch (deploy skew, dropped
+      // network, expired session) used to leave `loading` true forever and
+      // the feed stuck on skeletons with no way out (audit B-042).
+      const data = await callAction(() => fetchPosts(null));
       if (cancelled) return;
+      if ("error" in data) {
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
       setPosts(data.posts);
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
@@ -128,14 +139,16 @@ export function PostFeed({
        * nothing on screen is waiting for this to come back. Only the
        * unfiltered recent feed may stamp -- a search or a "this month" filter
        * shows a slice, and letting a slice advance the marker would silently
-       * bury everything the member had not actually been shown. */
+       * bury everything the member had not actually been shown. Routed
+       * through callAction too, purely so a rejection lands in the console
+       * instead of surfacing as an unhandled promise rejection. */
       if (data.posts.length > 0 && sortBy === "recent" && !search && timeFilter === "all") {
         const newest = Math.max(
           ...data.posts.map((p) => new Date(p.createdAt).getTime())
         );
-        void markFeedSeen(new Date(newest).toISOString());
+        void callAction(() => markFeedSeen(new Date(newest).toISOString()));
       }
-    });
+    })();
     return () => {
       cancelled = true;
     };
@@ -151,11 +164,20 @@ export function PostFeed({
 
   async function handleLoadMore() {
     setLoadingMore(true);
-    const data = await fetchPosts(cursor);
-    setPosts((prev) => [...prev, ...data.posts]);
-    setCursor(data.nextCursor);
-    setHasMore(data.hasMore);
-    setLoadingMore(false);
+    try {
+      const data = await callAction(() => fetchPosts(cursor));
+      if ("error" in data) {
+        toast.error(data.error);
+        return;
+      }
+      setPosts((prev) => [...prev, ...data.posts]);
+      setCursor(data.nextCursor);
+      setHasMore(data.hasMore);
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // "Load more" disabled for the rest of the session (audit B-042).
+      setLoadingMore(false);
+    }
   }
 
   const [animateRef] = useAutoAnimate();

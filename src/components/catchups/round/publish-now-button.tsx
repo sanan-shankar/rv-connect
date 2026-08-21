@@ -9,6 +9,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { publishNow } from "@/app/(main)/catchups/actions";
 
@@ -17,9 +18,14 @@ export function PublishNowButton({ editionId }: { editionId: string }) {
 
   async function handleClick() {
     setBusy(true);
-    const result = await publishNow(editionId);
-    if (result && "error" in result) toast.error(result.error);
-    setBusy(false);
+    try {
+      const result = await callAction(() => publishNow(editionId));
+      if (result && "error" in result) toast.error(result.error);
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this button disabled for the rest of the session (audit B-042).
+      setBusy(false);
+    }
   }
 
   return (

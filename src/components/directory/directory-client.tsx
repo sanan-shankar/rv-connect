@@ -22,6 +22,8 @@ import {
   HOUSE_OPTIONS,
   TYPE_OPTIONS,
 } from "@/lib/directory-facets";
+import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { ProfileCard } from "./profile-card";
 import { AlumniMap, type CityPin, type PinPerson } from "./alumni-map";
 import { loadDirectoryPage } from "@/app/(main)/directory/actions";
@@ -124,7 +126,7 @@ export function DirectoryClient({
   const [gridRef] = useAutoAnimate();
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Resyncs the list from freshly server-rendered props when the query changes. The server is the source of truth here; this mirrors it into the local paging state.
+    // Resyncs the list from freshly server-rendered props when the query changes. The server is the source of truth here; this mirrors it into the local paging state.
     setResults(users);
     setCursor(nextCursor);
     setBrowseView(hasFilter ? "people" : "map");
@@ -133,26 +135,38 @@ export function DirectoryClient({
   async function handleLoadMore() {
     if (!cursor) return;
     setLoadingMore(true);
-    const data = await loadDirectoryPage({
-      filters: {
-        q: initialFilters.q || undefined,
-        year: initialFilters.year || undefined,
-        city: initialFilters.city || undefined,
-        profession: initialFilters.profession || undefined,
-        house: initialFilters.house || undefined,
-        type: initialFilters.type || undefined,
-        sort: initialFilters.sort || undefined,
-        yearFrom: initialFilters.yearFrom || undefined,
-        yearTo: initialFilters.yearTo || undefined,
-      },
-      cursor,
-    });
-    setResults((prev) => {
-      const seen = new Set(prev.map((u) => u.id));
-      return [...prev, ...data.users.filter((u) => !seen.has(u.id))];
-    });
-    setCursor(data.nextCursor);
-    setLoadingMore(false);
+    try {
+      // callAction: a rejected page (deploy skew, dropped network, expired
+      // session) used to leave "Load more" disabled for the rest of the
+      // session, since the setLoadingMore(false) below never ran (audit B-042).
+      const data = await callAction(() =>
+        loadDirectoryPage({
+          filters: {
+            q: initialFilters.q || undefined,
+            year: initialFilters.year || undefined,
+            city: initialFilters.city || undefined,
+            profession: initialFilters.profession || undefined,
+            house: initialFilters.house || undefined,
+            type: initialFilters.type || undefined,
+            sort: initialFilters.sort || undefined,
+            yearFrom: initialFilters.yearFrom || undefined,
+            yearTo: initialFilters.yearTo || undefined,
+          },
+          cursor,
+        })
+      );
+      if ("error" in data) {
+        toast.error(data.error);
+        return;
+      }
+      setResults((prev) => {
+        const seen = new Set(prev.map((u) => u.id));
+        return [...prev, ...data.users.filter((u) => !seen.has(u.id))];
+      });
+      setCursor(data.nextCursor);
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   const updateFilters = useCallback(

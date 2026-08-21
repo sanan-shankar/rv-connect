@@ -4,6 +4,7 @@ import { useState } from "react";
 import { shrinkForUpload } from "@/lib/image-downscale";
 import { ArrowLeft, ArrowRight, ImagePlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { speciesNameFor, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
@@ -45,28 +46,32 @@ export function PhotoStep({
       return;
     }
     setBusy(true);
-    // Shrunk in the BROWSER before it goes anywhere. A normal phone photo is
-    // 5 to 12MB, and Vercel rejects a request body over about 4.5MB at the
-    // platform, before this Server Action runs -- so the very first thing a
-    // new member does used to fail with a stuck spinner and no message
-    // (bug audit B-030). The profile page's avatar path already cropped
-    // client-side; this one had nothing.
-    const ready = await shrinkForUpload([file]);
-    if (!ready.ok) {
+    try {
+      // Shrunk in the BROWSER before it goes anywhere. A normal phone photo is
+      // 5 to 12MB, and Vercel rejects a request body over about 4.5MB at the
+      // platform, before this Server Action runs -- so the very first thing a
+      // new member does used to fail with a stuck spinner and no message
+      // (bug audit B-030). The profile page's avatar path already cropped
+      // client-side; this one had nothing.
+      const ready = await shrinkForUpload([file]);
+      if (!ready.ok) {
+        toast.error(ready.error);
+        return;
+      }
+      const fd = new FormData();
+      fd.set("file", ready.files[0]);
+      const result = await callAction(() => updateAvatar(fd));
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setPhotoUrl(result.photoUrl ?? null);
+      toast.success("Photo saved");
+    } finally {
+      // finally, not a trailing statement: a rejected upload used to leave
+      // this control stuck spinning for the rest of onboarding (audit B-042).
       setBusy(false);
-      toast.error(ready.error);
-      return;
     }
-    const fd = new FormData();
-    fd.set("file", ready.files[0]);
-    const result = await updateAvatar(fd);
-    setBusy(false);
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
-    setPhotoUrl(result.photoUrl ?? null);
-    toast.success("Photo saved");
   }
 
   return (

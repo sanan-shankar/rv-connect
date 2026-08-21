@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setThemePreference } from "@/components/settings/theme-actions";
+import { callAction } from "@/lib/call-action";
 
 export function LightsOn() {
   const router = useRouter();
@@ -16,7 +17,11 @@ export function LightsOn() {
 
   async function turnOff() {
     setTheme("light");
-    await setThemePreference("light");
+    // callAction, and the navigation runs regardless of the result: the
+    // theme already flipped client-side above, and a rejected persist here
+    // must not also break the "one press" promise by stranding the tap with
+    // an unhandled rejection (audit B-042).
+    await callAction(() => setThemePreference("light"));
     router.back();
   }
 

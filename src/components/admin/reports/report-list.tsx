@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EyeOff, Flag, Inbox, Trash2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/admin/admin-chip";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
@@ -54,14 +55,19 @@ export function ReportList({
     done: string
   ) {
     setBusy(id);
-    const result = await fn();
-    setBusy(null);
-    if (result && "error" in result && result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(fn);
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(done);
+      router.refresh();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this row's buttons disabled for the rest of the session (audit B-042).
+      setBusy(null);
     }
-    toast.success(done);
-    router.refresh();
   }
 
   return (

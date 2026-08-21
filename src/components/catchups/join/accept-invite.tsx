@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { joinCatchupByToken } from "@/app/(main)/catchups/actions";
 
@@ -19,20 +20,23 @@ export function AcceptInvite({ token, groupName }: { token: string; groupName: s
 
   async function accept() {
     setBusy(true);
-    const result = await joinCatchupByToken(token);
-    if ("error" in result && result.error) {
-      toast.error(result.error);
+    try {
+      const result = await callAction(() => joinCatchupByToken(token));
+      if ("error" in result && result.error) {
+        toast.error(result.error);
+        return;
+      }
+      if ("catchupId" in result && result.catchupId) {
+        toast.success(`You're in ${groupName}.`);
+        // replace, not push: the invite link has done its job, and leaving it in
+        // history means Back walks into a page that would just bounce forward.
+        router.replace(`/catchups/${result.catchupId}`);
+      }
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this button stuck on "Joining..." forever (audit B-042).
       setBusy(false);
-      return;
     }
-    if ("catchupId" in result && result.catchupId) {
-      toast.success(`You're in ${groupName}.`);
-      // replace, not push: the invite link has done its job, and leaving it in
-      // history means Back walks into a page that would just bounce forward.
-      router.replace(`/catchups/${result.catchupId}`);
-      return;
-    }
-    setBusy(false);
   }
 
   return (

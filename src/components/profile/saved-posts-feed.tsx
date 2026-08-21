@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { BookmarkSimple } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { PostCard, type PostData } from "@/components/posts/post-card";
 import { loadSavedPosts } from "@/app/(main)/feed/actions";
 import { parseJsonArray } from "@/lib/utils";
@@ -122,11 +123,20 @@ export function SavedPostsFeed() {
   // synchronously here only bought a cascading render.
   useEffect(() => {
     let cancelled = false;
-    loadSavedPosts().then((data) => {
+    (async () => {
+      // callAction: a rejected fetch (deploy skew, dropped network, expired
+      // session) used to leave `loading` true forever, so the tab stuck on
+      // its skeleton with no way out (audit B-042).
+      const data = await callAction(() => loadSavedPosts());
       if (cancelled) return;
+      if ("error" in data) {
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
       setPosts(data.posts as PostData[]);
       setLoading(false);
-    });
+    })();
     return () => {
       cancelled = true;
     };

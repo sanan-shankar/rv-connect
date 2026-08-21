@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -80,23 +81,30 @@ export function RegisterStep({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
-    const result = await saveOnboardingRegister({
-      admissionNumber:
-        !isTeacher && admissionNumber.trim() ? Number(admissionNumber) : undefined,
-      // Sent (possibly empty, meaning "clear it") only for teachers; alumni
-      // never see the field, so their saves leave the column untouched.
-      subjects: isTeacher ? subjects.join(", ") : undefined,
-      jobTitle: jobTitle.trim() || undefined,
-      workplace: workplace.trim() || undefined,
-      places,
-    });
-    setSaving(false);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() =>
+        saveOnboardingRegister({
+          admissionNumber:
+            !isTeacher && admissionNumber.trim() ? Number(admissionNumber) : undefined,
+          // Sent (possibly empty, meaning "clear it") only for teachers; alumni
+          // never see the field, so their saves leave the column untouched.
+          subjects: isTeacher ? subjects.join(", ") : undefined,
+          jobTitle: jobTitle.trim() || undefined,
+          workplace: workplace.trim() || undefined,
+          places,
+        })
+      );
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Saved");
+      onNext();
+    } finally {
+      // finally, not a trailing statement: a rejected save used to leave
+      // the continue button disabled for the rest of onboarding (audit B-042).
+      setSaving(false);
     }
-    toast.success("Saved");
-    onNext();
   }
 
   return (

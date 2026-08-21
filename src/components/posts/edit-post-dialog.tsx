@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RichTextArea } from "@/components/common/rich-text-area";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { editPost } from "@/app/(main)/feed/actions";
 
 /* The QUICK edit: a short interaction for a published post or letter's text.
@@ -53,7 +54,7 @@ export function EditPostDialog({
     if (!content.trim()) return;
     setSubmitting(true);
     try {
-      const saveResult = await editPost(postId, buildFormData());
+      const saveResult = await callAction(() => editPost(postId, buildFormData()));
       if (saveResult.error) {
         toast.error(saveResult.error);
         return;

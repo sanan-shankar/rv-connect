@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { Chip, type ChipTone } from "@/components/admin/admin-chip";
 import { formatTimeAgo, metaLine } from "@/lib/utils";
@@ -70,14 +71,19 @@ export function MailRows({
 
   async function act(id: string, fn: (id: string) => Promise<{ error?: string }>, done: string) {
     setBusy(id);
-    const result = await fn(id);
-    setBusy(null);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => fn(id));
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(done);
+      router.refresh();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this row's buttons disabled for the rest of the session (audit B-042).
+      setBusy(null);
     }
-    toast.success(done);
-    router.refresh();
   }
 
   return (

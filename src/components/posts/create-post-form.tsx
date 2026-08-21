@@ -6,6 +6,7 @@ import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2, Check } from "
 import { motion, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
@@ -602,105 +603,109 @@ export function CreatePostForm({
     if (saveAsDraft) setSavingDraft(true);
     else setSubmitting(true);
 
-    const formData = new FormData();
-    formData.set("content", content);
-    formData.set("kind", kind);
-    if (isLetter && title.trim()) formData.set("title", title.trim());
-    if (groupId) formData.set("groupId", groupId);
-    // Set unconditionally when resuming a draft: an absent field cannot express
-    // "actually, Everyone", so a member who cleared the audience on a saved
-    // draft could never clear it (bug audit B-048). createPost still treats an
-    // empty value as no scope, so the fresh-post path is unchanged.
-    if (postId) formData.set("cityScope", audienceCity ?? "");
-    else if (audienceCity) formData.set("cityScope", audienceCity);
-    if (images.length > 0) formData.set("images", JSON.stringify(images));
-    if (!isLetter && pollOptions) {
-      const validOptions = pollOptions.filter((o) => o.trim());
-      if (validOptions.length >= 2) {
-        formData.set("pollOptions", JSON.stringify(validOptions));
-      }
-    }
-    // "Save as draft" only ever applies to a letter; the button itself is
-    // hidden outside letter mode, but this keeps the payload honest either way.
-    if (isLetter && saveAsDraft) formData.set("saveAsDraft", "true");
-    // Only sent when there is actually a photograph to contribute; the tick is
-    // hidden otherwise, and the server ignores it for a draft.
-    if (toCollection && images.length > 0) formData.set("toCollection", "true");
-
-    /* Resumed draft: the row already exists, so every save is an in-place
-       update, and publishing is update-then-flip. The editor never clears -
-       on publish the page navigates away, on save the writer keeps writing. */
-    if (postId) {
-      const editResult = await editPost(postId, formData);
-      if (editResult.error) {
-        // An unconfirmed address gets the dialog, which has the fix in it,
-        // rather than a toast that slides away mid-sentence.
-        if (!emailGate.handled(editResult.error)) toast.error(editResult.error);
-      } else if (saveAsDraft) {
-        toast.success("Draft saved");
-        onAutosaveState?.("saved");
-      } else {
-        const pub = await publishDraft(postId);
-        if ("error" in pub && pub.error) {
-          if (!emailGate.handled(pub.error)) toast.error(pub.error);
-        } else {
-          toast.success("Your letter is published");
-          onPosted?.();
+    // The whole body runs inside try/finally, and every action call goes
+    // through callAction: previously a REJECTING action (not just one that
+    // returned { error }) threw straight out of this function and left the
+    // Post/Publish/Save button disabled for the rest of the session, since
+    // neither flag reset below ever ran (audit B-042).
+    try {
+      const formData = new FormData();
+      formData.set("content", content);
+      formData.set("kind", kind);
+      if (isLetter && title.trim()) formData.set("title", title.trim());
+      if (groupId) formData.set("groupId", groupId);
+      // Set unconditionally when resuming a draft: an absent field cannot express
+      // "actually, Everyone", so a member who cleared the audience on a saved
+      // draft could never clear it (bug audit B-048). createPost still treats an
+      // empty value as no scope, so the fresh-post path is unchanged.
+      if (postId) formData.set("cityScope", audienceCity ?? "");
+      else if (audienceCity) formData.set("cityScope", audienceCity);
+      if (images.length > 0) formData.set("images", JSON.stringify(images));
+      if (!isLetter && pollOptions) {
+        const validOptions = pollOptions.filter((o) => o.trim());
+        if (validOptions.length >= 2) {
+          formData.set("pollOptions", JSON.stringify(validOptions));
         }
       }
+      // "Save as draft" only ever applies to a letter; the button itself is
+      // hidden outside letter mode, but this keeps the payload honest either way.
+      if (isLetter && saveAsDraft) formData.set("saveAsDraft", "true");
+      // Only sent when there is actually a photograph to contribute; the tick is
+      // hidden otherwise, and the server ignores it for a draft.
+      if (toCollection && images.length > 0) formData.set("toCollection", "true");
+
+      /* Resumed draft: the row already exists, so every save is an in-place
+         update, and publishing is update-then-flip. The editor never clears -
+         on publish the page navigates away, on save the writer keeps writing. */
+      if (postId) {
+        const editResult = await callAction(() => editPost(postId, formData));
+        if (editResult.error) {
+          // An unconfirmed address gets the dialog, which has the fix in it,
+          // rather than a toast that slides away mid-sentence.
+          if (!emailGate.handled(editResult.error)) toast.error(editResult.error);
+        } else if (saveAsDraft) {
+          toast.success("Draft saved");
+          onAutosaveState?.("saved");
+        } else {
+          const pub = await callAction(() => publishDraft(postId));
+          if ("error" in pub && pub.error) {
+            if (!emailGate.handled(pub.error)) toast.error(pub.error);
+          } else {
+            toast.success("Your letter is published");
+            onPosted?.();
+          }
+        }
+        return;
+      }
+
+      const result = await callAction(() => createPost(formData));
+      if (result.error) {
+        if (!emailGate.handled(result.error)) toast.error(result.error);
+      } else if (saveAsDraft && onDraftSaved && result.postId) {
+        /* First save of a fresh letter on the immersive page: hand the new
+           draft's id to the page (it adopts the row and moves to the edit
+           route) and leave the editor exactly as the writer left it. The old
+           behaviour - wiping the screen to a toast - is the exact failure the
+           owner reported. */
+        toast.success("Draft saved");
+        onDraftSaved(result.postId);
+      } else {
+        // The editor is uncontrolled contentEditable, so clearing `content` alone
+        // does not clear what's on screen: clear the DOM explicitly too.
+        if (richRef.current) richRef.current.innerHTML = "";
+        setContent("");
+        setTitle("");
+        setKind(defaultLetter ? "letter" : "post");
+        setImages([]);
+        setPreviews([]);
+        setToCollection(false);
+        setPollOptions(null);
+        setMore(false);
+        setAudienceCity(null);
+        setSettled(false);
+        setExpanded(defaultLetter);
+        toast.success(
+          saveAsDraft
+            ? "Draft saved"
+            : isLetter
+              ? "Your letter is published"
+              : groupId
+                ? "Posted to the group"
+                : "Post shared!",
+          // Said once, here, rather than as a line of help under the tick: a
+          // contribution waits for a moderator, and someone who ticks the box and
+          // then cannot find their photograph in the Collection deserves to know
+          // why. The tick itself stays a tick.
+          toCollection && images.length > 0
+            ? { description: "The photo is with the Collection editors." }
+            : undefined
+        );
+        onPosted?.();
+      }
+    } finally {
       if (saveAsDraft) setSavingDraft(false);
       else setSubmitting(false);
-      return;
     }
-
-    const result = await createPost(formData);
-    if (result.error) {
-      if (!emailGate.handled(result.error)) toast.error(result.error);
-    } else if (saveAsDraft && onDraftSaved && result.postId) {
-      /* First save of a fresh letter on the immersive page: hand the new
-         draft's id to the page (it adopts the row and moves to the edit
-         route) and leave the editor exactly as the writer left it. The old
-         behaviour - wiping the screen to a toast - is the exact failure the
-         owner reported. */
-      toast.success("Draft saved");
-      onDraftSaved(result.postId);
-      setSavingDraft(false);
-      return;
-    } else {
-      // The editor is uncontrolled contentEditable, so clearing `content` alone
-      // does not clear what's on screen: clear the DOM explicitly too.
-      if (richRef.current) richRef.current.innerHTML = "";
-      setContent("");
-      setTitle("");
-      setKind(defaultLetter ? "letter" : "post");
-      setImages([]);
-      setPreviews([]);
-      setToCollection(false);
-      setPollOptions(null);
-      setMore(false);
-      setAudienceCity(null);
-      setSettled(false);
-      setExpanded(defaultLetter);
-      toast.success(
-        saveAsDraft
-          ? "Draft saved"
-          : isLetter
-            ? "Your letter is published"
-            : groupId
-              ? "Posted to the group"
-              : "Post shared!",
-        // Said once, here, rather than as a line of help under the tick: a
-        // contribution waits for a moderator, and someone who ticks the box and
-        // then cannot find their photograph in the Collection deserves to know
-        // why. The tick itself stays a tick.
-        toCollection && images.length > 0
-          ? { description: "The photo is with the Collection editors." }
-          : undefined
-      );
-      onPosted?.();
-    }
-    if (saveAsDraft) setSavingDraft(false);
-    else setSubmitting(false);
   }
 
   // The "+" menu only earns its place when it has something to offer: a poll

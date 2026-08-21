@@ -12,6 +12,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { LoveButton } from "@/components/common/love-button";
 import { toggleEntryLove } from "@/app/(main)/catchups/actions";
 
@@ -31,7 +32,7 @@ export function EntryLoveButton({
     const next = !liked;
     setLiked(next);
     setCount((c) => (next ? c + 1 : c - 1));
-    const result = await toggleEntryLove(entryId);
+    const result = await callAction(() => toggleEntryLove(entryId));
     if (result && "error" in result && result.error) {
       setLiked(!next);
       setCount((c) => (next ? c - 1 : c + 1));

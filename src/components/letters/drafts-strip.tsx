@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PenLine, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { deleteDraft } from "@/app/(main)/feed/actions";
 
@@ -58,7 +59,7 @@ export function DraftsStrip({ drafts }: { drafts: DraftSummary[] }) {
     const label = draft.title?.trim() || "this untitled letter";
     if (!confirm(`Delete the draft of ${label}? This cannot be undone.`)) return;
     setItems((prev) => prev.filter((d) => d.id !== draft.id));
-    const result = await deleteDraft(draft.id);
+    const result = await callAction(() => deleteDraft(draft.id));
     if (result.error) {
       // Put the row back exactly where it was; the server refused.
       setItems((prev) =>
