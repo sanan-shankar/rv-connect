@@ -84,6 +84,17 @@ function placeCoords(
   return cityCoords(place.city) ?? fallbackCoords.get(place.city) ?? null;
 }
 
+/**
+ * How many people of a pin travel to the browser with it.
+ *
+ * Twelve, because the drilldown sheet shows about that many before it needs
+ * scrolling, and because everything here is serialized into the RSC payload of
+ * every directory load AND every filter change -- so the number is a per-load
+ * cost paid by every member, not a per-tap one. Past it, the sheet hands over
+ * to /directory?city=..., which is paginated and searchable (bug audit B-092).
+ */
+const PIN_PEOPLE_CAP = 12;
+
 // Aggregate located alumni into counted, sorted city pins. A person with
 // several cities plots once per resolvable city (the owner explicitly wants
 // "let me appear in all of those locations"); a person plots in "unmapped"
@@ -92,9 +103,10 @@ function placeCoords(
 function buildPins(
   rows: PinRow[],
   fallbackCoords: Map<string, [number, number]>
-): { cityPins: CityPin[]; unmappedPeople: PinPerson[] } {
+): { cityPins: CityPin[]; unmappedPeople: PinPerson[]; unmappedCount: number } {
   const pinMap = new Map<string, CityPin>();
   const unmappedPeople: PinPerson[] = [];
+  let unmappedCount = 0;
   // One dev warn per distinct unresolvable string, not per member: the fix
   // is per-string (add data), so per-member repeats would only bury it.
   const warned = new Set<string>();
@@ -157,15 +169,26 @@ function buildPins(
       const existing = pinMap.get(key);
       if (existing) {
         existing.count += 1;
-        existing.people.push(person);
+        // The COUNT is every member; the LIST is the first handful. Everything
+        // in `people` is serialized into the RSC payload of every directory
+        // load and every filter change, and a member with three cities was
+        // serialized three times -- roughly 1-2MB per load at 2,000 members,
+        // for a list only ever read after a pin is tapped (bug audit B-092).
+        // Past the cap the drilldown sends people to /directory?city=..., which
+        // is the paginated, searchable surface that already exists and reads
+        // far better than a two-hundred-row sheet.
+        if (existing.people.length < PIN_PEOPLE_CAP) existing.people.push(person);
       } else {
         pinMap.set(key, { city, lng: coords[0], lat: coords[1], count: 1, people: [person] });
       }
     }
-    if (!placedSomewhere) unmappedPeople.push({ ...base, currentCity: null });
+    if (!placedSomewhere) {
+      unmappedCount += 1;
+      if (unmappedPeople.length < PIN_PEOPLE_CAP) unmappedPeople.push({ ...base, currentCity: null });
+    }
   }
   const cityPins = [...pinMap.values()].sort((a, b) => b.count - a.count);
-  return { cityPins, unmappedPeople };
+  return { cityPins, unmappedPeople, unmappedCount };
 }
 
 export default async function DirectoryPage({
@@ -345,7 +368,7 @@ export default async function DirectoryPage({
         users={users}
         resultCount={resultCount}
         cityPins={cityPins}
-        unmappedCount={namesLocked ? built.unmappedPeople.length : unmappedPeople.length}
+        unmappedCount={built.unmappedCount}
         unmappedPeople={unmappedPeople}
         batchYearCounts={batchYearCounts
           .filter((b): b is { batchYear: number; _count: { id: number } } => b.batchYear != null)
