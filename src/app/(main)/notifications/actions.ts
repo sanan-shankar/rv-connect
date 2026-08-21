@@ -50,8 +50,13 @@ export async function getNotifications(opts?: {
       select: { createdAt: true },
     });
     if (cutoff.length > 0) {
+      // `read: true` matters. Without it the cap deleted UNREAD rows too --
+      // including moderation notices and admin messages the member had never
+      // opened, which is the one class of notification that must survive
+      // being outranked by a hundred likes (bug audit, Low 85). Unread rows
+      // are still bounded: the nightly sweep clears them by age.
       await prisma.notification.deleteMany({
-        where: { userId, createdAt: { lt: cutoff[0].createdAt } },
+        where: { userId, createdAt: { lt: cutoff[0].createdAt }, read: true },
       });
     }
   }

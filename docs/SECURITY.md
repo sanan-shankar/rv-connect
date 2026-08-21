@@ -85,7 +85,12 @@ gate or a written public-by-design reason.
 | Notifications | 1 year |
 | Login + audit logs | 1 year |
 | Sent-email log | 180 days |
+| Presence + search telemetry (`Visit`, `SearchLog`) | 180 days |
 | Deleted accounts | purged 60 days after the request |
+
+*Presence added 2026-08-21 (bug audit B-093): both tables were created after the sweep was written
+and neither had any expiry at all. 180 days is double the deepest lookback any analytics view uses
+(90 days), so nothing the owner can currently see gets shorter.*
 
 **Accountability** — `AuditLog` (no foreign keys ON PURPOSE: rows outlive the accounts they name)
 via `writeAudit()` (never throws; IS_DEMO short-circuits), covering every admin action, deletion

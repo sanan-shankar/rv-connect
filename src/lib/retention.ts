@@ -40,6 +40,18 @@ const KEEP_DAYS = {
   /** OutboundEmail: 180 days. The rows hold recipient addresses, and a
    *  delivery question older than six months has never once come up. */
   sentEmailLog: 180,
+  /** Visit and SearchLog: 180 days.
+   *
+   *  Both are identifiable presence telemetry (each row carries a userId) and
+   *  until 2026-08-21 nothing anywhere deleted either -- they were added after
+   *  prune.mjs was written and never reached the sweep, so the two fastest
+   *  growing tables in the schema had no expiry at all (bug audit B-093).
+   *
+   *  180 is deliberately double what any surface reads: the deepest lookback
+   *  in the whole analytics room is 90 days (loadRhythm's heatmap and
+   *  loadSearches), and everything else is 30. So this bounds the tables
+   *  without shortening a single answer the owner can currently get. */
+  presence: 180,
 } as const;
 
 export type SweepResult = {
@@ -50,6 +62,8 @@ export type SweepResult = {
   loginAttempts: number;
   auditLogs: number;
   outboundEmails: number;
+  visits: number;
+  searches: number;
   accountsPurged: number;
   /** Stored images an earlier purge could not remove, cleared on this pass. */
   imagesRetried: number;
@@ -111,6 +125,17 @@ export async function runRetentionSweep(): Promise<SweepResult> {
   const outboundEmails = await step("outboundEmails", async () =>
     (await prisma.outboundEmail.deleteMany({
       where: { createdAt: { lt: cutoff(KEEP_DAYS.sentEmailLog) } },
+    })).count,
+  );
+
+  const visits = await step("visits", async () =>
+    (await prisma.visit.deleteMany({
+      where: { endedAt: { lt: cutoff(KEEP_DAYS.presence) } },
+    })).count,
+  );
+  const searches = await step("searches", async () =>
+    (await prisma.searchLog.deleteMany({
+      where: { createdAt: { lt: cutoff(KEEP_DAYS.presence) } },
     })).count,
   );
 
@@ -182,6 +207,8 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     loginAttempts,
     auditLogs,
     outboundEmails,
+    visits,
+    searches,
     accountsPurged,
     imagesRetried,
     imagesStillPending,

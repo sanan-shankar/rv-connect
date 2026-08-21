@@ -579,10 +579,24 @@ export async function loadArrivals() {
 export async function loadRhythm() {
   /* IST, not UTC. "When is the community awake" is a question about people,
    * and almost all of them are in India; a UTC heatmap would put the evening
-   * rush at 2pm and make the whole thing meaningless. */
+   * rush at 2pm and make the whole thing meaningless.
+   *
+   * TWO conversions, and the first one is not decoration. Visit.endedAt is
+   * `timestamp WITHOUT time zone` holding a UTC wall clock, and a single
+   * `AT TIME ZONE 'Asia/Kolkata'` on such a column means "read this wall time
+   * AS Kolkata local", producing an instant 5h30 EARLIER -- the opposite of
+   * the intended shift. EXTRACT then read it back in the session zone (UTC on
+   * Supabase), so every bucket sat about 11 hours out and the "Busiest: <day>
+   * around <hour> IST" line the owner is told to schedule mail against was
+   * fiction. Measured live on 2026-08-21 against a real row: a visit stored at
+   * 06:46 wall (12:16 IST) bucketed at hour 1 under the old expression and at
+   * hour 12 under this one (bug audit B-101).
+   *
+   * `AT TIME ZONE 'UTC'` first stamps the naive value as the UTC instant it
+   * actually is; the second converts that instant into Kolkata wall time. */
   const rows = await prisma.$queryRaw<{ dow: number; hour: number; n: bigint }[]>`
-    SELECT EXTRACT(DOW  FROM "endedAt" AT TIME ZONE 'Asia/Kolkata')::int AS dow,
-           EXTRACT(HOUR FROM "endedAt" AT TIME ZONE 'Asia/Kolkata')::int AS hour,
+    SELECT EXTRACT(DOW  FROM ("endedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')::int AS dow,
+           EXTRACT(HOUR FROM ("endedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')::int AS hour,
            count(*)::bigint AS n
     FROM "Visit"
     WHERE "endedAt" >= now() - interval '90 days'

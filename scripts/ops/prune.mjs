@@ -2,13 +2,23 @@
 /* ------------------------------------------------------------------ *
  *  Nightly pruning.
  *
- *  WHY: notifications are ~0.8KB each and accumulate forever. Measured
- *  against the current table, 2,000 members generating 500 notifications
- *  apiece is ~800MB -- on a 500MB free tier, the ONE thing in this schema
- *  that can actually exhaust it. Nothing else here grows unbounded: Place
- *  is fixed reference data, and every file lives in R2.
+ *  WHY: notifications are ~0.8KB each and accumulate. Measured against the
+ *  current table, 2,000 members generating 500 notifications apiece is
+ *  ~800MB, which on a 500MB free tier would matter. Two things bound it: a
+ *  per-user cap of 100 applied on every first-page open (loadNotifications
+ *  in src/app/(main)/notifications/actions.ts) and the age cutoff below.
  *
- *  Run: node scripts/ops/prune.mjs [--days 30] [--dry]
+ *  ONE policy, not two. The default used to be 30 days while
+ *  src/lib/retention.ts deleted the same table at KEEP_DAYS.notifications --
+ *  a year -- so the app documented one rule and this script quietly enforced
+ *  a stricter one (bug audit M55). retention.ts is the source of truth; this
+ *  matches it, and exists alongside it only because a large backlog wants
+ *  the batched delete below rather than one long statement.
+ *
+ *  The header used to claim "nothing else here grows unbounded". Visit and
+ *  SearchLog, added 2026-08-19, did -- they are in the retention sweep now.
+ *
+ *  Run: node scripts/ops/prune.mjs [--days 365] [--dry]
  *  Nightly, from .github/workflows/snapshot.yml.
  * ------------------------------------------------------------------ */
 
@@ -19,7 +29,9 @@ loadEnv({ path: ".env", quiet: true });
 
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry");
-const DAYS = args.includes("--days") ? Number(args[args.indexOf("--days") + 1]) : 30;
+/** Matches KEEP_DAYS.notifications in src/lib/retention.ts. Change it there. */
+const DEFAULT_DAYS = 365;
+const DAYS = args.includes("--days") ? Number(args[args.indexOf("--days") + 1]) : DEFAULT_DAYS;
 
 if (!Number.isFinite(DAYS) || DAYS < 7) {
   console.error(`Refusing to prune with --days ${DAYS}. Minimum 7.`);

@@ -1028,6 +1028,9 @@ model SearchLog {
   // "What is searched most", and the zero-result list.
   @@index([scope, createdAt])
   @@index([query])
+  // The retention sweep's predicate. The composite above leads on `scope`, so
+  // it cannot serve a bare `createdAt < cutoff` (bug audit B-093).
+  @@index([createdAt])
 }
 
 // ─── Who looks at what, and how often ───────────────────────────────────────
