@@ -147,7 +147,18 @@ export function ContactsEditor({
 }: {
   rows: ContactRow[];
   onChange: (next: ContactRow[]) => void;
-  onCommit: () => void;
+  /**
+   * Save. Pass the rows to save when the caller already knows them.
+   *
+   * The remove button has to: it calls `onChange` and `onCommit` in the same
+   * handler, and `onChange` is a plain setState, so the parent's `commitContacts`
+   * ran against the row array captured in the SAME render -- the one that still
+   * had the removed phone number in it. The UI dropped the row and the server
+   * saved the pre-removal list, so the "removed" number was back on the Get in
+   * touch sheet after a reload (bug audit B-049). commitPlaces and commitHouses
+   * already took their `next` explicitly for exactly this reason.
+   */
+  onCommit: (next?: ContactRow[]) => void;
 }) {
   const [addOpen, setAddOpen] = useState(false);
 
@@ -224,8 +235,9 @@ export function ContactsEditor({
                   type="button"
                   aria-label={`Remove this ${KIND_LABEL[row.kind].toLowerCase()}`}
                   onClick={() => {
-                    onChange(rows.filter((r) => r.id !== row.id));
-                    onCommit();
+                    const next = rows.filter((r) => r.id !== row.id);
+                    onChange(next);
+                    onCommit(next);
                   }}
                   // ml-auto, so the removes line up on one right edge even
                   // though the values they belong to are all different lengths.

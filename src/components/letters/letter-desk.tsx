@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, TriangleAlert } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { CreatePostForm } from "@/components/posts/create-post-form";
 
 /* ------------------------------------------------------------------ *
@@ -24,6 +25,7 @@ export function LetterDesk({
   initialTitle,
   initialContent,
   initialImages,
+  initialCityScope,
 }: {
   userPlaces: string[];
   /** Present when resuming an existing draft (/letters/[id]/edit). */
@@ -31,9 +33,11 @@ export function LetterDesk({
   initialTitle?: string;
   initialContent?: string;
   initialImages?: string[];
+  /** The audience the draft was saved with; null is "Everyone". */
+  initialCityScope?: string | null;
 }) {
   const router = useRouter();
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
 
   return (
     <div className="mx-auto max-w-[760px]">
@@ -50,9 +54,27 @@ export function LetterDesk({
         </Link>
         {/* The autosave voice: present-tense while writing to the row, then a
             quiet "Saved". Only resumed drafts autosave; a fresh letter says
-            nothing until its first explicit save creates the row. */}
-        <p aria-live="polite" className="text-[12.5px] text-muted-foreground">
-          {saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved" : ""}
+            nothing until its first explicit save creates the row.
+            "Not saving" is deliberately louder than the other two -- it is the
+            one state the writer has to act on, and the chrome used to sit on
+            "Saving..." forever instead of ever saying it (bug audit B-043). */}
+        <p
+          aria-live="polite"
+          className={cn(
+            "inline-flex items-center gap-1.5 text-[12.5px]",
+            saveState === "failed"
+              ? "font-medium text-destructive"
+              : "text-muted-foreground"
+          )}
+        >
+          {saveState === "failed" && <TriangleAlert className="h-3.5 w-3.5" aria-hidden />}
+          {saveState === "saving"
+            ? "Saving..."
+            : saveState === "saved"
+              ? "Saved"
+              : saveState === "failed"
+                ? "Not saving. Kept on this device."
+                : ""}
         </p>
       </div>
 
@@ -68,6 +90,7 @@ export function LetterDesk({
           initialTitle={initialTitle}
           initialContent={initialContent}
           initialImages={initialImages}
+          initialCityScope={initialCityScope}
           onAutosaveState={setSaveState}
           onDraftSaved={(id) => {
             // Adopt the new row: from here on, saves update in place and

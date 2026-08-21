@@ -8,17 +8,27 @@ import { prisma } from "@/lib/prisma";
 import { batchLine, letterTitle, metaLine, plainExcerpt } from "@/lib/utils";
 import { RailCard } from "./rail-card";
 import { PUBLISHED_ONLY } from "@/lib/posts";
+import { cityScopeWhere } from "@/lib/city-scope";
+import type { RailViewer } from "../feed-rail";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * "This week in Letters": the newest Letter posted to the main feed in the
- * trailing 7 days. Scoped to the main feed (groupId null) so a Letter
- * written inside a private group is never surfaced sitewide. Hides entirely
- * outside that window rather than reaching back for something stale, which
- * is what the module's own name promises.
+ * trailing 7 days THAT THIS VIEWER MAY READ. Scoped to the main feed (groupId
+ * null) so a Letter written inside a private group is never surfaced sitewide.
+ * Hides entirely outside that window rather than reaching back for something
+ * stale, which is what the module's own name promises.
+ *
+ * The audience filters are not optional decoration. This query used to run with
+ * no viewer at all, so a letter written for one city -- or for one batch -- had
+ * its title, its opening 160 characters and its author shown to every member on
+ * /feed, and anyone outside that audience who clicked it hit the reading page's
+ * own check and got a 404. A teaser to a locked door, for as long as that letter
+ * was the newest of the week (bug audit B-045). Same two fragments the letters
+ * index and loadPosts already apply.
  */
-export async function LettersModule() {
+export async function LettersModule({ viewer }: { viewer: RailViewer }) {
   const letter = await prisma.post.findFirst({
     where: {
       kind: "letter",
@@ -26,6 +36,16 @@ export async function LettersModule() {
       groupId: null,
       ...PUBLISHED_ONLY,
       createdAt: { gte: new Date(Date.now() - WEEK_MS) },
+      ...(viewer.isAdmin
+        ? {}
+        : {
+            AND: [cityScopeWhere(viewer.cities)],
+            OR: [
+              { targetBatches: null },
+              { targetBatches: "" },
+              { targetBatches: { contains: viewer.batch } },
+            ],
+          }),
     },
     orderBy: { createdAt: "desc" },
     select: {

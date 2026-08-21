@@ -420,9 +420,14 @@ export function LetterheadProfile({
     });
   }
 
-  function commitContacts() {
+  // `next` when the caller has it (the remove button, which computed the list
+  // it wants saved), the current state otherwise (a field blur, where the state
+  // is already what is on screen). Reading `contactRows` unconditionally was
+  // the stale-closure bug: removal saved the PRE-removal list (B-049).
+  function commitContacts(next?: ContactRow[]) {
+    const rows = next ?? contactRows;
     void run(async () => {
-      const result = await updateContactMethods(rowsToPayload(contactRows));
+      const result = await updateContactMethods(rowsToPayload(rows));
       if (!result.error) router.refresh();
       return result;
     });
