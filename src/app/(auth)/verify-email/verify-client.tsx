@@ -32,6 +32,10 @@ const COPY: Record<Outcome, { title: string; body: string }> = {
     title: "Already confirmed",
     body: "This address was confirmed earlier. Nothing left to do.",
   },
+  superseded: {
+    title: "There is a newer link",
+    body: "Open the most recent confirmation email instead, or send yourself a fresh link.",
+  },
   expired: {
     title: "That link has expired",
     body: "Confirmation links last a day. Get a new one and you are set.",
@@ -85,9 +89,10 @@ export function VerifyEmailClient({
     } else if (outcome === "already") {
       void api.express("happy");
       void api.nod(1);
-    } else if (outcome === "waiting") {
+    } else if (outcome === "waiting" || outcome === "superseded") {
       // Waiting, not failed. `curious` is the pose that reads as "any minute
-      // now" rather than as bad news.
+      // now" rather than as bad news -- which is also exactly the superseded
+      // case: the link that works is already sitting in their inbox.
       void api.express("curious");
     } else {
       // Expired, stale or unrecognised. `worried` carries a furrow without the
