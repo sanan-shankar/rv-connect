@@ -58,7 +58,22 @@ const RATE_LIMIT: Record<TokenKind, { max: number; windowMinutes: number }> = {
   verify: { max: 5, windowMinutes: 60 },
 };
 
-function hashToken(raw: string): string {
+/**
+ * The stored form of a token. Only the hash is ever written down, so a
+ * database read cannot hand anybody a working link.
+ *
+ * Exported because `email-actions.ts` needs to claim a token inside the SAME
+ * transaction as the effect it unlocks (bug audit Lows 22 and 114), and
+ * `readToken` below writes through the shared `prisma` client: called from
+ * inside a `$transaction` callback it would not join that transaction, just
+ * run a second unrelated statement on its own connection. So that file
+ * repeats the conditional claim against `tx`, and it must hash the token the
+ * same way this file does. It imports this rather than keeping its own copy:
+ * two implementations of one hash is the drift that would make every
+ * confirmation and reset in the app stop working, on the day somebody changed
+ * one of them.
+ */
+export function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
 

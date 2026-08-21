@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { maskEmail } from "@/lib/email";
-import { burnTokens, readToken } from "@/lib/auth-tokens";
+import { burnTokens, hashToken, readToken } from "@/lib/auth-tokens";
 import { passwordProblem } from "@/lib/password-rule";
 import { enqueueMail, verificationMailState } from "@/lib/email-queue";
 import { sendVerificationEmail } from "@/lib/verification-mail";
@@ -47,7 +47,15 @@ export async function resendVerification(): Promise<{
   /** "sent": genuinely accepted by the provider. "imminent": in flight or
    *  seconds from a retry. "queued": the day's budget is truly spent, and
    *  `sendingAt` names the refill. The caller says different things for each,
-   *  and only "queued" may mention the email limit. */
+   *  and only "queued" may mention the email limit.
+   *
+   *  A row that gave up for good, or one that somehow does not exist right
+   *  after an enqueue, is never spelled as one of these three: it comes back
+   *  as `ok: false` instead, the same shape every other failure in this
+   *  function already uses. Before this, both folded into "imminent" (bug
+   *  audit M51) -- which told a member whose confirmation had permanently
+   *  failed that it was still on its way, forever, since nothing was ever
+   *  going to move it out of that state on its own. */
   state?: "sent" | "imminent" | "queued";
   sentTo?: string;
   /** ISO. Only set with state "queued". */
@@ -76,6 +84,22 @@ export async function resendVerification(): Promise<{
   // send path for the button, the page load and the drain (claimAndSend), so
   // there is no second copy of the bookkeeping to disagree.
   const state = await verificationMailState(session.user.id);
+
+  if (state.state === "failed" || state.state === "none") {
+    // Honest, not "imminent" (M51): "failed" means the row already tried and
+    // gave up -- nothing will move it further without a fresh attempt, which
+    // is exactly what this button is for, so `ok: false` here (rather than a
+    // false "sent") is what leaves the retry control on screen instead of
+    // hiding it behind a state that reads as "nothing left to do". "none"
+    // should not happen right after a successful enqueue, but answering it
+    // honestly costs nothing and a silent miscategorisation costs a member
+    // their retry button for reasons no one could see.
+    return {
+      ok: false,
+      error: "That did not go through. Check your email address in Settings, then try again.",
+    };
+  }
+
   return {
     ok: true,
     state:
@@ -108,38 +132,86 @@ export type ConfirmOutcome =
  * give up.
  */
 export async function confirmEmailToken(token: string): Promise<ConfirmOutcome> {
-  const read = await readToken(token, "verify", { consume: true });
+  // Peek, not consume: the expired/stale/unknown/already-used branches below
+  // need to read the token WITHOUT spending it, because spending happens
+  // together with the effect it unlocks, in one transaction, a few lines down
+  // (bug audit Low 22). Before this, `readToken(consume: true)` burned the
+  // token as its own statement and `emailVerified` was written separately: a
+  // crash or a DB error in between left the token spent for nothing and the
+  // address still unconfirmed. Verify tokens are never burned on remint
+  // (B-021), so a resend would still have worked -- but the very next load of
+  // THIS link threw an uncaught error instead of landing on the graceful
+  // "superseded" screen that a plain "used" token already gets.
+  const peek = await readToken(token, "verify", { consume: false });
 
-  if (!read.ok) {
-    if (read.reason === "used") {
+  if (!peek.ok) {
+    if (peek.reason === "used") {
       // Used token, but "used" is not the same as "confirmed". The account row
       // is what decides: a mail client prefetching the link, or an older mail
       // whose token an earlier remint burned, both arrive here with the address
       // still unverified. Telling that member "nothing left to do" and hiding
       // the resend button was the dead end this checks for (bug audit B-021).
       const account = await prisma.user.findUnique({
-        where: { id: read.userId },
+        where: { id: peek.userId },
         select: { emailVerified: true },
       });
       return account?.emailVerified ? "already" : "superseded";
     }
-    return read.reason === "expired"
+    return peek.reason === "expired"
       ? "expired"
-      : read.reason === "stale"
+      : peek.reason === "stale"
         ? "stale"
         : "unknown";
   }
 
-  await prisma.user.update({
-    where: { id: read.userId },
-    data: { emailVerified: new Date() },
+  // Burn the token and confirm the address together. `readToken` cannot be
+  // called from inside this callback for the burn (see `hashToken`'s
+  // docblock in auth-tokens.ts): it writes through the shared `prisma` client, not `tx`,
+  // so it would not join this transaction at all. The claim below repeats
+  // `readToken`'s own conditional update -- unused, unexpired, this kind --
+  // so of two racing redemptions (a second tab, a mail client prefetch)
+  // exactly one still wins.
+  const claimed = await prisma.$transaction(async (tx) => {
+    const claim = await tx.authToken.updateMany({
+      where: {
+        tokenHash: hashToken(token),
+        kind: "verify",
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+        // ...and the address has not moved on since the link was sent, which
+        // is `readToken`'s "stale" check. The peek above already refused that
+        // case, but only as of the peek: without repeating it here the claim
+        // would be LOOSER than the read it stands in for, and a member who
+        // changed their email in the instant between the two would have this
+        // link confirm the mailbox they just left.
+        user: { email: peek.email },
+      },
+      data: { usedAt: new Date() },
+    });
+    if (claim.count === 0) return false;
+    await tx.user.update({
+      where: { id: peek.userId },
+      data: { emailVerified: new Date() },
+    });
+    return true;
   });
 
-  // The mailbox is proven the instant the line above lands, which is the
-  // moment an office-roster match becomes meaningful (trust model, Stage 2).
-  // Quietly: a roster hiccup must never turn a successful confirmation into
-  // an error screen.
-  await tryRosterAutoVerifyQuietly(read.userId);
+  if (!claimed) {
+    // Lost the single-use race in the instant between the peek above and this
+    // claim. Same recovery as the ordinary "used" branch: read the account
+    // fresh and say which of "already" or "superseded" is true right now.
+    const account = await prisma.user.findUnique({
+      where: { id: peek.userId },
+      select: { emailVerified: true },
+    });
+    return account?.emailVerified ? "already" : "superseded";
+  }
+
+  // The mailbox is proven the instant the transaction above lands, which is
+  // the moment an office-roster match becomes meaningful (trust model, Stage
+  // 2). Quietly: a roster hiccup must never turn a successful confirmation
+  // into an error screen.
+  await tryRosterAutoVerifyQuietly(peek.userId);
 
   return "confirmed";
 }
@@ -256,75 +328,112 @@ export async function resetPassword(input: {
 
   // The quality floor (audit M8), checked against a PEEK at the token —
   // never after consuming it, or a refused password would burn the person's
-  // one link and strand them back at the request form.
+  // one link and strand them back at the request form. This same peek also
+  // stands in for the general validity check below: nothing else changes
+  // about this token between here and the claim a few lines down, so there
+  // is no need to read it a second time before knowing whether to burn it.
   const peek = await readToken(input.token, "reset", { consume: false });
-  if (peek.ok) {
-    const weak = passwordProblem(input.password, peek.email);
-    if (weak) return { ok: false, error: weak };
-  }
-
-  // Consumed here, at the moment of use, so the link cannot be replayed.
-  const read = await readToken(input.token, "reset", { consume: true });
-  if (!read.ok) {
+  if (!peek.ok) {
     return {
       ok: false,
       error:
-        read.reason === "expired"
+        peek.reason === "expired"
           ? "That link has run out. Ask for a new one and it will be in your inbox in a moment."
-          : read.reason === "used"
+          : peek.reason === "used"
             ? "That link has already been used. Ask for a new one if you still need it."
             : "We do not recognise that link. Ask for a new one to be safe.",
     };
   }
+  const weak = passwordProblem(input.password, peek.email);
+  if (weak) return { ok: false, error: weak };
 
   const hashed = await bcrypt.hash(input.password, 12);
-  await prisma.user.update({
-    where: { id: read.userId },
-    data: {
-      password: hashed,
-      // Getting mail at this address is proof it is theirs, so a reset doubles
-      // as a confirmation. Someone locked out of posting because they never
-      // found the original welcome mail is fixed by the very act of proving
-      // they can read the inbox.
-      emailVerified: new Date(),
-      /* Ends every session already signed in on this account (audit M4).
-         Without it, a reset burned the outstanding reset LINKS below and left
-         the attacker's actual session cookie working for its full 30 days --
-         so the one action a phished member takes to save themselves did not
-         touch the thing that had been stolen. */
-      credentialVersion: { increment: 1 },
-    },
+
+  // Burn the token and set the new password together, in ONE transaction
+  // (bug audit Low 114). Before this, `readToken(consume: true)` burned the
+  // token as its own statement and the password write followed separately:
+  // a crash or a DB error in between spent the person's one link for nothing
+  // and left the password unchanged, and unlike a confirmation link (Low 22,
+  // just above) there was no soft landing -- reset tokens ARE burned on
+  // remint (see auth-tokens.ts's `BURNS_ON_MINT`), so the
+  // only way back was a whole new request-a-reset round trip. Wrapped like
+  // this, a failure rolls the burn back too: the SAME link is still good to
+  // retry, exactly as if nothing had been submitted.
+  //
+  // `readToken` cannot supply the burn itself (see `hashToken`'s docblock in
+  // auth-tokens.ts), so the claim below repeats its own conditional update -- unused,
+  // unexpired, this kind -- so of two racing submissions (a double-click, a
+  // retried request) exactly one still wins.
+  const applied = await prisma.$transaction(async (tx) => {
+    const claim = await tx.authToken.updateMany({
+      where: {
+        tokenHash: hashToken(input.token),
+        kind: "reset",
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+        // `readToken`'s "stale" check, repeated for the same reason as in
+        // confirmEmailToken above: the peek refused a moved address as of the
+        // peek, and without this the claim would be looser than the read it
+        // replaces, handing the password of an account to a link sent to an
+        // address it no longer uses.
+        user: { email: peek.email },
+      },
+      data: { usedAt: new Date() },
+    });
+    if (claim.count === 0) return null;
+
+    return tx.user.update({
+      where: { id: peek.userId },
+      data: {
+        password: hashed,
+        // Getting mail at this address is proof it is theirs, so a reset
+        // doubles as a confirmation. Someone locked out of posting because
+        // they never found the original welcome mail is fixed by the very
+        // act of proving they can read the inbox.
+        emailVerified: new Date(),
+        /* Ends every session already signed in on this account (audit M4).
+           Without it, a reset burned the outstanding reset LINKS below and
+           left the attacker's actual session cookie working for its full 30
+           days -- so the one action a phished member takes to save
+           themselves did not touch the thing that had been stolen. */
+        credentialVersion: { increment: 1 },
+      },
+      select: { name: true },
+    });
   });
+
+  if (!applied) {
+    // Lost the single-use race in the instant between the peek above and
+    // this claim: nothing was written, so nothing needs to be undone. Same
+    // message a plain re-read would have given.
+    return { ok: false, error: "That link has already been used. Ask for a new one if you still need it." };
+  }
 
   // A reset doubles as a confirmation (above), so it is also a moment the
   // roster may vouch for this account. Same best-effort contract as in
   // confirmEmailToken.
-  await tryRosterAutoVerifyQuietly(read.userId);
+  await tryRosterAutoVerifyQuietly(peek.userId);
 
   // Any other reset links already in flight die with this one.
-  await burnTokens(read.userId, "reset");
+  await burnTokens(peek.userId, "reset");
 
   // Tell the mailbox that the password moved. This is the only warning a
   // person gets if somebody else did it, so it is queued at high priority
   // (just behind resets) rather than left to a launch-day backlog. Queued
   // rather than sent, and never awaited for success: a mail failure must not
   // undo a password change that has already been written.
-  const user = await prisma.user.findUnique({
-    where: { id: read.userId },
-    select: { name: true },
-  });
   await enqueueMail({
     kind: "password-changed",
-    to: read.email,
-    userId: read.userId,
-    payload: { name: user?.name ?? "there" },
+    to: peek.email,
+    userId: peek.userId,
+    payload: { name: applied.name ?? "there" },
   });
 
   // The client signs the person straight in with their new password, which
   // now crosses authorize()'s bot check. Consuming a single-use emailed link
   // is already proof of a human with the mailbox, so it earns the same
   // five-minute pass a fresh signup gets.
-  await mintHumanPass(read.email);
+  await mintHumanPass(peek.email);
 
-  return { ok: true, email: read.email };
+  return { ok: true, email: peek.email };
 }

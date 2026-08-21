@@ -9,7 +9,10 @@ import {
   MAX_DEFERRALS,
   PRIORITY,
   eligibleKindsFor,
+  isRetryableSkip,
   localDrainRecipient,
+  SKIP_NO_USER,
+  SKIP_TOKEN_RATE_LIMIT,
   retryDelayMs,
   type MailKind,
 } from "./mail-policy";
@@ -163,11 +166,61 @@ type SendOutcome = "sent" | "requeued" | "failed" | "lost-claim";
  * the bookkeeping to drift.
  */
 async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
+  // Captured once and reused as this claim's fencing value: every write below
+  // that mutates this row repeats it in the `where`, not just `id`.
+  const claimedAt = new Date();
   const claimed = await prisma.outboundEmail.updateMany({
     where: { id: row.id, status: "queued" },
-    data: { status: "sending", claimedAt: new Date(), attempts: { increment: 1 } },
+    data: { status: "sending", claimedAt, attempts: { increment: 1 } },
   });
   if (claimed.count === 0) return "lost-claim";
+
+  /**
+   * Write to the row ONLY if this call still holds the exact claim taken
+   * above, and say so loudly when it does not (bug audit M50).
+   *
+   * The stale-claim sweep in `drainWithLease` resets a row to `queued` when
+   * it has sat claimed longer than STALE_CLAIM_MS, on the assumption the
+   * claiming process died. `sendMail` itself cannot run that long -- it
+   * races a 10-second timeout (src/lib/email.ts) -- but this function has
+   * two callers that are NOT bounded the same way: `verificationMailState`
+   * calls it directly from inside a page render, and `drainWithLease` calls
+   * it from inside an `after()` callback, which Vercel is free to FREEZE the
+   * instant the triggering request's response has streamed and resume later
+   * with no sense that time passed in between (the same platform behaviour
+   * `mintToken`'s sweep is guarded against). A frozen-then-resumed call is
+   * not dead; it finishes exactly where it left off, still believing it owns
+   * the row -- and by the time it resumes, the sweep may have put the row
+   * back in the queue and a second process may already have claimed and
+   * sent it, or marked it permanently failed.
+   *
+   * An unconditional `update({ where: { id } })` would overwrite whichever of
+   * those happened with this stale call's own idea of the row: a `sent` row
+   * flipped back to `queued` (a THIRD send, from whoever drains next) or a
+   * row a newer claimant is still working on stamped `sent` out from under
+   * it. Scoping the write to `status: "sending"` AND this exact `claimedAt`
+   * turns that into a no-op instead: `count === 0` means somebody else now
+   * owns this row, so this call's write is dropped rather than applied. It
+   * cannot undo the one thing that may already be real -- the Resend call
+   * itself, which does not take a cancellation -- so the drop is logged
+   * loudly: the DB staying honest is the whole of what this can still do.
+   */
+  const writeIfStillClaimed = async (
+    data: Parameters<typeof prisma.outboundEmail.updateMany>[0]["data"],
+    note: string,
+  ): Promise<void> => {
+    const result = await prisma.outboundEmail.updateMany({
+      where: { id: row.id, status: "sending", claimedAt },
+      data,
+    });
+    if (result.count === 0) {
+      console.error(
+        `[email] lost claim on row=${row.id} while finalizing (${note}); ` +
+          `another process moved it on in the meantime. If this was a real ` +
+          `send, the row may now understate how many times it went out.`,
+      );
+    }
+  };
 
   // Read back the incremented count so a failure below can decide between
   // another try and giving up. A row on its last attempt stops being retried,
@@ -201,9 +254,8 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
       });
       const deferrals = (current?.deferrals ?? 0) + 1;
       const giveUp = deferrals >= MAX_DEFERRALS;
-      await prisma.outboundEmail.update({
-        where: { id: row.id },
-        data: {
+      await writeIfStillClaimed(
+        {
           status: giveUp ? "failed" : "queued",
           claimedAt: null,
           // The attempt this send consumed was not the address's fault, so it
@@ -218,19 +270,20 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
             : new Date(Date.now() + retryDelayMs(deferrals - 1)),
           lastError: result.error ?? "send failed",
         },
-      });
+        giveUp ? "failed" : "requeued",
+      );
       return giveUp ? "failed" : "requeued";
     }
 
-    await prisma.outboundEmail.update({
-      where: { id: row.id },
-      data: {
+    await writeIfStillClaimed(
+      {
         status: afterFailure,
         claimedAt: null,
         nextAttemptAt: new Date(Date.now() + ATTEMPT_RETRY_MS),
         lastError: result.error ?? "send failed",
       },
-    });
+      afterFailure === "failed" ? "failed" : "requeued",
+    );
     return afterFailure === "failed" ? "failed" : "requeued";
   };
 
@@ -240,12 +293,21 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
     const built = await render(row);
 
     if ("skip" in built) {
-      // Nothing to send and nothing wrong (token rate limit, usually). Retire
-      // the row rather than leave it to retry against a shared budget.
-      await prisma.outboundEmail.update({
-        where: { id: row.id },
-        data: { status: "failed", claimedAt: null, lastError: built.skip },
-      });
+      if (isRetryableSkip(built.skip)) {
+        // Genuinely temporary: auth-tokens.ts's mint window is a rolling 60
+        // minutes and clears on its own. Routed through the same transient
+        // path as a provider hiccup, so the attempt is handed back -- "not
+        // worth burning an attempt on", per render()'s own comment -- and the
+        // row quietly retries itself once the window has room again, instead
+        // of being retired and forcing the next manual resend to create a
+        // fresh row that hits the same limit and fails the same way (M52).
+        return bookFailure({ error: built.skip, transient: true });
+      }
+      // Not retryable: no amount of waiting gives this row a userId.
+      await writeIfStillClaimed(
+        { status: "failed", claimedAt: null, lastError: built.skip },
+        "failed",
+      );
       return "failed";
     }
 
@@ -255,9 +317,8 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
     accepted = result.ok;
 
     if (result.ok) {
-      await prisma.outboundEmail.update({
-        where: { id: row.id },
-        data: {
+      await writeIfStillClaimed(
+        {
           status: "sent",
           sentAt: new Date(),
           claimedAt: null,
@@ -268,7 +329,8 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
           // whether it actually landed. See the delivery columns on the model.
           providerId: result.providerId ?? null,
         },
-      });
+        "sent",
+      );
       // One line of record per real send, with the ORIGIN its links were built
       // against (never the token). Exists because "which link did Nirad's
       // email actually carry" took a forensic reconstruction on 2026-08-13:
@@ -474,7 +536,7 @@ async function render(row: {
     return deletionScheduledTemplate({ name, purgeDate: payload.purgeDate ?? "" });
   }
 
-  if (!row.userId) return { skip: "no user on a token email" };
+  if (!row.userId) return { skip: SKIP_NO_USER };
 
   // The token is born HERE, so its clock starts when the message leaves rather
   // than when it was queued.
@@ -484,7 +546,7 @@ async function render(row: {
     // Rate limited at the token layer. Not an error worth burning an attempt
     // on: it means this person has been issued several links very recently and
     // one of them is almost certainly still live in their inbox.
-    return { skip: "token rate limit" };
+    return { skip: SKIP_TOKEN_RATE_LIMIT };
   }
 
   if (kind === "reset") {
@@ -590,11 +652,21 @@ export async function drainMailQueue(): Promise<DrainReport> {
 
 /** The pass itself, once this process is the one allowed to send. */
 async function drainWithLease(): Promise<DrainReport> {
-  // Reclaim anything a dead process left mid-flight.
-  await prisma.outboundEmail.updateMany({
+  // Reclaim anything a dead process left mid-flight. Logged only when it
+  // actually finds something: a reclaimed row is not necessarily a dead
+  // process (see the comment on `writeIfStillClaimed` in claimAndSend), so
+  // this count is the other half of the forensic trail for that log line --
+  // together they are how a double send would ever be noticed at all.
+  const reclaimed = await prisma.outboundEmail.updateMany({
     where: { status: "sending", claimedAt: { lt: new Date(Date.now() - STALE_CLAIM_MS) } },
     data: { status: "queued", claimedAt: null },
   });
+  if (reclaimed.count > 0) {
+    console.error(
+      `[email] reclaimed ${reclaimed.count} row(s) claimed longer than ${STALE_CLAIM_MS}ms; ` +
+        `if the original claimant was frozen rather than dead, it may still send when it resumes.`,
+    );
+  }
 
   const budget = await dailyBudget();
   if (budget.remaining === 0) {

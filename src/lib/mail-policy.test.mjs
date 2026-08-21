@@ -5,6 +5,9 @@ import {
   PRIORITY,
   eligibleKindsFor,
   isTransientMailError,
+  isRetryableSkip,
+  SKIP_NO_USER,
+  SKIP_TOKEN_RATE_LIMIT,
   quotaExceeded,
   retryDelayMs,
   MAX_ATTEMPTS,
@@ -85,6 +88,17 @@ test("the ceilings leave room to be patient without being useless", () => {
   assert.ok(MAX_ATTEMPTS >= 3 && MAX_ATTEMPTS <= 6);
 });
 
+
+/* ---- a rate-limited token mint is not the same as a dead row (M52) ----- */
+
+test("a token-mint rate limit is worth waiting out; nothing else is", () => {
+  // Asserted through the constants the queue actually writes, so rewording a
+  // skip message cannot quietly turn a retryable one permanent.
+  assert.equal(isRetryableSkip(SKIP_TOKEN_RATE_LIMIT), true);
+  assert.equal(isRetryableSkip(SKIP_NO_USER), false);
+  assert.equal(isRetryableSkip("something unrecognised"), false);
+  assert.equal(isRetryableSkip(""), false);
+});
 
 /* ---- eligibility: no kind of mail may be un-drainable (B-070) ---------- */
 
