@@ -13,7 +13,8 @@ import {
   keyBelongsTo,
   ownerPrefix,
 } from "@/lib/storage";
-import { sharpImage } from "@/lib/image";
+import { sharpImage, storedPixelFit } from "@/lib/image";
+import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike } from "@/lib/db-text";
 import { photoSchema } from "@/lib/validators";
 import {
@@ -360,17 +361,39 @@ export async function contributePhotoDirect(input: {
     // resolveWithObject gives us the upright dimensions directly, so there is
     // no EXIF-orientation swap to reason about.
     const WEBP_MAX_DIM = 16383;
+
+    /* ...and a ceiling on AREA as well as on side length (audit M16).
+       16383px per side allows a 16383x16383 image, which is 268 megapixels:
+       the dimension cap alone let anything up to the decode limit through and
+       re-encoded it at full resolution, at quality 90, inside a serverless
+       function with a fixed memory budget and a wall clock. `storedPixelFit`
+       returns null for every photograph anybody actually uploads, so this is
+       a guard on the pathological case and a no-op on the real one. Read from
+       the rotated metadata, so a portrait shot's EXIF swap is already applied
+       and the numbers are the upright ones. */
+    const upright = await sharpImage(original).rotate().metadata();
+    const areaFit = storedPixelFit(upright.width, upright.height);
+
     const display = await sharpImage(original)
       .rotate()
-      .resize(WEBP_MAX_DIM, WEBP_MAX_DIM, { fit: "inside", withoutEnlargement: true })
+      .resize(
+        areaFit ? areaFit.width : WEBP_MAX_DIM,
+        areaFit ? areaFit.height : WEBP_MAX_DIM,
+        { fit: "inside", withoutEnlargement: true }
+      )
       .webp({ quality: 90 })
       .toBuffer({ resolveWithObject: true });
     width = display.info.width;
     height = display.info.height;
     if (!width || !height) throw new Error("unsupported image format");
 
-    const thumb = await sharpImage(original)
-      .rotate()
+    /* The thumbnail is derived from the DISPLAY buffer, not from the original.
+       Decoding the original a second time doubled the most expensive step of
+       this whole action for a 480px output. The display copy is already
+       upright, already within budget, and orders of magnitude smaller. It is a
+       second lossy pass (q90 then q72), which at 480px is not visible and is
+       the trade this path was already making everywhere else. */
+    const thumb = await sharpImage(display.data)
       .resize(480, 480, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 72 })
       .toBuffer();
@@ -583,12 +606,27 @@ export async function declinePhoto(photoId: string) {
   });
   if (!photo) return { error: "Photo not found" };
 
-  await Promise.all([
-    delImage(photo.thumbUrl),
-    delImage(photo.url),
-    delImage(photo.originalUrl),
-  ]);
-  await prisma.photo.delete({ where: { id: photoId } });
+  /* The row first, then the bytes (audit M17). These three deletes used to run
+     BEFORE the delete below, so a failure on that line left the photo in the
+     Collection with all three of its images permanently 404ing, and no retry
+     could put them back. Queuing the urls inside the same transaction as the
+     delete makes the pair atomic: either the photo is gone and its files are
+     booked for removal, or nothing happened. Same invariant, and the same
+     mechanism, the account purge already uses (B-011). */
+  const urls = [photo.thumbUrl, photo.url, photo.originalUrl].filter(
+    (u): u is string => typeof u === "string" && u.length > 0
+  );
+  await prisma.$transaction(async (tx) => {
+    if (urls.length > 0) {
+      await tx.pendingImagePurge.createMany({
+        data: urls.map((url) => ({ url, reason: "declined" })),
+      });
+    }
+    await tx.photo.delete({ where: { id: photoId } });
+  });
+  // After the commit, so a slow R2 cannot hold the transaction open. Anything
+  // it cannot reach is retried by the nightly sweep.
+  await drainPendingImagePurges(urls);
 
   await prisma.notification.create({
     data: {

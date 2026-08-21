@@ -38,3 +38,69 @@ export function sharpImage(input: Buffer): Sharp {
     failOn: "error",
   });
 }
+
+/**
+ * The most pixels this app will STORE in a re-encoded image.
+ *
+ * Distinct from MAX_INPUT_PIXELS above, which is the decompression-bomb
+ * ceiling on what may be DECODED at all. This is the smaller question: having
+ * decoded something legitimate, how much of it is worth keeping.
+ *
+ * 40MP. A phone tops out around 12MP after binning, and a good flatbed scan of
+ * a heritage photograph at 600dpi is about 35MP for a 10x8 print, so nothing
+ * anybody actually uploads is touched by this. What it stops is the case the
+ * bomb ceiling let through: a legitimately enormous scan, decoded at up to
+ * 100MP and then re-encoded to WebP at quality 90 AT FULL RESOLUTION, twice
+ * (once for the display copy and once for the thumbnail), inside a serverless
+ * function with a fixed memory budget and a wall-clock limit. That is roughly
+ * 400MB of decoded RGBA per pass and many seconds of encode, for detail no
+ * screen will ever show (audit M16).
+ */
+export const MAX_STORED_PIXELS = 40_000_000;
+
+/**
+ * The dimensions to resize to so an image fits MAX_STORED_PIXELS, or null when
+ * it already does and must not be touched.
+ *
+ * Scales by AREA rather than clamping the longest side, because those are not
+ * the same bound: a 20000x2000 panorama is only 40MP and should survive whole,
+ * while a square 7000x7000 is 49MP and should come down. A longest-side cap
+ * would shrink the panorama for no reason and leave the square alone.
+ */
+export function storedPixelFit(
+  width: number | undefined,
+  height: number | undefined
+): { width: number; height: number } | null {
+  if (!width || !height) return null;
+  const pixels = width * height;
+  if (pixels <= MAX_STORED_PIXELS) return null;
+  const scale = Math.sqrt(MAX_STORED_PIXELS / pixels);
+  return {
+    width: Math.max(1, Math.floor(width * scale)),
+    height: Math.max(1, Math.floor(height * scale)),
+  };
+}
+
+/**
+ * How many frames an image holds. 1 for an ordinary photograph.
+ *
+ * Metadata only, never a decode of every frame, so this is cheap enough to ask
+ * on the way past. `animated: true` is what makes libvips report the real page
+ * count; without it a GIF reads as a single page whatever it actually is,
+ * which is precisely why the flattening below went unnoticed.
+ *
+ * Returns 1 for anything it cannot read. This exists to add a sentence to a
+ * response, and a metadata hiccup must never be the thing that fails an
+ * upload that otherwise worked.
+ */
+export async function countImageFrames(input: Buffer): Promise<number> {
+  try {
+    const meta = await sharp(input, {
+      animated: true,
+      limitInputPixels: MAX_INPUT_PIXELS,
+    }).metadata();
+    return typeof meta.pages === "number" && meta.pages > 0 ? meta.pages : 1;
+  } catch {
+    return 1;
+  }
+}

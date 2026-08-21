@@ -77,6 +77,8 @@ export function MessageComposer({
         toast.error(data.error ?? "That image didn't upload. Try another one?");
         return;
       }
+      // Anything the server changed about the file, said out loud (audit M15).
+      for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
       setImageUrl(data.urls?.[0] ?? null);
     } catch {
       toast.error("That image didn't upload. Try again in a moment?");

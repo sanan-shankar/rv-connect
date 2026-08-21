@@ -6,7 +6,7 @@ import { postSchema, commentSchema } from "@/lib/validators";
 import { postContentMax } from "@/lib/post-caps";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { delImage } from "@/lib/storage";
+import { drainPendingImagePurges } from "@/lib/account-purge";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
@@ -34,8 +34,37 @@ function parseImageUrls(images: string | null | undefined): string[] {
 }
 
 /** Best-effort cleanup of a post's stored image files, in parallel. */
-async function deletePostImages(images: string | null): Promise<void> {
-  await Promise.all(parseImageUrls(images).map((img) => delImage(img)));
+/**
+ * Delete a post and its stored images, in the order that cannot leave a live
+ * post with broken pictures (audit M17).
+ *
+ * The bytes used to go FIRST. If the row delete then failed -- a dropped
+ * connection, a pool timeout, a foreign key nobody expected -- the post
+ * stayed on the feed with every image permanently 404ing, and no retry could
+ * put them back. That is the exact inversion of the invariant the account
+ * purge already states and keeps (B-011): the ROW is the thing whose deletion
+ * must be atomic, and the bytes are the thing that may be retried.
+ *
+ * So the urls are written into `PendingImagePurge` inside the same
+ * transaction as the delete. Either the post is gone and its images are
+ * queued for removal, or nothing happened at all. The drain immediately after
+ * is the common case; anything it cannot reach is retried by the nightly
+ * sweep, which is the one path that can still find those bytes once the row
+ * naming them is gone.
+ */
+async function deletePostWithImages(postId: string, images: string | null): Promise<void> {
+  const urls = parseImageUrls(images);
+  await prisma.$transaction(async (tx) => {
+    if (urls.length > 0) {
+      await tx.pendingImagePurge.createMany({
+        data: urls.map((url) => ({ url, reason: "post" })),
+      });
+    }
+    await tx.post.delete({ where: { id: postId } });
+  });
+  // Best-effort and after the commit: a slow R2 must not hold a transaction
+  // open, and a failure here is already recorded as work to redo.
+  await drainPendingImagePurges(urls);
 }
 
 
@@ -261,9 +290,7 @@ export async function deleteDraft(postId: string) {
   if (post.authorId !== session.user.id) return { error: "Not authorized" };
   if (post.status !== "draft") return { error: "That letter isn't a draft" };
 
-  await deletePostImages(post.images);
-
-  await prisma.post.delete({ where: { id: postId } });
+  await deletePostWithImages(postId, post.images);
   revalidatePath("/letters");
   return { success: true };
 }
@@ -341,9 +368,7 @@ export async function deletePost(postId: string) {
   if (!authorized) return { error: "Not authorized" };
 
   // Delete image files
-  await deletePostImages(post.images);
-
-  await prisma.post.delete({ where: { id: postId } });
+  await deletePostWithImages(postId, post.images);
   revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
   return { success: true };
 }
