@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/admin";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
@@ -41,6 +42,11 @@ const REPORT_SELECT = {
  * times. That is the one fact a moderation queue exists to surface.
  */
 export default async function AdminReportsPage() {
+  // The role, re-established on this page and not borrowed from the layout.
+  // Soft navigation re-renders only the segments that changed, so a shared
+  // layout is not re-evaluated on every move -- and this page reads member
+  // data. One line, and the demotion window closes (bug audit B-024).
+  await requireAdminPage();
   const [pending, settled] = await Promise.all([
     prisma.report.findMany({
       where: { status: "pending" },

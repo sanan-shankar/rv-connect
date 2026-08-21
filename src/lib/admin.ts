@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
 /* ------------------------------------------------------------------ *
  *  Server-side furniture shared by every admin route.
@@ -80,6 +81,70 @@ export async function requireAdminActor(): Promise<
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || null;
   return { ok: true, actorId: session.user.id, ip };
 }
+
+/**
+ * Refuse an action that would end the admin surface.
+ *
+ * Two rules, both learned the hard way. You cannot aim block or delete at
+ * YOURSELF from the panel: blocking takes effect on the very next request (the
+ * session callback invalidates any session whose row reads isBlocked), so the
+ * sole admin can never unblock themselves, and the dialog's "you can undo this
+ * from the same button" is a lie in that case. And you cannot take the LAST
+ * unblocked admin away, whoever it is: since /api/auth/admin-login was deleted
+ * (security audit C1-b) there is no other door, so moderation would be over
+ * and the only way back is editing the database by hand.
+ *
+ * Serializable, and counted around the write rather than before it. The
+ * previous shape -- count, then update -- is a read-then-write with no
+ * transaction, so two admins demoting each other in the same second both saw
+ * "there are 2" and both committed (audit M26). Under Serializable one of them
+ * loses the write conflict, which is precisely what should happen.
+ *
+ * `apply` runs INSIDE the transaction; anything expensive or non-database
+ * (an R2 purge, an email) belongs after this call, not in it.
+ */
+export async function refuseSelfOrLastAdmin(
+  actorId: string,
+  targetId: string,
+  what: "block" | "delete" | "demote",
+  apply: (tx: Prisma.TransactionClient) => Promise<void>
+): Promise<{ error: string } | null> {
+  if (actorId === targetId && what !== "demote") {
+    return {
+      error:
+        what === "block"
+          ? "You cannot block your own account from here."
+          : "You cannot delete your own account from here. Use Settings.",
+    };
+  }
+
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        await apply(tx);
+        const admins = await tx.user.count({
+          where: { role: "admin", isBlocked: false },
+        });
+        if (admins === 0) throw new LastAdminError();
+      },
+      { isolationLevel: "Serializable" }
+    );
+  } catch (err) {
+    if (err instanceof LastAdminError) {
+      return { error: "This is the only admin. Make somebody else one first." };
+    }
+    // A serialization failure means somebody else changed the admin roster in
+    // the same instant. Saying so is more useful than a stack trace, and the
+    // action is safe to repeat.
+    if ((err as { code?: string })?.code === "P2034") {
+      return { error: "Somebody else was changing this at the same time. Try again." };
+    }
+    throw err;
+  }
+  return null;
+}
+
+class LastAdminError extends Error {}
 
 /** True only for the one configured owner, who gets the hoopoe tour trigger. */
 export function isOwner(email: string): boolean {

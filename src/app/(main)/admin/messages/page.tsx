@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/admin";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
@@ -19,6 +20,11 @@ export const metadata: Metadata = {
  * a `?thread=` query string with a mount-once effect behind it.
  */
 export default async function AdminMessagesPage() {
+  // The role, re-established on this page and not borrowed from the layout.
+  // Soft navigation re-renders only the segments that changed, so a shared
+  // layout is not re-evaluated on every move -- and this page reads member
+  // data. One line, and the demotion window closes (bug audit B-024).
+  await requireAdminPage();
   const threads = await prisma.adminThread.findMany({
     orderBy: [{ adminUnread: "desc" }, { lastMessageAt: "desc" }],
     take: 60,

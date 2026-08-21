@@ -138,3 +138,33 @@ test("the public list names only functions that still exist", () => {
     }
   }
 });
+
+/* ------------------------------------------------------------------ *
+ *  Every admin PAGE re-establishes the role, not just the layout.
+ *
+ *  The layout gate is navigation, not authorisation. In App Router partial
+ *  rendering a soft navigation re-renders only the segments the client's
+ *  router-state tree marks as changed, so a shared layout is not
+ *  re-evaluated on every move -- and eleven of the twelve admin pages were
+ *  bare prisma reads of member emails, verification states, login attempts,
+ *  audit rows, reports and analytics with no check of their own. An admin
+ *  demoted mid-session kept reading all of it until they did a hard reload
+ *  (bug audit B-024). Every admin ACTION already re-checks; this is the same
+ *  rule for the pages.
+ * ------------------------------------------------------------------ */
+
+test("every /admin page checks the role itself", () => {
+  const files = execSync('git ls-files "src/app/(main)/admin/**/page.tsx"', {
+    cwd: ROOT,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(Boolean);
+  assert.ok(files.length >= 10, `found only ${files.length} admin pages; the glob has drifted`);
+  for (const file of files) {
+    assert.ok(
+      /requireAdminPage\s*\(/.test(decomment(read(file))),
+      `${file} relies on the layout gate alone, which soft navigation can skip (B-024)`
+    );
+  }
+});

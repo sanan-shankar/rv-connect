@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
-import { overdueEditionWhere } from "@/lib/admin";
+import { requireAdminPage, overdueEditionWhere } from "@/lib/admin";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { Chip, type ChipTone } from "@/components/admin/admin-chip";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
@@ -42,6 +42,11 @@ const STATUS: Record<string, { label: string; tone: ChipTone }> = {
  * is any of this stuck.
  */
 export default async function AdminCatchupsPage() {
+  // The role, re-established on this page and not borrowed from the layout.
+  // Soft navigation re-renders only the segments that changed, so a shared
+  // layout is not re-evaluated on every move -- and this page reads member
+  // data. One line, and the demotion window closes (bug audit B-024).
+  await requireAdminPage();
   const now = new Date();
 
   const [catchups, overdue] = await Promise.all([

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/admin";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { markThreadSeenByAdmin } from "@/app/(main)/messages/actions";
@@ -23,6 +24,11 @@ export default async function AdminThreadPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // The role, re-established on this page and not borrowed from the layout.
+  // Soft navigation re-renders only the segments that changed, so a shared
+  // layout is not re-evaluated on every move -- and this page reads member
+  // data. One line, and the demotion window closes (bug audit B-024).
+  await requireAdminPage();
   const { id } = await params;
 
   const thread = await prisma.adminThread.findUnique({
