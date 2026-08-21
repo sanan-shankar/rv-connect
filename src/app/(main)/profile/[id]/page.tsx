@@ -19,6 +19,7 @@ import { viewerMaySeeContacts } from "@/lib/member-gate";
 import { IS_DEMO } from "@/lib/demo";
 import { recordView } from "@/lib/content-view";
 import { vcardLines, vcardValue } from "@/lib/vcard";
+import { getThemeCookie } from "@/lib/theme";
 
 export async function generateMetadata({
   params,
@@ -349,6 +350,10 @@ export default async function ProfilePage({
   return (
     <>
     <LetterheadProfile
+      /* This device's theme, for the dark-mode tile: /dark-mode gates on the
+         cookie, so the tile has to describe the same thing or the two disagree
+         on a new device (audit Low 95). */
+      deviceTheme={await getThemeCookie()}
       user={{
         id: user.id,
         name: user.name,

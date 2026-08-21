@@ -268,6 +268,7 @@ export function LetterheadProfile({
   adminNode,
   flagNode,
   draft,
+  deviceTheme,
 }: {
   user: LetterheadProfileUser;
   firstName: string;
@@ -300,6 +301,10 @@ export function LetterheadProfile({
   /** Only ever passed on your own profile. Its presence is what makes the
    *  sheet typeable at all. */
   draft?: ProfileDraft;
+  /** The theme THIS device is rendering, read from the rv-theme cookie by the
+   *  page. Not `draft.theme`, which is the cross-device record; see Low 95 at
+   *  the dark-mode tile below. */
+  deviceTheme?: "light" | "dark" | null;
 }) {
   const router = useRouter();
   const hasPhoto = Boolean(user.photoUrl);
@@ -1215,19 +1220,27 @@ export function LetterheadProfile({
                     "0 1px 2px rgba(35,36,30,0.04), 0 10px 24px -20px rgba(35,36,30,0.5)",
                 }}
               >
+                {/* Keyed on THIS DEVICE's theme, not `draft.theme` from the
+                    database (audit Low 95). /dark-mode gates on the cookie, on
+                    purpose -- it is what the device actually renders -- so a
+                    tile reading the database told a member on a new phone
+                    "Dark mode is on / Turn it off" over a light-looking app,
+                    and the button then walked them into the five-question
+                    gauntlet instead of the one-press exit. The two surfaces
+                    read the same fact now. */}
                 <div>
                   <p className="text-[13.5px] font-medium text-foreground">
-                    {draft?.theme === "dark" ? "Dark mode is on" : "Dark mode"}
+                    {deviceTheme === "dark" ? "Dark mode is on" : "Dark mode"}
                   </p>
                   <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
-                    {draft?.theme === "dark"
+                    {deviceTheme === "dark"
                       ? "You made it through the questions. Turning it off is one press."
                       : "Experimental. Turning it on involves some questions."}
                   </p>
                 </div>
                 <Link href="/dark-mode" className="inline-flex rounded-full">
                   <Button variant="outline" size="sm">
-                    {draft?.theme === "dark" ? "Turn it off" : "Explore the dark"}
+                    {deviceTheme === "dark" ? "Turn it off" : "Explore the dark"}
                   </Button>
                 </Link>
               </div>
