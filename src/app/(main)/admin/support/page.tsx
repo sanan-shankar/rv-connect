@@ -18,6 +18,12 @@ export const metadata: Metadata = {
 const STATUS_LABEL: Record<string, string> = {
   created: "Never finished",
   failed: "Failed",
+  // Written only by the Razorpay webhook, from "paid", when the money went
+  // back out (audit M58). Plain words rather than the payment industry's:
+  // "charged back" means nothing to anybody who has not run a merchant
+  // account, and "disputed" at least says what happened.
+  refunded: "Refunded",
+  disputed: "Disputed",
 };
 
 /**
@@ -45,7 +51,7 @@ export default async function AdminSupportPage() {
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
-  const [all, thisMonth, givers, rows] = await Promise.all([
+  const [all, thisMonth, givers, unfinished, rows] = await Promise.all([
     prisma.contribution.aggregate({
       _sum: { amount: true },
       _count: true,
@@ -62,6 +68,14 @@ export default async function AdminSupportPage() {
         distinct: ["userId"],
       })
       .then((r) => r.length),
+    /* Its own count, live-only. The tile used to be `rows.filter(not paid)`,
+       which counted a developer's test orders as real attempts AND was
+       silently capped at whatever fell inside the 100-row window below, so it
+       stopped growing without ever saying it had (audit Low 8). A tile that
+       reads "12" when the true number is 60 is worse than no tile. */
+    prisma.contribution.count({
+      where: { livemode: true, status: { notIn: ["paid", "refunded"] } },
+    }),
     prisma.contribution.findMany({
       select: {
         id: true,
@@ -80,7 +94,15 @@ export default async function AdminSupportPage() {
   ]);
 
   const paid = rows.filter((r) => r.status === "paid");
-  const notPaid = rows.filter((r) => r.status !== "paid");
+  /* Money that came back out (audit M58). Its own group, because a refund is
+     not a payment that failed: lumping it under "Did not go through" would
+     read as a payer who never got through, when in fact they did and we gave
+     it back. Rendered only when there is one, so the page grows a section the
+     day it first has something to say and not before. */
+  const reversed = rows.filter((r) => r.status === "refunded" || r.status === "disputed");
+  const notPaid = rows.filter(
+    (r) => r.status !== "paid" && r.status !== "refunded" && r.status !== "disputed"
+  );
 
   /* The funnel and the payment methods live HERE rather than in the analytics
      room (owner, 2026-08-19: "that could be under that section of admin not
@@ -112,9 +134,9 @@ export default async function AdminSupportPage() {
         <StatTile label="People who gave" value={givers} icon={Users} />
         <StatTile
           label="Did not go through"
-          value={notPaid.length}
+          value={unfinished}
           icon={AlertTriangle}
-          tone={notPaid.length > 0 ? "warn" : "plain"}
+          tone={unfinished > 0 ? "warn" : "plain"}
         />
       </StatStrip>
 
@@ -133,6 +155,15 @@ export default async function AdminSupportPage() {
           icon={CreditCard}
         />
       </StatStrip>
+
+      {/* Said out loud, because these four are computed from the hundred most
+          recent payments rather than from all of them, and a percentage that
+          quietly means "lately" is the kind of number somebody plans around
+          (audit Low 8). The three tiles above it are whole-history counts. */}
+      <p className="-mt-3 text-[12px] text-muted-foreground">
+        The four numbers above read the hundred most recent payments. The row before them counts
+        everything.
+      </p>
 
       {/* The gap between opening a payment and finishing one is the single
           most actionable number on this page, so it gets said in words rather
@@ -169,13 +200,24 @@ export default async function AdminSupportPage() {
         )}
       </AdminSection>
 
-      <AdminSection label="Did not go through" count={notPaid.length}>
+      {/* Not "Did not go through", which is the tile at the top: that one
+          counts real money across the whole history, this list is the recent
+          hundred and shows test rows too. Two different measurements under one
+          set of words was a number that looked wrong (21 against 23) with no
+          way to tell which was which. */}
+      <AdminSection label="Attempts that stopped" count={notPaid.length}>
         {notPaid.length === 0 ? (
           <AdminEmpty>Every attempt went through.</AdminEmpty>
         ) : (
           <Ledger rows={notPaid} />
         )}
       </AdminSection>
+
+      {reversed.length > 0 && (
+        <AdminSection label="Given back" count={reversed.length}>
+          <Ledger rows={reversed} />
+        </AdminSection>
+      )}
     </div>
   );
 }

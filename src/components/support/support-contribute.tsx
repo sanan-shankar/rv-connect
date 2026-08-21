@@ -68,7 +68,18 @@ let checkoutPromise: Promise<void> | null = null;
 function loadCheckout() {
   if (checkoutPromise) return checkoutPromise;
   checkoutPromise = new Promise<void>((resolve, reject) => {
-    if (document.querySelector(`script[src="${CHECKOUT_SRC}"]`)) return resolve();
+    /* The GLOBAL is the "already loaded" signal, not the presence of a script
+       tag. This used to short-circuit on `document.querySelector(script[src])`,
+       and a script that FAILED leaves its element in the DOM: so the retry the
+       error handler below carefully enabled found that dead tag, resolved
+       instantly, and handed the caller a window.Razorpay that had never been
+       defined. One blocked load and the Contribute button was finished for the
+       rest of the visit, which is the opposite of what the comment claimed
+       (audit M56). */
+    if ((window as unknown as { Razorpay?: RazorpayCtor }).Razorpay) return resolve();
+    // And clear the corpse, so the DOM never accumulates dead tags across
+    // retries and nothing downstream can mistake one for a loaded script.
+    document.querySelector(`script[src="${CHECKOUT_SRC}"]`)?.remove();
     const el = document.createElement("script");
     el.src = CHECKOUT_SRC;
     el.async = true;
@@ -77,6 +88,7 @@ function loadCheckout() {
       // Cleared so a later attempt can retry rather than inherit the rejection
       // forever (an ad blocker may be off by the time they try again).
       checkoutPromise = null;
+      el.remove();
       reject(new Error("checkout script failed to load"));
     };
     document.head.appendChild(el);

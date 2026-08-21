@@ -70,7 +70,12 @@ export default async function AdminPersonPage({
     prisma.contribution.aggregate({
       _sum: { amount: true },
       _count: true,
-      where: { userId: id, status: "paid" },
+      // livemode, like every other money surface. This database is shared by
+      // production and local dev, and a Razorpay test order is
+      // indistinguishable from a live one by its ids alone, so without this
+      // the person page told the owner a developer's test payment was a
+      // member's gift (audit M03).
+      where: { userId: id, status: "paid", livemode: true },
     }),
     prisma.report.count({ where: { reportedUserId: id } }),
     prisma.outboundEmail.findMany({

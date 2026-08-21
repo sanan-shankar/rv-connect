@@ -47,9 +47,17 @@ export function razorpayConfigured() {
    the key id itself ("rzp_live_..." vs "rzp_test_..."), and nothing in an
    order or payment id does, so this prefix is the only signal available.
    Defaults to false on anything unrecognised: a test row wrongly counted as
-   real inflates a public figure, which is the worse of the two mistakes. */
+   real inflates a public figure, which is the worse of the two mistakes.
+
+   Reads the env directly rather than through `credentials()`, which THROWS on
+   a missing key. This is asked in the middle of building a Prisma `where` on
+   /pick-bird and /support, so with no keys configured the throw escaped the
+   surrounding `.catch()` (it happens while the argument is being built, before
+   any promise exists) and took the whole page down with a 500 (audit M60). An
+   environment with no keys has no live money in it by definition, so `false`
+   is not a fallback here, it is the answer. */
 export function razorpayLivemode() {
-  return razorpayKeyId().startsWith("rzp_live_");
+  return (process.env.RAZORPAY_KEY_ID ?? "").startsWith("rzp_live_");
 }
 
 export type RazorpayOrder = {
@@ -127,14 +135,31 @@ export function verifyPaymentSignature(opts: {
 }
 
 /**
+ * Why a webhook can fail to authenticate, not just that it did.
+ *
+ * The three reasons need three different answers, and collapsing them into
+ * `false` meant the route could only give one (audit M59):
+ *   - "unconfigured" is OUR fault and is recoverable -- the payment is real
+ *     and will be recorded as soon as the secret is set, so the sender should
+ *     be asked to come back.
+ *   - "unsigned" and "mismatch" are a body we will never trust. Whoever sent
+ *     it should be told we heard them and nothing more.
+ */
+export type WebhookSignatureVerdict = "ok" | "unconfigured" | "unsigned" | "mismatch";
+
+/**
  * The webhook: HMAC-SHA256 of the RAW request body keyed with the separate
  * webhook secret (not the API secret) from the Razorpay dashboard. The body
  * must be the exact bytes received -- re-serialising parsed JSON reorders keys
  * and changes whitespace, and the signature will never match again.
  */
-export function verifyWebhookSignature(rawBody: string, signature: string | null) {
+export function verifyWebhookSignature(
+  rawBody: string,
+  signature: string | null
+): WebhookSignatureVerdict {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-  if (!secret || !signature) return false;
+  if (!secret) return "unconfigured";
+  if (!signature) return "unsigned";
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-  return hmacMatches(expected, signature);
+  return hmacMatches(expected, signature) ? "ok" : "mismatch";
 }
