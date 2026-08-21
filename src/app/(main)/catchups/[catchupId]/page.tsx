@@ -156,7 +156,9 @@ async function loadPublishedIssue(
       showAsker: p.showAsker,
       accepted: p.accepted,
       position: p.position,
-      asker: askerVisible ? toPersonRef(p.author) : null,
+      // A null author is a member who has since left. Their question stays
+      // in the Round (it is what everyone else answered); the byline goes.
+      asker: askerVisible && p.author ? toPersonRef(p.author) : null,
     };
     const entries: RoundEntry[] = p.entries.map((e) => ({
       id: e.id,
@@ -337,9 +339,10 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         position: p.position,
         showAsker: p.showAsker,
         isOwn,
-        author: revealAsker
-          ? { id: p.author.id, name: p.author.name, photoUrl: p.author.photoUrl, birdOverride: p.author.birdOverride }
-          : null,
+        author:
+          revealAsker && p.author
+            ? { id: p.author.id, name: p.author.name, photoUrl: p.author.photoUrl, birdOverride: p.author.birdOverride }
+            : null,
       };
     });
 

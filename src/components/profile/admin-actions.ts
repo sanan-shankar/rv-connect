@@ -68,7 +68,9 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
     targetId: userId,
     ip: actor.ip,
     detail: target
-      ? `${target.name} <${target.email}> — ${purged.imagesDeleted} stored image(s) removed`
+      ? `${target.name} <${target.email}> — ${purged.imagesDeleted} stored image(s) removed` +
+        (purged.imagesFailed > 0 ? `, ${purged.imagesFailed} still queued` : "") +
+        (purged.groupsRehomed > 0 ? `, ${purged.groupsRehomed} group(s) handed on` : "")
       : undefined,
   });
 
