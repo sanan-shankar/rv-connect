@@ -13,7 +13,7 @@
  *  2026-07-25 as chrome that carried no information.
  * ------------------------------------------------------------------ */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ArrowUp, ArrowDown, ArrowRight, X } from "lucide-react";
@@ -235,44 +235,88 @@ function QuestionsList({
 }) {
   const [listRef] = useAutoAnimate();
 
-  async function handleRemove(promptId: string) {
-    const result = await callAction(() => curatePrompt({ action: "remove", promptId }));
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+  /* The list the Keeper is looking at, which is not the same thing as the list
+     the server last sent (audit M67).
+     
+     Both handlers used to compute from the `accepted` PROP, and `onChanged` is
+     `router.refresh()` -- fire-and-forget, landing whenever the round trip
+     lands. So a Keeper moving a question up twice in quick succession had the
+     second click read the pre-first-click order and send it: the first move was
+     silently undone, with no error and nothing on screen to say so. Removing
+     two questions quickly had the same shape.
+     
+     Holding the order locally makes the row move the instant it is clicked and
+     makes every later action compute from what is actually on screen. */
+  const [order, setOrder] = useState(accepted);
+  const busyRef = useRef(false);
+  const [busy, setBusy] = useState(false);
+
+  /* Props win, but only when they really changed. `accepted` is a fresh array
+     on every parent render, so syncing on identity alone would throw away an
+     optimistic move a fraction of a second after it was made and flick the row
+     back. Comparing the id sequence is the honest test of "the server has a
+     different list now". */
+  const syncedRef = useRef(accepted.map((p) => p.id).join(","));
+  useEffect(() => {
+    const key = accepted.map((p) => p.id).join(",");
+    if (key === syncedRef.current) return;
+    syncedRef.current = key;
+    setOrder(accepted);
+  }, [accepted]);
+
+  /** One action at a time, and the optimistic list reverted if it fails. */
+  async function curate(next: HomePromptView[], run: () => Promise<unknown>) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    const before = order;
+    setOrder(next);
+    try {
+      const result = await callAction(run as () => Promise<{ error?: string }>);
+      if (result && "error" in result && result.error) {
+        setOrder(before);
+        toast.error(result.error);
+        return;
+      }
+      syncedRef.current = next.map((p) => p.id).join(",");
+      onChanged();
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
     }
-    onChanged();
+  }
+
+  async function handleRemove(promptId: string) {
+    await curate(
+      order.filter((p) => p.id !== promptId),
+      () => curatePrompt({ action: "remove", promptId })
+    );
   }
 
   async function handleMove(index: number, direction: -1 | 1) {
     const target = index + direction;
-    if (target < 0 || target >= accepted.length) return;
-    const reordered = [...accepted];
+    if (target < 0 || target >= order.length) return;
+    const reordered = [...order];
     [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-    const result = await callAction(() =>
+    await curate(reordered, () =>
       curatePrompt({
         action: "reorder",
         editionId,
         orderedPromptIds: reordered.map((p) => p.id),
       })
     );
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
-    }
-    onChanged();
   }
 
   return (
     <FadeRise delay={0.04}>
       <div className={TILE}>
-        {accepted.length > 0 && (
+        {order.length > 0 && (
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {accepted.length} {accepted.length === 1 ? "question" : "questions"} in this round
+              {order.length} {order.length === 1 ? "question" : "questions"} in this round
             </p>
             <div ref={listRef} className="mt-[var(--space-s)] space-y-[var(--space-xs)]">
-              {accepted.map((p, i) => (
+              {order.map((p, i) => (
                 <QuestionRow
                   key={p.id}
                   prompt={p}
@@ -282,7 +326,7 @@ function QuestionsList({
                         <button
                           type="button"
                           aria-label="Move up"
-                          disabled={i === 0}
+                          disabled={busy || i === 0}
                           onClick={() => handleMove(i, -1)}
                           // state-layer carries the background half of the
                           // hover; bg-accent was only +2.06 dL* over this tile,
@@ -295,7 +339,7 @@ function QuestionsList({
                         <button
                           type="button"
                           aria-label="Move down"
-                          disabled={i === accepted.length - 1}
+                          disabled={busy || i === order.length - 1}
                           onClick={() => handleMove(i, 1)}
                           className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 state-layer hover:text-foreground active:scale-95 disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
@@ -304,8 +348,9 @@ function QuestionsList({
                         <button
                           type="button"
                           aria-label="Remove question"
+                          disabled={busy}
                           onClick={() => handleRemove(p.id)}
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-95 disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>

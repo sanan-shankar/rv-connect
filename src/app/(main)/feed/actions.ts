@@ -21,6 +21,30 @@ import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 
+/**
+ * How long two identical writes count as one double submission.
+ *
+ * Post and Comment are free text, so no unique index can dedupe them and the
+ * client's in-flight guard is the only other protection -- and that cannot see
+ * a second tab, a retried request or a hand-made call (audit M35). Ten seconds
+ * is longer than any double-tap and far shorter than a person deciding to say
+ * the same thing again on purpose.
+ */
+const DOUBLE_SUBMIT_MS = 10_000;
+
+/** The author fields a rendered comment needs. One copy, two readers. */
+const COMMENT_AUTHOR_SELECT = {
+  id: true,
+  name: true,
+  avatarColor: true,
+  photoUrl: true,
+  birdOverride: true,
+  accountType: true,
+  verifyState: true,
+  batchType: true,
+  batchYear: true,
+} as const;
+
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
  *  never as a throw: a post with a corrupt column should still delete, and
  *  should still post. */
@@ -205,6 +229,30 @@ export async function createPost(formData: FormData) {
           },
         }
       : {};
+
+  /* The server half of the double-submit guard (audit M35).
+   *
+   * Post is free text, so no unique index can dedupe it, and the composer's
+   * in-flight ref cannot see a second tab, a retried request or a hand-made
+   * call. The same author publishing the same words seconds apart is a
+   * duplicate submission, so the first row is handed back as though this call
+   * had made it. Narrow on purpose: same kind, same status, same text, ten
+   * seconds. A draft autosave is not affected -- those go through editPost. */
+  const twin = await prisma.post.findFirst({
+    where: {
+      authorId: session.user.id,
+      content: parsed.data.content,
+      kind: parsed.data.kind || "post",
+      status: isDraft ? "draft" : "published",
+      createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
+    },
+    select: { id: true },
+  });
+  if (twin) {
+    if (!isDraft) revalidatePath("/feed");
+    if (parsed.data.kind === "letter") revalidatePath("/letters");
+    return { success: true, postId: twin.id, isDraft };
+  }
 
   const post = await prisma.post.create({
     data: {
@@ -527,23 +575,62 @@ export async function editPost(postId: string, formData: FormData) {
     }
   }
 
-  await prisma.post.update({
-    where: { id: postId },
-    data: {
-      content,
-      // A title belongs to a letter only; a plain post has nothing else here.
-      ...(isLetter ? { title: title?.trim() || null } : {}),
-      ...imagesUpdate,
-      ...cityScopeUpdate,
-    },
-  });
+  /* The lost-update guard, when the caller is holding a version (audit M66).
+   *
+   * The desk autosaves the WHOLE body 2.5 seconds after any keystroke, and the
+   * update had no precondition: a member with the same draft open on a laptop
+   * and a phone who wrote three paragraphs on the laptop, then touched one
+   * character on the still-open phone, had the phone's stale copy silently
+   * overwrite all of it -- and both surfaces said "Saved".
+   *
+   * `baseUpdatedAt` is the row version the caller last saw. If the row has
+   * moved on since, nobody's writing is destroyed: the save is refused and the
+   * stale surface is told to reload. Callers that send no token (the
+   * published-post edit dialog, which is one surface with one window) keep the
+   * unconditional write they had.
+   */
+  const baseRaw = formData.get("baseUpdatedAt");
+  const base = baseRaw ? new Date(String(baseRaw)) : null;
+  if (base && Number.isNaN(base.getTime())) {
+    return { error: "That save could not be checked. Reload and try again." };
+  }
+
+  const data = {
+    content,
+    // A title belongs to a letter only; a plain post has nothing else here.
+    ...(isLetter ? { title: title?.trim() || null } : {}),
+    ...imagesUpdate,
+    ...cityScopeUpdate,
+  };
+
+  if (base) {
+    const moved = await prisma.post.updateMany({
+      where: { id: postId, authorId: session.user.id, updatedAt: base },
+      data,
+    });
+    if (moved.count === 0) {
+      return {
+        error:
+          "This letter has changed somewhere else. Reload the page before you carry on, or your writing here will replace it.",
+      };
+    }
+  } else {
+    await prisma.post.update({ where: { id: postId }, data });
+  }
 
   revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
   if (isLetter) {
     revalidatePath("/letters");
     revalidatePath(`/letters/${postId}`);
   }
-  return { success: true };
+  /* The new version, so the surface that just saved can hold it and keep
+     saving. Without this every save after the first would look stale to the
+     guard above. */
+  const saved = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { updatedAt: true },
+  });
+  return { success: true, updatedAt: saved?.updatedAt.toISOString() };
 }
 
 export async function toggleLike(postId: string) {
@@ -706,29 +793,38 @@ export async function createComment(formData: FormData) {
     }
   }
 
-  const comment = await prisma.comment.create({
-    data: {
-      content: parsed.data.content,
+  /* The server half of the double-submit guard (audit M35).
+   *
+   * Comment is free text, so there is no unique index that could dedupe it,
+   * and the client's in-flight ref cannot cover two tabs, a retried request or
+   * a hand-made call. The same person writing the same words under the same
+   * comment within seconds is a duplicate submission, not a person saying it
+   * twice, so the first row is returned as if the second call had made it --
+   * the caller merges it into the thread and nothing on screen betrays that
+   * anything happened. The window is deliberately tight: a deliberate repeat a
+   * minute later still lands. */
+  const twin = await prisma.comment.findFirst({
+    where: {
       postId: parsed.data.postId,
       authorId: session.user.id,
       parentId,
+      content: parsed.data.content,
+      deletedAt: null,
+      createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
     },
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          avatarColor: true,
-          photoUrl: true,
-          birdOverride: true,
-          accountType: true,
-          verifyState: true,
-          batchType: true,
-          batchYear: true,
-        },
-      },
-    },
+    include: { author: { select: COMMENT_AUTHOR_SELECT } },
   });
+  const comment =
+    twin ??
+    (await prisma.comment.create({
+      data: {
+        content: parsed.data.content,
+        postId: parsed.data.postId,
+        authorId: session.user.id,
+        parentId,
+      },
+      include: { author: { select: COMMENT_AUTHOR_SELECT } },
+    }));
 
   // Notifications
   const post = await prisma.post.findUnique({
@@ -739,8 +835,10 @@ export async function createComment(formData: FormData) {
   // notification has to say so and go there (audit B-046).
   const postLink = postNotificationLink({ id: parsed.data.postId, kind: post?.kind });
 
-  // Notify post author about comment
-  if (post && post.authorId !== session.user.id) {
+  // Notify post author about comment. Skipped when this call was the second
+  // half of a double submission: the notification already went out with the
+  // first one, and the bell is exactly where a duplicate would be noticed.
+  if (!twin && post && post.authorId !== session.user.id) {
     await prisma.notification.create({
       data: {
         userId: post.authorId,
@@ -752,7 +850,7 @@ export async function createComment(formData: FormData) {
   }
 
   // Notify parent comment author about reply
-  if (parentId) {
+  if (!twin && parentId) {
     const parentComment = await prisma.comment.findUnique({
       where: { id: parentId },
       select: { authorId: true },

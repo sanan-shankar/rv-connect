@@ -26,6 +26,7 @@ export function LetterDesk({
   initialContent,
   initialImages,
   initialCityScope,
+  initialUpdatedAt,
 }: {
   userPlaces: string[];
   /** Present when resuming an existing draft (/letters/[id]/edit). */
@@ -35,6 +36,7 @@ export function LetterDesk({
   initialImages?: string[];
   /** The audience the draft was saved with; null is "Everyone". */
   initialCityScope?: string | null;
+  initialUpdatedAt?: string;
 }) {
   const router = useRouter();
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
@@ -91,6 +93,7 @@ export function LetterDesk({
           initialContent={initialContent}
           initialImages={initialImages}
           initialCityScope={initialCityScope}
+          initialUpdatedAt={initialUpdatedAt}
           onAutosaveState={setSaveState}
           onDraftSaved={(id) => {
             // Adopt the new row: from here on, saves update in place and

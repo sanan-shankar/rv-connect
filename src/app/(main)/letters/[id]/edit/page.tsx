@@ -38,6 +38,9 @@ export default async function EditLetterPage({
       // opened on "Everyone", so a letter saved as "Bangalore only" showed no
       // chip and looked like it was going to everybody (bug audit B-048).
       cityScope: true,
+      // The row version this desk opens on, so a second tab cannot silently
+      // overwrite what the first one wrote (audit M66).
+      updatedAt: true,
     },
   });
 
@@ -61,6 +64,7 @@ export default async function EditLetterPage({
       initialContent={letter.content}
       initialImages={parseJsonArray(letter.images)}
       initialCityScope={letter.cityScope}
+      initialUpdatedAt={letter.updatedAt.toISOString()}
     />
   );
 }

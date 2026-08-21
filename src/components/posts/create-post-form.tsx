@@ -88,6 +88,7 @@ export function CreatePostForm({
   initialContent,
   initialImages,
   initialCityScope,
+  initialUpdatedAt,
   onDraftSaved,
   onAutosaveState,
 }: {
@@ -113,6 +114,8 @@ export function CreatePostForm({
   initialImages?: string[];
   /** A resumed draft's saved audience; null or absent is "Everyone". */
   initialCityScope?: string | null;
+  /** The draft row's version when this desk opened. See baseUpdatedAtRef. */
+  initialUpdatedAt?: string;
   /** First "Save as draft" on a FRESH letter: called with the new row's id so
    *  the page can adopt it (router.replace to the edit route) instead of the
    *  editor wiping itself, which is exactly the failure the owner hit. */
@@ -150,6 +153,23 @@ export function CreatePostForm({
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  /* A ref as well as the two flags, because `disabled` only takes effect on
+     the next render: pressing Post twice in one frame (a click plus the Enter
+     that was still down, a double-tap on a slow connection) reached the action
+     twice and published the whole post twice (audit M35). Set synchronously,
+     so the second call in the same frame sees it. Covers Save-as-draft too --
+     they write the same row and must not overlap either. */
+  const submittingRef = useRef(false);
+  /* The version of the draft row this desk last saw, sent with every save so a
+     stale tab cannot overwrite newer writing from another one (audit M66).
+     A ref, not state: it must be read and advanced inside the autosave
+     callback without re-arming the effect that scheduled it. */
+  const baseUpdatedAtRef = useRef<string | null>(initialUpdatedAt ?? null);
+  /* The autosave currently in flight, if any. An explicit Save or Publish
+     waits for it before sending its own version token -- otherwise the
+     member's own autosave could land first, move the row, and make their
+     Publish look like somebody else's edit. */
+  const autosaveRunRef = useRef<Promise<void> | null>(null);
   const [expanded, setExpanded] = useState(defaultLetter);
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -280,6 +300,9 @@ export function CreatePostForm({
   const autosaveToldRef = useRef(false);
   useEffect(() => {
     if (!postId) return;
+    /* Captured so runAutosave below, which TypeScript sees as a nested
+       function, keeps the narrowing the guard above just established. */
+    const draftId = postId;
     if (autosaveSkipFirst.current) {
       // The hydration pass itself sets content/title; that is not an edit.
       autosaveSkipFirst.current = false;
@@ -287,8 +310,14 @@ export function CreatePostForm({
     }
     if (!content.trim()) return;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    autosaveTimer.current = setTimeout(async () => {
+    autosaveTimer.current = setTimeout(() => {
       if (submitting || savingDraft) return;
+      autosaveRunRef.current = runAutosave().finally(() => {
+        autosaveRunRef.current = null;
+      });
+    }, 2500);
+
+    async function runAutosave() {
       onAutosaveState?.("saving");
       const fd = new FormData();
       fd.set("content", content);
@@ -297,6 +326,7 @@ export function CreatePostForm({
       // Unconditionally, because an absent field cannot express "Everyone"
       // (bug audit B-048). Empty string is the clear.
       fd.set("cityScope", audienceCity ?? "");
+      if (baseUpdatedAtRef.current) fd.set("baseUpdatedAt", baseUpdatedAtRef.current);
       /* The failure path used to be genuinely empty: on `result.error` -- which
          the app's own credentialVersion mechanism produces the instant a
          password is reset or a deletion requested on another device -- nothing
@@ -307,8 +337,9 @@ export function CreatePostForm({
          network drop, version skew right after a deploy) was not caught either. */
       let failed: string | null = null;
       try {
-        const result = await editPost(postId, fd);
+        const result = await editPost(draftId, fd);
         if (result.error) failed = result.error;
+        else if (result.updatedAt) baseUpdatedAtRef.current = result.updatedAt;
       } catch {
         failed = "That did not save. Check your connection.";
       }
@@ -328,7 +359,7 @@ export function CreatePostForm({
           description: "Your writing is kept on this device until it saves.",
         });
       }
-    }, 2500);
+    }
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
@@ -604,6 +635,12 @@ export function CreatePostForm({
 
   async function handleSubmit(saveAsDraft = false) {
     if (!content.trim()) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    /* Let an autosave that is already in the air finish first, so this save
+       sends the version it produced rather than the one before it (audit
+       M66). It cannot throw -- runAutosave catches its own failures. */
+    if (autosaveRunRef.current) await autosaveRunRef.current;
     if (saveAsDraft) setSavingDraft(true);
     else setSubmitting(true);
 
@@ -624,6 +661,9 @@ export function CreatePostForm({
       // empty value as no scope, so the fresh-post path is unchanged.
       if (postId) formData.set("cityScope", audienceCity ?? "");
       else if (audienceCity) formData.set("cityScope", audienceCity);
+      if (postId && baseUpdatedAtRef.current) {
+        formData.set("baseUpdatedAt", baseUpdatedAtRef.current);
+      }
       if (images.length > 0) formData.set("images", JSON.stringify(images));
       if (!isLetter && pollOptions) {
         const validOptions = pollOptions.filter((o) => o.trim());
@@ -643,6 +683,7 @@ export function CreatePostForm({
          on publish the page navigates away, on save the writer keeps writing. */
       if (postId) {
         const editResult = await callAction(() => editPost(postId, formData));
+        if (editResult.updatedAt) baseUpdatedAtRef.current = editResult.updatedAt;
         if (editResult.error) {
           // An unconfirmed address gets the dialog, which has the fix in it,
           // rather than a toast that slides away mid-sentence.
@@ -707,6 +748,7 @@ export function CreatePostForm({
         onPosted?.();
       }
     } finally {
+      submittingRef.current = false;
       if (saveAsDraft) setSavingDraft(false);
       else setSubmitting(false);
     }
