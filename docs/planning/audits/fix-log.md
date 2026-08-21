@@ -339,6 +339,26 @@ legacy route; `components/onboarding/actions.ts` is zod-validated throughout).
 
 **Canonical: NONE. All 45 are fixed** (session 3 closed the last, B-063, in `b332301`).
 
+### After session 4: every finding in the report is dispositioned.
+
+**§3.M — 68 of 68.** Fixed: 63. Not a bug: M21, M37. Deferred with a reason: M22 (theme cookie
+makes every route dynamic; every fix trades it for a flash of the wrong theme), M24
+(`touchLastSeen` misses soft navigations; the fix is a new client surface), **M19 (owner-blocked:
+there is no custom R2 hostname to write into `next.config.ts` yet)**.
+
+**§3.L — 117 of 117.** Fixed: 105 (including the nine already closed by earlier sessions' work).
+Not a bug: Low 43 (public repositories only), Low 53 (mechanism real, scenario impossible; the
+comment was the defect and is corrected). Deferred with a reason: Low 16 and Low 101 (both blocked
+on the same owner item as M19), Low 78 (**owner decision** — the audit says so itself), Low 89
+(every available fix is worse than the bug; argued in full above).
+
+**Feature builds: both shipped.** B-050 in `eedbb3e`, B-063 in `b332301`.
+**Net-new, both fixed:** B-202 (session 2), B-203 (session 3, owner decided).
+
+---
+
+### The old worklist, kept for the record
+
 **§3.M — 46 of 68 done, 22 left.** Done: M02, M03, M05, M06, M07, M08, M09, M10, M11, M12, M13,
 M14, M15, M16, M17, M18, M23, M26, M27, M28, M29, M30, M31, M32, M33, M36, M38, M39, M41, M45,
 M49, M50, M51, M52, M53, M54, M55, M56, M57, M58, M59, M60, M61, M62, M63, M64, M65. Not a bug:
@@ -385,6 +405,36 @@ The design presented and approved in chat:
   when the member has none, no dead buttons").
 
 ---
+
+## What is owed to the OWNER, carried forward from session 4
+
+Nothing below is a fix somebody forgot. Each one needs a decision or an account only he has.
+
+1. **The R2 serving domain.** Confirmed live again this session: every stored image is on
+   `pub-a656209a5438484f9694738260255a5e.r2.dev`, which Cloudflare rate-limits and documents as not
+   for production. **This is the one he already remembers, as "the image CORS thing."** It needs a
+   custom domain on the bucket and `R2_PUBLIC_BASE_URL` set in Vercel; the code half is one line in
+   `next.config.ts` remotePatterns and is ours the moment the hostname exists. Three findings wait
+   on it: M19, Low 16 (the photo viewer's Download silently becomes "open in a tab", because a
+   cross-origin fetch to a bucket with no CORS header cannot read the bytes) and Low 56.
+2. **`next/image` for feed photographs, or not (Low 101).** Photos render through a plain `<img>`
+   with no reserved space, so the page reflows under the reader as each one loads. Fixing it means
+   choosing an aspect ratio to reserve — which changes how the feed looks — and switching to
+   `next/image` would route every photograph through Vercel's METERED image optimisation, which
+   has a monthly quota and a bill past it. His call on both counts, and worth taking with the R2
+   domain above since they are the same photograph.
+3. **Blocked members' existing posts (Low 78).** Blocking ends their sessions and takes them out of
+   the directory, but everything they already wrote stays in the feed under their name. That is
+   what most platforms do and the admin has per-item takedown, but the directory and the feed
+   currently disagree and nothing records which was intended. Either the feeds filter blocked
+   authors, or the asymmetry gets written down as deliberate.
+4. **`CRON_SECRET` is still not in the local `.env`**, so the retention sweep and the Catch-up tick
+   cannot be exercised here. Owed since the security overhaul.
+5. **`EMAIL_DEV_SEND` is no longer set in `.env`** — checked this session. Nothing to do; recorded
+   so the previous sessions' warning is not carried forward as if it still applied.
+6. **Dependabot PR #10 can be closed rather than merged** (session 3 applied those bumps locally).
+7. **Four duplicate reports on one post** are still in the live `Report` table from before the
+   dedupe existed. Harmless; his to clean up if he wants the number tidy.
 
 ## One thing for the OWNER, found live (not in the audit's own words)
 
@@ -447,3 +497,37 @@ attempts and end up `failed`, which is the 2026-08-12 incident wearing a differe
   M30 (the rule always had the author exemption; only the list query lacked it), M56 (the retry
   latch was fine; the dead `<script>` tag was the cause), Low 43 (applies to public repositories,
   and this one is private). Sessions 1 and 2 found two more.
+
+### Added by session 4
+
+- **A red `npm run visual` is a question, and the answer is in the pixels, not the picture.** Six
+  mobile routes failed after the `pb-16` removal and every diff image looked alarming (a whole
+  tinted frame). Decoding both PNGs and comparing row by row gave the real answer in seconds: the
+  shared area had **zero differing pixels** and every page was exactly 64px shorter. The two that
+  did differ turned out to be a like count (3 -> 4) and the member count (51 -> 52) drifting since
+  the baselines were taken. `node -e` with `pngjs` beats squinting at a diff.
+- **A finding can be right about the mechanism and wrong about the consequence.** Low 53's claim
+  that setting a cookie in a Server Action re-renders the page is TRUE (it is in the installed
+  next docs). Its scenario — "toggling theme mid-scroll" — cannot happen here, because both callers
+  are dedicated pages that navigate immediately. The defect was the code comment claiming the
+  opposite, and that is what got fixed.
+- **Check a "clash" against the data before fixing it.** Low 69 said the city filter's substring
+  match conflates cities, and live data agreed: filtering Delhi returned New Delhi. But
+  `city-coords.ts` aliases them DELIBERATELY, the same way it aliases Chennai/Madras. The operator
+  was still wrong for an unaliased pair, so the fix stands — but "confirmed live" nearly became
+  "confirmed wrong".
+- **Two findings named files that no longer exist** (Low 60's `(auth)/onboarding/actions.ts`) or
+  had already been fixed by an earlier session's cluster (Lows 1, 3, 18, 39, 54, 59, 61, 63). Grep
+  before reading the fix direction.
+- **`cache()` from React is the tool for `generateMetadata` + page double-fetching** (Low 14). Key
+  it on STRINGS, never on a session object: `auth()` returns a fresh object per call, so an object
+  argument makes every call a cache miss and the memo silently does nothing.
+- **A partial unique index is the right instrument Prisma cannot hold.** Low 89 wanted
+  `UNIQUE (userId, kind) WHERE status IN ('queued','sending')`. Prisma cannot express it, so it
+  would become permanent `migrate diff` noise; the Prisma-expressible alternative (a nullable
+  sentinel column) fails far worse if one transition forgets to clear it. Deferred on those
+  grounds rather than patched.
+- **A `@@unique` can be actively harmful where a reorder writes positions one row at a time.** The
+  same instrument that fixed `UserPlace` (Low 2) would break `CatchupPrompt`'s reorder, because
+  swapping two positions violates the constraint mid-transaction unless it is DEFERRABLE — which
+  Prisma also cannot express. Fixed the arithmetic instead (`max + 1`, not `count`).
