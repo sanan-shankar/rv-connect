@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
 
-  "_comment": [
+  "description": [
     "Dependency updates, batched weekly. The floor under this project moves",
     "fast -- Next 16, Prisma 7, and next-auth on a 5.0.0-beta -- and until now",
     "nothing tracked it. The settings below exist to keep this from becoming",
