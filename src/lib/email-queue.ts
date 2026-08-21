@@ -4,6 +4,15 @@ import { IS_DEMO } from "./demo";
 import { appUrl, sendMail } from "./email";
 import { maskEmail } from "./mask-email";
 import {
+  ATTEMPT_RETRY_MS,
+  MAX_ATTEMPTS,
+  MAX_DEFERRALS,
+  PRIORITY,
+  eligibleKindsFor,
+  retryDelayMs,
+  type MailKind,
+} from "./mail-policy";
+import {
   deletionScheduledTemplate,
   passwordChangedTemplate,
   resetPasswordTemplate,
@@ -50,24 +59,7 @@ import { TOKEN_TTL_MINUTES, mintToken } from "./auth-tokens";
  *  race safely.
  * ------------------------------------------------------------------ */
 
-export type MailKind = "verify" | "reset" | "password-changed" | "deletion-scheduled";
-
-/** Lower sends first.
- *
- *  A reset is somebody locked out at this moment. The password-changed notice
- *  is the only warning a person gets that their account was taken, so it goes
- *  out close behind. A welcome confirmation is the one thing here that can
- *  honestly wait, which is fortunate, because it is also the one that arrives
- *  in hundreds. */
-const PRIORITY: Record<MailKind, number> = {
-  reset: 10,
-  "password-changed": 20,
-  // The same class of message as password-changed: the only warning a person
-  // gets that their account is going away, and — if it was not them — the 60
-  // days in which signing in undoes it start counting from now.
-  "deletion-scheduled": 20,
-  verify: 100,
-};
+export type { MailKind } from "./mail-policy";
 
 /**
  * Messages we will send in one UTC day.
@@ -100,9 +92,6 @@ const BATCH = 8;
  *  a slow Resend call is never mistaken for a crash. */
 const STALE_CLAIM_MS = 2 * 60_000;
 
-/** Give up after this many tries. A permanently bad address (someone typed
- *  `gmial`) must not be retried forever against a budget other people need. */
-const MAX_ATTEMPTS = 4;
 
 function startOfUtcDay(): Date {
   const now = new Date();
@@ -173,6 +162,63 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
   const spent = attempted?.attempts ?? MAX_ATTEMPTS;
   const afterFailure = spent >= MAX_ATTEMPTS ? "failed" : "queued";
 
+  /**
+   * Book a failure so it is retried LATER rather than in this same pass.
+   *
+   * The bug (B-002): a requeued row kept its createdAt, so it stayed the oldest
+   * eligible row and the next loop iteration picked it straight back up. Four
+   * attempts burned in about four seconds and the row went terminally 'failed',
+   * which nothing retries. Now every failure names a time it becomes eligible
+   * again, and a failure the provider caused is put on its own counter so it
+   * never spends one of the four attempts kept for a genuinely bad address.
+   */
+  const bookFailure = async (result: {
+    error?: string;
+    transient?: boolean;
+    quota?: boolean;
+  }): Promise<SendOutcome> => {
+    if (result.transient) {
+      const current = await prisma.outboundEmail.findUnique({
+        where: { id: row.id },
+        select: { deferrals: true },
+      });
+      const deferrals = (current?.deferrals ?? 0) + 1;
+      const giveUp = deferrals >= MAX_DEFERRALS;
+      await prisma.outboundEmail.update({
+        where: { id: row.id },
+        data: {
+          status: giveUp ? "failed" : "queued",
+          claimedAt: null,
+          // The attempt this send consumed was not the address's fault, so it
+          // is handed back. `deferrals` is what bounds provider trouble.
+          attempts: { decrement: 1 },
+          deferrals,
+          // A spent daily allowance is temporary on a different clock: waiting
+          // five minutes for a quota that resets at midnight UTC just burns
+          // deferrals for nothing.
+          nextAttemptAt: result.quota
+            ? nextBudgetResetAt()
+            : new Date(Date.now() + retryDelayMs(deferrals - 1)),
+          lastError: result.error ?? "send failed",
+        },
+      });
+      return giveUp ? "failed" : "requeued";
+    }
+
+    await prisma.outboundEmail.update({
+      where: { id: row.id },
+      data: {
+        status: afterFailure,
+        claimedAt: null,
+        nextAttemptAt: new Date(Date.now() + ATTEMPT_RETRY_MS),
+        lastError: result.error ?? "send failed",
+      },
+    });
+    return afterFailure === "failed" ? "failed" : "requeued";
+  };
+
+  let accepted = false;
+
   try {
     const built = await render(row);
 
@@ -181,12 +227,15 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
       // the row rather than leave it to retry against a shared budget.
       await prisma.outboundEmail.update({
         where: { id: row.id },
-        data: { status: "failed", lastError: built.skip },
+        data: { status: "failed", claimedAt: null, lastError: built.skip },
       });
       return "failed";
     }
 
     const result = await sendMail({ to: row.to, ...built });
+    // From here on the message may already exist in somebody's inbox, so the
+    // catch below must not book a failure and hand the row back to the queue.
+    accepted = result.ok;
 
     if (result.ok) {
       await prisma.outboundEmail.update({
@@ -195,6 +244,7 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
           status: "sent",
           sentAt: new Date(),
           claimedAt: null,
+          nextAttemptAt: null,
           lastError: null,
           // Resend's id for the message. "sent" only means Resend accepted it;
           // this is what lets the delivery webhook come back later and say
@@ -219,21 +269,20 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
       return "sent";
     }
 
-    await prisma.outboundEmail.update({
-      where: { id: row.id },
-      data: { status: afterFailure, claimedAt: null, lastError: result.error ?? "send failed" },
-    });
-    return afterFailure === "failed" ? "failed" : "requeued";
+    return bookFailure(result);
   } catch (err) {
-    await prisma.outboundEmail.update({
-      where: { id: row.id },
-      data: {
-        status: afterFailure,
-        claimedAt: null,
-        lastError: err instanceof Error ? err.message : "unknown",
-      },
-    });
-    return afterFailure === "failed" ? "failed" : "requeued";
+    if (accepted) {
+      // Resend took the message and the row update failed. Requeueing here
+      // would send it a second time; leaving the row in "sending" means the
+      // stale-claim sweep decides, two minutes from now, with the same
+      // information and no risk of us doing it twice in one breath.
+      console.error(`[email] sent but could not record row=${row.id}:`, err);
+      return "sent";
+    }
+    // A throw from render(): not the provider, so it counts as an attempt.
+    // render() failing the same way four times is a real fault somebody has to
+    // look at, which is what the ceiling is for.
+    return bookFailure({ error: err instanceof Error ? err.message : "unknown" });
   }
 }
 
@@ -255,9 +304,22 @@ export interface Budget {
  * which is why this is not the local day.
  */
 export async function dailyBudget(): Promise<Budget> {
-  const used = await prisma.outboundEmail.count({
-    where: { status: "sent", sentAt: { gte: startOfUtcDay() } },
-  });
+  // Counted off `sentAt` ALONE, with no status filter. `sentAt` is written
+  // once, on a real provider accept, and nothing ever clears it -- whereas
+  // `status` moves afterwards: the Resend webhook flips a bounced or
+  // complained-about row to 'failed', which used to subtract a message Resend
+  // had already counted against the real quota and hand back a phantom slot
+  // (bug audit B-071). A dozen same-day bounces ate the whole five-message
+  // margin, after which the app kept sending into hard rejections.
+  //
+  // Rows in flight count too. Every authenticated page view can start a pass,
+  // so without this several passes read the same `remaining` and each spend it
+  // (B-072). A claimed row is a message about to exist.
+  const [accepted, inFlight] = await Promise.all([
+    prisma.outboundEmail.count({ where: { sentAt: { gte: startOfUtcDay() } } }),
+    prisma.outboundEmail.count({ where: { status: "sending" } }),
+  ]);
+  const used = accepted + inFlight;
   const remaining = Math.max(0, DAILY_CAP - used);
   return {
     used,
@@ -430,10 +492,61 @@ export interface DrainReport {
   backlog: boolean;
 }
 
+/** The named lease one drain pass holds while it sends. */
+const DRAIN_LEASE = "mail-drain";
+
+/** How long a pass may hold the lease before another may take it. Comfortably
+ *  longer than BATCH sends at Resend's pace, short enough that a process
+ *  killed mid-pass only stalls the queue for half a minute. */
+const DRAIN_LEASE_MS = 45_000;
+
+/**
+ * Take the drain lease, or return null because somebody else has it.
+ *
+ * A conditional updateMany on the expiry, exactly like the per-row claim: no
+ * advisory lock, because those are session-scoped and this app reaches
+ * Postgres through the pgbouncer transaction pooler, where "the session" is
+ * whatever connection came free.
+ */
+async function takeDrainLease(): Promise<string | null> {
+  const holder = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + DRAIN_LEASE_MS);
+  const taken = await prisma.queueLease.updateMany({
+    where: { name: DRAIN_LEASE, expiresAt: { lte: now } },
+    data: { holder, expiresAt },
+  });
+  if (taken.count === 1) return holder;
+  // Count 0 means either somebody holds it, or the row has never existed.
+  try {
+    await prisma.queueLease.create({ data: { name: DRAIN_LEASE, holder, expiresAt } });
+    return holder;
+  } catch {
+    // Unique violation: another pass created it in the same instant.
+    return null;
+  }
+}
+
+/** Hand the lease back early so the next page view can drain immediately. */
+async function releaseDrainLease(holder: string): Promise<void> {
+  await prisma.queueLease
+    .updateMany({ where: { name: DRAIN_LEASE, holder }, data: { expiresAt: new Date(0) } })
+    .catch(() => {
+      // Nothing to do: the lease expires on its own within DRAIN_LEASE_MS.
+    });
+}
+
 /**
  * Send what today's budget allows. Safe to call from anywhere, as often as you
  * like: it claims rows before sending, so a hundred simultaneous page views
  * cannot mail the same person a hundred times.
+ *
+ * One pass at a time, fleet-wide. Every authenticated page view runs this in
+ * an `after()` and every enqueue schedules one, and before the lease those
+ * passes did not collapse: a loser of the per-row race simply moved to the
+ * NEXT row, so K passes sent K different messages in parallel -- a
+ * self-inflicted 429 storm against a provider that rate-limits to about two
+ * requests a second, with each 429 burning an attempt (bug audit B-072).
  */
 export async function drainMailQueue(): Promise<DrainReport> {
   // All-or-nothing (see queueIsSendable): either this process really sends, or
@@ -443,6 +556,23 @@ export async function drainMailQueue(): Promise<DrainReport> {
   // marked a real member's mail sent off a console.log.
   if (!queueIsSendable()) return { sent: 0, failed: 0, backlog: false };
 
+  const lease = await takeDrainLease();
+  if (!lease) {
+    // Another pass is sending right now. Returning immediately is the whole
+    // point; the queue is not neglected, it is busy.
+    const waiting = await prisma.outboundEmail.count({ where: { status: "queued" } });
+    return { sent: 0, failed: 0, backlog: waiting > 0 };
+  }
+
+  try {
+    return await drainWithLease();
+  } finally {
+    await releaseDrainLease(lease);
+  }
+}
+
+/** The pass itself, once this process is the one allowed to send. */
+async function drainWithLease(): Promise<DrainReport> {
   // Reclaim anything a dead process left mid-flight.
   await prisma.outboundEmail.updateMany({
     where: { status: "sending", claimedAt: { lt: new Date(Date.now() - STALE_CLAIM_MS) } },
@@ -465,11 +595,19 @@ export async function drainMailQueue(): Promise<DrainReport> {
     // Confirmations stop at the reserve line; resets and security notices may
     // spend all the way down. Expressed as a filter on which kinds are even
     // eligible, so the reserve cannot be nibbled away by a long verify run.
-    const eligibleKinds =
-      live.verifyRemaining > 0 ? ["verify", "reset", "password-changed"] : ["reset", "password-changed"];
+    const eligibleKinds = eligibleKindsFor(live.verifyRemaining);
 
     const next = await prisma.outboundEmail.findFirst({
-      where: { status: "queued", kind: { in: eligibleKinds }, attempts: { lt: MAX_ATTEMPTS } },
+      where: {
+        status: "queued",
+        kind: { in: eligibleKinds },
+        attempts: { lt: MAX_ATTEMPTS },
+        deferrals: { lt: MAX_DEFERRALS },
+        // Only what is due. A row that just failed names the moment it may be
+        // tried again, so retries spread across passes instead of burning four
+        // attempts inside one (B-002).
+        OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: new Date() } }],
+      },
       orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
       select: { id: true, kind: true, to: true, userId: true, payload: true },
     });
@@ -500,9 +638,9 @@ export async function mailHealth(): Promise<{
   failed: number;
 }> {
   const [sentToday, waiting, failed] = await Promise.all([
-    prisma.outboundEmail.count({
-      where: { status: "sent", sentAt: { gte: startOfUtcDay() } },
-    }),
+    // Same definition as dailyBudget: what the provider accepted today,
+    // whatever a later delivery webhook has since made of the row.
+    prisma.outboundEmail.count({ where: { sentAt: { gte: startOfUtcDay() } } }),
     prisma.outboundEmail.count({ where: { status: { in: ["queued", "sending"] } } }),
     prisma.outboundEmail.count({ where: { status: "failed" } }),
   ]);
@@ -573,6 +711,7 @@ export async function verificationMailState(userId: string): Promise<Verificatio
       payload: true,
       status: true,
       sentAt: true,
+      nextAttemptAt: true,
     },
   });
 
@@ -594,7 +733,15 @@ export async function verificationMailState(userId: string): Promise<Verificatio
   // Budget is available, so nothing may sit queued: send it now. "lost-claim"
   // means a concurrent drain beat us to this exact row, which is fine - the
   // re-read below sees whatever it did with it.
-  if (row.status === "queued") {
+  // ...unless the row is serving a backoff. A transient failure books the
+  // moment it may be tried again, and re-sending on every page load would walk
+  // straight through that budget one refresh at a time (B-002).
+  const due = !row.nextAttemptAt || row.nextAttemptAt <= new Date();
+  if (row.status === "queued" && due) {
+    // Deliberately NOT behind the drain lease. This is one targeted send for
+    // the member looking at the page, and making it wait on a batch pass is
+    // exactly the 2026-08-13 incident this function exists to prevent. It
+    // still cannot double-send: claimAndSend's conditional claim decides.
     const outcome = await claimAndSend(row);
     if (outcome === "sent") return { state: "sent", at: new Date() };
   }
