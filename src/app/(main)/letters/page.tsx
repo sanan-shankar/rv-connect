@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { IdentityRow } from "@/components/common/identity-row";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, formatDisplayDate, letterTitle, metaLine } from "@/lib/utils";
-import { PUBLISHED_ONLY } from "@/lib/posts";
+import { PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
+import { batchTargetKey } from "@/lib/post-visibility-rule";
 
 export const metadata: Metadata = {
   title: "Letters",
@@ -31,7 +32,7 @@ export default async function LettersPage() {
   const session = await auth();
   if (!session?.user) return null;
 
-  const userBatch = `${session.user.batchType}-${session.user.batchYear}`;
+  const userBatch = batchTargetKey(session.user.batchType, session.user.batchYear);
   const isAdmin = session.user.role === "admin";
   const viewerCities = isAdmin ? [] : await getViewerCities(session.user.id);
   // Reused below for the composer's "Show to" audience control (same list, no
@@ -44,11 +45,7 @@ export default async function LettersPage() {
       // Drafts are never public, even to the person browsing their own
       // batch/city -- they only ever show in the "Your drafts" strip below.
       ...PUBLISHED_ONLY,
-      OR: [
-        { targetBatches: null },
-        { targetBatches: "" },
-        { targetBatches: { contains: userBatch } },
-      ],
+      ...batchScopeWhere(userBatch),
       ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
     },
     include: {

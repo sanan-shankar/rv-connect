@@ -10,10 +10,11 @@ import { drainPendingImagePurges } from "@/lib/account-purge";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
-import { PUBLISHED_ONLY } from "@/lib/posts";
+import { PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
+import { batchTargetKey, storedBatchTargets } from "@/lib/post-visibility-rule";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { escapeLike } from "@/lib/db-text";
 import { isUniqueViolation } from "@/lib/prisma-errors";
@@ -211,7 +212,11 @@ export async function createPost(formData: FormData) {
       kind: parsed.data.kind || "post",
       title: parsed.data.kind === "letter" ? parsed.data.title || null : null,
       content: parsed.data.content,
-      targetBatches: groupId ? null : parsed.data.targetBatches || null,
+      // Rebuilt from the parse rather than stored through, the same way
+      // `images` is rebuilt from ownedUploadUrls above: what lands in the
+      // column is a list this app can read back, normalised and de-duplicated,
+      // never the client's own text (audit M43).
+      targetBatches: groupId ? null : storedBatchTargets(parsed.data.targetBatches),
       groupId,
       images: imagesJson,
       cityScope,
@@ -899,7 +904,7 @@ export async function loadPosts(opts?: {
   const sortBy = opts?.sortBy ?? "recent";
   const timeFilter = opts?.timeFilter ?? "all";
   const groupId = opts?.groupId;
-  const userBatch = `${session.user.batchType}-${session.user.batchYear}`;
+  const userBatch = batchTargetKey(session.user.batchType, session.user.batchYear);
   const timeDate = getTimeFilterDate(timeFilter);
 
   // Group feeds are private: only members may read them.
@@ -967,9 +972,7 @@ export async function loadPosts(opts?: {
         ...baseWhere,
         groupId: null,
         OR: [
-          { targetBatches: null },
-          { targetBatches: "" },
-          { targetBatches: { contains: userBatch } },
+          ...batchScopeWhere(userBatch).OR,
           // ...or you wrote it. The author is not part of their own audience,
           // they are its source, so a post aimed at another batch used to
           // disappear from the feed of the person who wrote it (audit M30).

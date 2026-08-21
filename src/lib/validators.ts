@@ -3,6 +3,7 @@ import { ERA_VALUES } from "./collection";
 import { emailField } from "./email-address";
 import { POST_CONTENT_MAX, POST_TOO_LONG, postContentMax } from "./post-caps";
 import { FULL_NAME_MAX, fullNameFits, valleyYear } from "./utils";
+import { MAX_BATCH_TARGETS, parseBatchTargets } from "./post-visibility-rule";
 
 /**
  * A school year, bounded below by the year Rishi Valley opened and above by
@@ -194,7 +195,24 @@ export const postSchema = z
     title: z.string().max(160).optional(),
     // No `tag`: post types were abandoned 2026-08-02 (owner call). The Post.tag
     // column survives for a future cleanup migration and has no reader or writer.
-    targetBatches: z.string().optional(),
+    //
+    // The one field on this action that used to reach the column exactly as the
+    // client sent it: no cap, no shape, while every neighbour carried one
+    // (title 160, cityScope 120, content 20000). Server actions are public HTTP
+    // endpoints, so that was megabytes per post into a column every feed query
+    // LIKE-scans (audit M43). Shape-checked against the same reader the
+    // visibility rule uses, so the two cannot disagree about what a target list
+    // is. The .max is a cheap first door: 40 keys of "ICSE-2004" plus commas
+    // cannot exceed 400 characters, so anything longer is refused before the
+    // parse walks it.
+    targetBatches: z
+      .string()
+      .max(400)
+      .refine(
+        (v) => parseBatchTargets(v) !== null,
+        `Pick up to ${MAX_BATCH_TARGETS} batches`
+      )
+      .optional(),
     groupId: z.string().optional(),
     images: z.string().optional(),
     pollOptions: z.array(z.string().min(1).max(200)).min(2).max(4).optional(),

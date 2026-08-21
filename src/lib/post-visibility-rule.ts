@@ -52,6 +52,113 @@ export type VisibilityFacts = {
   cityMatches: boolean;
 };
 
+/* ------------------------------------------------------------------ *
+ *  Batch TARGETS: the audience list on a post.
+ *
+ *  `Post.targetBatches` is a comma list of "ISC-2004" keys. It lives here
+ *  rather than beside the other batch helpers because this file is the one
+ *  that decides what a target list MEANS, and the write path must agree with
+ *  the read path by construction, not by two people remembering.
+ *
+ *  It had no cap and no shape (`z.string().optional()` in postSchema), and
+ *  createPost stored it exactly as the client sent it -- the only field on
+ *  that action that did. Server actions are public HTTP endpoints, so a member
+ *  scripting one could put megabytes into a column that every feed query
+ *  LIKE-scans and every interaction re-reads (audit M43).
+ * ------------------------------------------------------------------ */
+
+/** The board credentials a batch key can carry (User.batchType's values). */
+const BATCH_TYPES = ["ISC", "ICSE"];
+
+/**
+ * How many batches one post may be aimed at.
+ *
+ * A member belongs to exactly one batch, so a list longer than this is not an
+ * audience, it is somebody filling a column. Forty is comfortably more than
+ * anyone would ever pick by hand.
+ */
+export const MAX_BATCH_TARGETS = 40;
+
+/** The key identifying one viewer's batch, or null if they have no batch. */
+export function batchTargetKey(
+  batchType: string | null | undefined,
+  batchYear: number | null | undefined
+): string | null {
+  const type = BATCH_TYPES.find((t) => t === batchType?.trim().toUpperCase());
+  /* Exactly four digits. The shape IS the cap: no token can outgrow it, and
+     no stored key can be a strict prefix of a longer one. */
+  const year = typeof batchYear === "number" && /^\d{4}$/.test(String(batchYear))
+    ? String(batchYear)
+    : null;
+  return type && year ? `${type}-${year}` : null;
+}
+
+/**
+ * Read a target list. Returns the normalised keys, or null if the text is not
+ * a target list at all -- the answer that lets a write path REFUSE instead of
+ * storing something no reader can act on.
+ *
+ * Empty text parses to an empty list, which is the ordinary "everyone" case;
+ * only genuinely malformed text returns null.
+ */
+export function parseBatchTargets(raw: string | null | undefined): string[] | null {
+  if (raw === null || raw === undefined) return [];
+  const text = raw.trim();
+  if (!text) return [];
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const part of text.split(",")) {
+    const token = part.trim();
+    if (!token) continue;
+    const dash = token.lastIndexOf("-");
+    const year = Number(token.slice(dash + 1));
+    const key =
+      dash > 0 && /^\d{4}$/.test(token.slice(dash + 1))
+        ? batchTargetKey(token.slice(0, dash), year)
+        : null;
+    if (key === null) return null;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+    if (out.length > MAX_BATCH_TARGETS) return null;
+  }
+  return out;
+}
+
+/**
+ * The value to STORE for a target list: normalised and de-duplicated, or null
+ * for "everyone".
+ *
+ * Only ever called with text `postSchema` has already accepted, which is why
+ * an unreadable list can fold into "everyone" here without widening anybody's
+ * audience: it cannot arrive. Keep that true -- if the schema's refine is ever
+ * loosened, this is the second place to look.
+ */
+export function storedBatchTargets(raw: string | null | undefined): string | null {
+  const targets = parseBatchTargets(raw);
+  return targets && targets.length > 0 ? targets.join(",") : null;
+}
+
+/**
+ * Is this viewer's batch in this post's target list? Token-exact.
+ *
+ * A plain `stored.includes(key)` -- which is what this rule used to do --
+ * also matched a stored "ISC-20111" against a viewer whose key is "ISC-2011",
+ * showing a post to a batch it was not written for.
+ */
+export function batchTargetsInclude(
+  stored: string | null | undefined,
+  key: string | null
+): boolean {
+  if (!key) return false;
+  const targets = parseBatchTargets(stored);
+  /* Unparseable text names nobody. A stored value this rule cannot read is not
+     a value an audience should be derived from. */
+  if (targets === null) return false;
+  return targets.includes(key);
+}
+
 /* ONE message for every refusal, including "no such post". Distinguishing them
    would turn any caller into an oracle: "not a member of that group" confirms
    both that the group exists and that this id belongs to it, which is exactly
@@ -102,8 +209,8 @@ export function decidePostVisibility(
      means everyone, otherwise the viewer's own "ISC-2011"-shaped key must
      appear in the stored list. */
   if (post.targetBatches) {
-    const key = `${viewer.batchType}-${viewer.batchYear}`;
-    if (!post.targetBatches.includes(key)) {
+    const key = batchTargetKey(viewer.batchType, viewer.batchYear);
+    if (!batchTargetsInclude(post.targetBatches, key)) {
       return { ok: false, reason: "other-batch" };
     }
   }

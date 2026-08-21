@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { decidePostVisibility } from "./post-visibility-rule.ts";
+import {
+  MAX_BATCH_TARGETS,
+  batchTargetKey,
+  batchTargetsInclude,
+  decidePostVisibility,
+  parseBatchTargets,
+  storedBatchTargets,
+} from "./post-visibility-rule.ts";
 
 /* ------------------------------------------------------------------ *
  *  The post visibility rule, written down as attacks.
@@ -184,4 +191,83 @@ test("a hidden post is still reachable by its own author, on purpose", () => {
   const other = decidePostVisibility(hidden, { id: "bo" }, { isGroupMember: true, cityMatches: true });
   assert.equal(other.ok, false);
   assert.equal(other.reason, "hidden");
+});
+
+/* ------------------------------------------------------------------ *
+ *  Batch targets (audit M43): the column createPost used to store
+ *  exactly as the client sent it.
+ * ------------------------------------------------------------------ */
+
+test("a target list is normalised, de-duplicated and case-corrected", () => {
+  assert.deepEqual(parseBatchTargets("ISC-2004,icse-1999, ISC-2004 "), [
+    "ISC-2004",
+    "ICSE-1999",
+  ]);
+  assert.deepEqual(parseBatchTargets(""), []);
+  assert.deepEqual(parseBatchTargets(null), []);
+  assert.deepEqual(parseBatchTargets(undefined), []);
+});
+
+test("anything that is not a list of batch keys is refused, not stored", () => {
+  // The shape IS the cap: no token can outgrow "TYPE-YYYY".
+  assert.equal(parseBatchTargets("x".repeat(5000)), null);
+  assert.equal(parseBatchTargets("ISC-20040"), null);
+  assert.equal(parseBatchTargets("ISC-204"), null);
+  assert.equal(parseBatchTargets("IB-2004"), null);
+  assert.equal(parseBatchTargets("2004"), null);
+  assert.equal(parseBatchTargets("ISC-2004,junk"), null);
+});
+
+test("more batches than anyone would pick by hand is refused", () => {
+  const forty = Array.from({ length: MAX_BATCH_TARGETS }, (_, i) => `ISC-${1950 + i}`);
+  assert.equal(parseBatchTargets(forty.join(","))?.length, MAX_BATCH_TARGETS);
+  assert.equal(parseBatchTargets([...forty, "ISC-2000"].join(",")), null);
+});
+
+test("matching is token-exact, so a longer key is not a member of a shorter one", () => {
+  // The old rule was `stored.includes(key)`, which showed an "ISC-20111" post
+  // to everyone in ISC-2011.
+  assert.equal(batchTargetsInclude("ISC-2011", "ISC-2011"), true);
+  assert.equal(batchTargetsInclude("ISC-20111", "ISC-2011"), false);
+  assert.equal(batchTargetsInclude("ICSE-2011", "ISC-2011"), false);
+  assert.equal(batchTargetsInclude("ISC-2004,ISC-2011", "ISC-2011"), true);
+});
+
+test("a member with no batch is in nobody's target list", () => {
+  assert.equal(batchTargetKey(null, null), null);
+  assert.equal(batchTargetKey("ISC", null), null);
+  assert.equal(batchTargetKey(undefined, 2004), null);
+  assert.equal(batchTargetsInclude("ISC-2004", null), false);
+});
+
+test("what gets stored is the normalised list, or null for everyone", () => {
+  assert.equal(storedBatchTargets("icse-1999,ISC-2004"), "ICSE-1999,ISC-2004");
+  assert.equal(storedBatchTargets(""), null);
+  assert.equal(storedBatchTargets(null), null);
+});
+
+test("a targeted post reaches its batch and nobody else's", () => {
+  const targeted = {
+    id: "p4",
+    authorId: "asha",
+    groupId: null,
+    cityScope: null,
+    targetBatches: "ISC-2004",
+    isHidden: false,
+    status: "published",
+  };
+  const facts = { isGroupMember: false, cityMatches: true };
+  assert.equal(
+    decidePostVisibility(targeted, { id: "bo", batchType: "ISC", batchYear: 2004 }, facts).ok,
+    true
+  );
+  const wrong = decidePostVisibility(
+    targeted,
+    { id: "bo", batchType: "ISC", batchYear: 2005 },
+    facts
+  );
+  assert.equal(wrong.ok, false);
+  assert.equal(wrong.reason, "other-batch");
+  // No batch at all: refused, not crashed, and not let through.
+  assert.equal(decidePostVisibility(targeted, { id: "bo" }, facts).ok, false);
 });

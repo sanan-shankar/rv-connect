@@ -7,7 +7,7 @@ import { Feather } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";
 import { batchLine, letterTitle, metaLine, plainExcerpt } from "@/lib/utils";
 import { RailCard } from "./rail-card";
-import { PUBLISHED_ONLY } from "@/lib/posts";
+import { PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
 import { cityScopeWhere } from "@/lib/city-scope";
 import type { RailViewer } from "../feed-rail";
 
@@ -40,11 +40,7 @@ export async function LettersModule({ viewer }: { viewer: RailViewer }) {
         ? {}
         : {
             AND: [cityScopeWhere(viewer.cities)],
-            OR: [
-              { targetBatches: null },
-              { targetBatches: "" },
-              { targetBatches: { contains: viewer.batch } },
-            ],
+            ...batchScopeWhere(viewer.batch),
           }),
     },
     orderBy: { createdAt: "desc" },
