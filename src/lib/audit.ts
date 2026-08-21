@@ -33,7 +33,14 @@ export type AuditAction =
   | "account.export"
   | "report.user"
   | "report.post"
-  | "retention.sweep";
+  | "retention.sweep"
+  /* A webhook POST we could not authenticate. Written at most once an hour
+     (see the route): the endpoint is public and unauthenticated by necessity,
+     so an unbounded row per rejection would be a table-filling vector. */
+  | "razorpay.webhook_rejected"
+  /* A gift that came back out: refunded, or charged back after a dispute. The
+     one event that moves a money total downwards after the fact. */
+  | "razorpay.contribution_reversed";
 
 /**
  * Record one event. NEVER throws and never blocks the caller's real work: an

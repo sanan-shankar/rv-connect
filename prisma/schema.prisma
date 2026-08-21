@@ -925,7 +925,13 @@ model Contribution {
   // Paise, always -- the unit Razorpay counts in. Rupees exist only in the UI.
   amount   Int
   currency String @default("INR")
-  status   String @default("created") // "created" | "paid" | "failed"
+  // "created" | "paid" | "failed" | "refunded" | "disputed".
+  // The last two are written only by the webhook, from "paid", when Razorpay
+  // says the money went back (audit M58). Every sum in the app filters on
+  // status: "paid", so moving the row out of it is what un-counts a returned
+  // gift everywhere at once. The row itself is never deleted -- it is the
+  // record that money moved and came back.
+  status   String @default("created")
 
   // Real money or a test payment. This database is shared by production AND
   // local dev (see AGENTS.md), and a Razorpay test order is indistinguishable
