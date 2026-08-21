@@ -142,6 +142,38 @@ export function isTransientMailError(err: MailErrorLike | null | undefined): boo
   return TRANSIENT_MESSAGES.some((m) => message.includes(m));
 }
 
+/**
+ * Every reason `render()` can decline to build a message, as named constants.
+ *
+ * They live here, next to the rule that reads them, because the rule matches
+ * on the STRING: with the words spelled out in one file and compared in
+ * another, rewording the message would silently switch a retryable skip back
+ * into a permanent failure, with nothing failing to say so. This is the same
+ * drift-by-copy-paste the directory's `insensitive` helper exists to prevent.
+ */
+export const SKIP_TOKEN_RATE_LIMIT = "token rate limit";
+export const SKIP_NO_USER = "no user on a token email";
+
+/**
+ * Whether a `render()` skip reason is worth waiting out rather than retiring
+ * the row outright.
+ *
+ * "token rate limit" means auth-tokens.ts's own 60-minute mint window is
+ * full. That clears on its own and says nothing about whether the address is
+ * any good, so treating it the same as a permanent failure meant a row that
+ * failed here for reasons that were never the member's fault could not be
+ * resent: the next manual click just created a fresh row, which hit the
+ * exact same window and failed the exact same way, and three or four system
+ * retries of one message could burn most of an hour's mint budget before the
+ * member's genuine next ask had anything left to spend (bug audit M52).
+ *
+ * Anything else -- today just "no user on a token email", a data problem no
+ * amount of waiting fixes -- stays a real, immediate failure.
+ */
+export function isRetryableSkip(reason: string): boolean {
+  return reason === SKIP_TOKEN_RATE_LIMIT;
+}
+
 /** Whether the provider says the day's (or month's) allowance is spent. */
 export function quotaExceeded(err: MailErrorLike | null | undefined): boolean {
   if (!err) return false;

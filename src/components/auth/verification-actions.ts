@@ -50,15 +50,23 @@ export async function requestVerification(): Promise<RequestVerificationResult> 
 
   const already = session.user.verifyState === "pending";
   if (!already) {
-    await prisma.user.updateMany({
+    const flagged = await prisma.user.updateMany({
       where: { id: session.user.id, verifyState: "unverified" },
       data: { verifyState: "pending" },
     });
-    // Once per request, not per click: the re-ask above short-circuits.
-    await notifyAdmins(
-      `${session.user.name} asked to be verified`,
-      `/admin/people/${session.user.id}`
-    );
+    // Notify only if THIS call is the one that actually made the transition.
+    // `already` above reads the session's cached verifyState, which can be
+    // stale, so two requests on an old session (a double click, two tabs)
+    // can both reach this branch; the conditional update lets only one of
+    // them really flip the row, and without checking its count both still
+    // notified the admins for what was really one transition (bug audit
+    // Low 20).
+    if (flagged.count === 1) {
+      await notifyAdmins(
+        `${session.user.name} asked to be verified`,
+        `/admin/people/${session.user.id}`
+      );
+    }
   }
 
   return { ok: true, state: "pending" };
