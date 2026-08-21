@@ -28,6 +28,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   advanceEdition,
+  askerVisible,
   isEffectiveKeeper,
   isMissingCatchupTable,
   roundLabel,
@@ -294,7 +295,15 @@ export default async function RoundPage({
   }
 
   const sections: Array<{ prompt: CatchupPromptView; entries: RoundEntry[] }> = round.prompts.map((p) => {
-    const askerVisible = p.showAsker || keeper;
+    /* Not `p.showAsker || keeper`, which is what this said until 2026-08-21:
+       a Keeper saw the name behind every anonymous question, in the Round the
+       whole group reads, with no cue that it had been asked anonymously
+       (audit M10). The rule now lives in one function shared with the home
+       page, which had always got it right. */
+    const showsAsker = askerVisible(
+      { showAsker: p.showAsker, authorId: p.author?.id ?? null },
+      session?.user?.id ?? null
+    );
     const prompt: CatchupPromptView = {
       id: p.id,
       text: p.text,
@@ -305,7 +314,7 @@ export default async function RoundPage({
       position: p.position,
       // Null once the asker has deleted their account: the question and every
       // answer under it survive them, unattributed.
-      asker: askerVisible && p.author ? toPersonRef(p.author) : null,
+      asker: showsAsker && p.author ? toPersonRef(p.author) : null,
     };
     const entries: RoundEntry[] = p.entries.map((e) => {
       // The songUrl/songTitle/songArt trio is Spotify-shaped: `songTitle` is

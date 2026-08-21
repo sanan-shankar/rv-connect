@@ -95,17 +95,36 @@ export function QuestionSection({
           avatarHref={`/profile/${prompt.asker.id}`}
           className="mt-[var(--space-s)]"
           name={
-            <span className="text-[13px] text-muted-foreground">
-              asked by{" "}
-              <Link
-                href={`/profile/${prompt.asker.id}`}
-                className="rounded-sm transition-colors duration-150 hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                {prompt.asker.name}
-              </Link>
-            </span>
+            /* An asker on a question marked anonymous can only be the ASKER
+               themselves looking at it: `askerVisible` reveals a hidden name
+               to nobody else. So it reads "you", and it says the word,
+               because this is the page the whole group reads -- your own name
+               under a question you asked anonymously, with nothing to explain
+               it, reads exactly like the anonymity having failed (M10). */
+            !prompt.showAsker ? (
+              <span className="text-[13px] text-muted-foreground">
+                asked by you, anonymously
+              </span>
+            ) : (
+              <span className="text-[13px] text-muted-foreground">
+                asked by{" "}
+                <Link
+                  href={`/profile/${prompt.asker.id}`}
+                  className="rounded-sm transition-colors duration-150 hover:text-foreground hover:underline active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  {prompt.asker.name}
+                </Link>
+              </span>
+            )
           }
         />
+      )}
+
+      {/* Nobody's name, but the fact of the choice. A question with no
+          attribution at all left the reader to guess whether the asker was
+          hidden or simply gone; this is the cue the finding asked for. */}
+      {!prompt.showAsker && !prompt.asker && (
+        <p className="mt-[var(--space-s)] text-[13px] text-muted-foreground">asked anonymously</p>
       )}
 
       <div className="mt-[var(--space-l)] flex flex-col gap-[var(--space-l)]">

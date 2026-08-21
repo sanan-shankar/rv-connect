@@ -21,6 +21,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { RichTextArea } from "@/components/common/rich-text-area";
 import { PhotoAttachments } from "./photo-attachments";
 import { SongNameField } from "./song-attachment";
@@ -43,7 +44,7 @@ export function AnswerCard({
   entry: AnswerEntryDraft;
   position: number;
   isLast: boolean;
-  saveStatus: "idle" | "saving" | "saved";
+  saveStatus: "idle" | "saving" | "saved" | "failed";
   onBodyBlur: (body: string) => void;
   onImagesChange: (images: string[]) => void;
   onBack: () => void;
@@ -139,8 +140,23 @@ export function AnswerCard({
             </Button>
           )}
           {saveStatus !== "idle" && (
-            <span className="text-xs font-medium text-muted-foreground">
-              {saveStatus === "saving" ? "Saving..." : "Saved"}
+            /* A failed save says so, in the destructive red, and stays said.
+               It used to fall back to "idle", which renders nothing at all, so
+               the only trace was a toast that scrolls away (audit M11). Same
+               treatment the letter desk got for the same bug (B-043). The text
+               is still on screen and blurring the field again retries, which
+               is what "not saved" has to imply here. */
+            <span
+              className={cn(
+                "text-xs font-medium",
+                saveStatus === "failed" ? "text-destructive" : "text-muted-foreground"
+              )}
+            >
+              {saveStatus === "saving"
+                ? "Saving..."
+                : saveStatus === "failed"
+                  ? "Not saved. Click away and back to try again."
+                  : "Saved"}
             </span>
           )}
         </div>

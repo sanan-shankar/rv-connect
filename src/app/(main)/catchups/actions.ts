@@ -39,6 +39,7 @@ import { z } from "zod/v4";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
+import { MAX_CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
@@ -121,11 +122,12 @@ const createCatchupSchema = z.object({
 /** People-first creation: no pre-existing group needed, see createCatchupWithPeople. */
 const createCatchupWithPeopleSchema = z.object({
   name: z.string().trim().min(1, "Give this Catch-up a name.").max(80, "Keep the name under 80 characters."),
-  // 100, not the 500 the audit called out as the forced-enrolment number
-  // (M29): a whole batch is the largest genuine gathering this community has
-  // (~100 people at the expected ~1,000-member ceiling), and every enrolment
-  // notifies a real person, so the cap is the blast radius of one call.
-  memberIds: z.array(z.string().min(1)).max(100, "A Catch-up can start with up to 100 people."),
+  // The argument for the number is on MAX_CATCHUP_PEOPLE, which the people
+  // picker now reads too, so the roster cannot be built past a limit the
+  // member is only told about on submit (audit M12).
+  memberIds: z
+    .array(z.string().min(1))
+    .max(MAX_CATCHUP_PEOPLE, `A Catch-up can start with up to ${MAX_CATCHUP_PEOPLE} people.`),
   cadence: cadenceSchema.default("monthly"),
 });
 
@@ -602,8 +604,49 @@ export async function updateCatchupCadence(catchupId: string, cadence: Cadence) 
       return { error: "Only the Keeper can change the rhythm." };
     }
 
-    await prisma.catchup.update({ where: { id: catchupId }, data: { cadence: parsedCadence.data } });
+    const next = parsedCadence.data;
+    const wasCadence = ctx.catchup.cadence as Cadence;
+
+    /* Reschedule what is already booked (audit M08).
+     *
+     * `nextOpensAt` is stamped once, when a Round publishes, as
+     * publishedAt + the gap for the cadence AT THAT MOMENT. Changing the
+     * cadence used to write the new word and leave that stamp untouched, so a
+     * Keeper moving a quarterly Catch-up to monthly because three months was
+     * too slow then waited the rest of the three months anyway -- with the
+     * settings sheet reading "Monthly" the whole time. The word changed and
+     * nothing else did.
+     *
+     * Recomputed from the same ORIGIN rather than from now, because "monthly"
+     * has to mean a month after the last Round, not a month after somebody
+     * touched a setting: anchoring on now would let a Keeper push the next
+     * Round away by opening a menu. If that instant has already gone by, it
+     * lands on now and the next tick opens the Round, which is the honest
+     * reading of "you are overdue under the new rhythm".
+     *
+     * A Catch-up that has never published has no origin and no rhythm yet, so
+     * there is nothing to move. */
+    const lastPublished = await prisma.catchupEdition.findFirst({
+      where: { catchupId, status: "published", publishedAt: { not: null } },
+      orderBy: { publishedAt: "desc" },
+      select: { publishedAt: true },
+    });
+    const origin = lastPublished?.publishedAt ?? null;
+    const shouldReschedule = next !== wasCadence && ctx.catchup.nextOpensAt !== null && origin !== null;
+    const now = new Date();
+    const rescheduled = shouldReschedule
+      ? (() => {
+          const at = addCadenceGap(origin as Date, next);
+          return at.getTime() < now.getTime() ? now : at;
+        })()
+      : undefined;
+
+    await prisma.catchup.update({
+      where: { id: catchupId },
+      data: { cadence: next, ...(rescheduled ? { nextOpensAt: rescheduled } : {}) },
+    });
     revalidatePath(`/catchups/${catchupId}`);
+    revalidatePath("/catchups");
     return { success: true };
   });
 }
@@ -1534,9 +1577,15 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
     if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
-    // Same 100 ceiling as creation (audit M29) — adding is the same reach.
-    const parsed = z.array(z.string().min(1)).min(1).max(100).safeParse(userIds);
-    if (!parsed.success) return { error: "Pick between 1 and 100 people." };
+    // Same ceiling as creation (audit M29): adding is the same reach.
+    const parsed = z
+      .array(z.string().min(1))
+      .min(1)
+      .max(MAX_CATCHUP_PEOPLE)
+      .safeParse(userIds);
+    if (!parsed.success) {
+      return { error: `Pick between 1 and ${MAX_CATCHUP_PEOPLE} people.` };
+    }
 
     const scope = await loadKeeperScope(catchupId, session.user.id);
     if ("error" in scope) return { error: scope.error };

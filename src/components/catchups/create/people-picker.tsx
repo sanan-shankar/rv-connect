@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { useUserSearch } from "@/components/common/use-user-search";
 import { cn } from "@/lib/utils";
+import { MAX_CATCHUP_PEOPLE } from "@/lib/catchup-caps";
 
 export interface PickedPerson {
   id: string;
@@ -85,8 +86,14 @@ export function PeoplePicker({
   // stale-response guard cannot drift between the two search fields.
   const { results, searching, reset } = useUserSearch(query);
 
+  const full = value.length >= MAX_CATCHUP_PEOPLE;
+
   function add(person: PickedPerson) {
     if (value.some((p) => p.id === person.id)) return;
+    if (full) {
+      toast.info(`A Catch-up can start with up to ${MAX_CATCHUP_PEOPLE} people.`);
+      return;
+    }
     onChange([...value, person]);
     setQuery("");
     reset();
@@ -107,9 +114,24 @@ export function PeoplePicker({
       const fresh = people.filter((p) => p && p.id && !existing.has(p.id));
       if (fresh.length === 0) {
         toast.info("Everyone from your batch is already here");
-      } else {
-        onChange([...value, ...fresh]);
+        return;
       }
+      /* Add as many as fit, and say what happened (audit M12). A big batch
+         used to go straight in past the server's ceiling, so the member built
+         a roster, pressed the one button on the page, and got a flat refusal
+         naming a limit nothing had mentioned. Adding SOME is the useful half
+         of the answer; naming the number is the other half. */
+      const room = MAX_CATCHUP_PEOPLE - value.length;
+      if (fresh.length > room) {
+        onChange([...value, ...fresh.slice(0, room)]);
+        toast.info(
+          room > 0
+            ? `Added ${room}. A Catch-up can start with up to ${MAX_CATCHUP_PEOPLE} people, so ${fresh.length - room} from your batch are not in.`
+            : `A Catch-up can start with up to ${MAX_CATCHUP_PEOPLE} people, and yours is full.`
+        );
+        return;
+      }
+      onChange([...value, ...fresh]);
     } catch {
       toast.error("Could not load your batch just now");
     } finally {

@@ -59,6 +59,50 @@ async function getNotify(): Promise<NotifyModule> {
   return notifySingleton;
 }
 
+/**
+ * Report a failure this file deliberately swallows (audit M09).
+ *
+ * Dynamic, like prisma and notify above and for the same reason: the reporter
+ * pulls in the Sentry SDK, and the pure state machine in this file has to load
+ * under `node --test` with nothing but Node. Falls back to a plain console
+ * line if the import itself cannot resolve, because a reporter that throws is
+ * the least useful thing this module could do.
+ */
+async function report(scope: string, err: unknown, context?: Record<string, unknown>) {
+  try {
+    (await import("@/lib/report-error")).reportSwallowed(scope, err, context);
+  } catch {
+    console.error(`[${scope}]`, err, context ?? "");
+  }
+}
+
+/**
+ * Whether a question shows who asked it.
+ *
+ * The ONE place this is decided, because the two surfaces that render a
+ * question disagreed (bug audit M10). The Catch-up home hid an anonymous
+ * asker from everybody but the asker; the published Round revealed them to any
+ * Keeper, with nothing on screen to say the question had been asked
+ * anonymously. So a member picked "Ask anonymously", saw their name withheld
+ * on the console, and was named in the Round the whole group then read.
+ *
+ * The spec grants no Keeper exception: "the author is always stored;
+ * `showAsker=false` only hides the asker in the UI" (catchups.md:257), and
+ * anonymity is listed as a property of question submission with no carve-out
+ * (catchups.md:825). A Keeper curating the queue already works without seeing
+ * askers, because the home page has always hidden them there too.
+ *
+ * The author themselves always sees their own name, which is not a leak: they
+ * are the only person who already knows.
+ */
+export function askerVisible(
+  prompt: { showAsker: boolean; authorId: string | null },
+  viewerId: string | null
+): boolean {
+  if (prompt.showAsker) return true;
+  return !!viewerId && prompt.authorId === viewerId;
+}
+
 // ─── Timing constants (spec section 2.3) ─────────────────────────────────────
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
@@ -1134,13 +1178,18 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
         await openNextRoundIfDue(c, now);
       } catch (err) {
         if (!isMissingCatchupTable(err)) {
-          console.error("[catchups] openNextRoundIfDue failed", err);
+          // Reported, not just logged: this is the engine, and nobody notices
+          // it stop -- the symptom is Rounds that never open (audit M09).
+          await report("catchups", err, { step: "openNextRoundIfDue", catchupId: c.id });
         }
       }
     }
   } catch (err) {
     if (isMissingCatchupTable(err)) return; // tables absent (pre-migration): no-op
-    console.error("[catchups] advanceDueCatchups failed", err);
     // Swallow: this runs on every authenticated page and must never break one.
+    // But say so somewhere a human will hear it. Before this the whole
+    // Catch-ups feature could be failing on every page view and the only
+    // outward sign would be Rounds quietly not happening (audit M09).
+    await report("catchups", err, { step: "advanceDueCatchups", userId });
   }
 }

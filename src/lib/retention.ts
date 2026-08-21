@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { writeAudit } from "./audit";
 import { purgeUserAccount, drainPendingImagePurges, DELETION_GRACE_DAYS } from "./account-purge";
 import { RECENTLY_DELETED_DAYS } from "./catchup-shelf";
+import { reportSwallowed } from "./report-error";
 
 /**
  * The retention sweep (audit M34, GDPR Art. 5(1)(e)): personal data stops
@@ -96,7 +97,12 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     try {
       return await fn();
     } catch (err) {
-      console.error(`[retention] ${name} failed:`, err);
+      // Reported, not just logged. This runs once a night with nobody
+      // watching, and a step that has been failing for a month leaves no
+      // symptom until a table is large enough to notice (audit M09's sibling,
+      // M54). The pass still continues: one bad table must not leave the other
+      // nine growing.
+      reportSwallowed("retention", err, { step: name });
       errors.push(name);
       return 0;
     }
