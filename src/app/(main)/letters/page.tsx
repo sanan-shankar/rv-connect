@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { IdentityRow } from "@/components/common/identity-row";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, formatDisplayDate, letterTitle, metaLine } from "@/lib/utils";
-import { PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
+import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
 import { batchTargetKey } from "@/lib/post-visibility-rule";
 
 export const metadata: Metadata = {
@@ -69,6 +69,8 @@ export default async function LettersPage({
       // Drafts are never public, even to the person browsing their own
       // batch/city -- they only ever show in the "Your drafts" strip below.
       ...PUBLISHED_ONLY,
+      // A blocked member's letters leave the index with them (audit Low 78).
+      ...AUTHOR_IN_GOOD_STANDING,
       ...batchScopeWhere(userBatch),
       ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
       ...(olderThan ? { createdAt: { lt: olderThan } } : {}),

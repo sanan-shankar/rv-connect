@@ -26,7 +26,8 @@ export type DenialReason =
   | "draft"
   | "not-a-member"
   | "other-city"
-  | "other-batch";
+  | "other-batch"
+  | "author-blocked";
 
 export type GuardedPost = {
   id: string;
@@ -36,6 +37,10 @@ export type GuardedPost = {
   targetBatches: string | null;
   isHidden: boolean;
   status: string | null;
+  /** Whether the author is currently blocked (owner decision, audit Low 78).
+   *  Optional so a caller that has not fetched it is treated as "in good
+   *  standing" rather than silently hiding everything. */
+  authorIsBlocked?: boolean;
 };
 
 export type PostVisibility =
@@ -183,6 +188,16 @@ export function decidePostVisibility(
      aimed at another city or another batch was reachable at its own URL and
      yet absent from its own author's feed. The two now agree. */
   if (post.authorId === viewer.id) return { ok: true, post };
+
+  /* A blocked member's writing leaves the feed with them, and a direct link
+     has to agree or the rule and the list say different things -- which is the
+     shape of M30 and M31 all over again (owner decision, audit Low 78).
+     
+     Below the admin exemption on purpose: a moderator following a link from
+     /admin/content lands on the post itself, which is where they act on it.
+     Below the author exemption too, though a blocked account cannot sign in to
+     use it. */
+  if (post.authorIsBlocked) return { ok: false, reason: "author-blocked" };
 
   if (post.isHidden) return { ok: false, reason: "hidden" };
 

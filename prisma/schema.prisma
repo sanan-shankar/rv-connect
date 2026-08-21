@@ -66,6 +66,22 @@ model User {
   verifyStateAt DateTime  @default(now())
   verifiedAt    DateTime?
   verifyMethod  String?   // office_list | community | admin_manual
+  // Blocking is a capability switch, not a delete. It ends every live session
+  // (via credentialVersion below), refuses the next sign-in, and holds the
+  // account out of the directory and search.
+  //
+  // It ALSO hides everything they have already written: posts, letters and
+  // comments leave the feed with them (owner decision, 2026-08-21, audit
+  // Low 78 -- the directory and the feed used to disagree, and their name
+  // linked to a profile that answers 404 for everybody else). One fragment,
+  // `AUTHOR_IN_GOOD_STANDING` in lib/posts.ts, so no feed can forget it, and
+  // `decidePostVisibility` refuses the direct link so a list and a URL cannot
+  // say different things. Nothing is deleted: unblocking restores all of it.
+  //
+  // Deliberately NOT extended to the Collection: a photograph there was
+  // approved by an admin into a shared archive of the school's history, which
+  // is a different thing from something the member published under their own
+  // name. Take one down individually if it needs to go.
   isBlocked     Boolean   @default(false)
   // Bumped whenever this account's credentials or standing change: a password
   // reset or change, a block, an unblock. The value is copied into the JWT at

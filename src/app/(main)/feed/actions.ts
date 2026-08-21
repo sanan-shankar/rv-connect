@@ -10,7 +10,7 @@ import { drainPendingImagePurges } from "@/lib/account-purge";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
-import { PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
+import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
@@ -1051,6 +1051,9 @@ export async function loadPosts(opts?: {
     // including the author's own profile/group feeds -- they only ever show
     // in the "Your drafts" strip on /letters.
     ...PUBLISHED_ONLY,
+    // A blocked member's writing leaves the feed with them (owner decision,
+    // audit Low 78). Nothing is deleted; unblocking restores all of it.
+    ...AUTHOR_IN_GOOD_STANDING,
     ...(opts?.authorId ? { authorId: opts.authorId } : {}),
     ...(opts?.kind ? { kind: opts.kind } : {}),
     ...(andConditions.length ? { AND: andConditions } : {}),
@@ -1220,6 +1223,9 @@ export async function loadSavedPosts() {
         // in a card with a bookmark ribbon), but this guards the read path the
         // same way every other post list does.
         ...PUBLISHED_ONLY,
+        // And the same standing rule the feed applies (audit Low 78): a post
+        // saved before its author was blocked drops out of Saved too.
+        ...AUTHOR_IN_GOOD_STANDING,
         OR: [{ groupId: null }, { groupId: { in: groupIds } }],
         // Same cityScope visibility rule as the main feed query: a bookmarked
         // post scoped to a city the viewer no longer lists should drop out of
@@ -1353,7 +1359,16 @@ export async function toggleCommentLike(commentId: string) {
 }
 
 /** A comment row still shown to readers: neither admin-hidden nor self-deleted. */
-const VISIBLE_COMMENT = { isHidden: false, deletedAt: null } as const;
+/* A comment worth rendering: not hidden by a moderator, not deleted by its
+   author, and written by somebody still in good standing (audit Low 78, owner
+   decision -- see AUTHOR_IN_GOOD_STANDING). A blocked member's comment leaves
+   the thread; if replies hang off it, the roots query below still keeps it as
+   an anonymous "[deleted]" stub so those replies keep their anchor. */
+const VISIBLE_COMMENT = {
+  isHidden: false,
+  deletedAt: null,
+  ...AUTHOR_IN_GOOD_STANDING,
+} as const;
 
 /**
  * One page of a post's thread. Pagination walks TOP-LEVEL comments only
