@@ -19,6 +19,7 @@ import type {
 } from "@/components/catchups/home/types";
 import {
   advanceEdition,
+  askerVisible,
   CATCHUP_PROMPT_SETS,
   editionCountdownLabel,
   isEffectiveKeeper,
@@ -330,7 +331,9 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
 
     const prompts: HomePromptView[] = [...accepted, ...pending].map((p) => {
       const isOwn = p.authorId === viewerId;
-      const revealAsker = p.showAsker || isOwn;
+      // Shared with the published Round page, which used to answer this
+      // differently and named anonymous askers to any Keeper (audit M10).
+      const revealAsker = askerVisible({ showAsker: p.showAsker, authorId: p.authorId }, viewerId);
       return {
         id: p.id,
         text: p.text,
@@ -382,29 +385,61 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     select: { id: true, number: true, publishedAt: true },
   });
 
-  const archive: HomeArchiveRow[] = [];
-  for (const ed of publishedEditions) {
-    const entries = await prisma.catchupEntry.findMany({
-      where: { editionId: ed.id },
-      select: { authorId: true, body: true, _count: { select: { loves: true } } },
-    });
-    const contributorCount = new Set(entries.map((e) => e.authorId)).size;
-    const top = entries
-      .filter((e) => e.body && e.body.trim().length > 0)
-      .sort((a, b) => b._count.loves - a._count.loves)[0];
-    const teaser = top?.body
-      ? top.body.length > 140
-        ? `${top.body.slice(0, 140).trimEnd()}...`
-        : top.body
-      : null;
-    archive.push({
-      editionId: ed.id,
-      number: ed.number,
-      publishedAt: ed.publishedAt?.toISOString() ?? null,
-      contributorCount,
-      teaser,
-    });
+  /* Contributor counts for EVERY published Round, in one query (audit M13).
+     This used to be a query per Round, each pulling every entry's full BODY
+     just to count distinct authors and find the most-loved one -- so a group
+     three years into a monthly rhythm ran 36 queries and read tens of
+     thousands of answer bodies into memory on every visit to this page.
+     `groupBy` returns one small row per (Round, author) pair instead: the
+     distinct set IS the answer, and no body is read at all. */
+  const contributorPairs =
+    publishedEditions.length > 0
+      ? await prisma.catchupEntry.groupBy({
+          by: ["editionId", "authorId"],
+          where: { editionId: { in: publishedEditions.map((e) => e.id) } },
+        })
+      : [];
+  const contributorCounts = new Map<string, number>();
+  for (const row of contributorPairs) {
+    contributorCounts.set(row.editionId, (contributorCounts.get(row.editionId) ?? 0) + 1);
   }
+
+  /**
+   * How many of the most recent Rounds carry a teaser line on the shelf.
+   *
+   * Six, matching the index rail's own "Fresh off the press" take, because a
+   * teaser is a nudge to re-open something recent and the shelf's older rows
+   * are read as a list of what exists rather than browsed. The cost of one is
+   * a query returning a single row; the cost of doing it for every Round on
+   * the shelf is the N+1 this block exists to have removed.
+   */
+  const TEASER_ROUNDS = 6;
+  const teasered = publishedEditions.slice(0, TEASER_ROUNDS);
+  const teasers = new Map<string, string>();
+  await Promise.all(
+    teasered.map(async (ed) => {
+      // take: 1, ordered in the database, so exactly one row comes back
+      // instead of the whole Round. `id` breaks the tie, because ordering on
+      // a count alone is not total and the teaser would otherwise change
+      // between two identical page loads.
+      const top = await prisma.catchupEntry.findFirst({
+        where: { editionId: ed.id, body: { not: null } },
+        orderBy: [{ loves: { _count: "desc" } }, { id: "asc" }],
+        select: { body: true },
+      });
+      const body = top?.body?.trim();
+      if (!body) return;
+      teasers.set(ed.id, body.length > 140 ? `${body.slice(0, 140).trimEnd()}...` : body);
+    })
+  );
+
+  const archive: HomeArchiveRow[] = publishedEditions.map((ed) => ({
+    editionId: ed.id,
+    number: ed.number,
+    publishedAt: ed.publishedAt?.toISOString() ?? null,
+    contributorCount: contributorCounts.get(ed.id) ?? 0,
+    teaser: teasers.get(ed.id) ?? null,
+  }));
 
   const pref = await prisma.catchupPref.findUnique({
     where: { catchupId_userId: { catchupId: catchup.id, userId: viewerId } },

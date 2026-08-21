@@ -19,6 +19,7 @@ import {
   REMINDER_TWO_DAYS,
   REMINDER_LAST_DAY,
   REMINDER_EXTENDED,
+  askerVisible,
   computeStatus,
   nextEditionStatus,
   planNextAction,
@@ -568,4 +569,30 @@ test("suggestSeedPrompts: two Round 1 starters, both from a real set", () => {
     assert.equal(seed.category, "right-now");
     assert.ok(seed.text.trim().length > 0);
   }
+});
+
+/* --- Who a question says asked it (audit M10) ----------------------------- */
+
+test("a named question shows its asker to everybody", () => {
+  const p = { showAsker: true, authorId: "asha" };
+  assert.equal(askerVisible(p, "asha"), true);
+  assert.equal(askerVisible(p, "someone-else"), true);
+  assert.equal(askerVisible(p, null), true);
+});
+
+test("an anonymous question shows its asker to nobody but the asker", () => {
+  const p = { showAsker: false, authorId: "asha" };
+  assert.equal(askerVisible(p, "asha"), true, "the author already knows who they are");
+  assert.equal(askerVisible(p, "someone-else"), false);
+  // The one that was wrong: a Keeper is somebody else. There is no role
+  // argument here at all, which is the point -- the rule cannot grow an
+  // exception without this signature changing.
+  assert.equal(askerVisible(p, "the-keeper"), false);
+  assert.equal(askerVisible(p, null), false);
+});
+
+test("an anonymous question whose asker deleted their account stays anonymous", () => {
+  assert.equal(askerVisible({ showAsker: false, authorId: null }, "anyone"), false);
+  // ...and a signed-out reader cannot become the author by both being null.
+  assert.equal(askerVisible({ showAsker: false, authorId: null }, null), false);
 });

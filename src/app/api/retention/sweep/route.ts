@@ -32,5 +32,21 @@ export async function GET(req: NextRequest) {
   }
 
   const result = await runRetentionSweep();
-  return NextResponse.json(result);
+
+  /* A pass with a failed step answers 502, not 200 (audit M54).
+   *
+   * The sweep is deliberately fault-tolerant: one table failing must not stop
+   * the other nine, so every step catches its own error and the pass finishes.
+   * That was the whole of the reporting too -- the route answered 200 with the
+   * failures listed in a JSON body nobody reads, so the GitHub Actions job
+   * went green and the nightly alarm this route exists to be stayed quiet
+   * while retention silently stopped working.
+   *
+   * 502 rather than 500: the sweep itself ran, and what failed was downstream
+   * of it. The body is unchanged, so whoever opens the failed run still sees
+   * exactly which steps went wrong and what the other steps managed to delete.
+   * Safe to be loud about: every step is a hard-cutoff deleteMany, so tomorrow
+   * night simply deletes two days' worth. */
+  const status = result.errors.length > 0 ? 502 : 200;
+  return NextResponse.json(result, { status });
 }
