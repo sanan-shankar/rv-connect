@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { Eye, EyeOff, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
@@ -239,8 +240,11 @@ export function SignupForm({
   turnstileSiteKey: string | null;
   onSuccess: () => void;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  /** Set once the account exists and the celebration is running; see finally. */
+  const succeeded = useRef(false);
   const turnstileRef = useRef<TurnstileHandle>(null);
   const [accountType, setAccountType] = useState<"alumnus" | "teacher">("alumnus");
   const isAlum = accountType === "alumnus";
@@ -424,8 +428,16 @@ export function SignupForm({
         });
 
         if (signInResult?.error) {
-          setError("Account created but sign in failed. Please log in manually.");
+          /* The account exists; only the automatic sign-in did not happen.
+             Onboarding was then lost for good: /welcome is reachable only by
+             being pushed there from this line, so a member in this branch
+             logged in later and landed on the feed having never seen the five
+             setup steps (audit Low 115). Sending them to sign-in with
+             /welcome as the destination puts them back on the path. The toast
+             survives the navigation, so the explanation arrives with them. */
           hoopoe.react("error");
+          toast.error("Your account is made. Sign in and we will pick up where you left off.");
+          router.push(`/login?next=${encodeURIComponent("/welcome")}`);
         } else {
           // The biggest moment in the whole flow, so it gets the top tier
           // (owner, 2026-08-04: "another celebration after joining").
@@ -433,6 +445,7 @@ export function SignupForm({
           // of 24, nine particles instead of six, over 1.3s instead of 0.85.
           // peek() first so the wings come off the eyes before they are needed
           // for the celebration itself.
+          succeeded.current = true;
           hoopoe.peek();
           hoopoe.celebrate(3);
           toast.success("Welcome to the jungle!");
@@ -448,7 +461,12 @@ export function SignupForm({
       setError("Something went wrong. Please try again.");
       hoopoe.react("error");
     } finally {
-      setLoading(false);
+      /* NOT on the success path. The celebration runs for 1.3 seconds before
+         the navigation, and re-enabling the button under it let a second click
+         fire registerUser again -- which then failed on the unique email and
+         painted an error over the one unrepeatable moment in the flow (audit
+         Low 111). The button stays disabled until this page goes away. */
+      if (!succeeded.current) setLoading(false);
     }
   }
 

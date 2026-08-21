@@ -12,9 +12,13 @@
  * signature check below is what stands in for auth, and nothing in this file
  * trusts an unsigned body. */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+
+/** How long to wait before re-matching a webhook event that found no row.
+ *  Two tries, generously longer than the database write it is racing. */
+const RETRY_DELAYS_MS = [2_000, 6_000];
 
 /* Resend signs with Svix. Verified by hand rather than by adding the `svix`
  * package: the scheme is one HMAC and a timestamp check, and this is the only
@@ -143,7 +147,32 @@ export async function POST(request: Request) {
   });
 
   if (count === 0) {
-    console.warn(`[resend] ${event.type} for unknown email_id ${providerId}`);
+    /* Almost certainly the race, not a stranger's message (audit Low 90).
+     *
+     * We write `providerId` onto the row immediately after Resend accepts the
+     * send -- but Resend can deliver a bounce webhook before that write lands,
+     * and this match is on `providerId` alone. The event was then dropped with
+     * a warning and the row stayed "sent" for ever, which is the one status
+     * that means "nothing more will happen to this".
+     *
+     * Retried behind the response so the webhook still gets its immediate 200
+     * (a slow or failing webhook endpoint is its own hazard). Two tries a few
+     * seconds apart is far longer than a database write takes; anything still
+     * unmatched after that really is a message this deployment did not send. */
+    after(async () => {
+      for (const delay of RETRY_DELAYS_MS) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        const retry = await prisma.outboundEmail.updateMany({
+          where: { providerId },
+          data: patch,
+        });
+        if (retry.count > 0) {
+          console.info(`[resend] ${event.type} matched on retry for email_id ${providerId}`);
+          return;
+        }
+      }
+      console.warn(`[resend] ${event.type} for unknown email_id ${providerId}`);
+    });
   } else if (event.type === "email.bounced" || event.type === "email.complained") {
     /* Loud in the log: a bounce means an alumnus never got their invitation,
      * and a complaint is the single most damaging signal for a young sending

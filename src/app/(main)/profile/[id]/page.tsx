@@ -18,6 +18,7 @@ import { PUBLISHED_ONLY } from "@/lib/posts";
 import { viewerMaySeeContacts } from "@/lib/member-gate";
 import { IS_DEMO } from "@/lib/demo";
 import { recordView } from "@/lib/content-view";
+import { vcardLines, vcardValue } from "@/lib/vcard";
 
 export async function generateMetadata({
   params,
@@ -299,21 +300,30 @@ export default async function ProfilePage({
   // The vCard carries the same details in a second format, so it is gated on
   // the same fact. An unconfirmed viewer gets a card with a name and a batch
   // on it and nothing to dial.
-  const vcard = [
+  /* Every text value goes through vcardValue, and the lines are joined with
+     CRLF (audit Low 97). The NOTE below is the one that made this urgent: it
+     is built with commas and a semicolon, which a vCard reads as FIELD
+     SEPARATORS, so the house history arrived in an address book as several
+     mangled fields rather than one sentence. */
+  const vcard = vcardLines([
     "BEGIN:VCARD",
     "VERSION:3.0",
-    `FN:${user.name}`,
-    maySeeContacts && contactEmail ? `EMAIL:${contactEmail}` : null,
-    ...(maySeeContacts ? phoneNumbers.map((p) => `TEL:${p}`) : []),
-    occupation ? `TITLE:${occupation}` : null,
-    ...cityLabels.map((c) => `ADR:;;${c};;;;`),
-    maySeeContacts && user.instagram ? `URL:${socialHref("instagram", user.instagram)}` : null,
-    maySeeContacts && user.linkedin ? `URL:${socialHref("linkedin", user.linkedin)}` : null,
-    `NOTE:${batchLine(user)}, Rishi Valley community${houseNote}`,
+    `FN:${vcardValue(user.name)}`,
+    maySeeContacts && contactEmail ? `EMAIL:${vcardValue(contactEmail)}` : null,
+    ...(maySeeContacts ? phoneNumbers.map((p) => `TEL:${vcardValue(p)}`) : []),
+    occupation ? `TITLE:${vcardValue(occupation)}` : null,
+    // The structured ADR field: its own semicolons are the structure, so only
+    // the locality between them is escaped.
+    ...cityLabels.map((c) => `ADR:;;${vcardValue(c)};;;;`),
+    maySeeContacts && user.instagram
+      ? `URL:${vcardValue(socialHref("instagram", user.instagram))}`
+      : null,
+    maySeeContacts && user.linkedin
+      ? `URL:${vcardValue(socialHref("linkedin", user.linkedin))}`
+      : null,
+    `NOTE:${vcardValue(`${batchLine(user)}, Rishi Valley community${houseNote}`)}`,
     "END:VCARD",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ]);
 
   // ---- Photos tab content ----
   const photosNode =

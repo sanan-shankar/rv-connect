@@ -19,7 +19,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { batchTypeFromLeaving } from "@/lib/utils";
+import { FULL_NAME_MAX, batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 import { contactMethodsSchema } from "@/lib/validators";
@@ -83,7 +83,11 @@ export async function updateProfileField(field: ProfileField, raw: string) {
   switch (field) {
     case "name": {
       if (value.length < 2) return { error: "Your name needs at least two letters." };
-      if (value.length > 80) return { error: "That name is too long." };
+      /* FULL_NAME_MAX, not a hand-typed 80. Signup accepts up to a hundred
+         characters, so a member with a longer name than this local number
+         allowed could never edit their own name here -- the field refused the
+         value it was already holding (audit Low 84). */
+      if (value.length > FULL_NAME_MAX) return { error: "That name is too long." };
       data.name = titleCase(value);
       break;
     }
@@ -130,6 +134,30 @@ export async function updateProfileField(field: ProfileField, raw: string) {
       const n = Number(value);
       if (!Number.isInteger(n) || n < YEAR_MIN || n > YEAR_MAX)
         return { error: `A year between ${YEAR_MIN} and ${YEAR_MAX}, please.` };
+
+      /* Cross-field sanity (audit Low 96). Each year was checked only against
+         the calendar, never against the others, so "joined 2020, left 2010"
+         saved happily and the profile then printed "2020-2010" and derived a
+         board credential from a pair of years that cannot both be true. The
+         other years have to be read to check that, since this action writes
+         one field at a time.
+         
+         Refused rather than corrected: which of the two is wrong is the
+         member's to say. The message names the other field so it is clear
+         which one to fix first. */
+      const years = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          batchYear: true,
+          yearJoined: true,
+          yearLeft: true,
+          taughtFrom: true,
+          taughtUntil: true,
+        },
+      });
+      const clash = years && yearClash({ ...years, [field]: n });
+      if (clash) return { error: clash };
+
       data[field] = n;
     }
   }
@@ -189,6 +217,34 @@ export async function updateProfileField(field: ProfileField, raw: string) {
  * Written together because they are one list on screen; splitting them into
  * eight actions would only mean eight round trips for one drag of the mouse.
  */
+/**
+ * The reason one set of years cannot all be true, or null when they can.
+ *
+ * Only the orderings that are impossible rather than merely unusual: a very
+ * short stay, a batch far ahead of the leaving year, a teacher still teaching
+ * (no `taughtUntil`) are all real. Leaving before arriving is not, and neither
+ * is a cohort finishing 12th before the person left the school -- which is
+ * what `batchTypeFromLeaving` already refuses to derive a credential from.
+ */
+function yearClash(y: {
+  batchYear: number | null;
+  yearJoined: number | null;
+  yearLeft: number | null;
+  taughtFrom: number | null;
+  taughtUntil: number | null;
+}): string | null {
+  if (y.yearJoined && y.yearLeft && y.yearLeft < y.yearJoined) {
+    return "You cannot have left before you joined. Check the other year too.";
+  }
+  if (y.yearLeft && y.batchYear && y.batchYear < y.yearLeft) {
+    return "Your batch year cannot be before the year you left. Check the other year too.";
+  }
+  if (y.taughtFrom && y.taughtUntil && y.taughtUntil < y.taughtFrom) {
+    return "Your teaching cannot have ended before it began. Check the other year too.";
+  }
+  return null;
+}
+
 /** A trimmed string, or "" for anything that is not one. */
 function text(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
