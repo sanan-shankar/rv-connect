@@ -119,7 +119,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin/analytics",
         label: "Analytics",
         icon: ChartLine,
-        blurb: "Not built yet.",
+        blurb: "Who is here, what they open, and where they come from.",
       },
     ],
   },

@@ -53,17 +53,49 @@ const ROW_SELECT = {
  */
 export async function loadPeoplePage(
   f: PeopleFilters,
-  cursor?: string | null
+  cursor?: string | null,
+  loaded = 0
 ): Promise<PeoplePage> {
   const where = peopleWhere(f);
+  const orderBy = [{ createdAt: "desc" }, { id: "desc" }] as const;
 
-  const found = await prisma.user.findMany({
+  let found = await prisma.user.findMany({
     where,
     select: ROW_SELECT,
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    orderBy: [...orderBy],
     take: PEOPLE_PAGE_SIZE + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
+
+  /* Recover from a cursor row that has left the result set (audit Low 12; the
+     same shape the directory's load-more carries for M39).
+
+     Prisma's `cursor` needs the row it names to be INSIDE the filtered set, so
+     if that member is deleted, or edited out of the current facet, between one
+     page and the next, this answers "nothing" for a list with hundreds of rows
+     left -- and "Show more" simply stopped, with the rest of the list
+     unreachable until a reload and nothing on screen to say so.
+
+     Only checked when the page came back EMPTY, which is also the ordinary
+     end-of-list case, so it costs one round trip on the last page of a
+     scroll-through and nothing on any other. An offset is less exact than a
+     cursor -- a row inserted above could be repeated or missed once -- but it
+     is a page of the list rather than the silent end of it. */
+  if (cursor && found.length === 0) {
+    const cursorStillCounts = await prisma.user.findFirst({
+      where: { ...where, id: cursor },
+      select: { id: true },
+    });
+    if (!cursorStillCounts) {
+      found = await prisma.user.findMany({
+        where,
+        select: ROW_SELECT,
+        orderBy: [...orderBy],
+        take: PEOPLE_PAGE_SIZE + 1,
+        skip: Math.max(0, Math.trunc(loaded)),
+      });
+    }
+  }
 
   const hasMore = found.length > PEOPLE_PAGE_SIZE;
   const page = hasMore ? found.slice(0, PEOPLE_PAGE_SIZE) : found;

@@ -16,7 +16,25 @@ import { overdueEditionWhere } from "@/lib/admin";
 import { threadTitle } from "@/lib/admin-threads";
 import type { WorkItem } from "@/lib/admin-worklist";
 
-const PER_QUEUE = 20;
+export const PER_QUEUE = 20;
+
+/**
+ * True when at least one queue filled its slice, so the list is showing less
+ * than the rail is counting.
+ *
+ * The rail counts every waiting row; this list takes twenty per queue. Past
+ * that the two stop agreeing and neither said so, which is exactly the drift
+ * the file header above declares must not happen (audit Low 7). Derived from
+ * the returned items rather than tracked separately, so it cannot fall out of
+ * step with what was actually rendered.
+ */
+export function worklistIsCapped(items: WorkItem[]): boolean {
+  const perQueue = new Map<string, number>();
+  for (const item of items) {
+    perQueue.set(item.queue, (perQueue.get(item.queue) ?? 0) + 1);
+  }
+  return [...perQueue.values()].some((n) => n >= PER_QUEUE);
+}
 
 export async function loadWorklist(): Promise<WorkItem[]> {
   const now = new Date();

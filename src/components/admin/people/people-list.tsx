@@ -59,6 +59,8 @@ export function PeopleList({
   const [rows, setRows] = useState(initial);
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
+  /** Rows whose Verify press is still in the air; see verify() below. */
+  const [verifying, setVerifying] = useState<ReadonlySet<string>>(new Set());
   const [panelOpen, setPanelOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [, startTransition] = useTransition();
@@ -108,7 +110,7 @@ export function PeopleList({
     try {
       const params: Record<string, string> = {};
       searchParams.forEach((v, k) => (params[k] = v));
-      const result = await callAction(() => loadMorePeople(params, cursor));
+      const result = await callAction(() => loadMorePeople(params, cursor, rows.length));
       if ("error" in result) {
         toast.error(result.error);
         return;
@@ -123,7 +125,19 @@ export function PeopleList({
   }
 
   async function verify(id: string) {
-    const result = await callAction(() => adminVerifyUser(id, "office_list"));
+    // No method argument: an admin pressing this HAS checked by hand, and
+    // saying "off the office list" was a claim about how it was done that was
+    // not true (audit Low 6). The in-flight set stops a double press sending
+    // the member two identical notifications (Low 5); the server refuses the
+    // second one anyway, and this keeps the button from inviting it.
+    if (verifying.has(id)) return;
+    setVerifying((prev) => new Set(prev).add(id));
+    const result = await callAction(() => adminVerifyUser(id));
+    setVerifying((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
     if (result.error) {
       toast.error(result.error);
       return;
@@ -232,7 +246,12 @@ export function PeopleList({
         <>
           <div ref={listRef} className={ADMIN_GRID_3}>
             {rows.map((p) => (
-              <PersonCard key={p.id} person={p} onVerify={() => verify(p.id)} />
+              <PersonCard
+                key={p.id}
+                person={p}
+                onVerify={() => verify(p.id)}
+                verifying={verifying.has(p.id)}
+              />
             ))}
           </div>
           {cursor && (
@@ -290,9 +309,12 @@ function statusChip(p: PersonRow) {
 function PersonCard({
   person,
   onVerify,
+  verifying,
 }: {
   person: PersonRow;
   onVerify: () => void;
+  /** True while this row's Verify press is still in the air (audit Low 5). */
+  verifying: boolean;
 }) {
   return (
     <AdminPersonRow
@@ -301,7 +323,7 @@ function PersonCard({
       chip={statusChip(person)}
       action={
         !person.isBlocked && person.verifyState !== "verified" ? (
-          <Button size="xs" variant="primary" onClick={onVerify}>
+          <Button size="xs" variant="primary" onClick={onVerify} disabled={verifying}>
             <BadgeCheck className="size-3" strokeWidth={2} />
             Verify
           </Button>

@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { markThreadSeenByAdmin } from "@/app/(main)/messages/actions";
 import { ThreadView } from "@/components/admin/messages/thread-view";
 
+/** How many messages of one conversation a page render loads. Its most recent
+ *  end: a thread is read for what was said last. */
+const THREAD_MESSAGE_LIMIT = 200;
+
 export const metadata: Metadata = {
   title: "Message",
 };
@@ -53,7 +57,13 @@ export default async function AdminThreadPage({
         },
       },
       messages: {
-        orderBy: { createdAt: "asc" },
+        /* The most recent page, newest first, then reversed for reading below.
+           This had no `take` at all, so one long conversation was an unbounded
+           query on a page render -- and a member may write forty messages an
+           hour (audit Low 86). The END of a conversation is the part anybody
+           opens it for, so the window is taken from that end. */
+        orderBy: { createdAt: "desc" },
+        take: THREAD_MESSAGE_LIMIT + 1,
         select: {
           id: true,
           body: true,
@@ -70,6 +80,15 @@ export default async function AdminThreadPage({
 
   if (!thread) notFound();
 
+  /* The query above asked for one more than the window so the page can say
+     whether it stopped short, and it read newest-first; the conversation reads
+     oldest-first (audit Low 86). */
+  const olderExist = thread.messages.length > THREAD_MESSAGE_LIMIT;
+  const shown = (olderExist ? thread.messages.slice(0, THREAD_MESSAGE_LIMIT) : thread.messages)
+    .slice()
+    .reverse();
+
+
   // Reading it IS seeing it. The action re-checks the admin role itself.
   if (thread.adminUnread) {
     await markThreadSeenByAdmin(thread.id);
@@ -84,7 +103,8 @@ export default async function AdminThreadPage({
         status: thread.status,
         lastMessageAt: thread.lastMessageAt.toISOString(),
         member: thread.member,
-        messages: thread.messages.map((m) => ({
+        olderExist,
+        messages: shown.map((m) => ({
           ...m,
           createdAt: m.createdAt.toISOString(),
         })),
