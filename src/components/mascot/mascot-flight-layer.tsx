@@ -161,6 +161,16 @@ export function MascotFlightLayer() {
   const rafRef = useRef(0);
   const abortRef = useRef(false);
   const ranId = useRef(-1);
+  /* Which flight owns the layer. Bumped by every runFlight (audit Low 13).
+     
+     A second launch while one is still in the air shared abortRef, rafRef and
+     the failsafe with the first: the newcomer reset abortRef to false, so the
+     old flight's rAF loops carried on writing the SAME element, and then the
+     old flight's failsafe -- still pending, on its own five-and-a-half-second
+     timer -- fired, set abortRef and called setActive(null), deleting the
+     NEW bird in front of the viewer. Every loop and the failsafe now check
+     that they still own the layer, so an overtaken flight simply stops. */
+  const flightGen = useRef(0);
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   /**
@@ -229,8 +239,12 @@ export function MascotFlightLayer() {
   function tween(durMs: number, onFrame: (t: number, elapsed: number) => void): Promise<void> {
     return new Promise((resolve) => {
       const start = performance.now();
+      /* Captured at the moment this tween starts, which is always inside the
+         flight that owns the layer right now. If a later flight takes over,
+         this resolves immediately instead of fighting it for the element. */
+      const myGen = flightGen.current;
       const step = (now: number) => {
-        if (abortRef.current) return resolve();
+        if (abortRef.current || flightGen.current !== myGen) return resolve();
         const el = now - start;
         const t = clamp(el / durMs, 0, 1);
         onFrame(t, el);
@@ -259,6 +273,9 @@ export function MascotFlightLayer() {
     if (ranId.current === flight.id) return;
     ranId.current = flight.id;
     abortRef.current = false;
+    /* This flight now owns the layer; anything the previous one still has in
+       the air stops on its next frame (audit Low 13). */
+    const myGen = ++flightGen.current;
 
     // Speed multiplier: 1 (or anything missing/invalid) reproduces today's
     // pace exactly. 2x speed halves every duration below; `ms()` is the one
@@ -290,6 +307,9 @@ export function MascotFlightLayer() {
     // ceiling here was a bug, not a feature.
     const failsafeMs = ms(5800);
     const failsafe = setTimeout(() => {
+      // A later flight owns the layer now, and has its own failsafe. Tearing
+      // down here would delete ITS bird mid-air (audit Low 13).
+      if (flightGen.current !== myGen) return;
       abortRef.current = true;
       signalHandoff();
       cancelAnimationFrame(rafRef.current);
@@ -310,7 +330,7 @@ export function MascotFlightLayer() {
       await tween(ms(240), (t) => {
         setTransform(A.x, A.y, dir * 3 * (1 - t), 0.74 + 0.26 * t, Math.min(1, t * 2));
       });
-      if (abortRef.current) return;
+      if (abortRef.current || flightGen.current !== myGen) return;
 
       // Phase 1 — cruise. One continuous arc: eased chord + a sine arch + a
       // flap-synced undulation + a bank, retargeting smoothly onto the perch.
@@ -392,7 +412,7 @@ export function MascotFlightLayer() {
       await new Promise<void>((resolve) => {
         const start = performance.now();
         const step = (now: number) => {
-          if (abortRef.current) return resolve();
+          if (abortRef.current || flightGen.current !== myGen) return resolve();
           const el = now - start;
           const target = getLatestPerch() ?? prov;
           // ease the target itself toward the newest report (kills retarget snap)
@@ -464,7 +484,7 @@ export function MascotFlightLayer() {
         };
         rafRef.current = requestAnimationFrame(step);
       });
-      if (abortRef.current) return;
+      if (abortRef.current || flightGen.current !== myGen) return;
 
       // Phase 2 — the flare. The cruise leaves the bird hovering FLARE_LIFT_PX
       // over the perch (plus whatever bob and residual bank it had), so this is

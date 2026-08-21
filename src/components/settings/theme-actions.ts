@@ -10,9 +10,23 @@ import { THEME_COOKIE, type Theme } from "@/lib/theme";
  *
  * Writes both homes of the preference in one call: `User.theme` (the durable,
  * cross-device truth) and the rv-theme cookie (this device's SSR mirror, read
- * by the root layout). Deliberately revalidates nothing: theme is cosmetic,
- * no server-rendered data depends on it, and the client flips the class
- * instantly via next-themes' own setTheme.
+ * by the root layout). The client has already flipped the class instantly via
+ * next-themes' own setTheme, so nothing here is what the member is waiting on.
+ *
+ * It calls no `revalidatePath` -- but it does NOT follow that nothing
+ * re-renders, which is what this comment used to claim (audit Low 53).
+ * Setting a cookie in a Server Action makes Next re-render the current page
+ * and its layouts on the server, by design, so the UI reflects the new value
+ * (see next/docs 01-app/01-getting-started/07-mutating-data.md, "Cookies").
+ * That is a real server round trip on a cosmetic toggle.
+ *
+ * Left as it is, deliberately: the only two callers are `LightsOn` and the
+ * dark gauntlet, both of which are their own dedicated page and both of which
+ * NAVIGATE the moment this resolves, so the re-render is absorbed by a
+ * navigation that was happening anyway. If a theme switch ever appears inline
+ * on a content page, move the cookie write to the client (it is
+ * `httpOnly: false` precisely so client code can read it, and can therefore
+ * write it) and leave only the database write here.
  */
 export async function setTheme(theme: Theme) {
   // Server actions are network-callable endpoints, so the union type alone is

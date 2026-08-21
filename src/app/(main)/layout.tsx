@@ -25,13 +25,25 @@ export default async function MainLayout({
     redirect("/login");
   }
 
-  // Lazy, read-time Catch-up advance (spec 2.4), piggy-backed alongside the
-  // notification count so it fires on essentially every authenticated page
-  // view with no cron. GLOBAL BLAST RADIUS: this layout renders on every
-  // authenticated page. advanceDueCatchups already swallows every error
-  // internally (including a missing Catch-up table pre-migration) and never
-  // throws, but it also runs concurrently with (not blocking) the count
-  // query, so a slow or stale advance can never hold up page render.
+  /* Lazy, read-time Catch-up advance (spec 2.4), piggy-backed alongside the
+     notification count so it fires on essentially every authenticated page
+     view. GLOBAL BLAST RADIUS: this layout renders on every authenticated
+     page. advanceDueCatchups swallows every error internally (including a
+     missing Catch-up table pre-migration) and never throws.
+     
+     It IS awaited, though: this comment used to claim that running it
+     concurrently with the notification count meant it "can never hold up page
+     render", which is not what Promise.all does -- the layout waits for the
+     slowest of the four, and that can be this one (audit Low 24). The await is
+     deliberate rather than accidental: the advance is what makes the page you
+     are about to read correct, and moving it behind the response would render
+     a Round in the state it was in a moment ago. It stays bounded by the
+     pool's own query timeout, and a nightly cron does the same sweep
+     (/api/catchups/tick) so nothing depends on this having run.
+     
+     If it ever needs to stop blocking, `after()` is the tool -- and the
+     Catch-up surfaces themselves already re-run it, so only the piggyback
+     would be lost. */
   const [unreadCount, mailState] = await Promise.all([
     prisma.notification.count({
       where: {

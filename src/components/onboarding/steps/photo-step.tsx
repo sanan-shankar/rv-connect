@@ -11,6 +11,7 @@ import { speciesNameFor, resolveBirdOverride } from "@/components/common/bird-av
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { updateAvatar } from "@/components/settings/actions";
 import type { OnboardingUser } from "../onboarding-flow";
+import { isImageFile } from "@/lib/upload-shared";
 
 /**
  * Step 4: Photo. Reuses the exact settings upload action (Sharp/WebP, R2)
@@ -37,7 +38,7 @@ export function PhotoStep({
 
   async function handlePick(file: File | null) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!isImageFile(file)) {
       toast.error("Please choose an image");
       return;
     }

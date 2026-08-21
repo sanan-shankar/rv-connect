@@ -10,7 +10,7 @@ import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import { putImage, delImage, ownerPrefix } from "@/lib/storage";
 import { sharpImage } from "@/lib/image";
-import { sniffImageType, describeProcessingError } from "@/lib/upload-shared";
+import {sniffImageType, describeProcessingError, isImageFile} from "@/lib/upload-shared";
 import { profileSchema } from "@/lib/validators";
 import { batchTypeFromLeaving, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
@@ -217,7 +217,7 @@ export async function updateAvatar(formData: FormData) {
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
-  if (!file.type.startsWith("image/")) return { error: "Only image files are allowed" };
+  if (!isImageFile(file)) return { error: "Only image files are allowed" };
   if (file.type === "image/heic" || file.type === "image/heif")
     return { error: "HEIC is not supported yet. Please export as JPG or PNG." };
   if (file.size > MAX_AVATAR_INPUT) return { error: "Photo must be under 15MB" };

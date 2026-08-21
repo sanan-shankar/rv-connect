@@ -20,9 +20,26 @@ export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
  */
 export const MAX_PHOTOS_PER_ACCOUNT = 1000;
 
-/** The one "is this actually a picture" check, everywhere. */
-export function isImageFile(file: { type: string }): boolean {
-  return file.type.startsWith("image/");
+/** The image filename extensions this app can actually process. */
+const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|bmp|tiff?|hei[cf])$/i;
+
+/**
+ * The one "is this actually a picture" check, everywhere.
+ *
+ * A blank `type` counts if the FILENAME says image, for the same reason
+ * `isUnsupportedHeic` below checks the extension: some mobile browsers hand
+ * over a picked photo with an empty MIME string, and refusing those left the
+ * member holding a photograph the site would not take, with "Please choose an
+ * image" as the only explanation (audit Low 41).
+ *
+ * Letting a blank MIME through costs nothing: every upload path sniffs the
+ * actual BYTES server-side (`sniffImageType`) and the client's string was
+ * never trusted anyway. This only decides whether to refuse before the file
+ * has left the device.
+ */
+export function isImageFile(file: { type: string; name?: string }): boolean {
+  if (file.type.startsWith("image/")) return true;
+  return !file.type && !!file.name && IMAGE_EXTENSIONS.test(file.name);
 }
 
 /** True for iPhone photos exported as HEIC/HEIF. sharp's prebuilt binary has
@@ -91,6 +108,21 @@ export function sniffImageType(
   return null;
 }
 
+/**
+ * Does this error come from the STORAGE side rather than the image?
+ *
+ * The S3 client marks its own errors with `$metadata`, and a transport failure
+ * arrives as one of a small, stable set of Node socket codes. Both are checked
+ * because either can surface depending on where the call died.
+ */
+function isStorageFailure(error: unknown, message: string): boolean {
+  if (error && typeof error === "object" && "$metadata" in error) return true;
+  const code =
+    error && typeof error === "object" && "code" in error ? String(error.code) : "";
+  if (/^(ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|ENOTFOUND|EAI_AGAIN)$/.test(code)) return true;
+  return /\b(econnreset|etimedout|socket hang up|network|fetch failed)\b/i.test(message);
+}
+
 /** Turn a sharp processing error into a message that names the actual reason
  *  instead of a raw libvips exception string. */
 export function describeProcessingError(error: unknown): string {
@@ -100,6 +132,17 @@ export function describeProcessingError(error: unknown): string {
   }
   if (/premature end|truncated|invalid/i.test(message)) {
     return "That photo looks corrupted or only partially uploaded. Please try again.";
+  }
+  /* Not the photo's fault at all.
+   *
+   * Every caller of this wraps the STORAGE write in the same try as the sharp
+   * work, so a bad minute at R2, a dropped socket or a timeout came out of the
+   * generic branch below telling the member to "try a different one" -- sending
+   * them off to re-pick a photograph that was never the problem, when trying
+   * the same one again in a minute is the thing that would work (audit
+   * Low 42). */
+  if (isStorageFailure(error, message)) {
+    return "We could not save the photo just now. Nothing is wrong with it; please try again in a moment.";
   }
   // A generic sentence, never the raw libvips string: those can carry absolute
   // filesystem and temp-file paths, a small server-path disclosure to any
