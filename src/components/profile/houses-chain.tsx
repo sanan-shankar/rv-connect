@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
@@ -8,18 +8,17 @@ import { academicSpanLabel, parseHouseSpans, type HouseSpan } from "@/lib/house-
 
 /**
  * The houses chain: each house a pill with its name and year range, joined by
- * CONNECTING LINES, reading like the chapters of a school career. Each line
- * leaves one pill in that pill's own ink and arrives at the next pill in ITS
- * ink, the colour interpolating along the way, so the journey reads as one
- * continuous thread rather than a scatter of pills (owner, 2026-08-19: "not
- * just arrows, but beautiful connecting lines ... comes from a green pill and
- * then somehow interpolates into that orange"). The arrows the lines replace
- * carried heads nobody could read at a glance; direction now comes from the
- * reading order and the colour handing itself forward. Consecutive years in
+ * arrows, reading like the chapters of a school career. Consecutive years in
  * the same house collapse into one span; the pills cycle three brand tints so a
  * long run stays legible without inventing 22 real house colours. The green
  * tint is LEAF, not canopy (owner, 2026-07-30: "we started using the dark
  * green instead of the light green... move it back to light").
+ *
+ * ARROWS, not lines. For two days (2026-08-19 to 2026-08-21) the arrows were
+ * headless connectors that interpolated one house's colour into the next; the
+ * owner reversed it and asked for the arrows back exactly as they were. The
+ * six line treatments that round explored are kept in /lab/chain-lines, so
+ * the idea survives without the chain wearing it.
  *
  * LAID OUT AS A BOUSTROPHEDON (serpentine): row 1 runs left to right, takes a
  * 180 turn past the right edge of the pills, row 2 runs right to left, and so
@@ -96,13 +95,11 @@ function yearRange(span: HouseSpan): string {
   return academicSpanLabel(span.fromYear, span.toYear);
 }
 
-/* Geometry, all in px. ARROW_SLOT is what one in-row connector costs a row.
-   It keeps the arrow era's arithmetic (an 18px glyph plus a 6px gap each
-   side) because the owner signed off on that rhythm ("the spacing, everything
-   else, I like it just as it is", 2026-08-19); only the DRAWING changed. The
-   line now spans the whole 30px slot and touches both pills, because a
-   connector that stops short of what it connects is an arrow with no head. */
-const GAP = 6;
+/* Geometry, all in px. ARROW_SLOT is what one straight arrow costs a row:
+   the glyph plus the flex gap on each side of it. GUTTER is the side lane the
+   turning arc lives in; the arc's horizontal radius stays smaller than the
+   gutter so the arc always has a straight lead back to the pill it points at. */
+const GAP = 6; // flex gap-1.5, between a pill and an arrow
 const ARROW_W = 18;
 const ARROW_SLOT = ARROW_W + 2 * GAP;
 /* The channel between two rows. 26px when the turn was an S-curve that needed
@@ -124,54 +121,18 @@ const MIN_DROP_OVERLAP = 16;
    leaves from under the pill's straight body rather than off its cap. */
 const CAP_INSET = 12;
 
-/* A turn now runs flush from one pill's edge to the other's. The 4px air it
-   used to keep (TURN_LEAD) existed for the arrow era: an arrowHEAD pressed
-   against ink read as a collision (owner, 2026-08-03). A headless connecting
-   line has the opposite duty: it JOINS the two pills, so stopping short would
-   leave the chain visibly broken at every junction. */
+/* Air between a turn and each pill it joins (owner, 2026-08-03: "don't have
+   the arrows in the chain touch the houses ... the ones that go onto the next
+   line touch both the start house and the end house"). They did: a turn ran
+   from exactly the bottom edge of one pill to exactly the top edge of the
+   next, so both ends were flush against ink.
+   The in-row arrows have carried this air all along, about 7px, from GAP
+   plus the arrow glyph's own inset; a turn works in a 20px channel rather
+   than a 30px slot, so it takes 4px at each end. That leaves 12px of drawn
+   line, which is enough for the shaft to read behind its head. */
+const TURN_LEAD = 4;
 
-/* One stroke for every connector, straight or turned. This is THREAD, the
-   treatment the owner picked from /lab/chain-lines (2026-08-19) over the old
-   arrows and over five other line ideas. 1.75px at 60% opacity: the first
-   full-ink pass was "the most saturated thing in a block of soft washes"
-   (owner: "janky, a bit amateurish"), so the line now sits at roughly the
-   visual weight of the pill borders it joins instead of shouting over them.
-   Butt caps: every line end sits against a pill border, and a round cap
-   would bleed half the stroke past the join. */
-const STROKE = { strokeWidth: 1.75, strokeOpacity: 0.6, strokeLinecap: "butt" as const };
-
-/* The connectors' inks, one per tint, plus grey for the pending pill. CSS
-   variables rather than hexes so dark mode's lifted leaf and sky come along
-   for free, exactly as they do in the pill classes above. */
-const LINE_INK = ["var(--leaf)", "var(--cinnamon)", "var(--sky)"];
-const PENDING_LINE_INK = "var(--muted-foreground)";
-
-/**
- * Gradient stops from one pill's ink to the next: each ink HOLDS PURE for the
- * first and last 30% of the line and only blends through the middle 40%. A
- * 30px line blended end to end just reads as whichever ink is more saturated;
- * the hold zones give both houses a stretch of unmistakably-their-own colour
- * before the handoff.
- *
- * The blend itself is OKLab, and the mixing space is the whole point: sRGB
- * drags green-to-orange through mud, and OKLCH hue arcs drag orange-to-blue
- * through magenta, both exactly the "ugly colours in the middle" the owner
- * ruled out (2026-08-19). OKLab has no hue wheel to take a wrong turn on: the
- * middle relaxes toward a quiet paper-neutral and re-saturates into the
- * destination. SVG interpolates BETWEEN stops in plain sRGB, so the 50% stop
- * pins the ramp to OKLab's path.
- */
-function gradientStops(from: string, to: string) {
-  return [0, 30, 50, 70, 100].map((pct) => (
-    <stop
-      key={pct}
-      offset={`${pct}%`}
-      stopColor={
-        pct <= 30 ? from : pct >= 70 ? to : `color-mix(in oklab, ${from} 50%, ${to})`
-      }
-    />
-  ));
-}
+const STROKE = { stroke: "currentColor", strokeWidth: 1.25, strokeLinecap: "round" as const };
 
 /**
  * What the chain draws. A house span, or the one empty pill the EDITOR keeps
@@ -191,30 +152,21 @@ type ChainItem =
   | { kind: "span"; span: HouseSpan; tint: number }
   | { kind: "pending"; label: string };
 
-/* The straight connector between two pills in one row. `from` and `to` are
-   the inks of the pills VISUALLY left and right of it, whatever the row's
-   reading direction: a gradient is a spatial fact, so a backward row simply
-   hands in its colours the other way round and no scaleX flip is needed. */
-function Connector({ from, to }: { from: string; to: string }) {
-  const id = useId();
+/* Straight arrows are SVG rather than the "→" glyph so they share one stroke
+   weight and one cap style with the turning arc. */
+function Arrow({ back }: { back: boolean }) {
   return (
     <svg
-      width={ARROW_SLOT}
+      width={ARROW_W}
       height="10"
-      viewBox={`0 0 ${ARROW_SLOT} 10`}
+      viewBox={`0 0 ${ARROW_W} 10`}
       fill="none"
       aria-hidden
-      className="shrink-0"
+      className="shrink-0 text-muted-foreground/50"
+      style={back ? { transform: "scaleX(-1)" } : undefined}
     >
-      <defs>
-        {/* userSpaceOnUse, not objectBoundingBox: a horizontal line has a
-            zero-height bounding box, and the SVG spec renders NO paint at
-            all for a bounding-box gradient on zero-area geometry. */}
-        <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="5" x2={ARROW_SLOT} y2="5">
-          {gradientStops(from, to)}
-        </linearGradient>
-      </defs>
-      <path d={`M 0 5 H ${ARROW_SLOT}`} stroke={`url(#${id})`} {...STROKE} />
+      <path d="M1 5 H15" {...STROKE} />
+      <path d="M11.5 1.5 L15 5 L11.5 8.5" {...STROKE} strokeLinejoin="round" />
     </svg>
   );
 }
@@ -396,9 +348,6 @@ export function HouseTrail({
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
-  // Prefix for the turn gradients' ids: two chains on one page (the profile
-  // and an open editor) must not capture each other's colour ramps.
-  const gradId = useId();
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   const items: ChainItem[] = spans.map((span, i): ChainItem => ({ kind: "span", span, tint: i }));
@@ -459,8 +408,6 @@ export function HouseTrail({
 
   const tintFor = (item: ChainItem) =>
     item.kind === "pending" ? PENDING_TINT : HOUSE_TINTS[item.tint % HOUSE_TINTS.length];
-  const inkFor = (item: ChainItem) =>
-    item.kind === "pending" ? PENDING_LINE_INK : LINE_INK[item.tint % LINE_INK.length];
 
   /** One pill, in whichever of the three forms it needs: a plain span on the
    *  profile, a button on a house you can change, the empty pill at the end. */
@@ -582,16 +529,10 @@ export function HouseTrail({
       <div ref={hostRef} className="relative w-full">
         {srText}
         {measurer}
-        {/* Gap 0: the connector's own width IS the inter-pill space now, so a
-            flex gap on top of it would widen every join by 12px. */}
-        <div aria-hidden={!editing} className="flex w-fit items-center">
+        <div aria-hidden={!editing} className="flex w-fit items-center" style={{ gap: GAP }}>
           {items.flatMap((_, i) => {
             const cells = [renderPill(i)];
-            if (i < items.length - 1) {
-              cells.push(
-                <Connector key={`a-${i}`} from={inkFor(items[i])} to={inkFor(items[i + 1])} />
-              );
-            }
+            if (i < items.length - 1) cells.push(<Arrow key={`a-${i}`} back={false} />);
             return cells;
           })}
         </div>
@@ -651,12 +592,6 @@ export function HouseTrail({
        in-row arrow at all. */
   const turns = rowsIdx.slice(0, -1).map((row, r) => {
     const next = rowsIdx[r + 1];
-    /* The turn's gradient runs along the PATH, start to end: it leaves in the
-       ink of row r's last house and arrives in the ink of row r+1's first.
-       Every branch below starts its d at the a end, so start/end coordinates
-       double as the gradient vector. */
-    const aInk = inkFor(items[row[row.length - 1]]);
-    const bInk = inkFor(items[next[0]]);
     const backwards = r % 2 === 1;
     // Rows alternate, so the row BELOW always reads the other way. Both pills
     // still end up on the same side of the block, but each one's drawn extent
@@ -673,9 +608,9 @@ export function HouseTrail({
     const bL = nextBackwards ? rowWs[r + 1] - firstW : 0;
     const bR = nextBackwards ? rowWs[r + 1] : firstW;
 
-    // Both ends run flush to their pill's edge: the line joins, never hovers.
-    const y1 = r * (pillH + ROW_GAP) + pillH; // bottom edge of row r
-    const y2 = (r + 1) * (pillH + ROW_GAP); // top edge of row r+1
+    // Both ends stand off by TURN_LEAD so no turn ever touches a pill.
+    const y1 = r * (pillH + ROW_GAP) + pillH + TURN_LEAD; // below row r
+    const y2 = (r + 1) * (pillH + ROW_GAP) - TURN_LEAD; // above row r+1
     const yc = (r + 1) * (pillH + ROW_GAP) + pillH / 2; // middle of row r+1
 
     const lo = Math.max(aL, bL);
@@ -685,12 +620,7 @@ export function HouseTrail({
       return {
         key: `turn-${r}`,
         d: `M ${x} ${y1} L ${x} ${y2}`,
-        x1: x,
-        y1,
-        x2: x,
-        y2,
-        from: aInk,
-        to: bInk,
+        head: `M ${x - 3.5} ${y2 - 4.5} L ${x} ${y2} L ${x + 3.5} ${y2 - 4.5}`,
       };
     }
 
@@ -721,7 +651,7 @@ export function HouseTrail({
          geometry allows. */
       const out = backwards ? -1 : 1;
       const aOuter = backwards ? aL : aR;
-      const limit = aOuter + out * TURN_R;
+      const limit = aOuter + out * (TURN_R + TURN_LEAD);
       const bodyL = bL + CAP_INSET;
       const bodyR = bR - CAP_INSET;
       const bx = out > 0 ? Math.max(bodyL, limit) : Math.min(bodyR, limit);
@@ -732,21 +662,16 @@ export function HouseTrail({
         const sweep = out > 0 ? 1 : 0;
         return {
           key: `turn-${r}`,
-          d: `M ${aOuter} ${ya} L ${bx - out * TURN_R} ${ya} A ${TURN_R} ${TURN_R} 0 0 ${sweep} ${bx} ${ya + TURN_R} L ${bx} ${y2}`,
-          x1: aOuter,
-          y1: ya,
-          x2: bx,
-          y2,
-          from: aInk,
-          to: bInk,
+          d: `M ${aOuter + out * TURN_LEAD} ${ya} L ${bx - out * TURN_R} ${ya} A ${TURN_R} ${TURN_R} 0 0 ${sweep} ${bx} ${ya + TURN_R} L ${bx} ${y2}`,
+          head: `M ${bx - 3.5} ${y2 - 4.5} L ${bx} ${y2} L ${bx + 3.5} ${y2 - 4.5}`,
         };
       }
       // b is too narrow, or too close to a, to be entered from above. Fall
-      // through: a crowded junction beats no line at all.
+      // through: a crowded arrowhead beats no arrow at all.
     }
 
-    /* Run all the way to b's near side: the line ends on the border it joins. */
-    const tx = dir < 0 ? bR : bL;
+    /* Stop short of b's near side by the same lead the drop uses. */
+    const tx = (dir < 0 ? bR : bL) - dir * TURN_LEAD;
     /* The vertical leg drops from under a, CAP_INSET inside its body so it
        leaves from the straight part rather than off a rounded cap. Normally
        that is a's side FACING b, which keeps the run short. When the two
@@ -766,12 +691,7 @@ export function HouseTrail({
     return {
       key: `turn-${r}`,
       d: `M ${vx} ${y1} L ${vx} ${yc - rr} A ${rr} ${rr} 0 0 ${sweep} ${vx + dir * rr} ${yc} L ${tx} ${yc}`,
-      x1: vx,
-      y1,
-      x2: tx,
-      y2: yc,
-      from: aInk,
-      to: bInk,
+      head: `M ${tx - dir * 4.5} ${yc - 3.5} L ${tx} ${yc} L ${tx - dir * 4.5} ${yc + 3.5}`,
     };
   });
 
@@ -790,6 +710,7 @@ export function HouseTrail({
               // knows about direction now.
               className="absolute flex items-center justify-start"
               style={{
+                gap: GAP,
                 top: r * (pillH + ROW_GAP),
                 left: 0,
                 right: 0,
@@ -799,17 +720,7 @@ export function HouseTrail({
               {ordered.flatMap((itemIdx, pos) => {
                 const cells = [renderPill(itemIdx)];
                 if (pos < ordered.length - 1) {
-                  /* Visual left-to-right, whichever way the row reads: the
-                     gradient runs from the pill on its left to the pill on
-                     its right, so a backward row's colours flow backward with
-                     it and the thread never breaks hue at a pill. */
-                  cells.push(
-                    <Connector
-                      key={`a-${itemIdx}`}
-                      from={inkFor(items[itemIdx])}
-                      to={inkFor(items[ordered[pos + 1]])}
-                    />
-                  );
+                  cells.push(<Arrow key={`a-${itemIdx}`} back={backwards} />);
                 }
                 return cells;
               })}
@@ -820,7 +731,7 @@ export function HouseTrail({
         {/* The turns, one per row junction, drawn over the whole band in real
             pixel coordinates so each one meets its rows exactly. */}
         <svg
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 text-muted-foreground/50"
           width={containerW}
           height={totalH}
           viewBox={`0 0 ${containerW} ${totalH}`}
@@ -834,22 +745,8 @@ export function HouseTrail({
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.2 + 0.08 * i }}
             >
-              {/* userSpaceOnUse, aimed start-of-path to end-of-path: every
-                  turn is monotonic along that chord (a drop, or one quarter
-                  bend), so the colour reads as travelling WITH the line. */}
-              <defs>
-                <linearGradient
-                  id={`${gradId}${turn.key}`}
-                  gradientUnits="userSpaceOnUse"
-                  x1={turn.x1}
-                  y1={turn.y1}
-                  x2={turn.x2}
-                  y2={turn.y2}
-                >
-                  {gradientStops(turn.from, turn.to)}
-                </linearGradient>
-              </defs>
-              <path d={turn.d} stroke={`url(#${gradId}${turn.key})`} {...STROKE} />
+              <path d={turn.d} {...STROKE} />
+              <path d={turn.head} {...STROKE} strokeLinejoin="round" />
             </motion.g>
           ))}
         </svg>

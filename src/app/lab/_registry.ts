@@ -262,7 +262,7 @@ export const REGISTRY: LabEntry[] = [
     title: "The colour handoff",
     group: "Profiles",
     status: "active",
-    note: "The chain's arrows became lines that carry one house's colour into the next, and the first pass looked flat. Six ways to draw only the line (thread, garland, baton, stitch, rings, wash) on the real nine-house chain, with a width slider to make each one curl. Thread won and shipped 2026-08-19.",
+    note: "The chain's arrows became lines that carry one house's colour into the next, and the first pass looked flat. Six ways to draw only the line (thread, garland, baton, stitch, rings, wash) on the real nine-house chain, with a width slider to make each one curl. Thread shipped 2026-08-19 and the owner reversed it on 2026-08-21: the profile chain is arrows again. Kept as the record of what a headless connector looks like at six weights.",
   },
 
   /* ---------------------------------------------------------------- *
