@@ -17,7 +17,7 @@
 import Link from "next/link";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { roundLabel } from "@/lib/catchups";
-import { metaLine } from "@/lib/utils";
+import { metaLine, VALLEY_TIME_ZONE } from "@/lib/utils";
 import type { CatchupPersonRef } from "@/lib/catchups-types";
 
 const MAX_SHOWN_CONTRIBUTORS = 14;
@@ -48,6 +48,7 @@ export function RoundMasthead({
 }) {
   const dateLabel = publishedAt
     ? new Date(publishedAt).toLocaleDateString("en-GB", {
+        timeZone: VALLEY_TIME_ZONE,
         day: "numeric",
         month: "long",
         year: "numeric",

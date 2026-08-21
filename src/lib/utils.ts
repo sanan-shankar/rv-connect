@@ -5,6 +5,57 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/* ------------------------------------------------------------------ *
+ *  The valley's day is an IST day.
+ *
+ *  Every member of this site shares one frame: the school's. A letter
+ *  written at 00:30 on 15 June was written on the 15th, and it should say
+ *  so to everyone -- to the writer in Bangalore, to a reader in London,
+ *  and to the Vercel server in Washington that renders the page. Without
+ *  a timeZone, toLocaleDateString uses the runtime's zone: UTC on the
+ *  server (so anything between 00:00 and 05:30 IST rendered a day early
+ *  for everybody, permanently) and the viewer's own on the client (so the
+ *  same post carried two different dates depending on who asked). Pinning
+ *  IST everywhere is what makes those agree -- and it is the rule
+ *  wordle.ts already states in the same words.
+ *
+ *  Audit B-100 and the fifteen-odd date surfaces clustered under it.
+ * ------------------------------------------------------------------ */
+export const VALLEY_TIME_ZONE = "Asia/Kolkata"
+
+/** Today's calendar year in the valley. Never cache this: see valleyYear's note. */
+export function valleyYear(now: Date = new Date()): number {
+  // Read the year out of a formatted IST date rather than doing arithmetic on
+  // the UTC offset: one call, no drift, and it stays right if the offset ever
+  // changes. "en-CA" gives YYYY-MM-DD, so the year is the first four chars.
+  return Number(
+    now.toLocaleDateString("en-CA", { timeZone: VALLEY_TIME_ZONE }).slice(0, 4)
+  )
+}
+
+/** Today's date in the valley as YYYY-MM-DD. */
+export function valleyDayKey(now: Date = new Date()): string {
+  return now.toLocaleDateString("en-CA", { timeZone: VALLEY_TIME_ZONE })
+}
+
+/**
+ * The instant a given valley calendar day began, as a real UTC Date.
+ *
+ * The literal "+05:30" is safe to hard-code here in a way a timezone name
+ * usually is not: India has kept one fixed offset with no daylight saving since
+ * 1945, and IST is the only zone this function is ever asked about. The
+ * alternative (round-tripping through toLocaleString to discover the offset) is
+ * slower and more fragile for a constant that has not moved in eighty years.
+ */
+export function valleyMidnight(dayKey: string): Date {
+  return new Date(`${dayKey}T00:00:00+05:30`)
+}
+
+/** The instant today began in the valley. */
+export function valleyDayStart(now: Date = new Date()): Date {
+  return valleyMidnight(valleyDayKey(now))
+}
+
 export function formatTimeAgo(date: Date): string {
   const now = new Date()
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
@@ -19,6 +70,7 @@ export function formatTimeAgo(date: Date): string {
   const weeks = Math.floor(days / 7)
   if (weeks < 4) return `${weeks}w ago`
   return date.toLocaleDateString("en-IN", {
+    timeZone: VALLEY_TIME_ZONE,
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -147,9 +199,13 @@ export function formatPhoneDisplay(raw: string): string {
   return `+${digits.slice(0, codeLength)} ${rest}`
 }
 
-/** One display-date format for photo/letter attribution ("22 May 2026"). */
+/**
+ * One display-date format for photo/letter attribution ("22 May 2026"), in the
+ * valley's day (see VALLEY_TIME_ZONE above).
+ */
 export function formatDisplayDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-GB", {
+    timeZone: VALLEY_TIME_ZONE,
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -291,7 +347,7 @@ export function computeBatchFromSchooling(
   yearLeft: number,
   gradeJoined: number
 ): BatchComputation {
-  const thisYear = new Date().getFullYear()
+  const thisYear = valleyYear()
 
   if (
     !Number.isInteger(yearJoined) ||

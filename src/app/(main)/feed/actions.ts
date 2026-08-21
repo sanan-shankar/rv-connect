@@ -15,6 +15,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { escapeLike } from "@/lib/db-text";
+import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
  *  never as a throw: a post with a corrupt column should still delete, and
@@ -771,23 +772,34 @@ export async function adminRemoveComment(commentId: string, note?: string) {
 
 // ─── Data Fetching ───────────────────────────────────
 
+/**
+ * The start of the chosen window, in the valley's day rather than the server's.
+ *
+ * These used to be `new Date(now.getFullYear(), now.getMonth(), now.getDate())`,
+ * which is midnight in whatever zone the process happens to run in -- UTC on
+ * Vercel. So "today" began at 05:30 IST and quietly dropped everything posted
+ * in the small hours, and "this month" started five and a half hours into the
+ * 1st (audit Low 48).
+ */
 function getTimeFilterDate(
   filter: "all" | "today" | "week" | "month" | "year"
 ): Date | null {
   if (filter === "all") return null;
-  const now = new Date();
+  const [yyyy, mm] = valleyDayKey().split("-");
   switch (filter) {
     case "today":
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return valleyDayStart();
     case "week": {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      d.setDate(d.getDate() - d.getDay()); // start of week (Sunday)
-      return d;
+      // The valley's weekday, read at IST noon so no rounding puts it on the
+      // wrong side of midnight. Sunday is the week's start, as before.
+      const start = valleyDayStart();
+      const dow = new Date(`${valleyDayKey()}T12:00:00+05:30`).getUTCDay();
+      return new Date(start.getTime() - dow * 24 * 60 * 60 * 1000);
     }
     case "month":
-      return new Date(now.getFullYear(), now.getMonth(), 1);
+      return valleyMidnight(`${yyyy}-${mm}-01`);
     case "year":
-      return new Date(now.getFullYear(), 0, 1);
+      return valleyMidnight(`${yyyy}-01-01`);
   }
 }
 

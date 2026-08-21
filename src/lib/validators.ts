@@ -1,6 +1,27 @@
 import { z } from "zod/v4";
 import { ERA_VALUES } from "./collection";
 import { emailField } from "./email-address";
+import { valleyYear } from "./utils";
+
+/**
+ * A school year, bounded below by the year Rishi Valley opened and above by
+ * this year in the valley (plus `ahead`, for a batch that has not graduated).
+ *
+ * The ceiling is a `.refine`, not a `.max`, on purpose. `.max(n)` takes a
+ * NUMBER, which Zod evaluates once when this module is first imported -- so a
+ * warm serverless instance that booted in December kept rejecting the new year
+ * for as long as it stayed warm, and every instance rejected it for the 5.5
+ * hours between IST midnight and UTC midnight regardless (audit Lows 40, 50,
+ * 108, 112). A refine runs per parse, against the valley's clock.
+ */
+function yearField(opts: { ahead?: number; tooLate: string } = { tooLate: "That year hasn't happened yet" }) {
+  const ahead = opts.ahead ?? 0;
+  return z
+    .number()
+    .int()
+    .min(1926, "Rishi Valley opened in 1926")
+    .refine((y) => y <= valleyYear() + ahead, opts.tooLate);
+}
 
 // Alumni now give their batch directly ("the year your 12th-grade class
 // graduated, even if you left earlier") plus the two plain years they joined
@@ -20,13 +41,9 @@ export const signupSchema = z
     password: z.string().min(8, "Password must be at least 8 characters").max(128),
     phone: z.string().trim().max(24).optional(),
     accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).default("alumnus"),
-    yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
-    yearLeft: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
-    batchYear: z
-      .number()
-      .int()
-      .min(1926, "That batch year looks too early")
-      .max(new Date().getFullYear() + 7, "That batch year looks too far ahead")
+    yearJoined: yearField({ tooLate: "That year hasn't happened yet" }).optional(),
+    yearLeft: yearField({ ahead: 1, tooLate: "That year hasn't happened yet" }).optional(),
+    batchYear: yearField({ ahead: 7, tooLate: "That batch year looks too far ahead" })
       .optional(),
   })
   .refine(
@@ -102,12 +119,12 @@ export const profileSchema = z.object({
   accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).optional(),
   // Batch is a direct field now (headline identity). The collapsible "work it
   // out" path still derives it from the three schooling facts server-side.
-  batchYear: z.number().int().min(1926).max(new Date().getFullYear() + 7).optional(),
-  yearJoined: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
-  yearLeft: z.number().int().min(1926).max(new Date().getFullYear() + 1).optional(),
+  batchYear: yearField({ ahead: 7, tooLate: "That batch year looks too far ahead" }).optional(),
+  yearJoined: yearField().optional(),
+  yearLeft: yearField({ ahead: 1, tooLate: "That year hasn't happened yet" }).optional(),
   admissionNumber: z.number().int().min(0).max(10000).optional(),
-  taughtFrom: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
-  taughtUntil: z.number().int().min(1926).max(new Date().getFullYear()).optional(),
+  taughtFrom: yearField().optional(),
+  taughtUntil: yearField().optional(),
   subjects: z.string().max(200).optional(),
 });
 
@@ -182,12 +199,7 @@ export const photoSchema = z
   .object({
     caption: z.string().trim().max(300).optional(),
     area: z.string().trim().max(100).optional(),
-    photoYear: z
-      .number()
-      .int()
-      .min(1926, "Rishi Valley opened in 1926")
-      .max(new Date().getFullYear(), "That year hasn't happened yet")
-      .optional(),
+    photoYear: yearField().optional(),
     photoMonth: z.number().int().min(1).max(12).optional(),
     era: z.enum(ERA_VALUES as [string, ...string[]]).optional(),
     datePrecision: z.enum(["month", "year", "decade", "unknown"]).optional(),

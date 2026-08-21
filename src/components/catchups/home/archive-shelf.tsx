@@ -15,10 +15,16 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { FadeRise } from "@/components/common/motion";
 import type { HomeArchiveRow } from "./types";
+import { VALLEY_TIME_ZONE } from "@/lib/utils";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-IN", {
+    timeZone: VALLEY_TIME_ZONE,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export function ArchiveShelf({ rows }: { rows: HomeArchiveRow[]; groupName?: string }) {

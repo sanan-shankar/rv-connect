@@ -9,6 +9,7 @@ import { PhotoLoveButton } from "@/components/collection/photo-love-button";
 import { PhotoModerationControl } from "@/components/collection/photo-moderation-control";
 import { subjectLabel, areaLabel, eraLabel } from "@/lib/collection";
 import { recordView } from "@/lib/content-view";
+import { VALLEY_TIME_ZONE } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -143,6 +144,7 @@ export default async function PhotoPage({
                 </Link>
               }
               meta={new Date(photo.createdAt).toLocaleDateString("en-GB", {
+                timeZone: VALLEY_TIME_ZONE,
                 day: "numeric",
                 month: "short",
                 year: "numeric",

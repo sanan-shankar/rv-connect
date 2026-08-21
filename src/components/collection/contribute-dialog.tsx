@@ -27,6 +27,7 @@ import { ERAS, PHOTO_YEAR_MIN, eraLabel } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
 import { directUploadPut } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
+import { valleyYear } from "@/lib/utils";
 
 
 const MONTHS = [
@@ -38,7 +39,10 @@ const NOT_SURE = "not-sure";
 const NO_MONTH = "no-month";
 
 function currentYear() {
-  return new Date().getFullYear();
+  // The valley's year, matching the server validator that will judge this
+  // choice: the browser's own year is a day ahead or behind for members
+  // reading from the wrong side of a timezone at the turn of the year.
+  return valleyYear();
 }
 
 function yearOptions(): number[] {

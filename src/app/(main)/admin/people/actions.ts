@@ -14,6 +14,7 @@ import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
 import { delImage } from "@/lib/storage";
+import { valleyYear } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
  *  Everything you can do TO a person, from the panel.
@@ -99,7 +100,7 @@ export async function adminUpdatePerson(
   let batchYear: number | null = null;
   if (yearRaw) {
     const parsed = Number.parseInt(yearRaw, 10);
-    if (!Number.isFinite(parsed) || parsed < 1930 || parsed > new Date().getFullYear() + 10) {
+    if (!Number.isFinite(parsed) || parsed < 1930 || parsed > valleyYear() + 10) {
       return { error: "That batch year does not look right." };
     }
     batchYear = parsed;

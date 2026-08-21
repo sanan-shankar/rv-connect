@@ -7,7 +7,7 @@
 
 import Link from "next/link";
 import { roundLabel } from "@/lib/catchups";
-import { metaLine } from "@/lib/utils";
+import { metaLine, VALLEY_TIME_ZONE } from "@/lib/utils";
 
 export type FreshRoundItem = {
   editionId: string;
@@ -20,7 +20,11 @@ export type FreshRoundItem = {
 
 function formatDate(d: Date | string | null): string {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(d).toLocaleDateString("en-US", {
+    timeZone: VALLEY_TIME_ZONE,
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function FreshOffThePress({ items }: { items: FreshRoundItem[] }) {

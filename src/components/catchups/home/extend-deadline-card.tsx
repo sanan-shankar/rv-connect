@@ -24,7 +24,7 @@ import { useState } from "react";
 import { CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
 import { FadeRise } from "@/components/common/motion";
-import { cn } from "@/lib/utils";
+import { cn, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { extendDeadline } from "@/app/(main)/catchups/actions";
 
 /**
@@ -45,7 +45,8 @@ function closesLine(iso: string | null): string | null {
   if (!iso) return null;
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return null;
-  return at.toLocaleDateString(undefined, {
+  return at.toLocaleDateString("en-GB", {
+    timeZone: VALLEY_TIME_ZONE,
     weekday: "long",
     day: "numeric",
     month: "short",
