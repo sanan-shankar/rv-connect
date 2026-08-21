@@ -115,7 +115,7 @@ export default async function SupportPage() {
         </div>
         <div className="glass card-elevated rounded-[var(--radius-lg)] border border-border p-[var(--space-l)]">
           <p className="leading-relaxed text-foreground">
-            Anyone who contributes picks their own bird, instead of the one they were given.
+            Anyone who contributes gets to pick their own bird!
           </p>
           <BirdPlate />
           {/* No standing door to /pick-bird here, even for members who have

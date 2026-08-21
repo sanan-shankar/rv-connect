@@ -323,8 +323,7 @@ export function SupportContribute() {
       <p className="flex items-start gap-[var(--space-xs)] text-xs leading-relaxed text-muted-foreground">
         <ShieldCheck className="mt-[0.15em] h-3.5 w-3.5 shrink-0" aria-hidden />
         <span>
-          A single payment, nothing recurring. Razorpay handles it, so UPI, cards, netbanking and
-          wallets all work from India or abroad, and we never see your details.
+          This process is fully secure and none of your sensitive information is visible to us.
         </span>
       </p>
     </div>
