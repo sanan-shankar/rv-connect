@@ -13,7 +13,50 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
   }
-  const adapter = new PrismaPg({ connectionString });
+  // Bounded and impatient, deliberately. The bare `new PrismaPg({ connectionString })`
+  // this replaced took every pg default, and two of them are dangerous on
+  // serverless: `max` 10 connections PER INSTANCE, and no checkout timeout at
+  // all -- a checkout with no free connection waits forever (pg-pool
+  // index.js:205). The `(main)` layout awaits its data ABOVE every
+  // loading.tsx, so "forever" reaches the member as a blank page or a
+  // platform 504, never the app's error screen, and each hung request keeps
+  // its Vercel concurrency slot, so a spike compounds instead of shedding.
+  //
+  //   max 5              -- Supavisor's client cap is 200; 5 x ~40 concurrent
+  //                         instances stays under it, and 5 covers the widest
+  //                         fan-out in the app (the directory page's 7-leg
+  //                         Promise.all) in two waves rather than three.
+  //   connectionTimeout  -- 5s. Under load a few requests get a fast, honest
+  //                         error instead of the whole site hanging.
+  //   query_timeout      -- 20s, client-side. Nothing here should take a
+  //                         fifth of that; it exists so one stuck query
+  //                         cannot pin a request open.
+  //
+  // `statement_timeout` is deliberately absent. pg ships it as a startup
+  // parameter (pg/lib/client.js:549) and Supavisor silently drops it: probed
+  // live on 2026-08-21 against both :6543 and :5432, `SHOW statement_timeout`
+  // came back as Supabase's own 2min and a `pg_sleep(3)` under
+  // statement_timeout=1000 ran to completion. Setting it would be config that
+  // reads like a guard and is not one. Postgres-side runaway queries are
+  // bounded by that 2min platform default; `query_timeout` is what actually
+  // frees the request.
+  const adapter = new PrismaPg(
+    {
+      connectionString,
+      max: 5,
+      connectionTimeoutMillis: 5_000,
+      query_timeout: 20_000,
+    },
+    {
+      // The adapter attaches its own listener so a pool error can never crash
+      // the process, but it only forwards to a debug channel nobody reads.
+      // Connection-level trouble is exactly the thing we want to see in the
+      // logs when the site is misbehaving.
+      onPoolError: (err) => {
+        console.error("[prisma] pool error:", err.message);
+      },
+    }
+  );
   const client = new PrismaClient({ adapter });
 
   // On the demo deployment ONLY, every query passes a default-deny check
