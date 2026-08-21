@@ -42,12 +42,12 @@ Fourteen commits on `main`, none pushed. `npm run check` green (38 unit tests), 
 | B-023 | F | `c3f5782`. Shared `refuseSelfOrLastAdmin`, serializable; the three controls are not rendered on your own row. |
 | B-024 | F | `c3f5782`. `requireAdminPage()` on all 12 admin pages + a gate-coverage assertion. All 12 verified 200 with a clean console. |
 | B-030 | F | `d254560`. One `shrinkForUpload` at four client boundaries, with a 4MB budget and honest copy for the GIF/HEIC pass-throughs. `next.config.ts` now records that `bodySizeLimit` cannot raise the real cap. |
-| B-041 | F | `7b1ed2c`. `setRemoved(true)` on delete; `onSaved` from the edit dialog into card state. |
-| B-043 | F | `7b1ed2c`. `failed` autosave state rendered loudly, toast once per run, plus a localStorage crash net for a letter with no row yet (and one whose save is failing), cleared on success. |
-| B-044 | F | `7b1ed2c`. Both submit buttons gated on `uploading`. |
-| B-045 | F | `7b1ed2c`. The rail takes a viewer and applies `cityScopeWhere` + the `targetBatches` fragment. |
-| B-048 | F | `7b1ed2c`. `cityScope` fetched, seeded, sent unconditionally on a draft, re-validated server-side. |
-| B-049 | F | `7b1ed2c`. `onCommit(next)`, the shape `commitPlaces`/`commitHouses` always had. |
+| B-041 | F | `69a31a7`. `setRemoved(true)` on delete; `onSaved` from the edit dialog into card state. |
+| B-043 | F | `69a31a7`. `failed` autosave state rendered loudly, toast once per run, plus a localStorage crash net for a letter with no row yet (and one whose save is failing), cleared on success. |
+| B-044 | F | `69a31a7`. Both submit buttons gated on `uploading`. |
+| B-045 | F | `69a31a7`. The rail takes a viewer and applies `cityScopeWhere` + the `targetBatches` fragment. |
+| B-048 | F | `69a31a7`. `cityScope` fetched, seeded, sent unconditionally on a draft, re-validated server-side. |
+| B-049 | F | `69a31a7`. `onCommit(next)`, the shape `commitPlaces`/`commitHouses` always had. |
 | B-080 | F | `040b0e6`. Both awaits wrapped; the confirm path's catch reassures rather than inviting a second payment. |
 | B-081 | F | `040b0e6`. The webhook writes a `contribution_received` notification linking `/pick-bird`, only when it made the transition. |
 | B-093 | F | `d77197a`. `Visit` and `SearchLog` expire at 180 days (double the deepest analytics lookback, 90). `SearchLog` gained the `createdAt` index the predicate needs. `docs/SECURITY.md` retention table updated. |
