@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Check,
   Bell,
@@ -26,9 +26,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { formatTimeAgo } from "@/lib/utils";
 import {
   getNotifications,
+  getUnreadNotificationCount,
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/app/(main)/notifications/actions";
@@ -114,7 +117,7 @@ export function NotificationBell({
 
   useEffect(() => {
     if (unreadCount > prevUnread.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Shakes the bell when the unread count RISES. That comparison only exists across renders, which is what the ref and this effect are for.
+      // Shakes the bell when the unread count RISES. That comparison only exists across renders, which is what the ref and this effect are for.
       setShakeKey((k) => k + 1);
     }
     prevUnread.current = unreadCount;
@@ -126,6 +129,37 @@ export function NotificationBell({
     setOpen(next);
     if (next) void handleOpen();
   }
+
+  /* The badge asks the server, instead of counting its own clicks.
+   *
+   * It used to be seeded from a prop computed in the (main) layout and then
+   * only ever DECREMENTED locally. Three things compounded (audit B-120): a
+   * shared layout is not re-rendered on soft navigation, so browsing around
+   * the site never recomputed it; `useState(prop)` reads the prop once at
+   * mount, so even a server action that did re-render the layout could not
+   * reach the persistent sidebar instance; and the only two setUnreadCount
+   * calls were both decrements. So the badge was correct at the moment of a
+   * hard page load and never again: it could fall, never rise, and the shake
+   * animation this component ships for "a new one arrived" was unreachable.
+   *
+   * Refreshed on mount, whenever the tab regains focus, and on every open of
+   * the panel (handleOpen above takes it from the same payload). Focus rather
+   * than a short interval: the count only matters when somebody is looking,
+   * and a poll on every open tab would be a query per member per interval for
+   * a number nobody is reading.
+   */
+  const refreshCount = useCallback(async () => {
+    const data = await callAction(() => getUnreadNotificationCount());
+    if ("error" in data) return; // a background refresh says nothing on failure
+    setUnreadCount(data.unreadCount);
+  }, []);
+
+  useEffect(() => {
+    void refreshCount();
+    const onFocus = () => void refreshCount();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshCount]);
 
   // One transform-only decaying shake, pivoting from the top so it reads as a
   // wobble. A cubic-bezier tween mirroring the preview lab (never a spring with
@@ -143,33 +177,59 @@ export function NotificationBell({
     // forever, going quietly stale while new notifications arrived. The stale
     // list stays on screen while the fresh page loads, so a reopen never
     // flashes back to "Loading...".
-    const data = await getNotifications();
+    // callAction: a rejected fetch used to leave `loaded` false forever, so
+    // the panel stuck on "Loading..." with no way out (audit B-042).
+    const data = await callAction(() => getNotifications());
+    if ("error" in data) {
+      toast.error(data.error);
+      setLoaded(true);
+      return;
+    }
     setNotifications(data.notifications);
     setNextCursor(data.nextCursor);
     setHasMore(data.hasMore);
+    // The server's count, not this component's arithmetic. See refreshCount.
+    setUnreadCount(data.unreadCount);
     setLoaded(true);
   }
 
   async function handleLoadMore() {
     if (loadingMoreRef.current || !hasMore) return;
     loadingMoreRef.current = true;
-    const data = await getNotifications({ cursor: nextCursor });
-    setNotifications((prev) => {
-      const seen = new Set(prev.map((n) => n.id));
-      return [...prev, ...data.notifications.filter((n) => !seen.has(n.id))];
-    });
-    setNextCursor(data.nextCursor);
-    setHasMore(data.hasMore);
-    loadingMoreRef.current = false;
+    try {
+      const data = await callAction(() => getNotifications({ cursor: nextCursor }));
+      if ("error" in data) {
+        toast.error(data.error);
+        return;
+      }
+      setNotifications((prev) => {
+        const seen = new Set(prev.map((n) => n.id));
+        return [...prev, ...data.notifications.filter((n) => !seen.has(n.id))];
+      });
+      setNextCursor(data.nextCursor);
+      setHasMore(data.hasMore);
+    } finally {
+      // finally, not a trailing statement: a rejected page used to leave this
+      // ref stuck true, so the sentinel could never fire the next page again
+      // (audit B-042).
+      loadingMoreRef.current = false;
+    }
   }
 
   async function handleClickNotification(notif: Notification) {
     if (!notif.read) {
-      await markNotificationRead(notif.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
-      );
-      setUnreadCount((c) => Math.max(0, c - 1));
+      const result = await callAction(() => markNotificationRead(notif.id));
+      if (result.error) {
+        // The click already promises navigation; a rejected mark-read must
+        // not also block it -- same reasoning as the idempotent updateMany
+        // in the action itself, just one layer up.
+        toast.error(result.error);
+      } else {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+        );
+        setUnreadCount((c) => Math.max(0, c - 1));
+      }
     }
     if (notif.link) {
       router.push(notif.link);
@@ -177,7 +237,11 @@ export function NotificationBell({
   }
 
   async function handleMarkAllRead() {
-    await markAllNotificationsRead();
+    const result = await callAction(() => markAllNotificationsRead());
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
   }

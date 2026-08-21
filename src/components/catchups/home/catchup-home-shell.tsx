@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { Archive, PauseCircle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { FadeRise } from "@/components/common/motion";
 import { AlmostReady } from "@/components/catchups/almost-ready";
@@ -153,14 +154,19 @@ function PausedOrEndedBanner({
 
   async function handleResume() {
     setBusy(true);
-    const result = await resumeCatchup(catchupId);
-    if (result && "error" in result) {
-      toast.error(result.error);
+    try {
+      const result = await callAction(() => resumeCatchup(catchupId));
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Catch-up resumed.");
+      onChanged();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this button stuck on "Resuming..." forever (audit B-042).
       setBusy(false);
-      return;
     }
-    toast.success("Catch-up resumed.");
-    onChanged();
   }
 
   return (

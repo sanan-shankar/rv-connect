@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 
 /* ------------------------------------------------------------------ *
  *  The one confirmation in the panel.
@@ -61,14 +62,21 @@ export function ConfirmDialog({
   async function run() {
     if (!unlocked) return;
     setBusy(true);
-    const result = await onConfirm();
-    setBusy(false);
-    if (result && "error" in result && result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      // callAction: several admin actions passed in as `onConfirm` REJECT
+      // rather than returning { error } (audit M65) -- without this, that
+      // threw straight out of here and left the dialog stuck on "Working..."
+      // forever, with no error shown and no way to close it (audit B-042).
+      const result = await callAction(() => onConfirm());
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setTyped("");
+      onClose();
+    } finally {
+      setBusy(false);
     }
-    setTyped("");
-    onClose();
   }
 
   return (

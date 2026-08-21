@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { callAction } from "@/lib/call-action";
 import { requestVerification } from "./verification-actions";
 
 /* ------------------------------------------------------------------ *
@@ -37,21 +38,27 @@ export function MemberVerifyDialog({
     if (busy) return;
     setBusy(true);
     setFlash("");
-    const result = await requestVerification();
-    setBusy(false);
-
-    if (!result.ok) {
-      setFlash(result.error);
-      return;
+    try {
+      // callAction: both the action's own { ok: false, error } and a
+      // rejection (callAction's ActionFailure) carry an `error` string, so
+      // one check covers either failure without a wedged "Asking..." state
+      // on a rejection (audit B-042).
+      const result = await callAction(() => requestVerification());
+      if ("error" in result) {
+        setFlash(result.error);
+        return;
+      }
+      // Two honest outcomes: the roster (or an admin) has already said yes, or
+      // the request is now sitting in front of one.
+      setFlash(
+        result.state === "verified"
+          ? "You're verified. Try that again and it will go through."
+          : "Done. The admin checks each request personally, so give it a little while."
+      );
+      router.refresh();
+    } finally {
+      setBusy(false);
     }
-    // Two honest outcomes: the roster (or an admin) has already said yes, or
-    // the request is now sitting in front of one.
-    setFlash(
-      result.state === "verified"
-        ? "You're verified. Try that again and it will go through."
-        : "Done. The admin checks each request personally, so give it a little while."
-    );
-    router.refresh();
   }
 
   return (

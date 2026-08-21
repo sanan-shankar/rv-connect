@@ -22,7 +22,7 @@ export async function getNotifications(opts?: {
 }) {
   const session = await auth();
   if (!session?.user?.id)
-    return { notifications: [], nextCursor: null, hasMore: false };
+    return { unreadCount: 0, notifications: [], nextCursor: null, hasMore: false };
   const userId = session.user.id;
 
   const take = Math.min(Math.max(opts?.take ?? 20, 1), 50);
@@ -61,7 +61,14 @@ export async function getNotifications(opts?: {
     }
   }
 
+  // The unread count travels with the page, so the bell can correct its badge
+  // from the server on every open instead of counting its own decrements
+  // forever (audit B-120). One extra cheap count on a query that already
+  // touched this member's rows.
+  const unreadCount = await prisma.notification.count({ where: { userId, read: false } });
+
   return {
+    unreadCount,
     notifications: page.map((n) => ({
       id: n.id,
       type: n.type,
@@ -72,6 +79,20 @@ export async function getNotifications(opts?: {
     })),
     nextCursor: hasMore ? page[page.length - 1].id : null,
     hasMore,
+  };
+}
+
+/**
+ * Just the badge number. Its own action so the bell can refresh on focus
+ * without pulling a page of rows it is not going to render (audit B-120).
+ */
+export async function getUnreadNotificationCount() {
+  const session = await auth();
+  if (!session?.user?.id) return { unreadCount: 0 };
+  return {
+    unreadCount: await prisma.notification.count({
+      where: { userId: session.user.id, read: false },
+    }),
   };
 }
 

@@ -94,6 +94,7 @@ import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import {
   updateProfileField,
   updateContactMethods,
@@ -352,11 +353,16 @@ export function LetterheadProfile({
       "file",
       payload instanceof File ? payload : new File([payload], "avatar.webp", { type: "image/webp" })
     );
-    const result = await updateAvatar(fd);
-    setPhotoBusy(false);
-    if (result.error) return toast.error(result.error);
-    toast.success("Photo updated");
-    router.refresh();
+    try {
+      const result = await callAction(() => updateAvatar(fd));
+      if (result.error) return toast.error(result.error);
+      toast.success("Photo updated");
+      router.refresh();
+    } finally {
+      // finally, not a trailing statement: a rejected upload used to leave
+      // the avatar control disabled for the rest of the session (audit B-042).
+      setPhotoBusy(false);
+    }
   }
 
   /* Picking a photo opens the crop dialog rather than uploading blind: the
@@ -372,11 +378,14 @@ export function LetterheadProfile({
 
   async function handlePhotoRemove() {
     setPhotoBusy(true);
-    const result = await removeAvatar();
-    setPhotoBusy(false);
-    if (result.error) return toast.error(result.error);
-    toast.success("Photo removed");
-    router.refresh();
+    try {
+      const result = await callAction(() => removeAvatar());
+      if (result.error) return toast.error(result.error);
+      toast.success("Photo removed");
+      router.refresh();
+    } finally {
+      setPhotoBusy(false);
+    }
   }
   const { state: saveState, message: saveMessage, run } = useAutoSave();
 
@@ -1310,13 +1319,19 @@ export function LetterheadProfile({
               setDeleteError(null);
               const fd = new FormData();
               fd.set("password", deletePassword);
-              const result = await requestAccountDeletion(fd);
-              if (result.error) {
-                setDeleteError(result.error);
+              try {
+                const result = await callAction(() => requestAccountDeletion(fd));
+                if (result.error) {
+                  setDeleteError(result.error);
+                  return;
+                }
+                signOut({ callbackUrl: "/" });
+              } finally {
+                // finally, not a trailing statement: a rejected call used to
+                // leave the dialog stuck on "Scheduling..." forever, with no
+                // error shown and no way to retry (audit B-042).
                 setDeleting(false);
-                return;
               }
-              signOut({ callbackUrl: "/" });
             }}
             className="space-y-[var(--space-s)]"
           >

@@ -17,6 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,15 +135,21 @@ export function PersonDetail({
 
   async function run(fn: () => Promise<{ error?: string } | void>, done: string) {
     setBusy(true);
-    const result = await fn();
-    setBusy(false);
-    if (result && "error" in result && result.error) {
-      toast.error(result.error);
-      return false;
+    try {
+      const result = await callAction(fn);
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+        return false;
+      }
+      toast.success(done);
+      router.refresh();
+      return true;
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // every button that shares this handler disabled for the rest of the
+      // session (audit B-042).
+      setBusy(false);
     }
-    toast.success(done);
-    router.refresh();
-    return true;
   }
 
   const verified = person.verifyState === "verified";
@@ -484,14 +491,21 @@ function DetailsCard({ person }: { person: DetailPerson }) {
 
   async function save() {
     setSaving(true);
-    const result = await adminUpdatePerson(person.id, { name, accountType, batchYear, birdOverride: bird });
-    setSaving(false);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() =>
+        adminUpdatePerson(person.id, { name, accountType, batchYear, birdOverride: bird })
+      );
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Saved");
+      router.refresh();
+    } finally {
+      // finally, not a trailing statement: a rejected save used to leave
+      // "Save details" disabled for the rest of the session (audit B-042).
+      setSaving(false);
     }
-    toast.success("Saved");
-    router.refresh();
   }
 
   return (
@@ -561,14 +575,17 @@ function PlacesCard({ person }: { person: DetailPerson }) {
 
   async function save() {
     setSaving(true);
-    const result = await adminUpdatePlaces(person.id, places);
-    setSaving(false);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => adminUpdatePlaces(person.id, places));
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Saved");
+      router.refresh();
+    } finally {
+      setSaving(false);
     }
-    toast.success("Saved");
-    router.refresh();
   }
 
   return (
@@ -606,14 +623,17 @@ function NoteCard({ person }: { person: DetailPerson }) {
 
   async function save() {
     setSaving(true);
-    const result = await adminUpdateNote(person.id, note.trim());
-    setSaving(false);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => adminUpdateNote(person.id, note.trim()));
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Note saved");
+      router.refresh();
+    } finally {
+      setSaving(false);
     }
-    toast.success("Note saved");
-    router.refresh();
   }
 
   return (
@@ -659,14 +679,20 @@ function MailCard({
 
   async function retry(id: string) {
     setBusy(id);
-    const result = await retryMail(id);
-    setBusy(null);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => retryMail(id));
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Back in the queue. It goes out on the next page load.");
+      onDone();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this row's retry control disabled for the rest of the session
+      // (audit B-042).
+      setBusy(null);
     }
-    toast.success("Back in the queue. It goes out on the next page load.");
-    onDone();
   }
 
   return (

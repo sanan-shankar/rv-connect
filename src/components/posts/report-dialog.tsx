@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { reportPost } from "./report-action";
 
 export function ReportDialog({
@@ -39,15 +40,20 @@ export function ReportDialog({
       return;
     }
     setSubmitting(true);
-    const fullReason = details ? `${reason}: ${details}` : reason;
-    const result = await reportPost(postId, fullReason);
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("Report submitted. Thank you.");
-      onClose();
+    try {
+      const fullReason = details ? `${reason}: ${details}` : reason;
+      const result = await callAction(() => reportPost(postId, fullReason));
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Report submitted. Thank you.");
+        onClose();
+      }
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // "Submit report" disabled for the rest of the session (audit B-042).
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   return (

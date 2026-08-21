@@ -25,6 +25,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CadenceControl } from "./cadence-control";
@@ -68,20 +69,27 @@ export function CreateCatchupForm({
       return;
     }
     setSubmitting(true);
-    const result = await createCatchupWithPeople({
-      name: trimmedName,
-      memberIds: people.map((p) => p.id),
-      cadence,
-    });
+    try {
+      const result = await callAction(() =>
+        createCatchupWithPeople({
+          name: trimmedName,
+          memberIds: people.map((p) => p.id),
+          cadence,
+        })
+      );
 
-    if ("error" in result) {
-      if (!emailGate.handled(result.error)) toast.error(result.error);
+      if ("error" in result) {
+        if (!emailGate.handled(result.error)) toast.error(result.error);
+        return;
+      }
+
+      toast.success("Your Catch-up is live");
+      router.push(`/catchups/${result.catchupId}`);
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // "Start the first Round" disabled for the rest of the session (audit B-042).
       setSubmitting(false);
-      return;
     }
-
-    toast.success("Your Catch-up is live");
-    router.push(`/catchups/${result.catchupId}`);
   }
 
   return (

@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { cn } from "@/lib/utils";
 import { BirdGlyphV2 } from "@/components/common/bird-avatar-v2";
 import { EASE_OUT_SMOOTH, SPRINGS } from "@/components/common/motion";
@@ -42,7 +43,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
   function confirm() {
     if (!choice || pending) return;
     startTransition(async () => {
-      const res = await chooseBird(choice.slug);
+      const res = await callAction(() => chooseBird(choice.slug));
       if ("error" in res) {
         toast.error(res.error);
         return;

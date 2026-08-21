@@ -23,6 +23,7 @@ import {
   adminRemoveComment,
 } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { motion } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
@@ -137,13 +138,22 @@ export function CommentsSection({
 
   useEffect(() => {
     let cancelled = false;
-    loadComments(postId, { take: FIRST_PAGE }).then((data) => {
+    (async () => {
+      // callAction: a rejected first page (deploy skew, dropped network,
+      // expired session) used to leave `loading` true forever, so the panel
+      // stayed on its skeleton rows with no way to recover (audit B-042).
+      const data = await callAction(() => loadComments(postId, { take: FIRST_PAGE }));
       if (cancelled) return;
+      if ("error" in data) {
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
       setComments(data.comments);
       setNextCursor(data.nextCursor);
       setHasMore(data.hasMore);
       setLoading(false);
-    });
+    })();
     return () => {
       cancelled = true;
     };
@@ -163,14 +173,23 @@ export function CommentsSection({
         if (!entries.some((e) => e.isIntersecting)) return;
         if (loadingMoreRef.current) return;
         loadingMoreRef.current = true;
-        const data = await loadComments(postId, {
-          cursor: nextCursor,
-          take: NEXT_PAGE,
-        });
-        mergeComments(data.comments);
-        setNextCursor(data.nextCursor);
-        setHasMore(data.hasMore);
-        loadingMoreRef.current = false;
+        try {
+          const data = await callAction(() =>
+            loadComments(postId, { cursor: nextCursor, take: NEXT_PAGE })
+          );
+          if ("error" in data) {
+            toast.error(data.error);
+            return;
+          }
+          mergeComments(data.comments);
+          setNextCursor(data.nextCursor);
+          setHasMore(data.hasMore);
+        } finally {
+          // finally, not a trailing statement: a rejected page used to leave
+          // this ref stuck true, so the sentinel could never fire again and
+          // the thread just stopped growing (audit B-042).
+          loadingMoreRef.current = false;
+        }
       },
       { rootMargin: "160px" }
     );
@@ -188,21 +207,26 @@ export function CommentsSection({
     formData.set("postId", postId);
     if (replyTo) formData.set("parentId", replyTo.id);
 
-    const result = await createComment(formData);
-    if (result.error) {
-      // An unconfirmed address gets the dialog, which explains and offers to
-      // send the link again; everything else is still a toast.
-      if (!emailGate.handled(result.error)) toast.error(result.error);
-    } else {
-      // The action returns the finished comment, so it slots straight into
-      // the loaded thread. No refetch: with the thread paginated, a refetch
-      // would throw away every page the reader has scrolled in.
-      if (result.comment) mergeComments([result.comment]);
-      setNewComment("");
-      setReplyTo(null);
-      onCommentAdded();
+    try {
+      const result = await callAction(() => createComment(formData));
+      if (result.error) {
+        // An unconfirmed address gets the dialog, which explains and offers to
+        // send the link again; everything else is still a toast.
+        if (!emailGate.handled(result.error)) toast.error(result.error);
+      } else {
+        // The action returns the finished comment, so it slots straight into
+        // the loaded thread. No refetch: with the thread paginated, a refetch
+        // would throw away every page the reader has scrolled in.
+        if (result.comment) mergeComments([result.comment]);
+        setNewComment("");
+        setReplyTo(null);
+        onCommentAdded();
+      }
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave the
+      // composer's submit button disabled for the rest of the session (audit B-042).
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   function handleLikeToggle(id: string, liked: boolean, count: number) {
@@ -238,7 +262,7 @@ export function CommentsSection({
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this comment? This cannot be undone.")) return;
-    const result = await deleteComment(id);
+    const result = await callAction(() => deleteComment(id));
     if (result.error) {
       toast.error(result.error);
       return;
@@ -248,7 +272,7 @@ export function CommentsSection({
 
   async function handleModerationConfirm(note: string) {
     if (!moderatingId) return { error: "Nothing selected" };
-    const result = await adminRemoveComment(moderatingId, note || undefined);
+    const result = await callAction(() => adminRemoveComment(moderatingId, note || undefined));
     if (!result.error) {
       removeLocally(moderatingId);
     }
@@ -550,7 +574,7 @@ function CommentItem({
     const newCount = newLiked ? comment.likeCount + 1 : comment.likeCount - 1;
     onLikeToggle(comment.id, newLiked, newCount);
 
-    const result = await toggleCommentLike(comment.id);
+    const result = await callAction(() => toggleCommentLike(comment.id));
     if (result.error) {
       onLikeToggle(comment.id, comment.liked, comment.likeCount);
       toast.error(result.error);

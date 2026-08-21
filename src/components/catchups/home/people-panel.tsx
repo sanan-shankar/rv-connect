@@ -40,6 +40,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -329,16 +330,23 @@ function PersonRow({
 
   async function handleKeeper() {
     setBusy(true);
-    const result = await setCatchupKeeper(catchupId, person.id, !person.isKeeper);
-    setBusy(false);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() =>
+        setCatchupKeeper(catchupId, person.id, !person.isKeeper)
+      );
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        person.isKeeper ? `${person.name} is no longer a Keeper.` : `${person.name} is now a Keeper.`
+      );
+      onChanged();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave the
+      // menu trigger stuck spinning for the rest of the session (audit B-042).
+      setBusy(false);
     }
-    toast.success(
-      person.isKeeper ? `${person.name} is no longer a Keeper.` : `${person.name} is now a Keeper.`
-    );
-    onChanged();
   }
 
   async function handleRemove() {
@@ -346,14 +354,17 @@ function PersonRow({
       return;
     }
     setBusy(true);
-    const result = await removeCatchupMember(catchupId, person.id);
-    setBusy(false);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => removeCatchupMember(catchupId, person.id));
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${person.name} was removed.`);
+      onChanged();
+    } finally {
+      setBusy(false);
     }
-    toast.success(`${person.name} was removed.`);
-    onChanged();
   }
 
   return (
@@ -441,16 +452,21 @@ function AddPeople({
 
   async function add(person: SearchedPerson) {
     setAddingId(person.id);
-    const result = await addCatchupMembers(catchupId, [person.id]);
-    setAddingId(null);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => addCatchupMembers(catchupId, [person.id]));
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${person.name} was added.`);
+      setQuery("");
+      reset();
+      onChanged();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // this row stuck spinning, unable to try again (audit B-042).
+      setAddingId(null);
     }
-    toast.success(`${person.name} was added.`);
-    setQuery("");
-    reset();
-    onChanged();
   }
 
   const unpicked = results.filter((r) => !existingIds.has(r.id));

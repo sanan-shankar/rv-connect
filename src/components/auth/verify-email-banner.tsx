@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { MailWarning, Check, Clock } from "lucide-react";
 import { cn, VALLEY_TIME_ZONE, valleyDayKey } from "@/lib/utils";
+import { callAction } from "@/lib/call-action";
 import { resendVerification } from "./email-actions";
 
 /* ------------------------------------------------------------------ *
@@ -88,26 +89,32 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
     if (busy) return;
     setBusy(true);
     setFlash("");
-    const result = await resendVerification();
-    setBusy(false);
-
-    if (!result.ok) {
-      setFlash(result.error ?? "That did not work. Try again in a minute.");
-      return;
+    try {
+      // callAction: a rejected resend used to leave `busy` stuck true
+      // forever, so the button sat on "Sending..." for the rest of the
+      // session (audit B-042). "ok" in result tells a genuine { ok: false }
+      // apart from callAction's own ActionFailure, which carries no `ok`.
+      const result = await callAction(() => resendVerification());
+      if (!("ok" in result) || !result.ok) {
+        setFlash(result.error ?? "That did not work. Try again in a minute.");
+        return;
+      }
+      if (result.state === "sent") {
+        setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
+        setFlash(`Sent to ${result.sentTo ?? "your address"}.`);
+      } else if (result.state === "queued" && result.sendingAt) {
+        setState({ state: "queued", sendingAt: result.sendingAt });
+        setFlash("");
+      } else {
+        setState({ state: "imminent" });
+        setFlash("");
+      }
+      // The gate is read server-side, so a confirmation that landed while this
+      // page was open only takes effect on the next render pass.
+      router.refresh();
+    } finally {
+      setBusy(false);
     }
-    if (result.state === "sent") {
-      setState({ state: "sent", sentTo: result.sentTo ?? "your address" });
-      setFlash(`Sent to ${result.sentTo ?? "your address"}.`);
-    } else if (result.state === "queued" && result.sendingAt) {
-      setState({ state: "queued", sendingAt: result.sendingAt });
-      setFlash("");
-    } else {
-      setState({ state: "imminent" });
-      setFlash("");
-    }
-    // The gate is read server-side, so a confirmation that landed while this
-    // page was open only takes effect on the next render pass.
-    router.refresh();
   }
 
   const queued = state.state === "queued";

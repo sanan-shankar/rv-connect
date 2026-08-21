@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { ShieldAlert } from "lucide-react";
 import { toggleLike, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { CommentsSection } from "@/components/posts/comments-section";
@@ -40,7 +41,7 @@ export function LetterEngagement({
     const next = !liked;
     setLiked(next);
     setLikeCount((c) => (next ? c + 1 : c - 1));
-    const result = await toggleLike(postId);
+    const result = await callAction(() => toggleLike(postId));
     if (result.error) {
       setLiked(!next);
       setLikeCount((c) => (next ? c - 1 : c + 1));
@@ -51,7 +52,7 @@ export function LetterEngagement({
   async function handleBookmark() {
     const next = !bookmarked;
     setBookmarked(next);
-    const result = await toggleBookmark(postId);
+    const result = await callAction(() => toggleBookmark(postId));
     if (result.error) {
       setBookmarked(!next);
       toast.error(result.error);

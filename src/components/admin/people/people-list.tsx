@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { BadgeCheck, Ban, MailX, Search, Shield, ShieldQuestion } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,20 +105,25 @@ export function PeopleList({
   async function showMore() {
     if (!cursor || loading) return;
     setLoading(true);
-    const params: Record<string, string> = {};
-    searchParams.forEach((v, k) => (params[k] = v));
-    const result = await loadMorePeople(params, cursor);
-    setLoading(false);
-    if ("error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const params: Record<string, string> = {};
+      searchParams.forEach((v, k) => (params[k] = v));
+      const result = await callAction(() => loadMorePeople(params, cursor));
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      setRows((prev) => [...prev, ...result.rows]);
+      setCursor(result.nextCursor);
+    } finally {
+      // finally, not a trailing statement: a rejected page used to leave
+      // "Show more" disabled for the rest of the session (audit B-042).
+      setLoading(false);
     }
-    setRows((prev) => [...prev, ...result.rows]);
-    setCursor(result.nextCursor);
   }
 
   async function verify(id: string) {
-    const result = await adminVerifyUser(id, "office_list");
+    const result = await callAction(() => adminVerifyUser(id, "office_list"));
     if (result.error) {
       toast.error(result.error);
       return;

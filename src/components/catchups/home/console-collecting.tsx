@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ArrowUp, ArrowDown, ArrowRight, X } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BirdAvatar } from "@/components/common/bird-avatar";
@@ -104,18 +105,25 @@ function SubmissionPanel({
       return;
     }
     setBusy(true);
-    const result = await submitPrompt({ editionId, text: trimmed, category, showAsker });
-    setBusy(false);
-    if (result && "error" in result) {
-      if (!emailGate.handled(result.error)) toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() =>
+        submitPrompt({ editionId, text: trimmed, category, showAsker })
+      );
+      if (result && "error" in result) {
+        if (!emailGate.handled(result.error)) toast.error(result.error);
+        return;
+      }
+      // Always "added": since 2026-08-05 nothing waits on a Keeper.
+      toast.success("Added to the round.");
+      setText("");
+      setCategory(null);
+      setShowAsker(true);
+      onSubmitted();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // "Ask the group" disabled for the rest of the session (audit B-042).
+      setBusy(false);
     }
-    // Always "added": since 2026-08-05 nothing waits on a Keeper.
-    toast.success("Added to the round.");
-    setText("");
-    setCategory(null);
-    setShowAsker(true);
-    onSubmitted();
   }
 
   return (
@@ -187,14 +195,17 @@ export function OpenAnsweringButton({
 
   async function handleClick() {
     setBusy(true);
-    const result = await openAnswering(editionId);
-    setBusy(false);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => openAnswering(editionId));
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Answering is open.");
+      onChanged();
+    } finally {
+      setBusy(false);
     }
-    toast.success("Answering is open.");
-    onChanged();
   }
 
   return (
@@ -225,7 +236,7 @@ function QuestionsList({
   const [listRef] = useAutoAnimate();
 
   async function handleRemove(promptId: string) {
-    const result = await curatePrompt({ action: "remove", promptId });
+    const result = await callAction(() => curatePrompt({ action: "remove", promptId }));
     if (result && "error" in result) {
       toast.error(result.error);
       return;
@@ -238,11 +249,13 @@ function QuestionsList({
     if (target < 0 || target >= accepted.length) return;
     const reordered = [...accepted];
     [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-    const result = await curatePrompt({
-      action: "reorder",
-      editionId,
-      orderedPromptIds: reordered.map((p) => p.id),
-    });
+    const result = await callAction(() =>
+      curatePrompt({
+        action: "reorder",
+        editionId,
+        orderedPromptIds: reordered.map((p) => p.id),
+      })
+    );
     if (result && "error" in result) {
       toast.error(result.error);
       return;

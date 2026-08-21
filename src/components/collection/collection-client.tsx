@@ -14,6 +14,8 @@ import {
   FilterSheet,
   type ActiveChip,
 } from "@/components/common/filters";
+import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { WHEN_OPTIONS, COLLECTION_SORT_OPTIONS } from "@/lib/collection-facets";
 import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
 import { ContributeDialog } from "./contribute-dialog";
@@ -145,16 +147,25 @@ export function CollectionClient({
 
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Re-arms the skeleton when the filters change, so changing a filter never leaves the previous results sitting on screen as though they matched.
+    // Re-arms the skeleton when the filters change, so changing a filter never leaves the previous results sitting on screen as though they matched.
     setLoading(true);
     setPage(0);
-    fetchPage(0).then((data) => {
+    (async () => {
+      // callAction: a rejected fetch (deploy skew, dropped network, expired
+      // session) used to leave `loading` true forever and the grid stuck on
+      // skeletons with no way out (audit B-042).
+      const data = await callAction(() => fetchPage(0));
       if (cancelled) return;
+      if ("error" in data) {
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
       setPhotos(data.photos);
       setHasMore(data.hasMore);
       setTotal(data.total);
       setLoading(false);
-    });
+    })();
     return () => {
       cancelled = true;
     };
@@ -163,12 +174,21 @@ export function CollectionClient({
   async function handleLoadMore() {
     const next = page + 1;
     setLoadingMore(true);
-    const data = await fetchPage(next);
-    setPhotos((prev) => [...prev, ...data.photos]);
-    setHasMore(data.hasMore);
-    setTotal(data.total);
-    setPage(next);
-    setLoadingMore(false);
+    try {
+      const data = await callAction(() => fetchPage(next));
+      if ("error" in data) {
+        toast.error(data.error);
+        return;
+      }
+      setPhotos((prev) => [...prev, ...data.photos]);
+      setHasMore(data.hasMore);
+      setTotal(data.total);
+      setPage(next);
+    } finally {
+      // finally, not a trailing statement: a rejected page used to leave
+      // "Load more" disabled for the rest of the session (audit B-042).
+      setLoadingMore(false);
+    }
   }
 
   function clearAll() {

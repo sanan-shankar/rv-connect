@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, RotateCcw, UserRound } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/admin/admin-chip";
 import { AdminPersonRow } from "@/components/admin/admin-person-row";
@@ -42,14 +43,17 @@ export function ThreadView({ thread }: { thread: AdminThreadDetail }) {
 
   async function setStatus(status: "open" | "closed") {
     setBusy(true);
-    const result = await setThreadStatus(thread.id, status);
-    setBusy(false);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => setThreadStatus(thread.id, status));
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(status === "closed" ? "Marked as sorted." : "Reopened.");
+      router.refresh();
+    } finally {
+      setBusy(false);
     }
-    toast.success(status === "closed" ? "Marked as sorted." : "Reopened.");
-    router.refresh();
   }
 
   return (

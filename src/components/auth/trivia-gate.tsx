@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { SPRINGS } from "@/components/common/motion";
 import { FIELD_SHELL } from "@/components/common/float-field";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { callAction } from "@/lib/call-action";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { getTriviaQuestion, checkTrivia } from "./trivia-actions";
@@ -42,7 +44,17 @@ export function TriviaGate({
   const programmaticFocus = useRef(true);
 
   useEffect(() => {
-    getTriviaQuestion().then(setQuestion);
+    // callAction: a rejected fetch (deploy skew, dropped network) used to be
+    // an unhandled rejection with `question` left null forever, so the gate
+    // sat on "..." with a permanently-disabled submit and no way out
+    // (audit B-042).
+    callAction(() => getTriviaQuestion()).then((q) => {
+      if ("error" in q) {
+        toast.error(q.error);
+        return;
+      }
+      setQuestion(q);
+    });
   }, []);
 
   // Counts swaps so the arrow icon rolls half a turn per press (see below);
@@ -57,7 +69,12 @@ export function TriviaGate({
     // The bird tilts its head at the new question rather than reacting as if
     // something went wrong: asking for another question is a normal move.
     hoopoe.express("curious");
-    setQuestion(await getTriviaQuestion(question.id));
+    const q = await callAction(() => getTriviaQuestion(question.id));
+    if ("error" in q) {
+      toast.error(q.error);
+      return;
+    }
+    setQuestion(q);
   }
 
   async function handleSubmit(e: React.FormEvent) {

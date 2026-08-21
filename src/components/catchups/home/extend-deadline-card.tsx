@@ -23,6 +23,7 @@
 import { useState } from "react";
 import { CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { FadeRise } from "@/components/common/motion";
 import { cn, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { extendDeadline } from "@/app/(main)/catchups/actions";
@@ -70,19 +71,24 @@ export function ExtendDeadlineCard({
 
   async function handleExtend(days: 1 | 2 | 4 | 7) {
     setBusy(days);
-    const result = await extendDeadline(editionId, days);
-    setBusy(null);
-    if (result && "error" in result) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await callAction(() => extendDeadline(editionId, days));
+      if (result && "error" in result) {
+        toast.error(result.error);
+        return;
+      }
+      const amount = days === 7 ? "a week" : days === 1 ? "a day" : `${days} days`;
+      toast.success(
+        phase === "collecting"
+          ? `Questions stay open ${amount} longer.`
+          : `Replies stay open ${amount} longer.`
+      );
+      onChanged();
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // every button here disabled for the rest of the session (audit B-042).
+      setBusy(null);
     }
-    const amount = days === 7 ? "a week" : days === 1 ? "a day" : `${days} days`;
-    toast.success(
-      phase === "collecting"
-        ? `Questions stay open ${amount} longer.`
-        : `Replies stay open ${amount} longer.`
-    );
-    onChanged();
   }
 
   return (

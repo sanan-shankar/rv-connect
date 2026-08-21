@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { reportUser } from "@/components/posts/report-action";
 
 const REASONS = [
@@ -29,16 +30,21 @@ export function FlagPersonDialog({ userId, name }: { userId: string; name: strin
 
   async function handleSubmit() {
     setSubmitting(true);
-    const full = detail.trim() ? `${reason}: ${detail.trim()}` : reason;
-    const result = await reportUser(userId, full);
-    setSubmitting(false);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    try {
+      const full = detail.trim() ? `${reason}: ${detail.trim()}` : reason;
+      const result = await callAction(() => reportUser(userId, full));
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Thank you. An admin will take a look.");
+      setOpen(false);
+      setDetail("");
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // "Send flag" disabled for the rest of the session (audit B-042).
+      setSubmitting(false);
     }
-    toast.success("Thank you. An admin will take a look.");
-    setOpen(false);
-    setDetail("");
   }
 
   return (

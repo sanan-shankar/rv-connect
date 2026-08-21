@@ -15,6 +15,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { EASE_SPRING } from "@/components/common/motion";
 import { submitEntry } from "@/app/(main)/catchups/actions";
@@ -92,7 +93,10 @@ export function AnswerExperience({
 
   async function persist(promptId: string, patch: { body?: string; images?: string[] }) {
     setSaveStatus((s) => ({ ...s, [promptId]: "saving" }));
-    const result = await submitEntry({ promptId, ...patch });
+    // callAction: a rejected save (deploy skew, dropped network, expired
+    // session) used to leave this prompt's status stuck on "saving" forever,
+    // since neither branch below ever ran (audit B-042).
+    const result = await callAction(() => submitEntry({ promptId, ...patch }));
     if (result && "error" in result) {
       toast.error(result.error);
       setSaveStatus((s) => ({ ...s, [promptId]: "idle" }));

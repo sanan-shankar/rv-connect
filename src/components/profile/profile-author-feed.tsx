@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { PostCard, type PostData } from "@/components/posts/post-card";
 import { loadPosts } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
@@ -52,13 +54,22 @@ export function ProfileAuthorFeed({
   // posts under a new heading.
   useEffect(() => {
     let cancelled = false;
-    loadPosts({ authorId, kind }).then((data) => {
+    (async () => {
+      // callAction: a rejected fetch (deploy skew, dropped network, expired
+      // session) used to leave `loading` true forever, so the tab stuck on
+      // its skeleton with no way out (audit B-042).
+      const data = await callAction(() => loadPosts({ authorId, kind }));
       if (cancelled) return;
+      if ("error" in data) {
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
       setPosts(data.posts);
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
       setLoading(false);
-    });
+    })();
     return () => {
       cancelled = true;
     };
@@ -66,11 +77,20 @@ export function ProfileAuthorFeed({
 
   async function handleLoadMore() {
     setLoadingMore(true);
-    const data = await loadPosts({ authorId, kind, cursor });
-    setPosts((prev) => [...prev, ...data.posts]);
-    setCursor(data.nextCursor);
-    setHasMore(data.hasMore);
-    setLoadingMore(false);
+    try {
+      const data = await callAction(() => loadPosts({ authorId, kind, cursor }));
+      if ("error" in data) {
+        toast.error(data.error);
+        return;
+      }
+      setPosts((prev) => [...prev, ...data.posts]);
+      setCursor(data.nextCursor);
+      setHasMore(data.hasMore);
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // "Load more" disabled for the rest of the session (audit B-042).
+      setLoadingMore(false);
+    }
   }
 
   const asCards = layout === "cards";

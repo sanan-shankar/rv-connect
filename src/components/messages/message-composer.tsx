@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Send, X } from "lucide-react";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,30 +95,36 @@ export function MessageComposer({
       ...(imageUrl ? { imageUrl } : {}),
     };
 
-    const result =
-      mode === "new"
-        ? await startThread(payload)
-        : mode === "reply"
-          ? await replyToThread(threadId!, payload)
-          : await adminReplyToThread(threadId!, payload);
+    try {
+      // callAction: a rejected send (deploy skew, dropped network, expired
+      // session) used to skip the `setSending(false)` below entirely and
+      // leave Send disabled for the rest of the session (audit B-042).
+      const result = await callAction(() =>
+        mode === "new"
+          ? startThread(payload)
+          : mode === "reply"
+            ? replyToThread(threadId!, payload)
+            : adminReplyToThread(threadId!, payload)
+      );
 
-    setSending(false);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
 
-    if (result.error) {
-      toast.error(result.error);
-      return;
+      setBody("");
+      setKind(null);
+      setImageUrl(null);
+
+      if (mode === "new") {
+        toast.success("Sent. The admins will read it and reply here.");
+        router.push(`/messages/${result.threadId}`);
+        return;
+      }
+      router.refresh();
+    } finally {
+      setSending(false);
     }
-
-    setBody("");
-    setKind(null);
-    setImageUrl(null);
-
-    if (mode === "new") {
-      toast.success("Sent. The admins will read it and reply here.");
-      router.push(`/messages/${result.threadId}`);
-      return;
-    }
-    router.refresh();
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
