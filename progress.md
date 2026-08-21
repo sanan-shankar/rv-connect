@@ -1,5 +1,20 @@
 # Progress Log
 
+## Session 2026-08-21 — The house chain goes back to arrows
+Owner: "the house chain was arrows before. recently we made it lines. revert it back to arrows as
+it was before."
+
+- **`houses-chain.tsx` restored to its state before commit 5aa5549** (2026-08-19,
+  "replace house-chain arrows with colour-handoff lines"): the SVG arrow glyph with its head, the
+  6px gap each side, the 4px `TURN_LEAD` that keeps a turn off the pills, and the arrowheads on
+  the serpentine turns. Nothing else in that commit was touched.
+- **The `/lab/chain-lines` room stays**, since the six line treatments are worth keeping as a
+  record; its registry note no longer claims Thread shipped. The component docblock says plainly
+  that lines were tried for two days and reversed, so no future session re-ships them by accident.
+- Verified: `npm run check` green (26/26), `npm run visual` 23/23 against the committed baselines,
+  and the real chain screenshotted at 1440x900 and 390x844 — nine houses, arrows in both rows,
+  the turn arrow pointing down into the next row on both viewports.
+
 ## Session 2026-08-19 — The admin panel, rebuilt as nine sections
 Owner's ask: "completely redo admin... it follows no design principles, no UI, no UX, it's just a
 mess." Three specific complaints: no navigation other than scrolling, the bird/name/subtitle row
