@@ -8,16 +8,33 @@ name: snapshot
 # that accumulates that history, so a day it does not run is a day permanently
 # missing from every chart in /admin/analytics.
 #
-# Runs at 02:30 IST, half an hour after backup.yml, so the two never contend for
-# the same session-pooler connection.
+# Runs at 00:10 UTC (05:40 IST), ten minutes after the UTC day rolls over, and
+# records the day that JUST ENDED rather than "today". The old schedule was
+# 21:00 UTC -- coincidentally the same minute as retention.yml (audit Low 102)
+# -- which also meant PostHog was asked for "today" three hours before the UTC
+# day was actually over. That window, 21:00-24:00 UTC == 02:30-05:30 IST, real
+# usage for an Indian community, was never counted, for every day, forever
+# (audit Lows 51 + 103). Sitting just past midnight instead of just before it
+# fixes both: every source is now read at the boundary of the day it gets
+# stamped with, and the two nightly jobs no longer land on the same minute.
+#
+# Still quiet hours: 00:10 UTC is 3h40m after backup.yml (20:30 UTC the
+# previous day) and 3h10m after retention.yml (21:00 UTC the previous day),
+# and well before the site sees any real morning traffic in IST.
 
 on:
   schedule:
-    - cron: '0 21 * * *'
+    - cron: '10 0 * * *'
   workflow_dispatch:
     inputs:
       day:
-        description: 'Backfill a specific day (YYYY-MM-DD). Leave blank for today.'
+        description: >-
+          Backfill a specific day (YYYY-MM-DD). Leave blank to record the day
+          that just ended. Only PostHog can honestly answer for a day in the
+          past -- the database, Sentry and GitHub sources are point-in-time
+          counts with no history, so a backfill records PostHog alone and
+          leaves the rest absent rather than mislabeling today's counts as
+          that day's (audit Low 104).
         required: false
 
 concurrency:
