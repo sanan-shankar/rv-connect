@@ -131,7 +131,6 @@ export async function updateUserProfile(formData: FormData) {
     },
   });
 
-  revalidatePath("/settings");
   revalidatePath(`/profile/${session.user.id}`);
   return { success: true };
 }
@@ -180,7 +179,6 @@ export async function updateUserPlaces(
     }),
   ]);
 
-  revalidatePath("/settings");
   revalidatePath(`/profile/${userId}`);
   return { success: true };
 }
@@ -188,7 +186,17 @@ export async function updateUserPlaces(
 export async function updateAvatar(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  if (IS_DEMO) return { error: "The demo does not accept photo uploads, but you can change your bird from the species picker." };
+  // Used to point visitors at the species picker as the alternative. It is
+  // not one: /pick-bird is a paid supporter perk (chooseBird in
+  // src/app/(main)/support/actions.ts requires a real Razorpay contribution
+  // and refuses outright in demo mode), so a demo visitor who followed that
+  // sentence would land on a page that sends them straight back to /support
+  // for a payment the demo cannot take either (bug audit M62).
+  if (IS_DEMO)
+    return {
+      error:
+        "This is a demo, so photo uploads are switched off, and so is picking a different bird: that is a paid perk the demo cannot offer. You keep the bird your account was given.",
+    };
 
   /* Deliberately NOT behind requireVerifiedMember, unlike every other image
      write (Phase 3 review, 2026-08-20). Three reasons, all load-bearing:
@@ -249,7 +257,6 @@ export async function updateAvatar(formData: FormData) {
   });
   if (prev?.photoUrl && prev.photoUrl !== url) await delImage(prev.photoUrl);
 
-  revalidatePath("/settings");
   revalidatePath(`/profile/${session.user.id}`);
   return { success: true, photoUrl: url };
 }
@@ -268,7 +275,6 @@ export async function removeAvatar() {
   });
   if (prev?.photoUrl) await delImage(prev.photoUrl);
 
-  revalidatePath("/settings");
   revalidatePath(`/profile/${session.user.id}`);
   return { success: true };
 }

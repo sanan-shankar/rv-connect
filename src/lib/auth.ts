@@ -12,6 +12,7 @@ import { appSecret } from "@/lib/app-secret";
 import { writeAudit } from "@/lib/audit";
 import { prisma } from "./prisma";
 import { normalizeEmail } from "./email-address";
+import { ownProfileLink } from "./notification-links";
 
 /* authorize() below can only say "yes" (a user) or "no" (null), and null
    always surfaces as "Invalid email or password." These two let the login
@@ -217,7 +218,9 @@ const nextAuth = NextAuth({
                   type: "admin",
                   message:
                     "Welcome back. Your account was scheduled for deletion; signing in has cancelled that, and everything is exactly as you left it.",
-                  link: "/settings",
+                  // Not "/settings": that route does not exist. The profile
+                  // is the settings surface (audit M49).
+                  link: ownProfileLink(user.id),
                 },
               });
             } catch (err) {

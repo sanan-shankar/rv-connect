@@ -37,3 +37,17 @@ export function adminThreadLink(threadId: string): string {
 export function postNoun(kind?: string | null): "letter" | "post" {
   return kind === "letter" ? "letter" : "post";
 }
+
+/**
+ * A member's own profile, which is where their settings live.
+ *
+ * There is no `/settings` route. The profile IS the settings surface (see the
+ * sidebar's own note: "There is no settings page any more: your profile IS
+ * it"), and the page was retired without the link that pointed at it moving
+ * too -- so the one notification a member gets after cancelling their account
+ * deletion, at the exact moment they are most likely to want to check their
+ * own details, sent them to a 404 (audit M49).
+ */
+export function ownProfileLink(userId: string): string {
+  return `/profile/${userId}`;
+}

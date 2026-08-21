@@ -94,6 +94,39 @@ export async function reportPost(postId: string, reason: string) {
   });
   if (!post) return { error: "That post is already gone" };
 
+  /* One open report per person per post (audit M29).
+   *
+   * `Report` carries a unique on (reporterId, reportedUserId) for exactly this
+   * reason, but a POST report leaves reportedUserId NULL and Postgres treats
+   * NULLs as distinct, so that index constrains member-to-member reports and
+   * nothing else. Reporting the same post twice therefore filed a second
+   * report, opened a SECOND admin thread about it, and notified the admins
+   * again -- so a member repeating themselves, or double-clicking, made the
+   * same complaint look like a pattern of them.
+   *
+   * Enforced here rather than by a second unique index because there are
+   * already duplicate rows in the live table from before this rule existed,
+   * and adding the constraint would mean deleting moderation records to make
+   * room for it. History stays; the behaviour stops.
+   *
+   * Only PENDING reports count. Once an admin has dismissed or acted on one,
+   * the post going wrong again is genuinely new information. */
+  const openAlready = await prisma.report.findFirst({
+    where: {
+      reporterId: session.user.id,
+      postId,
+      targetType: "post",
+      status: "pending",
+    },
+    select: { thread: { select: { id: true } } },
+  });
+  if (openAlready) {
+    // Success, not an error: they did the thing they meant to do, and it is
+    // already on the moderator's desk. Saying "you already reported this"
+    // as a failure would read as the report not having worked.
+    return { success: true as const, alreadyReported: true as const };
+  }
+
   const report = await prisma.report.create({
     data: {
       targetType: "post",

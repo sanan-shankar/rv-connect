@@ -122,3 +122,66 @@ test("the refusal message never distinguishes why", async () => {
   assert.equal(typeof POST_NOT_VISIBLE, "string");
   assert.ok(!/group|city|batch|draft|hidden/i.test(POST_NOT_VISIBLE));
 });
+
+/* --- Your own writing is always yours to read (audit M30) ----------------- */
+
+test("the author sees their own post whatever audience it was aimed at", () => {
+  const author = { id: "asha", batchType: "ISC", batchYear: 2011 };
+  const base = {
+    id: "p1",
+    authorId: "asha",
+    groupId: null,
+    isHidden: false,
+    status: "published",
+  };
+  const facts = { isGroupMember: false, cityMatches: false };
+
+  // Aimed at a city the author no longer has, and a batch that is not theirs.
+  const aimedElsewhere = { ...base, cityScope: "Chennai", targetBatches: "ISC-1998" };
+  assert.equal(decidePostVisibility(aimedElsewhere, author, facts).ok, true);
+
+  // ...and a stranger in neither audience still cannot.
+  const stranger = { id: "bo", batchType: "ISC", batchYear: 2011 };
+  assert.equal(decidePostVisibility(aimedElsewhere, stranger, facts).ok, false);
+});
+
+test("the author reads their own unpublished draft; nobody else does", () => {
+  const draft = {
+    id: "p2",
+    authorId: "asha",
+    groupId: null,
+    cityScope: null,
+    targetBatches: null,
+    isHidden: false,
+    status: "draft",
+  };
+  const facts = { isGroupMember: false, cityMatches: true };
+  assert.equal(decidePostVisibility(draft, { id: "asha" }, facts).ok, true);
+  const denied = decidePostVisibility(draft, { id: "bo" }, facts);
+  assert.equal(denied.ok, false);
+  assert.equal(denied.reason, "draft");
+});
+
+test("a hidden post is still reachable by its own author, on purpose", () => {
+  /* Not an oversight, and worth a test so nobody "fixes" it: an author whose
+     post a moderator has hidden can still open it, because deleting or
+     editing it is the only way they can respond to the moderation at all.
+     The audit's M30 assumed the rule lacked an author exemption entirely; it
+     did not. The gap was in loadPosts, which is where the fix went. */
+  const hidden = {
+    id: "p3",
+    authorId: "asha",
+    groupId: null,
+    cityScope: null,
+    targetBatches: null,
+    isHidden: true,
+    status: "published",
+  };
+  assert.equal(
+    decidePostVisibility(hidden, { id: "asha" }, { isGroupMember: true, cityMatches: true }).ok,
+    true
+  );
+  const other = decidePostVisibility(hidden, { id: "bo" }, { isGroupMember: true, cityMatches: true });
+  assert.equal(other.ok, false);
+  assert.equal(other.reason, "hidden");
+});

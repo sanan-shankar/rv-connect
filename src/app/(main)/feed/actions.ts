@@ -82,12 +82,24 @@ export async function createPost(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
-  // Posts and letters both come through here, and both put something in front
-  // of the whole community under a name. That waits for a confirmed address.
-  // The client shows the rule before you hit it (VerifyEmailDialog), but THIS
-  // is what makes it true: the composer could be bypassed, this cannot.
-  const gate = await requireVerifiedMember();
-  if (!gate.ok) return { error: gate.error };
+  /* Posts and letters both come through here, and both put something in front
+     of the whole community under a name. That waits for a confirmed address.
+     The client shows the rule before you hit it (VerifyEmailDialog), but THIS
+     is what makes it true: the composer could be bypassed, this cannot.
+
+     A DRAFT is the exception, and `publishDraft` already says why in its own
+     words: "writing privately harms nobody, and somebody waiting on a
+     confirmation email should not lose what they were working on". That
+     intent was written down and then contradicted here, because this gate ran
+     before anything looked at `saveAsDraft` -- so an unverified member could
+     not save the letter they were told to keep writing, and the only way to
+     keep it was to not close the tab (audit M32). The gate that matters is
+     the one on publishing, which is untouched. */
+  const savingDraft = formData.get("saveAsDraft") === "true";
+  if (!savingDraft) {
+    const gate = await requireVerifiedMember();
+    if (!gate.ok) return { error: gate.error };
+  }
 
   // Verified is not unlimited: creation is metered per account (audit M2).
   const limited = await rateLimit("posts", session.user.id);
@@ -668,12 +680,21 @@ export async function createComment(formData: FormData) {
   if (parentId) {
     const parent = await prisma.comment.findUnique({
       where: { id: parentId },
-      select: { parentId: true, deletedAt: true, isHidden: true },
+      select: { parentId: true, postId: true, deletedAt: true, isHidden: true },
     });
     // The UI offers no reply button on a "[deleted]" stub, so this only fires
     // when the target was deleted between render and submit.
     if (!parent || parent.deletedAt || parent.isHidden) {
       return { error: "That comment is gone" };
+    }
+    /* The parent must belong to the post being commented on (audit M28).
+       Nothing checked this: `postId` and `parentId` arrived as two independent
+       fields, so a crafted call could file a reply under a comment on a
+       DIFFERENT post -- the reply rendered in a thread it was never written
+       for, and both posts' comment counts moved. `canViewPost` above vets the
+       post; this vets the pair. */
+    if (parent.postId !== parsed.data.postId) {
+      return { error: "That comment is not on this post" };
     }
     if (parent.parentId) {
       parentId = parent.parentId; // reply to the root comment instead
@@ -918,7 +939,15 @@ export async function loadPosts(opts?: {
       ],
     });
   }
-  if (!isAdmin) andConditions.push(cityScopeWhere(viewerCities));
+  /* City scope, unless you wrote it (audit M30). An AND-ed clause cannot be
+     escaped by the OR above, so the author exemption has to be spelled out
+     here as well: a member who has moved away and writes a letter for the city
+     they left could otherwise not see their own post in any feed. */
+  if (!isAdmin) {
+    andConditions.push({
+      OR: [cityScopeWhere(viewerCities), { authorId: session.user.id }],
+    });
+  }
 
   const baseWhere = {
     isHidden: false,
@@ -941,6 +970,12 @@ export async function loadPosts(opts?: {
           { targetBatches: null },
           { targetBatches: "" },
           { targetBatches: { contains: userBatch } },
+          // ...or you wrote it. The author is not part of their own audience,
+          // they are its source, so a post aimed at another batch used to
+          // disappear from the feed of the person who wrote it (audit M30).
+          // Mirrors the same exemption in decidePostVisibility, which is what
+          // decides the single-post case.
+          { authorId: session.user.id },
         ],
       };
 
