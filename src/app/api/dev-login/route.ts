@@ -37,6 +37,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqualStrings } from "@/lib/timing-safe";
 import { encode } from "@auth/core/jwt";
 import { prisma } from "@/lib/prisma";
+import { normalizeEmail } from "@/lib/email-address";
 
 /* Matches the `session.maxAge` in src/lib/auth.ts. A tooling session that
    outlived a real one would be its own small oddity. */
@@ -88,7 +89,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  // The canonical form, exactly as authorize() does: User.email is a
+  // case-sensitive unique column (bug audit B-020).
+  const user = await prisma.user.findUnique({ where: { email: normalizeEmail(email) } });
   if (!user) {
     return NextResponse.json({ error: `No account for ${email}` }, { status: 404 });
   }

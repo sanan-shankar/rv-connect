@@ -11,6 +11,7 @@ import { humanPassValid, humanPassFromCookieHeader } from "@/lib/human-pass-rule
 import { appSecret } from "@/lib/app-secret";
 import { writeAudit } from "@/lib/audit";
 import { prisma } from "./prisma";
+import { normalizeEmail } from "./email-address";
 
 /* authorize() below can only say "yes" (a user) or "no" (null), and null
    always surfaces as "Invalid email or password." These two let the login
@@ -59,7 +60,7 @@ const nextAuth = NextAuth({
         if (!email) return null;
 
         const ip = ipFromRequest(request);
-        const acctKey = email.trim().toLowerCase();
+        const acctKey = normalizeEmail(email);
 
         /* H6: the door itself is metered. Read-only here — a successful
            sign-in must never spend anyone's budget, or the QA scripts and
@@ -99,8 +100,12 @@ const nextAuth = NextAuth({
         const fail = () =>
           Promise.all([consume("login-ip", ip), consume("login-account", acctKey)]);
 
+        // acctKey, not the raw submission. User.email is a case-sensitive
+        // unique column holding the canonical (trimmed, lowercased) form, so
+        // looking up what somebody typed refused a correct password whenever
+        // the capitalisation differed (bug audit B-020).
         const user = await prisma.user.findUnique({
-          where: { email },
+          where: { email: acctKey },
         });
 
         /* Every branch below records its outcome. Purely additive: nothing

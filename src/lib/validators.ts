@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { ERA_VALUES } from "./collection";
+import { emailField } from "./email-address";
 
 // Alumni now give their batch directly ("the year your 12th-grade class
 // graduated, even if you left earlier") plus the two plain years they joined
@@ -15,7 +16,7 @@ export const signupSchema = z
   .object({
     firstName: z.string().trim().min(1, "First name is required").max(50),
     lastName: z.string().trim().min(1, "Surname is required").max(50),
-    email: z.email("Please enter a valid email"),
+    email: emailField(),
     password: z.string().min(8, "Password must be at least 8 characters").max(128),
     phone: z.string().trim().max(24).optional(),
     accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).default("alumnus"),
@@ -57,7 +58,7 @@ export const profileSchema = z.object({
   // The email shown on the profile. Blank means "use my sign-in email"; editing
   // it never changes the login email. Validated loosely (an empty string is
   // allowed and treated as unset by the action).
-  displayEmail: z.union([z.literal(""), z.email("Please enter a valid email").max(200)]).optional(),
+  displayEmail: z.union([z.literal(""), emailField()]).optional(),
   currentCity: z.string().max(100).optional(),
   secondaryCity: z.string().trim().max(100).optional(),
   workplace: z.string().max(100).optional(),

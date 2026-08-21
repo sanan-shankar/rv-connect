@@ -91,7 +91,7 @@ function isUnder(pathname: string, prefixes: string[]): boolean {
 }
 
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   if (IS_DEMO) {
     // JSON for APIs, not a redirect: a fetch() handed a 302 to an HTML page
@@ -241,7 +241,12 @@ export function proxy(request: NextRequest) {
 
   if (!sessionCookie) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    // `next`, not `callbackUrl`. This used to write a parameter nothing read:
+    // the login page and safeNextPath both look only at `next`, so every
+    // shared deep link -- a letter, a profile, a Catch-up invitation --
+    // dropped the visitor on /feed after they signed in (bug audit B-022).
+    // The search string travels too, so a filtered directory link survives.
+    loginUrl.searchParams.set("next", pathname + search);
     return NextResponse.redirect(loginUrl);
   }
 
