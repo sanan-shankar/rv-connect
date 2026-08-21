@@ -2323,3 +2323,52 @@ docs/planning/simplification-audit-prompt.md and docs/planning/bug-audit-prompt.
 the owner's brief nearly verbatim, his prompting ideology (verbose briefs, agents decide their
 own granularity), the shared-database rule stated twice, and the distilled methodology from both
 research sweeps, including the connection-budget arithmetic and the IST-vs-UTC date-boundary hunt.
+
+## 2026-08-21 — Pre-release fix session three: the last canonical finding, and half the tail
+
+Session three of the fix work. It opened with one canonical finding left and closed with none:
+**all 45 are fixed**, both feature builds have shipped, and `npm run check`, `npm run visual` and
+`npm run test:e2e` are green. Nineteen commits, and the owner pushed once mid-session.
+
+**B-063, the Catch-up leave/archive/delete feature**, was the large piece. Built to the design he
+approved: Leave on the People panel, Archive and Delete on the card's own menu, an "Archived" and
+a "Recently deleted" section that render only when they hold something. Personal by construction
+(the state is two nullable columns on `CatchupPref`, unique on the pair, so it cannot leak across
+members), a leaver's published answers stay where they were published, and the nightly sweep
+empties the 30-day bin. Two extensions beyond the approved design, both argued in the code: Delete
+is refused for the creator as well as Leave (the sweep would otherwise strip the founder's
+membership row and leave a Keeper the app tells "you are not a member"), and the menu does not
+offer what the action would refuse. Proved live with two throwaway accounts at both viewports, and
+the sweep proved in a rolled-back transaction.
+
+Then the clusters: the mail drain's recipient scope (M53, the flag that could send real members'
+mail off a dev machine), Turnstile and the database-outage sign-in message (M07, M18 — both told
+people something untrue at the worst moment), nine fire-and-forget writes moved to `after()`, the
+money surfaces (M59 could have let a junk flood get Razorpay to disable the payment webhook), the
+Catch-up engine's correctness, the directory's NaN 500 and its NULLS-FIRST batch sort, uploads
+(row before bytes; a measured 81MP → 40MP ceiling), the token transactions, the app shell's error
+boundaries and loading states, and the demo.
+
+**Three findings turned out to be wrong and are recorded as such** rather than patched: M30 (the
+visibility rule always had the author exemption, deliberately above the hidden check; only the list
+query lacked it), M56 (the retry latch was fine — a failed `<script>` leaves its tag in the DOM and
+the "already loaded?" check looked for the tag), and Low 43 (GitHub's 60-day workflow disable
+applies to public repositories; this one is private). Two more are deferred with reasons: M22
+trades a latency win on six pages for a theme flash, and M24 needs a new client surface.
+
+**Two agent reports each contained a real defect, caught only by reading the diff**: a token hash
+copied into a second file, and a security check dropped from a rewritten query. Both had passed
+every gate. That rule earned its keep twice in one session.
+
+Two things were found that the audit never named. **B-203**: "Start one" on a group card minted a
+duplicate group, so the row stayed forever offering to do it again; the owner chose to drop the row
+rather than make the button attach. And **the demo's database had received none of the audit's
+migrations** — it was fourteen behind and would have broken on the next push. `run-sql.mjs` gained
+an `--env` flag, all fourteen were applied, and the write guard passes 15/15 again.
+
+Also, at the owner's ask: Renovate was unblocked (an `_comment` key it does not accept had stopped
+it opening any pull request at all) and eleven of twelve npm advisories cleared, which subsumes
+Dependabot PR #10.
+
+Handed over at roughly 92% by effort with 22 Medium roots and about 47 Low items left. The brief
+is `docs/planning/audits/fix-session-4-prompt.md`; the disposition ledger is the durable record.
