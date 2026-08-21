@@ -1406,6 +1406,98 @@ export async function toggleEntryLove(entryId: string) {
 //  at once.
 
 /**
+ * Why the demo says no to leaving, archiving and deleting.
+ *
+ * Every visitor to the demo arrives as the SAME seeded persona, so these
+ * three -- which are personal by design and change only the acting member's
+ * own list -- would in that one place change it for whoever else is looking.
+ * `leaveCatchup` would also be refused by the demo's write guard anyway
+ * (`GroupMember` is not on `ALLOWED_WRITE_MODELS`), but as a generic "Something
+ * went wrong" rather than as an answer (write-path review, 2026-08-21).
+ */
+const DEMO_SHARED_COPY_REFUSAL =
+  "Everyone exploring the demo shares one account, so this would change the list for whoever else is looking. The demo leaves it switched off.";
+
+/**
+ * Every notification kind this feature writes. Listed rather than matched by
+ * prefix so a future `catchup_`-prefixed type has to be considered here on
+ * purpose: a member who has left, or binned their copy, should be left with
+ * none of them, and silently missing one is a dead link in a bell.
+ */
+const CATCHUP_NOTIFICATION_TYPES = [
+  "catchup_questions_open",
+  "catchup_answers_open",
+  "catchup_reminder",
+  "catchup_published",
+  "catchup_love",
+] as const;
+
+/**
+ * Clear one member's waiting notifications for one Catch-up.
+ *
+ * Two link shapes, because the reveal and the love nudge point at a ROUND
+ * (`/catchups/round/<editionId>`) rather than at the Catch-up, so a
+ * `startsWith('/catchups/<catchupId>')` filter alone quietly leaves the two
+ * that matter most sitting in the bell, aimed at a page the member can no
+ * longer open.
+ */
+async function clearCatchupNotifications(userId: string, catchupId: string): Promise<void> {
+  const editions = await prisma.catchupEdition.findMany({
+    where: { catchupId },
+    select: { id: true },
+  });
+  const roundLinks = editions.map((e) => `/catchups/round/${e.id}`);
+  await prisma.notification.deleteMany({
+    where: {
+      userId,
+      type: { in: [...CATCHUP_NOTIFICATION_TYPES] },
+      OR: [
+        { link: { startsWith: `/catchups/${catchupId}` } },
+        ...(roundLinks.length > 0 ? [{ link: { in: roundLinks } }] : []),
+      ],
+    },
+  });
+}
+
+/**
+ * The gate the three personal-copy actions share: you must be in a Catch-up to
+ * have a copy of it. Returns the two facts they need and nothing else.
+ */
+async function loadOwnCatchupCopy(catchupId: string, viewerId: string) {
+  const ctx = await loadCatchupContext(catchupId, viewerId);
+  if (!ctx) return { error: "Catch-up not found." as const };
+  if (!ctx.membership) return { error: "You are not in this Catch-up." as const };
+  return { groupId: ctx.catchup.groupId, createdById: ctx.catchup.createdById };
+}
+
+/**
+ * Write one member's own state for one Catch-up, creating the row if this is
+ * the first opinion they have ever had about it.
+ *
+ * The P2002 retry is not decoration: `upsert` is a read-then-write inside
+ * Postgres, so two taps landing together (the archive toggle is one click away
+ * from the delete item in the same menu) can both miss the row and both try to
+ * create it. The loser's violation means the row we wanted now exists, so the
+ * honest answer is to update it (audit B-040's pattern, applied here).
+ */
+async function upsertCatchupPref(
+  catchupId: string,
+  userId: string,
+  data: { archivedAt?: Date | null; deletedAt?: Date | null }
+): Promise<void> {
+  try {
+    await prisma.catchupPref.upsert({
+      where: { catchupId_userId: { catchupId, userId } },
+      create: { catchupId, userId, ...data },
+      update: data,
+    });
+  } catch (err) {
+    if (!isUniqueConstraintError(err)) throw err;
+    await prisma.catchupPref.updateMany({ where: { catchupId, userId }, data });
+  }
+}
+
+/**
  * The Catch-up a Keeper is acting on, or the reason they may not. Builds on
  * `loadCatchupContext` rather than re-reading the same two rows, so the three
  * actions below share one Keeper gate instead of each restating it.
@@ -1465,6 +1557,18 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
     });
     if (real.length === 0) return { error: "No one to add." };
 
+    /* Who is already in, read BEFORE the insert. It decides which of the
+       people below are genuinely NEW, which is the only set whose filing
+       state may be cleared -- see the comment on that write. */
+    const alreadyIn = new Set(
+      (
+        await prisma.groupMember.findMany({
+          where: { groupId: catchup.groupId, userId: { in: real.map((u) => u.id) } },
+          select: { userId: true },
+        })
+      ).map((m) => m.userId)
+    );
+
     // createMany + skipDuplicates rather than a read-then-write: the unique on
     // (groupId, userId) is what decides, so two Keepers adding the same person
     // at the same moment cannot make this throw.
@@ -1472,6 +1576,34 @@ export async function addCatchupMembers(catchupId: string, userIds: string[]) {
       data: real.map((u) => ({ groupId: catchup.groupId, userId: u.id, role: "member" })),
       skipDuplicates: true,
     });
+
+    /* Being added puts the Catch-up back on your list. Without this, someone
+       who binned their copy and was later re-added would come back with the
+       stamp still on: the card would reappear in "Recently deleted" rather
+       than among their Catch-ups, and the nightly sweep would then quietly
+       remove them a second time from something they had just been invited
+       into. Their reminder setting is left alone -- that is a preference, not
+       a filing state.
+
+       Scoped to the people this call actually ADDED, never to everyone named
+       in it. Archiving and deleting are personal by the owner's decision, and
+       the Keeper-only variant that overrides them was offered and declined; a
+       Keeper re-listing somebody who is already a member must not be able to
+       drag their own copy back out of their bin as a side effect (write-path
+       review, 2026-08-21). The picker never offers an existing member, so
+       this only ever mattered to a hand-made call -- which is exactly the
+       kind that must not be able to do it. */
+    const newlyAdded = real.map((u) => u.id).filter((id) => !alreadyIn.has(id));
+    if (newlyAdded.length > 0) {
+      await prisma.catchupPref.updateMany({
+        where: {
+          catchupId,
+          userId: { in: newlyAdded },
+          OR: [{ archivedAt: { not: null } }, { deletedAt: { not: null } }],
+        },
+        data: { archivedAt: null, deletedAt: null },
+      });
+    }
 
     revalidatePath(`/catchups/${catchupId}`);
     revalidatePath("/catchups");
@@ -1513,18 +1645,143 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
     });
     if (removed.count === 0) return { error: "They are not in this Catch-up." };
 
-    // Their pending nudges point at a Catch-up they can no longer open.
-    await prisma.notification.deleteMany({
-      where: {
-        userId,
-        type: { in: ["catchup_reminder", "catchup_answers_open", "catchup_questions_open"] },
-        link: { startsWith: `/catchups/${catchupId}` },
-      },
-    });
+    // Their pending nudges point at a Catch-up they can no longer open. This
+    // used to miss the reveal and the love nudge, which link to a ROUND rather
+    // than to the Catch-up; the shared helper takes both shapes.
+    await clearCatchupNotifications(userId, catchupId);
 
     revalidatePath(`/catchups/${catchupId}`);
     revalidatePath("/catchups");
     return { success: true as const };
+  });
+}
+
+/**
+ * Leave a Catch-up you were put into.
+ *
+ * Nobody accepts an invitation to a Catch-up: `createCatchupWithPeople` and
+ * `addCatchupMembers` enrol up to a hundred people directly, and until this
+ * existed the only way out was to ask a Keeper to remove you, because
+ * `removeCatchupMember` refuses self-removal by design (bug audit B-063).
+ *
+ * Your words stay where they are. A published Round is a keepsake the whole
+ * group has read, and pulling one person's answers out of it afterwards would
+ * put holes in something other people remember (owner's decision, 2026-08-21).
+ * What leaving does is end your access and stop your notifications.
+ *
+ * Refused for whoever started it. They hold Keeper power through
+ * `Catchup.createdById` rather than through their membership row, so a founder
+ * with no `GroupMember` row would be a Keeper that every Keeper-scoped action
+ * then tells "you are not a member of this Catch-up" -- a Catch-up nobody can
+ * tend. They are pointed at the two controls that do work for them instead:
+ * end it, or hand the hat over first.
+ */
+export async function leaveCatchup(catchupId: string) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (IS_DEMO) return { error: DEMO_SHARED_COPY_REFUSAL };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+    const viewerId = session.user.id;
+
+    const ctx = await loadCatchupContext(catchupId, viewerId);
+    if (!ctx) return { error: "Catch-up not found." };
+    if (!ctx.membership) return { error: "You are not in this Catch-up." };
+    if (ctx.catchup.createdById && ctx.catchup.createdById === viewerId) {
+      return {
+        error:
+          "You started this Catch-up, so leaving it would leave nobody to tend it. End it, or make someone else a Keeper first.",
+      };
+    }
+
+    // deleteMany, not delete: a second tap (or a Keeper removing them in the
+    // same beat) has already taken the row, and P2025 out of a "leave" button
+    // would read as a failure to leave something they are already out of.
+    await prisma.groupMember.deleteMany({
+      where: { groupId: ctx.catchup.groupId, userId: viewerId },
+    });
+    // Their own pref row goes with them: the reminder setting, and any
+    // archived/deleted stamp, describe a copy that no longer exists. Being
+    // re-added later should start clean rather than resurrect a bin.
+    await prisma.catchupPref.deleteMany({ where: { catchupId, userId: viewerId } });
+    await clearCatchupNotifications(viewerId, catchupId);
+
+    revalidatePath(`/catchups/${catchupId}`);
+    revalidatePath("/catchups");
+    return { success: true as const };
+  });
+}
+
+/**
+ * File your own copy of a Catch-up away, or take it back out.
+ *
+ * Personal by construction: the state is a column on `CatchupPref`, which is
+ * unique on (catchupId, userId), so this cannot touch anyone else's list.
+ * You are still a member and still notified -- archiving is filing, not
+ * muting, and muting already has its own control (`reminderMode`). Instantly
+ * reversible, which is why it asks nothing before doing it.
+ */
+export async function setCatchupArchived(catchupId: string, archived: boolean) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (IS_DEMO) return { error: DEMO_SHARED_COPY_REFUSAL };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+    if (typeof archived !== "boolean") return { error: "Invalid request." };
+
+    const copy = await loadOwnCatchupCopy(catchupId, session.user.id);
+    if ("error" in copy) return { error: copy.error };
+
+    await upsertCatchupPref(catchupId, session.user.id, {
+      archivedAt: archived ? new Date() : null,
+    });
+
+    revalidatePath("/catchups");
+    return { success: true as const, archived };
+  });
+}
+
+/**
+ * Throw your own copy of a Catch-up away, or take it back out of the bin.
+ *
+ * Only your copy. Nobody else's view changes, and nothing anyone else relies
+ * on is destroyed -- the owner was offered the Keeper-only variant that
+ * soft-deletes the shared Catch-up for everyone, and declined it (2026-08-21).
+ *
+ * Deleting stops this Catch-up's notifications to you at once and clears the
+ * ones already waiting. After `RECENTLY_DELETED_DAYS` the nightly retention
+ * sweep takes your `GroupMember` row for real, so delete is the gentle version
+ * of leaving: same destination, with a month to change your mind. The
+ * confirmation copy says exactly that, because a bin that quietly removes you
+ * from a group in thirty days is not what "delete" usually promises.
+ *
+ * Refused for whoever started it, for the same reason `leaveCatchup` is: the
+ * sweep would strip the founder's membership row and leave a Catch-up whose
+ * Keeper cannot open it. Archiving is open to them, and so is ending it.
+ */
+export async function setCatchupDeleted(catchupId: string, deleted: boolean) {
+  return runAction(async () => {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
+    if (IS_DEMO) return { error: DEMO_SHARED_COPY_REFUSAL };
+    if (typeof catchupId !== "string" || !catchupId) return { error: "Invalid request." };
+    if (typeof deleted !== "boolean") return { error: "Invalid request." };
+    const viewerId = session.user.id;
+
+    const copy = await loadOwnCatchupCopy(catchupId, viewerId);
+    if ("error" in copy) return { error: copy.error };
+    if (deleted && copy.createdById && copy.createdById === viewerId) {
+      return {
+        error:
+          "You started this Catch-up. Archive it to tidy your list, or end it for everyone.",
+      };
+    }
+
+    await upsertCatchupPref(catchupId, viewerId, { deletedAt: deleted ? new Date() : null });
+    if (deleted) await clearCatchupNotifications(viewerId, catchupId);
+
+    revalidatePath("/catchups");
+    return { success: true as const, deleted };
   });
 }
 

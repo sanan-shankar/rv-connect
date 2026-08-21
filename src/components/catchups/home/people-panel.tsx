@@ -27,11 +27,13 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Check,
   Copy,
   Link2,
   Loader2,
+  LogOut,
   MoreHorizontal,
   Plus,
   Search,
@@ -61,8 +63,10 @@ import { BirdAvatar } from "@/components/common/bird-avatar";
 import { useUserSearch, type SearchedPerson } from "@/components/common/use-user-search";
 import { FadeRise, SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import {
   addCatchupMembers,
+  leaveCatchup,
   removeCatchupMember,
   setCatchupKeeper,
 } from "@/app/(main)/catchups/actions";
@@ -108,6 +112,11 @@ export function PeoplePanel({
 }) {
   const { members, viewer } = data;
   const [open, setOpen] = useState(false);
+  /* The leave confirmation lives out here, not in the dialog whose row opens
+     it: a confirmation stacked inside the roster dialog left the roster's own
+     title peeking out above it, two panels deep on one scrim. Hoisting it lets
+     the roster close first, so the question is asked on its own. */
+  const [leaving, setLeaving] = useState(false);
   const answering = !!answeredIds;
   const answeredCount = answeredIds ? members.filter((m) => answeredIds.has(m.id)).length : 0;
   const shown = members.slice(0, PILLS_SHOWN);
@@ -163,6 +172,15 @@ export function PeoplePanel({
           onChanged={onChanged}
           open={open}
           onOpenChange={setOpen}
+          onLeave={() => {
+            setOpen(false);
+            setLeaving(true);
+          }}
+        />
+        <LeaveCatchupDialog
+          data={data}
+          open={leaving}
+          onClose={() => setLeaving(false)}
         />
       </div>
     </FadeRise>
@@ -238,6 +256,7 @@ function PeopleDialog({
   onChanged,
   open,
   onOpenChange,
+  onLeave,
 }: {
   data: CatchupHomeData;
   answeredIds?: Set<string>;
@@ -245,9 +264,15 @@ function PeopleDialog({
   /** Controlled by the panel, so the "+N more" chip opens this same dialog. */
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Closes this dialog and asks the panel's confirmation instead. */
+  onLeave: () => void;
 }) {
   const { members, viewer } = data;
   const canManage = viewer.isKeeper && data.catchupStatus !== "ended";
+  // Read off the roster rather than threaded through `viewer`: the server
+  // already stamps `isCreator` on every person, and one fact should not
+  // travel down twice with two chances to disagree.
+  const isCreator = !!members.find((m) => m.id === viewer.id)?.isCreator;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -300,6 +325,33 @@ function PeopleDialog({
             offered as a door into a room that is shut. */}
         {data.inviteToken && data.catchupStatus !== "ended" && (
           <InviteLink token={data.inviteToken} />
+        )}
+
+        {/* The way out, next to the roster that put you in. Nobody accepts an
+            invitation to a Catch-up -- creating one enrols up to a hundred
+            people directly -- so until this existed the only exit was asking a
+            Keeper (bug audit B-063).
+
+            In the dialog rather than on the rail tile: the tile is seven pills
+            and one button, and a second button stacked directly under the real
+            one is exactly what the "+N more" row was demoted for. It is also
+            not a thing to do by accident on the way past.
+
+            Absent for whoever started it: they hold Keeper power through the
+            Catch-up rather than through their membership row, so leaving would
+            leave a Catch-up nobody can tend. The action refuses them anyway;
+            not offering it is the honest half. */}
+        {!isCreator && (
+          <div className="border-t border-border pt-[var(--space-m)]">
+            <button
+              type="button"
+              onClick={onLeave}
+              className="state-layer flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2 py-2 text-left text-[13px] font-medium text-destructive transition-colors duration-150 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <LogOut className="size-4 shrink-0" aria-hidden />
+              Leave this catch-up
+            </button>
+          </div>
         )}
       </DialogContent>
     </Dialog>
@@ -610,5 +662,56 @@ function InviteLink({ token }: { token: string }) {
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * Leave this Catch-up.
+ *
+ * Immediate, confirmed and permanent, and the copy says all three. What you
+ * have already written stays where it is: a published Round is a keepsake the
+ * whole group has read, and pulling one person's answers out of it afterwards
+ * would put holes in something other people remember (owner's decision,
+ * 2026-08-21). Rejoining is only possible by invitation, which is the part
+ * that makes this worth an "are you sure".
+ *
+ * The gentler version of this is on `/catchups`: deleting your copy stops the
+ * notifications now and takes thirty days to become this.
+ */
+function LeaveCatchupDialog({
+  data,
+  open,
+  onClose,
+}: {
+  data: CatchupHomeData;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+
+  return (
+    <ConfirmDialog
+      open={open}
+      onClose={onClose}
+      title="Leave this catch-up?"
+      description={
+        <>
+          You will stop hearing from {data.groupName} and lose access to its Rounds. Anything you
+          have already shared stays in the Rounds it was published in. Getting back in needs an
+          invitation.
+        </>
+      }
+      actionLabel="Leave"
+      onConfirm={async () => {
+        const result = await leaveCatchup(data.catchupId);
+        if (result && "error" in result) return result;
+        toast.success(`You have left ${data.groupName}.`);
+        // Out of the Catch-up means out of its home page, which now answers
+        // "you are not a member". Back to the list rather than a refresh into
+        // a wall.
+        router.push("/catchups");
+        return;
+      }}
+    />
   );
 }

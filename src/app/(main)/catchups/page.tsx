@@ -10,6 +10,8 @@ import { AlmostReady } from "@/components/catchups/almost-ready";
 import { YourCatchupsCard, type IndexCardView } from "@/components/catchups/index/your-catchups-card";
 import { FreshOffThePress, type FreshRoundItem } from "@/components/catchups/index/fresh-off-the-press";
 import { GroupFirstGuidance } from "@/components/catchups/index/group-first-guidance";
+import { FiledAway, type FiledRow } from "@/components/catchups/index/filed-away";
+import { catchupShelf, type CatchupShelf } from "@/lib/catchup-shelf";
 import { advanceDueCatchups, describeEditionStatus, isMissingCatchupTable } from "@/lib/catchups";
 import type { CatchupPersonRef, CatchupStatus, EditionStatus } from "@/lib/catchups-types";
 
@@ -85,6 +87,19 @@ async function loadIndexData(userId: string) {
             select: {
               id: true,
               status: true,
+              // Only to decide whether to OFFER Delete: a founder is refused
+              // it server-side, and this page's own rule (see PeoplePanel) is
+              // that an action refused server-side is not put on screen as a
+              // way to be told no.
+              createdById: true,
+              /* The viewer's own copy state, and only the viewer's: the
+                 relation filter is what makes archiving and deleting personal
+                 (bug audit B-063). At most one row, by the unique on
+                 (catchupId, userId). */
+              prefs: {
+                where: { userId },
+                select: { archivedAt: true, deletedAt: true },
+              },
               editions: {
                 orderBy: { number: "desc" },
                 take: 1,
@@ -104,7 +119,10 @@ async function loadIndexData(userId: string) {
   });
 
   const now = new Date();
-  const cards: IndexCardView[] = memberships.map(({ group }) => {
+  /** The card plus which of the three sections it belongs in. The shelf is
+   *  never rendered on the card itself; it only decides where the card goes. */
+  type ShelvedCard = IndexCardView & { shelf: CatchupShelf; deletedAt: Date | null };
+  const cards: ShelvedCard[] = memberships.map(({ group }) => {
     // Viewer first, so the card's cluster (which shows only the first few)
     // always answers "am I in this?" before it answers "who else is?".
     const members = group.members
@@ -114,6 +132,11 @@ async function loadIndexData(userId: string) {
 
     if (!group.catchup) {
       return {
+        // A group with no Catch-up has no copy of one to file away, so it is
+        // always on the live list.
+        shelf: "active" as const,
+        deletedAt: null,
+        isCreator: false,
         groupId: group.id,
         groupName: group.name,
         members,
@@ -131,6 +154,7 @@ async function loadIndexData(userId: string) {
     }
 
     const catchupStatus = group.catchup.status as CatchupStatus;
+    const pref = group.catchup.prefs[0] ?? null;
     const rawEdition = group.catchup.editions[0] ?? null;
     const edition = rawEdition ? { ...rawEdition, status: rawEdition.status as EditionStatus } : null;
 
@@ -144,6 +168,9 @@ async function loadIndexData(userId: string) {
             : "Getting started";
 
     return {
+      shelf: catchupShelf(pref),
+      deletedAt: pref?.deletedAt ?? null,
+      isCreator: !!group.catchup.createdById && group.catchup.createdById === userId,
       groupId: group.id,
       groupName: group.name,
       members,
@@ -169,7 +196,9 @@ async function loadIndexData(userId: string) {
   // answered avatars + a mini N-of-M badge) so it reads as more alive than
   // the dormant "Start one" rows beneath it. Fetched separately, scoped to
   // just the editions actually answering right now.
-  const answeringCards = cards.filter((c) => c.editionStatus === "answering" && c.editionId);
+  const answeringCards = cards.filter(
+    (c) => c.shelf === "active" && c.editionStatus === "answering" && c.editionId
+  );
   if (answeringCards.length > 0) {
     const answeredRows = await prisma.catchupEntry.findMany({
       where: { editionId: { in: answeringCards.map((c) => c.editionId as string) } },
@@ -189,7 +218,25 @@ async function loadIndexData(userId: string) {
     }
   }
 
-  cards.sort((a, b) => {
+  const live = cards.filter((c) => c.shelf === "active");
+  const toFiledRow = (c: ShelvedCard): FiledRow => ({
+    catchupId: c.catchupId as string,
+    groupName: c.groupName,
+    statusLine: c.statusLine,
+    deletedAt: c.deletedAt ? c.deletedAt.toISOString() : null,
+  });
+  // Newest decision first in both bins: the thing you just filed or binned is
+  // the thing you are most likely to have second thoughts about.
+  const archived = cards
+    .filter((c) => c.shelf === "archived")
+    .map(toFiledRow)
+    .sort((a, b) => a.groupName.localeCompare(b.groupName));
+  const deleted = cards
+    .filter((c) => c.shelf === "deleted")
+    .map(toFiledRow)
+    .sort((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? ""));
+
+  live.sort((a, b) => {
     const pa = a.catchupId ? (STATUS_PRIORITY[a.editionStatus ?? "draft"] ?? 50) : 90;
     const pb = b.catchupId ? (STATUS_PRIORITY[b.editionStatus ?? "draft"] ?? 50) : 90;
     if (pa !== pb) return pa - pb;
@@ -199,7 +246,13 @@ async function loadIndexData(userId: string) {
   const freshEditions = await prisma.catchupEdition.findMany({
     where: {
       status: "published",
-      catchup: { group: { members: { some: { userId } } } },
+      catchup: {
+        group: { members: { some: { userId } } },
+        // A Catch-up you binned is out of your list, so it is out of the rail
+        // too; an ARCHIVED one stays, because archiving files a Catch-up away
+        // without saying you have stopped caring what it publishes (B-063).
+        prefs: { none: { userId, deletedAt: { not: null } } },
+      },
     },
     orderBy: { publishedAt: "desc" },
     take: 6,
@@ -227,7 +280,7 @@ async function loadIndexData(userId: string) {
     };
   });
 
-  return { cards, freshItems, hasGroups: memberships.length > 0 };
+  return { cards: live, archived, deleted, freshItems, hasGroups: memberships.length > 0 };
 }
 
 export default async function CatchupsPage() {
@@ -289,6 +342,10 @@ export default async function CatchupsPage() {
             {data.cards.map((card) => (
               <YourCatchupsCard key={card.groupId} card={card} />
             ))}
+            {/* Renders nothing at all when both are empty, which is the state
+                almost every member is in (owner: "hidden entirely when the
+                member has none, no dead buttons"). */}
+            <FiledAway archived={data.archived} deleted={data.deleted} />
           </div>
           <aside className={RAIL_ASIDE}>
             <div className="sticky top-7">
