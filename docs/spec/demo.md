@@ -165,8 +165,14 @@ stays true.
 ### They can
 
 Post, comment, reply, love, bookmark, vote in polls, love a photo, answer the
-Catch-up, love an answer, edit their own profile (including their bird), move
-their pins on the map, and read every surface.
+Catch-up, love an answer, edit their own profile, move their pins on the map,
+and read every surface.
+
+Not their bird, though it reads like it should be on that list: picking one
+is the `/pick-bird` supporter perk, gated on a real Razorpay contribution the
+demo cannot take, so `chooseBird` refuses outright in demo mode (bug audit
+M62) and nothing else writes `User.birdOverride`. Everyone keeps the bird
+their account hashed to.
 
 All of it is real: it goes to the database and it is still there on refresh.
 Nothing is faked, because a demo that quietly discards your input is worse than
@@ -185,8 +191,8 @@ no demo.
 | Nudge the group | Would notify everybody |
 | Delete the account | It is the only persona there is |
 | Make themselves an admin, verify themselves, unblock themselves, change their email | Privilege escalation and identity takeover |
-| Reach `/admin`, `/lab`, `/signup`, `/onboarding`, `/verify` | Not part of the product story |
-| Reach `/api/upload/*`, `/api/razorpay/*`, `/api/auth/*`, `/api/places/*` | Bytes, money, sessions, and a metered geocoder |
+| Reach `/admin`, `/lab`, `/signup`, `/welcome`, `/verify` | Not part of the product story |
+| Reach `/api/upload/*`, `/api/razorpay/*`, `/api/auth/*` | Bytes, money and sessions |
 
 ### Where each of those is enforced
 
@@ -269,6 +275,19 @@ in the write policy. It is acceptable because the route does not exist unless
 fully reproducible from this repository, and the worst an attacker buys is
 "the demo looks freshly seeded", which is what the cron does anyway.
 
+The clear-then-rewrite inside `seedDemo()` (`src/lib/demo-seed/seed.ts`) runs
+as **one Postgres transaction**. Until this was a bug (audit M61) it was
+~40 independent statements, and a request landing mid-reset could see the
+world half gone -- worst of all the `User` table cleared but not yet
+rewritten, since that row is also the shared demo persona's identity:
+`auth()` returns null for every page mid-reset, which sends the visitor to
+`/login`, a page with no working way back in for them (no password, no
+signup route, no `/api/auth`) in demo mode. Wrapping the rewrite in one
+transaction means another connection sees the fully-old world or the
+fully-new one and nothing in between, and a failure partway through rolls
+back to the old world intact instead of leaving whichever statement got
+furthest sitting there until the next successful reset.
+
 ---
 
 ## The invented people
@@ -283,6 +302,12 @@ cities are all keys `src/lib/city-coords.ts` can place so no map pin lands in
 the sea, and houses come from the canonical 22 in `src/lib/houses.ts`. Birds
 are not authored at all: they hash deterministically from user id, so a varied
 aviary comes free.
+
+Those same cities are also the whole `Place` table in the demo database:
+`src/lib/demo-seed/places.ts` hand-writes a 29-row slice of the real
+234,934-row GeoNames gazetteer, one row per city ALL_DEMO_PEOPLE actually
+lives in, so the "Where you are" editor's type-ahead has something real to
+find instead of the free-text fallback it silently takes on a miss.
 
 Content lives in `src/lib/demo-seed/people.ts` and `content.ts`. It is written
 by hand rather than generated, because the feed is the first thing anyone sees

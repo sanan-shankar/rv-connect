@@ -146,18 +146,26 @@ const EDITABLE_PROFILE_FIELDS: ReadonlySet<string> = new Set([
   "updatedAt",
 ]);
 
-/** Thrown when the Prisma layer refuses a write. Carries a line fit to show
- *  a visitor: they should feel a velvet rope, not a stack trace.
+/** Thrown when the Prisma layer refuses a write nobody named.
  *
  *  Most refusals never reach this. The actions worth naming individually
  *  return `{ error: "..." }` at their own front door (grep `IS_DEMO) return`)
  *  so the UI can show a sentence written for that specific button. This is
- *  the backstop underneath them, for whatever nobody thought to name. */
+ *  the backstop underneath them.
+ *
+ *  A visitor never reads THIS message, and never will: every error boundary
+ *  in the app (src/app/(main)/error.tsx and its siblings) deliberately does
+ *  not read a caught error's `.message` -- an unexpected throw of any kind
+ *  gets the same generic "this page did not load", by design (audit M05),
+ *  while the real cause goes to Sentry. An earlier version of this string
+ *  was written as if a visitor would see it ("This is a demo, so that one is
+ *  switched off"); nothing ever routed it there (bug audit Low 66). So the
+ *  message below is aimed at whoever reads the server log or
+ *  scripts/demo/verify-guard.mts's output instead, which is the one place
+ *  it is actually read. */
 export class DemoWriteError extends Error {
   readonly isDemoBlock = true;
-  constructor(
-    message = "This is a demo, so that one is switched off. Everything else is yours to try.",
-  ) {
+  constructor(message = "Demo write guard refused an operation no named action or route claimed.") {
     super(message);
     this.name = "DemoWriteError";
   }
@@ -264,4 +272,11 @@ export const DEMO_CLOSED_PATHS: readonly string[] = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  // The real account-setup wizard (register/houses/photo/done). It reads and
+  // edits Meera's actual row -- the one persona every visitor shares -- so one
+  // visitor stepping through it changes what the next one sees, and the photo
+  // step calls updateAvatar, which is a demo upload every visitor already gets
+  // refused with a clear sentence. It is also simply not this deployment's
+  // story: nobody arrives at the demo mid-signup (bug audit M63).
+  "/welcome",
 ];

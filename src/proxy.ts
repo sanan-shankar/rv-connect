@@ -39,6 +39,13 @@ const DEMO_CLOSED_PATHS = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  // The real account-setup wizard (register/houses/photo/done). It reads and
+  // edits Meera's actual row -- the one persona every visitor shares -- so one
+  // visitor stepping through it changes what the next one sees, and the photo
+  // step calls updateAvatar, which is a demo upload every visitor already gets
+  // refused with a clear sentence. It is also simply not this deployment's
+  // story: nobody arrives at the demo mid-signup (bug audit M63).
+  "/welcome",
 ];
 
 // API routes the demo refuses outright. Each either spends real money,
@@ -52,16 +59,24 @@ const DEMO_CLOSED_PATHS = [
 //                    2026-08-19 this line also guarded admin-login, which
 //                    minted an ADMIN session from an email address alone;
 //                    that route is deleted -- security audit C1-b.)
-//   /api/places   -- a metered geocoding provider, i.e. a billing
-//                    amplifier pointed at the owner's account.
 //   /api/resend   -- delivery reports write to the real OutboundEmail rows.
 //                    The demo has no business recording anything about mail
 //                    sent to real members.
+//
+// /api/places USED to be closed here as "a metered geocoding provider, i.e.
+// a billing amplifier pointed at the owner's account" -- true of an earlier
+// design, not of the route that shipped: src/app/api/places/search/route.ts
+// is a plain `SELECT ... FROM "Place"` over this project's own Postgres, no
+// external call and no per-request cost. Layer 3 (demoWriteAllowed) already
+// treats it as an ordinary read and lets it through; closing it here only
+// meant the "Where you are" city search never worked in the demo (bug audit
+// M64). The demo's Place table is seeded with the cities ALL_DEMO_PEOPLE
+// actually live in (src/lib/demo-seed/places.ts) so the search has
+// something real to find.
 const DEMO_CLOSED_APIS = [
   "/api/upload",
   "/api/razorpay",
   "/api/auth",
-  "/api/places",
   "/api/resend",
 ];
 
