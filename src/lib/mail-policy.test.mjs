@@ -10,6 +10,7 @@ import {
   MAX_ATTEMPTS,
   MAX_DEFERRALS,
   ATTEMPT_RETRY_MS,
+  localDrainRecipient,
 } from "./mail-policy.ts";
 
 test("a rate limit is the provider's problem, not the address's", () => {
@@ -115,4 +116,32 @@ test("a reset outranks a confirmation, and a security notice sits between", () =
   assert.ok(PRIORITY.reset < PRIORITY["password-changed"]);
   assert.ok(PRIORITY["password-changed"] < PRIORITY.verify);
   assert.equal(PRIORITY["deletion-scheduled"], PRIORITY["password-changed"]);
+});
+
+/* --- Who a development machine may drain for (audit M53) ------------------ */
+
+test("production drains for everybody", () => {
+  assert.equal(
+    localDrainRecipient({ NODE_ENV: "production", ADMIN_EMAIL: "owner@example.com" }),
+    null
+  );
+});
+
+test("development narrows the drain to the owner's own address", () => {
+  assert.equal(
+    localDrainRecipient({ NODE_ENV: "development", ADMIN_EMAIL: "Owner@Example.com " }),
+    "owner@example.com"
+  );
+});
+
+test("development with no ADMIN_EMAIL narrows to nothing, never to everybody", () => {
+  // The fail-closed direction, and the whole point. Returning null here would
+  // mean "select for anybody", so a developer with EMAIL_DEV_SEND=1 and no
+  // ADMIN_EMAIL would drain every real member's queued mail -- the missing
+  // variable reintroducing the incident the set one guards against. The empty
+  // string matches no row, because no queued message is addressed to nothing.
+  assert.equal(localDrainRecipient({ NODE_ENV: "development" }), "");
+  assert.equal(localDrainRecipient({ NODE_ENV: "test", ADMIN_EMAIL: "   " }), "");
+  // ...and production is the ONLY environment that drains for everybody.
+  assert.equal(localDrainRecipient({ NODE_ENV: "production" }), null);
 });
