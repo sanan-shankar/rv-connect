@@ -8,7 +8,8 @@ import {
   isUnsupportedHeic,
   describeProcessingError,
   sniffImageType,
-} from "@/lib/upload-shared";
+
+  isImageFile,} from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { originAllowed } from "@/lib/origin-rule";
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
   const notices: string[] = [];
 
   for (const file of files) {
-    if (!file.type.startsWith("image/")) {
+    if (!isImageFile(file)) {
       return NextResponse.json(
         { error: `"${file.name}" isn't an image file` },
         { status: 400 }

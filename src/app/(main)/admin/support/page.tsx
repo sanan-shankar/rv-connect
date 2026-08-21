@@ -17,7 +17,7 @@ import {
  *  aggregates over the whole history, so nothing here is a total. */
 const LEDGER_LIMIT = 100;
 import { Chip } from "@/components/admin/admin-chip";
-import { formatDisplayDate, formatPaise, metaLine } from "@/lib/utils";
+import { formatDisplayDate, formatPaise, metaLine, valleyDayKey, valleyMidnight } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -58,9 +58,13 @@ export default async function AdminSupportPage() {
   // layout is not re-evaluated on every move -- and this page reads member
   // data. One line, and the demotion window closes (bug audit B-024).
   await requireAdminPage();
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
+  /* The valley's month, not the server's. `setHours(0,0,0,0)` on a Date uses
+     the SERVER's local zone, which on Vercel is UTC -- so "this month" began at
+     05:30 IST on the 1st and every contribution made in those five and a half
+     hours was counted in the previous month (audit Low 46). valleyMidnight is
+     the same instrument the feed's time filter uses. */
+  const [yyyy, mm] = valleyDayKey().split("-");
+  const monthStart = valleyMidnight(`${yyyy}-${mm}-01`);
 
   const [all, thisMonth, givers, unfinished, rows] = await Promise.all([
     prisma.contribution.aggregate({

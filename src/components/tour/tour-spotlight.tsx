@@ -50,7 +50,22 @@ export function TourSpotlight({ active, spotlightKey }: { active: boolean; spotl
     }
 
     function measure() {
+      /* A mid-tour navigation can take the spotlit element out of the DOM
+         while this effect is still listening for scroll and resize. A detached
+         node reports a rect of all zeros, so the cut-out collapsed to a 0x0
+         pinhole in the corner of the screen and the dim went with it -- which
+         reads as the tour breaking rather than as a step ending (audit
+         Low 17). Falling back to `null` renders the plain full-screen dim,
+         which is the honest state for "there is nothing to point at". */
+      if (!el!.isConnected) {
+        setHole(null);
+        return;
+      }
       const r = el!.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) {
+        setHole(null);
+        return;
+      }
       // Read the target's own computed corner radius rather than assuming a
       // shape: pills (composer, Contribute button, the Catch-ups compact
       // strip) report a huge `rounded-full` value that we clamp down to a

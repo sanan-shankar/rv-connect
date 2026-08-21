@@ -26,7 +26,7 @@ import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { ERAS, PHOTO_YEAR_MIN, eraLabel } from "@/lib/collection";
 import { contributePhoto, contributePhotoDirect } from "@/app/(main)/collection/actions";
 import { directUploadPut } from "@/lib/upload-client";
-import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
+import {MAX_UPLOAD_BYTES, isImageFile} from "@/lib/upload-shared";
 import { valleyYear } from "@/lib/utils";
 
 
@@ -87,7 +87,7 @@ export function ContributeDialog({
 
   function pickFile(f: File | null) {
     if (!f) return;
-    if (!f.type.startsWith("image/")) {
+    if (!isImageFile(f)) {
       toast.error("Please choose an image");
       return;
     }

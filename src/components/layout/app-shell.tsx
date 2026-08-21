@@ -55,8 +55,12 @@ export function AppShell({
       />
       <KonamiEggs />
       <Sidebar user={user} unreadCount={unreadCount} demo={demo} />
-      {/* pb on mobile clears the fixed bottom tab bar */}
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+      {/* No bottom padding on mobile any more. The `pb-16` here reserved 64px
+          for "the fixed bottom tab bar", and there is no bottom tab bar: the
+          mobile navigation is the drawer behind the header. So every page on a
+          phone ended in an inch of nothing, below the last card (audit
+          Low 15). */}
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         {/* Padding rule (owner, 2026-07-30): the title's distance from the
             left edge EQUALS its distance from the top, at every breakpoint.
 

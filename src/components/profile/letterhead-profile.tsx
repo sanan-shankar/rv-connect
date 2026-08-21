@@ -112,6 +112,7 @@ import {
 import { cn, formatPhoneDisplay } from "@/lib/utils";
 import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
+import { isImageFile } from "@/lib/upload-shared";
 
 /* ------------------------------------------------------------------ *
  *  Everything the sheet needs in order to be typed into.
@@ -373,7 +374,7 @@ export function LetterheadProfile({
      Vercel's ~4.5MB serverless body cap. */
   function handlePhotoPick(f: File | null) {
     if (!f) return;
-    if (!f.type.startsWith("image/")) return toast.error("Please choose an image");
+    if (!isImageFile(f)) return toast.error("Please choose an image");
     if (f.size > 15 * 1024 * 1024) return toast.error("Photo must be under 15MB");
     setCropFile(f);
   }

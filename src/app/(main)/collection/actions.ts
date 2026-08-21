@@ -23,7 +23,8 @@ import {
   isUnsupportedHeic,
   describeProcessingError,
   sniffImageType,
-} from "@/lib/upload-shared";
+
+  isImageFile,} from "@/lib/upload-shared";
 import { eraFromYear } from "@/lib/collection";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
@@ -139,7 +140,7 @@ export async function contributePhoto(formData: FormData) {
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No photo provided" };
-  if (!file.type.startsWith("image/")) return { error: "Only image files are allowed" };
+  if (!isImageFile(file)) return { error: "Only image files are allowed" };
   if (isUnsupportedHeic(file)) {
     return {
       error:

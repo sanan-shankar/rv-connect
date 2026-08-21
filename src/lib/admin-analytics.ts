@@ -440,7 +440,8 @@ export async function loadPresence() {
       SELECT count(*)::bigint AS n FROM (
         SELECT "userId" FROM "Visit"
         WHERE "startedAt" >= now() - interval '30 days'
-        GROUP BY "userId" HAVING count(DISTINCT date_trunc('day', "startedAt")) > 1
+        -- The valley's day, not UTC's; see the loyalty query below (Low 46).
+        GROUP BY "userId" HAVING count(DISTINCT date_trunc('day', ("startedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')) > 1
       ) t
     `,
   ]);
@@ -631,9 +632,17 @@ export async function loadFaces() {
         GROUP BY u."name" ORDER BY n DESC LIMIT 8
       `,
       /* Distinct DAYS present, which is loyalty. Total visits rewards one
-       * frantic afternoon; distinct days rewards turning up. */
+       * frantic afternoon; distinct days rewards turning up.
+       *
+       * The day is the VALLEY's, not UTC's. `date_trunc('day', ...)` on a naive
+       * UTC column cuts at 05:30 IST, so an evening visit and the small-hours
+       * one that followed it counted as two days, while two visits either side
+       * of IST midnight counted as one (audit Low 46). Same double conversion
+       * the Rhythms heatmap uses, and for the same reason (B-101): stamp the
+       * naive value as UTC first, then read it in Asia/Kolkata. */
       prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", count(DISTINCT date_trunc('day', v."startedAt"))::bigint AS n
+        SELECT u."name",
+               count(DISTINCT date_trunc('day', (v."startedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata'))::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
         GROUP BY u."name" ORDER BY n DESC LIMIT 8
       `,
@@ -967,7 +976,8 @@ export async function loadMemberMetrics(): Promise<MemberRow[]> {
                count(*) n,
                sum(EXTRACT(EPOCH FROM ("endedAt" - "startedAt"))) / 60 mins,
                sum("views") views,
-               count(DISTINCT date_trunc('day', "startedAt")) days,
+               -- The valley's day, not UTC's (audit Low 46).
+               count(DISTINCT date_trunc('day', ("startedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')) days,
                mode() WITHIN GROUP (ORDER BY "device") dev
         FROM "Visit" GROUP BY 1
       ),

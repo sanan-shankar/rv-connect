@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { canViewCityScope } from "@/lib/city-scope";
 import {
@@ -42,14 +43,32 @@ const GUARD_SELECT = {
   status: true,
 } as const;
 
+/**
+ * The guarded row, deduplicated within one request.
+ *
+ * `generateMetadata` and the page body of a route both run in the same
+ * request, and both guard the same post -- so every letter and profile page
+ * that does this paid for the identical query twice, plus the membership and
+ * city lookups behind it (audit Low 14). `cache()` is keyed on the argument,
+ * and the argument here is one string, so this is a plain memo for the life of
+ * the request and cannot leak across requests or viewers.
+ */
+const guardedPost = cache((postId: string) =>
+  prisma.post.findUnique({ where: { id: postId }, select: GUARD_SELECT })
+);
+
+/** Same treatment for the membership lookup, keyed on two strings. */
+const isMemberOf = cache(
+  async (groupId: string, userId: string) =>
+    !!(await prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+      select: { id: true },
+    }))
+);
+
 /** Fetch only the facts the rule actually consults, and only when it will. */
 async function gather(post: GuardedPost, viewer: PostViewer) {
-  const isGroupMember = post.groupId
-    ? !!(await prisma.groupMember.findUnique({
-        where: { groupId_userId: { groupId: post.groupId, userId: viewer.id } },
-        select: { id: true },
-      }))
-    : false;
+  const isGroupMember = post.groupId ? await isMemberOf(post.groupId, viewer.id) : false;
 
   const cityMatches =
     !post.groupId && post.cityScope
@@ -63,10 +82,7 @@ export async function canViewPost(
   postId: string,
   viewer: PostViewer
 ): Promise<PostVisibility> {
-  const post = await prisma.post.findUnique({
-    where: { id: postId },
-    select: GUARD_SELECT,
-  });
+  const post = await guardedPost(postId);
   if (!post) return { ok: false, reason: "not-found" };
   return decidePostVisibility(post, viewer, await gather(post, viewer));
 }

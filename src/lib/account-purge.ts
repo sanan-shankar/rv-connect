@@ -209,6 +209,36 @@ async function tombstoneComments(db: Db, userId: string): Promise<void> {
   });
 }
 
+/**
+ * Clear other members' profile covers that point at this member's photographs
+ * (audit Low 106).
+ *
+ * `User.coverPhoto` is a Collection photo's URL reused as somebody's profile
+ * banner -- so anyone may be wearing a photograph THIS member contributed. The
+ * Photo rows cascade away with the account and their bytes go with them, but a
+ * `coverPhoto` string is only text and nothing pointed at it: those profiles
+ * were left carrying a banner that would never load again, with nothing to say
+ * why. Cleared to null, which is exactly the state a profile with no cover has
+ * always had.
+ *
+ * Runs inside the purge transaction and BEFORE the account row goes, because
+ * the member's own Photo rows are what name the URLs to look for.
+ */
+async function clearCoversPointingAtThisMember(db: Db, userId: string): Promise<number> {
+  const photos = await db.photo.findMany({
+    where: { uploaderId: userId },
+    select: { url: true, thumbUrl: true },
+  });
+  const urls = [...new Set(photos.flatMap((p) => [p.url, p.thumbUrl]).filter(Boolean))];
+  if (urls.length === 0) return 0;
+
+  const { count } = await db.user.updateMany({
+    where: { coverPhoto: { in: urls } },
+    data: { coverPhoto: null },
+  });
+  return count;
+}
+
 export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
   let urls: string[];
   let groupsRehomed: number;
@@ -233,6 +263,7 @@ export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
         // retention sweep runs this unattended).
         await tx.report.deleteMany({ where: { reporterId: userId } });
         await tombstoneComments(tx, userId);
+        await clearCoversPointingAtThisMember(tx, userId);
         await tx.user.delete({ where: { id: userId } });
         return { urls: collected, rehomed };
       },

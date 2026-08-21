@@ -29,7 +29,7 @@ import {
 } from "@/components/admin/admin-chrome";
 import { ADMIN_NAV } from "@/components/admin/admin-nav";
 import { TakeTourAgainButton } from "@/components/tour/take-tour-again-button";
-import { formatPaise, formatTimeAgo } from "@/lib/utils";
+import { formatPaise, formatTimeAgo, valleyDayKey, valleyMidnight } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Overview",
@@ -66,9 +66,13 @@ export default async function AdminOverviewPage() {
   // in one page: the month boundary and the week boundary were read a few
   // microseconds apart for no reason.
   const now = new Date();
-  const monthStart = new Date(now);
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
+  /* The valley's month, not the server's. `setHours(0,0,0,0)` on a Date uses
+     the SERVER's local zone, which on Vercel is UTC -- so "this month" began at
+     05:30 IST on the 1st and every contribution made in those five and a half
+     hours was counted in the previous month (audit Low 46). valleyMidnight is
+     the same instrument the feed's time filter uses. */
+  const [yyyy, mm] = valleyDayKey().split("-");
+  const monthStart = valleyMidnight(`${yyyy}-${mm}-01`);
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const [work, members, newThisWeek, mail, given] = await Promise.all([
