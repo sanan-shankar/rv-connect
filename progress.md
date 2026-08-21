@@ -2372,3 +2372,63 @@ Dependabot PR #10.
 
 Handed over at roughly 92% by effort with 22 Medium roots and about 47 Low items left. The brief
 is `docs/planning/audits/fix-session-4-prompt.md`; the disposition ledger is the durable record.
+
+## 2026-08-21 — Pre-release fix session four: the tail, and the report is closed
+
+Took the "Still open" list from part three and finished it. **Every one of the 45 canonical
+findings, all 68 Medium roots and all 117 Low items in `bug-report.md` is now dispositioned** —
+fixed, not-a-bug with the reason written down, or deferred with the reason written down. Eleven
+commits on `main`, none pushed. `npm run check` green (53 unit tests), `npm run visual` 23/23,
+`npm run test:e2e` 24 passed, and `verify:crawl` clean on every route.
+
+The two that had teeth. **Deleting an account was silently breaking other people's conversations**:
+`Comment.author` cascaded, and the self-referencing parent key is SetNull, so purging somebody
+deleted every comment they had written and promoted every reply underneath to a top-level comment —
+a stray sentence with no question above it, in a thread that then lied about its shape. Exactly the
+corruption the soft delete exists to prevent, which the purge path had been quietly reintroducing.
+A comment still holding somebody else's reply now survives as a blank, nameless anchor; everything
+childless goes. Proved against a real cross-author thread in a rolled-back transaction. And **a
+letter open on two devices lost whichever side wrote more** — the desk autosaves the whole body with
+no precondition, and both surfaces said "Saved". Every save now carries the version it was working
+from. Proved end to end with a probe: the desk saved, another surface wrote over the row, and the
+desk's next save was refused with the other side's words intact.
+
+Two more worth naming. **Nobody signed in was being identified to the analytics at all** on a full
+page load: PostHog was started inside an effect, React runs a child's effects before its parent's,
+so the identify step always ran first, found nothing loaded and gave up — and its deps never
+changed, so it never ran again. Every first visit, every refresh, every link from an email was an
+anonymous session. Caught with a before/after probe. And **the audience field on a post was the one
+thing stored exactly as it arrived** — no length limit, no format — in a column every feed query
+searches through; fixing it turned up a second bug, that matching was a plain text search, so a
+post aimed at "ISC-20111" showed to everyone in ISC-2011.
+
+The rest, in clusters: reports settle once instead of twice; the verification queue orders by when
+somebody asked rather than when they last browsed (new `verifyStateAt`); one press is one post and
+one comment; search logging finally deduplicates keystrokes; the letters index pages instead of
+stopping at forty; the data export streams instead of holding a whole history in memory twice; a
+failed place lookup says so instead of quietly saving a city with no map pin; and an unconfirmed
+member's pages no longer wait on the email provider before rendering anything.
+
+Then the Low appendix, all of it. Admin lists that showed less than they counted now say so.
+Verifying somebody by hand records that an admin did it, not the office roster. Erasing your
+Catch-up answer withdraws it. Removing a question no longer puts the next one on top of the last.
+The saved contact card survives a comma. Impossible year combinations are refused. And 64 pixels of
+dead space came off the bottom of every page on a phone, reserved for a tab bar that does not
+exist — six mobile baselines moved, and decoding the PNGs row by row showed the shared area had
+**zero** differing pixels: the pages are simply shorter.
+
+**Four findings were wrong or already closed, and are recorded rather than patched.** Low 53's
+mechanism is real (setting a cookie in a Server Action does re-render the page — it is in the
+installed Next docs) but its scenario cannot happen here, so the code COMMENT claiming otherwise was
+the actual defect. Low 69's live "clash" — Delhi matching New Delhi — is `city-coords.ts` aliasing
+them deliberately, the way it aliases Chennai and Madras. Low 60 names a file that no longer exists.
+Nine more Lows had already been closed by earlier sessions' clusters.
+
+**Three are deferred on their merits, not skipped.** Low 89 wants a partial unique index Prisma
+cannot express, and the expressible alternative fails worse: one forgotten transition and a member
+can never receive a password reset again. Low 78 is a moderation policy question the audit itself
+says belongs to the owner. M19 and its two siblings wait on a custom domain for the image bucket,
+which only he can buy — it is the "image CORS thing" he already remembers.
+
+The ledger at `docs/planning/audits/fix-log.md` carries every disposition, and its new "What is
+owed to the OWNER" section is the short list of what is left that nobody here can do.
