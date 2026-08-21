@@ -105,3 +105,23 @@ test("no date is rendered without a time zone in a server-rendered file", () => 
   walk(resolve(ROOT, "src"));
   assert.deepEqual(offenders, [], `dates rendered with no time zone:\n${offenders.join("\n")}`);
 });
+
+/* ---- Low 28: a calendar word must count calendar days ---------------- */
+
+test("'tomorrow' is a calendar day away, not twenty-four hours", async () => {
+  const { valleyDaysBetween } = await import("./utils.ts");
+  // 6pm IST today, deadline 5pm IST tomorrow: 23 hours, but a different day.
+  const now = new Date("2026-03-10T12:30:00Z"); // 18:00 IST on the 10th
+  const at = new Date("2026-03-11T11:30:00Z"); // 17:00 IST on the 11th
+  assert.equal(valleyDaysBetween(at, now), 1);
+
+  // Same valley day, later in the evening.
+  assert.equal(valleyDaysBetween(new Date("2026-03-10T16:00:00Z"), now), 0);
+
+  // The IST/UTC seam: 01:00 IST on the 11th is still "tomorrow" from the 10th,
+  // even though both instants share a UTC date.
+  assert.equal(
+    valleyDaysBetween(new Date("2026-03-10T19:30:00Z"), new Date("2026-03-10T12:30:00Z")),
+    1
+  );
+});

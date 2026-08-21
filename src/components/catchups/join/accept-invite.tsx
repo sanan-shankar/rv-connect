@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { joinCatchupByToken } from "@/app/(main)/catchups/actions";
+import { useEmailGate } from "@/components/auth/verify-email-dialog";
 
 /**
  * The accept/decline pair on an invite link, for someone already signed in.
@@ -17,13 +18,24 @@ import { joinCatchupByToken } from "@/app/(main)/catchups/actions";
 export function AcceptInvite({ token, groupName }: { token: string; groupName: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  /* The two gates get their own dialogs here, the same as everywhere else that
+     writes (audit Low 33).
+     
+     This page is the one an invited person most often reaches straight from a
+     signup, so it is the likeliest place in the app to meet the second gate --
+     and it was answering with a bare toast reciting a sentence about "posting
+     and contact details", which says nothing about the invitation and offers
+     no way forward. The dialog does: it explains, and it has the button that
+     asks to be verified. The invitation stays on screen behind it, so
+     accepting is one press away once that is done. */
+  const gate = useEmailGate();
 
   async function accept() {
     setBusy(true);
     try {
       const result = await callAction(() => joinCatchupByToken(token));
       if ("error" in result && result.error) {
-        toast.error(result.error);
+        if (!gate.handled(result.error)) toast.error(result.error);
         return;
       }
       if ("catchupId" in result && result.catchupId) {
@@ -53,6 +65,7 @@ export function AcceptInvite({ token, groupName }: { token: string; groupName: s
       >
         Not now
       </Button>
+      {gate.dialog}
     </div>
   );
 }

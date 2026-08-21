@@ -22,7 +22,7 @@
  *  driver, which cannot be bundled for the browser.
  * ------------------------------------------------------------------ */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
@@ -57,6 +57,10 @@ export function CreateCatchupForm({
   const [people, setPeople] = useState<PickedPerson[]>(initialPeople);
   const [cadence, setCadence] = useState<Cadence>("monthly");
   const [submitting, setSubmitting] = useState(false);
+  /* A ref as well as the flag: `disabled` only takes effect on the next
+     render, so two presses in one frame both reached the action and started
+     two whole Catch-ups (audit Low 29). Set synchronously. */
+  const submittingRef = useRef(false);
   // The unconfirmed-email refusal opens the one shared dialog, the same
   // card posting and commenting use, instead of a toast reciting the rule.
   const emailGate = useEmailGate();
@@ -68,6 +72,8 @@ export function CreateCatchupForm({
       toast.error("Give this Catch-up a name.");
       return;
     }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const result = await callAction(() =>
@@ -88,6 +94,7 @@ export function CreateCatchupForm({
     } finally {
       // finally, not a trailing statement: a rejected call used to leave
       // "Start the first Round" disabled for the rest of the session (audit B-042).
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }

@@ -655,3 +655,19 @@ export function renderRichText(text: string): string {
 
   return result
 }
+
+/**
+ * How many valley calendar days from `now` to `at`. 0 is today, 1 tomorrow.
+ *
+ * The distinction that matters: "a day away" and "tomorrow" are different
+ * claims. A deadline twenty-three hours off is under one 24-hour window, so
+ * arithmetic on milliseconds calls it today -- and it is very often tomorrow
+ * (audit Low 28). Anything that puts a calendar word on screen has to count
+ * calendar days, and it has to count them in the valley, because that is the
+ * day the deadline itself is expressed in.
+ */
+export function valleyDaysBetween(at: Date, now: Date = new Date()): number {
+  const from = valleyDayStart(now).getTime()
+  const to = valleyDayStart(at).getTime()
+  return Math.round((to - from) / 86_400_000)
+}
