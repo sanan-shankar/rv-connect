@@ -63,11 +63,18 @@ async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
       userId
     );
     if (!successor) continue;
-    await db.groupMember.update({
-      where: { groupId_userId: { groupId, userId: successor } },
+    // updateMany, not update: `update` throws P2025 when its where matches
+    // nothing, and the successor was chosen from a snapshot read moments ago
+    // under READ COMMITTED with no lock on that row. A genuinely concurrent
+    // delete of the successor's own membership would then abort this whole
+    // transaction and fail a purge that had nothing wrong with it. A no-op is
+    // the right answer: if the person we picked has left too, there is nobody
+    // to promote, and their own removal is somebody else's transaction.
+    const done = await db.groupMember.updateMany({
+      where: { groupId, userId: successor },
       data: { role: "admin" },
     });
-    promoted += 1;
+    promoted += done.count;
   }
   return promoted;
 }
@@ -189,7 +196,10 @@ export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
       },
       // The default 5s is a page-render budget, not a cascade budget: this one
       // transaction deletes every row a long-standing member ever wrote.
-      { timeout: 30_000, maxWait: 10_000 }
+      // maxWait matches the pool's own connectionTimeoutMillis (prisma.ts):
+      // waiting longer than the pool will wait for a connection is dead
+      // configuration, and waiting less would fail before the pool gives up.
+      { timeout: 30_000, maxWait: 5_000 }
     );
     urls = outcome.urls;
     groupsRehomed = outcome.rehomed;
