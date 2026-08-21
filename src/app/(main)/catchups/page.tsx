@@ -65,7 +65,20 @@ async function loadIndexData(userId: string) {
   await advanceDueCatchups(userId);
 
   const memberships = await prisma.groupMember.findMany({
-    where: { userId },
+    /* Only groups that HAVE a Catch-up (owner's call, 2026-08-21).
+       A group without one used to get a row saying "No Catch-up here yet"
+       with a "Start one" button, and pressing that button did not consume the
+       prompt: the create flow mints its own group (which is what its docblock
+       says it does), so the member ended up with two rows of the same name --
+       one live, one still offering "Start one" -- and a third if they pressed
+       it again. Offered the choice between making the button attach to that
+       group and dropping the row, the owner took the row: attaching would mean
+       one member's private naming choice renaming a shared batch group, and
+       the people they picked joining a batch they may not be from. Nothing is
+       lost, because the header's permanent "Start a Catch-up" button and the
+       create page's one-tap "Everyone from <batch>" already cover the case the
+       row existed for. */
+    where: { userId, group: { catchup: { isNot: null } } },
     select: {
       group: {
         select: {
@@ -122,7 +135,8 @@ async function loadIndexData(userId: string) {
   /** The card plus which of the three sections it belongs in. The shelf is
    *  never rendered on the card itself; it only decides where the card goes. */
   type ShelvedCard = IndexCardView & { shelf: CatchupShelf; deletedAt: Date | null };
-  const cards: ShelvedCard[] = memberships.map(({ group }) => {
+  const cards: ShelvedCard[] = memberships
+    .map(({ group }): ShelvedCard | null => {
     // Viewer first, so the card's cluster (which shows only the first few)
     // always answers "am I in this?" before it answers "who else is?".
     const members = group.members
@@ -130,28 +144,11 @@ async function loadIndexData(userId: string) {
       .sort((a, b) => (a.id === userId ? -1 : b.id === userId ? 1 : 0));
     const memberCount = group._count.members;
 
-    if (!group.catchup) {
-      return {
-        // A group with no Catch-up has no copy of one to file away, so it is
-        // always on the live list.
-        shelf: "active" as const,
-        deletedAt: null,
-        isCreator: false,
-        groupId: group.id,
-        groupName: group.name,
-        members,
-        memberCount,
-        catchupId: null,
-        catchupStatus: null,
-        editionId: null,
-        editionStatus: null,
-        roundNumber: null,
-        statusLine: "No Catch-up here yet",
-        cta: { label: "Start one", href: `/catchups/new?group=${group.id}` },
-        answeredCount: 0,
-        answeredMembers: [],
-      };
-    }
+    // Unreachable: the query above only returns groups that have one. Kept as
+    // the type narrowing Prisma's optional relation still requires, and as a
+    // refusal rather than a silently different-looking card if that `where`
+    // ever changes.
+    if (!group.catchup) return null;
 
     const catchupStatus = group.catchup.status as CatchupStatus;
     const pref = group.catchup.prefs[0] ?? null;
@@ -190,12 +187,13 @@ async function loadIndexData(userId: string) {
       answeredCount: 0,
       answeredMembers: [],
     };
-  });
+    })
+    .filter((c): c is ShelvedCard => c !== null);
 
   // The live "Answering now" row needs real pull (spec polish: who-has-
-  // answered avatars + a mini N-of-M badge) so it reads as more alive than
-  // the dormant "Start one" rows beneath it. Fetched separately, scoped to
-  // just the editions actually answering right now.
+  // answered avatars + a mini N-of-M badge) so it reads as more alive than a
+  // quiet published or paused row. Fetched separately, scoped to just the
+  // editions actually answering right now.
   const answeringCards = cards.filter(
     (c) => c.shelf === "active" && c.editionStatus === "answering" && c.editionId
   );
@@ -280,7 +278,7 @@ async function loadIndexData(userId: string) {
     };
   });
 
-  return { cards: live, archived, deleted, freshItems, hasGroups: memberships.length > 0 };
+  return { cards: live, archived, deleted, freshItems };
 }
 
 export default async function CatchupsPage() {
@@ -330,7 +328,10 @@ export default async function CatchupsPage() {
         </div>
       </div>
 
-      {!data.hasGroups ? (
+      {/* Nothing on any of the three shelves. Same card as the never-in-a-
+          group case, because it answers the same question: this is where a
+          Catch-up would be, and here is how to start one. */}
+      {data.cards.length === 0 && data.archived.length === 0 && data.deleted.length === 0 ? (
         <GroupFirstGuidance />
       ) : (
         // Both columns start at the same y, so the rail's first card lines up
