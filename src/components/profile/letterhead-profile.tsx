@@ -403,10 +403,19 @@ export function LetterheadProfile({
   function commitField(key: ProfileField) {
     const value = form[key];
     if (saved.current[key] === value) return;
-    saved.current[key] = value;
     void run(async () => {
       const result = await updateProfileField(key, value);
-      if (!result.error) router.refresh();
+      /* Stamped on SUCCESS, not before the call (audit M68). Marking it saved
+         up front meant a failed save could never be retried the natural way:
+         the banner said "That did not save", the member clicked back into the
+         field and blurred again, and this function returned on its first line
+         because the ref already claimed that text was on file. The only escape
+         was to type something different. A field that reports a failure has to
+         accept the retry that failure asks for. */
+      if (!result.error) {
+        saved.current[key] = value;
+        router.refresh();
+      }
       return result;
     });
   }

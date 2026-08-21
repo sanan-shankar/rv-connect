@@ -98,6 +98,12 @@ export function CommentsSection({
     null
   );
   const [submitting, setSubmitting] = useState(false);
+  /* A ref as well as the state, because `disabled` only takes effect on the
+     next render: an Enter keydown plus a click in the same frame, or a key
+     repeat racing React, both reached the action and wrote the comment twice
+     with two notifications (audit M35). The ref is set synchronously, so the
+     second call in a frame sees it. Same shape as loadingMoreRef below. */
+  const submittingRef = useRef(false);
   const [focused, setFocused] = useState(false);
   // The comment currently targeted by the admin moderation dialog, if any.
   const [moderatingId, setModeratingId] = useState<string | null>(null);
@@ -200,6 +206,8 @@ export function CommentsSection({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newComment.trim()) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
 
     const formData = new FormData();
@@ -225,6 +233,7 @@ export function CommentsSection({
     } finally {
       // finally, not a trailing statement: a rejected call used to leave the
       // composer's submit button disabled for the rest of the session (audit B-042).
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
