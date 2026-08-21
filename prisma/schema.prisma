@@ -197,6 +197,16 @@ model Group {
   description String?
   coverImage  String?  // optional cover photo url (Collection or upload)
   visibility  String   @default("public") // "public" (browseable, auto-join) | "private" (invite-only, hidden)
+  // Set ONLY on an auto-created "Batch of {year}" group, and unique, so a batch
+  // has exactly one. It used to be identified by its name alone, which nothing
+  // constrained -- so two members of the same batch registering in the same
+  // second both missed the findFirst and both created "Batch of 2010", and
+  // every later signup landed in whichever one the unordered findFirst
+  // returned. The batch was permanently split into two groups whose members
+  // could not see each other, and launch day is exactly the concurrency this
+  // needs (bug audit B-121). Null on every other group; Postgres allows many
+  // NULLs under a unique index.
+  batchYear   Int?     @unique
   // Nullable, and SetNull, so the group outlives the person who happened to
   // start it. It used to be Cascade, which meant the first alumnus of a batch
   // to sign up silently owned "Batch of 2010", and whoever started a Catch-up

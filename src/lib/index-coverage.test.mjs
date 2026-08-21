@@ -86,3 +86,29 @@ test("the search route still asks the question the index answers", () => {
       "may now be 36MB of nothing, so check before deleting this test"
   );
 });
+
+test("a batch has exactly one group, and the database is what says so", () => {
+  // joinBatchGroup was findFirst-by-name then create with nothing unique behind
+  // it, so two members of the same batch registering in the same second both
+  // created "Batch of 2010" and the batch was permanently split (bug audit
+  // B-121). Identity is a column now, not display text somebody could rename.
+  const body = model("Group");
+  assert.ok(
+    /batchYear\s+Int\?\s+@unique/.test(body),
+    "Group.batchYear is no longer a unique column: nothing stops two groups " +
+      "for one batch, and launch day is the concurrency that produces them"
+  );
+
+  const signup = readFileSync(resolve(ROOT, "src/components/auth/actions.ts"), "utf8");
+  const i = signup.indexOf("async function joinBatchGroup");
+  const fn = signup.slice(i, signup.indexOf("\n}", i));
+  assert.ok(
+    /P2002/.test(fn),
+    "joinBatchGroup does not answer the unique violation, so the loser of the " +
+      "race throws out of registerUser instead of joining the group that won"
+  );
+  assert.ok(
+    !/where: \{ name \}/.test(fn),
+    "joinBatchGroup matches by name again, which nothing constrains"
+  );
+});
