@@ -93,7 +93,11 @@ async function loadPublishedIssue(
       publishedAt: true,
       prompts: {
         where: { accepted: true },
-        orderBy: { position: "asc" },
+        /* A createdAt tie-break, so two questions that end up sharing a
+           position (a pair submitted in the same instant) still render in a
+           stable, sensible order rather than shuffling between renders
+           (audit Lows 27/34/57). */
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
         select: {
           id: true,
           text: true,

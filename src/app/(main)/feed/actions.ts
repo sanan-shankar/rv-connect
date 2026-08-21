@@ -20,17 +20,7 @@ import { escapeLike } from "@/lib/db-text";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
-
-/**
- * How long two identical writes count as one double submission.
- *
- * Post and Comment are free text, so no unique index can dedupe them and the
- * client's in-flight guard is the only other protection -- and that cannot see
- * a second tab, a retried request or a hand-made call (audit M35). Ten seconds
- * is longer than any double-tap and far shorter than a person deciding to say
- * the same thing again on purpose.
- */
-const DOUBLE_SUBMIT_MS = 10_000;
+import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 
 /** The author fields a rendered comment needs. One copy, two readers. */
 const COMMENT_AUTHOR_SELECT = {

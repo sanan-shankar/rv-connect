@@ -80,6 +80,8 @@ import type {
   PromptCategory,
   ReminderMode,
 } from "@/lib/catchups-types";
+import { isUniqueViolation } from "@/lib/prisma-errors";
+import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 
 // ─── Soft caps (spec 3.3.1, enforced here rather than only surfaced as UI copy) ──
 
@@ -480,6 +482,27 @@ export async function createCatchupWithPeople(input: {
       ...realMembers.map((u) => ({ userId: u.id, role: "member" })),
     ];
 
+    /* The server half of the double-submit guard (audit Low 29).
+     *
+     * A duplicated invocation minted a WHOLE second Catch-up -- its own group,
+     * its own Round 1 -- and notified up to a hundred people about it twice.
+     * The rate limit caps volume, not duplicates. A group is free text so no
+     * unique index can dedupe it; the same creator starting the same name
+     * seconds apart is a double press, and the first one is handed back as
+     * though this call had made it. */
+    const twin = await prisma.catchup.findFirst({
+      where: {
+        createdById: creatorId,
+        createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
+        group: { name },
+      },
+      select: { id: true },
+    });
+    if (twin) {
+      revalidatePath("/catchups");
+      return { success: true as const, catchupId: twin.id };
+    }
+
     const now = new Date();
     const catchupId = await prisma.$transaction(async (tx) => {
       const group = await tx.group.create({
@@ -856,31 +879,52 @@ export async function submitPrompt(input: {
       groupRole: membership.role,
     });
 
-    // `position` is the Round's rendered/reorderable order, so it counts the
-    // rows that are actually in the Round. Everything written here is, so this
-    // is simply "next in line". (Legacy rows from before auto-accept may still
-    // be sitting pending; they are excluded, exactly as the reorder branch
-    // excludes them, so they cannot push live questions out of sequence.)
-    const acceptedCount = await prisma.catchupPrompt.count({
-      where: { editionId, accepted: true },
+    /* `position` is the Round's rendered, reorderable order, and this is "next
+       in line" -- but it used to be the COUNT of accepted rows, which is not
+       the same thing the moment one is removed. Positions 0,1,2 minus the
+       middle one leaves 0 and 2, and the count is 2, so the next question
+       landed on top of the last one. Not a race: a certainty, after any
+       removal (audit Lows 27, 34, 57).
+       
+       Read as max+1, and inside the same transaction as the cap check so two
+       questions arriving together cannot both see room for the last slot.
+       (Legacy rows from before auto-accept may still be sitting pending; they
+       are excluded, exactly as the reorder branch excludes them, so they cannot
+       push live questions out of sequence.) */
+    const created = await prisma.$transaction(async (tx) => {
+      const [{ _max, _count }] = [
+        await tx.catchupPrompt.aggregate({
+          where: { editionId, accepted: true },
+          _max: { position: true },
+          _count: true,
+        }),
+      ];
+      if (_count >= MAX_ACCEPTED_PROMPTS_PER_EDITION) return null;
+
+      const row = await tx.catchupPrompt.create({
+        data: {
+          editionId,
+          authorId: session.user.id,
+          text,
+          category: category ?? null,
+          source: keeper ? "keeper" : category ? "library" : "member",
+          showAsker,
+          accepted: true,
+          position: (_max.position ?? -1) + 1,
+        },
+        select: { id: true },
+      });
+      // Read inside the transaction too: whether this was the FIRST question
+      // decides the dormant-Round revival below, and a count taken outside
+      // could be a different moment's answer.
+      return { row, wasFirst: _count === 0 };
     });
-    if (acceptedCount >= MAX_ACCEPTED_PROMPTS_PER_EDITION) {
+
+    if (!created) {
       return { error: "This Round has as many questions as it can hold. Remove one to add another." };
     }
-
-    const prompt = await prisma.catchupPrompt.create({
-      data: {
-        editionId,
-        authorId: session.user.id,
-        text,
-        category: category ?? null,
-        source: keeper ? "keeper" : category ? "library" : "member",
-        showAsker,
-        accepted: true,
-        position: acceptedCount,
-      },
-      select: { id: true },
-    });
+    const prompt = created.row;
+    const firstQuestion = created.wasFirst;
 
     // Reviving a dormant Round. A Round whose question window closed with
     // nothing in it does not open for answers -- it goes quiet instead of
@@ -895,7 +939,7 @@ export async function submitPrompt(input: {
     // updateMany means a second submitter in the same second cannot push the
     // deadline out twice.
     const wasDormant =
-      acceptedCount === 0 &&
+      firstQuestion &&
       edition.questionsCloseAt != null &&
       edition.questionsCloseAt.getTime() <= Date.now() &&
       (edition.remindersSent & REMINDER_QUESTIONS_EXTENDED) !== 0;
@@ -1368,8 +1412,28 @@ export async function submitEntry(input: {
         ...(hasImages ? { images: imagesValue } : {}),
         ...(songPatch ? songPatch : {}),
       },
-      select: { id: true },
+      select: { id: true, body: true, images: true, songUrl: true },
     });
+
+    /* Erasing everything withdraws you from the Round (audit Low 36).
+     *
+     * There was no delete path at all: clearing every field left the row, so a
+     * member who wrote something personal and then took it all back was still
+     * published -- an answer card reading "Showed up for this Round without
+     * adding anything here.", their bird in the masthead strip, and a place in
+     * "12 of the group wrote in". The empty row also counted as an entry for
+     * the too-few-answers rule, so a Round whose only answer was an erased one
+     * skipped the extension and published with nothing to read.
+     *
+     * Deleted rather than kept-and-filtered because there is nothing left in
+     * it: no body, no photograph, no song. Nothing is lost that the member has
+     * not already removed, and a later answer simply creates the row again.
+     * The `promptId_authorId` unique makes a second delete a no-op. */
+    if (!entry.body && !entry.images && !entry.songUrl) {
+      await prisma.catchupEntry.deleteMany({ where: { id: entry.id } });
+      revalidatePath(`/catchups/${edition.catchupId}/answer`);
+      return { success: true, entryId: null, songWarning };
+    }
 
     revalidatePath(`/catchups/${edition.catchupId}/answer`);
     return { success: true, entryId: entry.id, songWarning };
@@ -1404,30 +1468,45 @@ export async function toggleEntryLove(entryId: string) {
       return { error: "Hearts open once the Round is published." };
     }
 
-    const existing = await prisma.catchupEntryLove.findUnique({
-      where: { userId_entryId: { userId: session.user.id, entryId } },
-      select: { id: true },
+    /* Delete-first, then create and let the unique settle a tie -- the shape
+       the feed's toggleLike already carries.
+       
+       This was a findUnique followed by a create, so two taps in the same
+       instant both read "not loved" and both inserted: the loser threw a raw
+       P2002 out of the action, the member saw "Something went wrong" for a
+       gesture that had in fact worked, and the heart on screen ended up saying
+       the opposite of the database (audit Lows 26, 32). Both outcomes below are
+       the state the caller asked for, so both are reported as success. */
+    const removed = await prisma.catchupEntryLove.deleteMany({
+      where: { userId: session.user.id, entryId },
     });
+    if (removed.count > 0) {
+      revalidatePath(`/catchups/round/${entry.editionId}`);
+      return { success: true, loved: false };
+    }
 
-    if (existing) {
-      await prisma.catchupEntryLove.delete({ where: { id: existing.id } });
-    } else {
+    let created = true;
+    try {
       await prisma.catchupEntryLove.create({ data: { userId: session.user.id, entryId } });
-      if (entry.authorId !== session.user.id) {
-        await notifyLove(prisma, {
-          catchupId: edition.catchupId,
-          editionId: entry.editionId,
-          groupName: edition.catchup.group.name,
-          entryId,
-          authorId: entry.authorId,
-          likerId: session.user.id,
-          likerName: session.user.name,
-        });
-      }
+    } catch (err) {
+      if (!isUniqueViolation(err)) throw err;
+      created = false; // a concurrent tap got there first; the heart stands
+    }
+
+    if (created && entry.authorId !== session.user.id) {
+      await notifyLove(prisma, {
+        catchupId: edition.catchupId,
+        editionId: entry.editionId,
+        groupName: edition.catchup.group.name,
+        entryId,
+        authorId: entry.authorId,
+        likerId: session.user.id,
+        likerName: session.user.name,
+      });
     }
 
     revalidatePath(`/catchups/round/${entry.editionId}`);
-    return { success: true, loved: !existing };
+    return { success: true, loved: true };
   });
 }
 

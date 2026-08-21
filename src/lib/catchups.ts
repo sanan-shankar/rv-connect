@@ -985,9 +985,16 @@ async function applyEditionAction(
       return true;
     }
 
-    // reminder
+    /* reminder
+     *
+     * `status: "answering"` alongside the bucket, which the three branches
+     * above all carry and this one did not (audit Low 23). `dueReminder` only
+     * ever returns while answering, but that is read from a snapshot: between
+     * the plan and this write the Round can publish, or the Keeper can pause or
+     * end it, and the bucket alone happily agreed. The group then got "two days
+     * left to answer" about a Round that had already gone out. */
     const cas = await tx.catchupEdition.updateMany({
-      where: { id: editionId, remindersSent: before.remindersSent },
+      where: { id: editionId, status: "answering", remindersSent: before.remindersSent },
       data: action.patch,
     });
     if (cas.count === 0) return false;
