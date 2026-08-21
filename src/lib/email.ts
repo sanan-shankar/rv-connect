@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { IS_DEMO } from "./demo";
 import { maskEmail } from "./mask-email";
+import { isTransientMailError, quotaExceeded } from "./mail-policy";
 
 /* ------------------------------------------------------------------ *
  *  The one place that sends mail.
@@ -67,10 +68,29 @@ function resend(): Resend | null {
   return client;
 }
 
+/**
+ * How long to wait for Resend before giving up on one send.
+ *
+ * 10 seconds: Resend's own p99 is well under a second, so anything past this is
+ * a provider that has stopped answering rather than one that is being slow.
+ */
+const SEND_TIMEOUT_MS = 10_000;
+
 export interface MailResult {
   ok: boolean;
   /** Set when the send failed, for the server log. Never shown to a visitor. */
   error?: string;
+  /**
+   * True when the failure was the PROVIDER's and not the address's: a 429, a
+   * 5xx, a dropped socket, a timeout. The queue waits those out instead of
+   * spending one of the four attempts it keeps for finding out that somebody
+   * typed `gmial` (bug audit B-002). Classified here because this is the only
+   * place that still has Resend's structured error to look at.
+   */
+  transient?: boolean;
+  /** True when the provider says the day's or month's allowance is spent, so
+   *  the queue can wait for the window rather than for a few minutes. */
+  quota?: boolean;
   /**
    * Resend's id for the accepted message. Stored on the OutboundEmail row so a
    * later delivery webhook has something to join on: an event says "this id
@@ -178,16 +198,37 @@ export async function sendMail(opts: {
   }
 
   try {
-    const { data, error } = await api.emails.send({
+    // A deadline, because this is awaited inside a page render for unconfirmed
+    // members (verificationMailState in the (main) layout). Without it a
+    // provider that accepts the connection and then says nothing holds the
+    // whole page open until the platform kills the function, and the member
+    // sees a blank screen rather than a slow one (audit M20). A race, not an
+    // abort: the Resend SDK takes no signal, so the request may still land --
+    // which is one reason DAILY_CAP keeps five messages in hand.
+    const send = api.emails.send({
       from: FROM,
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
       text: opts.text,
     });
+    const raced = await Promise.race([
+      send,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), SEND_TIMEOUT_MS)),
+    ]);
+    if (raced === null) {
+      console.error(`[email] send timed out after ${SEND_TIMEOUT_MS}ms`);
+      return { ok: false, error: "send timed out", transient: true };
+    }
+    const { data, error } = raced;
     if (error) {
       console.error("[email] send failed", error);
-      return { ok: false, error: error.message };
+      return {
+        ok: false,
+        error: error.message,
+        transient: isTransientMailError(error),
+        quota: quotaExceeded(error),
+      };
     }
     // Resend's id for this message, carried back so the queue can store it on
     // the row. It is the ONLY thing a delivery webhook gives us to identify
@@ -196,7 +237,13 @@ export async function sendMail(opts: {
     return { ok: true, providerId: data?.id };
   } catch (err) {
     console.error("[email] send threw", err);
-    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+    // A throw out of the SDK is a transport failure -- DNS, a reset socket, a
+    // TLS hiccup. The message never reached Resend, so it is worth waiting out.
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "unknown",
+      transient: true,
+    };
   }
 }
 

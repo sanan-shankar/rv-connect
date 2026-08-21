@@ -354,6 +354,20 @@ model OutboundEmail {
   lastError String?
   createdAt DateTime  @default(now())
 
+  // When the drain may pick this row up again. Null means "now".
+  //
+  // Without it a requeued row kept its original createdAt, so it was still the
+  // oldest eligible row and the very next iteration of the SAME pass took it:
+  // four attempts inside four seconds, then permanently failed. A thirty-second
+  // Resend brownout turned every queued reset into mail nobody would ever send
+  // and nothing would ever retry (bug audit B-002).
+  nextAttemptAt DateTime?
+  // Failures the PROVIDER caused (a 429, a 5xx, a dropped socket). Counted
+  // apart from `attempts` because they say nothing about the address: they
+  // stretch the backoff and eventually give up, but they never spend the
+  // budget reserved for finding out that somebody typed `gmial`.
+  deferrals     Int      @default(0)
+
   // --- Delivery, as the PROVIDER saw it (2026-08-19) -------------------
   // `status` above only ever meant "Resend accepted this from us". It says
   // nothing about whether the mail reached a human. At launch, when a few
@@ -383,8 +397,8 @@ model OutboundEmail {
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // The drain read: the next thing to send.
-  @@index([status, priority, createdAt])
+  // The drain read: the next thing to send that is due.
+  @@index([status, nextAttemptAt, priority, createdAt])
   // The budget read: how many went out since midnight UTC.
   @@index([sentAt])
   // "Has this person's confirmation actually left yet?", which is what decides
@@ -1137,4 +1151,26 @@ model PendingImagePurge {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// ─── One drain at a time ─────────────────────────────────────────────────────
+//
+// Every authenticated page view runs `after(drainMailQueue)` and every enqueue
+// schedules one, so at launch a hundred overlapping passes would each send a
+// different row in parallel -- a self-inflicted 429 storm against a provider
+// that rate-limits to roughly two requests a second, and a budget check that
+// several passes can pass simultaneously (bug audit B-072).
+//
+// A lease row rather than a Postgres advisory lock: advisory locks are
+// session-scoped and this app talks to Postgres through the pgbouncer
+// transaction pooler, where a session is whatever connection the pooler
+// happens to hand out next. A conditional updateMany on an expiry is the same
+// optimistic claim the queue already uses per row, and it survives a process
+// dying mid-pass: the lease simply expires.
+model QueueLease {
+  /** The named piece of work, e.g. "mail-drain". One row per queue. */
+  name      String   @id
+  /** Random per pass, so a release can only release its own lease. */
+  holder    String
+  expiresAt DateTime
 }
