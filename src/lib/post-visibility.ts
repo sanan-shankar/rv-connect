@@ -41,6 +41,9 @@ const GUARD_SELECT = {
   targetBatches: true,
   isHidden: true,
   status: true,
+  // The author's standing, for the blocked-author rule (audit Low 78). A join
+  // on the primary key, so it costs nothing next to the row fetch itself.
+  author: { select: { isBlocked: true } },
 } as const;
 
 /**
@@ -66,6 +69,13 @@ const isMemberOf = cache(
     }))
 );
 
+/** Flatten the author join into the flag the pure rule reads. */
+function shaped(row: {
+  author: { isBlocked: boolean } | null;
+} & Omit<GuardedPost, "authorIsBlocked">): GuardedPost {
+  return { ...row, authorIsBlocked: row.author?.isBlocked ?? false };
+}
+
 /** Fetch only the facts the rule actually consults, and only when it will. */
 async function gather(post: GuardedPost, viewer: PostViewer) {
   const isGroupMember = post.groupId ? await isMemberOf(post.groupId, viewer.id) : false;
@@ -82,8 +92,9 @@ export async function canViewPost(
   postId: string,
   viewer: PostViewer
 ): Promise<PostVisibility> {
-  const post = await guardedPost(postId);
-  if (!post) return { ok: false, reason: "not-found" };
+  const row = await guardedPost(postId);
+  if (!row) return { ok: false, reason: "not-found" };
+  const post = shaped(row);
   return decidePostVisibility(post, viewer, await gather(post, viewer));
 }
 
@@ -98,5 +109,6 @@ export async function canViewPostOfComment(
     select: { post: { select: GUARD_SELECT } },
   });
   if (!comment?.post) return { ok: false, reason: "not-found" };
-  return decidePostVisibility(comment.post, viewer, await gather(comment.post, viewer));
+  const post = shaped(comment.post);
+  return decidePostVisibility(post, viewer, await gather(post, viewer));
 }

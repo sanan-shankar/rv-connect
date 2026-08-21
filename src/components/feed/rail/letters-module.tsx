@@ -7,7 +7,7 @@ import { Feather } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";
 import { batchLine, letterTitle, metaLine, plainExcerpt } from "@/lib/utils";
 import { RailCard } from "./rail-card";
-import { PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
+import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
 import { cityScopeWhere } from "@/lib/city-scope";
 import type { RailViewer } from "../feed-rail";
 
@@ -35,6 +35,8 @@ export async function LettersModule({ viewer }: { viewer: RailViewer }) {
       isHidden: false,
       groupId: null,
       ...PUBLISHED_ONLY,
+      // Same standing rule as the index it teases from (audit Low 78).
+      ...AUTHOR_IN_GOOD_STANDING,
       createdAt: { gte: new Date(Date.now() - WEEK_MS) },
       ...(viewer.isAdmin
         ? {}

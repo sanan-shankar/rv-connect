@@ -271,3 +271,41 @@ test("a targeted post reaches its batch and nobody else's", () => {
   // No batch at all: refused, not crashed, and not let through.
   assert.equal(decidePostVisibility(targeted, { id: "bo" }, facts).ok, false);
 });
+
+/* ------------------------------------------------------------------ *
+ *  Blocked authors (audit Low 78, owner decision 2026-08-21).
+ * ------------------------------------------------------------------ */
+
+const byBlocked = {
+  id: "p5",
+  authorId: "gone",
+  groupId: null,
+  cityScope: null,
+  targetBatches: null,
+  isHidden: false,
+  status: "published",
+  authorIsBlocked: true,
+};
+const anyone = { isGroupMember: true, cityMatches: true };
+
+test("a blocked member's post is not available to other members", () => {
+  const seen = decidePostVisibility(byBlocked, { id: "bo" }, anyone);
+  assert.equal(seen.ok, false);
+  assert.equal(seen.reason, "author-blocked");
+});
+
+test("an admin can still open it, because that is where moderation happens", () => {
+  assert.equal(
+    decidePostVisibility(byBlocked, { id: "admin", role: "admin" }, anyone).ok,
+    true
+  );
+});
+
+test("a caller that never fetched the author's standing is not told everything is blocked", () => {
+  /* `authorIsBlocked` is optional on GuardedPost, so a query that forgets the
+     join must fail OPEN on this one flag rather than hiding the whole feed.
+     The feed queries carry AUTHOR_IN_GOOD_STANDING regardless. */
+  const { authorIsBlocked: _omitted, ...noStanding } = byBlocked;
+  void _omitted;
+  assert.equal(decidePostVisibility(noStanding, { id: "bo" }, anyone).ok, true);
+});

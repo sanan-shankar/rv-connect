@@ -36,3 +36,25 @@ export function batchScopeWhere(key: string | null) {
     ? { OR: [...untargeted, { targetBatches: { contains: key } }] }
     : { OR: untargeted };
 }
+
+/**
+ * A post whose author is still in good standing.
+ *
+ * OWNER DECISION, 2026-08-21: a blocked member's existing posts, letters and
+ * comments leave the feed. Blocking already ends their sessions and takes them
+ * out of the directory and out of search, but everything they had written
+ * stayed on display under their name -- and their name linked to a profile that
+ * answers 404 for everybody else. The directory and the feed disagreed, and the
+ * feed was the one saying the wrong thing (audit Low 78).
+ *
+ * Applied WITHOUT an admin exemption, unlike the cityScope and batch fragments.
+ * An admin has /admin/content, which lists everything with "Everything by
+ * <name>" and a takedown on each row; the main feed is for reading, and a
+ * moderator scrolling past the posts they have just blocked somebody for is
+ * noise rather than oversight. The single-post view keeps its admin exemption
+ * (see decidePostVisibility), so a moderator following a link still lands on
+ * the post itself.
+ *
+ * Nothing is deleted. Unblocking puts every one of these back.
+ */
+export const AUTHOR_IN_GOOD_STANDING = { author: { isBlocked: false } } as const;
