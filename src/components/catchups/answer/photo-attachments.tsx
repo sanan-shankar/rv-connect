@@ -76,6 +76,8 @@ export function PhotoAttachments({
         toast.error(data.error || "That photo would not upload. Try again.");
         return;
       }
+      // Anything the server changed about the file, said out loud (audit M15).
+      for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
       onChange([...images, ...(data.urls as string[])]);
     } catch {
       toast.error("That photo would not upload. Try again.");

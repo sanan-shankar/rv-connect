@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { putImage, ownerPrefix } from "@/lib/storage";
-import { sharpImage } from "@/lib/image";
+import { countImageFrames, sharpImage } from "@/lib/image";
 import {
   MAX_UPLOAD_BYTES,
   isUnsupportedHeic,
@@ -74,6 +74,10 @@ export async function POST(request: Request) {
   }
 
   const urls: string[] = [];
+  /** Things the member should know about what we did to their file. See the
+   *  animated-GIF branch below; the response omits this key entirely when
+   *  there is nothing to say. */
+  const notices: string[] = [];
 
   for (const file of files) {
     if (!file.type.startsWith("image/")) {
@@ -111,6 +115,22 @@ export async function POST(request: Request) {
         );
       }
 
+      /* An animated GIF becomes a still here, and used to do so in silence
+         (audit M15). sharp reads a GIF as a single page unless told otherwise,
+         so every frame after the first was dropped with nothing said, and a
+         member who posted a reaction GIF got back a motionless first frame
+         with no idea why. Re-encoding to animated WebP is not the fix taken:
+         the frame count multiplies the decode budget, and an upload path is
+         not where to find out that a hundred-frame GIF exhausts a serverless
+         function's memory. So it is still a still, and the response now SAYS
+         so, which is the part that was actually wrong. */
+      const frames = await countImageFrames(buffer);
+      if (frames > 1) {
+        notices.push(
+          `"${file.name}" was saved as a still picture. Moving images are not supported yet.`
+        );
+      }
+
       const id = createId();
 
       // Process with sharp: resize + convert to WebP. The object key is scoped
@@ -136,5 +156,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ urls });
+  return NextResponse.json(notices.length > 0 ? { urls, notices } : { urls });
 }

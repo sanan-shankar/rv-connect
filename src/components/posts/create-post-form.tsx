@@ -526,7 +526,11 @@ export function CreatePostForm({
       throw new Error(data.error || `"${file.name}" failed to upload`);
     }
 
-    const { urls } = await res.json();
+    const { urls, notices } = await res.json();
+    // Anything the server changed about the file, said out loud (audit M15).
+    // A toast rather than inline copy: it is information about one upload that
+    // has already succeeded, not a condition to fix before carrying on.
+    for (const notice of (notices ?? []) as string[]) toast.info(notice);
     return urls[0] as string;
   }
 
