@@ -15,6 +15,8 @@ import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { escapeLike } from "@/lib/db-text";
+import { isUniqueViolation } from "@/lib/prisma-errors";
+import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
@@ -102,15 +104,25 @@ export async function createPost(formData: FormData) {
   if (!ownership.ok) return { error: ownership.error };
   const imagesJson = ownership.urls.length ? JSON.stringify(ownership.urls) : null;
 
-  const groupId = parsed.data.groupId || null;
-
-  // Posting into a group requires membership; group posts ignore batch targeting.
-  if (groupId) {
-    const membership = await prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId, userId: session.user.id } },
-    });
-    if (!membership) return { error: "You're not a member of this group" };
+  /* Group posts are refused, not created.
+   *
+   * The Groups feature was removed: there is no /groups route, no composer
+   * passes a groupId, and every read path in this file forces `groupId: null`
+   * (the main feed AND the profile's author tab, since neither passes the
+   * option). So a post written with a groupId was visible on no page in the
+   * application -- not even to the person who wrote it -- while looking to them
+   * like it had posted. Only a hand-crafted call could reach it, but a write
+   * path that silently produces unreachable content should say no instead.
+   * Verified live before writing this: zero rows in Post carry a groupId.
+   *
+   * The read side (`loadPosts({ groupId })`, membership-gated) is left alone:
+   * it returns nothing today and harms nothing, and tearing the whole
+   * group-feed plumbing out is a bigger, separate change.
+   */
+  if (parsed.data.groupId) {
+    return { error: "Group posts are not available." };
   }
+  const groupId = null;
 
   // City-scope audience control: only allowed to a city the poster themself has
   // listed (an own UserPlace), matched case-insensitively; anything else is
@@ -281,30 +293,23 @@ export async function votePoll(postId: string, optionId: string) {
     return { error: "Invalid poll option" };
   }
 
-  // Check for existing vote on this post
-  const existing = await prisma.pollVote.findUnique({
-    where: {
-      userId_postId: {
-        userId: session.user.id,
-        postId,
-      },
-    },
-  });
-
-  if (existing) {
-    // Switch vote
-    await prisma.pollVote.update({
-      where: { id: existing.id },
-      data: { pollOptionId: optionId },
+  /* One vote per member per post, settled by the unique index rather than by
+   * looking first. A vote is a switch, not a toggle, so this is an upsert --
+   * but two rapid taps could both miss the read and both create, and the loser
+   * threw P2002 out of the action (audit B-040). The retry answers that: the
+   * row the other tap made is the row we wanted to make, so update it to the
+   * option this call chose. Last tap wins, which is what a switch means.
+   */
+  const vote = { userId: session.user.id, postId };
+  try {
+    await prisma.pollVote.upsert({
+      where: { userId_postId: vote },
+      update: { pollOptionId: optionId },
+      create: { ...vote, pollOptionId: optionId },
     });
-  } else {
-    await prisma.pollVote.create({
-      data: {
-        pollOptionId: optionId,
-        userId: session.user.id,
-        postId,
-      },
-    });
+  } catch (err) {
+    if (!isUniqueViolation(err)) throw err;
+    await prisma.pollVote.updateMany({ where: vote, data: { pollOptionId: optionId } });
   }
 
   revalidatePath("/feed");
@@ -507,40 +512,62 @@ export async function toggleLike(postId: string) {
   const visible = await canViewPost(postId, session.user);
   if (!visible.ok) return { error: POST_NOT_VISIBLE };
 
-  const existing = await prisma.like.findUnique({
-    where: {
-      userId_postId: {
-        userId: session.user.id,
-        postId,
-      },
-    },
+  /* Delete-first, rather than read-then-decide.
+   *
+   * A toggle is one row per (member, post), and the database already knows
+   * whether that row exists -- so ask it to remove the row and read the count,
+   * instead of looking first and acting on what you saw. The old shape was a
+   * findUnique followed by a create or a delete, which two rapid taps (a mobile
+   * double-tap, two tabs) both entered having read the same answer: both
+   * created, and the loser threw a raw P2002 out of the action; or both
+   * deleted, and the loser threw P2025. The client only ever inspected
+   * `result.error`, so a throw became an unhandled rejection, no toast, and an
+   * optimistic heart pointing the wrong way (audit B-040, Lows 67 and 80).
+   *
+   * Now: `deleteMany` returns 0 or 1 and cannot race with itself, and the
+   * create's unique violation is the OTHER tap having already produced exactly
+   * the row we wanted. Both outcomes are the state the caller asked for, so
+   * both return it. The four sibling toggles below use the same shape.
+   */
+  const removed = await prisma.like.deleteMany({
+    where: { userId: session.user.id, postId },
   });
+  if (removed.count > 0) return { success: true, liked: false };
 
-  if (existing) {
-    await prisma.like.delete({ where: { id: existing.id } });
-  } else {
-    await prisma.like.create({
-      data: {
-        userId: session.user.id,
-        postId,
-      },
-    });
+  let created = true;
+  try {
+    await prisma.like.create({ data: { userId: session.user.id, postId } });
+  } catch (err) {
+    if (!isUniqueViolation(err)) throw err;
+    created = false; // a concurrent tap got there first; the like stands
+  }
 
-    // Create notification for post author
+  if (created) {
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { authorId: true },
+      select: { authorId: true, kind: true },
     });
 
     if (post && post.authorId !== session.user.id) {
-      await prisma.notification.create({
-        data: {
-          userId: post.authorId,
-          type: "like",
-          message: `${session.user.name} liked your post`,
-          link: `/feed#${postId}`,
-        },
+      /* One notification per person per post, not one per tap.
+       *
+       * Unliking and re-liking used to mint a fresh row every time, so anyone
+       * fidgeting with a heart could fill the author's bell with the same
+       * sentence (audit M33). An unread like notification for this post is
+       * already saying what a second one would say, so if one is sitting there
+       * unread, leave it. Once they have read it, a later like is news again.
+       */
+      const link = postNotificationLink({ id: postId, kind: post.kind });
+      const message = `${session.user.name} liked your ${postNoun(post.kind)}`;
+      const alreadyTold = await prisma.notification.findFirst({
+        where: { userId: post.authorId, type: "like", link, message, read: false },
+        select: { id: true },
       });
+      if (!alreadyTold) {
+        await prisma.notification.create({
+          data: { userId: post.authorId, type: "like", message, link },
+        });
+      }
     }
   }
 
@@ -550,7 +577,7 @@ export async function toggleLike(postId: string) {
   // action resolves, and that refresh was landing as an occasional scroll-to-top on the heart
   // click (root cause of the "heart scroll-jump" bug). Comment likes had the same call and the
   // same symptom; see toggleCommentLike below.
-  return { success: true, liked: !existing };
+  return { success: true, liked: true };
 }
 
 export async function toggleBookmark(postId: string) {
@@ -563,20 +590,18 @@ export async function toggleBookmark(postId: string) {
   const visible = await canViewPost(postId, session.user);
   if (!visible.ok) return { error: POST_NOT_VISIBLE };
 
-  const existing = await prisma.bookmark.findUnique({
-    where: { userId_postId: { userId: session.user.id, postId } },
-    select: { id: true },
+  // Delete-first; see the note in toggleLike above.
+  const removed = await prisma.bookmark.deleteMany({
+    where: { userId: session.user.id, postId },
   });
+  if (removed.count > 0) return { success: true, bookmarked: false };
 
-  if (existing) {
-    await prisma.bookmark.delete({ where: { id: existing.id } });
-  } else {
-    await prisma.bookmark.create({
-      data: { userId: session.user.id, postId },
-    });
+  try {
+    await prisma.bookmark.create({ data: { userId: session.user.id, postId } });
+  } catch (err) {
+    if (!isUniqueViolation(err)) throw err;
   }
-
-  return { success: true, bookmarked: !existing };
+  return { success: true, bookmarked: true };
 }
 
 // ─── Comments ────────────────────────────────────────
@@ -653,8 +678,11 @@ export async function createComment(formData: FormData) {
   // Notifications
   const post = await prisma.post.findUnique({
     where: { id: parsed.data.postId },
-    select: { authorId: true },
+    select: { authorId: true, kind: true },
   });
+  // A letter's comments live on the letter's own page, not in the feed, so the
+  // notification has to say so and go there (audit B-046).
+  const postLink = postNotificationLink({ id: parsed.data.postId, kind: post?.kind });
 
   // Notify post author about comment
   if (post && post.authorId !== session.user.id) {
@@ -662,8 +690,8 @@ export async function createComment(formData: FormData) {
       data: {
         userId: post.authorId,
         type: "comment",
-        message: `${session.user.name} commented on your post`,
-        link: `/feed#${parsed.data.postId}`,
+        message: `${session.user.name} commented on your ${postNoun(post.kind)}`,
+        link: postLink,
       },
     });
   }
@@ -684,7 +712,7 @@ export async function createComment(formData: FormData) {
           userId: parentComment.authorId,
           type: "reply",
           message: `${session.user.name} replied to your comment`,
-          link: `/feed#${parsed.data.postId}`,
+          link: postLink,
         },
       });
     }
@@ -1094,46 +1122,46 @@ export async function toggleCommentLike(commentId: string) {
   const visible = await canViewPostOfComment(commentId, session.user);
   if (!visible.ok) return { error: POST_NOT_VISIBLE };
 
-  const existing = await prisma.commentLike.findUnique({
-    where: {
-      userId_commentId: {
-        userId: session.user.id,
-        commentId,
-      },
-    },
+  // Delete-first; see the note in toggleLike above.
+  const removed = await prisma.commentLike.deleteMany({
+    where: { userId: session.user.id, commentId },
   });
+  if (removed.count > 0) return { success: true, liked: false };
 
-  if (existing) {
-    await prisma.commentLike.delete({ where: { id: existing.id } });
-  } else {
-    await prisma.commentLike.create({
-      data: {
-        userId: session.user.id,
-        commentId,
-      },
-    });
+  let created = true;
+  try {
+    await prisma.commentLike.create({ data: { userId: session.user.id, commentId } });
+  } catch (err) {
+    if (!isUniqueViolation(err)) throw err;
+    created = false;
+  }
 
+  if (created) {
     const comment = await prisma.comment.findUnique({
       where: { id: commentId },
-      select: { authorId: true, postId: true },
+      select: { authorId: true, postId: true, post: { select: { kind: true } } },
     });
 
     if (comment && comment.authorId !== session.user.id) {
-      await prisma.notification.create({
-        data: {
-          userId: comment.authorId,
-          type: "like",
-          message: `${session.user.name} liked your comment`,
-          link: `/feed#${comment.postId}`,
-        },
+      const link = postNotificationLink({ id: comment.postId, kind: comment.post?.kind });
+      const message = `${session.user.name} liked your comment`;
+      // Same one-per-unread rule as toggleLike (audit M33).
+      const alreadyTold = await prisma.notification.findFirst({
+        where: { userId: comment.authorId, type: "like", link, message, read: false },
+        select: { id: true },
       });
+      if (!alreadyTold) {
+        await prisma.notification.create({
+          data: { userId: comment.authorId, type: "like", message, link },
+        });
+      }
     }
   }
 
   // No revalidatePath (see the matching note in toggleLike above): CommentItem already
   // applies the like/count change optimistically, and this call was the other half of the
   // heart scroll-jump bug (the post-action refresh occasionally reset scroll to the top).
-  return { success: true, liked: !existing };
+  return { success: true, liked: true };
 }
 
 /** A comment row still shown to readers: neither admin-hidden nor self-deleted. */

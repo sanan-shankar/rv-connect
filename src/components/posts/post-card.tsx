@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight, ShieldAlert, MapPin } from "lucide-react";
 import { ChatCircle, Feather } from "@phosphor-icons/react";
@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { callAction } from "@/lib/call-action";
 import { IdentityRow } from "@/components/common/identity-row";
 import { ImageViewer } from "@/components/common/image-viewer";
 import { MetaDots } from "@/components/common/meta-dots";
@@ -144,23 +145,40 @@ export function PostCard({
     Math.round(content.trim().split(/\s+/).filter(Boolean).length / 200)
   );
 
+  /* One like in flight at a time.
+   *
+   * The server is idempotent now (feed/actions.ts), so a double-tap can no
+   * longer throw -- but two calls still race to decide the final state, and the
+   * heart would settle wherever the slower one landed. A ref rather than state:
+   * this guards the handler, and re-rendering the card to record that a request
+   * is in the air would be a render nobody asked for.
+   */
+  const likeBusy = useRef(false);
+  const bookmarkBusy = useRef(false);
+
   async function handleLike() {
+    if (likeBusy.current) return;
     const next = !liked;
     setLiked(next);
     setLikeCount(next ? likeCount + 1 : likeCount - 1);
     if (demo) return;
-    const result = await toggleLike(post.id);
-    if (result.error) {
-      setLiked(liked);
-      setLikeCount(likeCount);
-      toast.error(result.error);
+    likeBusy.current = true;
+    try {
+      const result = await callAction(() => toggleLike(post.id));
+      if (result.error) {
+        setLiked(liked);
+        setLikeCount(likeCount);
+        toast.error(result.error);
+      }
+    } finally {
+      likeBusy.current = false;
     }
   }
 
   async function handleDelete() {
     if (demo) return;
     if (!confirm("Delete this post? This cannot be undone.")) return;
-    const result = await deletePost(post.id);
+    const result = await callAction(() => deletePost(post.id));
     if (result.error) {
       toast.error(result.error);
       return;
@@ -171,28 +189,36 @@ export function PostCard({
   }
 
   async function handleModerationConfirm(note: string) {
-    const result = await adminRemovePost(post.id, note || undefined);
+    const result = await callAction(() => adminRemovePost(post.id, note || undefined));
     if (!result.error) setRemoved(true);
     return result;
   }
 
   async function handleBookmark() {
+    if (bookmarkBusy.current) return;
     const next = !bookmarked;
     setBookmarked(next);
     if (demo) {
       onBookmarkChange?.(next);
       return;
     }
-    const result = await toggleBookmark(post.id);
-    if (result.error) {
-      setBookmarked(!next);
-      toast.error(result.error);
-      return;
+    bookmarkBusy.current = true;
+    try {
+      const result = await callAction(() => toggleBookmark(post.id));
+      if (result.error) {
+        setBookmarked(!next);
+        toast.error(result.error);
+        return;
+      }
+      onBookmarkChange?.(next);
+    } finally {
+      bookmarkBusy.current = false;
     }
-    onBookmarkChange?.(next);
   }
 
-  const shareHref = `${post.groupId ? `/groups/${post.groupId}` : "/feed"}#${post.id}`;
+  // The Groups feature was removed and no route renders a group post, so the
+  // old `/groups/<id>#<id>` branch could only ever have produced a 404 link.
+  const shareHref = `/feed#${post.id}`;
 
   const wrapClass =
     variant === "sheet"
