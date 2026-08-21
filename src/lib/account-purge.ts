@@ -150,25 +150,6 @@ export type PurgeResult =
   | { ok: false; error: string };
 
 /**
- * Delete the account row (cascading the member's content) and then the R2
- * objects those rows pointed at. Order matters twice over:
- *
- *  - URLs are collected FIRST, because the cascade takes the pointing rows
- *    with it and afterwards nothing can enumerate the objects;
- *  - bytes are deleted only AFTER the row delete succeeds, because if the
- *    delete throws and rolls back, the member still exists and their images
- *    must keep rendering.
- *
- * The gap between those two is what `PendingImagePurge` closes: the collected
- * URLs are written as a worklist in the SAME transaction as the delete, so a
- * crash, a timeout or a bad minute at R2 leaves a durable record of exactly
- * which bytes are still out there instead of losing them forever. Whatever the
- * loop below cannot remove is left in the table for the nightly sweep.
- *
- * The count returned is objects actually gone, not attempts (B-013): the audit
- * entry the CALLER writes quotes it, and it used to be a lie.
- */
-/**
  * Take the member's comments out without breaking anybody else's thread
  * (audit M34).
  *
@@ -190,9 +171,14 @@ async function tombstoneComments(db: Db, userId: string): Promise<void> {
   const anchors = await db.comment.findMany({
     where: {
       authorId: userId,
-      // Replies by anyone else, deleted or not: a hidden or soft-deleted reply
-      // may still be restored, and it would have nothing to hang from.
-      replies: { some: { authorId: { not: userId } } },
+      /* Replies by anyone else, deleted or not: a hidden or soft-deleted reply
+         may still be restored, and it would have nothing to hang from.
+         `authorId: null` is in the OR because `<> 'x'` is NULL, not true, for a
+         NULL column -- so a bare `not` would quietly exclude an already-
+         authorless reply. Depth is one level, so a reply can never itself be an
+         anchor and this cannot arise today; it costs nothing to be right about
+         it before that changes. */
+      replies: { some: { OR: [{ authorId: null }, { authorId: { not: userId } }] } },
     },
     select: { id: true },
   });
@@ -204,8 +190,17 @@ async function tombstoneComments(db: Db, userId: string): Promise<void> {
       data: { deletedAt: new Date(), content: "" },
     });
   }
+  /* The `notIn` is added only when there is something to exclude, rather than
+     passed an empty array. How an ORM compiles `NOT IN ()` is exactly the kind
+     of thing to not depend on here: if it came out as "match nothing", this
+     delete would silently do nothing and the member's words would SURVIVE the
+     purge with their name detached, which is a worse failure than the bug this
+     function fixes and one nothing would report. */
   await db.comment.deleteMany({
-    where: { authorId: userId, id: { notIn: anchorIds } },
+    where: {
+      authorId: userId,
+      ...(anchorIds.length > 0 ? { id: { notIn: anchorIds } } : {}),
+    },
   });
 }
 
@@ -239,6 +234,25 @@ async function clearCoversPointingAtThisMember(db: Db, userId: string): Promise<
   return count;
 }
 
+/**
+ * Delete the account row (cascading the member's content) and then the R2
+ * objects those rows pointed at. Order matters twice over:
+ *
+ *  - URLs are collected FIRST, because the cascade takes the pointing rows
+ *    with it and afterwards nothing can enumerate the objects;
+ *  - bytes are deleted only AFTER the row delete succeeds, because if the
+ *    delete throws and rolls back, the member still exists and their images
+ *    must keep rendering.
+ *
+ * The gap between those two is what `PendingImagePurge` closes: the collected
+ * URLs are written as a worklist in the SAME transaction as the delete, so a
+ * crash, a timeout or a bad minute at R2 leaves a durable record of exactly
+ * which bytes are still out there instead of losing them forever. Whatever the
+ * loop below cannot remove is left in the table for the nightly sweep.
+ *
+ * The count returned is objects actually gone, not attempts (B-013): the audit
+ * entry the CALLER writes quotes it, and it used to be a lie.
+ */
 export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
   let urls: string[];
   let groupsRehomed: number;
