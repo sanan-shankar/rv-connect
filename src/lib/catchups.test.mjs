@@ -37,6 +37,9 @@ import {
   withDailyBucket,
   daysLeftUntil,
   extendPhasePatch,
+  REMINDER_QUESTIONS_EXTENDED,
+  shiftEditionPatch,
+  shiftPausedInstant,
 } from "./catchups.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
 
@@ -56,6 +59,13 @@ function edition(overrides = {}) {
     ...overrides,
   };
 }
+
+/**
+ * Counts for planNextAction. `prompts` defaults to 3 -- "somebody asked
+ * something", which is the ordinary Round. The no-questions cases below pass
+ * `prompts: 0` explicitly, so a test that cares says so.
+ */
+const counts = (entries = 0, prompts = 3) => ({ entries, prompts });
 
 /** Apply a plan's patch the way the DB would, so we can re-plan and assert idempotency. */
 const applyPatch = (ed, patch) => ({ ...ed, ...patch });
@@ -120,7 +130,7 @@ test("nextEditionStatus: one step at a time, null when settled", () => {
 
 test("planNextAction: collecting -> answering fires answers-open once, then is a no-op", () => {
   let ed = edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS) });
-  const a1 = planNextAction(ed, 0, NOW);
+  const a1 = planNextAction(ed, counts(0), NOW);
   assert.equal(a1.kind, "transition");
   assert.equal(a1.to, "answering");
   assert.equal(a1.notify, "catchup_answers_open");
@@ -128,12 +138,12 @@ test("planNextAction: collecting -> answering fires answers-open once, then is a
   assert.equal(a1.patch.answersCloseAt.getTime(), addDays(NOW, 7).getTime());
 
   ed = applyPatch(ed, a1.patch); // the DB flip
-  assert.equal(planNextAction(ed, 0, NOW).kind, "none"); // idempotent
+  assert.equal(planNextAction(ed, counts(0), NOW).kind, "none"); // idempotent
 });
 
 test("planNextAction: preparing -> published fires published + schedules the next Round", () => {
   const ed = edition({ status: "preparing", publishAt: at(-1000) });
-  const a = planNextAction(ed, 5, NOW);
+  const a = planNextAction(ed, counts(5), NOW);
   assert.equal(a.kind, "transition");
   assert.equal(a.to, "published");
   assert.equal(a.notify, "catchup_published");
@@ -143,7 +153,7 @@ test("planNextAction: preparing -> published fires published + schedules the nex
 
 test("planNextAction: answering -> preparing with answers present proceeds (no extend, no notify)", () => {
   const ed = edition({ status: "answering", answersCloseAt: at(-HOUR_MS) });
-  const a = planNextAction(ed, 2, NOW);
+  const a = planNextAction(ed, counts(2), NOW);
   assert.equal(a.kind, "transition");
   assert.equal(a.to, "preparing");
   assert.equal(a.notify, null);
@@ -155,7 +165,7 @@ test("planNextAction: answering -> preparing with answers present proceeds (no e
 test("planNextAction: one reminder per day, idempotent within the same day", () => {
   // 2.5 days before close: days-left rounds up to 3.
   let ed = edition({ status: "answering", answersCloseAt: at(2.5 * DAY_MS) });
-  const r1 = planNextAction(ed, 3, NOW);
+  const r1 = planNextAction(ed, counts(3), NOW);
   assert.equal(r1.kind, "reminder");
   assert.equal(r1.daysLeft, 3);
   assert.equal(dailyBucket(r1.patch.remindersSent), 3);
@@ -163,10 +173,10 @@ test("planNextAction: one reminder per day, idempotent within the same day", () 
   ed = applyPatch(ed, r1.patch);
   // A hundred more page views the same day must not produce a second one:
   // an hour on, days-left is still 3, so the bucket still matches.
-  assert.equal(planNextAction(ed, 3, NOW).kind, "none");
-  assert.equal(planNextAction(ed, 3, at(HOUR_MS)).kind, "none");
+  assert.equal(planNextAction(ed, counts(3), NOW).kind, "none");
+  assert.equal(planNextAction(ed, counts(3), at(HOUR_MS)).kind, "none");
   // A day on it is due again, at 2.
-  const next = planNextAction(ed, 3, at(DAY_MS));
+  const next = planNextAction(ed, counts(3), at(DAY_MS));
   assert.equal(next.kind, "reminder");
   assert.equal(next.daysLeft, 2);
 });
@@ -177,27 +187,27 @@ test("planNextAction: the countdown steps down a day at a time to the last day",
   // Walk the clock forward one day at a time across the whole window.
   for (let day = 0; day < 3; day += 1) {
     const now = at(day * DAY_MS);
-    const action = planNextAction(ed, 0, now);
+    const action = planNextAction(ed, counts(0), now);
     assert.equal(action.kind, "reminder", `expected a reminder on day ${day}`);
     seen.push(action.daysLeft);
     ed = applyPatch(ed, action.patch);
-    assert.equal(planNextAction(ed, 0, now).kind, "none"); // still one per day
+    assert.equal(planNextAction(ed, counts(0), now).kind, "none"); // still one per day
   }
   assert.deepEqual(seen, [3, 2, 1]);
 });
 
 test("answeringPatch: seeds the bucket so the first daily nudge is a day away", () => {
   const ed = edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS) });
-  const action = planNextAction(ed, 0, NOW);
+  const action = planNextAction(ed, counts(0), NOW);
   assert.equal(action.kind, "transition");
   assert.equal(action.to, "answering");
   // 7-day window seeded at 7, so "answers are open" is not immediately
   // followed by "7 days left to answer" on the same page view.
   assert.equal(dailyBucket(action.patch.remindersSent), 7);
   const opened = applyPatch(ed, action.patch);
-  assert.equal(planNextAction(opened, 0, NOW).kind, "none");
+  assert.equal(planNextAction(opened, counts(0), NOW).kind, "none");
   // A day later it does fire, counting 6.
-  const next = planNextAction(opened, 0, at(DAY_MS));
+  const next = planNextAction(opened, counts(0), at(DAY_MS));
   assert.equal(next.kind, "reminder");
   assert.equal(next.daysLeft, 6);
 });
@@ -241,7 +251,7 @@ test("extendPhasePatch: answering moves the answer deadline and re-seeds the buc
   assert.equal(dailyBucket(patch.remindersSent), 8);
   assert.equal(patch.remindersSent & REMINDER_EXTENDED, REMINDER_EXTENDED);
   // Buying the group a week does not immediately spend it on a reminder.
-  assert.equal(planNextAction(applyPatch(ed, patch), 0, NOW).kind, "none");
+  assert.equal(planNextAction(applyPatch(ed, patch), counts(0), NOW).kind, "none");
 });
 
 test("extendPhasePatch: nothing left to extend once the window has closed", () => {
@@ -252,21 +262,21 @@ test("extendPhasePatch: nothing left to extend once the window has closed", () =
 test("planNextAction: no reminder once the answer window has fully closed", () => {
   const ed = edition({ status: "answering", answersCloseAt: at(-1) });
   // With entries present it should transition, not nudge.
-  assert.equal(planNextAction(ed, 4, NOW).kind, "transition");
+  assert.equal(planNextAction(ed, counts(4), NOW).kind, "transition");
 });
 
 // ─── auto-extend-once ────────────────────────────────────────────────────────
 
 test("planNextAction: zero answers at close extends the window once (bit 4)", () => {
   let ed = edition({ status: "answering", answersCloseAt: at(-HOUR_MS), remindersSent: 0 });
-  const e1 = planNextAction(ed, 0, NOW);
+  const e1 = planNextAction(ed, counts(0), NOW);
   assert.equal(e1.kind, "extend");
   assert.equal(e1.notify, "catchup_answers_open");
   assert.ok(e1.patch.answersCloseAt.getTime() > NOW.getTime());
   assert.equal(e1.patch.remindersSent & REMINDER_EXTENDED, REMINDER_EXTENDED);
 
   ed = applyPatch(ed, e1.patch);
-  assert.equal(planNextAction(ed, 0, NOW).kind, "none"); // window now in the future; no second extend
+  assert.equal(planNextAction(ed, counts(0), NOW).kind, "none"); // window now in the future; no second extend
 });
 
 test("planNextAction: after an extension it proceeds to preparing even with zero answers", () => {
@@ -276,9 +286,110 @@ test("planNextAction: after an extension it proceeds to preparing even with zero
     answersCloseAt: at(-HOUR_MS),
     remindersSent: REMINDER_EXTENDED,
   });
-  const a = planNextAction(ed, 0, NOW);
+  const a = planNextAction(ed, counts(0), NOW);
   assert.equal(a.kind, "transition");
   assert.equal(a.to, "preparing");
+});
+
+// ─── a Round nobody asked anything in (audit B-062) ──────────────────────────
+
+test("planNextAction: a question window closing with no questions extends once, not opens", () => {
+  let ed = edition({ status: "collecting", questionsCloseAt: at(-HOUR_MS), remindersSent: 0 });
+
+  const a1 = planNextAction(ed, counts(0, 0), NOW);
+  assert.equal(a1.kind, "extend-questions");
+  assert.equal(a1.notify, "catchup_questions_open");
+  assert.equal(a1.patch.questionsCloseAt.getTime(), addDays(NOW, 3).getTime());
+  assert.equal(a1.patch.remindersSent & REMINDER_QUESTIONS_EXTENDED, REMINDER_QUESTIONS_EXTENDED);
+  // Crucially it did NOT open answering, which would have invited the whole
+  // group to answer nothing.
+  assert.notEqual(a1.kind, "transition");
+
+  ed = applyPatch(ed, a1.patch);
+  assert.equal(planNextAction(ed, counts(0, 0), NOW).kind, "none"); // window is future again
+});
+
+test("planNextAction: after its one extension a still-empty Round goes dormant, forever", () => {
+  const ed = edition({
+    status: "collecting",
+    questionsCloseAt: at(-HOUR_MS),
+    remindersSent: REMINDER_QUESTIONS_EXTENDED,
+  });
+  // Not a transition, not an extension, not a reminder: nothing at all.
+  assert.equal(planNextAction(ed, counts(0, 0), NOW).kind, "none");
+  // And still nothing a month later -- this is what stops the abandoned-
+  // Catch-up loop (open empty -> nudge daily -> publish empty -> repeat).
+  assert.equal(planNextAction(ed, counts(0, 0), at(30 * DAY_MS)).kind, "none");
+});
+
+test("planNextAction: one question is enough to open answering normally", () => {
+  const ed = edition({
+    status: "collecting",
+    questionsCloseAt: at(-HOUR_MS),
+    remindersSent: REMINDER_QUESTIONS_EXTENDED,
+  });
+  const a = planNextAction(ed, counts(0, 1), NOW);
+  assert.equal(a.kind, "transition");
+  assert.equal(a.to, "answering");
+  assert.equal(a.notify, "catchup_answers_open");
+});
+
+// ─── pause freezes the Round; resume hands the time back (audit B-060/B-061) ──
+
+test("shiftEditionPatch: moves every deadline still ahead of the freeze, by the pause", () => {
+  const pausedAt = at(-2 * DAY_MS); // paused two days ago
+  const ed = edition({
+    status: "answering",
+    questionsCloseAt: at(-5 * DAY_MS), // already past when the freeze began: history
+    answersCloseAt: at(-DAY_MS), // 1 day left at the freeze, now expired
+    publishAt: null,
+  });
+  const patch = shiftEditionPatch(ed, pausedAt, NOW);
+  assert.equal(patch.questionsCloseAt, undefined); // untouched
+  // The answer window had one day left when the freeze began; it has one day
+  // left again now, two days later.
+  assert.equal(patch.answersCloseAt.getTime(), at(DAY_MS).getTime());
+  assert.equal(patch.publishAt, undefined);
+});
+
+test("shiftEditionPatch: a Round paused mid-answering resumes with the same days left", () => {
+  const pausedAt = at(-30 * DAY_MS);
+  const ed = edition({ status: "answering", answersCloseAt: at(-27 * DAY_MS) });
+  const patch = shiftEditionPatch(ed, pausedAt, NOW);
+  // 3 days left at the freeze, 3 days left at resume, a month later.
+  assert.equal(daysLeftUntil(patch.answersCloseAt, NOW), 3);
+});
+
+test("shiftPausedInstant: the next Round's schedule gets the same credit", () => {
+  // A Catch-up paused a month before its next Round is due should not open one
+  // the instant it resumes: nextOpensAt moves by the pause, like everything else.
+  const nextOpensAt = at(-20 * DAY_MS); // was due 20 days ago, during the freeze
+  const shifted = shiftPausedInstant(nextOpensAt, at(-30 * DAY_MS), NOW);
+  assert.equal(shifted.getTime(), at(10 * DAY_MS).getTime()); // 10 days out again
+});
+
+test("shiftEditionPatch: no freeze stamp means no credit, and no crash", () => {
+  const ed = edition({ status: "answering", answersCloseAt: at(DAY_MS) });
+  assert.deepEqual(shiftEditionPatch(ed, null, NOW), {});
+  assert.deepEqual(shiftEditionPatch(ed, undefined, NOW), {});
+  // A clock that went backwards credits nothing rather than pulling deadlines in.
+  assert.deepEqual(shiftEditionPatch(ed, at(HOUR_MS), NOW), {});
+});
+
+test("shiftEditionPatch: the shifted window re-arms the daily reminder", () => {
+  // The bucket held "1 day left" from the last nudge before the pause. After
+  // the shift days-left is 3 again, so the bucket differs and the next daily
+  // reminder is due -- no extra bookkeeping needed on resume.
+  const paused = edition({
+    status: "answering",
+    answersCloseAt: at(-27 * DAY_MS),
+    remindersSent: withDailyBucket(0, 1),
+  });
+  const patch = shiftEditionPatch(paused, at(-30 * DAY_MS), NOW);
+  const resumed = applyPatch(paused, patch);
+  const action = planNextAction(resumed, counts(0), NOW);
+  assert.equal(action.kind, "reminder");
+  assert.equal(action.daysLeft, 3);
 });
 
 // ─── cadence math ────────────────────────────────────────────────────────────

@@ -48,6 +48,7 @@ import {
   addDays,
   advanceEdition,
   answeringPatch,
+  EDITION_TIMING_SELECT,
   extendPatch,
   extendPhasePatch,
   isEffectiveKeeper,
@@ -56,7 +57,10 @@ import {
   preparingPatch,
   publishPatch,
   QUESTION_WINDOW_DAYS,
+  REMINDER_QUESTIONS_EXTENDED,
   resolveSpotify,
+  shiftEditionPatch,
+  shiftPausedInstant,
   shouldExtendForTooFew,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
@@ -267,7 +271,15 @@ async function loadFreshEdition(editionId: string): Promise<EditionContext | nul
 async function loadCatchupContext(catchupId: string, userId: string) {
   const catchup = await prisma.catchup.findUnique({
     where: { id: catchupId },
-    select: { id: true, createdById: true, status: true, groupId: true },
+    select: {
+      id: true,
+      createdById: true,
+      status: true,
+      groupId: true,
+      cadence: true,
+      nextOpensAt: true,
+      pausedAt: true,
+    },
   });
   if (!catchup) return null;
   const membership = await loadMembership(catchup.groupId, userId);
@@ -588,7 +600,16 @@ export async function pauseCatchup(catchupId: string) {
     }
     if (ctx.catchup.status === "ended") return { error: "This Catch-up has already ended." };
 
-    await prisma.catchup.update({ where: { id: catchupId }, data: { status: "paused" } });
+    // `pausedAt` stamps the moment the freeze begins. From here the live Round
+    // stops advancing entirely (the gate is in advanceEdition), and resume
+    // shifts every unreached deadline forward by this long, so the group gets
+    // back the window it had rather than finding it expired (audit B-061).
+    // Only stamped on the active -> paused edge: pausing an already-paused
+    // Catch-up must not extend the credit.
+    await prisma.catchup.updateMany({
+      where: { id: catchupId, status: "active" },
+      data: { status: "paused", pausedAt: new Date() },
+    });
     revalidatePath(`/catchups/${catchupId}`);
     return { success: true };
   });
@@ -615,7 +636,59 @@ export async function resumeCatchup(catchupId: string) {
     }
     if (ctx.catchup.status !== "paused") return { error: "This Catch-up is not paused." };
 
-    await prisma.catchup.update({ where: { id: catchupId }, data: { status: "active" } });
+    const now = new Date();
+    const pausedAt = ctx.catchup.pausedAt;
+
+    await prisma.$transaction(async (tx) => {
+      const resumed = await tx.catchup.updateMany({
+        where: { id: catchupId, status: "paused" },
+        data: { status: "active", pausedAt: null },
+      });
+      if (resumed.count === 0) return; // someone else resumed it first
+
+      const latest = await tx.catchupEdition.findFirst({
+        where: { catchupId },
+        orderBy: { number: "desc" },
+        select: { ...EDITION_TIMING_SELECT, id: true },
+      });
+      if (!latest) return;
+
+      if (latest.status === "published") {
+        // Nothing live to un-freeze, so the thing to restore is the rhythm.
+        //
+        // Re-arm it when it is missing. A Round that published while the
+        // Catch-up was paused never wrote nextOpensAt, and nothing else in the
+        // app ever sets it, so the Catch-up sat "active" forever with no future
+        // Round and no control anywhere to start one (audit B-060). Freezing on
+        // pause should make that unreachable now; this is the belt, and it also
+        // repairs any row already stuck that way. Conditional on the column
+        // still being null so it cannot stamp over a live schedule.
+        const rearmed = await tx.catchup.updateMany({
+          where: { id: catchupId, nextOpensAt: null },
+          data: { nextOpensAt: addCadenceGap(now, ctx.catchup.cadence as Cadence) },
+        });
+        if (rearmed.count > 0) return;
+
+        // Otherwise the schedule survived, and it gets the same credit a live
+        // Round's deadlines get: a Catch-up paused a month before its next
+        // Round should not open one the instant it resumes.
+        const shifted = shiftPausedInstant(ctx.catchup.nextOpensAt, pausedAt, now);
+        if (shifted) {
+          await tx.catchup.updateMany({
+            where: { id: catchupId, nextOpensAt: ctx.catchup.nextOpensAt },
+            data: { nextOpensAt: shifted },
+          });
+        }
+        return;
+      }
+
+      // A live Round: give back exactly the time the freeze took.
+      const patch = shiftEditionPatch(latest, pausedAt, now);
+      if (Object.keys(patch).length > 0) {
+        await tx.catchupEdition.update({ where: { id: latest.id }, data: patch });
+      }
+    });
+
     revalidatePath(`/catchups/${catchupId}`);
     return { success: true };
   });
@@ -644,7 +717,10 @@ export async function endCatchup(catchupId: string) {
 
     await prisma.catchup.update({
       where: { id: catchupId },
-      data: { status: "ended", nextOpensAt: null },
+      // pausedAt goes with it: ending from a paused state leaves no freeze to
+      // credit, and a stale stamp would shift deadlines if the row were ever
+      // reopened.
+      data: { status: "ended", nextOpensAt: null, pausedAt: null },
     });
     revalidatePath(`/catchups/${catchupId}`);
     return { success: true };
@@ -724,6 +800,30 @@ export async function submitPrompt(input: {
       },
       select: { id: true },
     });
+
+    // Reviving a dormant Round. A Round whose question window closed with
+    // nothing in it does not open for answers -- it goes quiet instead of
+    // nudging the group daily to answer nothing (audit B-062). This is the way
+    // back out: the first question restarts the window, so the rest of the
+    // group gets the usual few days to add theirs rather than being dropped
+    // straight into answering a Round with exactly one question in it.
+    //
+    // The three conditions together are the dormant state and nothing else:
+    // still collecting, the window already closed, the one auto-extension
+    // already spent, and this was the first question. The conditional
+    // updateMany means a second submitter in the same second cannot push the
+    // deadline out twice.
+    const wasDormant =
+      acceptedCount === 0 &&
+      edition.questionsCloseAt != null &&
+      edition.questionsCloseAt.getTime() <= Date.now() &&
+      (edition.remindersSent & REMINDER_QUESTIONS_EXTENDED) !== 0;
+    if (wasDormant) {
+      await prisma.catchupEdition.updateMany({
+        where: { id: editionId, status: "collecting", remindersSent: edition.remindersSent },
+        data: { questionsCloseAt: addDays(new Date(), QUESTION_WINDOW_DAYS) },
+      });
+    }
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return { success: true, promptId: prompt.id, accepted: true };
@@ -1118,6 +1218,16 @@ export async function submitEntry(input: {
     if (!membership) return { error: "You are not a member of this group." };
     if (edition.status !== "answering") {
       return { error: "Answering is not open for this Round right now." };
+    }
+    // A paused Catch-up is frozen, and its home page says so with no way in.
+    // This closes the direct-action path to the same door (audit B-061).
+    if (edition.catchup.status !== "active") {
+      return {
+        error:
+          edition.catchup.status === "paused"
+            ? "This Catch-up is paused. Answering opens again when the Keeper resumes it."
+            : "This Catch-up has ended.",
+      };
     }
 
     const hasBody = parsed.data.body !== undefined;

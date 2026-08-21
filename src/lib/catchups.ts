@@ -90,6 +90,12 @@ export const EXTEND_DAYS = 3;
 export const REMINDER_TWO_DAYS = 1; // legacy: superseded by the daily bucket below
 export const REMINDER_LAST_DAY = 2; // legacy: superseded by the daily bucket below
 export const REMINDER_EXTENDED = 4;
+/**
+ * Questions auto-extend, applied at most once. Bit 3, still inside the low byte
+ * the daily bucket leaves alone (see DAILY_BUCKET_SHIFT below), so it costs no
+ * migration -- the same trick REMINDER_EXTENDED already uses on the same column.
+ */
+export const REMINDER_QUESTIONS_EXTENDED = 8;
 
 /* ------------------------------------------------------------------ *
  *  The daily reminder bucket.
@@ -383,6 +389,23 @@ export function shouldExtendForTooFew(ed: EditionTiming, entryCount: number): bo
   return entryCount === 0 && (ed.remindersSent & REMINDER_EXTENDED) === 0;
 }
 
+/**
+ * No-questions: extend the question window once when it closes with nothing in
+ * it. The mirror of `shouldExtendForTooFew`, one phase earlier.
+ *
+ * After that extension a Round with still no questions goes DORMANT rather than
+ * opening answering (see planNextAction). Opening it would invite the whole
+ * group to answer nothing, then nudge every one of them daily for a week about
+ * the questions that do not exist, then publish an empty keepsake and start the
+ * cycle again next cadence -- forever, until a human ends the Catch-up (audit
+ * B-062). Doing nothing is the honest state for a Round nobody asked anything
+ * in, and it is self-healing: the first question submitted revives it
+ * (`reviveDormantRound` in the actions).
+ */
+export function shouldExtendForNoQuestions(ed: EditionTiming, promptCount: number): boolean {
+  return promptCount === 0 && (ed.remindersSent & REMINDER_QUESTIONS_EXTENDED) === 0;
+}
+
 // ─── Transition patches (pure; shared by advanceEdition AND the WP2 actions) ──
 
 export type EditionPatch = {
@@ -448,6 +471,67 @@ export function publishPatch(now: Date): EditionPatch {
   return { status: "published", publishedAt: now };
 }
 
+/**
+ * One instant, moved forward by however long the freeze lasted: resume hands
+ * the group back exactly the time the pause took.
+ *
+ * Every deadline still AHEAD of the moment the freeze began moves forward by
+ * the paused duration; anything already behind it is history and stays put. So
+ * a Catch-up paused with two days left to answer resumes with two days left,
+ * whether the pause lasted an hour or a season. The daily reminder bucket needs
+ * no touching: shifting the close date pushes days-left back up, which the
+ * bucket already reads as a new day and lets the next nudge fire.
+ *
+ * `pausedAt` is null on rows paused before the freeze semantics existed. Those
+ * ran their clocks out in real time, so there is no duration to credit and this
+ * returns an empty patch.
+ */
+export function shiftPausedInstant(
+  at: Date | string | null | undefined,
+  pausedAt: Date | string | null | undefined,
+  resumedAt: Date
+): Date | null {
+  const from = ms(pausedAt);
+  const m = ms(at);
+  if (from == null || m == null) return null;
+  const by = resumedAt.getTime() - from;
+  // Nothing to credit (no freeze stamp, a clock that went backwards), or a
+  // moment already behind the freeze and therefore history: leave it alone.
+  if (by <= 0 || m <= from) return null;
+  return new Date(m + by);
+}
+
+/** `shiftPausedInstant` over a Round's three deadlines, as a patch. */
+export function shiftEditionPatch(
+  // Only the three deadlines, not a whole EditionTiming: the status and the
+  // reminder bitmask play no part, and asking for less lets a caller hand over
+  // a raw Prisma row without widening its status back to EditionStatus.
+  ed: {
+    questionsCloseAt: Date | string | null;
+    answersCloseAt: Date | string | null;
+    publishAt: Date | string | null;
+  },
+  pausedAt: Date | string | null | undefined,
+  resumedAt: Date
+): EditionPatch {
+  const patch: EditionPatch = {};
+  const q = shiftPausedInstant(ed.questionsCloseAt, pausedAt, resumedAt);
+  if (q) patch.questionsCloseAt = q;
+  const a = shiftPausedInstant(ed.answersCloseAt, pausedAt, resumedAt);
+  if (a) patch.answersCloseAt = a;
+  const p = shiftPausedInstant(ed.publishAt, pausedAt, resumedAt);
+  if (p) patch.publishAt = p;
+  return patch;
+}
+
+/** No-questions extension: push the question window 3 days and set bit 3. */
+export function questionsExtendPatch(ed: EditionTiming, now: Date): EditionPatch {
+  return {
+    questionsCloseAt: addDays(now, EXTEND_DAYS),
+    remindersSent: ed.remindersSent | REMINDER_QUESTIONS_EXTENDED,
+  };
+}
+
 /** Too-few extension: push the answer window 3 days and set the extended bit. */
 export function extendPatch(ed: EditionTiming, now: Date): EditionPatch {
   const answersCloseAt = addDays(now, EXTEND_DAYS);
@@ -476,21 +560,43 @@ export type EditionAction =
       setsNextOpensAt: boolean;
     }
   | { kind: "extend"; patch: EditionPatch; notify: "catchup_answers_open" }
+  | { kind: "extend-questions"; patch: EditionPatch; notify: "catchup_questions_open" }
   | { kind: "reminder"; daysLeft: number; patch: EditionPatch };
 
 /**
+ * What the Round has in it right now. Two counts, because two decisions need
+ * one each: `prompts` gates collecting -> answering (a Round with no questions
+ * must not open for answers), `entries` gates answering -> preparing (the
+ * too-few auto-extend). Named rather than positional so a call site cannot
+ * quietly swap them.
+ */
+export type EditionCounts = { entries: number; prompts: number };
+
+/**
  * What advanceEdition should do next, as a single step. Pure: given the same
- * edition + entryCount + now it always returns the same action, and once a step
+ * edition + counts + now it always returns the same action, and once a step
  * has been applied (status advanced, or the guarding bit set) it returns { none }.
  * That total, deterministic shape is exactly what makes idempotency unit-testable
  * without a database.
  */
-export function planNextAction(ed: EditionTiming, entryCount: number, now: Date): EditionAction {
+export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Date): EditionAction {
   const next = nextEditionStatus(ed, now);
 
   if (next) {
+    if (ed.status === "collecting" && next === "answering" && counts.prompts === 0) {
+      // Nothing was asked. Give the group one more window to ask something,
+      // then stop: a Round with no questions has nothing to open for.
+      if (shouldExtendForNoQuestions(ed, counts.prompts)) {
+        return {
+          kind: "extend-questions",
+          patch: questionsExtendPatch(ed, now),
+          notify: "catchup_questions_open",
+        };
+      }
+      return { kind: "none" }; // dormant; revived by the first question
+    }
     if (ed.status === "answering" && next === "preparing") {
-      if (shouldExtendForTooFew(ed, entryCount)) {
+      if (shouldExtendForTooFew(ed, counts.entries)) {
         return { kind: "extend", patch: extendPatch(ed, now), notify: "catchup_answers_open" };
       }
       return {
@@ -714,7 +820,9 @@ export type AdvanceEditionInput = EditionTiming & {
   } | null;
 };
 
-const EDITION_TIMING_SELECT = {
+/** The columns the pure timing helpers read. Exported so an action reading an
+ *  edition for `shiftEditionPatch` selects exactly the same set. */
+export const EDITION_TIMING_SELECT = {
   status: true,
   questionsCloseAt: true,
   answersCloseAt: true,
@@ -823,6 +931,16 @@ async function applyEditionAction(
       return true;
     }
 
+    if (action.kind === "extend-questions") {
+      const cas = await tx.catchupEdition.updateMany({
+        where: { id: editionId, status: "collecting", remindersSent: before.remindersSent },
+        data: action.patch,
+      });
+      if (cas.count === 0) return false;
+      await notify.notifyQuestionsOpen(tx, { ...meta, editionId });
+      return true;
+    }
+
     // reminder
     const cas = await tx.catchupEdition.updateMany({
       where: { id: editionId, remindersSent: before.remindersSent },
@@ -850,11 +968,21 @@ export async function advanceEdition(
     if (!meta) return;
     const prisma = await getPrisma();
 
+    // A paused or ended Catch-up's clock stops with it. This is the ONE gate:
+    // every caller (the app-shell sweep, the cron tick, each page's own
+    // freshen) comes through here, so freezing here freezes everywhere. Without
+    // it the Round kept advancing, kept sending a daily reminder to answer, and
+    // published itself, all while the home page showed "This Catch-up is
+    // paused" and no way to answer (audit B-061).
+    if (meta.catchupStatus !== "active") return;
+
     let ed: EditionTiming = toTiming(edition);
     let entryCount: number | null = null;
+    let promptCount: number | null = null;
 
     for (let i = 0; i < 12; i += 1) {
-      // The entry count only matters for the answering -> preparing decision.
+      // Each count is loaded only for the decision that needs it, and only when
+      // that decision is actually on the table.
       if (
         entryCount === null &&
         ed.status === "answering" &&
@@ -862,8 +990,24 @@ export async function advanceEdition(
       ) {
         entryCount = await prisma.catchupEntry.count({ where: { editionId: edition.id } });
       }
+      if (
+        promptCount === null &&
+        ed.status === "collecting" &&
+        nextEditionStatus(ed, now) === "answering"
+      ) {
+        // `accepted` is what actually renders in a Round, and it is what
+        // submitPrompt counts for the per-Round ceiling. Count the same rows,
+        // so "this Round has no questions" means the same thing everywhere.
+        promptCount = await prisma.catchupPrompt.count({
+          where: { editionId: edition.id, accepted: true },
+        });
+      }
 
-      const action = planNextAction(ed, entryCount ?? 0, now);
+      const action = planNextAction(
+        ed,
+        { entries: entryCount ?? 0, prompts: promptCount ?? 0 },
+        now
+      );
       if (action.kind === "none") break;
 
       const applied = await applyEditionAction(edition.id, ed, action, meta, now);
@@ -876,11 +1020,13 @@ export async function advanceEdition(
         if (!fresh) break;
         ed = toTiming(fresh);
         entryCount = null;
+        promptCount = null;
         continue;
       }
 
       ed = { ...ed, ...action.patch };
       if (ed.status !== "answering") entryCount = null;
+      if (ed.status !== "collecting") promptCount = null;
     }
   } catch (err) {
     if (isMissingCatchupTable(err)) return;
@@ -956,7 +1102,10 @@ export async function advanceDueCatchups(userId?: string): Promise<void> {
     const editions = await prisma.catchupEdition.findMany({
       where: {
         status: { in: ["collecting", "answering", "preparing"] },
-        catchup: scope,
+        // Paused/ended Catch-ups are frozen. advanceEdition re-checks this and
+        // is the actual guarantee (it is reachable from every page's own
+        // freshen too); this clause just avoids loading rows we would skip.
+        catchup: { status: "active", ...scope },
       },
       include: {
         catchup: { select: { id: true, cadence: true, status: true, group: { select: { id: true, name: true } } } },

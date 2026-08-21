@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+/* ------------------------------------------------------------------ *
+ *  Regression pins for the Catch-up lifecycle findings (bug audit
+ *  B-060/B-061/B-062).
+ *
+ *  The behaviour of the pure engine is tested properly in
+ *  catchups.test.mjs -- these are the pins for the parts that only exist
+ *  as a call into Prisma, in the security-regressions.test.mjs style:
+ *  read the real source and fail the moment the guard goes missing.
+ *  Written this way rather than as an integration test because the only
+ *  database here is the live production one.
+ * ------------------------------------------------------------------ */
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
+const decomment = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+
+test("B-061: the clock stops for a Catch-up that is not active", () => {
+  const src = decomment(read("src/lib/catchups.ts"));
+  // The one gate, inside advanceEdition, which every caller comes through.
+  assert.match(
+    src,
+    /meta\.catchupStatus !== "active"\)\s*return;/,
+    "advanceEdition no longer refuses to advance a paused or ended Catch-up"
+  );
+  // And the sweep does not even load them.
+  assert.match(
+    src,
+    /catchup: \{ status: "active", \.\.\.scope \}/,
+    "advanceDueCatchups no longer scopes its edition query to active Catch-ups"
+  );
+});
+
+test("B-061: pausing stamps the freeze, ending and resuming clear it", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  assert.match(src, /status: "paused", pausedAt: new Date\(\)/, "pause does not stamp pausedAt");
+  assert.match(src, /status: "active", pausedAt: null/, "resume does not clear pausedAt");
+  assert.match(src, /status: "ended", nextOpensAt: null, pausedAt: null/, "end does not clear pausedAt");
+  // Pause is an edge, not a re-stamp: an already-paused row must not have its
+  // credit extended by a second pause.
+  assert.match(
+    src,
+    /where: \{ id: catchupId, status: "active" \}/,
+    "pause is no longer conditional on the Catch-up being active"
+  );
+});
+
+test("B-061: answering is closed to a frozen Catch-up on both the action and the page", () => {
+  const action = decomment(read("src/app/(main)/catchups/actions.ts"));
+  assert.match(
+    action,
+    /edition\.catchup\.status !== "active"/,
+    "submitEntry no longer refuses an answer to a frozen Catch-up"
+  );
+  const page = decomment(read("src/app/(main)/catchups/[catchupId]/answer/page.tsx"));
+  assert.match(
+    page,
+    /catchup\.status !== "active"/,
+    "the answer page no longer refuses a frozen Catch-up"
+  );
+});
+
+test("B-060: resume re-arms the rhythm rather than leaving a dead Catch-up", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  // resumeCatchup must reach for addCadenceGap: without it, a Catch-up whose
+  // Round published while paused sits active forever with no future Round and
+  // no control anywhere in the app to start one.
+  const resume = src.slice(src.indexOf("export async function resumeCatchup"));
+  const body = resume.slice(0, resume.indexOf("export async function", 1));
+  assert.match(body, /addCadenceGap/, "resumeCatchup no longer backfills nextOpensAt");
+  assert.match(body, /shiftEditionPatch/, "resumeCatchup no longer gives back the paused time");
+});
+
+test("B-062: the header does not count down a Catch-up whose clock is stopped", () => {
+  const src = decomment(read("src/app/(main)/catchups/[catchupId]/page.tsx"));
+  assert.match(
+    src,
+    /catchup\.status === "active"\s*\?\s*editionCountdownLabel/,
+    "the page header prints a live countdown over the paused banner again"
+  );
+});

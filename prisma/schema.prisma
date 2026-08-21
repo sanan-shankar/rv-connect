@@ -762,6 +762,11 @@ model Catchup {
   // createCatchup* always writes one.
   inviteToken String?   @unique
   nextOpensAt DateTime?                      // when the next Round auto-opens (recurring cadences)
+  // When the Keeper paused. Pausing FREEZES the live Round (the clock, the
+  // reminders, the publish), so resume shifts every unreached deadline forward
+  // by exactly this long: the group gets back the window it had, rather than
+  // finding it silently expired. NULL means "not paused".
+  pausedAt    DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

@@ -354,14 +354,22 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       answersCloseAt: freshLatest.answersCloseAt?.toISOString() ?? null,
       publishAt: freshLatest.publishAt?.toISOString() ?? null,
       publishedAt: freshLatest.publishedAt?.toISOString() ?? null,
-      countdownLabel: editionCountdownLabel(
-        {
-          status,
-          questionsCloseAt: freshLatest.questionsCloseAt,
-          answersCloseAt: freshLatest.answersCloseAt,
-        },
-        new Date(now)
-      ),
+      // No countdown on a frozen Catch-up. The clock genuinely is not running
+      // (advanceEdition returns early while paused or ended), and the shell
+      // below already replaces the whole console with "This Catch-up is
+      // paused" -- a header reading "3 days left" over that banner was the
+      // page contradicting itself (audit B-061).
+      countdownLabel:
+        catchup.status === "active"
+          ? editionCountdownLabel(
+              {
+                status,
+                questionsCloseAt: freshLatest.questionsCloseAt,
+                answersCloseAt: freshLatest.answersCloseAt,
+              },
+              new Date(now)
+            )
+          : null,
       prompts,
       answeredAuthorIds,
     };
