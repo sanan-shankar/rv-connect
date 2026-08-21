@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -111,10 +112,11 @@ export default async function ProfilePage({
   // (not a 403) so the page never even hints the account exists.
   if (!user || user.isBlocked || user.deletionRequestedAt) notFound();
 
-  /* Not awaited: a profile must render at the same speed whether or not a
-     counter increments. recordView drops self-views, so nobody tops their own
-     most-viewed list. */
-  void recordView(session.user.id, "profile", user.id);
+  /* after(), not the old `void`: see src/app/(main)/collection/[id]/page.tsx
+     for why (bug audit Lows 25/35/44/72/77/82/87) -- a bare fire-and-forget
+     write races the response Vercel is about to freeze the instance behind.
+     recordView drops self-views, so nobody tops their own most-viewed list. */
+  after(() => recordView(session.user.id, "profile", user.id));
 
   const isOwnProfile = session.user.id === user.id;
   const isAdmin = session.user.role === "admin";

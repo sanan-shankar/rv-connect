@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { ArrowLeft, Feather } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -80,10 +81,6 @@ export default async function LetterPage({
 
   if (!letter || letter.kind !== "letter" || letter.isHidden) notFound();
 
-  /* The read side of "read click-through rates": a letter's hearts say who
-     reacted, this says who actually opened it. */
-  void recordView(session.user.id, "letter", letter.id);
-
   // A draft is only ever visible to its own author: a preview of a letter
   // still being written, not a published page. Everyone else gets the same
   // 404 as a letter that doesn't exist, so a draft's existence is never
@@ -104,6 +101,17 @@ export default async function LetterPage({
   // City-scoped letters: same visibility rule as the feed query, checked here
   // too since this page reads the row directly instead of through loadPosts.
   if (!(await canViewCityScope(letter.cityScope, session.user))) notFound();
+
+  /* The read side of "read click-through rates": a letter's hearts say who
+     reacted, this says who actually opened it. Fires down here, after every
+     visibility check above, on purpose (bug audit Low 87): this call used to
+     sit right after the fetch, above the draft/group/city-scope gates, so a
+     member who was about to be turned away by one of those still had a view
+     recorded against a letter they were refused. after(), not the old
+     `void`, for the same reason as every other site in this cluster (bug
+     audit Lows 25/35/44/72/77/82) -- a bare fire-and-forget write races the
+     response and Vercel can drop it the instant that response streams. */
+  after(() => recordView(session.user.id, "letter", letter.id));
 
   const images = parseJsonArray(letter.images);
   const words = letter.content.trim().split(/\s+/).filter(Boolean).length;
