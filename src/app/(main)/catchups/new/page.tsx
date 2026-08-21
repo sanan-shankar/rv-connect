@@ -25,28 +25,21 @@ export const metadata: Metadata = {
  * suggested name and the "everyone from my batch" shortcut, so the overwhelmingly
  * common case (a batch Catch-up) takes no typing at all.
  *
- * `?group=<id>` is still a live link: the index's "Start one" row on a group
- * that has no Catch-up yet points here with the group preselected. This page
- * used to ignore the param entirely, landing on a blank form (a real bug, not
- * a design choice) -- it now resolves that group's name and members
- * server-side (only if the viewer is actually a member of it) and preloads
- * them into the form, so the picker opens with those people already chipped
- * in instead of asking the viewer to redo work the group already recorded.
+ * `?group=<id>` used to preload a group's name and roster into this form. It
+ * is gone (2026-08-21, owner's call). The index's "Start one" row was the only
+ * thing that ever produced that link, and that row is gone too: it offered to
+ * start a Catch-up FOR a group while this page mints its own Group row
+ * underneath, so pressing it left the member with a duplicate row offering to
+ * do it again. With the row dropped, the param had nothing pointing at it, and
+ * two membership queries per page load were being spent resolving a link
+ * nobody could produce.
  */
-export default async function NewCatchupPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ group?: string }>;
-}) {
+export default async function NewCatchupPage() {
   const session = await auth();
   if (!session?.user) return null;
 
-  const { group: groupId } = await searchParams;
-
   let batchYear: number | null = null;
   let tableMissing = false;
-  let groupName: string | null = null;
-  let groupMembers: PickedPerson[] = [];
   // The viewer's own chip in the With list. Falls back to the session's
   // identity so the chip is never missing even if this read fails.
   let me: PickedPerson = {
@@ -72,33 +65,6 @@ export default async function NewCatchupPage({
       };
     }
 
-    if (groupId) {
-      const membership = await prisma.groupMember.findUnique({
-        where: { groupId_userId: { groupId, userId: session.user.id } },
-        select: { id: true },
-      });
-      if (membership) {
-        const group = await prisma.group.findUnique({
-          where: { id: groupId },
-          select: {
-            name: true,
-            members: {
-              select: {
-                user: {
-                  select: { id: true, name: true, photoUrl: true, birdOverride: true, batchYear: true },
-                },
-              },
-            },
-          },
-        });
-        if (group) {
-          groupName = group.name;
-          groupMembers = group.members
-            .map((m) => m.user)
-            .filter((u) => u.id !== session.user.id);
-        }
-      }
-    }
   } catch (err) {
     if (!isMissingCatchupTable(err)) throw err;
     tableMissing = true;
@@ -127,8 +93,8 @@ export default async function NewCatchupPage({
       <CreateCatchupForm
         cadenceLabels={CADENCE_LABELS}
         myBatchYear={batchYear}
-        suggestedName={groupName ?? (batchYear ? `Batch of ${batchYear}` : "")}
-        initialPeople={groupMembers}
+        suggestedName={batchYear ? `Batch of ${batchYear}` : ""}
+        initialPeople={[]}
         me={me}
       />
     </div>
