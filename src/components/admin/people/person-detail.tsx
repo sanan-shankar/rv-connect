@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LocationPicker, type PlaceSelection } from "@/components/common/location-picker";
 import { Chip, type ChipTone } from "@/components/admin/admin-chip";
-import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { AdminSection } from "@/components/admin/admin-chrome";
 import { batchLine, formatDisplayDate, metaLine } from "@/lib/utils";
 import {

@@ -26,6 +26,10 @@ import { callAction } from "@/lib/call-action";
  *  panel and the one footer shape). `confirmWord` adds a typed confirmation
  *  where a mis-click cannot be undone; where it is merely inconvenient, a
  *  plain button is enough and asking somebody to type is theatre.
+ *
+ *  It lived under `admin/` until 2026-08-21, when the Catch-up bin needed the
+ *  same "are you sure" and there was no reason for a member surface to reach
+ *  into the admin folder for a dialog with nothing admin about it.
  * ------------------------------------------------------------------ */
 
 export function ConfirmDialog({

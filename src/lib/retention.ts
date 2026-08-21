@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { writeAudit } from "./audit";
 import { purgeUserAccount, drainPendingImagePurges, DELETION_GRACE_DAYS } from "./account-purge";
+import { RECENTLY_DELETED_DAYS } from "./catchup-shelf";
 
 /**
  * The retention sweep (audit M34, GDPR Art. 5(1)(e)): personal data stops
@@ -20,6 +21,8 @@ const DAY_MS = 86_400_000;
 
 /** Accounts purged per nightly pass. See the comment at its use site. */
 const PURGE_BATCH = 10;
+/** Binned Catch-up copies emptied per nightly pass. See the comment at its use site. */
+const CATCHUP_BIN_BATCH = 200;
 const cutoff = (days: number) => new Date(Date.now() - days * DAY_MS);
 
 /** Owner's schedule. Days, not "2y", so the cutoff arithmetic stays exact. */
@@ -52,6 +55,11 @@ const KEEP_DAYS = {
    *  loadSearches), and everything else is 30. So this bounds the tables
    *  without shortening a single answer the owner can currently get. */
   presence: 180,
+  /** A binned Catch-up copy: 30 days in "Recently deleted", then the
+   *  membership row goes for real. Imported rather than written out, because
+   *  the countdown a member reads on the row ("4 days left") and the cutoff
+   *  this sweep deletes by have to be the same number or the row lies. */
+  catchupBin: RECENTLY_DELETED_DAYS,
 } as const;
 
 export type SweepResult = {
@@ -64,6 +72,8 @@ export type SweepResult = {
   outboundEmails: number;
   visits: number;
   searches: number;
+  /** Catch-up copies whose 30 days in "Recently deleted" ran out tonight. */
+  catchupCopiesEmptied: number;
   accountsPurged: number;
   /** Stored images an earlier purge could not remove, cleared on this pass. */
   imagesRetried: number;
@@ -139,6 +149,66 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     })).count,
   );
 
+  /* "Recently deleted" Catch-ups, emptied (bug audit B-063). A member who
+     bins their own copy stops hearing from it at once and keeps a month to
+     change their mind; tonight is when the month runs out for the rows below,
+     and the membership row goes with the stamp. Only the acting member's own
+     row: this is a personal delete by the owner's decision, so nothing here
+     touches another member's copy or the Catch-up itself, and their published
+     answers stay in the Rounds they were published in.
+
+     Batched like the account purge above, for the same reason -- everything in
+     this sweep shares one serverless invocation's duration budget. 200 rather
+     than 10, because each of these is two small deletes rather than a whole
+     account's transaction plus its R2 objects, and a night that binned more
+     than 200 copies across the whole community is not a night this should be
+     the slow step of. The remainder rolls to tomorrow by design. */
+  let catchupCopiesEmptied = 0;
+  await step("catchupCopies", async () => {
+    /* Serializable, and the read is INSIDE it.
+     *
+     * "Restorable for 30 days" is a promise printed on the row, and the naive
+     * shape breaks it: read the due list, then delete, and a member pressing
+     * "Put back" in the gap has their restore silently undone -- membership
+     * gone, no error anywhere, the row that said 4 days left simply not there
+     * in the morning (write-path review, 2026-08-21). Under Serializable that
+     * restore and this read conflict, so one of them aborts. If it is this
+     * one, `step` records the error and tomorrow's pass does the work: the
+     * sweep is idempotent by design, so losing a night costs nothing, and a
+     * member's undo is the thing worth protecting. Same instrument the
+     * last-admin guard uses (audit M26).
+     */
+    const emptied = await prisma.$transaction(
+      async (tx) => {
+        const due = await tx.catchupPref.findMany({
+          where: { deletedAt: { lt: cutoff(KEEP_DAYS.catchupBin) } },
+          select: { id: true, userId: true, catchup: { select: { groupId: true } } },
+          orderBy: { deletedAt: "asc" },
+          take: CATCHUP_BIN_BATCH,
+        });
+        if (due.length === 0) return 0;
+        // The membership first, then the stamp. In that order a crash in
+        // between leaves a member out of the Catch-up with the bin row still
+        // showing -- which the next sweep tidies, and which reads as what they
+        // asked for. The other order would leave them back on the list with no
+        // way to tell.
+        await tx.groupMember.deleteMany({
+          where: { OR: due.map((r) => ({ groupId: r.catchup.groupId, userId: r.userId })) },
+        });
+        await tx.catchupPref.deleteMany({ where: { id: { in: due.map((r) => r.id) } } });
+        return due.length;
+      },
+      { isolationLevel: "Serializable" }
+    );
+    catchupCopiesEmptied = emptied;
+    if (emptied >= CATCHUP_BIN_BATCH) {
+      console.info(
+        `[retention] catch-up bin batch full (${emptied}); more copies are due tomorrow`
+      );
+    }
+    return emptied;
+  });
+
   /* The deletion-request purge (audits H9 + M35): accounts whose 60-day
      grace window has closed are erased for real — rows and R2 bytes both,
      via the same purgeUserAccount an admin delete uses. Context for the
@@ -209,6 +279,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     outboundEmails,
     visits,
     searches,
+    catchupCopiesEmptied,
     accountsPurged,
     imagesRetried,
     imagesStillPending,

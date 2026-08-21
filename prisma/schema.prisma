@@ -874,11 +874,23 @@ model CatchupPref {
   catchupId    String
   userId       String
   reminderMode String @default("all")       // "all" | "last" | "off"
+  // One member's own copy of this Catch-up, filed or thrown away. Both are
+  // PERSONAL by decision (owner, 2026-08-21): nobody else's view changes, so
+  // no member action can destroy something another member relies on. This row
+  // is already unique on (catchupId, userId) and cascades from both sides,
+  // which is why the state lives here rather than on Catchup or GroupMember --
+  // per-member state cannot leak across members by construction.
+  archivedAt   DateTime?                    // tucked into "Archived" on /catchups; still a member, still notified
+  deletedAt    DateTime?                    // in "Recently deleted"; notifications stop, restorable for 30 days
 
   catchup Catchup @relation(fields: [catchupId], references: [id], onDelete: Cascade)
   user    User    @relation("CatchupPrefs", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([catchupId, userId])
+  // The nightly retention sweep's only predicate: find the copies whose 30 days
+  // are up. Partial would be tighter, but Prisma cannot express one and the
+  // table is one row per (member, Catch-up) they have an opinion about.
+  @@index([deletedAt])
   @@map("CatchupReminderPref") // see collision note above; legacy "CatchupPref" table has `optedOut boolean`, not `reminderMode`
 }
 

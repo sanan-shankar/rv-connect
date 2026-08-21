@@ -11,7 +11,8 @@
  *  server action.
  *
  *  Recipients follow section 5's rules:
- *   - questions-open / answers-open / published: all group members.
+ *   - questions-open / answers-open / published: all group members, minus
+ *     anyone who has deleted their own copy (B-063; see `groupMemberIds`).
  *   - the two dated reminders: only members with no Entry yet, filtered by
  *     CatchupPref.reminderMode (default "all" when a member has no pref row).
  *   - the manual Keeper nudge: all non-answerers, bypassing "off".
@@ -32,12 +33,35 @@ import type {
 
 // ─── Recipient helpers ───────────────────────────────────────────────────────
 
-async function groupMemberIds(db: CatchupDb, groupId: string): Promise<string[]> {
-  const rows = await db.groupMember.findMany({
-    where: { groupId },
-    select: { userId: true },
-  });
-  return rows.map((r) => r.userId);
+/**
+ * Everyone this Catch-up should reach.
+ *
+ * Group membership minus anyone who has thrown their own copy away (bug audit
+ * B-063). A deleted copy sits in "Recently deleted" for 30 days before the
+ * nightly sweep takes the membership row for real, and those 30 days are an
+ * undo window, not a notice period: a member who binned a Catch-up must stop
+ * hearing from it the moment they do, or the bin is only a filing cabinet with
+ * a countdown.
+ *
+ * An ARCHIVED copy is not excluded, and that is deliberate. Archiving is
+ * filing; muting has its own control (`CatchupPref.reminderMode`), and quietly
+ * making one mean the other would leave a member who filed a Catch-up away
+ * missing the Round they were still expecting.
+ */
+async function groupMemberIds(
+  db: CatchupDb,
+  groupId: string,
+  catchupId: string
+): Promise<string[]> {
+  const [rows, binned] = await Promise.all([
+    db.groupMember.findMany({ where: { groupId }, select: { userId: true } }),
+    db.catchupPref.findMany({
+      where: { catchupId, deletedAt: { not: null } },
+      select: { userId: true },
+    }),
+  ]);
+  const out = new Set(binned.map((r) => r.userId));
+  return rows.map((r) => r.userId).filter((id) => !out.has(id));
 }
 
 async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<string>> {
@@ -53,10 +77,11 @@ async function answeredUserIds(db: CatchupDb, editionId: string): Promise<Set<st
 async function nonAnswererIds(
   db: CatchupDb,
   groupId: string,
+  catchupId: string,
   editionId: string
 ): Promise<string[]> {
   const [members, answered] = await Promise.all([
-    groupMemberIds(db, groupId),
+    groupMemberIds(db, groupId, catchupId),
     answeredUserIds(db, editionId),
   ]);
   return members.filter((id) => !answered.has(id));
@@ -80,7 +105,7 @@ async function createMany(
 
 /** Round enters `collecting`: invite everyone to add a question. */
 export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
-  const members = (await groupMemberIds(db, ctx.groupId)).filter(
+  const members = (await groupMemberIds(db, ctx.groupId, ctx.catchupId)).filter(
     (id) => id !== ctx.excludeUserId
   );
   await createMany(
@@ -95,8 +120,8 @@ export const notifyQuestionsOpen: NotifyQuestionsOpenFn = async (db, ctx) => {
 /** Round enters `answering`: answers are open. Re-fired to non-answerers on a too-few extension. */
 export const notifyAnswersOpen: NotifyAnswersOpenFn = async (db, ctx) => {
   const audience = ctx.onlyNonAnswerers
-    ? await nonAnswererIds(db, ctx.groupId, ctx.editionId)
-    : await groupMemberIds(db, ctx.groupId);
+    ? await nonAnswererIds(db, ctx.groupId, ctx.catchupId, ctx.editionId)
+    : await groupMemberIds(db, ctx.groupId, ctx.catchupId);
   const members = audience.filter((id) => id !== ctx.excludeUserId);
   await createMany(
     db,
@@ -133,7 +158,7 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
   const link = `/catchups/${ctx.catchupId}/answer`;
   const days = ctx.daysLeft ?? 0;
   const [members, answered] = await Promise.all([
-    groupMemberIds(db, ctx.groupId),
+    groupMemberIds(db, ctx.groupId, ctx.catchupId),
     answeredUserIds(db, ctx.editionId),
   ]);
   const nonAnswerers = members.filter((id) => !answered.has(id));
@@ -175,7 +200,7 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
 
 /** Round enters `published`: the reveal notification, the moment the ritual pays off. */
 export const notifyPublished: NotifyPublishedFn = async (db, ctx) => {
-  const members = (await groupMemberIds(db, ctx.groupId)).filter(
+  const members = (await groupMemberIds(db, ctx.groupId, ctx.catchupId)).filter(
     (id) => id !== ctx.excludeUserId
   );
   await createMany(
