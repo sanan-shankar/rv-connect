@@ -14,6 +14,7 @@ import { verifyHumanFromForm } from "@/lib/turnstile";
 import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { mintHumanPass } from "@/lib/human-pass";
+import { normalizeEmail } from "@/lib/email-address";
 
 /* ------------------------------------------------------------------ *
  *  Everything the two email flows do on the server.
@@ -88,7 +89,13 @@ export async function resendVerification(): Promise<{
   };
 }
 
-export type ConfirmOutcome = "confirmed" | "already" | "expired" | "unknown" | "stale";
+export type ConfirmOutcome =
+  | "confirmed"
+  | "already"
+  | "superseded"
+  | "expired"
+  | "unknown"
+  | "stale";
 
 /**
  * Redeem a confirmation link. Called by the /verify-email page during render,
@@ -105,8 +112,16 @@ export async function confirmEmailToken(token: string): Promise<ConfirmOutcome> 
 
   if (!read.ok) {
     if (read.reason === "used") {
-      // Used token: if the address really is confirmed, say so plainly.
-      return "already";
+      // Used token, but "used" is not the same as "confirmed". The account row
+      // is what decides: a mail client prefetching the link, or an older mail
+      // whose token an earlier remint burned, both arrive here with the address
+      // still unverified. Telling that member "nothing left to do" and hiding
+      // the resend button was the dead end this checks for (bug audit B-021).
+      const account = await prisma.user.findUnique({
+        where: { id: read.userId },
+        select: { emailVerified: true },
+      });
+      return account?.emailVerified ? "already" : "superseded";
     }
     return read.reason === "expired"
       ? "expired"
@@ -157,7 +172,7 @@ export async function requestPasswordReset(
   const limited = await rateLimit("reset", ip);
   if (!limited.ok) return { ok: false, error: limited.error };
 
-  const raw = ((formData.get("email") as string) ?? "").trim().toLowerCase();
+  const raw = normalizeEmail(formData.get("email") as string | null);
 
   // Nothing usable typed: still answer as though it worked.
   if (!raw || !raw.includes("@")) return { ok: true };
