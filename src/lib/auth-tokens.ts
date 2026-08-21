@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "crypto";
+import { after } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "./prisma";
 
@@ -130,20 +131,38 @@ export async function mintToken(
   // bound on a project that has no cron. Rows are kept a week PAST expiry: the
   // row is what lets an expired click say "this link has run out" instead of
   // the unhelpful "we do not recognise this link", and that distinction is
-  // worth more than the handful of bytes. Best-effort and not awaited, so a
-  // slow delete never holds up the mail.
-  void prisma.authToken
-    .deleteMany({
-      where: { expiresAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60_000) } },
-    })
-    .catch((err) => {
+  // worth more than the handful of bytes. Best-effort, so a slow delete never
+  // holds up the mail.
+  const sweep = async () => {
+    try {
+      await prisma.authToken.deleteMany({
+        where: { expiresAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60_000) } },
+      });
+    } catch (err) {
       // Best-effort: a failed sweep just means dead rows linger, never a broken
       // mint. But swallow it silently and the one time it breaks for real there
       // is no trace, so it follows the same "loud in dev" contract as the other
       // fire-and-forget writers (last-seen, audit, search-log, login-attempt).
       if (process.env.NODE_ENV !== "production")
         console.error("[auth-tokens] expired-token sweep failed:", err);
-    });
+    }
+  };
+  // after(), not the old bare `void`: Vercel can freeze or tear down the
+  // function the instant a response streams, which raced this delete and lost
+  // it silently -- the same class of bug as the search/view loggers (bug
+  // audit Lows 25/35/44/72/77/82/87). But mintToken is a library function,
+  // reached both from a page render (request scope, after() is safe) and from
+  // the mail queue's own scheduleDrain() fallback branch in email-queue.ts,
+  // which already exists because after() throws SYNCHRONOUSLY when there is
+  // no active request scope (confirmed against the installed next@16.3.1
+  // source, node_modules/next/dist/server/after/after.js: "`after` was called
+  // outside a request scope", error E468). Guarded the same way that fallback
+  // branch is, rather than trust every future caller to be request-scoped.
+  try {
+    after(sweep);
+  } catch {
+    void sweep();
+  }
 
   return { ok: true, token: raw, expiresAt };
 }

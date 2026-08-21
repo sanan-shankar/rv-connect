@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
@@ -124,12 +124,16 @@ export async function GET(req: NextRequest) {
     label: formatLabel(row),
   }));
 
-  void logSearch({
-    scope: "places",
-    query: raw,
-    userId: session?.user?.id,
-    results: results.length,
-  });
+  /* after(), not `void`: see src/app/api/users/search/route.ts -- the same
+     freeze-after-response loss (bug audit Lows 25/35/44/72/77/82/87). */
+  after(() =>
+    logSearch({
+      scope: "places",
+      query: raw,
+      userId: session?.user?.id,
+      results: results.length,
+    })
+  );
 
   return NextResponse.json(results);
 }

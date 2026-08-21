@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -55,12 +56,24 @@ export default async function PhotoPage({
 
   if (!photo || photo.isHidden) notFound();
 
-  /* Not awaited: the page renders at the same speed either way. */
-  void recordView(session?.user?.id, "photo", photo.id);
   const isOwn = photo.uploaderId === session.user.id;
   const isAdmin = session.user.role === "admin";
   // Unapproved photos are visible only to their uploader and admins.
   if (!photo.approved && !isOwn && !isAdmin) notFound();
+
+  /* after(), not the old `void`: this page still renders at the same speed
+     either way, but a bare `void` write raced the response back to the
+     browser, and Vercel can freeze or tear down the function the moment that
+     response streams -- which silently dropped the row before it ever wrote
+     (bug audit Lows 25/35/44/72/77/82/87, the undercounting behind
+     /admin/analytics). after() keeps this invocation alive until the write
+     actually lands. See src/app/(main)/layout.tsx for the same shape used on
+     the mail queue's drain.
+
+     BELOW the approval gate, not above it, for the same reason the letter
+     page's call moved (audit Low 87): a view recorded for somebody who is
+     then shown a 404 is not a view of anything. */
+  after(() => recordView(session?.user?.id, "photo", photo.id));
 
   const subjects = photo.subject ? photo.subject.split(",").filter(Boolean) : [];
   const freeTags = photo.freeTags

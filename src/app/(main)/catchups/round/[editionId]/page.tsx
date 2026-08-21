@@ -22,6 +22,7 @@
 
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
@@ -190,8 +191,9 @@ export default async function RoundPage({
 
   if (!edition || !membership) notFound();
 
-  /* Not awaited: the page renders at the same speed either way. */
-  void recordView(session?.user?.id, "round", edition.id);
+  /* after(), not the old `void`: see src/app/(main)/collection/[id]/page.tsx
+     for why (bug audit Lows 25/35/44/72/77/82/87). */
+  after(() => recordView(session?.user?.id, "round", edition.id));
 
   const status = edition.status as EditionStatus;
   const title = roundTitle(edition.catchup.title, edition.catchup.group.name);

@@ -1,5 +1,6 @@
 import { logSearch } from "@/lib/search-log";
 import type { Metadata } from "next";
+import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FeedColumn } from "@/components/posts/feed-column";
@@ -24,11 +25,14 @@ export default async function FeedPage({
   const { q } = await searchParams;
 
   /* The header pill submits here, so this is where a feed search becomes
-     visible. Not awaited: the feed must render at the same speed whether or
-     not a statistics row lands. */
+     visible. after(), not the old `void`: the feed still renders at the same
+     speed whether or not a statistics row lands, but a bare `void` write
+     raced the response and Vercel can freeze or tear down the instance the
+     moment that response streams, silently losing the row (bug audit Lows
+     25/35/44/72/77/82/87). after() keeps the invocation alive for it. */
   if (q) {
     const s = await auth();
-    void logSearch({ scope: "feed", query: q, userId: s?.user?.id });
+    after(() => logSearch({ scope: "feed", query: q, userId: s?.user?.id }));
   }
 
   const [unreadCount, userPlaces, marker] = await Promise.all([

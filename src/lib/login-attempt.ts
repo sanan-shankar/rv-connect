@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /* ------------------------------------------------------------------ *
@@ -40,21 +41,49 @@ export function recordLoginAttempt(input: {
   reason: LoginReason;
   userId?: string | null;
 }): void {
-  /* Deliberately not awaited by the caller and deliberately not returning a
-   * promise anyone can forget to catch. A statistics row must never be able to
-   * delay, or fail, a sign-in. */
-  void prisma.loginAttempt
-    .create({
-      data: {
-        email: input.email.trim().toLowerCase().slice(0, 200),
-        ok: input.ok,
-        reason: input.reason,
-        userId: input.userId ?? null,
-      },
-    })
-    .catch((err) => {
+  const write = async () => {
+    try {
+      await prisma.loginAttempt.create({
+        data: {
+          email: input.email.trim().toLowerCase().slice(0, 200),
+          ok: input.ok,
+          reason: input.reason,
+          userId: input.userId ?? null,
+        },
+      });
+    } catch (err) {
       if (process.env.NODE_ENV !== "production") {
         console.error("[login-attempt] failed:", err);
       }
-    });
+    }
+  };
+  /* Deliberately not awaited by the caller and deliberately not returning a
+   * promise anyone can forget to catch. A statistics row must never be able to
+   * delay, or fail, a sign-in.
+   *
+   * after(), not a bare `void`, for the same reason as every other site in
+   * this cluster: Vercel can freeze or tear down the function the instant the
+   * sign-in response streams, and a `void` write raced that teardown and
+   * silently lost the row (bug audit Lows 25/35/44/72/77/82/87 -- the
+   * unexplained gaps in /admin/analytics). The one thing that made `void`
+   * defensible here -- authentication must survive this write failing -- is
+   * exactly what after() also guarantees; it does not make the response wait.
+   *
+   * The try/catch below is the other half: authorize() in src/lib/auth.ts
+   * always runs inside a request (the NextAuth route, or a login Server
+   * Action), so after() should always find a request scope here, but this
+   * file is a step removed from that call site with no way to enforce it stays
+   * true. after() throws SYNCHRONOUSLY when there is no active request scope
+   * (confirmed against the installed next@16.3.1 source,
+   * node_modules/next/dist/server/after/after.js: "`after` was called outside
+   * a request scope", error E468) -- an uncaught throw there would take
+   * sign-in down with it, which is worse than the undercounting this fixes.
+   * Guarded the same way src/lib/email-queue.ts's scheduleDrain() already
+   * guards its own after() call: fall back to the original fire-and-forget
+   * write rather than risk it. */
+  try {
+    after(write);
+  } catch {
+    void write();
+  }
 }

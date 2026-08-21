@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { auth } from "@/lib/auth";
 import { requireVerifiedEmail } from "@/lib/email-verification";
 import { prisma } from "@/lib/prisma";
@@ -68,13 +68,21 @@ export async function GET(req: NextRequest) {
 
   /* Recorded here rather than in the browser: this endpoint already knows the
      query AND how many rows it found, and a zero-result search is the useful
-     one -- somebody looking for a person this site could not show them. */
-  void logSearch({
-    scope: "people",
-    query: q,
-    userId: session.user.id,
-    results: users.length,
-  });
+     one -- somebody looking for a person this site could not show them.
+     after(), not the old `void`: Vercel can freeze or tear down a serverless
+     instance the instant the response streams, and a bare `void` write raced
+     that teardown and silently lost the row (bug audit Lows 25/35/44/72/77/
+     82/87 -- the reason /admin/analytics quietly undercounted with no error
+     anywhere). after() keeps this same invocation alive until the write is
+     done, so the search itself still returns the moment the rows are ready. */
+  after(() =>
+    logSearch({
+      scope: "people",
+      query: q,
+      userId: session.user.id,
+      results: users.length,
+    })
+  );
 
   return NextResponse.json(users);
 }
