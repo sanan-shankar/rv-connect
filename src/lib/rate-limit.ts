@@ -73,6 +73,11 @@ const LIMITS = {
   /** Per user. Catch-ups fan out invitations, so creation is the one
    *  community write kept deliberately slow. */
   catchups: { tokens: 5, window: "1 h" },
+  /** Per user. Every call mints a real Razorpay order and a real row, and
+   *  nothing else stopped a script minting them in a loop (audit M57). Ten an
+   *  hour leaves somebody genuinely retrying a failed payment three or four
+   *  times entirely untouched, which is the only case that matters here. */
+  contributions: { tokens: 10, window: "1 h" },
   /** Failures only, per account. Confirming deletion re-asks for the
    *  password (audit M35), which hands an attacker who stole a SESSION a
    *  quiet place to guess the password itself — the login limiter never

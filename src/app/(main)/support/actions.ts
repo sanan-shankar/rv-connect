@@ -18,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 import { createOrder, razorpayKeyId, razorpayLivemode, verifyPaymentSignature } from "@/lib/razorpay";
 import { PERK_MIN_PAISE, WEARABLE_SLUGS } from "@/components/support/plate-data";
 
@@ -62,6 +63,13 @@ export async function startContribution(amountRupees: number): Promise<StartResu
     return { error: `Please enter an amount between ₹${MIN_RUPEES} and ₹${MAX_RUPEES.toLocaleString("en-IN")}.` };
   }
 
+  // Metered. Every call creates a real Razorpay order and a real row, and
+  // nothing else stopped a script from minting them in a loop (audit M57). The
+  // window is generous: somebody genuinely retrying a failed payment two or
+  // three times must never be told to wait.
+  const limited = await rateLimit("contributions", session.user.id);
+  if (!limited.ok) return { error: limited.error };
+
   const amountPaise = amountRupees * 100;
 
   // The row id is minted here, before either write, so it can be the Razorpay
@@ -78,10 +86,13 @@ export async function startContribution(amountRupees: number): Promise<StartResu
   // should not have to type it again at the one moment we least want friction,
   // so it is read fresh rather than taken from the session (which does not
   // carry it). Empty is fine: Razorpay simply asks.
-  const profile = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { phone: true },
-  });
+  // .catch, because an absent phone is already an accepted outcome (Razorpay
+  // simply asks for it) and a database hiccup here used to throw straight out
+  // of the action -- which the client's fire-and-forget onClick turned into a
+  // button spinning on "Opening" forever (bug audit B-080).
+  const profile = await prisma.user
+    .findUnique({ where: { id: session.user.id }, select: { phone: true } })
+    .catch(() => null);
 
   try {
     const order = await createOrder({
