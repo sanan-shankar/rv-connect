@@ -29,7 +29,19 @@ export function PostHogIdentify({
   isOwner: boolean;
 }) {
   useEffect(() => {
-    if (!posthog.__loaded) return;
+    if (!posthog.__loaded) {
+      /* Was a bare `return`, and that silence hid audit M42 for the whole life
+         of the analytics room: init used to run in the PROVIDER's effect, React
+         runs a child's effects first, so on every full page load this fired
+         before init and gave up without a word. Init now happens at module
+         scope (see posthog-provider.tsx), so reaching this branch means that
+         ordering has been broken again -- which is worth a line in the console
+         rather than another year of anonymous sessions. */
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[posthog] identify skipped: init has not run yet");
+      }
+      return;
+    }
     posthog.identify(userId, { accountType, batchYear, isOwner });
     return () => {
       /* No reset() on unmount: the layout unmounts on navigation and resetting

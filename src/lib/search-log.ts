@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isSameSearch } from "@/lib/search-continuation";
 
 /* ------------------------------------------------------------------ *
  *  What people look for.
@@ -25,6 +26,11 @@ const MAX_QUERY = 120;
  * otherwise write nine rows, of which eight are prefixes nobody searched for.
  * Debouncing in the browser helps but cannot be trusted, so the dedupe lives
  * here where it is guaranteed.
+ *
+ * The window alone never did that job, because the dedupe matched an EXACT
+ * query and every keystroke is a different string -- so all nine rows landed
+ * anyway, inside the window, exactly as the paragraph above says they must not
+ * (bug audit M25). `isSameSearch` is the missing half.
  */
 const DEDUPE_MS = 60_000;
 
@@ -47,24 +53,30 @@ export async function logSearch(input: {
     if (query.length < 2) return;
 
     if (input.userId) {
+      /* The most recent search this person made in this box, whatever it was.
+       * Matching on the query here would only ever find an identical string,
+       * which is the thing a live box does not produce twice. */
       const recent = await prisma.searchLog.findFirst({
         where: {
           userId: input.userId,
           scope: input.scope,
-          query,
           createdAt: { gte: new Date(Date.now() - DEDUPE_MS) },
         },
-        select: { id: true },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, query: true },
       });
-      if (recent) {
-        /* Same search again within the window: keep the row, refresh the
-         * result count, which may have changed as they kept typing. */
-        if (input.results !== undefined) {
-          await prisma.searchLog.update({
-            where: { id: recent.id },
-            data: { results: input.results },
-          });
-        }
+      if (recent && isSameSearch(recent.query, query)) {
+        /* Still the same search: keep the one row and move it on to where the
+         * typing has got to. The LATEST text, not the longest -- somebody who
+         * types "Bengaluru" then trims back to "Bengal" and stops has searched
+         * for "Bengal", and that is what the log should say. */
+        await prisma.searchLog.update({
+          where: { id: recent.id },
+          data: {
+            query,
+            ...(input.results !== undefined ? { results: input.results } : {}),
+          },
+        });
         return;
       }
     }
