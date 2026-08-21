@@ -8,7 +8,7 @@ import { FloatField } from "@/components/common/float-field";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { AuthHeading, AuthPanel } from "@/components/auth/auth-panel";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
-import { TICK_HUMAN_BOX } from "@/lib/bot-check-message";
+import { BOT_CHECK_BLOCKED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { SPRINGS } from "@/components/common/motion";
 import { requestPasswordReset } from "@/components/auth/email-actions";
@@ -74,6 +74,14 @@ export function ForgotPasswordClient({
     if (turnstileToken === "interaction") {
       // Cloudflare's checkbox is on screen, waiting for the human.
       setError(TICK_HUMAN_BOX);
+      setSending(false);
+      void apiRef.current?.react("wrong");
+      return;
+    }
+    // The check's script never loaded here, so nothing sent from this browser
+    // can carry a token and the server refuses all of it (audit M07).
+    if (turnstileToken === "blocked") {
+      setError(BOT_CHECK_BLOCKED);
       setSending(false);
       void apiRef.current?.react("wrong");
       return;

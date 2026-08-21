@@ -21,7 +21,8 @@ import { nextPathFromLocation } from "@/lib/next-path";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { TurnstileWidget, type TurnstileHandle } from "@/components/auth/turnstile-widget";
 import { RATE_LIMITED } from "@/lib/rate-limit-message";
-import { BOT_CHECK_FAILED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
+import { BOT_CHECK_BLOCKED, BOT_CHECK_FAILED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
+import { SIGN_IN_UNAVAILABLE } from "@/lib/sign-in-unavailable-message";
 
 export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: string | null }) {
   const [email, setEmail] = useState("");
@@ -374,6 +375,15 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
         setLoading(false);
         return;
       }
+      // The check's own script never loaded, so no attempt from this browser
+      // can carry a token and the server refuses every one of them. Say that,
+      // instead of sending a request whose refusal reads as "try again"
+      // (audit M07).
+      if (turnstileToken === "blocked") {
+        setError(BOT_CHECK_BLOCKED);
+        setLoading(false);
+        return;
+      }
 
       const result = await signIn("credentials", {
         email,
@@ -394,7 +404,9 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
             ? RATE_LIMITED
             : code === "bot-check"
               ? BOT_CHECK_FAILED
-              : "Invalid email or password.",
+              : code === "unavailable"
+                ? SIGN_IN_UNAVAILABLE
+                : "Invalid email or password.",
         );
       } else if (result?.ok) {
         // ?next= carries a link that was followed before signing in (a

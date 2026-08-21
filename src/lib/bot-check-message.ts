@@ -19,3 +19,18 @@ export const BOT_CHECK_FAILED =
  */
 export const TICK_HUMAN_BOX =
   'Please tick the "Verify you are human" box first.';
+
+/**
+ * Shown when the bot-check SCRIPT never loaded at all, rather than when the
+ * challenge failed (audit M07).
+ *
+ * The distinction matters because the advice is opposite. A failed challenge
+ * is worth another go; a blocked script is not, and BOT_CHECK_FAILED's
+ * "refresh the page and try once more" was, for those visitors, a permanent
+ * loop with a friendly voice. Naming the address is deliberate: it is the one
+ * thing they can act on, and whoever has an extension or a network filter in
+ * the way needs to know what to allow.
+ */
+export const BOT_CHECK_BLOCKED =
+  "Something in this browser is blocking our security check, so we cannot let you in from here. " +
+  "It loads from challenges.cloudflare.com: allow that address, or try another browser.";
