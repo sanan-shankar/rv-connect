@@ -141,10 +141,16 @@ export async function replyToThread(
     }),
     prisma.adminThread.update({
       where: { id: threadId },
+      // Only the OTHER side's flag is touched here. Writing your own `false`
+      // in the same statement is what made this a lost update: an admin reply
+      // and a member reply committing in the same instant overwrote each
+      // other's dot, so a message that was genuinely there arrived with no
+      // unread mark (audit B-201). Replying is not reading anyway; opening the
+      // thread is, and that path already clears the flag with its own
+      // conditional updateMany.
       data: {
         lastMessageAt: new Date(),
         adminUnread: true,
-        memberUnread: false,
         status: "open",
       },
     }),
@@ -187,10 +193,10 @@ export async function adminReplyToThread(
     }),
     prisma.adminThread.update({
       where: { id: threadId },
+      // The member's own flag is left alone; see replyToThread above.
       data: {
         lastMessageAt: new Date(),
         memberUnread: true,
-        adminUnread: false,
         status: "open",
       },
     }),

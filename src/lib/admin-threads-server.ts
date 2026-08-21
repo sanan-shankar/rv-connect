@@ -70,7 +70,10 @@ export async function noteOnReportThread(reportId: string, body: string): Promis
     }),
     prisma.adminThread.update({
       where: { id: thread.id },
-      data: { lastMessageAt: new Date(), memberUnread: true, adminUnread: false },
+      // Not `adminUnread: false`: a note added here is not an admin reading
+      // the thread, and clearing it would hide whatever the member had written
+      // and nobody had looked at yet (audit B-201's shape, same column).
+      data: { lastMessageAt: new Date(), memberUnread: true },
     }),
     prisma.notification.create({
       data: {

@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { postSchema, commentSchema } from "@/lib/validators";
+import { postContentMax } from "@/lib/post-caps";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { delImage } from "@/lib/storage";
@@ -399,7 +400,10 @@ export async function editPost(postId: string, formData: FormData) {
   const content = formData.get("content") as string;
   const title = formData.get("title") as string;
   const isLetter = post.kind === "letter";
-  const cap = isLetter ? 20000 : 5000;
+  // The same ceiling creation uses, from the same constant, so a post can
+  // always be edited back into the shape it was allowed to be posted in
+  // (audit B-047).
+  const cap = postContentMax(post.kind);
 
   if (!content || content.length > cap) {
     return { error: `Content must be between 1 and ${cap} characters` };
@@ -957,13 +961,30 @@ export async function loadPosts(opts?: {
     nextCursor = hasMore ? rows[rows.length - 1].id : null;
   } else {
     // Count-based sorts cannot keyset cleanly: fall back to offset paging.
-    const offset = opts?.cursor?.startsWith("offset:")
-      ? parseInt(opts.cursor.slice(7), 10) || 0
+    //
+    // The offset is clamped because the cursor is an opaque string that comes
+    // back from a client call, and `parseInt("-5") || 0` is -5: Prisma will not
+    // take a negative `skip` and threw instead of paging (audit Low 79).
+    const parsedOffset = opts?.cursor?.startsWith("offset:")
+      ? Number.parseInt(opts.cursor.slice(7), 10)
       : 0;
+    const offset = Number.isFinite(parsedOffset) ? Math.max(0, parsedOffset) : 0;
+    // Ending on (createdAt, id) makes the ordering total. Without it, the many
+    // posts tied on nought likes have no defined position, so each offset page
+    // re-sorted them differently and could repeat or skip rows (the feed's half
+    // of audit B-122).
     const orderBy =
       sortBy === "liked"
-        ? { likes: { _count: "desc" as const } }
-        : { comments: { _count: "desc" as const } };
+        ? [
+            { likes: { _count: "desc" as const } },
+            { createdAt: "desc" as const },
+            { id: "desc" as const },
+          ]
+        : [
+            { comments: { _count: "desc" as const } },
+            { createdAt: "desc" as const },
+            { id: "desc" as const },
+          ];
     rows = await prisma.post.findMany({
       where,
       include,

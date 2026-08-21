@@ -16,6 +16,7 @@ import { batchTypeFromLeaving, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
 import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
+import { parsePlaces, resolvePlaces } from "@/lib/place-input";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
 
@@ -142,21 +143,20 @@ export async function updateUserProfile(formData: FormData) {
  * still reference it keep working during the migration.
  */
 export async function updateUserPlaces(
-  places: { placeId: number | null; label: string; city: string; lat: number | null; lng: number | null }[]
+  places: unknown
 ) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
-  const cleaned = places
-    .map((p) => ({
-      placeId: p.placeId,
-      label: titleCase(p.label.trim()),
-      city: titleCase(p.city.trim()),
-      lat: p.lat,
-      lng: p.lng,
-    }))
-    .filter((p) => p.label.length > 0)
-    .slice(0, 30);
+  // Validated before anything is touched: these two actions took the array on
+  // faith, so an oversized label, a non-finite coordinate or a non-object
+  // element all reached the database or threw a raw TypeError (audit B-111).
+  const parsed = parsePlaces(places);
+  if (!parsed.ok) return { error: parsed.error };
+  const cleaned = await resolvePlaces(parsed.places, titleCase, async (ids) => {
+    const rows = await prisma.place.findMany({ where: { id: { in: ids } }, select: { id: true } });
+    return new Set(rows.map((r) => r.id));
+  });
 
   const userId = session.user.id;
   await prisma.$transaction([

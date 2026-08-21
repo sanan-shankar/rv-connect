@@ -15,6 +15,7 @@ import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
 import { delImage } from "@/lib/storage";
 import { valleyYear } from "@/lib/utils";
+import { parsePlaces, resolvePlaces } from "@/lib/place-input";
 
 /* ------------------------------------------------------------------ *
  *  Everything you can do TO a person, from the panel.
@@ -137,21 +138,20 @@ export async function adminUpdatePerson(
  */
 export async function adminUpdatePlaces(
   userId: string,
-  places: { placeId: number | null; label: string; city: string; lat: number | null; lng: number | null }[]
+  places: unknown
 ): Promise<AdminActionResult> {
   const denied = await requireAdminAction();
   if (denied) return denied;
 
-  const cleaned = places
-    .map((p) => ({
-      placeId: p.placeId,
-      label: titleCase(p.label.trim()),
-      city: titleCase(p.city.trim()),
-      lat: p.lat,
-      lng: p.lng,
-    }))
-    .filter((p) => p.label.length > 0)
-    .slice(0, 30);
+  // Validated before anything is touched: these two actions took the array on
+  // faith, so an oversized label, a non-finite coordinate or a non-object
+  // element all reached the database or threw a raw TypeError (audit B-111).
+  const parsed = parsePlaces(places);
+  if (!parsed.ok) return { error: parsed.error };
+  const cleaned = await resolvePlaces(parsed.places, titleCase, async (ids) => {
+    const rows = await prisma.place.findMany({ where: { id: { in: ids } }, select: { id: true } });
+    return new Set(rows.map((r) => r.id));
+  });
 
   await prisma.$transaction([
     prisma.userPlace.deleteMany({ where: { userId } }),
