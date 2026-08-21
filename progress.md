@@ -1,5 +1,59 @@
 # Progress Log
 
+## Session 2026-08-21 — The pre-release fix session, part one
+
+The formal bug audit finished this morning with 45 canonical findings; this session fixed the two
+Criticals, every launch-blocking High and the whole scale phase. Fourteen commits on `main`, none
+pushed. `npm run check` green throughout (38 unit tests, up from 26), `npm run visual` 23/23 twice.
+The disposition ledger is `docs/planning/audits/fix-log.md`; the brief for the rest is
+`docs/planning/audits/fix-session-2-prompt.md`.
+
+- **Deleting an account used to destroy other people's writing.** `Group.creatorId` and
+  `CatchupPrompt.authorId` were both `ON DELETE CASCADE` on a column that only records who happened
+  to START something communal. Proved against the real database in a rolled-back transaction:
+  deleting the owner's account would have taken all 12 groups, both Catch-ups, both Editions and all
+  133 answers. Both columns are nullable `SetNull` now, the purge hands a group with no admin left
+  to its longest-standing member, and the merge inherits ownership rather than nulling it. Pinned by
+  a test that walks the whole Cascade graph out of `User` rather than checking the two columns the
+  audit named.
+- **A thirty-second Resend brownout permanently failed every queued email.** A requeued row kept its
+  `createdAt`, so it stayed the oldest eligible row and the same drain pass took it again: four
+  attempts in four seconds, then terminally failed, which nothing retries. Every failure books a
+  later retry now, and a failure the provider caused is told apart from one the address caused. In
+  the same pass: `deletion-scheduled` mail could never be selected at all (the eligible list is
+  derived from `PRIORITY` now), a bounce webhook handed back budget Resend had already spent, and
+  overlapping drains fan out past the provider's rate limit — one pass at a time via a lease row,
+  claim/block/release proved live.
+- **The connection pool was unbounded and infinitely patient.** `max 5`, a 5s checkout timeout and a
+  20s query timeout. `statement_timeout` is deliberately absent: probed live against both poolers,
+  Supavisor silently drops pg's startup parameter, so the audit's own fix direction would have
+  shipped config that reads like a guard and is not one.
+- **Email capitalisation** was canonical in three different ways across signup, login and reset. One
+  helper now; the one live member with a capital in her address (who could never have received a
+  password reset) is backfilled; a unique index on `lower(email)` means a future path that forgets
+  gets a clean refusal instead of a second account for one mailbox.
+- **The admin panel could be locked shut from inside it** and eleven of its twelve pages were bare
+  Prisma reads relying on a layout gate that soft navigation skips. Both closed, the last-admin count
+  moved inside a serializable transaction, and the three self-destructive controls are no longer
+  rendered on your own row.
+- **The first thing a new member does was broken.** A normal phone photo is 5-12MB and Vercel refuses
+  a body over ~4.5MB before the function runs, so onboarding's avatar step failed with a stuck
+  spinner and no message. Four upload boundaries go through one `shrinkForUpload` now.
+- **The feed, the composer, the letters desk and the rail** stopped losing or leaking what members
+  wrote: the card updates on delete and edit, autosave says "not saving" instead of lying and keeps
+  a copy on the device, Post is gated on in-flight uploads, the rail stops teasing city-scoped
+  letters to everybody, a draft's audience survives being reopened, and removing a contact row saves
+  the list without it.
+- **Payments that land while the phone kills the tab** now reach the supporter: the webhook writes
+  them a notification carrying the bird-picker link, and only when it was the one that recorded the
+  payment.
+- **Indexes.** Ten child-side foreign keys plus a trigram index on the gazetteer. The city
+  type-ahead went from **368ms and 4,690 buffers to 7.4ms and 54**, measured with EXPLAIN (ANALYZE)
+  before and after. The directory stopped serialising every member into the map on every filter
+  change. Presence telemetry gained a 180-day expiry (it had none), and the admin heatmap's
+  busiest-hour line stopped being eleven hours out.
+- **A batch can no longer be split into two groups** by two people registering in the same second.
+
 ## Session 2026-08-21 — The house chain goes back to arrows
 Owner: "the house chain was arrows before. recently we made it lines. revert it back to arrows as
 it was before."
