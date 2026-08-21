@@ -16,8 +16,11 @@ name: retention
 on:
   schedule:
     # 21:00 UTC == 02:30 IST: inside the same quiet-hours window as the
-    # backup (20:30 UTC) and the catchups cron, but not simultaneous with
-    # either.
+    # backup (20:30 UTC), 30 minutes after it so the two never share a
+    # session-pooler connection. The metric snapshot used to sit here too
+    # (it was also 0 21 * * *, audit Low 102) -- it now runs at 00:10 UTC
+    # instead, on the other side of midnight (see snapshot.yml), so this
+    # is the only nightly job left in this slot.
     - cron: '0 21 * * *'
   workflow_dispatch:
 
@@ -38,8 +41,12 @@ jobs:
             echo "CRON_SECRET repository secret is not set" >&2
             exit 1
           fi
-          # -f turns an HTTP error (401, 500) into a job failure instead of a
-          # green run that silently swept nothing.
-          curl -sS -f \
+          # --fail-with-body turns an HTTP error (401, 500) into a job failure,
+          # same as -f, but keeps the response body instead of discarding it.
+          # The route answers 502 with a JSON body naming which sweep step
+          # failed; -f alone threw that away and a failed run showed nothing
+          # about why. Flag added in curl 7.76.0 (2021); ubuntu-latest ships
+          # 8.5+, so it's there.
+          curl -sS --fail-with-body \
             -H "Authorization: Bearer $CRON_SECRET" \
             "https://rishivalley.space/api/retention/sweep"

@@ -10,11 +10,23 @@
  *  rate limit, and a history that outlives every free tier it came from.
  *
  *  Run: node scripts/ops/snapshot.mjs [--day YYYY-MM-DD] [--dry]
- *  Nightly via .github/workflows/snapshot.yml.
+ *  Nightly via .github/workflows/snapshot.yml, at 00:10 UTC -- ten minutes
+ *  after the UTC day rolls over. With no --day, this records the day that
+ *  JUST ENDED, not "today": every source is then read at the boundary of the
+ *  day it gets stamped with, instead of PostHog being asked for "today"
+ *  three hours before the UTC day was actually over (audit Lows 51 + 103).
  *
  *  Each source is independent and failure-isolated: no vendor being down,
  *  rate-limited or unconfigured may cost us the database numbers, which are
  *  the ones that matter and the only ones that are exact.
+ *
+ *  --day backfills a SPECIFIC PAST day, and only PostHog can honestly answer
+ *  one: PostHog is a real time series, but the database, Sentry and GitHub
+ *  sources are point-in-time counts with no history behind them. Recording
+ *  today's member count under last Tuesday's date would be a lie in a table
+ *  whose whole purpose is a time series, so a backfill collects PostHog alone
+ *  and leaves the other three absent for that row rather than wrong
+ *  (audit Low 104).
  * ------------------------------------------------------------------ */
 
 import { config as loadEnv } from "dotenv";
@@ -25,11 +37,21 @@ loadEnv({ path: ".env", quiet: true });
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry");
 const dayArg = args[args.indexOf("--day") + 1];
-const DAY = args.includes("--day") ? new Date(`${dayArg}T00:00:00Z`) : startOfUtcToday();
+/* BACKFILL is true only when a past day was explicitly requested. The
+ * ordinary nightly run (no --day) is NOT a backfill even though it stamps
+ * "yesterday" -- it runs ten minutes after that day ended, close enough to
+ * the boundary that the point-in-time sources are still an honest read of
+ * that day's final state. An explicit --day for an arbitrary past date has
+ * no such claim: only PostHog gets queried for it, below. */
+const BACKFILL = args.includes("--day");
+const DAY = BACKFILL ? new Date(`${dayArg}T00:00:00Z`) : startOfUtcYesterday();
 
-function startOfUtcToday() {
+/* The day that just ended, in UTC. Date.UTC handles month/year rollover
+ * itself (day 0 of a month is the last day of the previous one), so this
+ * needs no separate case for the 1st. */
+function startOfUtcYesterday() {
   const d = new Date();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - 1));
 }
 function daysAgo(n) {
   return new Date(DAY.getTime() - n * 86_400_000);
@@ -232,25 +254,43 @@ async function collectGithub() {
   if (!res.ok) throw new Error(`GitHub ${res.status}`);
   const { workflow_runs: runs = [] } = await res.json();
 
-  const last = runs[0];
-  add("github", "backup.ok", last?.conclusion === "success" ? 1 : 0);
-  if (last?.updated_at) {
-    add("github", "backup.age_hours", (Date.now() - Date.parse(last.updated_at)) / 3_600_000);
+  /* runs[0] is the most RECENT run, not the most recent FINISHED one -- a
+   * manually dispatched or still-running backup sorts first with
+   * conclusion: null, and null === "success" is false, so the naive read
+   * recorded a healthy backup as a failure while it was still mid-dump.
+   * Only a completed run has an honest conclusion. */
+  const completed = runs.filter((r) => r.status === "completed");
+  const last = completed[0];
+  if (last) {
+    add("github", "backup.ok", last.conclusion === "success" ? 1 : 0);
+    if (last.updated_at) {
+      add("github", "backup.age_hours", (Date.now() - Date.parse(last.updated_at)) / 3_600_000);
+    }
   }
-  add("github", "backup.failures_last_10", runs.filter((r) => r.conclusion === "failure").length);
-  return `last backup ${last?.conclusion ?? "unknown"}`;
+  add("github", "backup.failures_last_10", completed.filter((r) => r.conclusion === "failure").length);
+  return `last backup ${last?.conclusion ?? "unknown (no completed run in last 10)"}`;
 }
 
 /* ---------------------------------------------------------------- */
 
 async function main() {
   await db.connect();
-  const sources = [
-    ["db", collectDb],
-    ["sentry", collectSentry],
-    ["posthog", collectPostHog],
-    ["github", collectGithub],
-  ];
+  /* A backfill can only honestly supply PostHog (see the header comment) --
+   * db/sentry/github are skipped outright rather than run and discarded, so
+   * a --dry run also shows the true shape of what gets written. */
+  const sources = BACKFILL
+    ? [["posthog", collectPostHog]]
+    : [
+        ["db", collectDb],
+        ["sentry", collectSentry],
+        ["posthog", collectPostHog],
+        ["github", collectGithub],
+      ];
+  if (BACKFILL) {
+    console.log(
+      "  backfill  -- db/sentry/github skipped, point-in-time sources with no history to backfill",
+    );
+  }
 
   for (const [name, fn] of sources) {
     try {
@@ -272,8 +312,11 @@ async function main() {
 
   /* Upsert on (day, source, metric): re-running today overwrites today rather
    * than doubling every chart. */
-  /* ON CONFLICT on (day, source, metric): re-running today overwrites today
-   * rather than doubling every chart. One statement for the whole batch. */
+  /* ON CONFLICT on (day, source, metric): re-running for a day overwrites
+   * that day rather than doubling every chart. One statement for the whole
+   * batch. It is also what makes the move to recording the day that just
+   * ENDED safe to land mid-life: the first run under the new schedule
+   * replaces the partial row the old one wrote for that same day. */
   const day = DAY.toISOString().slice(0, 10);
   await db.query(
     `INSERT INTO "MetricSnapshot" ("id","day","source","metric","value")
