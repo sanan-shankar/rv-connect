@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "crypto";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "./prisma";
 
 /* ------------------------------------------------------------------ *
@@ -37,6 +38,20 @@ export const TOKEN_TTL_MINUTES: Record<TokenKind, number> = {
  *  a script from burning the sending quota. Generous enough that a person who
  *  genuinely clicks "resend" a few times because nothing arrived is never the
  *  one who hits it. */
+/**
+ * Whether minting a new token of this kind invalidates the outstanding ones.
+ *
+ * True for a reset, where a live link is a way into the account and the newest
+ * request must be the only one that works. False for a confirmation, where
+ * every live link proves the same mailbox and burning them is how a valid link
+ * came to report itself as already used (B-021). readToken's `stale` check
+ * still refuses any link whose address has moved on since it was sent.
+ */
+const BURNS_ON_MINT: Record<TokenKind, boolean> = {
+  reset: true,
+  verify: false,
+};
+
 const RATE_LIMIT: Record<TokenKind, { max: number; windowMinutes: number }> = {
   reset: { max: 4, windowMinutes: 30 },
   verify: { max: 5, windowMinutes: 60 },
@@ -86,17 +101,30 @@ export async function mintToken(
   const raw = mintRaw();
   const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES[kind] * 60_000);
 
-  // Burn the older ones and write the new row together, so there is no instant
-  // where a user has two live links (or, if the write failed, none at all).
-  await prisma.$transaction([
-    prisma.authToken.updateMany({
-      where: { userId, kind, usedAt: null },
-      data: { usedAt: new Date() },
-    }),
+  // Burning the older ones is a RESET property, not a general one. A live reset
+  // link is a way into an account, so a second one must invalidate the first.
+  // A live confirmation link only ever proves the same mailbox, and burning
+  // those had a real cost: the queue mints at SEND time, so every resend --
+  // including the second row the enqueue fold's own check-then-insert can
+  // produce -- marked the earlier mail's token used. Opening the older mail
+  // then reported "already confirmed, nothing left to do" to somebody whose
+  // account was still unverified, with no resend button (bug audit B-021).
+  const writes: Prisma.PrismaPromise<unknown>[] = [
     prisma.authToken.create({
       data: { userId, kind, tokenHash: hashToken(raw), expiresAt, sentTo },
     }),
-  ]);
+  ];
+  if (BURNS_ON_MINT[kind]) {
+    // Together with the create, so there is no instant where a user has two
+    // live links (or, if the write failed, none at all).
+    writes.unshift(
+      prisma.authToken.updateMany({
+        where: { userId, kind, usedAt: null },
+        data: { usedAt: new Date() },
+      })
+    );
+  }
+  await prisma.$transaction(writes);
 
   // Opportunistic sweep of anything long dead, so the table cannot grow without
   // bound on a project that has no cron. Rows are kept a week PAST expiry: the
@@ -129,8 +157,13 @@ export type ConsumeResult =
    *  restart of the whole flow. */
   | { ok: false; reason: "expired" }
   /** Matched, but already redeemed. Usually a second click on the same mail, or
-   *  a mail client prefetching the link. Also worth its own screen. */
-  | { ok: false; reason: "used" }
+   *  a mail client prefetching the link. Also worth its own screen.
+   *
+   *  The userId comes back with it deliberately: "used" alone is not enough to
+   *  tell somebody their address is confirmed, and the caller needs the account
+   *  to check (bug audit B-021). Nothing secret leaks — the caller already held
+   *  a token belonging to that account. */
+  | { ok: false; reason: "used"; userId: string }
   /** The address moved on after the link was sent. */
   | { ok: false; reason: "stale" };
 
@@ -171,7 +204,7 @@ export async function readToken(
   // refactor.
   if (row.kind !== kind) return { ok: false, reason: "unknown" };
 
-  if (row.usedAt) return { ok: false, reason: "used" };
+  if (row.usedAt) return { ok: false, reason: "used", userId: row.userId };
   if (row.expiresAt.getTime() < Date.now()) return { ok: false, reason: "expired" };
 
   // The address moved on after the link was sent, so redeeming it would confirm
@@ -187,7 +220,7 @@ export async function readToken(
       where: { id: row.id, usedAt: null },
       data: { usedAt: new Date() },
     });
-    if (claimed.count === 0) return { ok: false, reason: "used" };
+    if (claimed.count === 0) return { ok: false, reason: "used", userId: row.userId };
   }
 
   return { ok: true, userId: row.userId, email: current };
