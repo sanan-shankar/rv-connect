@@ -255,7 +255,6 @@ function isOwnProfileEdit(operation: string, args: unknown): boolean {
 export const DEMO_CLOSED_PATHS: readonly string[] = [
   "/admin",
   "/lab",
-  "/onboarding",
   "/signup",
   "/verify",
   "/catchups/join",

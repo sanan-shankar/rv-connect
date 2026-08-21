@@ -32,6 +32,22 @@ import { isForeignKeyViolation, isUniqueViolation } from "@/lib/prisma-errors";
 
 const PAGE_SIZE = 24;
 
+/**
+ * Negative or non-integer page numbers, clamped before they reach Prisma.
+ *
+ * `skip` will not take a negative number: `loadPhotos({ page: -1 })` threw
+ * rather than returning a page (audit Low 79). A page number arrives from a
+ * client call, so it is input, and input gets bounded.
+ *
+ * Not exported: every export from a "use server" file must be an async Server
+ * Action, and Next refuses the module outright otherwise.
+ */
+function clampPage(page: unknown): number {
+  const n = Number(page);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.floor(n));
+}
+
 export type PhotoData = {
   id: string;
   thumbUrl: string;
@@ -443,7 +459,7 @@ export async function loadPhotos(opts?: {
   const session = await auth();
   if (!session?.user?.id) return { photos: [] as PhotoData[], hasMore: false, total: 0 };
 
-  const page = opts?.page ?? 0;
+  const page = clampPage(opts?.page ?? 0);
   const where = buildCollectionWhere(opts);
 
   // "A wander": a gentle shuffle of a bounded set, single page (no load-more).
@@ -464,12 +480,28 @@ export async function loadPhotos(opts?: {
     return { photos: rows.map((p) => shape(p, session.user.id)), hasMore: false, total };
   }
 
+  /* Every sort ends in `id`, which is unique.
+   *
+   * These are offset pages (`skip: page * PAGE_SIZE`), so each page re-runs the
+   * whole sort and takes a slice of it. A sort that leaves rows tied therefore
+   * has no defined answer to "which of these came 24th" -- and Postgres is free
+   * to answer differently each time. "Most loved" ties almost everything (most
+   * photos have nought to two loves), so page 2 could hand back rows page 1 had
+   * already shown and skip others entirely; the client appends keyed by id, so
+   * the duplicates collided as React keys too (audit B-122). `createdAt` breaks
+   * most ties and `id` breaks the rest, which makes the full ordering total and
+   * every page a real slice of one list.
+   */
   const orderBy =
     opts?.sortBy === "oldest"
-      ? { createdAt: "asc" as const }
+      ? [{ createdAt: "asc" as const }, { id: "asc" as const }]
       : opts?.sortBy === "loved"
-        ? { loves: { _count: "desc" as const } }
-        : { createdAt: "desc" as const };
+        ? [
+            { loves: { _count: "desc" as const } },
+            { createdAt: "desc" as const },
+            { id: "desc" as const },
+          ]
+        : [{ createdAt: "desc" as const }, { id: "desc" as const }];
 
   const [rows, total] = await Promise.all([
     prisma.photo.findMany({
@@ -486,6 +518,8 @@ export async function loadPhotos(opts?: {
   const trimmed = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
   return { photos: trimmed.map((p) => shape(p, session.user.id)), hasMore, total };
 }
+
+
 
 export async function myPendingPhotos(): Promise<PhotoData[]> {
   const session = await auth();

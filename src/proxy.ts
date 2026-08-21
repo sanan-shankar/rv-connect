@@ -30,7 +30,6 @@ const IS_DEMO = process.env.DEMO_MODE === "1";
 const DEMO_CLOSED_PATHS = [
   "/admin",
   "/lab",
-  "/onboarding",
   "/signup",
   "/verify",
   "/catchups/join",

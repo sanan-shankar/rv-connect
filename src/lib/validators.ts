@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { ERA_VALUES } from "./collection";
 import { emailField } from "./email-address";
+import { POST_CONTENT_MAX, POST_TOO_LONG, postContentMax } from "./post-caps";
 import { valleyYear } from "./utils";
 
 /**
@@ -168,26 +169,33 @@ export const contactMethodsSchema = z.object({
     .max(10),
 });
 
-export const postSchema = z.object({
-  content: z.string().min(1, "Post cannot be empty").max(20000),
-  kind: z.enum(["post", "letter"]).optional(),
-  title: z.string().max(160).optional(),
-  // No `tag`: post types were abandoned 2026-08-02 (owner call). The Post.tag
-  // column survives for a future cleanup migration and has no reader or writer.
-  targetBatches: z.string().optional(),
-  groupId: z.string().optional(),
-  images: z.string().optional(),
-  pollOptions: z.array(z.string().min(1).max(200)).min(2).max(4).optional(),
-  // City-scoped audience: the poster's own city string, or omitted for "Everyone".
-  // Validated server-side against the poster's actual UserPlace list (createPost).
-  cityScope: z.string().max(120).optional(),
-  // Save this letter as a draft instead of publishing it. Only meaningful
-  // when kind === "letter" (createPost ignores it for a plain post).
-  saveAsDraft: z.boolean().optional(),
-  // The composer's "Also add to the Collection" tick. Only meaningful when the
-  // post actually carries images, and never for a draft (see createPost).
-  toCollection: z.boolean().optional(),
-});
+export const postSchema = z
+  .object({
+    content: z.string().min(1, "Post cannot be empty").max(POST_CONTENT_MAX.letter),
+    kind: z.enum(["post", "letter"]).optional(),
+    title: z.string().max(160).optional(),
+    // No `tag`: post types were abandoned 2026-08-02 (owner call). The Post.tag
+    // column survives for a future cleanup migration and has no reader or writer.
+    targetBatches: z.string().optional(),
+    groupId: z.string().optional(),
+    images: z.string().optional(),
+    pollOptions: z.array(z.string().min(1).max(200)).min(2).max(4).optional(),
+    // City-scoped audience: the poster's own city string, or omitted for "Everyone".
+    // Validated server-side against the poster's actual UserPlace list (createPost).
+    cityScope: z.string().max(120).optional(),
+    // Save this letter as a draft instead of publishing it. Only meaningful
+    // when kind === "letter" (createPost ignores it for a plain post).
+    saveAsDraft: z.boolean().optional(),
+    // The composer's "Also add to the Collection" tick. Only meaningful when the
+    // post actually carries images, and never for a draft (see createPost).
+    toCollection: z.boolean().optional(),
+  })
+  // The per-kind ceiling, shared with editPost so the two ends of a post's
+  // life agree on how long it may be (audit B-047; see post-caps.ts).
+  .refine((d) => d.content.length <= postContentMax(d.kind), {
+    message: POST_TOO_LONG,
+    path: ["content"],
+  });
 
 // The Collection contribute form (contribute-dialog.tsx) simplified to three
 // facts: a caption, which part of school it's from (free text, no longer a
