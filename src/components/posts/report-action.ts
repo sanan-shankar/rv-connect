@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { previewOf } from "@/lib/admin-threads";
 import { notifyAdmins, isThreadRateLimited } from "@/lib/admin-threads-server";
 import { writeAudit } from "@/lib/audit";
+import { adminThreadLink } from "@/lib/notification-links";
 
 // How many DISTINCT members must flag one person before the admin notification
 // escalates from "someone flagged X" to "N members have now flagged X" (audit
@@ -113,7 +114,7 @@ export async function reportPost(postId: string, reason: string) {
 
   await notifyAdmins(
     `${session.user.name} reported a post by ${post.author.name}: ${previewOf(trimmed, 60)}`,
-    `/admin?thread=${thread.id}#messages`
+    adminThreadLink(thread.id)
   );
 
   await writeAudit({
@@ -222,7 +223,7 @@ export async function reportUser(reportedUserId: string, reason: string) {
     flagCount >= FLAG_ESCALATION_THRESHOLD
       ? `${reported.name} has now been flagged by ${flagCount} members. Latest, ${session.user.name}: ${previewOf(trimmed, 60)}`
       : `${session.user.name} flagged ${reported.name}: ${previewOf(trimmed, 60)}`,
-    `/admin?thread=${thread.id}#messages`
+    adminThreadLink(thread.id)
   );
 
   await writeAudit({

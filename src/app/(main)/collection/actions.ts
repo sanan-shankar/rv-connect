@@ -28,6 +28,7 @@ import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
+import { isForeignKeyViolation, isUniqueViolation } from "@/lib/prisma-errors";
 
 const PAGE_SIZE = 24;
 
@@ -505,17 +506,24 @@ export async function togglePhotoLove(photoId: string) {
   const gate = await requireVerifiedMember();
   if (!gate.ok) return { error: gate.error };
 
-  const existing = await prisma.photoLove.findUnique({
-    where: { userId_photoId: { userId: session.user.id, photoId } },
-    select: { id: true },
+  // Delete-first, then create; the shape and the reasoning are toggleLike's
+  // (feed/actions.ts), which this is the Collection's twin of.
+  const removed = await prisma.photoLove.deleteMany({
+    where: { userId: session.user.id, photoId },
   });
+  if (removed.count > 0) return { success: true, loved: false };
 
-  if (existing) {
-    await prisma.photoLove.delete({ where: { id: existing.id } });
-  } else {
+  try {
     await prisma.photoLove.create({ data: { userId: session.user.id, photoId } });
+  } catch (err) {
+    // P2002: another tap already loved it, which is the state asked for.
+    // P2003: the photo was deleted between the page render and this tap, so
+    // there is nothing to love. Say so rather than throwing a raw foreign-key
+    // error at a member who tapped a heart.
+    if (isForeignKeyViolation(err)) return { error: "That photo is no longer here." };
+    if (!isUniqueViolation(err)) throw err;
   }
-  return { success: true, loved: !existing };
+  return { success: true, loved: true };
 }
 
 export async function approvePhoto(photoId: string) {

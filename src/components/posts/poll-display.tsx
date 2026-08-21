@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { votePoll } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
+import { callAction } from "@/lib/call-action";
 
 interface PollOption {
   id: string;
@@ -100,15 +101,21 @@ export function PollDisplay({
     );
     setLocalTotal((t) => (prevVoted ? t : t + 1));
 
-    const result = await votePoll(postId, optionId);
-    if (result.error) {
-      // Revert
-      setVoted(prevVoted);
-      setLocalOptions(prevOptions);
-      setLocalTotal(prevTotal);
-      toast.error(result.error);
+    try {
+      const result = await callAction(() => votePoll(postId, optionId));
+      if (result.error) {
+        // Revert
+        setVoted(prevVoted);
+        setLocalOptions(prevOptions);
+        setLocalTotal(prevTotal);
+        toast.error(result.error);
+      }
+    } finally {
+      // finally, not a trailing statement: a rejected call used to leave
+      // `submitting` true forever, so the poll never accepted another vote
+      // for the rest of the session (audit B-042).
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   return (

@@ -79,7 +79,15 @@ export async function markNotificationRead(notificationId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
-  await prisma.notification.update({
+  /* updateMany, not update. `update` throws P2025 when its where matches
+   * nothing, and three ordinary things make it match nothing: the row was
+   * pruned by the KEEP=100 sweep, it was already read on another device, or the
+   * id belongs to somebody else. The click handler awaits this before it
+   * navigates, so the throw killed the navigation outright -- tapping a
+   * notification simply did nothing (audit Lows 52, 58, 65). Marking read is
+   * idempotent by nature; a row that is gone needs no marking.
+   */
+  await prisma.notification.updateMany({
     where: { id: notificationId, userId: session.user.id },
     data: { read: true },
   });

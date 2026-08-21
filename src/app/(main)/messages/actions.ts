@@ -12,6 +12,7 @@ import {
   notifyAdmins,
 } from "@/lib/admin-threads-server";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
+import { adminThreadLink } from "@/lib/notification-links";
 
 /**
  * Every mutation for member <-> admin conversations.
@@ -99,7 +100,7 @@ export async function startThread(input: {
 
   await notifyAdmins(
     `${session.user.name} wrote: ${previewOf(body, 70)}`,
-    `/admin?thread=${thread.id}#messages`
+    adminThreadLink(thread.id)
   );
 
   revalidatePath("/messages");
@@ -151,7 +152,7 @@ export async function replyToThread(
 
   await notifyAdmins(
     `${session.user.name} replied about "${threadTitle(thread)}"`,
-    `/admin?thread=${threadId}#messages`
+    adminThreadLink(threadId)
   );
 
   revalidatePath("/messages");
