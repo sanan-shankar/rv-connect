@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
   const contribution = await prisma.contribution.findUnique({
     where: { razorpayOrderId: orderId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, userId: true, amount: true },
   });
 
   if (!contribution) {
@@ -70,22 +70,54 @@ export async function POST(request: Request) {
   }
 
   if (event.event === "payment.captured") {
-    if (contribution.status !== "paid") {
-      await prisma.contribution.update({
-        where: { id: contribution.id },
-        data: {
-          status: "paid",
-          razorpayPaymentId: payment?.id ?? null,
-          method: payment?.method ?? null,
-          paidAt: new Date(),
-        },
-      });
+    // Conditional, not check-then-write: the browser callback may be marking
+    // the same row paid this same second, and whichever of the two makes the
+    // transition is the one that owes the supporter a word.
+    const moved = await prisma.contribution.updateMany({
+      where: { id: contribution.id, status: { not: "paid" } },
+      data: {
+        status: "paid",
+        razorpayPaymentId: payment?.id ?? null,
+        method: payment?.method ?? null,
+        paidAt: new Date(),
+      },
+    });
+
+    /* This route exists because "the callback only runs if the payer's tab
+       survives long enough to run it" -- Android killing the tab during the UPI
+       app switch, someone closing the 3-D Secure page. In exactly that case the
+       money was recorded, the recovery bar moved, and the supporter got NOTHING:
+       no notification, no email, and /support deliberately carries no standing
+       link to /pick-bird, so the perk they were promised was reachable only by
+       guessing the URL (bug audit B-081).
+
+       A notification, not a standing door: it is the one-time consequence of a
+       payment, which is exactly the shape the owner's no-standing-link decision
+       leaves room for. Only when THIS request made the transition, so the
+       ordinary case -- browser survives, redirects straight to the picker --
+       does not also collect one. Best-effort: a failure here must not make
+       Razorpay retry a payment we have already recorded. */
+    if (moved.count === 1 && contribution.userId) {
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: contribution.userId,
+            type: "contribution_received",
+            message: "Your contribution came through. Pick the bird you want to wear.",
+            link: "/pick-bird",
+          },
+        });
+      } catch (err) {
+        console.error("[razorpay] could not notify the contributor", err);
+      }
     }
-  } else if (contribution.status === "created") {
-    // Only from "created". A failed attempt arriving after a successful one on
-    // the same order must not undo it.
-    await prisma.contribution.update({
-      where: { id: contribution.id },
+  } else {
+    // Only from "created", and CONDITIONALLY so, not check-then-write: a
+    // failed attempt arriving in the same instant as the successful one on the
+    // same order must not undo it, and reading the status a moment earlier is
+    // not the same as holding it (audit M27).
+    await prisma.contribution.updateMany({
+      where: { id: contribution.id, status: "created" },
       data: {
         status: "failed",
         razorpayPaymentId: payment?.id ?? null,

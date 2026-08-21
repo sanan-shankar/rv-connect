@@ -116,7 +116,19 @@ export function SupportContribute() {
       return;
     }
 
-    const started = await startContribution(amount as number);
+    // A server action can REJECT rather than return {error}: a network blip on
+    // mobile, a deploy landing mid-session ("Failed to find Server Action"),
+    // the proxy redirecting a revoked session. `pay()` is a fire-and-forget
+    // onClick, so an unhandled rejection left `working` true and the button
+    // spinning on 'Opening' forever with nothing said (bug audit B-080).
+    let started: Awaited<ReturnType<typeof startContribution>>;
+    try {
+      started = await startContribution(amount as number);
+    } catch {
+      setWorking(false);
+      toast.error("That did not go through. Check your connection and try again.");
+      return;
+    }
     if ("error" in started) {
       setWorking(false);
       toast.error(started.error);
@@ -159,7 +171,23 @@ export function SupportContribute() {
       prefill: { name: started.name, email: started.email, contact: started.contact },
       theme: { color: "#235C49" },
       handler: async (res: RazorpaySuccess) => {
-        const confirmed = await confirmContribution(res);
+        // The money has ALREADY moved by the time this runs. So the catch here
+        // says something quite different from the one above: not "try again",
+        // which would invite a second payment, but "it went through and the
+        // page could not keep up". The webhook records it either way -- that is
+        // what the webhook is for -- so the reassurance is true (B-080).
+        let confirmed: Awaited<ReturnType<typeof confirmContribution>>;
+        try {
+          confirmed = await confirmContribution(res);
+        } catch {
+          setWorking(false);
+          toast.success("Your payment went through. Thank you.", {
+            description: "We could not update the page just now; it will show on Support shortly.",
+            duration: 10_000,
+          });
+          router.refresh();
+          return;
+        }
         if ("error" in confirmed) {
           setWorking(false);
           toast.error(confirmed.error);

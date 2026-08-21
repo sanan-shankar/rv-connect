@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Mail,
   Flag,
+  HandHeart,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
@@ -83,6 +84,11 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   catchup_reminder: { icon: Clock, label: "Reminder" },
   catchup_published: { icon: BookOpen, label: "Round published" },
   catchup_love: { icon: Heart, heart: true, label: "Loved your answer" },
+  // Written by the Razorpay webhook when IT, and not the payer's browser,
+  // recorded the payment -- the tab-died case the webhook exists for. It is
+  // the only way that supporter ever hears the money landed, and the only
+  // route they have to the bird they were promised (bug audit B-081).
+  contribution_received: { icon: HandHeart, label: "Your contribution" },
 };
 
 function notificationIconMeta(type: string) {
