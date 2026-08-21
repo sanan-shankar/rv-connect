@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/admin";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   loadArrivals,
@@ -66,6 +67,11 @@ export default async function AdminAnalyticsPage({
 }: {
   searchParams: Promise<{ view?: string; measure?: string; by?: string }>;
 }) {
+  // The role, re-established on this page and not borrowed from the layout.
+  // Soft navigation re-renders only the segments that changed, so a shared
+  // layout is not re-evaluated on every move -- and this page reads member
+  // data. One line, and the demotion window closes (bug audit B-024).
+  await requireAdminPage();
   const { view, measure, by } = await searchParams;
   const active: ViewKey = isViewKey(view) ? view : "live";
   const blurb = VIEWS.find((v) => v.key === active)!.blurb;

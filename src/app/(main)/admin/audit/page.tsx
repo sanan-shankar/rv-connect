@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/admin";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { ADMIN_MEASURE, AdminSection, AdminEmpty } from "@/components/admin/admin-chrome";
@@ -42,6 +43,11 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 export default async function AdminAuditPage() {
+  // The role, re-established on this page and not borrowed from the layout.
+  // Soft navigation re-renders only the segments that changed, so a shared
+  // layout is not re-evaluated on every move -- and this page reads member
+  // data. One line, and the demotion window closes (bug audit B-024).
+  await requireAdminPage();
   const [events, failedLogins] = await Promise.all([
     prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
     prisma.loginAttempt.findMany({

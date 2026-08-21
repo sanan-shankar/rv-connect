@@ -1,6 +1,12 @@
 "use server";
 
-import { requireAdminAction, requireAdminActor, type AdminActionResult } from "@/lib/admin";
+import {
+  requireAdminAction,
+  requireAdminActor,
+  refuseSelfOrLastAdmin,
+  type AdminActionResult,
+} from "@/lib/admin";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { noteOnReportThread } from "@/lib/admin-threads-server";
 import { purgeUserAccount } from "@/lib/account-purge";
@@ -16,19 +22,15 @@ export async function adminBlockUser(userId: string, block: boolean): Promise<Ad
   const actor = await requireAdminActor();
   if (!actor.ok) return { error: actor.error };
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      isBlocked: block,
-      /* Blocking has to reach the sessions the person is already holding, not
-         just the next sign-in. Sessions are JWTs with no server-side store, so
-         bumping the epoch is the only way to end one (audit H4): without it a
-         blocked member kept a valid 30-day token and carried on posting.
-         Bumped on UNBLOCK as well -- cheap, and it means an accidental block
-         and unblock leaves no token minted during the gap still floating. */
-      credentialVersion: { increment: 1 },
-    },
-  });
+  // Blocking is the one that traps: it lands on the very next request, and a
+  // blocked account cannot sign in to undo it. Unblocking cannot lock anybody
+  // out, so it goes straight through (bug audit B-023).
+  const refused = block
+    ? await refuseSelfOrLastAdmin(actor.actorId, userId, "block", (tx) =>
+        blockWrite(tx, userId, block)
+      )
+    : await blockWrite(prisma, userId, block).then(() => null);
+  if (refused) return refused;
 
   await writeAudit({
     actorId: actor.actorId,
@@ -42,6 +44,26 @@ export async function adminBlockUser(userId: string, block: boolean): Promise<Ad
   return { success: true };
 }
 
+async function blockWrite(
+  db: Prisma.TransactionClient | typeof prisma,
+  userId: string,
+  block: boolean
+): Promise<void> {
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      isBlocked: block,
+      /* Blocking has to reach the sessions the person is already holding, not
+         just the next sign-in. Sessions are JWTs with no server-side store, so
+         bumping the epoch is the only way to end one (audit H4): without it a
+         blocked member kept a valid 30-day token and carried on posting.
+         Bumped on UNBLOCK as well -- cheap, and it means an accidental block
+         and unblock leaves no token minted during the gap still floating. */
+      credentialVersion: { increment: 1 },
+    },
+  });
+}
+
 export async function adminDeleteUser(userId: string): Promise<AdminActionResult> {
   const actor = await requireAdminActor();
   if (!actor.ok) return { error: actor.error };
@@ -50,8 +72,25 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionResult
   // still readable once the account it names no longer exists.
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true },
+    select: { name: true, email: true, role: true },
   });
+
+  // The same two refusals blocking gets (B-023), asked BEFORE the purge rather
+  // than inside it: purgeUserAccount runs its own transaction and reaches R2
+  // afterwards, neither of which belongs inside a serializable retry. The read
+  // is a hair racy against a simultaneous demotion elsewhere, which is the
+  // right trade -- an admin count is not worth holding a purge open for.
+  if (actor.actorId === userId) {
+    return { error: "You cannot delete your own account from here. Use Settings." };
+  }
+  if (target?.role === "admin") {
+    const others = await prisma.user.count({
+      where: { role: "admin", isBlocked: false, id: { not: userId } },
+    });
+    if (others === 0) {
+      return { error: "This is the only admin. Make somebody else one first." };
+    }
+  }
 
   // The row delete, the RESTRICT-FK report clearing (audit H8) and the R2
   // object cleanup (audit H9) all live in purgeUserAccount, shared with the

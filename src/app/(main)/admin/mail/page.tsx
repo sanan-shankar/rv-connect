@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/admin";
 import { AlertTriangle, Clock, Send } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
@@ -34,6 +35,11 @@ const ROW_SELECT = {
  * and a queue that is stuck is the whole story.
  */
 export default async function AdminMailPage() {
+  // The role, re-established on this page and not borrowed from the layout.
+  // Soft navigation re-renders only the segments that changed, so a shared
+  // layout is not re-evaluated on every move -- and this page reads member
+  // data. One line, and the demotion window closes (bug audit B-024).
+  await requireAdminPage();
   const [health, failed, queued, recent] = await Promise.all([
     mailHealth(),
     prisma.outboundEmail.findMany({

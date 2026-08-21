@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { titleCase } from "@/lib/normalize";
-import { requireAdminAction, requireAdminActor, type AdminActionResult } from "@/lib/admin";
+import {
+  requireAdminAction,
+  requireAdminActor,
+  refuseSelfOrLastAdmin,
+  type AdminActionResult,
+} from "@/lib/admin";
 import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
@@ -213,18 +218,19 @@ export async function adminSetRole(
   const actor = await requireAdminActor();
   if (!actor.ok) return { error: actor.error };
 
+  // Demotion goes through the shared guard, which counts the remaining admins
+  // AFTER the write and inside a serializable transaction. The old shape --
+  // count, then update, no transaction -- let two admins demote each other in
+  // the same second and leave zero (audit M26). Promotion cannot lock anybody
+  // out, so it goes straight through.
   if (role === "member") {
-    const admins = await prisma.user.count({ where: { role: "admin" } });
-    const target = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
+    const refused = await refuseSelfOrLastAdmin(actor.actorId, userId, "demote", async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: { role } });
     });
-    if (target?.role === "admin" && admins <= 1) {
-      return { error: "This is the only admin. Make somebody else one first." };
-    }
+    if (refused) return refused;
+  } else {
+    await prisma.user.update({ where: { id: userId }, data: { role } });
   }
-
-  await prisma.user.update({ where: { id: userId }, data: { role } });
 
   await writeAudit({
     actorId: actor.actorId,

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/admin";
 import Link from "next/link";
 import { AlertTriangle, CalendarDays, CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -35,6 +36,11 @@ const STATUS_LABEL: Record<string, string> = {
  * Test rows are shown, clearly marked, and never counted.
  */
 export default async function AdminSupportPage() {
+  // The role, re-established on this page and not borrowed from the layout.
+  // Soft navigation re-renders only the segments that changed, so a shared
+  // layout is not re-evaluated on every move -- and this page reads member
+  // data. One line, and the demotion window closes (bug audit B-024).
+  await requireAdminPage();
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);

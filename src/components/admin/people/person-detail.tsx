@@ -115,10 +115,17 @@ export function PersonDetail({
   person,
   stats,
   mail,
+  isSelf,
 }: {
   person: DetailPerson;
   stats: DetailStats;
   mail: DetailMail[];
+  /** True when this is the acting admin's own row. Block, Merge and Delete
+   *  are not rendered then: the server refuses all three (bug audit B-023),
+   *  and a control that always errors is worse than no control. Blocking is
+   *  the one that traps -- it lands on the next request and a blocked account
+   *  cannot sign in to undo it. */
+  isSelf: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -265,19 +272,21 @@ export function PersonDetail({
                     Verify
                   </Button>
                 )}
-                <Button
-                  size="xs"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() =>
-                    person.isBlocked
-                      ? run(() => adminBlockUser(person.id, false), "Unblocked")
-                      : setDialog("block")
-                  }
-                >
-                  <Ban className="size-3" strokeWidth={2} />
-                  {person.isBlocked ? "Unblock" : "Block"}
-                </Button>
+                {!isSelf && (
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() =>
+                      person.isBlocked
+                        ? run(() => adminBlockUser(person.id, false), "Unblocked")
+                        : setDialog("block")
+                    }
+                  >
+                    <Ban className="size-3" strokeWidth={2} />
+                    {person.isBlocked ? "Unblock" : "Block"}
+                  </Button>
+                )}
               </div>
             </div>
           </AdminSection>
@@ -341,26 +350,36 @@ export function PersonDetail({
 
           <AdminSection label="Careful">
             <div className="flex flex-col gap-2 rounded-[var(--radius)] border border-border bg-card p-3.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="justify-start"
-                disabled={busy}
-                onClick={() => setDialog("merge")}
-              >
-                <Merge className="size-3.5" strokeWidth={2} />
-                Merge into another account
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="justify-start"
-                disabled={busy}
-                onClick={() => setDialog("delete")}
-              >
-                <Trash2 className="size-3.5" strokeWidth={2} />
-                Delete this account
-              </Button>
+              {isSelf ? (
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  This is you. Blocking, merging and deleting are not offered on your own
+                  account here. Leaving is done from Settings, where it comes with the
+                  60-day grace period.
+                </p>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="justify-start"
+                    disabled={busy}
+                    onClick={() => setDialog("merge")}
+                  >
+                    <Merge className="size-3.5" strokeWidth={2} />
+                    Merge into another account
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="justify-start"
+                    disabled={busy}
+                    onClick={() => setDialog("delete")}
+                  >
+                    <Trash2 className="size-3.5" strokeWidth={2} />
+                    Delete this account
+                  </Button>
+                </>
+              )}
             </div>
           </AdminSection>
         </div>
