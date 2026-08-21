@@ -77,21 +77,117 @@ export function formatTimeAgo(date: Date): string {
   })
 }
 
+/**
+ * Parse a JSON array column (images, phones, ...) that is trusted to be an
+ * array of strings but not trusted to actually BE one: it is free-form JSON
+ * text in a Postgres column, not a schema Postgres enforces. `Array.isArray`
+ * alone let one non-string element (a stray number, object or null some old
+ * write path left behind) through, and every caller here calls `.trim()` or
+ * hands the value straight to a component expecting `string[]`, so a single
+ * bad element crashed the whole page it appeared on (audit Low 92) rather
+ * than just being invisible or dropped where it stood.
+ */
 export function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return []
   try {
     const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : []
   } catch {
     return []
   }
 }
 
+/**
+ * Split `text` into user-perceived characters ("grapheme clusters") rather
+ * than UTF-16 code units. Exported so a caller that needs the full list (not
+ * just a count or a first item) is never tempted to fall back to `[...text]`,
+ * which walks by codepoint and still splits a ZWJ sequence (a family emoji,
+ * a flag) into its parts.
+ */
+/* Built once, not per call.
+ *
+ * Constructing an Intl object is the expensive part of using one: it resolves
+ * a locale and loads ICU data. `getInitials` runs once per avatar and
+ * `plainExcerpt` once per card, so a feed of sixty posts was allocating a
+ * segmenter a hundred-odd times to read the first letter of a name. The
+ * instance is stateless -- `segment()` returns a fresh iterator each time --
+ * so one shared instance is safe.
+ *
+ * `undefined` locale on purpose: grapheme boundaries are a property of Unicode
+ * text, not of the reader's language, and pinning a locale here would only
+ * make the answer depend on where the server happens to think it is. */
+const GRAPHEME_SEGMENTER = new Intl.Segmenter(undefined, { granularity: "grapheme" })
+
+/* `Intl.Segmenter` with `granularity: "grapheme"` keeps a ZWJ family emoji
+ * and a flag (a pair of regional-indicator codepoints) each as ONE segment,
+ * which `[...text]` (codepoint-wise) does not. Baseline "widely available":
+ * Chrome/Edge 87, Safari 17, Firefox 125, and every Node this app runs on --
+ * so there is no fallback path to maintain. */
+function graphemes(text: string): string[] {
+  return Array.from(GRAPHEME_SEGMENTER.segment(text), (s) => s.segment)
+}
+
+/**
+ * The first user-perceived character of `text`, or "" for an empty string.
+ *
+ * `name[0]` reads the first UTF-16 code unit, not the first character. Most
+ * text is one code unit per character, but a name that opens with an emoji or
+ * an astral-plane script is not, and `[0]` there returns half a surrogate
+ * pair, which renders as the replacement-character box (audit Lows 38, 107).
+ */
+export function firstGrapheme(text: string): string {
+  if (!text) return ""
+  return graphemes(text)[0] ?? ""
+}
+
+/**
+ * Cut `text` to at most `maxLen` user-perceived characters, appending "..."
+ * only when something was actually removed. Used everywhere a body of text
+ * is shown as a teaser (letter titles, post/letter excerpts).
+ *
+ * `.slice(0, maxLen)` cuts by UTF-16 code unit, so a maxLen that lands inside
+ * a multi-unit character (an emoji, a flag, most scripts outside the Basic
+ * Multilingual Plane) leaves a lone surrogate half in the output, which
+ * renders as the replacement-character box instead of the character or
+ * nothing (audit Lows 38, 107). Counting and slicing by grapheme cluster
+ * (see `graphemes` above) means the cut always lands between two whole
+ * characters, never through one.
+ */
+export function truncateGraphemes(text: string, maxLen: number): string {
+  const units = graphemes(text)
+  if (units.length <= maxLen) return text
+  return units.slice(0, maxLen).join("").trimEnd() + "..."
+}
+
 export function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/)
+  const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return "?"
-  if (parts.length === 1) return parts[0][0].toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  if (parts.length === 1) return firstGrapheme(parts[0]).toUpperCase()
+  return (firstGrapheme(parts[0]) + firstGrapheme(parts[parts.length - 1])).toUpperCase()
+}
+
+/**
+ * The one ceiling a stored `User.name` may ever be, shared by every schema
+ * that writes or re-validates it (audit M45 / Low 109). `profileSchema` (the
+ * Settings form) already enforced this number; sign-up did not read it at
+ * all, splitting the same budget across two independent 50-character fields
+ * (`firstName` + " " + `lastName`) that could together reach 101 -- one past
+ * this ceiling, so a member who typed the maximum at both fields could sign
+ * up successfully and then find Settings refuses to save their own profile
+ * back unchanged. Importing this one constant into both schemas, instead of
+ * each hard-coding its own number, is what makes them structurally unable to
+ * drift apart again.
+ */
+export const FULL_NAME_MAX = 100
+
+/**
+ * Whether `firstName` and `lastName`, joined the way `registerUser` actually
+ * joins them (one space between), fit under `FULL_NAME_MAX`. Sign-up's
+ * combined-name check must ask this exact question rather than re-deriving
+ * it inline, so it can never disagree with what the join itself produces.
+ */
+export function fullNameFits(firstName: string, lastName: string): boolean {
+  return firstName.trim().length + 1 + lastName.trim().length <= FULL_NAME_MAX
 }
 
 // Vivid, evenly-walked palette (see docs/spec/color.md). Each passes AA against
@@ -307,6 +403,18 @@ export function batchTypeFromLeaving(
   yearLeft: number,
   batchYear: number
 ): "ISC" | "ICSE" | null {
+  // batchYear names the year the person's OWN cohort finished 12th, so it can
+  // never fall before the year that same person left the school -- leaving is
+  // an event inside that cohort's run, at the earliest in the same year they
+  // graduate (batchYear === yearLeft, a 12th-grade leaver). batchYear <
+  // yearLeft is not a short stay or an early leaver, it is the two fields
+  // swapped at signup, and the arithmetic below does not know that: it reads
+  // a negative gap as MORE grade than a 12th-grade leaver has, which is why
+  // this used to answer "ISC" -- the most senior credential there is -- for
+  // exactly the input that means the two years were typed backwards (audit
+  // Low 110). null is the honest answer: no board credential can be derived
+  // from a pair of years that cannot both be true.
+  if (batchYear < yearLeft) return null
   const gradeAtLeaving = 12 - (batchYear - yearLeft)
   if (gradeAtLeaving >= 12) return "ISC"
   if (gradeAtLeaving >= 10) return "ICSE"
@@ -404,12 +512,18 @@ export function letterTitle(
 ): string {
   if (title && title.trim()) return title.trim()
   const firstLine = content
+    // Same image rule as plainExcerpt below, and for the same reason: an
+    // image is a link with a bang on the front, so this MUST run before the
+    // generic link-stripping rule or a letter that opens with a photo reads
+    // its markdown as a link, leaving a stray "!" in front of the alt text
+    // (audit Low 88 -- the exact bug plainExcerpt already fixed).
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
     .split(/\n/)
     .map((l) => l.trim())
     .find(Boolean)
   if (!firstLine) return "A letter"
-  return firstLine.length > maxLen ? firstLine.slice(0, maxLen).trimEnd() + "..." : firstLine
+  return truncateGraphemes(firstLine, maxLen)
 }
 
 /**
@@ -441,8 +555,7 @@ export function plainExcerpt(content: string, maxLen = 160): string {
     .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\s+/g, " ")
     .trim()
-  if (plain.length <= maxLen) return plain
-  return plain.slice(0, maxLen).trimEnd() + "..."
+  return truncateGraphemes(plain, maxLen)
 }
 
 /**
