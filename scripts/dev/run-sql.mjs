@@ -5,19 +5,28 @@
  * Usage:
  *   node scripts/dev/run-sql.mjs path/to/file.sql
  *   node scripts/dev/run-sql.mjs --inline "SELECT count(*) FROM \"User\""
+ *   node scripts/dev/run-sql.mjs --env .env.demo path/to/file.sql
  *
  * Uses DIRECT_URL (session pooler, port 5432) like the Prisma CLI does, so DDL
- * works; falls back to DATABASE_URL. Reads .env then .env, never prints
- * the connection string. Prints row output as JSON (capped) so it is safe to
- * pipe into logs.
+ * works; falls back to DATABASE_URL. Reads .env by default, never prints the
+ * connection string. Prints row output as JSON (capped) so it is safe to pipe
+ * into logs.
+ *
+ * `--env <file>` points it at a DIFFERENT env file, which exists for exactly
+ * one reason: the demo deployment has its own Supabase project, and until
+ * 2026-08-21 there was no way to apply a manual migration to it. The result
+ * was silent schema drift -- `User.showEmail` shipped to the main database in
+ * commit eedbb3e and never reached the demo's, where every query selecting it
+ * then failed (found by a write-path review). A second database with no way
+ * to migrate it is a second database that will be wrong.
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import pg from "pg";
 
-function loadEnv() {
+function loadEnv(files) {
   const vars = {};
-  for (const file of [".env", ".env"]) {
+  for (const file of files) {
     const p = resolve(process.cwd(), file);
     if (!existsSync(p)) continue;
     for (const line of readFileSync(p, "utf8").split("\n")) {
@@ -31,19 +40,26 @@ function loadEnv() {
   return vars;
 }
 
-const env = loadEnv();
+const argv = process.argv.slice(2);
+let envFile = ".env";
+if (argv[0] === "--env") {
+  envFile = argv[1];
+  argv.splice(0, 2);
+}
+
+const env = loadEnv([envFile]);
 const url = env.DIRECT_URL || env.DATABASE_URL;
 if (!url) {
-  console.error("No DIRECT_URL or DATABASE_URL found in .env");
+  console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
   process.exit(1);
 }
 
-const [, , arg, inlineSql] = process.argv;
+const [arg, inlineSql] = argv;
 let sql;
 if (arg === "--inline") sql = inlineSql;
 else if (arg) sql = readFileSync(resolve(process.cwd(), arg), "utf8");
 if (!sql) {
-  console.error("Usage: run-sql.mjs <file.sql> | --inline \"SQL\"");
+  console.error("Usage: run-sql.mjs [--env <file>] <file.sql> | --inline \"SQL\"");
   process.exit(1);
 }
 
