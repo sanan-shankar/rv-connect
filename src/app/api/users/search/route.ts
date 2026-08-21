@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { insensitive, escapeLike } from "@/lib/db-text";
 import { rateLimit } from "@/lib/rate-limit";
 import { logSearch } from "@/lib/search-log";
+import { FULL_NAME_MAX } from "@/lib/utils";
+
+/** Nobody's name is seven words. Four would do; six leaves room to be wrong. */
+const MAX_SEARCH_TERMS = 6;
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -27,14 +31,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: limited.error }, { status: 429 });
   }
 
-  const q = req.nextUrl.searchParams.get("q")?.trim();
+  /* Capped at the length of the longest name this app will store. A query
+     cannot usefully be longer than the thing it is searching for, and a query
+     string is public input: without this, `q` was read straight off the URL at
+     whatever length the client felt like (audit M44). */
+  const q = req.nextUrl.searchParams.get("q")?.trim().slice(0, FULL_NAME_MAX);
   if (!q || q.length < 1) {
     return NextResponse.json([]);
   }
 
   // Every whitespace-separated token has to appear somewhere in the name, so
   // "afia sh" finds "Afia Shankar" and a trailing space never kills the match.
-  const terms = q.split(/\s+/).filter(Boolean);
+  //
+  // Capped, because each token becomes its own ILIKE in an AND: "a b c d ..."
+  // built one clause per word with no ceiling, so a crafted query handed
+  // Postgres an arbitrarily large conjunction to plan and run. The extra words
+  // are dropped rather than refused: every additional token only NARROWS the
+  // result, so ignoring the tail returns a superset of what was asked for --
+  // the safe direction for a name box, and invisible to anyone typing a real
+  // name into it.
+  const terms = q.split(/\s+/).filter(Boolean).slice(0, MAX_SEARCH_TERMS);
 
   const users = await prisma.user.findMany({
     where: {

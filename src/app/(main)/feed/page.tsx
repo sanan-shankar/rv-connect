@@ -9,6 +9,7 @@ import { RAIL_GRID, RAIL_ASIDE } from "@/components/layout/rail-grid";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { NewPostCTA } from "@/components/feed/new-post-cta";
 import { CelebrationSignals } from "@/components/mascot/moments/celebration-signals";
+import { batchTargetKey } from "@/lib/post-visibility-rule";
 
 export const metadata: Metadata = {
   title: "Feed",
@@ -92,7 +93,7 @@ export default async function FeedPage({
             userId={session.user.id}
             viewer={{
               cities: userPlaces.map((p) => p.city),
-              batch: `${session.user.batchType}-${session.user.batchYear}`,
+              batch: batchTargetKey(session.user.batchType, session.user.batchYear),
               isAdmin: session.user.role === "admin",
             }}
           />

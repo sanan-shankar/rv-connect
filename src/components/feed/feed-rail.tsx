@@ -22,8 +22,8 @@ import { PulseModule } from "./rail/pulse-module";
 export type RailViewer = {
   /** UserPlace cities, for cityScope matching. */
   cities: string[];
-  /** e.g. "isc-2017", for targetBatches matching. */
-  batch: string;
+  /** e.g. "ISC-2017", for targetBatches matching; null if they have no batch. */
+  batch: string | null;
   /** Admins read everything, so they skip both filters. */
   isAdmin: boolean;
 };

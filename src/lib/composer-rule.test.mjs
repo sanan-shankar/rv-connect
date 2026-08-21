@@ -109,7 +109,14 @@ test("the feed rail's letter teaser is scoped to who is looking", () => {
     "LettersModule queries with no audience filter again: a city-scoped letter's " +
       "title, excerpt and author are shown to every member, and clicking it 404s (B-045)"
   );
-  assert.ok(/targetBatches/.test(rail), "the rail ignores a letter's batch audience");
+  /* Was a grep for `targetBatches`. The three queries that applied this
+     audience each hand-built the same OR, so they were folded into one shared
+     `batchScopeWhere` fragment (audit M43) and the literal column name no
+     longer appears here -- pin the filter, not the spelling. */
+  assert.ok(
+    /batchScopeWhere\(viewer\.batch\)|targetBatches/.test(rail),
+    "the rail ignores a letter's batch audience"
+  );
   assert.ok(/viewer/.test(rail), "the rail query has no viewer context at all");
 });
 
