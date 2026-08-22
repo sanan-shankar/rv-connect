@@ -33,10 +33,8 @@ export default async function CollectionPage() {
 
   return (
     <div>
-      <PageHeader
-        title="The Valley Collection"
-        subtitle="A shared picture of the place: the banyan, Rishi Konda, the birds, the light."
-      />
+      {/* No subtitle (owner, 2026-08-22): the grid says what the page is. */}
+      <PageHeader title="The Valley Collection" />
       <CollectionClient
         pending={pending}
         areaOptions={areaGroups.map((g) => g.area!).filter(Boolean)}
