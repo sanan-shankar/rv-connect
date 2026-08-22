@@ -11,6 +11,7 @@ import { maskEmail } from "@/lib/mask-email";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { TourProvider } from "@/components/tour/tour-provider";
 import { PostHogIdentify } from "@/components/analytics/posthog-identify";
+import { InstallPromptCapture } from "@/components/pwa/install-prompt";
 import { IS_DEMO } from "@/lib/demo";
 import { DemoBar } from "@/components/demo/demo-bar";
 
@@ -95,6 +96,12 @@ export default async function MainLayout({
       {/* Attaches events to a member so a funnel can follow one person across
           pages and devices. Opaque id plus two coarse attributes only -- never
           the name, address or email. See the component for the reasoning. */}
+      {/* Renders nothing. It is here so its module is evaluated on the first
+          authenticated page rather than on the profile page, which is where
+          the install tile lives: Chrome fires beforeinstallprompt once per
+          hard page load and thirty seconds in, long before anybody has
+          navigated to their own profile and pressed Edit. See the component. */}
+      <InstallPromptCapture />
       <PostHogIdentify
         userId={session.user.id}
         accountType={session.user.accountType ?? null}
