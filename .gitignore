@@ -111,3 +111,4 @@ supabase/.temp/
 /e2e/.output/
 /e2e/.report/
 /e2e/.auth/
+.tmp-shots/
