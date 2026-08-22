@@ -132,10 +132,17 @@ function PhoneFields({
         placeholder="+91"
         ariaLabel="Country code"
         delay={delay}
-        // Wide enough for a 3-digit code plus its +, never wider: a country
-        // code is a short, known shape and giving it room to grow would
-        // read as an invitation to type the whole number in here again.
-        className="w-[3.4em] shrink-0 text-[15px] tabular-nums"
+        // The cap on a country code is maxLength, not a width. w-[3.4em] was
+        // 51px against "+44"'s 26px, so the number sat 29px away from its own
+        // code and the pair read as two unrelated facts rather than one phone
+        // number (owner, 2026-08-22: "the space for the country code is too
+        // long"). 4 characters is the real ceiling -- a + and the three digits
+        // that are all the ITU assigns -- and it stops a whole number being
+        // pasted in here far harder than a short box ever did. The slot hugs
+        // its text now, like every other pen on the sheet, so gap-1 leaves
+        // exactly the one space "+44 7778889999" is written with.
+        maxLength={4}
+        className="shrink-0 text-[15px] tabular-nums"
       />
       <PenValue
         value={rest}

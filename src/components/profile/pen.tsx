@@ -60,11 +60,21 @@ import { SPRINGS } from "@/components/common/motion";
 const PEN_FIELD =
   "m-0 border-0 bg-transparent p-0 text-inherit outline-none disabled:cursor-default";
 
-/* The rule, dotted, in canopy. A repeating gradient rather than a dotted
-   border, so the dash rhythm is ours rather than the browser's and so it can
-   live on an element with no border of its own to style. */
-const RULE_IMAGE =
-  "repeating-linear-gradient(90deg, var(--color-canopy) 0 2px, transparent 2px 5px)";
+/* The rule, dotted, in canopy. A gradient rather than a dotted border, so the
+   dash rhythm is ours rather than the browser's and so it can live on an
+   element with no border of its own to style.
+
+   ONE 5px tile plus `background-repeat: round`, not a repeating-linear-
+   gradient. A repeating gradient tiles at a fixed 5px and stops wherever the
+   box stops, so unless a value happens to measure a multiple of 5 -- which it
+   does not, since these boxes are sized to whatever somebody typed -- the last
+   dash is sliced part way through and the rule ends on a stub (owner,
+   2026-08-22: "the first dotted line is getting cutoff"). `round` is the one
+   background-repeat mode that solves exactly this: it scales the tile so a
+   whole number of them spans the box. The rhythm shifts by at most half a tile
+   spread over every tile in the rule -- under 0.25px on a 51px slot, invisible
+   -- and every rule now ends on a complete dash. */
+const RULE_TILE = "linear-gradient(90deg, var(--color-canopy) 0 2px, transparent 2px 5px)";
 
 /**
  * The rule under a pen. Its own element, absolutely positioned, so it adds no
@@ -76,7 +86,11 @@ export function PenRule({ on, delay = 0 }: { on: boolean; delay?: number }) {
     <motion.span
       aria-hidden
       className="pointer-events-none absolute inset-x-0 -bottom-1 h-[2px] origin-left"
-      style={{ backgroundImage: RULE_IMAGE }}
+      style={{
+        backgroundImage: RULE_TILE,
+        backgroundSize: "5px 100%",
+        backgroundRepeat: "round no-repeat",
+      }}
       initial={false}
       animate={{ scaleX: on ? 1 : 0, opacity: on ? 0.45 : 0 }}
       transition={{ ...SPRINGS.gentle, delay: on ? delay : 0 }}
