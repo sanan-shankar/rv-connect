@@ -61,37 +61,50 @@ const PALETTES: Palette[] = [
     mid: C.sky,
     back: C.cinnamon,
   },
-  {
-    name: "Light green, orange, blue",
-    front: C.leafLight,
-    mid: C.cinnamon,
-    back: C.sky,
-  },
-  {
-    name: "Light green, blue, orange",
-    front: C.leafLight,
-    mid: C.sky,
-    back: C.cinnamon,
-  },
 ];
 
-/* Ideas the brief did not ask for, kept separate so they do not muddy the
-   six real candidates above. */
-const EXTRAS: Palette[] = [
-  {
-    name: "Three greens",
-    front: C.leafLight,
-    mid: C.leaf,
-    back: C.canopy,
-    note: "One hue, three steps. The only option that still looks like a hill at 16px.",
-  },
+/* Every order of cream, cinnamon and blue. Six of them, which is all there is. */
+const CREAM_SET: Palette[] = [
   {
     name: "Cream, orange, blue",
     front: C.cream,
     mid: C.cinnamon,
     back: C.sky,
-    note: "Keeps the pale front hill it has now, brand colours only behind it.",
   },
+  {
+    name: "Cream, blue, orange",
+    front: C.cream,
+    mid: C.sky,
+    back: C.cinnamon,
+  },
+  {
+    name: "Orange, cream, blue",
+    front: C.cinnamon,
+    mid: C.cream,
+    back: C.sky,
+  },
+  {
+    name: "Orange, blue, cream",
+    front: C.cinnamon,
+    mid: C.sky,
+    back: C.cream,
+  },
+  {
+    name: "Blue, cream, orange",
+    front: C.sky,
+    mid: C.cream,
+    back: C.cinnamon,
+  },
+  {
+    name: "Blue, orange, cream",
+    front: C.sky,
+    mid: C.cinnamon,
+    back: C.cream,
+  },
+];
+
+/* Two that belong to neither set. */
+const TAIL: Palette[] = [
   {
     name: "Green, orange, cream",
     front: C.leaf,
@@ -108,6 +121,14 @@ const EXTRAS: Palette[] = [
     note: "No colour at all. Needs a coloured tile under it.",
   },
 ];
+
+/** What src/app/icon.svg paints today. */
+const SHIPPED: Palette = {
+  name: "Blue, cream, orange",
+  front: C.sky,
+  mid: C.cream,
+  back: C.cinnamon,
+};
 
 /* The four tiles every palette is shown on. */
 const TILES = [
@@ -236,6 +257,8 @@ export default function IconColoursLab() {
 .s-set { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:12px;
   box-shadow:inset 0 0 0 1px rgba(30,28,22,.1); }
 .solids { display:flex; flex-wrap:wrap; gap:10px; }
+.tilecheck { display:flex; flex-wrap:wrap; gap:16px; }
+.tilecheck .card { width:min(100%,520px); }
 /* 44px of side padding costs a whole tile column on a 390px phone. */
 @media (max-width:640px) {
   .ic { padding:28px 18px 72px; }
@@ -270,7 +293,7 @@ export default function IconColoursLab() {
 
       <h2>Green first</h2>
       <p className="sub">
-        Six orders. Three greens, and for each one the cinnamon and the blue
+        Four orders. Two greens, and for each one the cinnamon and the blue
         either way round.
       </p>
       <div className="grid">
@@ -279,11 +302,49 @@ export default function IconColoursLab() {
         ))}
       </div>
 
-      <h2>Four more worth a look</h2>
-      <p className="sub">Not asked for. Included because they answer the same complaint.</p>
+      <h2>Cream, orange and blue: all six</h2>
+      <p className="sub">
+        Every order there is. Watch the cream: wherever it lands, it vanishes on
+        the paper and white tiles and does its best work on the two dark ones.
+      </p>
       <div className="grid">
-        {EXTRAS.map((p) => (
+        {CREAM_SET.map((p) => (
           <Row key={p.name} p={p} />
+        ))}
+      </div>
+
+      <h2>Two more</h2>
+      <p className="sub">Neither set has a home for these.</p>
+      <div className="grid">
+        {TAIL.map((p) => (
+          <Row key={p.name} p={p} />
+        ))}
+      </div>
+
+      <h2>The tile: pine or canopy</h2>
+      <p className="sub">
+        Blue, cream, cinnamon is the set that shipped. The only thing still
+        open is the green behind it. Pine #173F35 is what the icon has always
+        used and appears nowhere else in the app. Canopy #235C49 is the sidebar
+        green exactly.
+      </p>
+      <div className="tilecheck">
+        {[
+          { name: "Pine #173F35", bg: "#173F35" },
+          { name: "Canopy #235C49", bg: "#235C49" },
+        ].map((t) => (
+          <div className="card" key={t.bg}>
+            <div className="cap">
+              <span className="nm">{t.name}</span>
+            </div>
+            <div className="tiles" style={{ alignItems: "flex-end" }}>
+              <Icon p={SHIPPED} bg={t.bg} size={160} />
+              <Icon p={SHIPPED} bg={t.bg} size={64} />
+              <Icon p={SHIPPED} bg={t.bg} size={48} />
+              <Icon p={SHIPPED} bg={t.bg} size={32} />
+              <Icon p={SHIPPED} bg={t.bg} size={16} />
+            </div>
+          </div>
         ))}
       </div>
 
