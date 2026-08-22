@@ -6,6 +6,14 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    /* So a unit-tested lib module can import a sibling.
+       src/lib/*.test.mjs files run under bare node, which resolves neither the
+       "@/" alias nor an extensionless relative specifier -- place-input.ts had
+       to write "./place-aliases.ts" to be loadable by its own test, and tsc
+       rejects a .ts extension unless told the emit never happens. It does not:
+       noEmit above is what makes this safe, and Next compiles these files
+       itself. */
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",

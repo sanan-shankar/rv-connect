@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { rateLimit } from "@/lib/rate-limit";
 import { logSearch } from "@/lib/search-log";
+import { canonicalPlaceId } from "@/lib/place-aliases";
+import { formatPlaceLabel } from "@/lib/place-input";
 
 /**
  * GET /api/places/search?q=<text>
@@ -47,24 +49,6 @@ type PlaceRow = {
   lat: number;
   lng: number;
 };
-
-// Built once (locale-only, not request-dependent) rather than per request.
-const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
-
-function countryName(code: string): string {
-  try {
-    return regionNames.of(code) ?? code;
-  } catch {
-    return code;
-  }
-}
-
-function formatLabel(row: PlaceRow): string {
-  const parts = [row.name];
-  if (row.admin1) parts.push(row.admin1);
-  if (row.country !== "IN") parts.push(countryName(row.country));
-  return parts.join(", ");
-}
 
 // Escape LIKE/ILIKE metacharacters in user input so a typed "%" or "_" is
 // matched literally instead of acting as a wildcard.
@@ -119,10 +103,40 @@ export async function GET(req: NextRequest) {
     LIMIT 8
   `);
 
-  const results: PlaceSearchResult[] = rows.map((row) => ({
-    ...row,
-    label: formatLabel(row),
-  }));
+  /* An aliased row is answered with the row it would be saved as, so nobody
+     is offered a choice the save is going to overrule (place-aliases.ts).
+     Typing "delhi" matches the eleven-million-population Delhi row exactly
+     and puts it first; swapping it here is what makes "New Delhi, Delhi" the
+     thing under the cursor, which is the whole of why new members kept
+     landing on the other one. The canonical row is usually already in the
+     eight this query returned, so the extra fetch below runs only when an
+     aliased row came back without its replacement, and never at all for the
+     overwhelming majority of queries that touch no alias.
+
+     Deduped after, first hit winning: a query can match both rows of an
+     aliased pair, and two identical "New Delhi, Delhi" lines in a dropdown
+     would read as a bug. That can leave fewer than the LIMIT 8 rows, which
+     is the correct number of distinct places rather than a short page. */
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const missing = [
+    ...new Set(rows.map((r) => canonicalPlaceId(r.id)).filter((id) => !byId.has(id))),
+  ];
+  if (missing.length > 0) {
+    const extra = await prisma.place.findMany({
+      where: { id: { in: missing } },
+      select: { id: true, name: true, admin1: true, country: true, lat: true, lng: true },
+    });
+    for (const r of extra) byId.set(r.id, r);
+  }
+
+  const results: PlaceSearchResult[] = [];
+  const seen = new Set<number>();
+  for (const row of rows) {
+    const resolved = byId.get(canonicalPlaceId(row.id)) ?? row;
+    if (seen.has(resolved.id)) continue;
+    seen.add(resolved.id);
+    results.push({ ...resolved, label: formatPlaceLabel(resolved) });
+  }
 
   /* after(), not `void`: see src/app/api/users/search/route.ts -- the same
      freeze-after-response loss (bug audit Lows 25/35/44/72/77/82/87). */
