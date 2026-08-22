@@ -224,6 +224,35 @@ owner's own screen and saying concretely what looks wrong, since "body parts are
 describing clipping, rasterisation or the flight pose rather than pivots. Get a screenshot from the
 owner at zoom before writing any more code.
 
+### 18. Feed photos have no reserved space, so the page jumps as each one loads (owner will fold into a photo rework)
+
+**2026-08-21, from the pre-release audit (Low 101).** A photo in the feed occupies NO height until
+it has downloaded, so the moment it lands everything below it moves down. If somebody is reading a
+post and a photo above them finishes loading, the sentence they are on slides away.
+
+The fix is to reserve the space in advance, and reserving space means committing to a shape in
+advance. Two ways, and both are the owner's call, which is why nothing was changed:
+
+- **Crop every feed photo to one fixed aspect ratio** (`aspect-[4/3]` on the button plus
+  `object-cover`, which the cards already use). No jumping, but a tall portrait photo loses its top
+  and bottom in the feed.
+- **Switch `<img>` to `next/image`**, which measures each photo and reserves the right box for it.
+  The good answer visually, but it routes every photograph through Vercel's METERED image
+  optimisation, which has a monthly quota and a bill past it.
+
+**The owner is reworking how photos crop and size (2026-08-21) and will fold this in.**
+
+Two related things ride along with the same decision:
+- The same `<img>` is why photos are served at full resolution rather than at the size they render.
+- **Low 16, the Download button in the photo viewer**, is the other half: it fetches the image so it
+  can save it with a filename, and that fetch is cross-origin to `pub-*.r2.dev`, which sends no CORS
+  header, so it silently falls back to opening the photo in a tab. That one is fixed by the custom
+  image domain (a bucket CORS policy only applies to a custom domain, never to `r2.dev`), not by the
+  cropping decision.
+
+- Size: S for the fixed-ratio version, M for `next/image` plus the quota question.
+- Where: `src/components/posts/post-card.tsx:395-425`, and the same shape on the letter page.
+
 ---
 
 ## Settled, do not re-open
