@@ -13,6 +13,7 @@ import { FlagPersonDialog } from "@/components/profile/flag-person-dialog";
 import { StrayHair } from "@/components/profile/stray-hair";
 import { STRAY_HAIR_USER_IDS } from "@/components/profile/stray-hair-ids";
 import { LetterheadProfile } from "@/components/profile/letterhead-profile";
+import { InstallAppTile } from "@/components/pwa/install-app-tile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 import { viewerMaySeeContacts } from "@/lib/member-gate";
@@ -397,6 +398,12 @@ export default async function ProfilePage({
         ) : null
       }
       flagNode={!isOwnProfile ? <FlagPersonDialog userId={user.id} name={user.name} /> : null}
+      /* Admins only, on their own sheet, while this is being tried out (owner,
+         2026-08-22: "for now only show it for admins"). Opening it to everyone
+         is deleting `isAdmin &&` from this line and nothing else -- the tile
+         itself already refuses to appear on a desktop or on a phone that has
+         the app, which are the two rules that are not about who you are. */
+      installNode={isAdmin && isOwnProfile ? <InstallAppTile /> : null}
       /* Only your own sheet gets a pen. `?edit=1` is how /settings hands you
          one: that route redirects here rather than rendering a form of its
          own, so "Settings" in the nav lands on your profile and it opens

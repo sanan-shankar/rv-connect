@@ -267,6 +267,7 @@ export function LetterheadProfile({
   photosNode,
   adminNode,
   flagNode,
+  installNode,
   draft,
   deviceTheme,
 }: {
@@ -298,6 +299,12 @@ export function LetterheadProfile({
   photosNode: ReactNode;
   adminNode: ReactNode;
   flagNode: ReactNode;
+  /** The "add it to your phone" tile, or null. A node rather than a boolean
+   *  because who is allowed to see it is the page's business, not the
+   *  sheet's: today that is admins on their own profile only (owner,
+   *  2026-08-22: "for now only show it for admins"), and opening it up is a
+   *  one-line change where that decision is written down rather than here. */
+  installNode?: ReactNode;
   /** Only ever passed on your own profile. Its presence is what makes the
    *  sheet typeable at all. */
   draft?: ProfileDraft;
@@ -1340,6 +1347,13 @@ export function LetterheadProfile({
                 </Link>
               </div>
 
+              {/* Directly under the dark mode tile, which is where the owner
+                  put it, and for the same reason it belongs next to it: both
+                  are settings for THIS device rather than facts about you.
+                  It hides itself on anything that is not a phone and on a
+                  phone that already has the app. */}
+              {installNode}
+
               {/* Two quiet lines, not red-bordered boxes: the dialog is where
                   a warning belongs. The export sits beside deletion because
                   the person most likely to want their data out is the one
@@ -1351,7 +1365,7 @@ export function LetterheadProfile({
                   href="/api/account/export"
                   className="state-layer rounded-full px-2 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-                  Download your data
+                  Request your data
                 </a>
                 <span aria-hidden className="text-[13px] text-muted-foreground/50">·</span>
                 <button
@@ -1359,7 +1373,7 @@ export function LetterheadProfile({
                   onClick={() => setConfirmDelete(true)}
                   className="state-layer rounded-full px-2 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-heart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-                  Delete your account
+                  Delete account
                 </button>
               </div>
             </motion.div>
