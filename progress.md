@@ -1,5 +1,41 @@
 # Progress Log
 
+## Session 2026-08-22 — The Turnstile checkbox: why it shows, and the second tick
+
+The owner reported the bot check appearing in incognito, on his sister's Safari desktop in the UK,
+and in a plain Samsung Chrome tab — and that she had to tick it **twice**. One commit on `main`, not
+pushed. `npm run check` green (54 tests), `npm run visual` 23/23 with no baseline rewrites.
+
+- **Why it shows is not a bug, and not something the code can fix.** The widget MODE lives in the
+  Cloudflare dashboard and is set to **Managed**, whose documented job is to escalate to a checkbox
+  by visitor risk. Our `appearance: "interaction-only"` was already correct and is why most members
+  see nothing. Incognito, Safari (ITP, and Private Relay's shared IP) and a fresh mobile profile all
+  read as an unrecognised visitor. Invisible mode would end it, and was recommended against and
+  declined: it has no interactive fallback, so an alum Cloudflare cannot clear gets refused with no
+  way to prove themselves — the M07 loop again. Pre-Clearance needs the hostname proxied through
+  Cloudflare; `rishivalley.space` answers `server: Vercel`, so it is not available.
+- **The second tick WAS ours.** `getToken()` re-armed the widget as it handed the token over, to
+  brew the next one early. Reproduced with Cloudflare's forced-challenge test key and measured: the
+  token was gone **33ms** after the click, while the button read "Signing in..." for another 2.5s.
+  So the tick wiped itself in front of them. Re-arming now belongs to the three forms and fires only
+  once an attempt has failed. Verified: the token now survives to 1500ms and clears at 3000ms beside
+  the refusal — and that refusal is "Invalid email or password", the positive control proving the
+  handed-out token still passes siteverify.
+- **It fits the form now.** `size: "flexible"` replaced the fixed 300px box that sat short of the
+  400px fields, and a `clip-path` rounds it to the fields' 12px. Measured flush at 400px desktop and
+  338px at 390. Nothing inside the challenge can be styled — it is a cross-origin iframe, so the
+  white fill, the type and the logo are Cloudflare's and stay Cloudflare's.
+- **The visual suite earned its keep.** The obvious `overflow-hidden rounded-*` made the 0px-tall
+  holder a block formatting context, which stopped margins collapsing through it; the login form's
+  `space-y-3` paid 12px twice and every row slid 6px. Caught by `npm run visual` on the page nobody
+  was looking at. `clip-path` paints the same corners and does not touch layout. In `TRAPS.md` now.
+- **`TURNSTILE_DEV_CHALLENGE=1`** pins the always-challenge test key locally. Dev otherwise pins the
+  invisible always-pass key, so nobody here had ever watched a member tick the box, which is exactly
+  how the re-arm bug shipped. Off by default; every unattended flow needs the widget passing alone.
+- **Known limit, left deliberately:** below a 352px viewport the column is narrower than Cloudflare's
+  300px floor and the widget's right edge clips. No phone in use is that narrow (smallest current
+  iPhone is 375). Still better than the old fixed box, which overflowed the page outright.
+
 ## Session 2026-08-21 — The pre-release fix session, part two
 
 Picked up the "Still open" list from part one. **Fifteen of the sixteen remaining canonical findings

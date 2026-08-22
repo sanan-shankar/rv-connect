@@ -174,6 +174,27 @@ outright with no way to prove themselves. Since 2026-08-20 the forms answer an u
 instantly ("Please tick the box first") instead of hanging out a 12-second token timeout into a
 doomed request.
 
+Three things changed on 2026-08-22, after the owner's sister met the checkbox on Safari in the UK
+and had to tick it twice:
+
+- **The second tick was ours.** `getToken()` re-armed the widget the instant it handed the token
+  over, to have the next one brewing early. Measured at 33ms into a 2.5s sign-in — so anyone with a
+  checkbox watched their tick wipe itself under a button still reading "Signing in...". Re-arming
+  now belongs to the form and happens only once an attempt has actually failed, which is when a
+  retry becomes possible and the spent token genuinely has to be replaced.
+- **It fits the form now.** `size: "flexible"` instead of the fixed 300px box, which had sat short
+  of the 400px fields with eggshell beside it, plus a `clip-path` rounding it to the fields' 12px.
+  Everything inside the challenge is a cross-origin iframe and cannot be styled: not the white
+  fill, not the type, not the logo. The width, the corners and the frame around it are the whole of
+  what we own. (`clip-path`, not `overflow-hidden` — see the comment in `turnstile-widget.tsx`.)
+- **The interactive path can be seen locally.** `TURNSTILE_DEV_CHALLENGE=1` pins Cloudflare's
+  always-challenge test key. Dev otherwise pins the invisible always-pass key, so nobody here had
+  ever watched a member tick the box, which is exactly how the re-arm bug shipped.
+
+Pre-Clearance, which would stop re-challenging someone who has already passed, needs the hostname
+proxied through Cloudflare. `rishivalley.space` answers `server: Vercel` with no `cf-ray`, so it is
+DNS-only and Pre-Clearance is not available to us.
+
 ## Traps that have already cost time
 
 1. A local production server needs `AUTH_TRUST_HOST=1` or every auth route 500s and refusal tests

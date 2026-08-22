@@ -408,6 +408,12 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                 ? SIGN_IN_UNAVAILABLE
                 : "Invalid email or password.",
         );
+        /* Re-arm for the retry. The token that attempt carried is spent, so
+           the next one needs a fresh challenge; and where Cloudflare is
+           showing a checkbox, this is the moment it comes back — after the
+           refusal, next to the reason, rather than blanking itself under a
+           button still reading "Signing in..." (owner report 2026-08-22). */
+        turnstileRef.current?.reset();
       } else if (result?.ok) {
         // ?next= carries a link that was followed before signing in (a
         // Catch-up invite, say) so the person lands back on it rather than
@@ -416,6 +422,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
       }
     } catch {
       setError("Something went wrong. Please try again.");
+      turnstileRef.current?.reset(); // same reasoning as the refusal above
     } finally {
       setLoading(false);
     }

@@ -418,6 +418,11 @@ export function SignupForm({
       if (result.error) {
         setError(result.error);
         hoopoe.react("error");
+        // Spent token; the retry needs a new one. Explicitly here and in the
+        // catch, NOT in the finally below — the "interaction" and "blocked"
+        // returns above pass through the finally too, and on those nothing
+        // was spent and a reset would wipe a challenge mid-solve.
+        turnstileRef.current?.reset();
       } else {
         // User created — sign in with credentials directly
         const email = formData.get("email") as string;
@@ -460,6 +465,7 @@ export function SignupForm({
     } catch {
       setError("Something went wrong. Please try again.");
       hoopoe.react("error");
+      turnstileRef.current?.reset();
     } finally {
       /* NOT on the success path. The celebration runs for 1.3 seconds before
          the navigation, and re-enabling the button under it let a second click
