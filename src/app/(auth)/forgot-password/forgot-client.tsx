@@ -96,6 +96,8 @@ export function ForgotPasswordClient({
       setError(result.error);
       setSending(false);
       void apiRef.current?.react("wrong");
+      // Spent token; re-arm so another go has a fresh one.
+      turnstileRef.current?.reset();
       return;
     }
 

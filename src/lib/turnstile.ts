@@ -16,6 +16,9 @@ import { IS_DEMO } from "./demo";
  *  its tokens — so local sign-in, the e2e suite and the visual suite run
  *  exactly the enforcement path production runs, minus the challenge.
  *  A request with NO token is refused in both environments alike.
+ *  `TURNSTILE_DEV_CHALLENGE=1` swaps in the key that always challenges,
+ *  for working on the interactive path; off by default, because every
+ *  unattended flow depends on the widget passing on its own.
  * ------------------------------------------------------------------ */
 
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -28,6 +31,24 @@ const IS_PROD = process.env.NODE_ENV === "production";
  *  met a widget that was designed never to be seen (2026-08-20). */
 const TEST_SITE_KEY = "1x00000000000000000000BB";
 const TEST_SECRET_KEY = "1x0000000000000000000000000000000AA";
+
+/** Cloudflare's third published test key: the widget ALWAYS puts its
+ *  checkbox up, whoever you are. `TURNSTILE_DEV_CHALLENGE=1` pins it in
+ *  development, and it is the only way to see the interactive path without
+ *  going to production in an incognito window.
+ *
+ *  Worth having as a switch rather than a five-minute local hack, because
+ *  not having it is what let a real bug ship: dev pins the invisible
+ *  always-pass key above, so nobody here had ever WATCHED a member tick
+ *  the box, and the widget was re-arming itself 33ms into a 2.5s sign-in
+ *  and wiping the tick out from under them. Invisible locally meant
+ *  untested locally (owner report, 2026-08-22).
+ *
+ *  It pairs with the always-pass SECRET below on purpose: the dummy token
+ *  a tick produces here is accepted, so the flow runs end to end and a
+ *  refusal is about the password, never the widget. */
+const TEST_CHALLENGE_SITE_KEY = "3x00000000000000000000FF";
+const DEV_CHALLENGE = process.env.TURNSTILE_DEV_CHALLENGE === "1";
 
 /** TURNSTILE_DEV_REAL=1 makes non-production use the real env pair instead
  *  of the pinned test pair — the escape hatch for debugging a live Turnstile
@@ -44,7 +65,7 @@ export function turnstileSiteKey(): string | null {
   // by the proxy and its "login" is a constant session, so a real widget
   // there could only ever be decoration wired to real Cloudflare traffic.
   if (IS_DEMO) return null;
-  if (!IS_PROD && !DEV_REAL) return TEST_SITE_KEY;
+  if (!IS_PROD && !DEV_REAL) return DEV_CHALLENGE ? TEST_CHALLENGE_SITE_KEY : TEST_SITE_KEY;
   return process.env.TURNSTILE_SITE_KEY || null;
 }
 

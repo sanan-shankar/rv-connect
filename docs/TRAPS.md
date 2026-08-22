@@ -131,6 +131,17 @@ needs its own `connect-src` entry. Without one the browser refuses the PUT, the 
 and every upload silently falls back through the server and its ~4.5MB body cap -- which is the one
 thing presigning exists to avoid. It was in exactly that state until 2026-08-21.
 
+## Layout
+
+**`overflow-hidden` on a wrapper that is usually empty costs you a `space-y` gap.** Hidden overflow
+makes the element a block formatting context, and a BFC stops margins collapsing THROUGH it. The
+Turnstile holder is 0px tall for everyone Cloudflare waves past, so rounding its corners with
+`overflow-hidden rounded-*` made the login form's `space-y-3` pay 12px twice instead of once: the
+form grew 12px and, being centred, every row slid 6px (measured 206px against 218px). Use
+`clip-path: inset(0 round <radius>)` when you only want the corners — it paints identically and
+does not touch layout. Nothing but `npm run visual` caught this; the page it broke was the one
+nobody was looking at, because the widget it belongs to is invisible.
+
 ## Testing
 
 **A testable module must have no relative VALUE imports.** `node:test` cannot resolve an
