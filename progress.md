@@ -56,8 +56,8 @@ export in a `"use server"` file 500s every importing route at RUNTIME while `tsc
 The formal bug audit finished this morning with 45 canonical findings; this session fixed the two
 Criticals, every launch-blocking High and the whole scale phase. Fourteen commits on `main`, none
 pushed. `npm run check` green throughout (38 unit tests, up from 26), `npm run visual` 23/23 twice.
-The disposition ledger is `docs/planning/audits/fix-log.md`; the brief for the rest is
-`docs/planning/audits/fix-session-2-prompt.md`.
+(The ledger and the session briefs were working papers and were removed once the review closed on
+2026-08-21; the durable part lives in `docs/TRAPS.md` and in bugs.md's "Settled" section.)
 
 - **Deleting an account used to destroy other people's writing.** `Group.creatorId` and
   `CatchupPrompt.authorId` were both `ON DELETE CASCADE` on a column that only records who happened
@@ -2316,7 +2316,7 @@ Now in .claude/skills/: Sentry's code-simplifier (Anthropic's official one, vend
 and sentry-code-review; goal-sloc (SLOC-as-scoreboard with anti-gaming rules); Effeilo's
 front-refactor and front-review; Dimillian's bug-hunt-swarm and review-swarm; and the 21k-line
 code-review-skill reference. In .claude/agents/: Anthropic's five pr-review-toolkit agents,
-silent-failure-hunter the prize among them. In docs/planning/audits/assets/: Anthropic's
+silent-failure-hunter the prize among them. In docs/planning/audit-assets/: Anthropic's
 production review pipeline verbatim (findings must each survive an independent validation agent)
 and the Big List of Naughty Strings for input fuzzing. The prompts themselves are
 docs/planning/simplification-audit-prompt.md and docs/planning/bug-audit-prompt.md; each carries
@@ -2371,7 +2371,8 @@ it opening any pull request at all) and eleven of twelve npm advisories cleared,
 Dependabot PR #10.
 
 Handed over at roughly 92% by effort with 22 Medium roots and about 47 Low items left. The brief
-is `docs/planning/audits/fix-session-4-prompt.md`; the disposition ledger is the durable record.
+was the session-four brief; the disposition ledger was the record. Both were removed on 2026-08-21
+when the review closed.
 
 ## 2026-08-21 — Pre-release fix session four: the tail, and the report is closed
 
@@ -2430,5 +2431,7 @@ can never receive a password reset again. Low 78 is a moderation policy question
 says belongs to the owner. M19 and its two siblings wait on a custom domain for the image bucket,
 which only he can buy — it is the "image CORS thing" he already remembers.
 
-The ledger at `docs/planning/audits/fix-log.md` carries every disposition, and its new "What is
-owed to the OWNER" section is the short list of what is left that nobody here can do.
+Everything the report contained is now closed, so its paperwork went with it. What survives is the
+part the code cannot say: `docs/TRAPS.md` (the runtime traps, each one proved) and a new section in
+`docs/planning/bugs.md` under "Settled, do not re-open" (what was deliberately NOT a bug, what is
+deferred and why, and the owner decisions taken along the way).

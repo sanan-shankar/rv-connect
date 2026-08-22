@@ -260,6 +260,56 @@ Two related things ride along with the same decision:
 Earlier feedback that was addressed, and in a few cases changed again by a later owner decision. Listed
 so a future session does not "fix" one of these back to a state the owner deliberately moved away from.
 
+### From the pre-release hardening, 2026-08-21
+
+A formal bug and stability review ran over four sessions and every one of its findings is closed.
+The fixes themselves live in the code, each with the reasoning in a comment beside it, and in the
+git history. What is kept here is only the part the code cannot say: the places where the answer was
+**no**, or **not yet**, and why. Do not re-open these without a reason that is new.
+
+**Deliberately NOT a bug:**
+
+- **`statement_timeout` is absent from the pool config on purpose.** Supavisor drops it. See
+  `docs/TRAPS.md`.
+- **The post visibility rule's author exemption sits ABOVE the hidden check**, so an author can
+  still reach a post a moderator has hidden — which is the only way they can respond to the
+  moderation. It reads like an oversight and is not; a test pins it.
+- **The nightly GitHub Actions workflows do not need a keep-alive.** GitHub's 60-day auto-disable of
+  scheduled workflows applies to PUBLIC repositories. This one is private.
+- **`setTheme` writing a cookie does re-render the page** (that part of the report was right), but
+  the only two callers are dedicated pages that navigate immediately, so nothing is paid for it. The
+  code comment claiming otherwise was the actual defect and is corrected.
+- **The directory's city filter aliasing Delhi to New Delhi is deliberate**, from `city-coords.ts`,
+  the same way it aliases Chennai/Madras and Mumbai/Bombay. The filter is an exact match over that
+  alias list, not a substring.
+
+**Deferred, with the reason:**
+
+- **The root layout reads the theme cookie, so every route renders dynamically**, including the six
+  public pages that could be static. Every fix trades that for a flash of the wrong theme on a first
+  visit, which is the exact thing the cookie read prevents. A latency optimisation on six pages, not
+  a correctness bug.
+- **`touchLastSeen` fires only on layout render, so soft navigations go uncounted.** The fix is a
+  client-side route-change reporter — a new surface, not a correction.
+- **Two simultaneous forgot-password requests can mint two reset rows.** The correct instrument is a
+  partial unique index Prisma cannot express, and the expressible alternative fails worse (see
+  `docs/TRAPS.md`). The existing fold catches every non-simultaneous case and the enqueue rate limit
+  caps the blast radius.
+
+**Owner decisions taken during it, which are now how the product works:**
+
+- **Deleting a Catch-up is PERSONAL** — it removes only your own copy, and nobody else's view
+  changes. The Keeper-only variant that soft-deletes it for everyone was offered and declined.
+- **A leaver's published Catch-up answers STAY** in the Rounds they were published in.
+- **"Start one" on a group card was removed** rather than made to attach, because attaching would
+  mean one member's private naming choice renaming a shared batch group.
+- **Blocking someone hides everything they have written** — posts, letters and comments leave the
+  feed, the index and Saved, and the direct link agrees. Nothing is deleted; unblocking restores it.
+  Collection photographs are deliberately exempt: one of those was approved by an admin into a
+  shared archive of the school's history. The reasoning is at `User.isBlocked` in the schema.
+
+**Still open elsewhere:** the feed photo reflow is item 18 above, waiting on the photo rework.
+
 - Background warmth was `#E7E1D3` by owner choice, and that held until 2026-07-30. **The shipped
   value is now `#E4E1D5`** (`--background` in `globals.css`, changed in `c286b67` with the colour
   protocol): the owner cooled all four neutrals by 20-25% after finding iPhone True Tone had been
