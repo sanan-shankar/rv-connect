@@ -1025,8 +1025,6 @@ export function LetterheadProfile({
                     </p>
                   )
                 )}
-
-                {action && <div className="mt-[var(--space-m)] sm:hidden">{action}</div>}
               </header>
 
               {facts.length > 0 && (
@@ -1174,6 +1172,21 @@ export function LetterheadProfile({
                 </FadeRise>
               )
             )}
+
+            {/* On phones the one action moves to the FOOT of the sheet
+                (owner, 2026-08-22): it used to sit mid-header, right under
+                the occupation line, which put it before About, Houses and
+                everything else a visitor came to read -- "weirdly in the
+                middle" rather than the place a call to action belongs once
+                you have actually read the page. Also a plain block-level
+                div now, sibling to every other section here rather than
+                nested in the header's flex row and FadeRise wrapper, so its
+                left edge is the container's own `p-6` edge by construction
+                instead of by inheriting whatever the header row was doing.
+                `sm:hidden` because larger screens keep it beside the name
+                (see the `hidden shrink-0 sm:block` copy up in the header
+                row). */}
+            {action && <div className="mt-[var(--space-l)] sm:hidden">{action}</div>}
           </div>
         </div>
       </div>
