@@ -230,6 +230,7 @@ export function PenBlock({
   className,
   singleLine = false,
   snug = false,
+  inline = false,
   maxLength,
 }: {
   value: string;
@@ -242,6 +243,20 @@ export function PenBlock({
   className?: string;
   /** A name has no second paragraph, so Enter is swallowed. */
   singleLine?: boolean;
+  /**
+   * Sized to its text AND able to stand mid-sentence, for a hole in a line of
+   * running text rather than a value on a line of its own.
+   *
+   * This is what the occupation line needs and what an <input> could not give
+   * it. A PenValue is one line forever: past the width of its own column it
+   * pins at max-w-full and scrolls to follow the caret, so the front of what
+   * you are typing walks off the left edge (owner, 2026-08-22: "the text box
+   * is moving or something and the 'I' is getting hidden and cut out" --
+   * measured at 390px, scrollLeft climbing 6px to 173px as the organisation
+   * grew). A textarea wraps instead, which is also what the read-only sheet
+   * this stands in for does with the same sentence.
+   */
+  inline?: boolean;
   /**
    * Sized to the text rather than to the column.
    *
@@ -257,7 +272,9 @@ export function PenBlock({
     <PenSlot
       editing={editing}
       delay={delay}
-      className={cn(snug ? "block w-fit" : "block w-full", className)}
+      /* `inline` keeps PenSlot's own inline-block, so the field sits in the
+         run of text rather than starting a line of its own. */
+      className={cn(inline ? "w-fit" : snug ? "block w-fit" : "block w-full", className)}
     >
       {/* Same mirror-in-flow pattern as PenValue, with a WRAPPING copy, so a
           long name breaks exactly where the <h1> broke and the block is
@@ -292,7 +309,14 @@ export function PenBlock({
               e.currentTarget.blur();
             }
           }}
-          placeholder={placeholder}
+          /* A hole in a sentence goes blank at rest, the same rule PenValue's
+             input keeps: the mirror above already reserves the placeholder's
+             width, and a resting sheet printing "Student at where" would be
+             the field admitting it is a field. Only `inline`, because a pen
+             standing on its own line has nothing to be misread as -- the name
+             showing a grey "Your name" is the honest thing for it to do if it
+             ever finds itself empty. */
+          placeholder={inline && !editing ? "" : placeholder}
           aria-label={ariaLabel}
           maxLength={maxLength}
           spellCheck={!singleLine}
