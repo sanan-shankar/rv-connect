@@ -17,6 +17,7 @@ import { titleCase, normalizePhone } from "@/lib/normalize";
 import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { parsePlaces, resolvePlaces } from "@/lib/place-input";
+import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
 
@@ -152,10 +153,7 @@ export async function updateUserPlaces(
   // element all reached the database or threw a raw TypeError (audit B-111).
   const parsed = parsePlaces(places);
   if (!parsed.ok) return { error: parsed.error };
-  const cleaned = await resolvePlaces(parsed.places, titleCase, async (ids) => {
-    const rows = await prisma.place.findMany({ where: { id: { in: ids } }, select: { id: true } });
-    return new Set(rows.map((r) => r.id));
-  });
+  const cleaned = await resolvePlaces(parsed.places, titleCase, lookupGazetteerPlaces);
 
   const userId = session.user.id;
   await prisma.$transaction([

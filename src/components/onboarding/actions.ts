@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { titleCase } from "@/lib/normalize";
+import { placesSchema, resolvePlaces } from "@/lib/place-input";
+import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 import { normalizeHouse } from "@/lib/houses";
 import type { HouseYearEntry } from "@/lib/houses";
 
@@ -19,14 +21,13 @@ import type { HouseYearEntry } from "@/lib/houses";
  * User.currentCity is kept in sync with the first city's label so older read
  * paths that still read that single column keep working.
  */
-const placeSchema = z.object({
-  placeId: z.number().int().nullable(),
-  label: z.string().trim().min(1).max(160),
-  city: z.string().trim().min(1).max(160),
-  lat: z.number().nullable(),
-  lng: z.number().nullable(),
-});
-
+/* The shared definition, not a fourth copy of it. This step had its own
+   placeSchema and its own cleaning loop, which meant it also had its own
+   omissions: no bounds on lat/lng, no check that placeId named a real
+   gazetteer row, and -- the one that showed -- no canonical city rule, so the
+   people most likely to be caught by it were exactly the ones typing their
+   city for the first time (owner, 2026-08-22: "now few new people joined and
+   they're showing up under delhi"). Three writers, one gate. */
 const registerStepSchema = z.object({
   admissionNumber: z.number().int().min(0).max(10000).optional(),
   workplace: z.string().trim().max(100).optional(),
@@ -36,7 +37,7 @@ const registerStepSchema = z.object({
   // saves, which must not touch the column. 200 matches the settings
   // validator's ceiling for the same field.
   subjects: z.string().trim().max(200).optional(),
-  places: z.array(placeSchema).max(20).default([]),
+  places: placesSchema.default([]),
 });
 
 export type RegisterStepInput = z.input<typeof registerStepSchema>;
@@ -66,13 +67,13 @@ export async function saveOnboardingRegister(input: RegisterStepInput) {
           .filter(Boolean)
           .join(", ") || null;
 
-  // A free-typed place (no gazetteer id) gets title-cased; a gazetteer hit is
-  // already formatted, so it is left exactly as the picker returned it.
-  const cleanedPlaces = places.map((p) =>
-    p.placeId == null
-      ? { ...p, label: titleCase(p.label), city: titleCase(p.city) }
-      : p
-  );
+  /* resolvePlaces, not a local map(): it title-cases free text the same way
+     this used to, and then does the three things this step never did --
+     verifies every placeId against the gazetteer before the transaction that
+     would otherwise abort on the foreign key, collapses an aliased city onto
+     its canonical row (Delhi -> New Delhi, see place-aliases.ts), and drops
+     the duplicate that collapse can leave behind. */
+  const cleanedPlaces = await resolvePlaces(places, titleCase, lookupGazetteerPlaces);
   const primaryLabel = cleanedPlaces[0]?.label ?? null;
 
   await prisma.$transaction(async (tx) => {
