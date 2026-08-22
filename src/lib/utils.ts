@@ -295,6 +295,75 @@ export function formatPhoneDisplay(raw: string): string {
   return `+${digits.slice(0, codeLength)} ${rest}`
 }
 
+/** The one default this file assumes: most of this school's alumni carry it
+ *  already (it is the placeholder every phone field on the site has shown
+ *  since before this existed), and it is a default a field can still
+ *  override, not a lock on who can enter a number. */
+const DEFAULT_PHONE_CODE = "+91"
+
+/**
+ * Splits a phone value into its country-code and local-number parts, for an
+ * editor that wants them as two separate fields rather than one string a
+ * single clearing keystroke can wipe both halves of (owner, 2026-08-22:
+ * "even now if profile when I delete my phone number I have to enter both
+ * in the same box"). Kept independent of formatPhoneDisplay above rather
+ * than sharing its body, so this never risks that function's existing,
+ * already-relied-on output for a case this split did not anticipate.
+ *
+ * A value with no recognisable code (too short, not a plausible national
+ * number once split, or not digits at all -- a pasted landline with an
+ * extension, say) is not guessed at: the whole thing goes in `rest` and
+ * `code` falls back to the default, so the field shows what was actually
+ * typed rather than a wrong split dressed up as a right one.
+ */
+export function splitPhoneParts(raw: string): { code: string; rest: string } {
+  const trimmed = raw.trim()
+  if (!trimmed) return { code: DEFAULT_PHONE_CODE, rest: "" }
+
+  // Already separated, by us or by whoever typed it: trust the first space,
+  // the same trust formatPhoneDisplay places in it.
+  if (/\s/.test(trimmed)) {
+    const i = trimmed.indexOf(" ")
+    const head = trimmed.slice(0, i)
+    const tail = trimmed.slice(i + 1).trim()
+    if (/^\+?\d+$/.test(head)) {
+      return { code: head.startsWith("+") ? head : `+${head}`, rest: tail }
+    }
+    return { code: DEFAULT_PHONE_CODE, rest: trimmed }
+  }
+
+  const hadPlus = trimmed.startsWith("+")
+  const digits = hadPlus ? trimmed.slice(1) : trimmed
+  if (!/^\d+$/.test(digits)) return { code: DEFAULT_PHONE_CODE, rest: trimmed }
+  if (!hadPlus && digits.length <= MAX_BARE_NATIONAL_DIGITS) {
+    return { code: DEFAULT_PHONE_CODE, rest: digits }
+  }
+
+  const codeLength =
+    digits[0] === "1" || digits[0] === "7"
+      ? 1
+      : TWO_DIGIT_CALLING_CODES.has(digits.slice(0, 2))
+        ? 2
+        : 3
+  const rest = digits.slice(codeLength)
+  if (rest.length < MIN_NATIONAL_DIGITS || rest.length > MAX_NATIONAL_DIGITS) {
+    return { code: DEFAULT_PHONE_CODE, rest: digits }
+  }
+  return { code: `+${digits.slice(0, codeLength)}`, rest }
+}
+
+/** The inverse of splitPhoneParts, for what the editor saves: the same
+ *  one-space convention formatPhoneDisplay reads on the way back in, so a
+ *  value this writes round-trips through it unchanged. An empty number
+ *  saves as an empty row regardless of the code -- a country code with no
+ *  digits after it is not a phone number, whatever field it is sitting in. */
+export function joinPhoneParts(code: string, rest: string): string {
+  const r = rest.trim()
+  if (!r) return ""
+  const c = code.trim()
+  return c ? `${c} ${r}` : r
+}
+
 /**
  * One display-date format for photo/letter attribution ("22 May 2026"), in the
  * valley's day (see VALLEY_TIME_ZONE above).
