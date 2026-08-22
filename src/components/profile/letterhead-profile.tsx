@@ -652,18 +652,29 @@ export function LetterheadProfile({
        fixed-width morph would lie about how long each word is. The width does
        change between "Edit profile" and "Done", but only once, on a press the
        reader made, which is the one moment a control is allowed to move. */
-    /* Button first, SaveMark after -- not the reverse. `gap-3` sits BETWEEN
-       flex children regardless of whether one of them renders anything: at
-       rest (state "idle") SaveMark's AnimatePresence draws nothing, but the
-       row's gap still counted as if it had, and pushed the button 12px right
-       of every other left edge on the sheet. Invisible while this control
-       lived beside the name (nothing below it to misalign with); exposed the
-       moment it moved to the foot of the sheet on phones, flush against
-       Batch/Cities/About/Houses (owner, 2026-08-22: "this button isn't left
-       aligned properly" -- measured, 57px against their 45px, exactly one
-       gap-3). Putting the button first means its own left edge is the row's,
-       independent of whatever the mark next to it is doing. */
-    <div className="flex items-center gap-3">
+    /* The mark sits on whichever side of the button is NOT that button's
+       anchor, which is a different side per breakpoint -- hence the reverse.
+
+       "Saving" appearing is 34px of new width (measured), and a flex row grows
+       away from whichever edge is pinned. On phones this row is a block at the
+       foot of the sheet, so its LEFT edge is fixed and the mark has to trail
+       the button. On desktop it is a shrink-0 cell at the end of the header's
+       flex row, so its RIGHT edge is fixed and the same order pushed the
+       button 34px left the instant a field saved (owner, 2026-08-22: "when I
+       make an edit on profiles the done button moves while saving. it can just
+       save to the left of it on desktop and to the right on mobile"). Reversed
+       there, the button's right edge is the row's and the mark grows leftward
+       into the name's empty column.
+
+       DOM order stays button-first for the reason it was put first: `gap-3`
+       sits BETWEEN flex children whether or not one of them renders anything,
+       and at rest (state "idle") SaveMark's AnimatePresence draws nothing but
+       the gap still counted, pushing the button 12px right of every other left
+       edge on the sheet (owner, same day: "this button isn't left aligned
+       properly" -- measured, 57px against their 45px, exactly one gap-3).
+       flex-row-reverse only repaints the order on the breakpoint where the
+       left edge is nobody's anchor. */
+    <div className="flex items-center gap-3 sm:flex-row-reverse">
       <Button
         variant={live ? "primary" : "default"}
         /* No min-width. "Done" is narrower than "Edit profile" and that is
