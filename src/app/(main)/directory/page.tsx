@@ -361,10 +361,8 @@ export default async function DirectoryPage({
 
   return (
     <div>
-      <PageHeader
-        title="Directory"
-        subtitle="Find the people who grew up under the same trees."
-      />
+      {/* No subtitle (owner, 2026-08-22): the grid says what the page is. */}
+      <PageHeader title="Directory" />
       <DirectoryClient
         users={users}
         resultCount={resultCount}

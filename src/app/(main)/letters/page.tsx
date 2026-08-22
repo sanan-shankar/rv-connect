@@ -106,9 +106,9 @@ export default async function LettersPage({
 
   return (
     <div>
+      {/* No subtitle (owner, 2026-08-22): the letters below say what the page is. */}
       <PageHeader
         title="Letters"
-        subtitle="Longer pieces from the valley. Essays, tributes, travelogues, reflections."
         actions={
           /* Writing happens on its own page now (owner: "a whole page, so
              people can properly immerse themselves"); the index just points

@@ -60,10 +60,8 @@ export default async function MessagesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Reach out"
-        subtitle="A bug, an idea, a question. Write a line and someone will read it."
-      />
+      {/* No subtitle (owner, 2026-08-22): the form below says what it's for. */}
+      <PageHeader title="Reach out" />
 
       <section
         aria-label="Write to the admins"

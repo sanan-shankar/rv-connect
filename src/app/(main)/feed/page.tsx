@@ -69,9 +69,9 @@ export default async function FeedPage({
           {/* The header lives in the main column, so the space beside it (above the
               rail) stays header-only, and the search / bell / New post never run
               over the rail. */}
+          {/* No subtitle (owner, 2026-08-22): the feed says what it is. */}
           <PageHeader
             title="Feed"
-            subtitle="What the valley is sharing today."
             showSearch
             unreadCount={unreadCount}
             actions={<NewPostCTA />}
