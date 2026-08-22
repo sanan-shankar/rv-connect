@@ -102,6 +102,35 @@ and `tsconfig` includes them, so `tsc` fails on a route that no longer exists. M
 directory aside (`mv .next/types .next/types-stale-<date>`) rather than touching `.next` wholesale,
 which another session may be mid-build in.
 
+## Serving images
+
+**Moving the public image host is FIVE changes, not one.** On 2026-08-21 serving moved from
+`pub-<hash>.r2.dev` to `images.rishivalley.space`, and pointing `R2_PUBLIC_BASE_URL` at the new one
+is only the first:
+
+1. `R2_PUBLIC_BASE_URL` in Vercel (both projects -- the demo has its own).
+2. **`img-src` in the CSP** (`next.config.ts`). Miss this and the browser refuses every photograph
+   on the site. The only outward sign is a console line; the page just looks broken.
+3. **`connect-src` in the same CSP**, because the photo viewer's Download button FETCHES the image
+   rather than displaying it, and a fetch is governed by connect-src, not img-src.
+4. `images.remotePatterns` in `next.config.ts`, for anything using `next/image`.
+5. The addresses already in the database -- six columns across five tables. New uploads write the
+   new host; everything written before that does not.
+
+**Keep the old host working in code, not just in DNS.** `publicBaseFor` in `upload-shared.ts`
+carries a list of every base this bucket has served from, and both `keyForUrl` and
+`isUploadedImageUrl` read it. A URL the code cannot claim is a photograph whose bytes survive its
+own deletion, silently and for ever, and nothing anywhere reports it.
+
+**A bucket CORS policy does nothing on the `r2.dev` address.** Cloudflare applies it to custom
+domains. That is why the Download button could not work before the move however the policy was
+written.
+
+**The direct-upload PUT goes to `<account>.r2.cloudflarestorage.com`, not to the public host.** It
+needs its own `connect-src` entry. Without one the browser refuses the PUT, the client catches it,
+and every upload silently falls back through the server and its ~4.5MB body cap -- which is the one
+thing presigning exists to avoid. It was in exactly that state until 2026-08-21.
+
 ## Testing
 
 **A testable module must have no relative VALUE imports.** `node:test` cannot resolve an

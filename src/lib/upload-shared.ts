@@ -54,10 +54,53 @@ export function isUnsupportedHeic(file: { type: string; name: string }): boolean
 }
 
 /**
+ * Public hosts this bucket's objects have EVER been served from, other than
+ * whatever `R2_PUBLIC_BASE_URL` says today.
+ *
+ * On 2026-08-21 serving moved from Cloudflare's free `pub-*.r2.dev` address to
+ * `images.rishivalley.space`. Every URL written before that moment is stored in
+ * the database on the old host, and two things go quietly wrong if the code
+ * only knows the new one:
+ *
+ *  - `keyForUrl` stops recognising them, so deleting a post or a photograph
+ *    leaves its bytes in the bucket for ever with no row pointing at them --
+ *    the exact silent orphan the delete path was rebuilt to prevent.
+ *  - `isUploadedImageUrl` stops recognising them, so re-saving anything that
+ *    re-validates its images refuses pictures the member really did upload.
+ *
+ * The rows were rewritten to the new host in the same change, so this list is
+ * belt as well as braces. It stays because a URL that escaped the rewrite would
+ * fail SILENTLY, and because the demo deployment reads the same bucket with its
+ * own environment variables.
+ *
+ * The exact host, not a `pub-*.r2.dev` wildcard: a wildcard would vouch for
+ * anybody else's bucket, and vouching is what this file does (audit M10).
+ */
+const R2_LEGACY_PUBLIC_BASES = [
+  "https://pub-a656209a5438484f9694738260255a5e.r2.dev",
+] as const;
+
+/** Every public base this app will accept a URL on, newest first. */
+function publicBases(): string[] {
+  const current = process.env.R2_PUBLIC_BASE_URL?.replace(/\/+$/, "");
+  return [...(current ? [current] : []), ...R2_LEGACY_PUBLIC_BASES];
+}
+
+/**
+ * The base one of OUR public URLs is served from, or null if it is not ours.
+ * One rule, so the ownership check and the key derivation cannot disagree
+ * about which hosts belong to this store.
+ */
+export function publicBaseFor(url: string): string | null {
+  return publicBases().find((base) => url.startsWith(`${base}/`)) ?? null;
+}
+
+/**
  * True only for a URL this app produced through an upload path (local
- * `/uploads/...` in dev, the R2 public base in production). Everything else is
- * rejected, so a crafted action call cannot hotlink or embed an arbitrary
- * remote URL into a post, a Catch-up answer or an admin thread (audit M10).
+ * `/uploads/...` in dev, one of this bucket's public bases in production).
+ * Everything else is rejected, so a crafted action call cannot hotlink or embed
+ * an arbitrary remote URL into a post, a Catch-up answer or an admin thread
+ * (audit M10).
  *
  * Owner-scoped keys (`uploads/<userId>/...`, audit C2) still live under the
  * `/uploads/` root, so this prefix test is unchanged by that migration; the
@@ -69,7 +112,7 @@ export function isUnsupportedHeic(file: { type: string; name: string }): boolean
  */
 export function isUploadedImageUrl(url: string): boolean {
   if (url.startsWith("/uploads/")) return true;
-  const base = process.env.R2_PUBLIC_BASE_URL?.replace(/\/+$/, "");
+  const base = publicBaseFor(url);
   return !!base && url.startsWith(`${base}/uploads/`);
 }
 

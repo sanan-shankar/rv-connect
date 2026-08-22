@@ -8,6 +8,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { writeFile, mkdir, unlink, readFile } from "fs/promises";
 import path from "path";
+import { publicBaseFor } from "@/lib/upload-shared";
 
 /**
  * Storage shim: the one place that knows where image bytes live.
@@ -250,14 +251,21 @@ export async function delImageByKey(key: string): Promise<boolean> {
 
 /**
  * The object key behind one of OUR public URLs, or null when the URL does not
- * belong to this store (a legacy host, an external image). Null means "not
- * ours": callers should leave such a URL alone rather than guess a key for it.
+ * belong to this store (an external image). Null means "not ours": callers
+ * should leave such a URL alone rather than guess a key for it.
+ *
+ * Matched against every base this bucket has been served from, not just the one
+ * configured today. Serving moved to a custom domain on 2026-08-21, and a URL
+ * written before then that this function refused to recognise would be a
+ * photograph whose bytes survive its own deletion, silently and for ever. See
+ * `publicBaseFor` for the list and the reasoning.
  */
 export function keyForUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   let key: string | null = null;
-  if (useR2 && R2_PUBLIC_BASE_URL && url.startsWith(R2_PUBLIC_BASE_URL)) {
-    key = url.slice(R2_PUBLIC_BASE_URL.length + 1);
+  const base = useR2 ? publicBaseFor(url) : null;
+  if (base) {
+    key = url.slice(base.length + 1);
   } else if (url.startsWith("/")) {
     // A root-relative path is ours whether or not R2 is configured: rows
     // written before the R2 migration still carry local paths, and they
