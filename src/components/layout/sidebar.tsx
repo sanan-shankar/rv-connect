@@ -535,15 +535,16 @@ function UserMenu({
                lift, so without this the whole hover rests on a background
                change spending a third of the rail's budget. The gear beside it
                has had two channels all along (ink lift plus the turn). */
-            // Uppercase, like every other byline in the app (owner,
-            // 2026-08-22: "capitalise the batch of 2023 thing"). Tracking
-            // moves with it, to 0.07em: the default META_CLASS pairs the two
-            // for a reason -- uppercase letters sit closer than mixed case at
-            // the same tracking, so a caps run set at tracking-normal reads
-            // cramped. Size stays 11px, not the default 10.5px: the same
-            // "maybe what it is now" the owner asked for, on the one line in
-            // the sidebar carrying no icon or avatar of its own to lean on.
-            metaClassName="truncate text-[11px] font-normal uppercase leading-none tracking-[0.07em] text-sidebar-foreground-muted transition-colors duration-150 group-hover/account:text-sidebar-foreground-idle"
+            // Owner, 2026-08-22, in two passes: "capitalise the batch of
+            // 2023 thing" and then "make it look more like how it looks
+            // under their names in the posts" -- post-card.tsx's byline
+            // leaves size/weight/case/tracking to IdentityRow's own
+            // META_CLASS (10.5px, semibold, uppercase, 0.07em) rather than
+            // setting its own, so this does too now: only what the sidebar
+            // actually needs overridden is here, the two hover-lift colours
+            // this dark pill's default text-muted-foreground cannot read
+            // against.
+            metaClassName="truncate text-sidebar-foreground-muted transition-colors duration-150 group-hover/account:text-sidebar-foreground-idle"
           />
         {/* No caret (owner, 2026-08-03: "remove the arrow, it's fine if
             there's no direction to expand it, they'll figure it out"). The
