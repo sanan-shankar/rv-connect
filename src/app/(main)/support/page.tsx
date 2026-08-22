@@ -43,6 +43,17 @@ export default async function SupportPage() {
     .then((r) => r._sum.amount ?? 0)
     .catch(() => 0);
 
+  // Powers the personal "your admission number" chip below; a missed read
+  // (or no session, which should not happen behind the (main) layout but
+  // costs nothing to guard) just hides the chip rather than taking the page
+  // down, same defensive shape as recoveredPaise above.
+  const admissionNumber = session?.user?.id
+    ? await prisma.user
+        .findUnique({ where: { id: session.user.id }, select: { admissionNumber: true } })
+        .then((u) => u?.admissionNumber ?? null)
+        .catch(() => null)
+    : null;
+
   return (
     <div className="pb-[var(--space-xl)]">
       {/* The bird field and the solid backdrop mount from the APP SHELL
@@ -144,7 +155,7 @@ export default async function SupportPage() {
           )}
         </div>
         <div className="glass card-elevated rounded-[var(--radius-lg)] border border-border p-[var(--space-l)]">
-          <SupportContribute />
+          <SupportContribute admissionNumber={admissionNumber} />
         </div>
       </section>
 
