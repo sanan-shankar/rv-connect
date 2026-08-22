@@ -1,20 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Rishi Valley">
-  <rect width="512" height="512" rx="96" fill="#173f35" />
+  <!--
+    The tile is Pine #173F35, kept from the mark's first version. Canopy
+    #235C49 (byte-identical to the sidebar green) was tried against it on
+    2026-08-22 and lost: pine sits further from both the blue and the cinnamon
+    in lightness, so the three hills stay separate down at 16px, where canopy
+    lets the blue start to merge with the tile behind it.
+
+    The hills are blue, cream, cinnamon, left to right: Bodi, Middle Peak,
+    Rishikonda. Chosen from /lab/icon-colours, where the same mark was shown
+    in every order of the site's own colours.
+
+    The class and style pair below is the dark mode swap. A browser that
+    honours prefers-color-scheme in an SVG favicon paints the tile the dark
+    rail (#141B18) instead. Everything that cannot read a media query (the
+    PNGs, the iOS home screen, Android, the Mac dock) falls back to the fill
+    attribute on the rect, which is why the pine stays there.
+  -->
+  <style>
+    @media (prefers-color-scheme: dark) { .tile { fill: #141B18 } }
+  </style>
+  <rect class="tile" width="512" height="512" rx="96" fill="#173F35" />
   <g transform="translate(85 190) scale(0.38)">
     <path
       d="M-48 390 C-75 390 -98 377 -98 362 C-98 352 -84 348 -70 348 C6 346 82 248 190 198 C284 155 370 179 462 252 C512 199 548 80 622 62 C695 44 683 150 748 158 C786 162 781 107 822 128 C899 168 922 344 980 348 C994 348 1008 352 1008 362 C1008 377 985 390 958 390 Z"
-      fill="#eaf1df"
+      fill="#3F7CA6"
     />
     <path
       d="M462 252 C512 199 548 80 622 62 C695 44 683 150 748 158 C786 162 781 107 822 128 C899 168 922 344 980 348 C994 348 1008 352 1008 362 C1008 377 985 390 958 390 L432 390 C432 338 444 286 462 252 Z"
-      fill="#8ca383"
-      opacity="0.72"
+      fill="#EAF1DF"
     />
     <path
       d="M748 158 C786 162 781 107 822 128 C899 168 922 344 980 348 C994 348 1008 352 1008 362 C1008 377 985 390 958 390 L680 390 C692 288 718 202 748 158 Z"
-      fill="#173f35"
-      opacity="0.37"
+      fill="#C2622F"
     />
   </g>
 </svg>
