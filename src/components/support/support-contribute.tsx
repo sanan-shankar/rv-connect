@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { IndianRupee, Loader2, ShieldCheck } from "lucide-react";
@@ -26,23 +26,56 @@ import { startContribution, confirmContribution } from "@/app/(main)/support/act
  * src/app/(main)/support/actions.ts.
  */
 
-const SUGGESTIONS = [
+type Suggestion = { label: string; amount: number | null; isMine?: boolean };
+
+const BASE_SUGGESTIONS: readonly Suggestion[] = [
   { label: "₹500", amount: 500 },
   { label: "₹1,000", amount: 1000 },
   { label: "₹2,000", amount: 2000 },
   { label: "₹3,430", amount: 3430 },
   { label: "₹5,000", amount: 5000 },
-  { label: "Other", amount: null },
-] as const;
+];
+const OTHER: Suggestion = { label: "Other", amount: null };
 
-// Default to the ₹1,000 chip.
-const DEFAULT_INDEX = 1;
+// Default opens on the ₹1,000 chip, named by VALUE rather than array
+// position: selection state below tracks the amount itself, so inserting
+// the admission-number chip (below) can never silently change which chip
+// starts selected.
+const DEFAULT_AMOUNT = 1000;
 
 // Mirrors MIN_RUPEES in the Support actions. Duplicated deliberately: this copy
 // exists to say "₹500 minimum" before the payer submits, the server's copy is
 // the one that decides. If they ever disagree, the server wins and the payer
 // sees its message.
 const MIN_RUPEES = 500;
+
+const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+
+/* The payer's own admission number becomes a sixth chip -- contributing can
+   double as "give my number in rupees". Three ways it quietly declines to
+   appear rather than showing something broken:
+   - no admission number on file (never onboarded with one, or a teacher
+     account, which never carries one) -- no session prop, no chip;
+   - below MIN_RUPEES -- the chip the button underneath would immediately
+     reject, so it never renders instead of rendering disabled;
+   - equal to one of the five fixed amounts -- no duplicate chip beside the
+     one that already says the same number.
+   Inserted by value, not appended: the row always reads low to high
+   regardless of where in the fixed set the number lands. "Other" alone
+   stays pinned last, a fallback rather than a figure. */
+function buildSuggestions(admissionNumber: number | null): Suggestion[] {
+  const numeric = [...BASE_SUGGESTIONS];
+  if (
+    admissionNumber != null &&
+    Number.isInteger(admissionNumber) &&
+    admissionNumber >= MIN_RUPEES &&
+    !numeric.some((s) => s.amount === admissionNumber)
+  ) {
+    numeric.push({ label: inr(admissionNumber), amount: admissionNumber, isMine: true });
+  }
+  numeric.sort((a, b) => (a.amount as number) - (b.amount as number));
+  return [...numeric, OTHER];
+}
 
 const CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
@@ -96,10 +129,12 @@ function loadCheckout() {
   return checkoutPromise;
 }
 
-const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
-
-export function SupportContribute() {
-  const [selected, setSelected] = useState<number>(DEFAULT_INDEX);
+export function SupportContribute({ admissionNumber }: { admissionNumber: number | null }) {
+  const suggestions = useMemo(() => buildSuggestions(admissionNumber), [admissionNumber]);
+  // Tracks the amount itself ("other" for the free-text chip), not a
+  // position in `suggestions` -- that array's length and order both move
+  // depending on whether the admission-number chip renders.
+  const [selectedAmount, setSelectedAmount] = useState<number | "other">(DEFAULT_AMOUNT);
   const [custom, setCustom] = useState("");
   // "working" covers everything from the click to the modal appearing, and
   // again from the modal closing to the redirect after the server confirms.
@@ -108,8 +143,8 @@ export function SupportContribute() {
   const customRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const isOther = SUGGESTIONS[selected].amount === null;
-  const amount = isOther ? Number(custom) : SUGGESTIONS[selected].amount;
+  const isOther = selectedAmount === "other";
+  const amount = isOther ? Number(custom) : selectedAmount;
   const amountValid = Number.isInteger(amount) && (amount as number) >= MIN_RUPEES;
 
   const warm = useCallback(() => {
@@ -239,16 +274,16 @@ export function SupportContribute() {
             row is five rupee figures, so a label above it was the same fact a
             third time (owner's hierarchy complaint, 2026-08-18). */}
         <div className="flex flex-wrap gap-[var(--space-xs)]">
-          {SUGGESTIONS.map((s, i) => {
-            const on = selected === i;
+          {suggestions.map((s) => {
+            const on = s.amount === null ? isOther : s.amount === selectedAmount;
             return (
               <button
-                key={s.label}
+                key={s.amount ?? "other"}
                 type="button"
                 aria-pressed={on}
                 onPointerEnter={warm}
                 onClick={() => {
-                  setSelected(i);
+                  setSelectedAmount(s.amount === null ? "other" : s.amount);
                   if (s.amount === null) requestAnimationFrame(() => customRef.current?.focus());
                 }}
                 className={cn(
@@ -264,6 +299,15 @@ export function SupportContribute() {
                 )}
               >
                 {s.label}
+                {/* The one chip whose number means something beyond a
+                    suggestion: without this it is indistinguishable from
+                    the five fixed ones, and nothing else on the row says
+                    why this particular figure showed up. */}
+                {s.isMine && (
+                  <span className="text-[11px] font-normal normal-case tracking-normal opacity-70">
+                    admission no.
+                  </span>
+                )}
               </button>
             );
           })}
