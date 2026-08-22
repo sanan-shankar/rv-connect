@@ -2508,3 +2508,87 @@ punch-list.
 Honest limitation: input validation was audited by code-read, not live BLNS browser fuzzing; that
 live naughty-strings pass is the one deferred brief item and the cheapest high-value follow-up. No
 test account created, no rows written — every check read-only against the shared database.
+
+## 2026-08-22 — Six items from the owner's round, plus three raised mid-session
+
+Seven commits. The profile sheet, the picker's idea of Delhi, and the first half of the phone-app
+work.
+
+**The Done-button collapse glitch** (owner: "it shrinks but then it shrinks a bit extra and it
+expands marginally a beat later") was real and had a measurable number. The occupation row reserves
+6px inside its own animated height so the dotted PenRule under it is not clipped, and cancelled that
+reserve with a static `-mb-[6px]`. Static was the bug: driven to `height: 0` on exit the padding's
++6px is gone but the margin's -6px is not, so the sheet settled exactly 6.00px short and jumped back
+the frame AnimatePresence unmounted the node. Proved on the live page before touching anything, by
+measuring the card at `height: 0` against the same card with the node removed. The margin now
+animates on the same spring as the height, so the two share one progress curve. After: exit
+undershoot 0.00px and monotonic, enter dips 0.00px, resting sheet unchanged at 445.13px.
+
+Note for whoever hits this class of bug again: **a static offset cancelling an animated one is a
+bug that only appears at the ends of the animation.** The give-away is a settle that overshoots by
+exactly the offset.
+
+**The organisation field cutting off text while typing** (owner: "the 'I' is getting hidden and cut
+out") was two things, both reproduced with real keystrokes at 390x844. A PenValue is an `<input>`,
+which is one line forever: past the width of its column the slot pins at `max-w-full` and the input
+scrolls to follow the caret — measured scrollLeft climbing 6px, 26px, 100px, 173px, at which point
+"Imperial" is off the left edge. Separately, the slot relocates whole to the next line at character
+34, because an inline-block cannot break. Both halves of the occupation line are `PenBlock`
+(a textarea) now, with a new `inline` option so they still stand mid-sentence; a textarea wraps,
+which is also what the read-only sheet does with the same words. After: scrollLeft 0 at every length
+to 64 characters, box grows to a second line instead. The line-relocation is unchanged and
+unfixable without abandoning form controls; nothing is hidden by it now.
+
+**Delhi and New Delhi.** The previous fix was an UPDATE, so it fixed the rows of the day and new
+members went straight back to picking Delhi. The gazetteer holds Delhi (pop 11,034,555) and New
+Delhi (pop 317,797) 3.4km apart, and the picker ranks exact-name-match then population, so "delhi"
+put the eleven-million row under the cursor. It is a rule now, in `src/lib/place-aliases.ts`, keyed
+by geonameid and never by name (Delhi, Ontario and Delhi, California are real places). Applied in
+two places that close different doors: the search answers an aliased row with its replacement so the
+choice is never offered, and `resolvePlaces` collapses it again at write time because the picker is
+a suggestion and the gate is the gate.
+
+Which meant fixing something else first: **onboarding never used `resolvePlaces`.** It had its own
+placeSchema and its own cleaning loop, hence no lat/lng bounds and no check that placeId named a
+real row — and it is the writer every new member goes through, which is exactly why the people
+caught by this were the newest ones. Three writers, one gate now.
+
+The migration also did the half the earlier merge missed: `User.currentCity` is a legacy mirror of
+the first place that the feed's "New in the Directory" module reads directly, and three members had
+a UserPlace saying New Delhi with a currentCity still saying "Delhi, Delhi". That is what the owner
+was actually looking at. Nine place rows moved, nine currentCity values resynced (including
+Bangalore/Bengaluru drift from the last merge). Seven unit cases pin the rule against a stubbed
+gazetteer.
+
+**Raised mid-session and done:** the Done button no longer moves while a field saves (34px measured;
+`sm:flex-row-reverse`, so the save mark sits on whichever side is not the button's anchor at that
+breakpoint). Every dotted pen rule now ends on a whole dash — it was a `repeating-linear-gradient`
+tiling at a fixed 5px and stopping wherever the text stopped, so the last dash was a stub; one tile
+plus `background-repeat: round` scales the tile so a whole number spans the box. The country code
+slot hugs its text (51px → 22.4px, gap 29px → 4px) with the cap moved to `maxLength=4`.
+
+**"Add it to your phone"**, under the dark mode tile, admins only, phones only, per the owner's
+call. No service worker: Chrome's installability criteria are HTTPS plus a manifest with name, 192
+and 512 icons, start_url and standalone display, all of which `src/app/manifest.ts` has shipped
+since 2026-08-20. The `beforeinstallprompt` listener is registered from the authenticated layout,
+not the tile — Chrome fires it once per hard page load and thirty seconds in, and the tile lives
+behind Edit profile, so a listener attached on mount would catch nothing.
+
+**The low-resolution app icon was not a code problem.** Every asset is already right and already on
+`origin/main`: favicon.ico at 16/32/48, a vector `icon.svg` that modern browsers prefer for the tab,
+apple-touch-icon at 180, and 192/512/maskable-512 for the manifest. They landed 2026-08-20; before
+that the only raster icon on the site was the favicon, which is exactly the complaint. iOS and
+Android snapshot the icon when the shortcut is made and never refresh it, so a home-screen icon
+created before that date stays low-resolution forever. Removing and re-adding picks up the current
+one — which the new Install button now does.
+
+**The admin activity timeline needed no build either.** PostHog already runs with autocapture on,
+pageviews on every client navigation and every signed-in member identified, so the per-person
+chronological story is being recorded today. Persons are keyed by the opaque user id with only
+accountType/batchYear/isOwner attached — deliberately no name or email — so looking somebody up
+means pasting their id from their profile URL. Session replay stays off.
+
+**One thing worth a decision:** the directory visual baseline went red twice today for things that
+were not changes — once for a member's new city (Nuku'alofa) and once for sub-pixel map jitter with
+identical cluster counts. It tracks live member data, so it will keep doing this. Masking the
+markers would cost the test the thing it is for.
