@@ -66,6 +66,18 @@ const RISHI_PLANE =
   "L680 390 " +
   "C692 288 718 202 748 158 Z";
 
+/**
+ * The three planes as raw path data, so a preview room can paint them in
+ * colours this component does not offer without copying the geometry and
+ * letting the two drift. PeaksMark itself is still the only thing the app
+ * renders; this is for /lab/icon-colours and anything like it.
+ */
+export const PEAK_PLANES = {
+  silhouette: SILHOUETTE,
+  middle: MIDDLE_PLANE,
+  rishi: RISHI_PLANE,
+} as const;
+
 export function PeaksMark({
   size = 18,
   className = "",
