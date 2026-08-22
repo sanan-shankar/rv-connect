@@ -45,6 +45,14 @@ const csp = {
     "'self'",
     "data:",
     "blob:",
+    // Where every uploaded photograph is served from since 2026-08-21. This
+    // has to move in step with R2_PUBLIC_BASE_URL and the remotePatterns
+    // below: without it the browser refuses every image on the site and the
+    // only sign is a console line, so the page looks broken with no error.
+    "https://images.rishivalley.space",
+    // The bucket's old free address. Kept alongside for the same reason
+    // `publicBaseFor` keeps it: a URL that escaped the rewrite must still
+    // render rather than be blocked.
     "https://*.r2.dev",
     "https://*.posthog.com",
     "https://*.razorpay.com",
@@ -54,6 +62,26 @@ const csp = {
   "connect-src": [
     "'self'",
     "https://challenges.cloudflare.com",
+    // The bucket's S3 endpoint, which is where a DIRECT upload actually goes:
+    // the server presigns a PUT and the browser sends the file straight there,
+    // bypassing Vercel's ~4.5MB body cap. That is a `fetch`, so it is governed
+    // by connect-src, and this list had no R2 entry at all -- so the browser
+    // refused the PUT, `uploadDirect` caught it, and every upload quietly took
+    // the fallback route through the server and its 4.5MB ceiling. A silent
+    // downgrade of the one mechanism that exists to avoid that ceiling.
+    //
+    // Wildcarded rather than pinned to the account id, which would put a
+    // build-time environment variable into a static header. The URL is
+    // presigned by our own server with our own credentials and the browser
+    // only ever sends what it was handed, so the breadth costs nothing that
+    // script-src is not already preventing.
+    "https://*.r2.cloudflarestorage.com",
+    // And the public image host, because the photo viewer's Download button
+    // FETCHES the image in order to save it under a filename rather than just
+    // opening it in a tab. Same reasoning as img-src above: it moves in step
+    // with R2_PUBLIC_BASE_URL.
+    "https://images.rishivalley.space",
+    "https://*.r2.dev",
     "https://api.razorpay.com",
     "https://lumberjack.razorpay.com",
     "https://*.posthog.com",
@@ -172,7 +200,16 @@ const nextConfig: NextConfig = {
 
   images: {
     remotePatterns: [
-      // Cloudflare R2 (pub-<hash>.r2.dev now; a custom domain can be added later).
+      // Cloudflare R2, served from its own domain since 2026-08-21. This is
+      // what `R2_PUBLIC_BASE_URL` points at and what every new upload writes.
+      {
+        protocol: "https",
+        hostname: "images.rishivalley.space",
+      },
+      // The free `pub-<hash>.r2.dev` address the bucket used before that.
+      // Kept because it is one of the bases `publicBaseFor` still accepts: an
+      // image URL that escaped the rewrite must render rather than 404 behind
+      // a config that has forgotten where it came from.
       {
         protocol: "https",
         hostname: "*.r2.dev",
