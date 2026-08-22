@@ -14,6 +14,10 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   work.** Live tokens are in `src/app/globals.css`; where the two disagree, globals.css is what ships.
 - `docs/spec/` holds a deep spec per area (avatars, catchups, demo, directory, letters, mascot,
   media, profile, lab-voice). Read the one you are touching.
+- **`docs/TRAPS.md` is what this stack does to you** -- Postgres, Prisma, Next and Vercel facts that
+  have each cost a session, every one proved before it was written down. Read it before touching the
+  database, a migration, a scheduled job, or anything that looks like a race. (The tooling
+  equivalents are the "Gotchas" list further down this file.)
 - `docs/OPERATIONS.md` is every non-application tool and the moment each one is meant to
   fire: the visual suite, the CI gate, the nightly database backup, Sentry, Renovate.
 - `docs/ROADMAP.md` is the phased plan. `docs/planning/bugs.md` is the bug tracker,
