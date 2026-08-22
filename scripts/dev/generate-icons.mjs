@@ -37,10 +37,32 @@ const targets = [
   { svg: source, size: 192, out: "public/images/icons/icon-192.png" },
   { svg: source, size: 512, out: "public/images/icons/icon-512.png" },
   { svg: maskable, size: 512, out: "public/images/icons/icon-maskable-512.png" },
+  /* The largest size anything actually asks for, and the reason it is here
+     (owner, 2026-08-22, on a pixellated icon in his Mac dock: "I just want the
+     max resolution possible that doesn't cause a problem").
+
+     What consumes what: Android launchers and Chrome's install dialog stop at
+     512. iOS reads apple-icon above and not this manifest at all. The one real
+     consumer of anything larger is macOS -- Safari's Add to Dock reads the
+     manifest, and a dock icon at the largest setting on a Retina display is
+     1024 physical pixels, which the 512 was being stretched to fill.
+
+     2048 was generated and then deleted rather than left in "just in case".
+     No launcher, browser or OS requests it, so it would have been 50KB that
+     only ever made the manifest longer -- and an icon list where half the
+     entries are aspirational is one nobody can reason about later. If a
+     display ever wants more, this file makes it one line. */
+  { svg: source, size: 1024, out: "public/images/icons/icon-1024.png" },
 ];
 
 for (const { svg, size, out } of targets) {
-  await sharp(Buffer.from(svg), { density: 384 })
+  /* 384 DPI rasterises the 512-unit SVG at 2730px, so every target here is
+     SUPERSAMPLED and then reduced rather than drawn at its final size, which
+     is what keeps the ridge's diagonals clean. The branch is for a future
+     target big enough that 2730 would mean enlarging a smaller raster, which
+     is the exact failure this whole file exists to avoid. */
+  const density = size * 2 > 2730 ? Math.ceil((size * 2 * 72) / 512) : 384;
+  await sharp(Buffer.from(svg), { density })
     .resize(size, size)
     .png({ compressionLevel: 9 })
     .toFile(out);
