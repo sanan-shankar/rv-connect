@@ -32,7 +32,19 @@ export function PageHeader({
   const hasRight = showSearch || unreadCount !== undefined || actions || children;
 
   return (
-    <header className="mb-6 flex flex-nowrap items-start justify-between gap-4">
+    <header className="mb-6 flex flex-nowrap items-center justify-between gap-4">
+      {/* items-center, not items-start: the title's own box (30px, leading-none)
+          is shorter than the 40px action row beside it, so top-aligning the two
+          left 10px of dead space under the title before the mb-6 gap even
+          started -- which is what read as the title floating too far from
+          whatever sits below the header (owner, 2026-08-22, on Feed: "feed is
+          very separated from the blue bird ... quite loose and visually
+          unbalanced"). Centering the row closes that incidental gap without
+          touching mb-6 itself, which is already the deliberate --space-l this
+          nav-to-content relationship calls for -- the fix is the accidental
+          asymmetry, not the token. A subtitle, when one exists, still reads
+          fine centered: it hangs off the title's own bottom via its own mt-2,
+          unaffected by how the ROW aligns the title block as a whole. */}
       <div className="min-w-0">
         {/* Every main surface routes its title through here; no page hand-rolls
             its own heading (they used to drift across 4 variants). The weight is
