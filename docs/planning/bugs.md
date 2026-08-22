@@ -310,6 +310,21 @@ git history. What is kept here is only the part the code cannot say: the places 
 
 **Still open elsewhere:** the feed photo reflow is item 18 above, waiting on the photo rework.
 
+### The image domain, done 2026-08-21
+
+Photographs are served from `images.rishivalley.space` instead of Cloudflare's throttled free
+`pub-*.r2.dev` address. The owner moved the domain's DNS to Cloudflare, attached the custom domain
+to the bucket and set the CORS policy; the code side was the CSP (`img-src` AND `connect-src`),
+`remotePatterns`, a rewrite of the 41 stored addresses, and teaching `publicBaseFor` both hosts.
+`docs/TRAPS.md` has the five-part checklist for the next time a host moves.
+
+That work also fixed two things nobody had filed. **The Download button in the photo viewer** could
+not have worked before: a bucket CORS policy does not apply to the `r2.dev` address at all, and the
+fetch was CSP-blocked as well. And **direct uploads had never actually worked in production** --
+`connect-src` did not list the bucket's S3 endpoint, so the browser refused the PUT and every upload
+fell back through the server and its ~4.5MB cap, which is the single thing presigned upload exists
+to avoid. Both are listed in the policy now.
+
 - Background warmth was `#E7E1D3` by owner choice, and that held until 2026-07-30. **The shipped
   value is now `#E4E1D5`** (`--background` in `globals.css`, changed in `c286b67` with the colour
   protocol): the owner cooled all four neutrals by 20-25% after finding iPhone True Tone had been
