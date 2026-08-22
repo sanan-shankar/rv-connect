@@ -1043,7 +1043,20 @@ export function LetterheadProfile({
                             cancel the gap for every sibling below without
                             touching the reserve the padding just bought. */}
                         <p className="mt-[var(--space-xs)] pb-[6px] text-[15px] leading-[1.6] text-muted-foreground">
-                          <PenValue
+                          {/* PenBlock, not PenValue, for both halves of this
+                              sentence: these are the only two pens whose text
+                              can outrun the column it sits in, and an <input>
+                              answers that by pinning at max-w-full and
+                              scrolling to keep the caret in view, which walks
+                              the front of the sentence off the left edge as
+                              you type. Measured at 390px: past the line width
+                              scrollLeft went 6px, 26px, 100px, 173px, so
+                              "Imperial" was simply gone. A textarea wraps to a
+                              second line instead, which is what the read-only
+                              sheet does with the same words. `inline` keeps
+                              both holes in the run of text; `singleLine` keeps
+                              Enter meaning "done", as it did on the input. */}
+                          <PenBlock
                             value={form.jobTitle}
                             onChange={(v) => setField("jobTitle", v)}
                             onCommit={() => commitField("jobTitle")}
@@ -1051,6 +1064,8 @@ export function LetterheadProfile({
                             placeholder="what you do"
                             ariaLabel="What you do"
                             delay={0.06}
+                            singleLine
+                            inline
                             maxLength={120}
                           />
                           {/* The read-only sheet only prints "at" between two
@@ -1069,7 +1084,7 @@ export function LetterheadProfile({
                             {" "}
                             at{" "}
                           </span>
-                          <PenValue
+                          <PenBlock
                             value={form.workplace}
                             onChange={(v) => setField("workplace", v)}
                             onCommit={() => commitField("workplace")}
@@ -1077,6 +1092,8 @@ export function LetterheadProfile({
                             placeholder="where"
                             ariaLabel="Where you work or study"
                             delay={0.08}
+                            singleLine
+                            inline
                             maxLength={120}
                           />
                         </p>
