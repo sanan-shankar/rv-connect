@@ -1,0 +1,66 @@
+{
+ "command": "SELECT",
+ "rowCount": 12,
+ "rows": [
+  {
+   "table": "Place",
+   "rows": "234935",
+   "size": "97 MB"
+  },
+  {
+   "table": "RosterEntry",
+   "rows": "2134",
+   "size": "688 kB"
+  },
+  {
+   "table": "CatchupEntryLove",
+   "rows": "508",
+   "size": "304 kB"
+  },
+  {
+   "table": "Notification",
+   "rows": "224",
+   "size": "208 kB"
+  },
+  {
+   "table": "CatchupEntry",
+   "rows": "133",
+   "size": "200 kB"
+  },
+  {
+   "table": "Post",
+   "rows": "17",
+   "size": "192 kB"
+  },
+  {
+   "table": "Visit",
+   "rows": "243",
+   "size": "184 kB"
+  },
+  {
+   "table": "User",
+   "rows": "52",
+   "size": "160 kB"
+  },
+  {
+   "table": "OutboundEmail",
+   "rows": "30",
+   "size": "136 kB"
+  },
+  {
+   "table": "LoginAttempt",
+   "rows": "22",
+   "size": "120 kB"
+  },
+  {
+   "table": "UserPlace",
+   "rows": "57",
+   "size": "120 kB"
+  },
+  {
+   "table": "ContentView",
+   "rows": "24",
+   "size": "112 kB"
+  }
+ ]
+}
