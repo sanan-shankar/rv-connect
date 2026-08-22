@@ -42,6 +42,7 @@ import {
   type ContactKind,
   type ContactRow,
 } from "@/lib/contact-rows";
+import { joinPhoneParts, splitPhoneParts } from "@/lib/utils";
 import { PenValue } from "@/components/profile/pen";
 import {
   Popover,
@@ -87,6 +88,68 @@ const ADDABLE: ContactKind[] = ["phone", "instagram", "linkedin", "facebook", "e
    editor, while the round trip itself lives in a module a test can reach. */
 export { buildRows, rowsToPayload };
 export type { ContactKind, ContactRow };
+
+/**
+ * A phone row's two fields: the country code and the local number, edited
+ * separately so clearing one never touches the other (owner, 2026-08-22:
+ * "even now if profile when I delete my phone number I have to enter both
+ * in the same box and it ends up looking weird"). `row.value` stays the
+ * single stored string either field patches through `onChange` -- nothing
+ * about ContactRow, the payload or the server action changes for this.
+ *
+ * The code lives in its OWN state rather than being re-derived from `value`
+ * on every render: `splitPhoneParts("")` defaults to "+91", so re-deriving
+ * on a render where the number field is empty would snap a member's actual
+ * code (say "+1") back to that default the instant they cleared their
+ * number to retype it -- the exact bug this component exists to fix, just
+ * moved one level down. Seeded once, from whatever loaded; every keystroke
+ * after that is this field's own.
+ */
+function PhoneFields({
+  value,
+  onChange,
+  onCommit,
+  delay,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onCommit: () => void;
+  delay: number;
+}) {
+  const [code, setCode] = useState(() => splitPhoneParts(value).code);
+  const { rest } = splitPhoneParts(value);
+
+  return (
+    <span className="flex min-w-0 items-baseline gap-1">
+      <PenValue
+        value={code}
+        onChange={(v) => {
+          setCode(v);
+          onChange(joinPhoneParts(v, rest));
+        }}
+        onCommit={onCommit}
+        editing
+        placeholder="+91"
+        ariaLabel="Country code"
+        delay={delay}
+        // Wide enough for a 3-digit code plus its +, never wider: a country
+        // code is a short, known shape and giving it room to grow would
+        // read as an invitation to type the whole number in here again.
+        className="w-[3.4em] shrink-0 text-[15px] tabular-nums"
+      />
+      <PenValue
+        value={rest}
+        onChange={(v) => onChange(joinPhoneParts(code, v))}
+        onCommit={onCommit}
+        editing
+        placeholder="98765 43210"
+        ariaLabel="Phone number"
+        delay={delay}
+        className="min-w-0 text-[15px]"
+      />
+    </span>
+  );
+}
 
 export function ContactsEditor({
   rows,
@@ -162,21 +225,30 @@ export function ContactsEditor({
                     className="shrink-0 text-[15px] font-semibold"
                   />
                 )}
-                <PenValue
-                  value={row.value}
-                  onChange={(v) => patch(row.id, { value: v })}
-                  onCommit={onCommit}
-                  editing
-                  placeholder={PLACEHOLDER[row.kind]}
-                  ariaLabel={KIND_LABEL[row.kind]}
-                  delay={0.02 * i}
-                  // Hugs its text, like every other pen on the sheet. Stretched
-                  // to flex-1 it dragged a 700px dotted rule out from under a
-                  // 200px email address, which reads as a line on a form rather
-                  // than as a value you can change.
-                  className="min-w-0 text-[15px]"
-                  inputMode={row.kind === "phone" ? "tel" : row.kind === "email" ? "email" : undefined}
-                />
+                {row.kind === "phone" ? (
+                  <PhoneFields
+                    value={row.value}
+                    onChange={(v) => patch(row.id, { value: v })}
+                    onCommit={onCommit}
+                    delay={0.02 * i}
+                  />
+                ) : (
+                  <PenValue
+                    value={row.value}
+                    onChange={(v) => patch(row.id, { value: v })}
+                    onCommit={onCommit}
+                    editing
+                    placeholder={PLACEHOLDER[row.kind]}
+                    ariaLabel={KIND_LABEL[row.kind]}
+                    delay={0.02 * i}
+                    // Hugs its text, like every other pen on the sheet. Stretched
+                    // to flex-1 it dragged a 700px dotted rule out from under a
+                    // 200px email address, which reads as a line on a form rather
+                    // than as a value you can change.
+                    className="min-w-0 text-[15px]"
+                    inputMode={row.kind === "email" ? "email" : undefined}
+                  />
+                )}
                 {/* The slot is always reserved and only painted on hover or
                     focus, so a row never changes width when you point at it. */}
                 <button
