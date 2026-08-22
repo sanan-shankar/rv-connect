@@ -982,11 +982,24 @@ export function LetterheadProfile({
                     {(live || Boolean(form.jobTitle.trim() || form.workplace.trim())) && (
                       <motion.div
                         key="occupation"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
+                        /* marginBottom is ANIMATED, not a class, and that is
+                           the whole of the fix below the comment: a static
+                           -6px cancels a +6px that only exists while the box
+                           is open. Driven to height 0 the padding's 6px is
+                           gone but the margin's is not, so the sheet settled
+                           6px SHORT and then snapped 6px back the frame
+                           AnimatePresence unmounted the node -- measured on
+                           the live page at exactly 6.00px (owner, 2026-08-22:
+                           "it shrinks but then it shrinks a bit extra and it
+                           expands marginally a beat later"). Sharing one
+                           spring, height and margin run on one progress
+                           curve, so the net contribution is (H-6)*s: it falls
+                           straight to zero and unmounting changes nothing. */
+                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        animate={{ opacity: 1, height: "auto", marginBottom: -6 }}
+                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                         transition={SPRINGS.gentle}
-                        className="-mb-[6px] overflow-hidden"
+                        className="overflow-hidden"
                       >
                         {/* The dotted PenRule sits 6px below its own field
                             (pen.tsx: -bottom-1 offset + h-[2px]) -- outside
@@ -1006,7 +1019,7 @@ export function LetterheadProfile({
                             toward its own auto-height, only a child's does --
                             padding on the motion.div itself would not have
                             grown what "auto" measures at all. The matching
-                            -mb-6 that cancels it back out for the page
+                            -6px that cancels it back out for the page
                             therefore has to live on the motion.div instead:
                             put on the same `<p>`, a negative child margin
                             gets folded into that same auto-height
