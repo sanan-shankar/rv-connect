@@ -91,11 +91,25 @@ export function IdentityRow({
           transform: `translateY(${IDENTITY_COPY_NUDGE_Y_PX}px)`,
         }}
       >
-        <div className={cn(nameClassName, "min-w-0 leading-none")}>
+        {/* overflow-y-visible fights a real clip: `truncate` callers (admin's
+            person row, at least) bring `overflow: hidden` for the ellipsis,
+            and at `leading-none` (line-height: 1) Source Sans's descenders
+            -- the tail of a g, y, p, j, q -- sit below that line box. Paired
+            with overflow-hidden that shaved the bottom off exactly the
+            emails containing one of those letters and nothing else (owner,
+            2026-08-22: "the bottom half of some people's emails getting cut
+            off ... it's as if there's a rectangle put over it"). Splitting
+            the axis keeps the ellipsis: text-overflow only ever needed
+            overflow-x hidden to fire, and every current truncate caller sets
+            that; overflow-y-visible only lets the vertical bleed the tight
+            line-height already produces render instead of clip. */}
+        <div className={cn(nameClassName, "min-w-0 overflow-y-visible leading-none")}>
           {name}
         </div>
         {meta ? (
-          <div className={cn(META_CLASS, metaClassName, "min-w-0 leading-none")}>
+          <div
+            className={cn(META_CLASS, metaClassName, "min-w-0 overflow-y-visible leading-none")}
+          >
             {meta}
           </div>
         ) : null}
