@@ -1,28 +1,37 @@
-/* The fourteen birds on /support, and which way each one faces.
+/* The twelve birds on /support, and which way each one faces.
+ *
+ * Down from fourteen (owner, 2026-08-22): the Common Kingfisher and the
+ * Tricolored Munia are gone, which is what makes twelve divide evenly into
+ * BOTH grids the plate now renders -- three columns and four rows on mobile,
+ * six columns and two rows from `sm` up (bird-plate.tsx).
  *
  * The order is neither the owner's listing order nor the species order. It is
- * arranged, and the arrangement rests on one fact about a two-row grid: two
- * cells touch, side by side or corner to corner, exactly when their COLUMNS are
- * less than two apart. Rows do not come into it. So keeping look-alikes off
- * each other is a question of column spacing and nothing else.
+ * arranged so no two look-alike birds ever touch, side by side, stacked, or
+ * corner to corner, IN EITHER GRID SHAPE AT ONCE -- the same twelve-item list
+ * just reflows at a different width. The old two-row plate could get away
+ * with a column-only rule (two cells touch exactly when their columns are
+ * less than two apart, rows do not come into it), a shortcut that only holds
+ * because a two-row grid has no room for a cell two rows away. Four rows does
+ * not have that shortcut: touching now depends on both axes, so this order
+ * was found by exhaustive search (script kept, see PR/commit) rather than
+ * argued by hand, and it is CHECKED, not merely believed -- the search
+ * re-validates its own answer against both grids before accepting it.
  *
  * Their real disc colours, read off the rendered glyphs rather than guessed at:
  *
  *   Avadavat    #C0392B red        Kite          #A8431F rust
- *   Munia       #7A3A23 dark brown Dove          #D2977E salmon
- *   Owlet       #8C7B66 tan        Oriole        #E8B82E gold
- *   Leafbird    #4FA63C green      Pitta         #4FA05E green
- *   P-r Sunbird #277C49 dark green WT Kingfisher #1F9FB2 teal
- *   Verditer    #46A9BE cyan       C Kingfisher  #1FA6D6 blue
+ *   Owlet       #8C7B66 tan        Dove          #D2977E salmon
+ *   Leafbird    #4FA63C green      Oriole        #E8B82E gold
+ *   Pitta       #4FA05E green      WT Kingfisher #1F9FB2 teal
+ *   P-r Sunbird #277C49 dark green Verditer      #46A9BE cyan
  *   P Sunbird   #5A3E7A purple     Cormorant     #2A2A30 near black
  *
- * Four look-alike sets fall out of that: three greens, three teal-to-blues,
- * three reds and browns, and two pale muted ones. Each set is spread across
- * columns at least two apart, so no member of a set ever touches another.
- * Reading across it gives red, cyan, green, gold, dark brown, teal, salmon on
- * top, and tan, black, rust, blue, green, purple, dark green below: no two
- * neighbours share a hue, every column pairs a warm bird with a cool one, and
- * three columns land on near complementaries.
+ * Three look-alike sets remain: three greens (Leafbird, Pitta, P-r Sunbird),
+ * a teal pair (WT Kingfisher, Verditer -- the Common Kingfisher's blue used to
+ * make this a trio), and a red/rust pair (Avadavat, Kite -- the Munia's dark
+ * brown used to make this a trio too), plus a pale pair (Owlet, Dove) that
+ * was never a trio. Oriole, Cormorant and Purple Sunbird are each the only
+ * member of their hue and carry no constraint at all.
  *
  * Names, not indices. An earlier version of this row was a list of raw indices,
  * and when the Indian Roller was reserved the numbers shifted and one bird
@@ -38,21 +47,17 @@ import {
 } from "@/components/common/bird-avatar-v2";
 
 const PLATE_NAMES = [
-  // Row one
   "Red Avadavat",
   "Verditer Flycatcher",
   "Jerdon's Leafbird",
   "Indian Golden Oriole",
-  "Tricolored Munia",
-  "White-throated Kingfisher",
-  "Laughing Dove",
-  // Row two
-  "Spotted Owlet",
   "Little Cormorant",
-  "Brahminy Kite",
-  "Common Kingfisher",
+  "Laughing Dove",
   "Indian Pitta",
   "Purple Sunbird",
+  "Brahminy Kite",
+  "Spotted Owlet",
+  "White-throated Kingfisher",
   "Purple-rumped Sunbird",
 ];
 
