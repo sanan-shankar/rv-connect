@@ -975,9 +975,39 @@ export function LetterheadProfile({
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={SPRINGS.gentle}
-                        className="overflow-hidden"
+                        className="-mb-[6px] overflow-hidden"
                       >
-                        <p className="mt-[var(--space-xs)] text-[15px] leading-[1.6] text-muted-foreground">
+                        {/* The dotted PenRule sits 6px below its own field
+                            (pen.tsx: -bottom-1 offset + h-[2px]) -- outside
+                            the text it draws under, which is the whole point
+                            everywhere else it is used. Everywhere else, that
+                            works. Here it does not: this `<p>` is the ONLY
+                            in-flow content this motion.div's `height: auto`
+                            measures, so at rest the row was exactly tall
+                            enough for the TEXT and the rule below both
+                            PenValues was clipped by the `overflow-hidden`
+                            this animation needs (owner, 2026-08-22: "the
+                            dotted editable line doesn't come under the
+                            occupation and organisation").
+
+                            The 6px reserve has to live on the CHILD (pb-6,
+                            below) because a box's own margin never counts
+                            toward its own auto-height, only a child's does --
+                            padding on the motion.div itself would not have
+                            grown what "auto" measures at all. The matching
+                            -mb-6 that cancels it back out for the page
+                            therefore has to live on the motion.div instead:
+                            put on the same `<p>`, a negative child margin
+                            gets folded into that same auto-height
+                            measurement and cancels itself before it ever
+                            reaches the parent, which is what the first
+                            version of this fix got wrong (measured: the rule
+                            still clipped 4px short after "fixing" it). A
+                            box's OWN margin, unlike a child's, never affects
+                            its own auto-height either way, so it is free to
+                            cancel the gap for every sibling below without
+                            touching the reserve the padding just bought. */}
+                        <p className="mt-[var(--space-xs)] pb-[6px] text-[15px] leading-[1.6] text-muted-foreground">
                           <PenValue
                             value={form.jobTitle}
                             onChange={(v) => setField("jobTitle", v)}
