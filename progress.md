@@ -2592,3 +2592,28 @@ means pasting their id from their profile URL. Session replay stays off.
 were not changes — once for a member's new city (Nuku'alofa) and once for sub-pixel map jitter with
 identical cluster counts. It tracks live member data, so it will keep doing this. Masking the
 markers would cost the test the thing it is for.
+
+## 2026-08-22 — The app icon, in the site's own colours
+
+The icon paints its three hills cream, sage and near-black. None of those is a colour the site uses
+anywhere else, which is the whole reason it only ever looks right sitting on sidebar green: on a
+dark tile the back hill is near-black on near-black and the mark loses its right shoulder.
+
+`/lab/icon-colours` repaints the same geometry in the green, the cinnamon and the blue. Six orders
+with green on the left (leaf / canopy / leaf-light, each with cinnamon and sky either way round),
+four alternatives that were not asked for (three greens tonally, cream in front of the two brand
+colours, depth run backwards with the far hill pale, and one flat white at three opacities), each on
+paper, white, sidebar green and dark, then again at 32px and 16px. The favicon sizes are where most
+of them fall apart, so they are on the same card rather than a section further down.
+
+The three plane paths are now exported from `peaks-mark.tsx` as `PEAK_PLANES` instead of copied into
+the room, so the preview can never drift from the shipped mark. The room's own corner radius is
+computed per size (96 of 512); a fixed CSS radius had turned every 32px tile into a circle.
+
+**Also shot, not committed:** the sidebar lockup with the mark in one flat colour instead of three,
+desktop and mobile, against the current version. `#EBF3EE` (the sidebar foreground the wordmark
+already uses) reads as one drawn logotype; pure white makes the mark brighter than the words beside
+it. Both were temporary edits to `sidebar.tsx` and `logo-fact.tsx`, reverted after the screenshots.
+
+**Unrelated red:** `npm run visual` failed on feed desktop. The diff is entirely inside "New in the
+directory", which lists live members. Same class of false positive as the directory map on 2026-08-21.
