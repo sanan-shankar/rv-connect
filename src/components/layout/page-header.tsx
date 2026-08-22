@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { SearchPill } from "./search-pill";
 import { NotificationBell } from "./notification-bell";
 
@@ -32,19 +33,36 @@ export function PageHeader({
   const hasRight = showSearch || unreadCount !== undefined || actions || children;
 
   return (
-    <header className="mb-6 flex flex-nowrap items-center justify-between gap-4">
-      {/* items-center, not items-start: the title's own box (30px, leading-none)
-          is shorter than the 40px action row beside it, so top-aligning the two
-          left 10px of dead space under the title before the mb-6 gap even
-          started -- which is what read as the title floating too far from
-          whatever sits below the header (owner, 2026-08-22, on Feed: "feed is
-          very separated from the blue bird ... quite loose and visually
-          unbalanced"). Centering the row closes that incidental gap without
-          touching mb-6 itself, which is already the deliberate --space-l this
-          nav-to-content relationship calls for -- the fix is the accidental
-          asymmetry, not the token. A subtitle, when one exists, still reads
-          fine centered: it hangs off the title's own bottom via its own mt-2,
-          unaffected by how the ROW aligns the title block as a whole. */}
+    <header
+      className={cn(
+        // items-center, not items-start: the 30px title top-aligned against
+        // the 40px action row used to leave 10px of dead space under the
+        // title before mb-6 even started, which read as the title floating
+        // too far from whatever sat below the header (owner, 2026-08-22, on
+        // Feed: "feed is very separated from the blue bird ... quite loose
+        // and visually unbalanced"). mb-6 itself is untouched -- it already
+        // matches --space-l, the deliberate token for this nav-to-content
+        // relationship; the asymmetry was accidental, not the spacing value.
+        "mb-6 flex flex-nowrap items-center justify-between gap-4",
+        // Centering the row (above) is correct for every page, but it has a
+        // side effect ONLY on a page with a right cluster: the 30px title,
+        // centered against the 40px action row beside it, sits 5px below the
+        // row's own top edge -- which is otherwise flush with the shell's
+        // padding, so the title ends up 5px further from that padding than
+        // its own left edge is (owner, 2026-08-22: "Feed has equal margin on
+        // top as the left, right now it's 10% more on top ... move feed,
+        // notification and new post cta all up a bit"). -mt-[5px] cancels
+        // exactly that, pulling the whole row (title AND buttons together,
+        // as asked) up by the amount centering pushed the title down.
+        // Conditional on hasRight, not a flat correction: a page with no
+        // right cluster (Directory, Collection) has nothing to center the
+        // title against, so its top edge already sits flush with the
+        // padding on its own -- shifting it too was measured and wrong
+        // (overshot 5px past the left-edge baseline the first time this
+        // landed).
+        hasRight && "-mt-[5px]"
+      )}
+    >
       <div className="min-w-0">
         {/* Every main surface routes its title through here; no page hand-rolls
             its own heading (they used to drift across 4 variants). The weight is

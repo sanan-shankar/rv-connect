@@ -652,8 +652,18 @@ export function LetterheadProfile({
        fixed-width morph would lie about how long each word is. The width does
        change between "Edit profile" and "Done", but only once, on a press the
        reader made, which is the one moment a control is allowed to move. */
+    /* Button first, SaveMark after -- not the reverse. `gap-3` sits BETWEEN
+       flex children regardless of whether one of them renders anything: at
+       rest (state "idle") SaveMark's AnimatePresence draws nothing, but the
+       row's gap still counted as if it had, and pushed the button 12px right
+       of every other left edge on the sheet. Invisible while this control
+       lived beside the name (nothing below it to misalign with); exposed the
+       moment it moved to the foot of the sheet on phones, flush against
+       Batch/Cities/About/Houses (owner, 2026-08-22: "this button isn't left
+       aligned properly" -- measured, 57px against their 45px, exactly one
+       gap-3). Putting the button first means its own left edge is the row's,
+       independent of whatever the mark next to it is doing. */
     <div className="flex items-center gap-3">
-      <SaveMark state={saveState} message={saveMessage} />
       <Button
         variant={live ? "primary" : "default"}
         /* No min-width. "Done" is narrower than "Edit profile" and that is
@@ -667,6 +677,7 @@ export function LetterheadProfile({
         {live ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
         {live ? "Done" : "Edit profile"}
       </Button>
+      <SaveMark state={saveState} message={saveMessage} />
     </div>
   ) : contactsLock ? (
     // The viewer is below the contacts tier, so this person's details were
