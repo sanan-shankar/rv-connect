@@ -38,6 +38,18 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
         purpose: "any",
       },
+      /* For the Mac dock, which is the only thing that wants more than 512.
+         Safari's Add to Dock reads this manifest, and a dock icon at the
+         largest setting on a Retina display is 1024 physical pixels -- the
+         512 was being stretched to fill it. Android and Chrome's install
+         dialog both stop at 512 and will keep choosing that entry; nothing
+         downloads this 21KB unless it genuinely wants the size. */
+      {
+        src: "/images/icons/icon-1024.png",
+        sizes: "1024x1024",
+        type: "image/png",
+        purpose: "any",
+      },
       {
         src: "/images/icons/icon-maskable-512.png",
         sizes: "512x512",
