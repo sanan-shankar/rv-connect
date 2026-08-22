@@ -2471,3 +2471,40 @@ Everything the report contained is now closed, so its paperwork went with it. Wh
 part the code cannot say: `docs/TRAPS.md` (the runtime traps, each one proved) and a new section in
 `docs/planning/bugs.md` under "Settled, do not re-open" (what was deliberately NOT a bug, what is
 deferred and why, and the owner decisions taken along the way).
+
+## 2026-08-22 — Pre-release bug audit, round two (audit-only)
+
+Ran the formal pre-release bug/stability audit a second time as a fresh set of eyes, dedup baseline
+being `docs/TRAPS.md` plus the `bugs.md` Settled/Open ledger. Audit-only: no application code
+changed. Report at `docs/planning/audits/bug-report-2.md`, machine ledgers alongside
+(`findings-raw.json`, `verdicts-merged.json`), refuted+duplicate appendix beside them.
+
+Shape: 22 read-only finder agents (12 territories partitioned by write-path density + 10
+cross-cutting lenses) → 204 candidates → 18 adversarial validators, one per code-locality zone, each
+told to refute against the actual code and to fold duplicates. Then orchestrator hand-verification of
+the top tier and one live database proof.
+
+Outcome: no Critical. 3 High, 42 Medium, 131 Low confirmed (plus 7 the validators surfaced), 13
+refuted with written reasons, 14 folded as duplicates, 8 left SUSPECTED with the exact runtime check
+named. 292 clean checks recorded as the verified-clean map.
+
+The three Highs: an unverified account can publish a plain post to the feed by sending saveAsDraft on
+a non-letter kind (the gate reads the raw flag, the draft-effect requires kind==letter, and they
+disagree — hand-confirmed); a Keeper can see anonymous Catch-up askers on the home surface that the
+Round page correctly hides (M10 incomplete); and an admin mail "Retry" on a deferral-exhausted row
+resets attempts but not deferrals, making an unkillable queued zombie that folds every future reset
+for that member. The scariest Mediums: a refunded donation resurrects to "paid" (and re-grants a
+bird) when Razorpay replays payment.captured, because the capture branch guards only status!=paid;
+and a keyset cursor at a deleted/hidden row silently ends pagination across feed, letters, bell and
+directory — proven live: Prisma's cursor comparison returns 0 rows when the cursor id exists in no
+row, while a valid cursor returns the rest.
+
+2,000-user headroom: comfortable. Connection budget correctly sized (pool 5 × ~40 instances = 200 =
+Supavisor cap); DB is 112MB of 500MB (97MB of it the static Place gazetteer). Real watch-items are
+Resend's 100/day free tier trailing a big launch day, the unbounded Visit table lacking a retention
+sweep, and PostHog/Sentry free-tier ceilings. Scorecard: overall 7.6/10, launch-ready with a short
+punch-list.
+
+Honest limitation: input validation was audited by code-read, not live BLNS browser fuzzing; that
+live naughty-strings pass is the one deferred brief item and the cheapest high-value follow-up. No
+test account created, no rows written — every check read-only against the shared database.
