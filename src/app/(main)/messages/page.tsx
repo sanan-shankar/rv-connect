@@ -75,7 +75,7 @@ export default async function MessagesPage() {
             photoUrl: session.user.photoUrl,
             birdOverride: session.user.birdOverride,
           }}
-          placeholder="Say what happened, or what you'd like. One line is plenty."
+          placeholder="Describe a problem, an idea, or any other feedback."
         />
       </section>
 
@@ -91,10 +91,6 @@ export default async function MessagesPage() {
           <MessagesEmptyHoopoe className="mb-3 flex justify-center" />
           <p className="font-heading text-[17px] font-bold tracking-[-0.01em] text-foreground">
             Nothing here yet
-          </p>
-          <p className="mx-auto mt-2 max-w-sm text-[13.5px] leading-[1.7] text-muted-foreground">
-            Whatever you send sits here with the reply, so you can always find your way back to it.
-            Notes from the admins land here too.
           </p>
         </section>
       )}
