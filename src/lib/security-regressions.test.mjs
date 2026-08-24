@@ -82,15 +82,53 @@ test("C2: uploads mint under owner-scoped keys", () => {
   assert.match(src, /function keyBelongsTo/, "keyBelongsTo is gone");
 });
 
+/**
+ * Server-action files that name caller-supplied image URLs but are NOT
+ * required to run the ownership gate, each with the reason. Empty today:
+ * every file that reaches the derived list below does gate. An entry here is
+ * a reviewed decision; a file quietly missing from BOTH is the accident.
+ */
+const MINTS_ITS_OWN_BYTES = {
+  // e.g. "src/app/(main)/collection/actions.ts":
+  //   "takes bytes, not URLs: putAllOrNone mints the keys server-side"
+};
+
 test("C2: every write path that accepts image URLs runs the ownership gate", () => {
-  for (const file of [
-    "src/app/(main)/feed/actions.ts",
-    "src/app/(main)/catchups/actions.ts",
-  ]) {
-    assert.ok(
-      /ownedUploadUrls/.test(decomment(read(file))),
-      `${file} no longer validates image URL ownership`
+  /* Derived, not listed. The hard-coded pair this used to check (feed +
+     catchups) had already drifted: messages/actions.ts takes a caller-supplied
+     imageUrl on all three of its write paths and was unswept, so dropping its
+     ownedUploadUrls call would have re-opened C2 -- arbitrary, unrecoverable
+     R2 deletion, no bucket versioning -- with every gate green (bug-report-2
+     C-193). The candidate set is now every server-action file that so much as
+     names `images` or `imageUrl` outside a comment, so a new one joins the
+     sweep on the day it is written. */
+  const files = execSync(`git grep -l '"use server"' -- 'src/**/*.ts' || true`, {
+    cwd: ROOT,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(Boolean)
+    .filter((f) => /^\s*(['"])use server\1/.test(read(f)))
+    .filter((f) => /\bimages\b|\bimageUrls?\b/.test(decomment(read(f))));
+
+  assert.ok(files.length >= 3, `only ${files.length} candidate files; the git grep broke`);
+  for (const file of files) {
+    if (MINTS_ITS_OWN_BYTES[file]) continue;
+    /* The CALL, not the name: matching a bare `ownedUploadUrls` passed
+       happily against a file that still imported the helper and had stopped
+       calling it, which is the same import-not-call vacuum this repo has hit
+       three times now. */
+    assert.match(
+      decomment(read(file)),
+      /ownedUploadUrls\s*\(/,
+      `${file} accepts image URLs but no longer validates their ownership`
     );
+  }
+});
+
+test("the C2 exemption list names only files that still exist", () => {
+  for (const file of Object.keys(MINTS_ITS_OWN_BYTES)) {
+    assert.ok(existsSync(resolve(ROOT, file)), `${file} is exempted from C2 but is gone (stale entry)`);
   }
 });
 

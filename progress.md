@@ -2794,3 +2794,46 @@ session touched, is among them. The owner still owes a decision on that.
 **Trap learned**: `python3 -c "open(p,'w').write(open(p).read() + x)"` truncates
 the file before it reads it. It emptied `fix-ledger.md` mid-session; rebuilt
 from the last commit plus this session's rows. Read first, then open for write.
+
+## 2026-08-25 — round-two fix session: the five test-coverage holes
+
+Continued the bug-report-2 fix run. Phase 6 begins with the five findings that
+were about the GATES rather than the code: a test that does not exist, a test
+that lies about its reach, and a test whose header promises a generality its
+hard-coded list does not have. They weaken every other gate in the repo, so
+they went first.
+
+- **C-187 — nothing tested session revocation at all.** The word
+  `credentialVersion` appeared in no test in the repo, and the whole mechanism
+  that ends a blocked, deleted or password-reset member's session was one
+  inline condition in the NextAuth callback. The predicate now lives in
+  `src/lib/session-revocation.ts` and is attacked as six cases, with two
+  wiring tests beside them: the callback still calls it, and the session
+  `select` still fetches every column it reads — derived from the rule's own
+  source, so a new clause fails until the query fetches it. Four mutations
+  proved it: flipped `!==`, dropped `isBlocked`, dropped the select column,
+  guard removed.
+- **C-193 — the C2 ownership sweep had already drifted.** It named two files
+  under a title claiming "every write path"; `messages/actions.ts` was the
+  third and unswept. It derives the list now. The first attempt was vacuous in
+  this repo's favourite way: matching the bare name `ownedUploadUrls` passed
+  against a file that still IMPORTED the helper and had stopped calling it.
+- **C-194 — nothing pinned that the visibility guard is CALLED**, only that
+  the rule is right. A new sweep requires every action naming a `postId` or
+  `commentId` to consult `canViewPost`, or to sit on a written list of the
+  ones authorised by authorship or the admin role. It found a live gap while
+  being written: `reportPost` had no check, so reporting any post by id put
+  its author's name into the reporter's thread. It guards now.
+- **C-191 and C-192 — two headers that over-promised.** The cascade test's
+  reachable-from-User walk is filtered through a fail-CLOSED subset assertion
+  now (25 models, each with the reason it is that member's to lose), so a new
+  communal model wired Cascade fails on the day it is written, which is what
+  the header always claimed. The index test keeps its ten measured hot reads
+  and gains a derived sweep over every `@@unique([aId, bId])` of real relation
+  columns. Both were proved with the audit's own scratch models.
+
+**Raised, not fixed:** generalising the index sweep exposed `GroupMember.userId`
+— `loadSavedPosts` reads memberships by userId on every request with no index
+to serve it, the same shape as B-090. It is exempted in the test with that
+said plainly, and it wants a migration, which does not belong in a test
+change. It is the first item in the ledger's open column.

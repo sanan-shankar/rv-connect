@@ -140,6 +140,72 @@ test("the public list names only functions that still exist", () => {
 });
 
 /* ------------------------------------------------------------------ *
+ *  Every action that acts on a post id asks whether the caller may SEE it.
+ *
+ *  The gate above proves an action knows WHO is calling. This one proves it
+ *  asked WHETHER — the second half of audit H3, whose actual bug was five
+ *  interaction paths taking a postId and acting on it, each one authenticated
+ *  perfectly. post-visibility-rule.test.mjs attacks the rule itself in 311
+ *  lines and never once asserts that anybody calls it, so a new interaction
+ *  path (a reaction, a share, a report-with-quote) could skip the guard with
+ *  every test green — and this codebase demonstrably grows such paths, both
+ *  toggleCommentLike and reportPost having been added exactly that way
+ *  (bug-report-2 C-194; reportPost was in fact unguarded when this was
+ *  written, and printed the author's name of any post into the reporter's
+ *  thread).
+ *
+ *  Candidates are derived: any exported action whose body names a `postId` or
+ *  `commentId` at all. An action authorised some OTHER way — by authorship,
+ *  by the admin role — is exempt with the reason written down, which is the
+ *  reviewed decision; a new action in neither place is the accident.
+ * ------------------------------------------------------------------ */
+
+const VISIBILITY_GUARD = /canViewPost\s*\(|canViewPostOfComment\s*\(/;
+
+const AUTHORISED_OTHERWISE = {
+  "src/app/(main)/feed/actions.ts": {
+    createPost: "creates the row; the only postId it names is the one it just minted",
+    publishDraft: "author-only (post.authorId !== session.user.id refuses); a draft has no other viewer",
+    deleteDraft: "author-only, same as publishDraft",
+    deletePost: "author, site admin or the group's admin; visibility is not the question a delete asks",
+    editPost: "author-only",
+    adminRemovePost: "admin-only moderation: an admin acts on posts they are not the audience for",
+    deleteComment: "comment author or site admin",
+    adminRemoveComment: "admin-only moderation, same as adminRemovePost",
+  },
+  "src/components/profile/admin-actions.ts": {
+    adminHidePost: "admin-only moderation (requireAdmin), reached from the admin queue",
+  },
+};
+
+test("every action that takes a post or comment id checks visibility or says why not", () => {
+  let candidates = 0;
+  for (const file of files) {
+    const src = decomment(read(file));
+    for (const name of exportedActions(src)) {
+      const body = fnBody(src, name) ?? "";
+      if (!/\b(postId|commentId)\b/.test(body)) continue;
+      candidates++;
+      if (AUTHORISED_OTHERWISE[file]?.[name]) continue;
+      assert.ok(
+        VISIBILITY_GUARD.test(body),
+        `${file} → ${name}() acts on a post id without canViewPost and has no AUTHORISED_OTHERWISE entry`
+      );
+    }
+  }
+  assert.ok(candidates >= 15, `only ${candidates} candidate actions; the sweep has stopped finding them`);
+});
+
+test("the visibility exemption list names only actions that still exist", () => {
+  for (const [file, entries] of Object.entries(AUTHORISED_OTHERWISE)) {
+    const names = new Set(exportedActions(decomment(read(file))));
+    for (const fn of Object.keys(entries)) {
+      assert.ok(names.has(fn), `${file} → ${fn} is exempt from the visibility guard but no longer exported (stale entry)`);
+    }
+  }
+});
+
+/* ------------------------------------------------------------------ *
  *  Every admin PAGE re-establishes the role, not just the layout.
  *
  *  The layout gate is navigation, not authorisation. In App Router partial
