@@ -48,6 +48,24 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   name; never `git add -A` or `git commit -a`, because the tree may hold work that is not yours.
   A **push is a deploy** (see above), so committing is yours to do freely and pushing is not: ask
   first.
+- **A commit is one revertable change, not one file type**: the point of a commit is a state the
+  project can be rolled back to, so everything a change needs to be complete goes in **one** commit —
+  the code, the test that pins it, the ledger line, the `progress.md` entry, the spec edit, the
+  visual baseline it intentionally moved. Reverting the commit must undo the whole thing, docs
+  included. Concretely:
+  - **No trailing `docs:` commit for work already committed.** Write the doc as part of the change
+    and stage it with the code. A standalone `docs:` commit is only for documentation that *is* the
+    work: a new spec, a rewritten TRAPS entry, a README with no code behind it. Twenty fixes must
+    not produce twenty `docs(progress)` commits — and batching them into one end-of-session docs
+    commit is the same mistake, just tidier.
+  - **No `test:` commit for a test that belongs to a fix.** A test that pins a bug ships in that
+    bug's commit; a `test(visual): rebaseline …` for a deliberate UI change ships in that UI
+    change's commit. `test:` alone is for test infrastructure or a suite added on its own.
+  - **A scratch test is deleted, not committed.** If it existed only to prove a fix worked in this
+    session, remove the file before staging. Keep it only if it would catch a regression later —
+    and then it rides along with the fix, per above.
+  - **Split a commit when the pieces are independent**, not when the file extensions differ. Two
+    unrelated bug fixes are two commits. One bug fix plus its test plus its ledger line is one.
 - **Another session may be working in this same tree**: several Claude sessions run against this one
   checkout, so uncommitted changes you did not make are somebody's work in progress, not noise.
   Never `git stash`, `git checkout -- .`, `git reset --hard`, `git clean`, or revert, rewrite or
@@ -71,7 +89,8 @@ rebuild what exists. Check `components.json` before adding a shadcn component. R
 **After**: run `npm run check` (below). Every clickable element has hover, focus-visible and active.
 CTAs are Canopy `#235C49` pills. Only `transform` and `opacity` animate. Any new async route ships a
 `loading.tsx` using the warm shimmer, not a grey pulse. Screenshot desktop and mobile, minimum two
-rounds. Run `/simplify`. Log the session in `progress.md`.
+rounds. Run `/simplify`. Log the session in `progress.md` — written before you commit, and staged
+in the same commit as the work it describes.
 
 # Tooling
 
@@ -166,7 +185,7 @@ edited — its whole point is the page you were not looking at.
 | Command | Use |
 |---|---|
 | `npm run visual` | compare every route against its baseline |
-| `npm run visual:update` | **the change was intentional** — rewrite the baselines, then commit the PNGs |
+| `npm run visual:update` | **the change was intentional** — rewrite the baselines, and stage the PNGs with the UI change that moved them, not as a `test(visual):` commit of their own |
 | `npm run visual:report` | open the three-up expected/actual/diff view of the last failure |
 | `npm run test:e2e` | the above plus the sign-in flow checks |
 
