@@ -2671,3 +2671,73 @@ filter needs.
 off the database at both viewports), but the classifier blocked getting a session cookie into the
 MCP browser, so the Save button was never actually clicked. The write is three lines added to the
 `prisma.user.update` that already saves name, account type and batch year from the same button.
+
+## 2026-08-24 — Fixing round two of the pre-release audit: phases 1 and 2, plus three more
+
+Eight commits against `docs/planning/audits/bug-report-2.md`. The disposition ledger is
+`docs/planning/audits/fix-ledger.md`; it is the handover between sessions and is current.
+
+**Phase 1, all five.**
+
+*Unverified publish (C-122).* `createPost` skipped the verified-member gate on the raw
+`saveAsDraft` flag, but only stored a draft when the kind was also `letter`. A submission with the
+flag and no kind therefore skipped the only enforcement of `emailConfirmed` and landed
+`status: "published"`. One predicate, `isLetterDraft`, now answers both questions.
+
+*Donation accounting (C-084, C-085, C-087, and C-151 with them).* Both confirmers admitted the move
+to "paid" from anything that was not already "paid", so a re-delivered `payment.captured` or a
+replayed browser callback put a refunded gift back on "paid" with a fresh `paidAt` and minted a
+second bird pick. Stated positively now, as `PAYABLE_FROM`. Separately, the refund branch read no
+amount at all: a hundred rupees back on a five thousand rupee gift erased the whole five thousand
+from every money surface. `Contribution` gained `refundedAmount` and `reversalIds`; every aggregate
+goes through `CONTRIBUTION_SUM`/`netPaise`, swept by a test. Migration
+`2026-08-24-contribution-partial-refund.sql`, applied to both databases. Proved against Postgres:
+a partial refund keeps the row on "paid" and subtracts exactly its paise, a re-delivered refund is
+a no-op, and a capture arriving after a reversal moves nothing.
+
+*Keeper anonymity (C-019).* The home page's inline Round declared `const askerVisible = p.showAsker
+|| isKeeper` inside its map, shadowing the imported helper of the same name. Proved on the live
+page: four anonymous questions handed their asker's name and bird to their Keeper before the fix,
+none after. All four surfaces use the shared helper now, and `catchups.test.mjs` sweeps for a local
+shadow or any spelling of a Keeper exception.
+
+*Hidden letters (C-002).* `letters/[id]` tested `isHidden` above `canViewPost`, cancelling both
+exemptions the rule grants above its own hidden refusal: the moderator's own Open link 404'd, and
+the author had no route to their removed letter at all. The page also says "Removed by a moderator"
+now, in the same shape as the draft notice; it used to say nothing.
+
+*Mail retry (C-102).* Retry reset the status and the attempts and left the deferrals, so a row
+retired by a provider outage came back queued and invisible to the drain forever. For a reset, which
+folds, every later "forgot my password" folded into the zombie and returned without sending.
+
+**Phase 2, the pagination cluster (C-005/C-124/C-162/C-171/C-056).** Proved against this database
+what the audit could only infer: `cursor: { id }` on a hard-deleted row returns an empty array with
+no error, and on a row that still exists but no longer matches the `where` it silently SKIPS one row,
+because `skip: 1` then eats a real one. So the cursor stopped naming a row. `src/lib/keyset.ts`
+carries the sort key instead, and the feed, the comment thread and the bell all page on values.
+The directory keeps its M39 offset recovery: it sorts by name and batch, so it has no timestamp to
+seek on. Verified end to end — the bell goes 20 rows to 23, its exact total, no duplicates.
+
+**Two refuted by running the check.** C-096 (directory dead-ends at the NULL-batchYear region under
+the batch sorts): walked all 63 rows one page at a time with a boundary inside the NULL region, no
+dead end — Prisma 7's cursor compiler handles it. C-055 (a legacy admin note destroyed by the prune):
+zero `/notice/%` notifications in either database, and `notifyAdminNote` has opened an AdminThread
+before writing the bell row since the rewrite, so the note's text is never the notification's only
+copy.
+
+**Also fixed.** C-065: the retention sweep deleted `AdminMessage` rows without queueing their
+screenshots, so the bytes orphaned unfindably; it collects then deletes in one transaction now.
+C-175/C-176/C-177, the letters desk: the autosave timer guarded on state its own effect does not
+depend on and fired mid-publish; the audience was sent but not watched, so choosing one and not
+typing was never saved; and nothing survived the tab closing, so writing fluently and then closing
+lost every word since the last pause. A `pagehide` handler writes the local copy synchronously now,
+for resumed drafts too, and that copy is finally read back and offered on reopen.
+
+**`npm run visual` is red on 7 of 20, and none of it is code.** The diffs are live data: different
+members in "New in the Directory", a heart count that moved from 7 to 8, a new draft at the top of
+Letters, a relative "just published" label on a Catch-up. The suite reads the shared production
+database, so its baselines rot on their own between runs. Worth deciding what to do about, because
+a suite that is red for reasons nobody caused is a suite nobody reads.
+
+**Left for the owner.** C-135 (confirm Google Pay / UPI survives `payment=()` with a real test
+payment), C-165/C-166 (PostHog and Sentry free-tier ceilings), C-186 (the demo project's cron env).
