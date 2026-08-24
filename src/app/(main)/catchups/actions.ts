@@ -1606,6 +1606,7 @@ export async function toggleEntryLove(entryId: string) {
       await notifyLove(prisma, {
         catchupId: edition.catchupId,
         editionId: entry.editionId,
+        groupId: edition.catchup.group.id,
         groupName: edition.catchup.group.name,
         entryId,
         authorId: entry.authorId,
