@@ -76,6 +76,8 @@ export const PEAK_PLANES = {
   silhouette: SILHOUETTE,
   middle: MIDDLE_PLANE,
   rishi: RISHI_PLANE,
+  /** The bare ridge, no baseline bar. Only an outline treatment wants this. */
+  ridge: RIDGE,
 } as const;
 
 export function PeaksMark({

@@ -318,6 +318,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The selected two-plane PeaksMark, shown standalone and in its real lockup contexts (sidebar green, light surface, photo overlay). Current reference.",
   },
   {
+    href: "/lab/icon-directions",
+    title: "The green has to be in the hills, not behind them",
+    group: "Brand",
+    status: "active",
+    note: "Eight fresh directions for the app icon after the blue/cream/cinnamon version shipped and read like a flag, each shown on a light ground and a dark one down to 16px, plus three sidebar lockup structures.",
+  },
+  {
     href: "/lab/icon-colours",
     title: "The app icon, in the site's own colours",
     group: "Brand",
