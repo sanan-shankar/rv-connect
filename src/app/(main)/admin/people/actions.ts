@@ -13,7 +13,7 @@ import {
 import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
-import { delImage } from "@/lib/storage";
+import { purgeImageUrls } from "@/lib/image-purge";
 import { valleyYear } from "@/lib/utils";
 import { parsePlaces, resolvePlaces } from "@/lib/place-input";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
@@ -406,7 +406,9 @@ export async function adminMergeUsers(
   // only after the transaction committed, and never an object the target
   // itself displays.
   if (source.photoUrl && source.photoUrl !== target.photoUrl) {
-    await delImage(source.photoUrl);
+    // Queued for the nightly drain if storage refuses: this is the one object
+    // a merge strands, and a console line is not a worklist (audit C-069).
+    await purgeImageUrls([source.photoUrl], "merge");
   }
 
   await writeAudit({
