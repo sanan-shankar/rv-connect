@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   MAX_BATCH_TARGETS,
@@ -308,4 +312,58 @@ test("a caller that never fetched the author's standing is not told everything i
   const { authorIsBlocked: _omitted, ...noStanding } = byBlocked;
   void _omitted;
   assert.equal(decidePostVisibility(noStanding, { id: "bo" }, anyone).ok, true);
+});
+
+/* ------------------------------------------------------------------ *
+ *  The rule is only the authority if nothing refuses ahead of it
+ * ------------------------------------------------------------------ */
+
+/* Both exemptions above -- admin, and the author -- sit ABOVE the isHidden
+ * refusal on purpose, so that a moderator following the Open link from
+ * /admin/content lands on the post and an author can reach a hidden post to
+ * respond to the moderation. letters/[id] cancelled both of them by testing
+ * `letter.isHidden` on its own line above canViewPost, and a hidden letter is
+ * filtered out of the feed and the letters index too, so its author had no
+ * route to it at all (audit C-002).
+ *
+ * A behavioural test of decidePostVisibility cannot see that. This can: no
+ * caller may refuse on a fact the rule already weighs. */
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const decomment = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+
+const RULE_FACTS = ["isHidden", "groupId", "cityScope", "targetBatches"];
+
+test("no page refuses a post ahead of the rule", () => {
+  const callers = execSync("git grep -l 'canViewPost(' -- 'src/app/**/page.tsx'", {
+    cwd: ROOT,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(Boolean);
+  assert.ok(callers.length > 0, "no page calls canViewPost; retarget this test");
+
+  for (const f of callers) {
+    const src = decomment(readFileSync(resolve(ROOT, f), "utf8"));
+    /* Everything the page does before it asks the rule. The IMPORT of
+       canViewPost is not the call, which is the trap this test fell into
+       first: slicing at the import made `before` three lines long and the
+       sweep vacuous. A guard AFTER the rule has spoken is the page's own
+       business (a draft banner, a group redirect); a guard before it silently
+       overrides the rule. */
+    const segments = src.split("await canViewPost(");
+    assert.ok(segments.length > 1, `${f} no longer awaits canViewPost`);
+    // One segment per call -- generateMetadata and the page body each ask the
+    // rule, and each has its own run-up. The last segment is what follows the
+    // final call and is not a run-up to anything.
+    for (const before of segments.slice(0, -1)) {
+      for (const fact of RULE_FACTS) {
+        assert.ok(
+          !new RegExp(`(if|\\|\\||&&)[^\\n]*\\.${fact}\\b[^\\n]*(notFound|redirect|return)`).test(before),
+          `${f} refuses on ${fact} before canViewPost decides it`
+        );
+      }
+    }
+  }
 });
