@@ -29,3 +29,57 @@ export function chooseGroupSuccessor(
   );
   return first.userId;
 }
+
+/**
+ * Hand the group's powers on before the person holding them walks out.
+ *
+ * `chooseGroupSuccessor` decides WHO; this is the read and the write around
+ * it, taking its database as an argument so it can run inside whichever
+ * transaction is already removing the membership -- and so it can be tested
+ * without one.
+ *
+ * Called wherever a `GroupMember` row is about to disappear: leaving a
+ * Catch-up, a Keeper removing somebody, the nightly sweep emptying a bin. Each
+ * of those could take the last member holding "keeper" or "admin", and once
+ * `Catchup.createdById` has gone null (its holder's account purged) there is
+ * then nobody who can curate a question, publish a Round, pause it or end it,
+ * and no way for anyone to claim it: setCatchupKeeper itself needs a Keeper to
+ * call it (audit C-023). The Catch-up keeps running on its clock, notifying a
+ * group that can no longer steer it.
+ *
+ * A no-op in the ordinary case -- somebody else still holds the powers, so
+ * `chooseGroupSuccessor` returns null and nothing is written.
+ */
+export type SuccessionDb = {
+  groupMember: {
+    findMany(args: {
+      where: { groupId: string };
+      select: { userId: true; role: true; joinedAt: true };
+    }): Promise<GroupMemberRow[]>;
+    updateMany(args: {
+      where: { groupId: string; userId: string };
+      data: { role: string };
+    }): Promise<{ count: number }>;
+  };
+};
+
+export async function promoteGroupSuccessor(
+  db: SuccessionDb,
+  groupId: string,
+  leavingUserId: string
+): Promise<string | null> {
+  const members = await db.groupMember.findMany({
+    where: { groupId },
+    select: { userId: true, role: true, joinedAt: true },
+  });
+  const successor = chooseGroupSuccessor(members, leavingUserId);
+  if (!successor) return null;
+  // updateMany, not update, for the reason promoteOrphanedGroups gives: the
+  // successor was chosen from a snapshot, and their own membership going in
+  // the same beat must be a no-op rather than an aborted transaction.
+  const done = await db.groupMember.updateMany({
+    where: { groupId, userId: successor },
+    data: { role: "keeper" },
+  });
+  return done.count > 0 ? successor : null;
+}

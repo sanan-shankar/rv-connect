@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { writeAudit } from "./audit";
 import { purgeUserAccount, drainPendingImagePurges, DELETION_GRACE_DAYS } from "./account-purge";
 import { RECENTLY_DELETED_DAYS } from "./catchup-shelf";
+import { promoteGroupSuccessor } from "./group-succession";
 import { reportSwallowed } from "./report-error";
 
 /**
@@ -221,6 +222,14 @@ export async function runRetentionSweep(): Promise<SweepResult> {
         // showing -- which the next sweep tidies, and which reads as what they
         // asked for. The other order would leave them back on the list with no
         // way to tell.
+        /* Hand the hat on before taking the head out of the group (audit
+           C-023). A bin emptied tonight can be the last member holding
+           "keeper" on a Catch-up whose creator's account is already gone,
+           which would leave it running on its clock with nobody able to
+           curate, publish or end it. A no-op in every ordinary case. */
+        for (const row of due) {
+          await promoteGroupSuccessor(tx, row.catchup.groupId, row.userId);
+        }
         await tx.groupMember.deleteMany({
           where: { OR: due.map((r) => ({ groupId: r.catchup.groupId, userId: r.userId })) },
         });

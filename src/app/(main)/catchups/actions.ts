@@ -81,6 +81,7 @@ import type {
   PromptCategory,
   ReminderMode,
 } from "@/lib/catchups-types";
+import { promoteGroupSuccessor } from "@/lib/group-succession";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 
@@ -1846,8 +1847,12 @@ export async function removeCatchupMember(catchupId: string, userId: string) {
       return { error: "The person who started this Catch-up cannot be removed." };
     }
 
-    const removed = await prisma.groupMember.deleteMany({
-      where: { groupId: catchup.groupId, userId },
+    const removed = await prisma.$transaction(async (tx) => {
+      // The same succession as leaving: a Keeper can remove a second Keeper,
+      // and on a Catch-up with no creator left that could be the last one
+      // (audit C-023).
+      await promoteGroupSuccessor(tx, catchup.groupId, userId);
+      return tx.groupMember.deleteMany({ where: { groupId: catchup.groupId, userId } });
     });
     if (removed.count === 0) return { error: "They are not in this Catch-up." };
 
@@ -1900,11 +1905,20 @@ export async function leaveCatchup(catchupId: string) {
       };
     }
 
-    // deleteMany, not delete: a second tap (or a Keeper removing them in the
-    // same beat) has already taken the row, and P2025 out of a "leave" button
-    // would read as a failure to leave something they are already out of.
-    await prisma.groupMember.deleteMany({
-      where: { groupId: ctx.catchup.groupId, userId: viewerId },
+    await prisma.$transaction(async (tx) => {
+      /* Hand the hat on first, if this is the last head wearing it (audit
+         C-023). A Catch-up whose `createdById` has gone null holds its Keeper
+         powers entirely in `GroupMember.role`, so the last role-holder walking
+         out leaves nobody who can curate a question, publish a Round or end
+         it -- and no way to claim it, since making a Keeper needs a Keeper.
+         A no-op whenever somebody else still holds the powers. */
+      await promoteGroupSuccessor(tx, ctx.catchup.groupId, viewerId);
+      // deleteMany, not delete: a second tap (or a Keeper removing them in the
+      // same beat) has already taken the row, and P2025 out of a "leave" button
+      // would read as a failure to leave something they are already out of.
+      await tx.groupMember.deleteMany({
+        where: { groupId: ctx.catchup.groupId, userId: viewerId },
+      });
     });
     // Their own pref row goes with them: the reminder setting, and any
     // archived/deleted stamp, describe a copy that no longer exists. Being
