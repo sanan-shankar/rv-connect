@@ -8,12 +8,12 @@ import {
   putImage,
   delImage,
   getImageBuffer,
-  delImageByKey,
   headObjectSize,
   keyBelongsTo,
   ownerPrefix,
 } from "@/lib/storage";
 import { sharpImage, storedPixelFit } from "@/lib/image";
+import { purgeImageKey } from "@/lib/image-purge";
 import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike } from "@/lib/db-text";
 import { photoSchema } from "@/lib/validators";
@@ -279,31 +279,44 @@ export async function contributePhotoDirect(input: {
   if (!session?.user?.id) return { error: "Not authenticated" };
   if (IS_DEMO) return { error: "The demo does not accept photo uploads. Everything already in the Collection is yours to browse." };
 
-  // A contributed photograph is bytes into a bucket, credited to a name, shown
-  // to the whole community. Of everything an account can do this is the one
-  // with a real cost attached, so it waits for a confirmed address.
-  const gate = await requireVerifiedMember();
-  if (!gate.ok) return { error: gate.error };
-
-  // Same meter as contributePhoto: the bytes came up through presign, but
-  // the row it creates is the same kind of thing (audit M2).
-  const limited = await rateLimit("uploads", session.user.id);
-  if (!limited.ok) return { error: limited.error };
-
+  // The key is checked FIRST, before any gate that can refuse, because
+  // everything below has an object staged in the bucket to answer for. It is a
+  // regex and a prefix test -- no I/O -- so nothing is spent by doing it early.
   if (
     typeof input.key !== "string" ||
     !COLLECTION_ORIGINAL_KEY.test(input.key) ||
     !keyBelongsTo(input.key, session.user.id, "collection")
   ) {
+    // The one refusal that must NOT delete: the key is not one we can vouch
+    // for, so it is not ours to aim a delete at.
     return { error: "Bad upload reference" };
   }
 
+  /* Past here the caller's browser has already PUT the full-resolution
+     original, and nothing in this system can enumerate the bucket: an object no
+     row names is unreachable for ever, and it is the EXIF-bearing copy at that
+     (audit C-063). So every way out of this function that is not a created row
+     goes through `refuse`, and adding a new refusal cannot forget the cleanup
+     -- it would have to write a bare `return { error }` that the shape test in
+     collection-rule.test.mjs refuses to let past. */
+  const refuse = async (error: string) => {
+    await purgeImageKey(input.key, "staged");
+    return { error };
+  };
+
+  // A contributed photograph is bytes into a bucket, credited to a name, shown
+  // to the whole community. Of everything an account can do this is the one
+  // with a real cost attached, so it waits for a confirmed address.
+  const gate = await requireVerifiedMember();
+  if (!gate.ok) return refuse(gate.error);
+
+  // Same meter as contributePhoto: the bytes came up through presign, but
+  // the row it creates is the same kind of thing (audit M2).
+  const limited = await rateLimit("uploads", session.user.id);
+  if (!limited.ok) return refuse(limited.error);
+
   const quota = await photoQuotaError(session.user.id);
-  if (quota) {
-    // The staged original is orphaned if we refuse it; clean it up.
-    await delImageByKey(input.key);
-    return { error: quota };
-  }
+  if (quota) return refuse(quota);
 
   const parsed = photoSchema.safeParse({
     caption: input.caption || undefined,
@@ -313,7 +326,7 @@ export async function contributePhotoDirect(input: {
     photoYear: input.photoYear,
     photoMonth: input.photoMonth,
   });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return refuse(parsed.error.issues[0].message);
 
   const era =
     parsed.data.photoYear !== undefined ? eraFromYear(parsed.data.photoYear) : parsed.data.era || "unknown";
@@ -334,20 +347,17 @@ export async function contributePhotoDirect(input: {
     // an oversized object is deleted without ever being fetched (audit M16).
     const stagedSize = await headObjectSize(input.key);
     if (stagedSize !== null && stagedSize > MAX_UPLOAD_BYTES + 1024) {
-      await delImageByKey(input.key);
-      return { error: "Photo is over the 20MB limit" };
+      return refuse("Photo is over the 20MB limit");
     }
 
     const original = await getImageBuffer(input.key);
     if (original.byteLength > MAX_UPLOAD_BYTES + 1024) {
       // Belt to the HEAD's braces (a HEAD that could not read the size falls
       // through to here).
-      await delImageByKey(input.key);
-      return { error: "Photo is over the 20MB limit" };
+      return refuse("Photo is over the 20MB limit");
     }
     if (!sniffImageType(original)) {
-      await delImageByKey(input.key);
-      return { error: "That upload doesn't look like a JPG, PNG, GIF or WebP image." };
+      return refuse("That upload doesn't look like a JPG, PNG, GIF or WebP image.");
     }
 
     const dir = ownerPrefix("collection", session.user.id);
@@ -406,10 +416,11 @@ export async function contributePhotoDirect(input: {
 
     // The raw original carried the EXIF; its re-encoded copy is now the
     // canonical image, so the original is deleted rather than left retrievable.
-    await delImageByKey(input.key);
+    // Queued for the nightly retry if storage refuses -- a GPS-bearing file is
+    // not something to lose track of over a bad minute at R2.
+    await purgeImageKey(input.key, "staged");
   } catch (e) {
-    await delImageByKey(input.key);
-    return { error: describeProcessingError(e) };
+    return refuse(describeProcessingError(e));
   }
 
   const me = await mePromise;
