@@ -55,7 +55,7 @@ const direct = code(bodyOf(collection, "contributePhotoDirect"));
 test("the extraction really is contributePhotoDirect's whole body", () => {
   // If this fails the assertions below are testing a fragment, and their
   // passing means nothing.
-  assert.match(direct, /^\{[\s\S]*return \{ success: true, autoApprove \};\s*\}$/);
+  assert.match(direct, /^\{[\s\S]*return \{ success: true, autoApprove[^}]*\};\s*\}$/);
   assert.ok(direct.includes("COLLECTION_ORIGINAL_KEY.test(input.key)"));
 });
 

@@ -11,7 +11,7 @@ import {
   keyBelongsTo,
   ownerPrefix,
 } from "@/lib/storage";
-import { sharpImage, storedResizeBox } from "@/lib/image";
+import { countImageFrames, sharpImage, storedResizeBox } from "@/lib/image";
 import { purgeImageKey, purgeImageUrls, putAllOrNone } from "@/lib/image-purge";
 import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike } from "@/lib/db-text";
@@ -22,6 +22,7 @@ import {
   isUnsupportedHeic,
   describeProcessingError,
   sniffImageType,
+  stillPictureNotice,
 
   isImageFile,} from "@/lib/upload-shared";
 import { eraFromYear } from "@/lib/collection";
@@ -173,12 +174,17 @@ export async function contributePhoto(formData: FormData) {
   let url: string;
   let width: number;
   let height: number;
+  /** Anything we changed about the photograph, to be said out loud. */
+  let notice: string | undefined;
   try {
     const input = Buffer.from(await file.arrayBuffer());
     // The bytes, not the client's MIME string, decide it is an image (M13).
     if (!sniffImageType(input)) {
       return { error: "That file doesn't look like a JPG, PNG, GIF or WebP image." };
     }
+    // An animated GIF is about to become a still (audit C-073).
+    if ((await countImageFrames(input)) > 1) notice = stillPictureNotice(file.name);
+
     const id = createId();
     const dir = ownerPrefix("collection", session.user.id);
 
@@ -239,7 +245,7 @@ export async function contributePhoto(formData: FormData) {
   }, [url, thumbUrl]);
 
   revalidatePath("/collection");
-  return { success: true, autoApprove };
+  return { success: true, autoApprove, notice };
 }
 
 // Only objects the collection presign step itself created may be recorded, AND
@@ -362,6 +368,7 @@ export async function contributePhotoDirect(input: {
   let thumbUrl: string;
   let width: number;
   let height: number;
+  let notice: string | undefined;
   try {
     // Size is checked with a HEAD before the object is pulled into memory: a
     // presigned PUT cannot enforce a limit (R2 has no content-length-range), so
@@ -380,6 +387,10 @@ export async function contributePhotoDirect(input: {
     if (!sniffImageType(original)) {
       return refuse("That upload doesn't look like a JPG, PNG, GIF or WebP image.");
     }
+
+    // An animated GIF is about to become a still (audit C-073). This path
+    // never sees a filename, so the sentence names no file.
+    if ((await countImageFrames(original)) > 1) notice = stillPictureNotice();
 
     const dir = ownerPrefix("collection", session.user.id);
 
@@ -458,7 +469,7 @@ export async function contributePhotoDirect(input: {
   }, [url, thumbUrl]);
 
   revalidatePath("/collection");
-  return { success: true, autoApprove };
+  return { success: true, autoApprove, notice };
 }
 
 // Postgres accepts `mode: "insensitive"` on `contains`; SQLite's Prisma

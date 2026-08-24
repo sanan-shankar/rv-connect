@@ -9,9 +9,14 @@ import {
   keyBelongsTo,
   ownerPrefix,
 } from "@/lib/storage";
-import { sharpImage } from "@/lib/image";
+import { countImageFrames, sharpImage } from "@/lib/image";
 import { purgeImageKey, purgeImageUrls } from "@/lib/image-purge";
-import { MAX_UPLOAD_BYTES, describeProcessingError, sniffImageType } from "@/lib/upload-shared";
+import {
+  MAX_UPLOAD_BYTES,
+  describeProcessingError,
+  sniffImageType,
+  stillPictureNotice,
+} from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { originAllowed } from "@/lib/origin-rule";
@@ -87,6 +92,9 @@ export async function POST(request: Request) {
   }
 
   const urls: string[] = [];
+  /** Anything we changed about the file, said out loud -- same shape as the
+   *  classic route's response, because the composer shows both the same way. */
+  const notices: string[] = [];
   /* Up to three originals were staged in one presign round, and each loop pass
      stores a processed WebP. A refusal partway through returned an error while
      leaving BOTH the WebPs already stored and the originals still staged for
@@ -125,6 +133,10 @@ export async function POST(request: Request) {
           i
         );
       }
+      // An animated GIF is about to become a still. Cheap (metadata only) and
+      // never a reason to fail an upload that otherwise worked.
+      if ((await countImageFrames(original)) > 1) notices.push(stillPictureNotice());
+
       const webp = await sharpImage(original)
         .rotate()
         .resize(1920, 1920, { fit: "inside", withoutEnlargement: true })
@@ -142,5 +154,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ urls });
+  return NextResponse.json(notices.length > 0 ? { urls, notices } : { urls });
 }
