@@ -45,18 +45,27 @@ const KEEP_DAYS = {
   /** OutboundEmail: 180 days. The rows hold recipient addresses, and a
    *  delivery question older than six months has never once come up. */
   sentEmailLog: 180,
-  /** Visit and SearchLog: 180 days.
+  /** Visit and SearchLog: 90 days, which is exactly what the deepest surface
+   *  reads.
    *
    *  Both are identifiable presence telemetry (each row carries a userId) and
    *  until 2026-08-21 nothing anywhere deleted either -- they were added after
    *  prune.mjs was written and never reached the sweep, so the two fastest
    *  growing tables in the schema had no expiry at all (bug audit B-093).
    *
-   *  180 is deliberately double what any surface reads: the deepest lookback
-   *  in the whole analytics room is 90 days (loadRhythm's heatmap and
-   *  loadSearches), and everything else is 30. So this bounds the tables
-   *  without shortening a single answer the owner can currently get. */
-  presence: 180,
+   *  It was 180, double the deepest lookback, as margin. The margin was the
+   *  problem: Visit is one ~750-byte row per session, and this project's own
+   *  stated scale -- 2,000 members at 30 views a day, ~8 views a session -- is
+   *  about 7,500 rows a day. At 180 days that is 1.35M rows and well over half
+   *  a gigabyte, against a 500MB plan that Place already spends 97MB of
+   *  (bug-report-2 C-164). ContentView was deliberately built as a bounded
+   *  counter for exactly this arithmetic; Visit was never run through it.
+   *
+   *  90 costs no answer. The deepest lookback in the whole analytics room is
+   *  loadRhythm's heatmap and loadSearches at 90 days, and everything else is
+   *  30 -- so the rows this now removes are precisely the ones no query can
+   *  reach. Keep this number and that lookback equal; the test says so too. */
+  presence: 90,
   /** A binned Catch-up copy: 30 days in "Recently deleted", then the
    *  membership row goes for real. Imported rather than written out, because
    *  the countdown a member reads on the row ("4 days left") and the cutoff

@@ -85,12 +85,14 @@ gate or a written public-by-design reason.
 | Notifications | 1 year |
 | Login + audit logs | 1 year |
 | Sent-email log | 180 days |
-| Presence + search telemetry (`Visit`, `SearchLog`) | 180 days |
+| Presence + search telemetry (`Visit`, `SearchLog`) | 90 days |
 | Deleted accounts | purged 60 days after the request |
 
 *Presence added 2026-08-21 (bug audit B-093): both tables were created after the sweep was written
-and neither had any expiry at all. 180 days is double the deepest lookback any analytics view uses
-(90 days), so nothing the owner can currently see gets shorter.*
+and neither had any expiry at all. Cut from 180 to 90 on 2026-08-25 (bug-report-2 C-164): `Visit` is
+one ~750-byte row per session, and at this project's own stated scale -- 2,000 members, 30 views a
+day -- 180 days of it is over half a gigabyte against a 500MB plan. 90 days is exactly the deepest
+lookback any analytics view uses, so nothing the owner can currently see gets shorter.*
 
 **Accountability** — `AuditLog` (no foreign keys ON PURPOSE: rows outlive the accounts they name)
 via `writeAudit()` (never throws; IS_DEMO short-circuits), covering every admin action, deletion

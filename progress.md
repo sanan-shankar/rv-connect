@@ -3009,3 +3009,32 @@ our cookies, so there was never anything to lose by this.
 One honest limit: this proves the local path. On Vercel the rewrite itself is
 served by their infrastructure and I cannot watch it from here — but the strip
 runs in middleware, which does run there.
+
+## 2026-08-25 — the Visit table: whose row it is, and how much of it there may be
+
+**C-163.** A visit's id arrives in a request header the proxy fills from the
+caller's own cookie, and the write was an upsert keyed on that id alone. Two
+consequences: replaying somebody else's id wrote into their row — their view
+count, their endedAt, their device and their city — and a signed-in caller
+rotating the cookie on every request minted one row per page view for ever,
+with nothing anywhere to stop it. About 660,000 rows fills the free-tier disk
+and takes the database read-only for everybody.
+
+The write is now update-then-create with the update scoped to the member as
+well as the id, and a new row is only opened if this account has opened fewer
+than forty today — a number an ordinary browser, which carries one sliding
+thirty-minute cookie, never approaches. Proved against Postgres: the wrong
+member's scoped update touches nothing where the old shape touched a row and
+incremented its count; the create that follows loses to the primary key. Then
+re-proved the ordinary path with a throwaway member — two page views, one row,
+two views, entry path kept and last path moved.
+
+**C-164.** Presence telemetry was kept 180 days as margin: double what any
+chart reads. Margin on the fastest-growing table in the schema is what puts it
+over the plan — at this project's own stated scale that is over half a
+gigabyte of Visit rows against a 500MB database the gazetteer already spends
+97MB of. Cut to 90 days, which is exactly the deepest lookback any analytics
+view uses, so the rows it removes are the ones nothing can reach and no answer
+the owner can get today gets shorter. The gate derives that lookback from the
+analytics queries themselves, so deepening a chart fails the build until
+somebody decides about retention rather than silently reading swept rows.

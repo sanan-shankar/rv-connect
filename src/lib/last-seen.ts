@@ -23,6 +23,120 @@ export const SESSION_GAP_MIN = 30;
  * 60k writes, which Postgres does not notice. */
 const LAST_SEEN_STALE_MS = 15 * 60 * 1000;
 
+/** Everything about the visit that is not its identity. */
+type VisitFacts = {
+  referrer: string | null;
+  device: string | null;
+  os: string | null;
+  browser: string | null;
+  language: string | null;
+  country: string | null;
+  cityName: string | null;
+  region: string | null;
+  timezone: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+
+/**
+ * One page view, recorded against this member's own visit.
+ *
+ * Update-then-create rather than an upsert, and the update is scoped to
+ * `{ id, userId }` -- not to the id alone. The id arrives in a request header
+ * the proxy fills from the caller's own cookie, so an upsert keyed on it let a
+ * replayed id write into ANOTHER member's row: their view count, their
+ * endedAt, their device and their city (bug-report-2 C-163). Scoped, a foreign
+ * id matches nothing, the create then loses to the primary key, and the
+ * request records nothing at all -- which is the right outcome for a visit
+ * that is not yours.
+ */
+async function recordVisit(
+  visitId: string,
+  userId: string,
+  now: Date,
+  path: string | null | undefined,
+  facts: VisitFacts
+): Promise<void> {
+  const { referrer, device, os, browser, language, country, cityName, region, timezone, lat, lng } = facts;
+
+  const touched = await prisma.visit.updateMany({
+    where: { id: visitId, userId },
+    data: {
+      endedAt: now,
+      views: { increment: 1 },
+      lastPath: path ?? undefined,
+      /* Refreshed: someone moving from wifi to mobile data mid-visit is more
+         usefully described by where they are now. entryPath and referrer are
+         NOT here on purpose -- they describe how the visit began, and
+         overwriting them would turn "where people arrive" into "where they
+         are now". */
+      device,
+      os,
+      browser,
+      language: language ?? undefined,
+      country: country ?? undefined,
+      city: cityName ?? undefined,
+      region: region ?? undefined,
+      timezone: timezone ?? undefined,
+      lat: lat ?? undefined,
+      lng: lng ?? undefined,
+    },
+  });
+  if (touched.count > 0) return;
+
+  /* A new visit, so check the day's ceiling before opening one. Only reached
+     when the id is one we have not seen -- once per sitting for a real
+     browser, and every request for the rotating-cookie case this bounds.
+     Counted on endedAt, which the (userId, endedAt) index already serves. */
+  const today = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const opened = await prisma.visit.count({ where: { userId, endedAt: { gte: today } } });
+  if (opened >= MAX_VISITS_PER_DAY) return;
+
+  try {
+    await prisma.visit.create({
+      data: {
+        id: visitId,
+        userId,
+        startedAt: now,
+        endedAt: now,
+        views: 1,
+        lastPath: path ?? null,
+        entryPath: path ?? null,
+        referrer,
+        device,
+        os,
+        browser,
+        language,
+        country,
+        city: cityName,
+        region,
+        timezone,
+        lat,
+        lng,
+      },
+    });
+  } catch (err) {
+    /* P2002: the id exists and belongs to somebody else, or two requests from
+       this browser raced into the create together. Either way there is
+       nothing to record and nothing to report -- the row that won is the
+       right one. Anything else is re-thrown to the caller's own guard. */
+    if (!(err && typeof err === "object" && "code" in err && err.code === "P2002")) throw err;
+  }
+}
+
+/* How many Visit rows one account may open in a day.
+ *
+ * A browser carries one sliding 30-minute cookie, so an ordinary member makes
+ * one row per sitting -- a handful a day, and this ceiling is never in sight.
+ * It exists because the visit id arrives in a cookie, and a signed-in caller
+ * who rotates that cookie on every request mints one row per page view, for
+ * ever, with nothing anywhere to stop them: about 660,000 rows fills the
+ * database's whole free-tier disk and takes the site read-only for everybody
+ * (bug-report-2 C-163). Presence telemetry is not worth that, so past this
+ * line the Visit is simply not opened. `lastSeenAt` below still records that
+ * the member was here, which is what the rest of the app actually reads. */
+const MAX_VISITS_PER_DAY = 40;
+
 /**
  * Coarse device class from the user agent.
  *
@@ -115,51 +229,9 @@ export async function touchLastSeen(userId: string, path?: string): Promise<void
     const visitId = h.get("x-visit-id");
 
     await Promise.all([
-      visitId
-        ? prisma.visit.upsert({
-            where: { id: visitId },
-            create: {
-              id: visitId,
-              userId,
-              startedAt: now,
-              endedAt: now,
-              views: 1,
-              lastPath: path ?? null,
-              entryPath: path ?? null,
-              referrer,
-              device,
-              os,
-              browser,
-              language,
-              country,
-              city: cityName,
-              region,
-              timezone,
-              lat,
-              lng,
-            },
-            update: {
-              endedAt: now,
-              views: { increment: 1 },
-              lastPath: path ?? undefined,
-              /* Refreshed: someone moving from wifi to mobile data mid-visit is
-                 more usefully described by where they are now. entryPath and
-                 referrer are NOT here on purpose -- they describe how the visit
-                 began, and overwriting them would turn "where people arrive"
-                 into "where they are now". */
-              device,
-              os,
-              browser,
-              language: language ?? undefined,
-              country: country ?? undefined,
-              city: cityName ?? undefined,
-              region: region ?? undefined,
-              timezone: timezone ?? undefined,
-              lat: lat ?? undefined,
-              lng: lng ?? undefined,
-            },
-          })
-        : Promise.resolve(),
+      visitId ? recordVisit(visitId, userId, now, path, {
+        referrer, device, os, browser, language, country, cityName, region, timezone, lat, lng,
+      }) : Promise.resolve(),
 
       /* Still worth keeping alongside Visit: it is one indexed column on User,
          so "active in the last 30 days" is a count rather than a join, and it
