@@ -90,3 +90,33 @@ test("admin-thread screenshots are collected before the thread cascades", () => 
       "become unreachable orphans the moment the thread cascades (B-012)"
   );
 });
+
+test("the retention sweep queues a screenshot before ageing its message out", () => {
+  /* AdminMessage.imageUrl points at an object in R2, and the sweep was a bare
+     deleteMany: the row went, the object stayed, and nothing could ever name
+     it again -- the row was the only thing that could (audit C-065). The
+     account purge already collects these exact bytes, so this step was the one
+     path that leaked them. */
+  const src = decomment(read("src/lib/retention.ts"));
+  const start = src.indexOf('step("adminMessages"');
+  assert.ok(start > -1, "the adminMessages retention step is gone");
+  const stepSrc = src.slice(start, src.indexOf('step("reports"', start));
+
+  assert.ok(
+    /imageUrl/.test(stepSrc),
+    "the adminMessages sweep deletes rows without reading their screenshots"
+  );
+  const queued = stepSrc.indexOf("pendingImagePurge.createMany");
+  const deleted = stepSrc.indexOf("adminMessage.deleteMany");
+  assert.ok(queued > -1, "the adminMessages sweep does not queue its screenshots for deletion");
+  assert.ok(deleted > -1, "the adminMessages sweep no longer deletes anything");
+  assert.ok(
+    queued < deleted,
+    "the worklist is written after the rows go, which is too late to name them"
+  );
+  assert.ok(
+    /\$transaction/.test(stepSrc),
+    "collect and delete are not in one transaction, so a failure between them " +
+      "can queue a purge for a message that still exists"
+  );
+});
