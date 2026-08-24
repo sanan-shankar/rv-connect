@@ -2935,3 +2935,20 @@ answers for both writers.
 **Copy change worth knowing about:** signup's left-before-joined refusal now
 reads in the editor's words, "You cannot have left before you joined. Check
 the other year too.", rather than its own sentence.
+
+## 2026-08-25 — a teacher can be mentioned by name
+
+**C-006.** `/api/users/search` held teachers out of every result, under a
+comment saying its only consumers were the Catch-ups people surfaces. They
+were not: the composer's @-mention dropdown shares the same endpoint, and
+picking a name from it is the only way to insert a mention. Teachers post to
+the feed and write letters like anybody else, so wanting to mention one is an
+ordinary thing to want, and it was impossible.
+
+Catch-ups is an alumni feature, so the rule now lives with the surface that
+has it: the two Catch-ups pickers ask for `alumniOnly=1` and the endpoint
+hides nobody unless asked. Opt-in on purpose — a caller that forgets the flag
+gets more people, never a narrowed list it cannot see is narrowed.
+
+Proved against the running server with a real teacher's name: the composer's
+dropdown returns them, the Catch-ups picker still does not.

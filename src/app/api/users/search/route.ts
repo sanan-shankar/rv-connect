@@ -52,6 +52,11 @@ export async function GET(req: NextRequest) {
   // name into it.
   const terms = q.split(/\s+/).filter(Boolean).slice(0, MAX_SEARCH_TERMS);
 
+  // Opt-in, so the default is the whole membership: a caller that forgets the
+  // flag gets MORE people, not a silently narrowed list it cannot see is
+  // narrowed. The Catch-ups pickers are the ones that pass it.
+  const alumniOnly = req.nextUrl.searchParams.get("alumniOnly") === "1";
+
   const users = await prisma.user.findMany({
     where: {
       AND: terms.map((term) => ({ name: { contains: escapeLike(term), ...insensitive } })),
@@ -59,11 +64,19 @@ export async function GET(req: NextRequest) {
       // An account inside its deletion grace window (audit M35) is held out
       // of every people surface the same way a blocked one is.
       deletionRequestedAt: null,
-      // This endpoint's only consumers are the Catch-ups people surfaces,
-      // and Catch-ups is an alumni feature (owner, 2026-08-18): teachers
-      // cannot open the section, so offering them as invitees would only
-      // create members who can never attend.
-      accountType: { notIn: ["teacher", "ex_teacher"] },
+      /* Teachers are held out only when the CALLER says so.
+       *
+       * This filter was unconditional, under a comment claiming the endpoint's
+       * only consumers were the Catch-ups people surfaces. They were not: the
+       * composer's @-mention dropdown is the third, and it is the only way to
+       * insert a mention -- so a teacher, who is a first-class author here and
+       * writes to the feed and the letters like anybody else, could never be
+       * mentioned by name (bug-report-2 C-006).
+       *
+       * Catch-ups is an alumni feature (owner, 2026-08-18) and its two pickers
+       * pass alumniOnly=1, which is where that rule belongs: with the surface
+       * that has it, not with the endpoint every surface shares. */
+      ...(alumniOnly ? { accountType: { notIn: ["teacher", "ex_teacher"] } } : {}),
     },
     orderBy: { name: "asc" },
     select: {
@@ -73,10 +86,11 @@ export async function GET(req: NextRequest) {
       photoUrl: true,
       birdOverride: true,
       batchYear: true,
-      // Returned even though the filter above excludes teachers, so the rows
-      // that render this can call `batchLine()` and be right on their own
-      // terms. A component whose output depends on a `where` clause in a
-      // different file is one relaxed filter away from being wrong.
+      // Returned whether or not the filter above is on, so the rows that
+      // render this can call `batchLine()` and be right on their own terms. A
+      // component whose output depends on a `where` clause in a different file
+      // is one relaxed filter away from being wrong -- and that filter is now
+      // relaxed by default.
       accountType: true,
     },
     take: 8,

@@ -27,7 +27,15 @@ export interface SearchedPerson {
 
 const DEBOUNCE_MS = 200;
 
-export function useUserSearch(query: string): {
+export function useUserSearch(
+  query: string,
+  /* Catch-ups is an alumni feature, so its two pickers ask for alumni only.
+     The flag lives with the surface that has the rule rather than in the
+     endpoint every surface shares: it was in the endpoint, and the composer's
+     @-mention dropdown -- which shares it -- could never find a teacher
+     (bug-report-2 C-006). */
+  opts?: { alumniOnly?: boolean }
+): {
   results: SearchedPerson[];
   searching: boolean;
   /** Clear results without waiting for the debounce, e.g. right after a pick. */
@@ -55,7 +63,9 @@ export function useUserSearch(query: string): {
     const id = ++requestId.current;
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
+        const res = await fetch(
+          `/api/users/search?q=${encodeURIComponent(q)}${opts?.alumniOnly ? "&alumniOnly=1" : ""}`
+        );
         const data = await res.json();
         if (id !== requestId.current) return;
         setResults(Array.isArray(data) ? data : []);
@@ -66,7 +76,7 @@ export function useUserSearch(query: string): {
       }
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, opts?.alumniOnly]);
 
   function reset() {
     requestId.current += 1;
