@@ -18,7 +18,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
-import { PAYABLE_FROM } from "@/lib/contribution-state";
+import { CONTRIBUTION_SUM, PAYABLE_FROM, netPaise } from "@/lib/contribution-state";
 import { rateLimit } from "@/lib/rate-limit";
 import { createOrder, razorpayKeyId, razorpayLivemode, verifyPaymentSignature } from "@/lib/razorpay";
 import { PERK_MIN_PAISE, WEARABLE_SLUGS } from "@/components/support/plate-data";
@@ -230,7 +230,7 @@ export async function chooseBird(slug: string): Promise<{ ok: true } | { error: 
   if (session.user.role !== "admin") {
     const [paid, me] = await Promise.all([
       prisma.contribution.aggregate({
-        _sum: { amount: true },
+        _sum: CONTRIBUTION_SUM,
         where: { userId: session.user.id, status: "paid", livemode: razorpayLivemode() },
       }),
       prisma.user.findUnique({
@@ -238,7 +238,7 @@ export async function chooseBird(slug: string): Promise<{ ok: true } | { error: 
         select: { birdPickedAt: true },
       }),
     ]);
-    if ((paid._sum.amount ?? 0) < PERK_MIN_PAISE) {
+    if (netPaise(paid._sum) < PERK_MIN_PAISE) {
       return { error: "Picking a bird opens after a contribution of ₹500 or more." };
     }
     // One pick per contribution (owner, 2026-08-18): a pick is SPENT when

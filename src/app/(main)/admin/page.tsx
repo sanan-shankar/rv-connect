@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
+import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import { isOwner, requireAdminPage } from "@/lib/admin";
 import { mailHealth } from "@/lib/email-queue";
 import { loadWorklist, worklistIsCapped } from "@/lib/admin-worklist-query";
@@ -83,7 +84,7 @@ export default async function AdminOverviewPage() {
     }),
     mailHealth(),
     prisma.contribution.aggregate({
-      _sum: { amount: true },
+      _sum: CONTRIBUTION_SUM,
       where: { status: "paid", livemode: true, paidAt: { gte: monthStart } },
     }),
   ]);
@@ -138,7 +139,7 @@ export default async function AdminOverviewPage() {
           />
           <StatTile
             label="Given this month"
-            value={formatPaise(given._sum.amount ?? 0)}
+            value={formatPaise(netPaise(given._sum))}
             icon={IndianRupee}
             href="/admin/support"
           />

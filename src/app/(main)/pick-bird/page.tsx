@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import { razorpayLivemode } from "@/lib/razorpay";
 import { PageHeader } from "@/components/layout/page-header";
 import { BirdPicker } from "@/components/support/bird-picker";
@@ -29,10 +30,10 @@ export default async function PickBirdPage() {
   const [myPaidPaise, me] = await Promise.all([
     prisma.contribution
       .aggregate({
-        _sum: { amount: true },
+        _sum: CONTRIBUTION_SUM,
         where: { userId: session.user.id, status: "paid", livemode: razorpayLivemode() },
       })
-      .then((r) => r._sum.amount ?? 0)
+      .then((r) => netPaise(r._sum))
       .catch(() => 0),
     prisma.user
       .findUnique({

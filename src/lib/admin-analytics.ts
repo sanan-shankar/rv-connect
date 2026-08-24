@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 
 /* ------------------------------------------------------------------ *
  *  Everything /admin/analytics reads.
@@ -283,7 +284,7 @@ export async function loadSupport() {
     prisma.contribution.count({ where: LIVE }),
     prisma.contribution.count({ where: PAID }),
     prisma.contribution.count({ where: { ...LIVE, status: "failed" } }),
-    prisma.contribution.aggregate({ where: PAID, _sum: { amount: true }, _avg: { amount: true } }),
+    prisma.contribution.aggregate({ where: PAID, _sum: CONTRIBUTION_SUM, _avg: { amount: true } }),
     prisma.contribution.findMany({
       where: { ...PAID, userId: { not: null } },
       distinct: ["userId"],
@@ -306,7 +307,7 @@ export async function loadSupport() {
     failed,
     recent,
     people: givers.length,
-    totalPaise: agg._sum.amount ?? 0,
+    totalPaise: netPaise(agg._sum),
     avgPaise: Math.round(agg._avg.amount ?? 0),
     /* Of everyone who opened a payment, how many finished. The gap between
      * these two is the most actionable number on the page. */
