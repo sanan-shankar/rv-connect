@@ -125,6 +125,17 @@ const EDITABLE_PROFILE_FIELDS: ReadonlySet<string> = new Set([
   "secondaryCity",
   "houses",
   "displayEmail",
+  /* The rest of the contact row. updateContactMethods writes showEmail, phone
+     and phones on EVERY save, whatever the visitor actually touched, and
+     isOwnProfileEdit refuses on the first key it does not recognise -- so
+     editing an Instagram handle in the demo was refused by the Prisma layer
+     and surfaced as "That did not save. Check your connection." (bug-report-2
+     C-044). All four are ordinary scalar columns the visitor is meant to edit;
+     none of them is standing, identity or an upload output. */
+  "showEmail",
+  "phone",
+  "phones",
+  "admissionNumber",
   "birdOverride",
   "avatarColor",
   "workplace",
