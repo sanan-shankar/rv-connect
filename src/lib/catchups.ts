@@ -304,10 +304,27 @@ export function suggestSeedPrompts(): Array<{ category: PromptCategory; text: st
 
 // ─── Calendar math ───────────────────────────────────────────────────────────
 
-/** UTC-safe month addition (deterministic across machines; no timezone machinery, per spec). */
+/**
+ * UTC-safe month addition (deterministic across machines; no timezone
+ * machinery, per spec), with the day of the month CLAMPED to the target month.
+ *
+ * `setUTCMonth` alone overflows: a Round published on 31 January and set to a
+ * monthly rhythm asked for 31 February and got 3 March, skipping February
+ * altogether; 31 October + 1 month landed on 1 December, skipping November
+ * (audit C-144). About one publish in ten falls on a 29th-31st, and the
+ * symptom is a rhythm that slides a few days and occasionally loses a month,
+ * with nothing anywhere reporting it. The last day of a short month is the
+ * honest answer to "a month after the 31st".
+ */
 function addMonths(date: Date, n: number): Date {
+  const day = date.getUTCDate();
   const d = new Date(date.getTime());
+  // From the 1st, so the month step itself can never overflow; then take
+  // whichever comes first, the original day or the end of the target month.
+  d.setUTCDate(1);
   d.setUTCMonth(d.getUTCMonth() + n);
+  const daysInTarget = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, daysInTarget));
   return d;
 }
 

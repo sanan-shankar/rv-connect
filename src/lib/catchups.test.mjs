@@ -413,6 +413,43 @@ test("addCadenceGap: monthly is one calendar month", () => {
   assert.equal(addCadenceGap(from, "monthly").toISOString(), "2026-02-15T00:00:00.000Z");
 });
 
+test("C-144: a rhythm anchored on the 31st does not skip a month", () => {
+  // setUTCMonth alone overflows: 31 Jan + 1 month asked for 31 February and
+  // got 3 March, so a monthly Catch-up skipped February entirely.
+  const jan31 = new Date("2027-01-31T10:00:00.000Z");
+  const next = addCadenceGap(jan31, "monthly");
+  assert.equal(next.getUTCMonth(), 1, "a monthly rhythm skipped February");
+  assert.equal(next.toISOString(), "2027-02-28T10:00:00.000Z");
+  // A leap year keeps the extra day.
+  assert.equal(
+    addCadenceGap(new Date("2028-01-31T10:00:00.000Z"), "monthly").toISOString(),
+    "2028-02-29T10:00:00.000Z"
+  );
+  // ...and a 31-day month followed by a 30-day one.
+  assert.equal(
+    addCadenceGap(new Date("2026-10-31T10:00:00.000Z"), "monthly").toISOString(),
+    "2026-11-30T10:00:00.000Z"
+  );
+  // Quarterly is the same arithmetic three months out.
+  assert.equal(
+    addCadenceGap(new Date("2026-11-30T10:00:00.000Z"), "quarterly").toISOString(),
+    "2027-02-28T10:00:00.000Z"
+  );
+  // The property behind all four: the day never runs past the month asked for.
+  for (let month = 0; month < 12; month++) {
+    for (const day of [28, 29, 30, 31]) {
+      const from = new Date(Date.UTC(2027, month, 1, 9, 0, 0));
+      const last = new Date(Date.UTC(2027, month + 1, 0)).getUTCDate();
+      if (day > last) continue;
+      from.setUTCDate(day);
+      const to = addCadenceGap(from, "monthly");
+      assert.equal(to.getUTCMonth(), (month + 1) % 12, `${from.toISOString()} landed in the wrong month`);
+      assert.ok(to.getUTCDate() <= day);
+      assert.equal(to.getUTCHours(), 9, "the time of day moved");
+    }
+  }
+});
+
 test("addCadenceGap: quarterly is three calendar months", () => {
   const from = new Date("2026-01-15T00:00:00.000Z");
   assert.equal(addCadenceGap(from, "quarterly").toISOString(), "2026-04-15T00:00:00.000Z");
