@@ -7,6 +7,7 @@ import { postContentMax } from "@/lib/post-caps";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { drainPendingImagePurges } from "@/lib/account-purge";
+import { droppedImages } from "@/lib/draft-images";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
@@ -508,6 +509,12 @@ export async function editPost(postId: string, formData: FormData) {
   // cannot rewrite what readers have already seen.
   let imagesUpdate: { images: string | null } | undefined;
   let imagesError: string | undefined;
+  /* Photos the author took OFF the draft. Their bytes are referenced by
+     nothing once this update commits, and nothing can list the bucket to find
+     them later, so they are queued for deletion in the same transaction --
+     the same order deletePostWithImages keeps: the row is what must be atomic,
+     the bytes are what may be retried (audit C-064). */
+  let removedImages: string[] = [];
   const imagesRaw = formData.get("images");
   if (imagesRaw !== null && isLetter && post.status === "draft") {
     try {
@@ -536,6 +543,7 @@ export async function editPost(postId: string, formData: FormData) {
           imagesError = "Up to 3 photos.";
         } else {
           imagesUpdate = { images: allowed.length > 0 ? JSON.stringify(allowed) : null };
+          removedImages = droppedImages([...current], allowed as string[]);
         }
       }
     } catch {
@@ -603,20 +611,37 @@ export async function editPost(postId: string, formData: FormData) {
     ...cityScopeUpdate,
   };
 
-  if (base) {
-    const moved = await prisma.post.updateMany({
-      where: { id: postId, authorId: session.user.id, updatedAt: base },
-      data,
-    });
-    if (moved.count === 0) {
-      return {
-        error:
-          "This letter has changed somewhere else. Reload the page before you carry on, or your writing here will replace it.",
-      };
+  const write = async (tx: Pick<typeof prisma, "post" | "pendingImagePurge">) => {
+    if (base) {
+      const moved = await tx.post.updateMany({
+        where: { id: postId, authorId: session.user.id, updatedAt: base },
+        data,
+      });
+      if (moved.count === 0) return false;
+    } else {
+      await tx.post.update({ where: { id: postId }, data });
     }
-  } else {
-    await prisma.post.update({ where: { id: postId }, data });
+    if (removedImages.length > 0) {
+      await tx.pendingImagePurge.createMany({
+        data: removedImages.map((url) => ({ url, reason: "edit" })),
+      });
+    }
+    return true;
+  };
+
+  // The transaction is only worth its round trip when there are bytes to let
+  // go of; an ordinary autosave keeps the single statement it had.
+  const wrote = removedImages.length > 0 ? await prisma.$transaction(write) : await write(prisma);
+  if (!wrote) {
+    return {
+      error:
+        "This letter has changed somewhere else. Reload the page before you carry on, or your writing here will replace it.",
+    };
   }
+  // Best-effort and after the commit, exactly as a deletion does: a slow R2
+  // must not hold a transaction open, and a failure is already recorded as
+  // work the nightly sweep will redo.
+  if (removedImages.length > 0) await drainPendingImagePurges(removedImages);
 
   revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
   if (isLetter) {

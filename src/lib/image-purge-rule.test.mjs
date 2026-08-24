@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
+import { droppedImages } from "./draft-images.ts";
+
 /* ------------------------------------------------------------------ *
  *  Bytes never outlive the row that names them.
  *
@@ -99,4 +101,87 @@ test("a refused delete is queued for the nightly drain, not logged and lost", ()
   // Both entry points must reach it, and only on the failure branch.
   assert.ok(/if \(await delImageByKey\(key\)\) return;\s*await queue\(/.test(purge));
   assert.ok(bodyOf(purge, "purgeImageUrls").includes("!results[i]"));
+});
+
+/* ---- C-064: bytes stored before a request gave up ---------------- */
+
+const proxyUpload = code(read("../app/api/upload/route.ts"));
+const finalize = code(read("../app/api/upload/finalize/route.ts"));
+
+for (const [name, src] of [
+  ["/api/upload", proxyUpload],
+  ["/api/upload/finalize", finalize],
+]) {
+  test(`C-064: ${name} gives back what it stored before it gave up`, () => {
+    const loop = src.indexOf("const abort = async");
+    assert.notEqual(loop, -1, "the single abort exit is gone");
+    assert.ok(
+      /const abort = async[\s\S]*?purgeImageUrls\(/.test(src.slice(loop)),
+      "abort no longer purges the stored objects"
+    );
+    // The property: below the abort, an error leaves only through it. A new
+    // refusal in the loop fails here until it is routed the same way.
+    const after = src.slice(blockAt(src, src.indexOf("=>", loop)).end);
+    const bare = [...after.matchAll(/return NextResponse\.json\(\s*\{?\s*error/g)];
+    assert.deepEqual(
+      bare.map((m) => after.slice(m.index, m.index + 70)),
+      [],
+      "an error return inside the loop leaves the stored objects behind"
+    );
+    assert.ok([...after.matchAll(/return abort\(/g)].length >= 3);
+  });
+}
+
+test("C-064: finalize also releases the originals it never got to", () => {
+  // The `finally` only ever reached the key of the pass that failed; the
+  // staged objects for the keys after it stayed in the bucket.
+  assert.ok(/keys\.slice\(from \+ 1\)\.map\(publicUrlForKey\)/.test(finalize));
+});
+
+test("C-064: no Collection photo row is written outside the guard that cleans up", () => {
+  const raw = code(read("../app/(main)/collection/actions.ts"));
+  const guarded = bodyOf(raw, "createPhotoRow");
+  assert.ok(guarded.includes("prisma.photo.create"));
+  assert.ok(guarded.includes("purgeImageUrls"));
+  // Exactly one call site in the file: the one inside the guard.
+  assert.equal([...raw.matchAll(/prisma\.photo\.create\(/g)].length, 1);
+  // ...and both contribution paths go through it, carrying what they stored.
+  assert.equal([...raw.matchAll(/await createPhotoRow\(/g)].length, 2);
+  assert.equal([...raw.matchAll(/\}, \[url, thumbUrl\]\);/g)].length, 2);
+});
+
+test("C-064: a half-stored pair is not left half-stored", () => {
+  const raw = code(read("../app/(main)/collection/actions.ts"));
+  assert.equal([...raw.matchAll(/await putAllOrNone\(/g)].length, 2);
+  assert.equal([...raw.matchAll(/await Promise\.all\(\[\s*putImage/g)].length, 0);
+});
+
+/* ---- C-064: a photo taken off a draft ---------------------------- */
+
+const feed = code(read("../app/(main)/feed/actions.ts"));
+
+test("C-064: an image dropped from a draft is queued in the same write", () => {
+  const edit = bodyOf(feed, "editPost");
+  assert.ok(edit.includes("droppedImages("), "editPost stopped tracking what it dropped");
+  // Queued inside the write that removes the reference, drained after it
+  // commits -- the order deletePostWithImages already keeps.
+  const write = blockAt(edit, edit.indexOf("const write = async")).body;
+  assert.ok(write.includes("tx.pendingImagePurge.createMany"));
+  assert.ok(write.indexOf("tx.post.update") < write.indexOf("pendingImagePurge.createMany"));
+  assert.ok(/removedImages\.length > 0 \? await prisma\.\$transaction\(write\)/.test(edit));
+  assert.ok(edit.includes("drainPendingImagePurges(removedImages)"));
+});
+
+test("C-064: reordering or re-adding a photo drops nothing", () => {
+  const a = "/uploads/me/a.webp";
+  const b = "/uploads/me/b.webp";
+  const c = "/uploads/me/c.webp";
+  assert.deepEqual(droppedImages([a, b, c], [c, b, a]), []);
+  assert.deepEqual(droppedImages([a, b], [a, b]), []);
+  assert.deepEqual(droppedImages([a, b], [a, b, c]), []);
+  assert.deepEqual(droppedImages([a, b, c], [a, c]), [b]);
+  assert.deepEqual(droppedImages([a, b], []), [a, b]);
+  assert.deepEqual(droppedImages([], [a]), []);
+  // The same URL twice on the old row is let go once per entry it lost.
+  assert.deepEqual(droppedImages([a, a], [a]), []);
 });

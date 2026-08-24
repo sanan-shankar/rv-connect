@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { putImage, ownerPrefix } from "@/lib/storage";
 import { countImageFrames, sharpImage } from "@/lib/image";
+import { purgeImageUrls } from "@/lib/image-purge";
 import {
   MAX_UPLOAD_BYTES,
   isUnsupportedHeic,
@@ -80,27 +81,35 @@ export async function POST(request: Request) {
    *  there is nothing to say. */
   const notices: string[] = [];
 
+  /* Three photos are uploaded in one request, one at a time, and a refusal
+     partway through returns an error the client shows instead of a post. The
+     files ALREADY stored by then were nobody's: their URLs go out in no
+     response, no row ever names them, and nothing in this system can list the
+     bucket to find them again (audit C-064). So every exit from this loop
+     takes back what the loop has stored. */
+  const abort = async (body: { error: string }, status: number) => {
+    await purgeImageUrls(urls, "abandoned");
+    return NextResponse.json(body, { status });
+  };
+
   for (const file of files) {
     if (!isImageFile(file)) {
-      return NextResponse.json(
-        { error: `"${file.name}" isn't an image file` },
-        { status: 400 }
-      );
+      return abort({ error: `"${file.name}" isn't an image file` }, 400);
     }
 
     if (isUnsupportedHeic(file)) {
-      return NextResponse.json(
+      return abort(
         {
           error: `"${file.name}" is a HEIC/HEIF photo, which isn't supported yet. Export it as JPG or PNG (or turn off "High Efficiency" in your camera settings) and try again.`,
         },
-        { status: 400 }
+        400
       );
     }
 
     if (file.size > MAX_UPLOAD_BYTES) {
-      return NextResponse.json(
+      return abort(
         { error: `"${file.name}" is over the 20MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` },
-        { status: 400 }
+        400
       );
     }
 
@@ -110,9 +119,9 @@ export async function POST(request: Request) {
       // The client's MIME string got the file this far; the bytes themselves
       // decide whether it is really an image, before libvips parses it (M13).
       if (!sniffImageType(buffer)) {
-        return NextResponse.json(
+        return abort(
           { error: `"${file.name}" doesn't look like a JPG, PNG, GIF or WebP image.` },
-          { status: 400 }
+          400
         );
       }
 
@@ -150,10 +159,7 @@ export async function POST(request: Request) {
       urls.push(url);
     } catch (error) {
       console.error("Upload processing error:", error);
-      return NextResponse.json(
-        { error: describeProcessingError(error) },
-        { status: 422 }
-      );
+      return abort({ error: describeProcessingError(error) }, 422);
     }
   }
 
