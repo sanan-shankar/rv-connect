@@ -132,7 +132,7 @@ export function CreatePostForm({
   onPosted?: () => void;
   /** The /letters/new and /letters/[id]/edit surfaces: no card shell (the page
    *  provides the paper sheet), and the body composes at READING fidelity
-   *  (Libre Baskerville 17px/1.8) so what you type is what publishes. */
+   *  (Libre Baskerville 16px/1.8) so what you type is what publishes. */
   immersive?: boolean;
   /** An existing DRAFT being resumed: saves become in-place updates
    *  (editPost) and "Publish letter" flips it live via publishDraft, so the
@@ -1020,10 +1020,10 @@ export function CreatePostForm({
             "peer block w-full resize-none whitespace-pre-wrap break-words text-foreground outline-none focus-visible:outline-none",
             // Immersive: no box at all - the page's paper sheet IS the field's
             // surface, and the body composes at the reading page's own face
-            // (Libre Baskerville 17px/1.8) so nothing changes at publish. The
+            // (Libre Baskerville 16px/1.8) so nothing changes at publish. The
             // caret is the focus indicator on a writing page.
             immersive
-              ? "bg-transparent font-heading text-[17px] leading-[1.8]"
+              ? "bg-transparent font-heading text-[16px] leading-[1.8]"
               : "rounded-[var(--radius-input)] border border-border bg-card px-3.5 py-3 text-base leading-[1.7]",
             // Kill WebKit's own tap-highlight flash on touch/trackpad taps: it
             // paints a square-cornered highlight over this rounded field, which
