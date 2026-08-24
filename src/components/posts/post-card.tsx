@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { callAction } from "@/lib/call-action";
+import { settledHeart } from "@/lib/heart";
 import { IdentityRow } from "@/components/common/identity-row";
 import { ImageViewer } from "@/components/common/image-viewer";
 import { MetaDots } from "@/components/common/meta-dots";
@@ -158,18 +159,23 @@ export function PostCard({
 
   async function handleLike() {
     if (likeBusy.current) return;
-    const next = !liked;
-    setLiked(next);
-    setLikeCount(next ? likeCount + 1 : likeCount - 1);
+    const before = { liked, count: likeCount };
+    setLiked(!liked);
+    setLikeCount(liked ? likeCount - 1 : likeCount + 1);
     if (demo) return;
     likeBusy.current = true;
     try {
       const result = await callAction(() => toggleLike(post.id));
       if (result.error) {
-        setLiked(liked);
-        setLikeCount(likeCount);
+        setLiked(before.liked);
+        setLikeCount(before.count);
         toast.error(result.error);
+        return;
       }
+      // What the ROW says, not what the tap assumed (audit C-133).
+      const settled = settledHeart(before, result.liked);
+      setLiked(settled.liked);
+      setLikeCount(settled.count);
     } finally {
       likeBusy.current = false;
     }
@@ -210,7 +216,9 @@ export function PostCard({
         toast.error(result.error);
         return;
       }
-      onBookmarkChange?.(next);
+      const settled = result.bookmarked ?? next;
+      setBookmarked(settled);
+      onBookmarkChange?.(settled);
     } finally {
       bookmarkBusy.current = false;
     }
