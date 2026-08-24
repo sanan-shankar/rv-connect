@@ -183,3 +183,25 @@ test("C-020: rejoining through the invite link disarms your own bin", () => {
     "the redirect happens before the bin is cleared, so it never runs"
   );
 });
+
+test("C-021: a Round with no questions cannot be opened for answering", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const start = src.indexOf("export async function openAnswering(");
+  assert.notEqual(start, -1);
+  const body = src.slice(start, src.indexOf("\nexport async function", start + 10));
+
+  // The same rows the clock counts, counted inside the same transaction as
+  // the open, so removing the last question cannot land in between.
+  assert.match(body, /tx\.catchupPrompt\.count\(\{\s*where: \{ editionId, accepted: true \}/);
+  assert.match(body, /if \(accepted === 0\) return "empty"/);
+  assert.ok(
+    body.indexOf("catchupPrompt.count") < body.indexOf("catchupEdition.updateMany"),
+    "the questions are counted after the Round is already open"
+  );
+  assert.ok(
+    body.indexOf("prisma.$transaction") < body.indexOf("catchupPrompt.count"),
+    "the count is outside the transaction, so it can go stale before the write"
+  );
+  // ...and the member is told why, rather than getting the generic refusal.
+  assert.match(body, /no questions in this Round yet/);
+});

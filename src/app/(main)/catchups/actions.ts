@@ -1088,11 +1088,27 @@ export async function openAnswering(editionId: string) {
     const patch = answeringPatch(edition, now);
 
     const applied = await prisma.$transaction(async (tx) => {
+      /* A Round with nothing to answer must not open (audit C-021).
+       *
+       * The clock already refuses this: planNextAction returns "extend the
+       * questions" and then leaves the Round dormant rather than opening an
+       * empty one, precisely to avoid the reminder loop B-062 closed. The
+       * Keeper's own early trigger had no such rule -- and the button being
+       * hidden is not the guard, because a stale second tab, a second Keeper,
+       * or a hand-made call can all still arrive here just as the last
+       * question is removed. Counted INSIDE the transaction, against the same
+       * rows advanceEdition counts, so the removal cannot land between the
+       * check and the open. There is no way back out of `answering`. */
+      const accepted = await tx.catchupPrompt.count({
+        where: { editionId, accepted: true },
+      });
+      if (accepted === 0) return "empty" as const;
+
       const cas = await tx.catchupEdition.updateMany({
         where: { id: editionId, status: "collecting" },
         data: patch,
       });
-      if (cas.count === 0) return false;
+      if (cas.count === 0) return "moved" as const;
       await notifyAnswersOpen(tx, {
         catchupId: edition.catchupId,
         editionId,
@@ -1100,9 +1116,12 @@ export async function openAnswering(editionId: string) {
         groupName: edition.catchup.group.name,
         excludeUserId: session.user.id,
       });
-      return true;
+      return "opened" as const;
     });
-    if (!applied) return { error: "This Round already moved on." };
+    if (applied === "empty") {
+      return { error: "There are no questions in this Round yet, so there is nothing to answer." };
+    }
+    if (applied === "moved") return { error: "This Round already moved on." };
 
     revalidatePath(`/catchups/${edition.catchupId}`);
     return { success: true };
