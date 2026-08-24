@@ -1,0 +1,73 @@
+import { prisma } from "@/lib/prisma";
+import { delImage, delImageByKey, publicUrlForKey } from "@/lib/storage";
+
+/**
+ * Deleting image bytes without losing them when storage says no.
+ *
+ * `delImage`/`delImageByKey` never throw: they answer false and log. Most call
+ * sites discarded that boolean, which meant a single bad minute at R2 left the
+ * bytes at their permanent public URL with nothing left able to enumerate them
+ * -- the exact hole audit M11 closed for deletions that go through a
+ * transaction, reopened for every deletion that does not (audit C-069/C-152).
+ *
+ * These two helpers close it the same way `deletePost` does, minus the
+ * transaction: try the delete, and on refusal write the URL into
+ * `PendingImagePurge`, the worklist the nightly retention sweep drains
+ * (`drainPendingImagePurges`). Best-effort stays best-effort for the caller --
+ * neither throws, and neither makes the member wait on a retry -- but a
+ * failure now leaves a row somebody can act on instead of a console line
+ * nobody reads.
+ *
+ * `reason` lands in the column of the same name so a backlog can be read
+ * without archaeology; use the word for WHY the bytes are going, not for which
+ * function is calling.
+ */
+async function queue(urls: string[], reason: string): Promise<void> {
+  if (urls.length === 0) return;
+  try {
+    await prisma.pendingImagePurge.createMany({
+      data: urls.map((url) => ({
+        url,
+        reason,
+        attempts: 1,
+        lastError: "delete refused by storage",
+      })),
+    });
+  } catch (err) {
+    // The queue write is the backstop; if IT fails there is nothing further to
+    // fall back to, so say so loudly rather than swallow it. The caller's own
+    // work has already succeeded and must not be undone over this.
+    console.error(
+      `[image-purge] could not queue ${urls.length} image(s) for retry:`,
+      err instanceof Error ? err.message : err
+    );
+  }
+}
+
+/**
+ * Delete images by their public URLs; anything storage refuses is queued for
+ * the nightly retry. Nulls and URLs that are not ours are skipped by
+ * `delImage` itself.
+ */
+export async function purgeImageUrls(
+  urls: (string | null | undefined)[],
+  reason: string
+): Promise<void> {
+  const present = urls.filter((u): u is string => !!u);
+  const results = await Promise.all(present.map((url) => delImage(url)));
+  await queue(
+    present.filter((_, i) => !results[i]),
+    reason
+  );
+}
+
+/**
+ * Delete an object by its raw key -- the staged direct-upload original, which
+ * has no row and no public URL of its own yet. Queued on refusal under the URL
+ * that key serves from, which `keyForUrl` turns back into the same key when
+ * the drain gets to it.
+ */
+export async function purgeImageKey(key: string, reason: string): Promise<void> {
+  if (await delImageByKey(key)) return;
+  await queue([publicUrlForKey(key)], reason);
+}
