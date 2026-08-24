@@ -16,6 +16,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { PAYABLE_FROM } from "@/lib/contribution-state";
 import { writeAudit } from "@/lib/audit";
 import { verifyWebhookSignature, type WebhookSignatureVerdict } from "@/lib/razorpay";
 
@@ -157,11 +158,18 @@ export async function POST(request: Request) {
   }
 
   if (event.event === "payment.captured") {
-    // Conditional, not check-then-write: the browser callback may be marking
-    // the same row paid this same second, and whichever of the two makes the
-    // transition is the one that owes the supporter a word.
+    /* Conditional, not check-then-write: the browser callback may be marking
+       the same row paid this same second, and whichever of the two makes the
+       transition is the one that owes the supporter a word.
+
+       Stated as the states money may arrive FROM, not as "anything but paid".
+       The negation admitted "refunded" and "disputed" too, so a re-delivered
+       payment.captured -- Razorpay retries anything it did not 2xx, and the
+       dashboard has a Resend button -- put a returned gift back on "paid" with
+       a fresh paidAt, re-counted it in the public recovery bar, and minted the
+       supporter a second bird pick (audit C-084). */
     const moved = await prisma.contribution.updateMany({
-      where: { id: contribution.id, status: { not: "paid" } },
+      where: { id: contribution.id, status: { in: [...PAYABLE_FROM] } },
       data: {
         status: "paid",
         razorpayPaymentId: payment?.id ?? null,
