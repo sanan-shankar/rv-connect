@@ -7,6 +7,7 @@ import {
   describeProcessingError,
   MAX_INPUT_PIXELS,
   storedImageFormat,
+  stillPictureNotice,
 } from "./upload-shared.ts";
 
 /* Serving moved from pub-*.r2.dev to images.rishivalley.space on 2026-08-21.
@@ -137,4 +138,61 @@ test("C-066: the type the PUT is signed with is the type the client sends", asyn
   assert.match(presign, /contentType: format\.contentType/);
   assert.match(client, /"Content-Type": presign\.contentType \?\? file\.type/);
   assert.match(client, /filename: file\.name/);
+});
+
+/* ------------------------------------------------------------------ *
+ *  C-073: every path that flattens a moving image says so.
+ * ------------------------------------------------------------------ */
+
+/** A valid two-frame GIF, built by hand: sharp cannot write one, and this
+ *  needs to be a real animation, not a fixture that happens to be a GIF. */
+function twoFrameGif() {
+  const hex = (s) => Buffer.from(s.replace(/\s/g, ""), "hex");
+  const frame = hex("21f904000a000000" + "2c0000000001000100 00" + "02" + "02" + "4c01" + "00");
+  return Buffer.concat([
+    hex("47494638396101000100 80 00 00"), // GIF89a, 1x1, global colour table
+    hex("000000 ffffff"),
+    frame,
+    frame,
+    hex("3b"),
+  ]);
+}
+
+test("C-073: an animation really is seen as more than one frame", async () => {
+  const { countImageFrames } = await import("./image.ts");
+  assert.equal(await countImageFrames(twoFrameGif()), 2);
+  const sharp = (await import("sharp")).default;
+  const still = await sharp({ create: { width: 4, height: 4, channels: 3, background: "#235C49" } })
+    .png()
+    .toBuffer();
+  assert.equal(await countImageFrames(still), 1, "an ordinary photo must not be announced");
+});
+
+test("C-073: every path that re-encodes counts the frames and says the same sentence", async () => {
+  const { readFileSync } = await import("node:fs");
+  const paths = {
+    "/api/upload": "../app/api/upload/route.ts",
+    "/api/upload/finalize": "../app/api/upload/finalize/route.ts",
+    "collection contribute (both actions)": "../app/(main)/collection/actions.ts",
+  };
+  for (const [label, file] of Object.entries(paths)) {
+    const src = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.match(src, /countImageFrames\(/, `${label} does not count frames`);
+    assert.match(src, /stillPictureNotice\(/, `${label} does not use the shared sentence`);
+  }
+  // Both Collection actions, not just one of them.
+  const collection = readFileSync(new URL(paths["collection contribute (both actions)"], import.meta.url), "utf8");
+  assert.equal([...collection.matchAll(/countImageFrames\(/g)].length, 2);
+
+  // ...and both surfaces show what comes back.
+  const composer = readFileSync(new URL("../components/posts/create-post-form.tsx", import.meta.url), "utf8");
+  assert.equal([...composer.matchAll(/toast\.info\(notice\)/g)].length, 2, "the direct path drops the notice");
+  const dialog = readFileSync(new URL("../components/collection/contribute-dialog.tsx", import.meta.url), "utf8");
+  assert.match(dialog, /result\.notice/);
+});
+
+test("C-073: the sentence names the file when there is one to name", () => {
+  assert.match(stillPictureNotice("holi.gif"), /"holi\.gif"/);
+  assert.match(stillPictureNotice(), /^That photo/);
+  assert.equal(stillPictureNotice("a.gif").replace('"a.gif"', "That photo"), stillPictureNotice());
 });

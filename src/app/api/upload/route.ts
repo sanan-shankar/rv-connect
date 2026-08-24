@@ -10,7 +10,8 @@ import {
   describeProcessingError,
   sniffImageType,
 
-  isImageFile,} from "@/lib/upload-shared";
+  isImageFile,
+  stillPictureNotice,} from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { originAllowed } from "@/lib/origin-rule";
@@ -136,9 +137,7 @@ export async function POST(request: Request) {
          so, which is the part that was actually wrong. */
       const frames = await countImageFrames(buffer);
       if (frames > 1) {
-        notices.push(
-          `"${file.name}" was saved as a still picture. Moving images are not supported yet.`
-        );
+        notices.push(stillPictureNotice(file.name));
       }
 
       const id = createId();

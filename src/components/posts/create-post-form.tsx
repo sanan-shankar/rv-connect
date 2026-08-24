@@ -705,7 +705,12 @@ export function CreatePostForm({
         body: JSON.stringify({ keys: [staged.key] }),
       });
       const data = await fin.json().catch(() => ({}));
-      if (fin.ok && data.urls?.[0]) return data.urls[0] as string;
+      if (fin.ok && data.urls?.[0]) {
+        // Same as the classic path below: anything the server changed about
+        // the file is said out loud (audit M15/C-073).
+        for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
+        return data.urls[0] as string;
+      }
       throw new Error(data.error || `"${original.name}" failed to upload`);
     }
     const shrunk = await downscaleImage(original);

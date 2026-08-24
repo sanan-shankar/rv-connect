@@ -90,6 +90,25 @@ export function storedImageFormat(
   return implied ? { ext: ext === "jpeg" ? "jpg" : ext, contentType: implied } : null;
 }
 
+/**
+ * What to tell someone whose animated GIF has just become a still.
+ *
+ * sharp reads a GIF as a single page unless told otherwise, so every frame
+ * after the first is dropped. Re-encoding to animated WebP is not the trade
+ * taken -- the frame count multiplies the decode budget, and an upload path is
+ * not where to find out that a hundred-frame GIF exhausts a serverless
+ * function's memory. So it stays a still, and the member is TOLD, which is the
+ * part that was wrong (audit M15).
+ *
+ * The sentence lives here because M15 was fixed on one upload path out of
+ * four, and the other three flattened GIFs in silence for another month
+ * (audit C-073). One sentence, one place, every path that re-encodes.
+ */
+export function stillPictureNotice(filename?: string): string {
+  const subject = filename ? `"${filename}"` : "That photo";
+  return `${subject} was saved as a still picture. Moving images are not supported yet.`;
+}
+
 /** The image filename extensions this app can actually process. */
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|bmp|tiff?|hei[cf])$/i;
 

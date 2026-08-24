@@ -190,6 +190,9 @@ export function ContributeDialog({
         ? "Added to the Collection"
         : "Thank you. An admin will review it shortly."
     );
+    // Anything the server changed about the photograph, said out loud: an
+    // animated GIF has just been flattened to its first frame (audit C-073).
+    if (result.notice) toast.info(result.notice);
     reset();
     onOpenChange(false);
     router.refresh();
