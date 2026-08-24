@@ -278,3 +278,29 @@ test("C-026: a whole-group fanout fired outside a transition is metered", () => 
   // not passing on an empty set.
   assert.match(src, /await notifyReminder\(prisma,/);
 });
+
+test("C-029: two questions sharing a position still render in one stable order", () => {
+  const home = decomment(read("src/app/(main)/catchups/[catchupId]/page.tsx"));
+  // The console sorts in JS after filtering, so the tiebreak has to be there
+  // too -- the query's own orderBy does not survive the filter+sort.
+  assert.match(
+    home,
+    /a\.position - b\.position \|\| a\.createdAt\.getTime\(\) - b\.createdAt\.getTime\(\)/,
+    "the home console is back to a bare position sort"
+  );
+  // The same total order the query already asks the database for.
+  assert.match(home, /orderBy: \[\{ position: "asc" \}, \{ createdAt: "asc" \}\]/);
+
+  // ...and the comment above the cap check no longer claims a serialization a
+  // plain transaction does not provide.
+  const actions = read("src/app/(main)/catchups/actions.ts");
+  const capComment = actions.slice(
+    actions.indexOf("Read as max+1"),
+    actions.indexOf("const created = await prisma.$transaction")
+  );
+  assert.ok(
+    !/cannot both see room/.test(capComment),
+    "the cap comment still promises two submissions cannot both pass"
+  );
+  assert.match(capComment, /READ\s+COMMITTED/);
+});

@@ -894,8 +894,17 @@ export async function submitPrompt(input: {
        landed on top of the last one. Not a race: a certainty, after any
        removal (audit Lows 27, 34, 57).
        
-       Read as max+1, and inside the same transaction as the cap check so two
-       questions arriving together cannot both see room for the last slot.
+       Read as max+1, inside the same transaction as the cap check so both
+       reads describe one moment. That is a consistent SNAPSHOT, not a
+       serialization: this is a plain transaction, so it runs at READ
+       COMMITTED, and two submissions arriving together each read a state
+       without the other's uncommitted insert. Both can therefore see room for
+       the last slot, and both can land on the same position -- a 41st question
+       once in a blue moon, or two sharing a slot (audit C-029). Tolerated
+       rather than serialized: the cap is a soft ceiling on a co-operative act,
+       and every surface that renders these breaks a position tie on createdAt,
+       so a shared slot is a stable order rather than a flicker. If this ever
+       needs to be a hard guarantee it is an isolationLevel, not a comment.
        (Legacy rows from before auto-accept may still be sitting pending; they
        are excluded, exactly as the reorder branch excludes them, so they cannot
        push live questions out of sequence.) */
