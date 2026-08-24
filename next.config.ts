@@ -144,7 +144,22 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
   devIndicators: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      /* Development only, and the reason is Safari (2026-08-24). Node closes an
+       * idle keep-alive connection after six seconds and tells no one -- measured
+       * on this server, not assumed. Safari then sends its next navigation into
+       * that already-dead socket and, unlike Chromium, gives up rather than
+       * retrying on a fresh one, so the first load after any pause was reliably
+       * "Safari can't open the page ... the server unexpectedly dropped the
+       * connection" and only a cache-bypassing reload got past it. Closing every
+       * dev response means there is never an idle connection left to reuse, so
+       * the race has nothing to land on. The cost is one TCP handshake per
+       * request over loopback, which is microseconds, and it is confined to dev.
+       * It does not touch hot reload: an upgrade never passes through headers(),
+       * and the HMR socket was verified still delivering built/serverComponentChanges. */
+      ...(isProd ? [] : [{ source: "/:path*", headers: [{ key: "Connection", value: "close" }] }]),
+    ];
   },
   // Tree-shake large icon/animation barrels so dev recompiles and prod client
   // chunks only pull the icons actually used. Next auto-optimizes lucide-react
