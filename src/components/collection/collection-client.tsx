@@ -16,6 +16,7 @@ import {
 } from "@/components/common/filters";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { appendUnseen } from "@/lib/append-page";
 import { WHEN_OPTIONS, COLLECTION_SORT_OPTIONS } from "@/lib/collection-facets";
 import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
 import { ContributeDialog } from "./contribute-dialog";
@@ -121,6 +122,12 @@ export function CollectionClient({
   const [era, setEra] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("newest");
   const areaFacetOptions = useMemo(() => areaOptions.map((a) => ({ value: a, label: a })), [areaOptions]);
+  /* Bumped whenever the query behind this grid changes, so a "Load more"
+     already in the air can tell that its page no longer belongs to what is on
+     screen. The feed and the directory have carried this since audit Low 75 /
+     M36; the Collection was the one list of the three without it (audit
+     C-179). */
+  const listGeneration = useRef(0);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -147,6 +154,7 @@ export function CollectionClient({
 
   useEffect(() => {
     let cancelled = false;
+    listGeneration.current += 1;
     // Re-arms the skeleton when the filters change, so changing a filter never leaves the previous results sitting on screen as though they matched.
     setLoading(true);
     setPage(0);
@@ -172,15 +180,24 @@ export function CollectionClient({
   }, [fetchPage]);
 
   async function handleLoadMore() {
+    /* The query this page belongs to. Change a filter, the sort or the search
+       while a "Load more" is in the air and the page that comes back answers
+       the PREVIOUS question: appending it interleaved two different result
+       sets, took the old query's total, and left `page` counting against the
+       new filters so every later page was fetched at the wrong offset (audit
+       C-179). The effect above has already loaded the new first page, so
+       dropping the stale one is the whole fix. */
+    const generation = listGeneration.current;
     const next = page + 1;
     setLoadingMore(true);
     try {
       const data = await callAction(() => fetchPage(next));
+      if (generation !== listGeneration.current) return;
       if ("error" in data) {
         toast.error(data.error);
         return;
       }
-      setPhotos((prev) => [...prev, ...data.photos]);
+      setPhotos((prev) => appendUnseen(prev, data.photos));
       setHasMore(data.hasMore);
       setTotal(data.total);
       setPage(next);
