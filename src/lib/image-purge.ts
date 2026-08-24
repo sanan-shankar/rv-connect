@@ -71,3 +71,27 @@ export async function purgeImageKey(key: string, reason: string): Promise<void> 
   if (await delImageByKey(key)) return;
   await queue([publicUrlForKey(key)], reason);
 }
+
+/**
+ * Await several in-flight `putImage` calls as a unit: if any of them fails,
+ * whatever DID land is deleted before the failure is rethrown.
+ *
+ * `Promise.all` rejects on the first failure and drops the other results on
+ * the floor, so a display image that stored fine while its thumbnail threw
+ * became an object with no row, no URL in anyone's hands, and no way to find
+ * it again (audit C-064). The caller sees exactly what it saw before -- the
+ * same rejection -- minus the orphan.
+ */
+export async function putAllOrNone(
+  puts: Promise<string>[],
+  reason: string
+): Promise<string[]> {
+  const settled = await Promise.allSettled(puts);
+  const failure = settled.find((r) => r.status === "rejected");
+  if (!failure) return settled.map((r) => (r as PromiseFulfilledResult<string>).value);
+  await purgeImageUrls(
+    settled.map((r) => (r.status === "fulfilled" ? r.value : null)),
+    reason
+  );
+  throw (failure as PromiseRejectedResult).reason;
+}

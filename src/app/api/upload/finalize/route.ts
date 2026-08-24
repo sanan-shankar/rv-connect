@@ -4,12 +4,13 @@ import { createId } from "@paralleldrive/cuid2";
 import {
   getImageBuffer,
   putImage,
-  delImageByKey,
+  publicUrlForKey,
   headObjectSize,
   keyBelongsTo,
   ownerPrefix,
 } from "@/lib/storage";
 import { sharpImage } from "@/lib/image";
+import { purgeImageKey, purgeImageUrls } from "@/lib/image-purge";
 import { MAX_UPLOAD_BYTES, describeProcessingError, sniffImageType } from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
@@ -76,12 +77,30 @@ export async function POST(request: Request) {
   if (keys.length > MAX_FILES) {
     return NextResponse.json({ error: `Maximum ${MAX_FILES} images allowed` }, { status: 400 });
   }
-  if (keys.some((k) => !STAGING_KEY.test(k) || !keyBelongsTo(k, session.user.id, "staging"))) {
+  const own = (k: string) => STAGING_KEY.test(k) && keyBelongsTo(k, session.user.id, "staging");
+  if (!keys.every(own)) {
+    // The keys that DID check out are the caller's own staged objects and
+    // nothing will name them again; only the ones we cannot vouch for are left
+    // alone (aiming a delete at a caller-supplied key is the C2 hole).
+    await purgeImageUrls(keys.filter(own).map(publicUrlForKey), "abandoned");
     return NextResponse.json({ error: "Bad staging key" }, { status: 400 });
   }
 
   const urls: string[] = [];
-  for (const key of keys) {
+  /* Up to three originals were staged in one presign round, and each loop pass
+     stores a processed WebP. A refusal partway through returned an error while
+     leaving BOTH the WebPs already stored and the originals still staged for
+     the keys the loop had not reached -- objects no row names and nothing can
+     list (audit C-064). Every exit now takes the lot. */
+  const abort = async (body: { error: string }, status: number, from: number) => {
+    await purgeImageUrls(
+      [...urls, ...keys.slice(from + 1).map(publicUrlForKey)],
+      "abandoned"
+    );
+    return NextResponse.json(body, { status });
+  };
+
+  for (const [i, key] of keys.entries()) {
     try {
       // Size is checked with a HEAD before the bytes are pulled into memory: a
       // presigned PUT cannot enforce a limit (R2 has no content-length-range),
@@ -90,22 +109,20 @@ export async function POST(request: Request) {
       // (audit M16).
       const staged = await headObjectSize(key);
       if (staged !== null && staged > MAX_UPLOAD_BYTES + 1024) {
-        await delImageByKey(key);
-        return NextResponse.json({ error: "Photo is over the 20MB limit" }, { status: 400 });
+        return abort({ error: "Photo is over the 20MB limit" }, 400, i);
       }
 
       const original = await getImageBuffer(key);
       if (original.byteLength > MAX_UPLOAD_BYTES + 1024) {
         // Belt to the HEAD's braces (a HEAD that could not read the size
         // returns null and falls through to here).
-        await delImageByKey(key);
-        return NextResponse.json({ error: "Photo is over the 20MB limit" }, { status: 400 });
+        return abort({ error: "Photo is over the 20MB limit" }, 400, i);
       }
       if (!sniffImageType(original)) {
-        await delImageByKey(key);
-        return NextResponse.json(
+        return abort(
           { error: "That upload doesn't look like a JPG, PNG, GIF or WebP image." },
-          { status: 400 }
+          400,
+          i
         );
       }
       const webp = await sharpImage(original)
@@ -117,10 +134,11 @@ export async function POST(request: Request) {
       urls.push(url);
     } catch (error) {
       console.error("Finalize processing error:", error);
-      return NextResponse.json({ error: describeProcessingError(error) }, { status: 422 });
+      return abort({ error: describeProcessingError(error) }, 422, i);
     } finally {
-      // The staged original's job is done either way.
-      await delImageByKey(key);
+      // The staged original's job is done either way. Queued for the nightly
+      // retry if storage refuses, rather than logged and lost (audit C-069).
+      await purgeImageKey(key, "staged");
     }
   }
 

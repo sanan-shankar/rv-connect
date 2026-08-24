@@ -13,7 +13,7 @@ import {
   ownerPrefix,
 } from "@/lib/storage";
 import { sharpImage, storedPixelFit } from "@/lib/image";
-import { purgeImageKey } from "@/lib/image-purge";
+import { purgeImageKey, purgeImageUrls, putAllOrNone } from "@/lib/image-purge";
 import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike } from "@/lib/db-text";
 import { photoSchema } from "@/lib/validators";
@@ -200,10 +200,10 @@ export async function contributePhoto(formData: FormData) {
       .webp({ quality: 72 })
       .toBuffer();
 
-    [url, thumbUrl] = await Promise.all([
-      putImage(display.data, dir, `${id}.webp`),
-      putImage(thumb, dir, `${id}-t.webp`),
-    ]);
+    [url, thumbUrl] = await putAllOrNone(
+      [putImage(display.data, dir, `${id}.webp`), putImage(thumb, dir, `${id}-t.webp`)],
+      "abandoned"
+    );
   } catch (e) {
     return { error: describeProcessingError(e) };
   }
@@ -215,7 +215,7 @@ export async function contributePhoto(formData: FormData) {
   });
   const autoApprove = session.user.role === "admin" || !!me?.photoTrusted;
 
-  await prisma.photo.create({
+  await createPhotoRow({
     data: {
       uploaderId: session.user.id,
       thumbUrl,
@@ -237,7 +237,7 @@ export async function contributePhoto(formData: FormData) {
       approvedAt: autoApprove ? new Date() : null,
       approvedById: autoApprove ? session.user.id : null,
     },
-  });
+  }, [url, thumbUrl]);
 
   revalidatePath("/collection");
   return { success: true, autoApprove };
@@ -246,6 +246,28 @@ export async function contributePhoto(formData: FormData) {
 // Only objects the collection presign step itself created may be recorded, AND
 // only ones staged under the CALLER's own prefix (`collection/<their id>/...`);
 // the ownership half is enforced with keyBelongsTo below (audit C2).
+/**
+ * Write the row that makes the stored bytes findable -- and if that write
+ * fails, take the bytes with it.
+ *
+ * The create used to sit outside the processing try/catch, so a dropped
+ * connection or a pool timeout at exactly this moment left a display image and
+ * a thumbnail in the bucket that no row named, no sweep enumerates and no
+ * retry could reach (audit C-064). The failure still reaches the caller
+ * unchanged; only the orphan is new.
+ */
+async function createPhotoRow(
+  args: Parameters<typeof prisma.photo.create>[0],
+  stored: string[]
+) {
+  try {
+    return await prisma.photo.create(args);
+  } catch (e) {
+    await purgeImageUrls(stored, "abandoned");
+    throw e;
+  }
+}
+
 const COLLECTION_ORIGINAL_KEY =
   /^collection\/[a-z0-9]+\/\d{4}\/\d{2}\/[a-z0-9]+-o\.(jpg|jpeg|png|webp|gif)$/;
 
@@ -409,10 +431,13 @@ export async function contributePhotoDirect(input: {
       .webp({ quality: 72 })
       .toBuffer();
 
-    [url, thumbUrl] = await Promise.all([
-      putImage(display.data, dir, `${createId()}.webp`),
-      putImage(thumb, dir, `${createId()}-t.webp`),
-    ]);
+    [url, thumbUrl] = await putAllOrNone(
+      [
+        putImage(display.data, dir, `${createId()}.webp`),
+        putImage(thumb, dir, `${createId()}-t.webp`),
+      ],
+      "abandoned"
+    );
 
     // The raw original carried the EXIF; its re-encoded copy is now the
     // canonical image, so the original is deleted rather than left retrievable.
@@ -426,7 +451,7 @@ export async function contributePhotoDirect(input: {
   const me = await mePromise;
   const autoApprove = session.user.role === "admin" || !!me?.photoTrusted;
 
-  await prisma.photo.create({
+  await createPhotoRow({
     data: {
       uploaderId: session.user.id,
       thumbUrl,
@@ -445,7 +470,7 @@ export async function contributePhotoDirect(input: {
       approvedAt: autoApprove ? new Date() : null,
       approvedById: autoApprove ? session.user.id : null,
     },
-  });
+  }, [url, thumbUrl]);
 
   revalidatePath("/collection");
   return { success: true, autoApprove };
