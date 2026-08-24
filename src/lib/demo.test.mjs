@@ -236,3 +236,57 @@ test("the closed-path list in proxy.ts matches the one in demo.ts", () => {
     "proxy.ts and demo.ts disagree about which routes the demo closes",
   );
 });
+
+/* ------------------------------------------------------------------ *
+ *  ...and the writes the demo's OWN screens make must be allowed.
+ *
+ *  The allowlist is the demo's safety, and it is also its usability: a
+ *  column a real screen writes but nobody listed is refused by the Prisma
+ *  layer, which throws, which the profile's autosave catches and prints as
+ *  "That did not save. Check your connection." updateContactMethods writes
+ *  showEmail, phone and phones on EVERY save whatever the visitor touched,
+ *  and none of the three was listed -- so editing an Instagram handle in the
+ *  demo failed and blamed the network (bug-report-2 C-044).
+ *
+ *  Derived from the action's own source, so a new column added to that write
+ *  fails here until somebody decides whether the demo may have it.
+ * ------------------------------------------------------------------ */
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+test("every column the contact editor writes is one the demo may write", () => {
+  const src = readFileSync(resolve(HERE, "../components/profile/profile-actions.ts"), "utf8");
+  const fn = src.slice(src.indexOf("export async function updateContactMethods"));
+  const update = fn.slice(fn.indexOf("prisma.user.update"));
+  const dataBlock = update.slice(update.indexOf("data: {"), update.indexOf("\n  });"));
+  const columns = [...new Set([...dataBlock.matchAll(/^\s{6}([A-Za-z][A-Za-z0-9_]*):/gm)].map((m) => m[1]))];
+  assert.ok(columns.length >= 5, `only scraped ${columns} from the contact write; the slice has drifted`);
+
+  const data = Object.fromEntries(columns.map((c) => [c, null]));
+  assert.equal(
+    demoWriteAllowed("User", "update", { where: { id: DEMO_USER_ID }, data }),
+    true,
+    `the demo refuses a contact save that writes: ${columns.join(", ")}. The visitor is told to ` +
+      `check their connection, which is not what went wrong.`
+  );
+});
+
+test("the demo says why it will not remove a photo, rather than failing", () => {
+  // photoUrl stays off the allowlist on purpose -- it is an upload output and
+  // the demo takes no uploads -- so the action has to refuse in words at the
+  // front door, the way updateAvatar does, or the Prisma layer refuses it in
+  // the language of a network error.
+  assert.equal(
+    demoWriteAllowed("User", "update", { where: { id: DEMO_USER_ID }, data: { photoUrl: null } }),
+    false,
+    "photoUrl became writable in the demo; it is an upload output"
+  );
+  const actions = readFileSync(resolve(HERE, "../components/settings/actions.ts"), "utf8");
+  const fn = actions.slice(actions.indexOf("export async function removeAvatar"));
+  const body = fn.slice(0, fn.indexOf("\n}\n"));
+  assert.match(body, /IS_DEMO/, "removeAvatar has no demo sentence, so it fails as a connection error");
+  assert.ok(
+    body.indexOf("IS_DEMO") < body.indexOf("swapPhotoUrl"),
+    "the demo sentence comes after the write it exists to prevent"
+  );
+});

@@ -3038,3 +3038,23 @@ view uses, so the rows it removes are the ones nothing can reach and no answer
 the owner can get today gets shorter. The gate derives that lookback from the
 analytics queries themselves, so deepening a chart fails the build until
 somebody decides about retention rather than silently reading swept rows.
+
+## 2026-08-25 — the demo stops blaming the network for its own rules
+
+**C-044.** Editing a contact field in the demo failed with "That did not save.
+Check your connection." Nothing was wrong with the connection: the demo's
+write allowlist did not contain `showEmail`, `phone` or `phones`, and the
+contact action writes all three on every save whatever the visitor actually
+touched — so changing an Instagram handle was refused by the Prisma layer,
+which throws, which the profile's autosave prints as a network error. Same for
+the admission number, and for removing a photo.
+
+All four are ordinary scalar columns a visitor is meant to edit, and they are
+on the list now. `photoUrl` deliberately is not — it is an upload output and
+the demo takes no uploads — so removing a photo refuses in words at the front
+door, the way uploading one already did.
+
+The gate derives the columns the contact editor writes from that action's own
+source, so a new one fails the build until somebody decides whether the demo
+may have it. Not exercised against the demo deployment itself, which is a
+separate project and database.

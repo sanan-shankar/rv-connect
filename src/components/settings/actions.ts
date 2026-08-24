@@ -265,6 +265,16 @@ export async function removeAvatar() {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  /* Said in words, like updateAvatar above. `photoUrl` is deliberately not a
+     field the demo may write -- it is an upload output, and the demo takes no
+     uploads -- so without this the Prisma layer refused the write and the
+     visitor was told to check their connection (bug-report-2 C-044). */
+  if (IS_DEMO)
+    return {
+      error:
+        "This is a demo, so the photo on this profile is part of the exhibit and stays put.",
+    };
+
   const swap = await swapPhotoUrl(session.user.id, null);
   if (!swap.ok) return { error: "That did not save. Try it once more." };
   if (swap.previous) await purgeImageUrls([swap.previous], "avatar");
