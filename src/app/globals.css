@@ -589,6 +589,29 @@
   100% { background-position: -100% 0; }
 }
 
+/* The post a notification pointed at, once the feed has it on screen.
+   A ring that fades rather than a colour that changes: the card is not in a
+   new STATE, it is being pointed at for a moment. Drawn on a pseudo-element so
+   only `opacity` animates, which is the rule this whole file keeps -- a
+   box-shadow transition would repaint the card on every frame. */
+@keyframes deeplink-fade {
+  0%, 55% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.deeplink-flash {
+  position: relative;
+}
+.deeplink-flash::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px var(--canopy);
+  opacity: 0;
+  pointer-events: none;
+  animation: deeplink-fade 1.9s ease-out forwards;
+}
+
 /* Notification bell wobble: pivots from the top so it reads as a shake, not a spin.
    Trigger by toggling .animate-bell on the bell icon when the unread count increases. */
 @keyframes bell {

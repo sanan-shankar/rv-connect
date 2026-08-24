@@ -2952,3 +2952,35 @@ gets more people, never a narrowed list it cannot see is narrowed.
 
 Proved against the running server with a real teacher's name: the composer's
 dropdown returns them, the Catch-ups picker still does not.
+
+## 2026-08-25 — notifications that lead somewhere
+
+**C-052 — the feed never scrolled to the post a notification named.** Every
+like and comment notification on a plain post links to `/feed#<id>`, and
+nothing read the fragment: the feed fetches its posts after mount, so at the
+moment the router commits there is no card with that id. The member landed at
+the top of the feed with no idea which post was meant. The feed now scrolls to
+that card and rings it for two seconds — a canopy ring drawn on a
+pseudo-element, so only opacity animates.
+
+Two ways to get this wrong, and the first two attempts hit both. A callback
+beside `setPosts` runs before React has committed the cards, so the lookup
+finds nothing and fails silently, which looks exactly like the bug. And
+tapping the bell while already on the feed changes only the fragment, which is
+a same-document navigation: nothing remounts and no effect re-runs. Both are
+now handled and both are pinned in `e2e/deeplink.spec.ts`, which I watched fail
+with the second half reverted.
+
+**C-054 — bell rows outlived the letters they pointed at.** Delete or hide a
+letter and "X replied to your comment" still sat in somebody's bell pointing
+at a page that answers 404 — for up to a year, since notifications are kept
+until the 365-day sweep. Catch-ups has cleared its own notifications since it
+was written; the feed never did. The cleanup now lives inside the delete
+helper, so a third way to delete a post cannot forget it, and a moderator's
+hide clears everybody's rows except the author's, because the author can still
+open the post and read the notice there.
+
+**Also visible:** the deep-linked post gets a brief green ring. Screenshotted
+at both viewports. `npm run visual` is red on the same eight routes as before
+(feed, directory, letters, catchups at both sizes) and no others — still the
+live-data drift the owner owes a decision on, not this change.

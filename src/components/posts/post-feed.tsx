@@ -159,6 +159,60 @@ export function PostFeed({
     };
   }, [fetchPosts, reloadKey, groupId, scope, sortBy, search, timeFilter]);
 
+  /* The post a notification sent them to.
+   *
+   * `/feed#<id>` is what every like and comment notification on a plain post
+   * links to, and nothing read the fragment. PostFeed fetches its posts after
+   * mount, so at the moment the router commits there is no element with that
+   * id for the browser to scroll to, and the member landed at the top of the
+   * feed with no idea which post was meant (bug-report-2 C-052; the repo's
+   * own lab audit had already written it down, feed-2).
+   *
+   * An effect on `posts`, not a callback beside setPosts: React has not
+   * committed the cards at the moment the state is set, so anything that
+   * looks the element up before this point finds nothing. That is exactly how
+   * the first attempt failed, silently, which is how the bug read too.
+   *
+   * Only reaches posts that are on the page. Fetching one post by id from
+   * here would duplicate the letter route's whole guarded read; anything
+   * older than the loaded pages still lands on a working feed, which is what
+   * happened for every case before this.
+   */
+  const scrolledToHash = useRef<string | null>(null);
+  const flashTimer = useRef<number | null>(null);
+  const goToHash = useCallback(() => {
+    const id = window.location.hash.slice(1);
+    if (!id || scrolledToHash.current === id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    scrolledToHash.current = id;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("deeplink-flash");
+    // Taken off once the ring has finished fading, so coming back to the same
+    // post later plays it again rather than doing nothing.
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => el.classList.remove("deeplink-flash"), 2100);
+  }, []);
+
+  // Landing on /feed#<id> from somewhere else: the cards arrive after mount.
+  useEffect(() => {
+    if (posts.length > 0) goToHash();
+  }, [posts, goToHash]);
+
+  /* Already ON the feed when the notification is tapped. The bell navigates
+     with router.push, and a push that changes only the fragment is a
+     SAME-DOCUMENT navigation: nothing remounts, no effect re-runs, and the
+     first version of this fix did nothing at all in the commonest case --
+     which is how the bug behaved too, so it looked like it was working. */
+  useEffect(() => {
+    const onHash = () => {
+      scrolledToHash.current = null;
+      goToHash();
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [goToHash]);
+
   // Index of the first post that is NOT newer than last-seen: the divider goes above it.
   // Only meaningful on the default recent sort and when there is genuinely new content.
   const dividerIndex =

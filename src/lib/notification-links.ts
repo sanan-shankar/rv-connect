@@ -10,8 +10,16 @@
  * admin writers likewise still pointed at `/admin?thread=`, a route retired
  * when the moderation inbox moved to its own page.
  *
- * Collected in one module so the answer is given once. `PostFeed` handles the
- * scrolling half of the feed case, once its first page has loaded.
+ * Collected in one module so the answer is given once.
+ *
+ * `PostFeed` handles the scrolling half of the feed case: it reads the
+ * fragment once its posts have rendered -- and again on `hashchange`, for a
+ * bell tapped while already on the feed -- then scrolls that card into view
+ * and rings it. That sentence was in this comment for months before it was
+ * true of any code (bug-report-2 C-052): nothing read the hash, and the
+ * member landed at the top of the feed with no idea which post was meant. It
+ * reaches posts on the pages that are loaded; anything older still lands on
+ * the feed, unscrolled, because the card has not been fetched.
  */
 
 /** A post's own reading surface. */

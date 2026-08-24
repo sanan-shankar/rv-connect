@@ -8,6 +8,7 @@ import {
 } from "@/lib/admin";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { clearPostNotifications } from "@/lib/post-notifications";
 import { noteOnReportThread } from "@/lib/admin-threads-server";
 import { purgeUserAccount } from "@/lib/account-purge";
 import { writeAudit } from "@/lib/audit";
@@ -226,10 +227,17 @@ export async function adminHidePost(postId: string): Promise<AdminActionResult> 
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  await prisma.post.update({
+  const post = await prisma.post.update({
     where: { id: postId },
     data: { isHidden: true },
+    select: { id: true, kind: true, authorId: true },
   });
+
+  /* Same as adminRemovePost: a hidden post refuses everybody but its author
+     and the admins, so every other member's bell rows about it now lead to a
+     404 (C-054). The author's are kept -- they can still open it, and what
+     they find there is the moderation notice. */
+  await clearPostNotifications(post, { keepFor: post.authorId });
 
   revalidatePath("/feed");
   revalidatePath("/admin", "layout");
