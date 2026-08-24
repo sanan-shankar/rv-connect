@@ -330,9 +330,14 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       promptPool = promptPool.filter((p) => p.accepted || p.authorId === viewerId);
     }
 
+    /* Position, then createdAt -- the same total order the answering page and
+       the published Round use. Two questions can share a position (the cap
+       check is a snapshot, not a lock; see submitPrompt), and a bare position
+       sort leaves those two in whatever order the rows arrived in, which can
+       differ between two loads of the same page (audit C-029). */
     const accepted = promptPool
       .filter((p) => p.accepted)
-      .sort((a, b) => a.position - b.position);
+      .sort((a, b) => a.position - b.position || a.createdAt.getTime() - b.createdAt.getTime());
     const pending = promptPool
       .filter((p) => !p.accepted)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
