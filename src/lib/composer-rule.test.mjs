@@ -156,3 +156,112 @@ test("removing a contact row saves the list without it", () => {
       "commitHouses have always had"
   );
 });
+
+/* ---- The letters desk and what it does with unsaved words ------------- *
+ *
+ *  Three ways the autosave lost or fought the writer, all in one effect.
+ * --------------------------------------------------------------------- */
+
+/* C-175. The armed timer guarded on `submitting`, read from the closure of an
+ * effect whose deps do not include it, so setSubmitting(true) inside
+ * handleSubmit never reached it: a keystroke within 2.5s of Publish fired an
+ * autosave mid-publish, both writes carrying the same baseUpdatedAt, and
+ * editPost's version precondition told the writer their letter had been
+ * edited somewhere else. */
+
+test("a Publish cannot be raced by the autosave it armed", () => {
+  const armed = composer.slice(composer.indexOf("autosaveTimer.current = setTimeout"));
+  const body = armed.slice(0, armed.indexOf("}, 2500)"));
+  assert.ok(
+    /submittingRef\.current/.test(body),
+    "the autosave timer guards on render state again, which its own effect " +
+      "does not depend on, so the guard cannot see a submit that started after " +
+      "the timer was armed (C-175)"
+  );
+  assert.ok(
+    !/if\s*\(submitting\s*\|\|/.test(body),
+    "the stale-closure guard is back"
+  );
+
+  const submit = fnBody(composer, "async function handleSubmit");
+  const disarm = submit.indexOf("clearTimeout(autosaveTimer.current)");
+  assert.ok(disarm > -1, "handleSubmit no longer disarms the pending autosave (C-175)");
+  assert.ok(
+    disarm < submit.indexOf("await autosaveRunRef.current"),
+    "the autosave is disarmed only after an await, which is a window for it to fire"
+  );
+});
+
+/* C-176. runAutosave SENDS the audience, so the effect that arms it has to
+ * depend on the audience -- otherwise choosing one and not typing never armed
+ * a timer at all (the desk said "Saved" over an unsaved choice) and a timer
+ * armed earlier wrote the OLD scope back from its stale closure. */
+
+test("everything the autosave sends is something it watches", () => {
+  const effect = composer.slice(composer.indexOf("const autosaveTimer = useRef"));
+  const runStart = effect.indexOf("async function runAutosave");
+  assert.ok(runStart > -1, "runAutosave is gone");
+  const deps = /\}, \[([^\]]*)\]\);/.exec(effect.slice(runStart));
+  assert.ok(deps, "the autosave effect's dependency list is gone");
+  const watched = deps[1];
+
+  // Bounded at the dependency list, so the exit-save effect further down the
+  // file is not mistaken for part of this one.
+  const run = effect.slice(runStart, runStart + deps.index);
+  /* Every identifier that appears on the right of an `fd.set`. Globals and
+     refs are dropped: a ref is read at fire time and so cannot go stale, and
+     JSON/String/Number are not values this component owns. What is left is
+     reactive state, and reactive state that a save SENDS is state the effect
+     arming that save must watch. */
+  const GLOBALS = new Set(["JSON", "String", "Number", "Boolean", "Date", "Math", "stringify"]);
+  const sent = [...run.matchAll(/fd\.set\([^,]+,\s*([^;]+?)\);/g)]
+    .flatMap((m) => m[1].match(/[A-Za-z_$][\w$]*/g) ?? [])
+    .filter((name) => !GLOBALS.has(name) && !name.endsWith("Ref") && !/^(trim|current|set)$/.test(name));
+  assert.ok(sent.length > 0, "runAutosave sends nothing; retarget this test");
+  for (const value of new Set(sent)) {
+    assert.ok(
+      new RegExp(`\\b${value}\\b`).test(watched),
+      `the autosave sends ${value} but does not depend on it, so a change to it ` +
+        `alone never arms a save and an armed timer writes the old value (C-176)`
+    );
+  }
+});
+
+/* C-177. Both persistence paths were idle-debounced and neither survived the
+ * tab closing, so writing fluently and then closing discarded every word since
+ * the last 2.5s pause -- while the chrome still said "Saved". And the belt a
+ * resumed draft did write was never read back. */
+
+test("closing the tab mid-sentence keeps the words", () => {
+  assert.ok(
+    /addEventListener\("pagehide"/.test(composer),
+    "nothing persists the letter on a real unload; an unmount cleanup never " +
+      "runs for a closed tab (C-177)"
+  );
+  assert.ok(
+    /visibilityState === "hidden"/.test(composer),
+    "a phone locked mid-sentence is not covered"
+  );
+  // The flush must be a synchronous localStorage write. An unload gives no
+  // time for a server round trip, so anything awaited here is theatre.
+  const flush = composer.slice(composer.indexOf("const flush = ()"));
+  assert.ok(
+    /stashLocalDraft\(/.test(flush.slice(0, flush.indexOf("};"))),
+    "the unload flush does not write the local belt"
+  );
+});
+
+test("a resumed draft's local copy is read back, not just written", () => {
+  const restore = composer.slice(composer.indexOf("const restoredRef = useRef"));
+  const effect = restore.slice(0, restore.indexOf("}, []);"));
+  assert.ok(
+    !/if\s*\([^)]*initialContent[^)]*\)\s*return;/.test(effect.split("\n")[2] ?? ""),
+    "the restore still bails the moment the draft came from the server, so the " +
+      "belt it writes can never be offered back (C-177)"
+  );
+  assert.ok(
+    /action:\s*\{/.test(effect),
+    "a resumed draft's local copy is applied without asking; the server row may " +
+      "have been written from another device and nothing here can rank the two"
+  );
+});

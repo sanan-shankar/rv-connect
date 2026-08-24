@@ -285,17 +285,56 @@ export function CreatePostForm({
   );
   const clearLocalDraft = useCallback(() => dropLocalDraft(draftKey), [draftKey]);
 
-  // A fresh letter, still with no row of its own: keep the words on this
-  // device on the same idle rhythm autosave uses for a saved draft.
+  /* A letter's words, on this device, on the same idle rhythm autosave uses.
+     
+     For a fresh letter this is the only thing holding them until the first
+     save. For a RESUMED draft it used to run only in autosave's failure
+     branch, so writing fluently -- keystrokes closer together than the 2.5s
+     idle -- and then closing the tab discarded every word since the last pause
+     while the chrome still said "Saved" (audit C-177). It runs for both now.
+
+     Still only the idle timer here, and deliberately: this effect re-runs on
+     every keystroke, so flushing in its cleanup would write the whole letter
+     to localStorage on every character and the debounce would mean nothing.
+     The two teardowns that matter are covered elsewhere -- a client-side
+     navigation by the exit save below, and a real unload by the handler after
+     this one. */
   useEffect(() => {
-    if (postId || !defaultLetter || !content.trim()) return;
+    if (!defaultLetter || !content.trim()) return;
     const t = setTimeout(writeLocalDraft, 2500);
     return () => clearTimeout(t);
-  }, [postId, defaultLetter, content, writeLocalDraft]);
+  }, [defaultLetter, content, writeLocalDraft]);
+
+  /* And the case no cleanup ever reaches: the tab closed, the browser killed,
+     a link off the site. `pagehide` is the one event that fires for all of
+     them on iOS Safari as well as everywhere else, and `visibilitychange` to
+     hidden covers a phone being locked mid-sentence. Both handlers do nothing
+     but a synchronous localStorage write, which is the only kind of work that
+     survives an unload. */
+  useEffect(() => {
+    if (!defaultLetter) return;
+    const flush = () => {
+      if (!exitRef.current.content.trim()) return;
+      stashLocalDraft(
+        localDraftKey(exitRef.current.postId),
+        exitRef.current.content,
+        exitRef.current.title
+      );
+    };
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onHidden);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onHidden);
+    };
+  }, [defaultLetter]);
 
   const restoredRef = useRef(false);
   useEffect(() => {
-    if (restoredRef.current || !defaultLetter || initialContent || !richRef.current) return;
+    if (restoredRef.current || !defaultLetter || !richRef.current) return;
     restoredRef.current = true;
     let saved: { content?: string; title?: string } | null = null;
     try {
@@ -305,12 +344,46 @@ export function CreatePostForm({
       saved = null;
     }
     if (!saved?.content?.trim()) return;
-    setContent(saved.content);
-    if (saved.title) setTitle(saved.title);
-    richRef.current.innerHTML = renderRichText(saved.content);
-    hydratedRef.current = true;
-    toast("Picked up where you left off", {
-      description: "This letter was still on this device from last time.",
+
+    const restore = (local: { content: string; title?: string }) => {
+      setContent(local.content);
+      if (local.title) setTitle(local.title);
+      if (richRef.current) richRef.current.innerHTML = renderRichText(local.content);
+      hydratedRef.current = true;
+    };
+
+    /* A fresh letter has no row anywhere, so the local copy is unambiguously
+       the newest thing there is and goes straight onto the sheet. */
+    if (!initialContent) {
+      restore({ content: saved.content, title: saved.title });
+      toast("Picked up where you left off", {
+        description: "This letter was still on this device from last time.",
+      });
+      return;
+    }
+
+    /* A RESUMED draft is the case this used to walk away from. The belt was
+       written -- on a failed autosave, and now on every unload -- and then
+       never read, because this effect returned the moment initialContent
+       existed. So the words a dropped connection or a closed tab left on the
+       device were kept and never offered back (audit C-177).
+       
+       Offered, not applied. The row on the server may have been written from
+       another device since, and comparing this device's clock against the
+       server's is not a fact either -- so the writer decides, which is the
+       only honest answer when two copies disagree and nothing can rank them. */
+    if (saved.content.trim() === initialContent.trim()) {
+      dropLocalDraft(draftKey);
+      return;
+    }
+    const local = { content: saved.content, title: saved.title };
+    toast("There is a newer copy of this letter on this device", {
+      description: "It was kept when a save did not go through, or the tab closed mid-sentence.",
+      duration: Infinity,
+      action: {
+        label: "Use it",
+        onClick: () => restore(local),
+      },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -338,7 +411,16 @@ export function CreatePostForm({
     if (!content.trim()) return;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
-      if (submitting || savingDraft) return;
+      /* The REF, not the `submitting` state. This effect's deps do not include
+         it, so setSubmitting(true) inside handleSubmit re-renders without
+         re-running this effect: an already-armed timer's closure still saw
+         `submitting === false` and fired mid-publish, sending a second
+         editPost carrying the same baseUpdatedAt as the publish's own. One of
+         the two then lost the version race and the writer was told their
+         letter had been edited elsewhere (audit C-175). handleSubmit also
+         disarms this timer outright, so the guard is the second line rather
+         than the only one. */
+      if (submittingRef.current) return;
       autosaveRunRef.current = runAutosave().finally(() => {
         autosaveRunRef.current = null;
       });
@@ -391,8 +473,13 @@ export function CreatePostForm({
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
+    /* `audienceCity` is a dep because runAutosave SENDS it. Without it,
+       choosing or clearing an audience and then not typing never armed a
+       timer -- the desk went on saying "Saved" over an unsaved choice, and
+       leaving lost it -- and a timer armed by an earlier keystroke fired with
+       the stale closure value and wrote the OLD scope back (audit C-176). */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, title, images, postId]);
+  }, [content, title, images, postId, audienceCity]);
 
   /* ---- Leaving with a letter half-written (owner, 2026-08-24) ---------- *
    *
@@ -732,6 +819,15 @@ export function CreatePostForm({
     if (!content.trim()) return;
     if (submittingRef.current) return;
     submittingRef.current = true;
+    /* Disarm the autosave BEFORE awaiting anything. A timer armed by a
+       keystroke within the last 2.5 seconds would otherwise fire while this
+       save is in flight, and both writes would carry the same baseUpdatedAt --
+       editPost's version precondition lets exactly one through and tells the
+       writer the other was edited somewhere else (audit C-175). */
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current);
+      autosaveTimer.current = null;
+    }
     /* Let an autosave that is already in the air finish first, so this save
        sends the version it produced rather than the one before it (audit
        M66). It cannot throw -- runAutosave catches its own failures. */
