@@ -72,15 +72,26 @@ export interface PersonEdit {
   accountType: string;
   batchYear: string;
   birdOverride: string;
+  jobTitle: string;
+  workplace: string;
 }
 
+/** What `profileSchema` allows a member to type into the same two columns. */
+const MAX_OCCUPATION = 100;
+
 /**
- * The four fields the owner has actually had to fix by hand.
+ * The six fields the owner has actually had to fix by hand.
  *
  * `name` is title-cased on the way in, which is the same treatment the
  * profile form gives it, and is what "P.v." -> "P.V." and "gnlu" -> "GNLU"
  * were about. An empty name is refused rather than silently kept: a nameless
  * row renders as a blank byline everywhere in the app.
+ *
+ * `jobTitle` and `workplace` get the same title-casing as `name`, because
+ * that is what the member's own profile pen does to them on commit -- a
+ * correction typed here should not read differently from one typed there.
+ * Either may be blanked: plenty of members have one half and not the other,
+ * and the profile prints "at" only between two real halves.
  *
  * Deliberately NOT here: email (it is the login and the unique key, and
  * changing it out from under somebody locks them out), and `verifyState`
@@ -125,6 +136,15 @@ export async function adminUpdatePerson(
     return { error: `"${bird}" is not one of the bird species.` };
   }
 
+  // The same cap `profileSchema` puts on the member's own form. Refused, not
+  // truncated: silently dropping the tail of somebody's job title is how the
+  // admin ends up believing they saved something they did not.
+  const jobTitle = titleCase(edit.jobTitle);
+  const workplace = titleCase(edit.workplace);
+  if (jobTitle.length > MAX_OCCUPATION || workplace.length > MAX_OCCUPATION) {
+    return { error: `Keep the occupation and the organisation under ${MAX_OCCUPATION} characters.` };
+  }
+
   await prisma.user.update({
     where: { id: userId },
     data: {
@@ -135,6 +155,8 @@ export async function adminUpdatePerson(
       // is the fix the owner needed on 2026-08-18 when a stale override was
       // hiding an Indian Roller.
       birdOverride: bird || null,
+      jobTitle: jobTitle || null,
+      workplace: workplace || null,
     },
   });
 

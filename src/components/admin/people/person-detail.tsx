@@ -62,6 +62,8 @@ export interface DetailPerson {
   email: string;
   photoUrl: string | null;
   birdOverride: string | null;
+  jobTitle: string | null;
+  workplace: string | null;
   accountType: string | null;
   batchType: string | null;
   batchYear: number | null;
@@ -483,19 +485,30 @@ function DetailsCard({ person }: { person: DetailPerson }) {
   const [accountType, setAccountType] = useState(person.accountType ?? "alumnus");
   const [batchYear, setBatchYear] = useState(person.batchYear?.toString() ?? "");
   const [bird, setBird] = useState(person.birdOverride ?? "");
+  const [jobTitle, setJobTitle] = useState(person.jobTitle ?? "");
+  const [workplace, setWorkplace] = useState(person.workplace ?? "");
   const [saving, setSaving] = useState(false);
 
   const dirty =
     name !== person.name ||
     accountType !== (person.accountType ?? "alumnus") ||
     batchYear !== (person.batchYear?.toString() ?? "") ||
-    bird !== (person.birdOverride ?? "");
+    bird !== (person.birdOverride ?? "") ||
+    jobTitle !== (person.jobTitle ?? "") ||
+    workplace !== (person.workplace ?? "");
 
   async function save() {
     setSaving(true);
     try {
       const result = await callAction(() =>
-        adminUpdatePerson(person.id, { name, accountType, batchYear, birdOverride: bird })
+        adminUpdatePerson(person.id, {
+          name,
+          accountType,
+          batchYear,
+          birdOverride: bird,
+          jobTitle,
+          workplace,
+        })
       );
       if (result.error) {
         toast.error(result.error);
@@ -537,6 +550,34 @@ function DetailsCard({ person }: { person: DetailPerson }) {
               onChange={(e) => setBatchYear(e.target.value)}
               inputMode="numeric"
               placeholder="2023"
+            />
+          </Field>
+        </div>
+
+        {/* The occupation line, in the order the profile prints it: "Lawyer at
+            Trilegal". Either half stands alone -- the profile only prints the
+            "at" between two real halves -- so neither is required and clearing
+            one is a legitimate edit. Same 100-character cap as the member's
+            own form, and the same title-casing on save.
+
+            "Organisation" and not "Where": the card directly below this one is
+            "Where they are", and two fields a screen apart both asking "where"
+            read as the same question. */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Occupation" hint="The half their profile prints first.">
+            <Input
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="Lawyer"
+              maxLength={100}
+            />
+          </Field>
+          <Field label="Organisation" hint="Where they work or study.">
+            <Input
+              value={workplace}
+              onChange={(e) => setWorkplace(e.target.value)}
+              placeholder="Trilegal"
+              maxLength={100}
             />
           </Field>
         </div>
