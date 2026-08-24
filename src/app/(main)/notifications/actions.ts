@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { revalidatePath } from "next/cache";
 
 /** How many notifications one account keeps. Everything below the newest
@@ -27,11 +28,17 @@ export async function getNotifications(opts?: {
 
   const take = Math.min(Math.max(opts?.take ?? 20, 1), 50);
 
+  /* Value keyset, not Prisma's `cursor: { id }`. That names a row, and the
+     prune below deletes read rows past the hundredth -- so a first-page open
+     in another tab could delete the very row this session's cursor named, and
+     the query would then answer nothing at all rather than the next page (see
+     keyset.ts, audits C-056 / C-171). Comparing values instead, the deleted
+     row's timestamp still points at the right place in the list. */
+  const after = decodeKeyset(opts?.cursor);
   const rows = await prisma.notification.findMany({
-    where: { userId },
+    where: after ? { AND: [{ userId }, keysetWhere(after, "desc")] } : { userId },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: take + 1,
-    ...(opts?.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
   });
 
   const hasMore = rows.length > take;
@@ -77,7 +84,7 @@ export async function getNotifications(opts?: {
       read: n.read,
       createdAt: n.createdAt.toISOString(),
     })),
-    nextCursor: hasMore ? page[page.length - 1].id : null,
+    nextCursor: hasMore ? encodeKeyset(page[page.length - 1]) : null,
     hasMore,
   };
 }

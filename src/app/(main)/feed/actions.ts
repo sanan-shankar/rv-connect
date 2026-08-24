@@ -21,6 +21,7 @@ import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
+import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { isLetterDraft } from "@/lib/draft-rule";
 
 /** The author fields a rendered comment needs. One copy, two readers. */
@@ -1112,19 +1113,23 @@ export async function loadPosts(opts?: {
   let nextCursor: string | null = null;
 
   if (sortBy === "recent") {
-    // Keyset pagination: stable ordering by (createdAt, id), seek past the cursor id.
-    const keysetCursor =
-      opts?.cursor && !opts.cursor.startsWith("offset:") ? opts.cursor : undefined;
+    /* Keyset pagination on the VALUES, not on Prisma's `cursor`. The cursor
+       carries (createdAt, id) so the next page is a comparison, and the post
+       those values came from being deleted by its author, hidden by a
+       moderator, or losing its author to a block no longer ends the scroll
+       (audits C-005 / C-124 / C-162 / C-171 -- see keyset.ts for the proof).
+       ANDed rather than spread: `where` already carries a top-level OR for the
+       batch scope, and a second one would replace it. */
+    const after = opts?.cursor?.startsWith("offset:") ? null : decodeKeyset(opts?.cursor);
     rows = await prisma.post.findMany({
-      where,
+      where: after ? { AND: [where, keysetWhere(after, "desc")] } : where,
       include,
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: PAGE_SIZE + 1,
-      ...(keysetCursor ? { cursor: { id: keysetCursor }, skip: 1 } : {}),
     });
     const hasMore = rows.length > PAGE_SIZE;
     if (hasMore) rows = rows.slice(0, PAGE_SIZE);
-    nextCursor = hasMore ? rows[rows.length - 1].id : null;
+    nextCursor = hasMore ? encodeKeyset(rows[rows.length - 1]) : null;
   } else {
     // Count-based sorts cannot keyset cleanly: fall back to offset paging.
     //
@@ -1411,21 +1416,26 @@ export async function loadComments(
 
   // A top-level row earns a slot on the page if it is itself visible, or if
   // it must stand in as the anchor for visible replies.
+  const after = decodeKeyset(opts?.cursor);
+  const rootWhere = {
+    postId,
+    parentId: null,
+    OR: [VISIBLE_COMMENT, { replies: { some: VISIBLE_COMMENT } }],
+  };
+  // Value keyset, oldest-first. A root comment can leave this set between two
+  // pages -- soft-deleted with no visible replies left, or hidden by a
+  // moderator -- and naming it as a Prisma cursor then returned nothing at all
+  // (see keyset.ts).
   const roots = await prisma.comment.findMany({
-    where: {
-      postId,
-      parentId: null,
-      OR: [VISIBLE_COMMENT, { replies: { some: VISIBLE_COMMENT } }],
-    },
+    where: after ? { AND: [rootWhere, keysetWhere(after, "asc")] } : rootWhere,
     select: { id: true, createdAt: true },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     take: take + 1,
-    ...(opts?.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
   });
 
   const hasMore = roots.length > take;
   const pageRoots = hasMore ? roots.slice(0, take) : roots;
-  const nextCursor = hasMore ? pageRoots[pageRoots.length - 1].id : null;
+  const nextCursor = hasMore ? encodeKeyset(pageRoots[pageRoots.length - 1]) : null;
   const rootIds = pageRoots.map((r) => r.id);
 
   const rows = await prisma.comment.findMany({
