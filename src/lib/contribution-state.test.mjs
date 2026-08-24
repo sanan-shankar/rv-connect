@@ -14,6 +14,7 @@ import {
   foldReversal,
   isReversed,
   netPaise,
+  unfoldDispute,
 } from "./contribution-state.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -184,4 +185,62 @@ test("no money surface reads a contribution sum's gross amount", () => {
       `${f} aggregates contributions without reading the net`
     );
   }
+});
+
+/* ------------------------------------------------------------------ *
+ *  A chargeback the owner WINS counts again.
+ *
+ *  `payment.dispute.created` moved a row to "disputed" and nothing anywhere
+ *  moved it back, so a dispute the owner won -- money that never actually
+ *  left -- stayed un-counted for ever on the recovery bar, in "Given, all
+ *  time" and in the supporter's own history, correctable only by raw SQL
+ *  against the live database (bug-report-2 C-086).
+ * ------------------------------------------------------------------ */
+
+test("winning a dispute puts the money back", () => {
+  const row = { amount: 500000, refundedAmount: 500000, status: "disputed" };
+  assert.deepEqual(unfoldDispute({ ...row, paise: 500000 }), {
+    refundedAmount: 0,
+    status: "paid",
+  });
+});
+
+test("a dispute payload with no amount still resolves the whole thing", () => {
+  // The route passes the contribution's own amount when the entity does not
+  // carry one, which is the safe direction for a dispute (always the full
+  // payment by definition).
+  const row = { amount: 500000, refundedAmount: 500000, status: "disputed" };
+  assert.equal(unfoldDispute({ ...row, paise: 500000 })?.status, "paid");
+});
+
+test("a won event resurrects nothing that was not disputed", () => {
+  for (const status of ["paid", "created", "failed", "refunded"]) {
+    assert.equal(
+      unfoldDispute({ amount: 500000, refundedAmount: 0, status, paise: 500000 }),
+      null,
+      `a dispute-won event moved a row out of "${status}"`
+    );
+  }
+});
+
+test("a refund that happened before the dispute is not counted as given twice", () => {
+  // ...and never goes negative, whatever the payload claims the dispute was
+  // for. The over-return in the refund-then-dispute-then-won sequence is
+  // documented on the function; what must not happen is a negative refund,
+  // which would count MORE than the gift.
+  const out = unfoldDispute({ amount: 500000, refundedAmount: 500000, status: "disputed", paise: 900000 });
+  assert.equal(out?.refundedAmount, 0);
+  assert.ok((out?.refundedAmount ?? -1) >= 0);
+});
+
+test("the webhook acts on a won dispute, from disputed only, once", () => {
+  const src = decomment(read("src/app/api/razorpay/webhook/route.ts"));
+  assert.match(src, /payment\.dispute\.won/, "the webhook ignores a won dispute again");
+  assert.match(src, /payment\.dispute\.closed/, "the webhook ignores a closed dispute again");
+  const branch = src.slice(src.indexOf("unfoldDispute({"));
+  const write = branch.slice(branch.indexOf("updateMany"), branch.indexOf("if (moved.count"));
+  assert.match(write, /status:\s*["']disputed["']/, "the resolution is not conditional on the row still being disputed");
+  assert.match(write, /NOT:\s*\{\s*reversalIds:\s*\{\s*has:/, "a re-delivered won event would apply twice");
+  // A lost dispute is correctly un-counted and must stay that way.
+  assert.ok(!/payment\.dispute\.lost/.test(src), "the webhook acts on a lost dispute, which is already correct as it stands");
 });

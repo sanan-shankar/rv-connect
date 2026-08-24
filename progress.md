@@ -3058,3 +3058,27 @@ The gate derives the columns the contact editor writes from that action's own
 source, so a new one fails the build until somebody decides whether the demo
 may have it. Not exercised against the demo deployment itself, which is a
 separate project and database.
+
+## 2026-08-25 — a chargeback the owner wins counts again
+
+**C-086.** When a supporter's bank opens a dispute, the webhook moves that
+contribution out of "paid", and every money surface — the public recovery bar,
+"Given, all time", the supporter's own history — stops counting it. Nothing
+anywhere moved it back. So a dispute the owner WON, money that never actually
+left the account, stayed un-counted for ever, and the only way to correct it
+was raw SQL against the live database.
+
+`payment.dispute.won` and `payment.dispute.closed` now return the row to
+"paid", conditional on it still being disputed and deduped against a
+re-delivery, with an audit line — the one event in the whole app that moves a
+money total upwards after the fact, so the owner hears why from somewhere
+other than a total that quietly grew. A LOST dispute is deliberately still
+ignored: un-counted is the right answer for that one.
+
+One imprecision, written on the function rather than hidden: a dispute is
+recorded as the whole payment, so a partial refund that happened before the
+chargeback cannot be told apart from it and comes back too. Telling them apart
+needs a column of its own; the audit line names the paise that moved.
+
+Proved against Postgres with a throwaway row: the first delivery moves it to
+paid with nothing withheld, the re-delivery moves nothing.

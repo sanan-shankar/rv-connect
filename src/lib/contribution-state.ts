@@ -113,3 +113,40 @@ export function foldReversal(input: {
     full,
   };
 }
+
+/**
+ * A chargeback the owner WON, folded back out.
+ *
+ * `payment.dispute.created` moves a row to "disputed", which every money
+ * surface filters out. Nothing anywhere moved it back, so a dispute the owner
+ * won -- money that never left -- stayed un-counted for ever, in the public
+ * recovery bar, in "Given, all time" and in the supporter's own history, and
+ * the only correction was raw SQL against the live database (bug-report-2
+ * C-086). A LOST dispute is already right where it is.
+ *
+ * Only from "disputed": a won event for a row that is refunded, or that never
+ * reached the dispute, must not resurrect anything.
+ *
+ * The one imprecision, stated rather than hidden: `foldReversal` treats a
+ * dispute as the whole payment and clamps `refundedAmount` to `amount`, so a
+ * partial refund that happened BEFORE the dispute is absorbed into that number
+ * and cannot be told apart from it here. Unfolding therefore returns the
+ * dispute's own paise and, in that one sequence -- partial refund, then
+ * chargeback, then the owner wins -- gives the earlier refund back to the
+ * total. Recording it exactly would need a column of its own; the audit line
+ * names the paise so the owner can see what moved.
+ */
+export function unfoldDispute(input: {
+  amount: number;
+  refundedAmount: number;
+  status: string;
+  /** What the dispute was for; the full amount when the payload does not say. */
+  paise: number;
+}): { refundedAmount: number; status: string } | null {
+  if (input.status !== "disputed") return null;
+  const given = Math.min(input.amount, Math.max(0, input.paise));
+  return {
+    refundedAmount: Math.max(0, input.refundedAmount - given),
+    status: "paid",
+  };
+}
