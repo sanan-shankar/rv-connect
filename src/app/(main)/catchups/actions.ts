@@ -60,6 +60,7 @@ import {
   QUESTION_WINDOW_DAYS,
   REMINDER_QUESTIONS_EXTENDED,
   resolveSpotify,
+  restoreOwnCatchupCopy,
   shiftEditionPatch,
   shiftPausedInstant,
   shouldExtendForTooFew,
@@ -601,6 +602,9 @@ export async function joinCatchupByToken(token: string) {
       create: { groupId: catchup.groupId, userId: session.user.id, role: "member" },
       update: {},
     });
+    // ...and out of their own bin, if they had put it there: rejoining
+    // something you binned must not leave the 30-day sweep armed (C-020).
+    await restoreOwnCatchupCopy(catchup.id, session.user.id);
 
     revalidatePath("/catchups");
     revalidatePath(`/catchups/${catchup.id}`);

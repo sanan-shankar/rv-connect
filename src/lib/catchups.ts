@@ -1010,6 +1010,32 @@ async function applyEditionAction(
  * missing table (pre-migration) or any error is swallowed, because the app-shell
  * piggyback that calls this runs on every authenticated page.
  */
+/**
+ * Take one member's own copy of a Catch-up back out of their bin.
+ *
+ * Binning is personal: it sets `CatchupPref.deletedAt`, which files the card
+ * under "Recently deleted", stops every broadcast reaching them, and starts a
+ * 30-day clock after which the retention sweep removes their membership
+ * outright. Rejoining through the invite link left all of that armed -- the
+ * link found the membership still there and simply showed them the Catch-up,
+ * so the card stayed in the bin and the sweep still removed them from
+ * something they had just walked back into (audit C-020).
+ *
+ * `archivedAt` is deliberately untouched: archiving is filing, not deletion,
+ * and nothing sweeps it. Scoped to one member's own row, so following a link
+ * can never change anybody else's filing.
+ */
+export async function restoreOwnCatchupCopy(
+  catchupId: string,
+  userId: string
+): Promise<void> {
+  const prisma = await getPrisma();
+  await prisma.catchupPref.updateMany({
+    where: { catchupId, userId, deletedAt: { not: null } },
+    data: { deletedAt: null },
+  });
+}
+
 export async function advanceEdition(
   edition: AdvanceEditionInput,
   now: Date = new Date()
