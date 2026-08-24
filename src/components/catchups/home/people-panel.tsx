@@ -500,7 +500,7 @@ function AddPeople({
 }) {
   const [query, setQuery] = useState("");
   const [addingId, setAddingId] = useState<string | null>(null);
-  const { results, searching, reset } = useUserSearch(query);
+  const { results, searching, reset } = useUserSearch(query, { alumniOnly: true });
 
   async function add(person: SearchedPerson) {
     setAddingId(person.id);

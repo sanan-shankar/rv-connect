@@ -84,7 +84,7 @@ export function PeoplePicker({
   const [addingBatch, setAddingBatch] = useState(false);
   // Shared with the Catch-up people panel, so the debounce and the
   // stale-response guard cannot drift between the two search fields.
-  const { results, searching, reset } = useUserSearch(query);
+  const { results, searching, reset } = useUserSearch(query, { alumniOnly: true });
 
   const full = value.length >= MAX_CATCHUP_PEOPLE;
 
