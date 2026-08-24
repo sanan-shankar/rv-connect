@@ -20,6 +20,7 @@ import {
   PAYABLE_FROM,
   REVERSED_STATUSES,
   foldReversal,
+  unfoldDispute,
 } from "@/lib/contribution-state";
 import { writeAudit } from "@/lib/audit";
 import { verifyWebhookSignature, type WebhookSignatureVerdict } from "@/lib/razorpay";
@@ -160,7 +161,16 @@ export async function POST(request: Request) {
        processed is the money actually having left. A refund that fails to
        process should not un-count a gift that is still ours. */
     event.event === "refund.processed" ||
-    event.event === "payment.dispute.created";
+    event.event === "payment.dispute.created" ||
+    /* ...and a chargeback the owner WON, which is money that never left.
+       Nothing moved a row out of "disputed", so winning one left the gift
+       un-counted for ever on every money surface, correctable only by raw SQL
+       against the live database (bug-report-2 C-086). `closed` is Razorpay's
+       terminal event for the same outcome when no explicit win arrives; both
+       are conditional on the row still being "disputed", so a lost dispute --
+       which is correctly un-counted already -- is not affected either way. */
+    event.event === "payment.dispute.won" ||
+    event.event === "payment.dispute.closed";
   if (!orderId || !acted) {
     return NextResponse.json({ received: true });
   }
@@ -255,6 +265,54 @@ export async function POST(request: Request) {
         failureReason: payment?.error_description ?? payment?.error_reason ?? null,
       },
     });
+  } else if (
+    event.event === "payment.dispute.won" ||
+    event.event === "payment.dispute.closed"
+  ) {
+    /* The dispute is over and the money stayed. Put the row back where it was
+       (C-086).
+
+       Conditional on "disputed", like every other write in this route: a won
+       event for a refunded row, or one that arrived before the dispute it
+       resolves, must not resurrect anything. Deduped on the reversal id the
+       same way, so a re-delivery cannot add the paise back twice. */
+    const dispute = event.payload?.dispute?.entity;
+    const wonId = `won:${dispute?.id ?? payment?.id ?? orderId}`;
+    const unfolded = unfoldDispute({
+      amount: contribution.amount,
+      refundedAmount: contribution.refundedAmount,
+      status: contribution.status,
+      paise:
+        typeof dispute?.amount === "number" && dispute.amount > 0
+          ? dispute.amount
+          : contribution.amount,
+    });
+    if (unfolded) {
+      const moved = await prisma.contribution.updateMany({
+        where: {
+          id: contribution.id,
+          status: "disputed",
+          NOT: { reversalIds: { has: wonId } },
+        },
+        data: {
+          status: unfolded.status,
+          refundedAmount: unfolded.refundedAmount,
+          reversalIds: { push: wonId },
+        },
+      });
+      if (moved.count === 1) {
+        // Loud for the same reason the reversal audit is: a money surface is
+        // about to move on its own, and the owner should hear why from
+        // somewhere other than a total that quietly grew.
+        await writeAudit({
+          actorId: null,
+          action: "razorpay.dispute_resolved",
+          targetType: "contribution",
+          targetId: contribution.id,
+          detail: `${event.event}: the chargeback did not stand, so ${contribution.amount - unfolded.refundedAmount} paise count as given again`,
+        });
+      }
+    }
   } else {
     /* Refunded or disputed. Nothing is deleted -- the row stays as the record
        that money moved and came back, which is what a ten-year payment

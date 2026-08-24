@@ -40,7 +40,11 @@ export type AuditAction =
   | "razorpay.webhook_rejected"
   /* A gift that came back out: refunded, or charged back after a dispute. The
      one event that moves a money total downwards after the fact. */
-  | "razorpay.contribution_reversed";
+  | "razorpay.contribution_reversed"
+  /* ...and the other way: a chargeback the owner won, so money that had been
+     un-counted counts again. The only event that moves a money total UPWARDS
+     after the fact (bug-report-2 C-086). */
+  | "razorpay.dispute_resolved";
 
 /**
  * Record one event. NEVER throws and never blocks the caller's real work: an
