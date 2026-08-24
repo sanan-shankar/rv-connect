@@ -3110,3 +3110,42 @@ Vercel is a line nobody reads. Round-opening failures were reported and
 round-advancing failures were not: the Round simply stops moving while the
 countdown carries on counting down. It reports now, and the gate sweeps every
 catch in the file rather than pinning that one.
+
+## 2026-08-25 — the Medium tier is closed
+
+Twelve commits, none pushed (sixty in total are now unpushed, going back to 2026-08-23). `npm run check` green throughout (65 test files).
+`npm run visual` red on the same eight of twenty-three checks it was red on
+this morning — feed, directory, letters and catchups at both viewports, all
+live data drift — and on nothing else.
+
+**What closed.** The five test-quality gaps first, because they weakened every
+other gate in the repo: session revocation had no test at all, the C2
+ownership sweep named two of three write paths, nothing pinned that the
+visibility guard is CALLED, and two test headers promised a generality their
+hard-coded lists did not have. Then every actionable Medium: the purge that
+ignored a cancellation, the open image proxy, the city chip that led nowhere,
+the profile count that disagreed with its list, the pasted Instagram link, the
+impossible pair of years, the teacher nobody could mention, the notification
+that scrolled nowhere and the one that led to a 404, the analytics proxy
+carrying everybody's session token, the Visit table's two problems, the demo
+blaming the network for its own rules, the chargeback the owner wins, and
+three unattended paths that gave up quietly. Four more Mediums turned out to
+be duplicates of those.
+
+Seventy-four of the run's findings are now disposed of. What remains is 121
+Lows and four items only the owner can do.
+
+**Two things found while fixing, not in the report.** `reportPost` had no
+visibility check — writing the C-194 sweep is what surfaced it — so reporting
+any post by id put its author's name into the reporter's thread. And
+generalising the index test exposed `GroupMember.userId`, read on every
+request by `loadSavedPosts` with no index to serve it; that one is written
+down in the test's own exemption list and handed to the next session, because
+it needs a migration.
+
+**The trap that cost the most rounds**, and it is the same one as last
+session's: a shape test that greps for a function NAME passes against a file
+that only IMPORTS it. It went vacuous three separate times today before each
+gate was proved by reverting the fix. A per-file sweep has a second version of
+the same hole — it passes when a file has two takedown paths and you only
+fixed one. Count the sites, don't detect them.
