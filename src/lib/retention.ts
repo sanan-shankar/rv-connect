@@ -108,10 +108,33 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     }
   };
 
+  /* Collect the bytes, THEN delete the rows -- the shape declinePhoto,
+     deletePost and purgeUserAccount all use.
+     
+     An AdminMessage may carry one screenshot in R2 (`imageUrl`), and this step
+     was a bare deleteMany: the row went and the object stayed, unreferenced
+     and now unfindable, because the only thing that could ever have named it
+     was the row (audit C-065). The account purge already treats these exact
+     bytes as purge-worthy -- collectImageUrls reads the imageUrl of every
+     message in a member's threads -- so the sweep was the one path that
+     leaked them.
+
+     One transaction, so a failure between the two halves cannot leave the
+     queue holding a purge for a message that still exists. */
   const adminMessages = await step("adminMessages", async () =>
-    (await prisma.adminMessage.deleteMany({
-      where: { createdAt: { lt: cutoff(KEEP_DAYS.adminMessages) } },
-    })).count,
+    prisma.$transaction(async (tx) => {
+      const due = { createdAt: { lt: cutoff(KEEP_DAYS.adminMessages) } };
+      const withImages = await tx.adminMessage.findMany({
+        where: { ...due, imageUrl: { not: null } },
+        select: { imageUrl: true },
+      });
+      if (withImages.length > 0) {
+        await tx.pendingImagePurge.createMany({
+          data: withImages.map((m) => ({ url: m.imageUrl as string, reason: "retention" })),
+        });
+      }
+      return (await tx.adminMessage.deleteMany({ where: due })).count;
+    }),
   );
   const reports = await step("reports", async () =>
     (await prisma.report.deleteMany({

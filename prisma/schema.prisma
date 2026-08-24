@@ -1275,7 +1275,8 @@ model PendingImagePurge {
   id        String   @id @default(cuid())
   url       String
   // Why it was queued, so a backlog can be read without archaeology:
-  // "purge" (an account erased) is the only writer today.
+  // "purge" (an account erased) or "retention" (the nightly sweep aged an
+  // AdminMessage out and its screenshot went with it -- audit C-065).
   reason    String   @default("purge")
   attempts  Int      @default(0)
   lastError String?
