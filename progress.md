@@ -2837,3 +2837,26 @@ they went first.
 to serve it, the same shape as B-090. It is exempted in the test with that
 said plainly, and it wants a migration, which does not belong in a test
 change. It is the first item in the ledger's open column.
+
+## 2026-08-25 — a cancelled account deletion stays cancelled
+
+**C-075.** The nightly retention sweep reads its due list once, then purges the
+accounts one at a time, each in its own transaction — so minutes pass between
+"this account is due" and "delete it". Signing in during the 60-day grace
+window IS how a member calls the deletion off, and the purge erased them
+anyway: irreversibly, rows and R2 bytes both, after the app had told them it
+was cancelled.
+
+The cutoff now rides on the DELETE rather than only on the due-list read, and
+zero rows deleted rolls the whole transaction back — the group rehoming, the
+image worklist, the cleared reports. A cancellation is counted as spared, not
+as a sweep error. An admin's deliberate delete passes no cutoff and is
+unchanged.
+
+Reproduced live before the fix and after it, against the real database: three
+concurrent cancel-versus-purge races under the old shape destroyed all three
+accounts after a committed cancellation; five races under the new shape
+refused all five. A re-read at the top of the transaction would not have
+closed this — READ COMMITTED cannot see a sign-in that commits mid-flight —
+which is why the condition is on the delete, where Postgres locks the row and
+re-evaluates the predicate against the version that won.

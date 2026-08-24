@@ -120,3 +120,69 @@ test("the retention sweep queues a screenshot before ageing its message out", ()
       "can queue a purge for a message that still exists"
   );
 });
+
+/* ------------------------------------------------------------------ *
+ *  A cancelled deletion stays cancelled.
+ *
+ *  The nightly sweep reads its due list once and then purges the rows one at
+ *  a time, each in its own transaction, so minutes pass between "due" and
+ *  "deleted". Signing in during the grace window IS the cancellation, and
+ *  the unconditional delete erased those members anyway -- irreversibly,
+ *  after the app had told them it was called off (bug-report-2 C-075).
+ *  Reproduced live before the fix: three races, three accounts destroyed
+ *  after a committed cancellation; five after it, none.
+ *
+ *  Shape assertions, because the behaviour needs two concurrent connections.
+ * ------------------------------------------------------------------ */
+
+test("the purge's delete is conditional, and losing the condition rolls it back", () => {
+  const src = decomment(read("src/lib/account-purge.ts"));
+  const fn = src.slice(src.indexOf("export async function purgeUserAccount"));
+  const body = fn.slice(0, fn.indexOf("\n}\n") + 2);
+
+  // A plain user.delete cannot express the condition at all, which is exactly
+  // how the bug read: correct-looking code with no predicate on it.
+  assert.ok(
+    !/tx\.user\.delete\s*\(/.test(body),
+    "purgeUserAccount deletes unconditionally again: a member who cancelled mid-sweep is erased anyway (C-075)"
+  );
+  const del = body.slice(body.indexOf("tx.user.deleteMany"));
+  assert.ok(del, "purgeUserAccount no longer deletes the user row at all");
+  assert.match(
+    del.slice(0, del.indexOf("})")),
+    /onlyIfRequestedBefore[\s\S]*deletionRequestedAt/,
+    "the delete no longer carries the caller's deletionRequestedAt condition"
+  );
+  assert.match(
+    body,
+    /removed\.count === 0[\s\S]{0,60}throw/,
+    "zero rows deleted no longer aborts the transaction, so the rehoming and the " +
+      "image worklist would commit against an account that is still alive"
+  );
+});
+
+test("the sweep purges by the same cutoff it selected by", () => {
+  // Two different cutoffs would be worse than none: the list would say due
+  // and the delete would say no, every night, forever.
+  const src = decomment(read("src/lib/retention.ts"));
+  const listed = /deletionRequestedAt:\s*\{\s*lt:\s*(cutoff\([A-Z_]+\))/.exec(src);
+  assert.ok(listed, "the due-list read no longer filters on deletionRequestedAt");
+  assert.ok(
+    new RegExp(`onlyIfRequestedBefore:\\s*${listed[1].replace(/[()]/g, "\\$&")}`).test(src),
+    `the purge call does not pass ${listed[1]}, the cutoff the due list was read with`
+  );
+});
+
+test("a cancelled purge is a skip, not an error", () => {
+  const src = decomment(read("src/lib/retention.ts"));
+  const loop = src.slice(src.indexOf("const purged = await purgeUserAccount"));
+  const guard = loop.slice(0, loop.indexOf("accountsPurged += 1"));
+  const cancelledAt = guard.indexOf("purged.cancelled");
+  const errorAt = guard.indexOf("errors.push");
+  assert.ok(cancelledAt !== -1, "the sweep no longer recognises a cancelled purge");
+  assert.ok(errorAt !== -1, "the sweep no longer records a failed purge");
+  assert.ok(
+    cancelledAt < errorAt,
+    "a cancellation is counted as a sweep error, which fails the nightly job for the right outcome"
+  );
+});
