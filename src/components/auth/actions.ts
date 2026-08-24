@@ -10,6 +10,7 @@ import { verifyHumanFromForm } from "@/lib/turnstile";
 import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { passwordProblem } from "@/lib/password-rule";
+import { yearClashMessage } from "@/lib/batch-year";
 import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
 
@@ -74,13 +75,15 @@ export async function registerUser(formData: FormData) {
   const weak = passwordProblem(password, parsed.data.email);
   if (weak) return { error: weak };
 
-  if (
-    parsed.data.yearJoined != null &&
-    parsed.data.yearLeft != null &&
-    parsed.data.yearLeft < parsed.data.yearJoined
-  ) {
-    return { error: "The year you left cannot be before the year you joined." };
-  }
+  /* The same cross-field rule the profile editor enforces, from the same
+     function (C-043). Signup used to check only left-before-joined, so the
+     one pair the editor refuses by name -- a batch year EARLIER than the year
+     you left, which is the two fields swapped -- sailed through here and then
+     made batchTypeFromLeaving return null. The account was created with no
+     batch type: outside every batch-targeted post, mis-joined to the batch
+     group, and with nothing on screen to say why. */
+  const clash = yearClashMessage(parsed.data);
+  if (clash) return { error: clash };
 
   // batchYear is written straight through (the person told us their batch).
   // batchType (the board credential) is the only derived value now, worked out

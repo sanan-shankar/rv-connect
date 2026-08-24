@@ -135,3 +135,29 @@ export function normalizePhone(input: string): string {
   const digits = trimmed.replace(/\D/g, "");
   return hasLeadingPlus ? `+${digits}` : digits;
 }
+
+/**
+ * The bare Instagram handle inside whatever somebody actually typed.
+ *
+ * The column is meant to hold "ananya", and the editor's placeholder asks for
+ * "@handle" -- but pasting the address bar is the obvious thing to do, and
+ * every other social field tolerates it because they fall through to the
+ * http() check in socialHref. Instagram did not: it was prefixed unconditionally, so
+ * a pasted "https://instagram.com/ananya" rendered as
+ * "https://instagram.com/https://instagram.com/ananya" -- a dead link, and an
+ * "@https://instagram.com/ananya" label, both on the public profile
+ * (bug-report-2 C-040).
+ *
+ * Read-side as well as write-side, because rows already carry the pasted form
+ * and nobody is going to be asked to re-type them.
+ */
+export function instagramHandle(value: string): string {
+  return value
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/^instagram\.com\//i, "")
+    .replace(/^@/, "")
+    .replace(/[/?#].*$/, "")
+    .trim();
+}

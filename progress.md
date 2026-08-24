@@ -2909,3 +2909,29 @@ viewer's profile grid under the old shape and does not under the new, while
 the author still sees their own. Swept every viewer-by-author pair in the real
 data: no count changes today, because nothing batch-targeted exists yet, so
 nothing on screen moves and the visual baselines are untouched.
+
+## 2026-08-25 — two fields a member types, and what the app did with them
+
+**C-040 — pasting an Instagram address produced a dead link.** The column is
+meant to hold a bare handle, and every other social field tolerates a pasted
+URL because it falls through to the "does it start with http" check.
+Instagram did not: it was prefixed unconditionally, so a pasted
+`https://instagram.com/ananya` rendered as
+`https://instagram.com/https://instagram.com/ananya` and displayed as
+`@https://instagram.com/ananya`, on the public profile. One
+`instagramHandle` reducer now runs on the way in and on the way out — the
+write so the column stops collecting URLs, the read so rows that already hold
+one are fixed without asking anybody to retype. The three real Instagram
+values on the site today are plain handles and are untouched.
+
+**C-043 — signup accepted the impossible pair the profile editor refuses.** A
+batch year earlier than the year you left is the two fields swapped, and the
+editor says so. Signup checked only left-before-joined, so that pair went
+through and `batchTypeFromLeaving` returned null for it — an account with no
+batch type, outside every batch-targeted post and mis-joined to its batch
+group, with nothing on screen to explain it. One `yearClashMessage` rule now
+answers for both writers.
+
+**Copy change worth knowing about:** signup's left-before-joined refusal now
+reads in the editor's words, "You cannot have left before you joined. Check
+the other year too.", rather than its own sentence.
