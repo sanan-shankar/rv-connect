@@ -327,3 +327,49 @@ test("C-030: a heart does not nudge somebody the Round has closed to", () => {
     /groupId: edition\.catchup\.group\.id,/
   );
 });
+
+test("C-149: every swallowed failure on the clock is reported, not just logged", () => {
+  /* advanceEdition never re-throws -- an edition that cannot advance must not
+     take down the page it was called from -- so the reportSwallowed calls in
+     advanceDueCatchups and openNextRoundIfDue cannot see a per-edition
+     failure. Its catch did console.error only, and console.error on Vercel
+     reaches nobody: round-OPENING failures went to Sentry and round-ADVANCING
+     failures did not, which is the M09 fix applied to half the clock. The
+     Round just stops moving while the countdown keeps counting down.
+
+     Swept rather than pinned to one function: every catch in this file that
+     swallows (does not re-throw) has to report. */
+  const src = decomment(read("src/lib/catchups.ts"));
+  const catches = [...src.matchAll(/\}\s*catch\s*\([^)]*\)\s*\{/g)];
+  assert.ok(catches.length >= 3, `only found ${catches.length} catch blocks; the sweep has drifted`);
+
+  for (const m of catches) {
+    // The block, brace-matched from the catch's own opening brace.
+    let depth = 0;
+    let end = m.index + m[0].length - 1;
+    for (let i = end; i < src.length; i++) {
+      if (src[i] === "{") depth++;
+      else if (src[i] === "}") {
+        depth--;
+        if (depth === 0) { end = i; break; }
+      }
+    }
+    const block = src.slice(m.index, end + 1);
+    // A catch that re-throws is not swallowing: its caller still hears.
+    if (/\bthrow\b/.test(block)) continue;
+    // ...nor is one that only classifies and returns to a caller that reports.
+    if (/isMissingCatchupTable/.test(block) && !/console\.error/.test(block)) {
+      assert.match(
+        block,
+        /report\(/,
+        `a catch in catchups.ts swallows a failure without reporting it:\n${block.slice(0, 200)}`
+      );
+      continue;
+    }
+    assert.ok(
+      /report\(/.test(block),
+      `a catch in catchups.ts swallows a failure with console alone, which on Vercel reaches ` +
+        `nobody (C-149):\n${block.slice(0, 200)}`
+    );
+  }
+});

@@ -74,7 +74,7 @@ function resend(): Resend | null {
  * 10 seconds: Resend's own p99 is well under a second, so anything past this is
  * a provider that has stopped answering rather than one that is being slow.
  */
-const SEND_TIMEOUT_MS = 10_000;
+export const SEND_TIMEOUT_MS = 10_000;
 
 export interface MailResult {
   ok: boolean;

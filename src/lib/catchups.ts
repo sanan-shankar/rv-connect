@@ -1200,7 +1200,16 @@ export async function advanceEdition(
     }
   } catch (err) {
     if (isMissingCatchupTable(err)) return;
-    console.error("[catchups] advanceEdition failed", err);
+    /* Reported, not just logged (bug-report-2 C-149). This function never
+       re-throws -- an edition that cannot advance must not take the page it
+       was called from down -- so the reportSwallowed calls in
+       advanceDueCatchups and openNextRoundIfDue never see a per-edition
+       failure. Round-OPENING failures reached Sentry and round-ADVANCING
+       failures did not, which is the M09 fix applied to half the clock. A
+       console line on Vercel reaches nobody: the Round quietly stops moving,
+       the countdown keeps counting down, and the first anybody hears of it is
+       a member asking why the Round never closed. */
+    await report("catchups", err, { step: "advanceEdition", editionId: edition.id });
   }
 }
 

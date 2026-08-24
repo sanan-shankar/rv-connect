@@ -3082,3 +3082,31 @@ needs a column of its own; the audit line names the paise that moved.
 
 Proved against Postgres with a throwaway row: the first delivery moves it to
 paid with nothing withheld, the re-delivery moves nothing.
+
+## 2026-08-25 — three unattended paths that gave up quietly
+
+**C-108 — the mail drain's lease lapsed exactly when it mattered.** One pass at
+a time, fleet-wide, is what stops the queue mailing a provider that rate-limits
+at two requests a second. The lease lasted 45 seconds and a worst-case pass —
+eight sends each timing out at ten — takes eighty, so during a brownout, the
+one condition the lease exists for, a second pass took it mid-flight and the
+two ran together. The pass now renews the lease before every send and stops if
+it has lost it. Renewal rather than a longer lease deliberately: a lease sized
+for the worst case would stall the queue for eighty seconds every time an
+instance was frozen mid-drain. Proved against Postgres.
+
+**C-161 — the confirmation banner promised a time it could not keep.** It
+prints a clock time, "your link goes out tomorrow at 5:30 am", and the value
+behind it was the next UTC midnight for everybody, with no term for how many
+people were in the queue. The drain is oldest-first, so on a launch day with
+three hundred signups the person at position two hundred was told tomorrow and
+waited three days. The ETA now counts the confirmations actually ahead of this
+one and divides by a day's budget.
+
+**C-149 — the Catch-up clock's failures reached nobody.** `advanceEdition`
+never re-throws, on purpose, so its callers' Sentry reporters could not see a
+per-edition failure, and its own catch only wrote to the console — which on
+Vercel is a line nobody reads. Round-opening failures were reported and
+round-advancing failures were not: the Round simply stops moving while the
+countdown carries on counting down. It reports now, and the gate sweeps every
+catch in the file rather than pinning that one.
