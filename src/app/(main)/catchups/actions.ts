@@ -2036,11 +2036,32 @@ export async function setCatchupKeeper(catchupId: string, userId: string, isKeep
       return { error: "Whoever started a Catch-up is always its Keeper." };
     }
 
-    const updated = await prisma.groupMember.updateMany({
-      where: { groupId: catchup.groupId, userId },
-      data: { role: isKeeper ? "keeper" : "member" },
-    });
-    if (updated.count === 0) return { error: "They are not in this Catch-up." };
+    /* Taking the hat off touches the hat and nothing else (audit C-025).
+       Granting deliberately writes "keeper" rather than "admin" so that a
+       Catch-up Keeper is not silently made a moderator of the group's posts --
+       and the revoke had no matching care: it wrote "member" over whatever it
+       found, so revoking the hat from someone who held the group's own "admin"
+       role stripped their post moderation as a side effect, in the opposite
+       direction to the decoupling above. Scoped to `role: "keeper"`, a revoke
+       on an "admin" row is now the no-op it should always have been. */
+    const updated = isKeeper
+      ? await prisma.groupMember.updateMany({
+          where: { groupId: catchup.groupId, userId },
+          data: { role: "keeper" },
+        })
+      : await prisma.groupMember.updateMany({
+          where: { groupId: catchup.groupId, userId, role: "keeper" },
+          data: { role: "member" },
+        });
+    if (updated.count === 0) {
+      // A revoke matching nothing means they never wore this hat: either they
+      // are not in the Catch-up, or they hold the group's own admin role,
+      // which this control is not the place to take away.
+      const stillHere = await prisma.groupMember.count({
+        where: { groupId: catchup.groupId, userId },
+      });
+      if (stillHere === 0) return { error: "They are not in this Catch-up." };
+    }
 
     revalidatePath(`/catchups/${catchupId}`);
     return { success: true as const, isKeeper };
