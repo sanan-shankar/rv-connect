@@ -132,6 +132,46 @@ test("the C2 exemption list names only files that still exist", () => {
   }
 });
 
+/* ------------------ C-134: the image optimizer vouches for named hosts only */
+
+test("no wildcard host is allowed to be fetched or optimised", () => {
+  /* /_next/image is reachable signed out (avatars render on /login) and
+     transforms whatever host remotePatterns vouches for. `*.r2.dev` matched
+     every free self-serve Cloudflare bucket in the world, so anybody could
+     have this project's Vercel account fetch and transform their bytes, once
+     per unique URL, in a loop. The same wildcard sat in img-src and
+     connect-src. Named hosts only, in all three. */
+  const src = decomment(read("next.config.ts"));
+  const wildcards = [...src.matchAll(/["'`](?:https:\/\/)?\*\.[A-Za-z0-9.-]+["'`]/g)].map((m) => m[0]);
+  /* Three stay, and none of them is an image host. r2.cloudflarestorage.com is
+     the presigned-PUT endpoint: account-scoped, and reached only with a URL
+     our own server signed. posthog.com and razorpay.com are third-party SDK
+     hosts whose own subdomains move. Each carries its reasoning in
+     next.config.ts beside it. */
+  const offenders = wildcards.filter(
+    (w) => !/r2\.cloudflarestorage\.com|posthog\.com|razorpay\.com/.test(w)
+  );
+  assert.deepEqual(offenders, [], `next.config.ts vouches for wildcard hosts: ${offenders.join(", ")}`);
+});
+
+test("the optimizer's host list still covers every base the app accepts", () => {
+  // The two files must not drift apart: a URL upload-shared vouches for as
+  // ours has to be one next/image will actually render, or old photographs
+  // 404 behind a config that has forgotten where they came from.
+  const shared = decomment(read("src/lib/upload-shared.ts"));
+  const list = shared.slice(shared.indexOf("R2_LEGACY_PUBLIC_BASES"));
+  const bases = [...list.slice(0, list.indexOf("]")).matchAll(/https:\/\/([A-Za-z0-9.-]+)/g)].map((m) => m[1]);
+  assert.ok(bases.length >= 1, "R2_LEGACY_PUBLIC_BASES no longer parses; the scrape has drifted");
+
+  const config = decomment(read("next.config.ts"));
+  for (const host of bases) {
+    assert.ok(
+      config.includes(host),
+      `next.config.ts does not name ${host}, which upload-shared.ts still accepts as one of ours`
+    );
+  }
+});
+
 /* ------------------------------------- M1: profile field mass assignment */
 
 test("M1: updateProfileField whitelists the column before writing", () => {
