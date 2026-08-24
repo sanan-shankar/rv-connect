@@ -74,6 +74,35 @@ const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   letter: "Write your letter to the valley. Take your time.",
 };
 
+/* The device-side copy of a letter in progress, and the fingerprint of what
+   the server was last told. Both live out here, taking their values as
+   arguments, because the leave-the-page save below runs from an unmount
+   cleanup and cannot read a hook's closure. */
+const localDraftKey = (postId?: string) => `rv:letter-draft:${postId ?? "new"}`;
+
+function stashLocalDraft(key: string, content: string, title: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ content, title, at: Date.now() }));
+  } catch {
+    // Private mode, or the quota is full. The editor still has the text on
+    // screen; this was only ever the belt.
+  }
+}
+
+function dropLocalDraft(key: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // as above
+  }
+}
+
+/** Everything a save would send, in one comparable string. */
+const draftSnapshot = (content: string, title: string, images: string[], city: string | null) =>
+  JSON.stringify([content.trim(), title.trim(), images, city ?? ""]);
+
 export function CreatePostForm({
   groupId,
   scope,
@@ -165,6 +194,19 @@ export function CreatePostForm({
      A ref, not state: it must be read and advanced inside the autosave
      callback without re-arming the effect that scheduled it. */
   const baseUpdatedAtRef = useRef<string | null>(initialUpdatedAt ?? null);
+  /* What the server was last told, so leaving can tell whether there is
+     anything new to write. Stamped by every successful save; compared by the
+     unmount save below, which is what stops a Publish or a Save-as-draft --
+     both of which navigate, and so unmount this editor -- from being written
+     a second time on the way out. */
+  const savedSnapshotRef = useRef(
+    draftSnapshot(
+      initialContent ?? "",
+      initialTitle ?? "",
+      initialImages ?? [],
+      initialCityScope ?? null
+    )
+  );
   /* The autosave currently in flight, if any. An explicit Save or Publish
      waits for it before sending its own version token -- otherwise the
      member's own autosave could land first, move the row, and make their
@@ -236,27 +278,12 @@ export function CreatePostForm({
    * never shadow a good server one. Restored silently on mount, because in both
    * of those cases the local copy is unambiguously the newest thing there is.
    */
-  const draftKey = `rv:letter-draft:${postId ?? "new"}`;
-  const writeLocalDraft = useCallback(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(
-        draftKey,
-        JSON.stringify({ content, title, at: Date.now() })
-      );
-    } catch {
-      // Private mode, or the quota is full. The editor still has the text on
-      // screen; this was only ever the belt.
-    }
-  }, [draftKey, content, title]);
-  const clearLocalDraft = useCallback(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.removeItem(draftKey);
-    } catch {
-      // as above
-    }
-  }, [draftKey]);
+  const draftKey = localDraftKey(postId);
+  const writeLocalDraft = useCallback(
+    () => stashLocalDraft(draftKey, content, title),
+    [draftKey, content, title]
+  );
+  const clearLocalDraft = useCallback(() => dropLocalDraft(draftKey), [draftKey]);
 
   // A fresh letter, still with no row of its own: keep the words on this
   // device on the same idle rhythm autosave uses for a saved draft.
@@ -345,6 +372,7 @@ export function CreatePostForm({
       }
       if (!failed) {
         autosaveToldRef.current = false;
+        savedSnapshotRef.current = draftSnapshot(content, title, images, audienceCity);
         clearLocalDraft();
         onAutosaveState?.("saved");
         return;
@@ -365,6 +393,73 @@ export function CreatePostForm({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, title, images, postId]);
+
+  /* ---- Leaving with a letter half-written (owner, 2026-08-24) ---------- *
+   *
+   * "Save as draft" is a button somebody has to remember to press, and the
+   * moment they forget it is exactly the moment they click away. So leaving
+   * saves: navigate anywhere else in the app with words on the sheet and the
+   * letter is written to Drafts on the way out. Nothing is lost by leaving,
+   * and a draft nobody wanted is one menu away from deleted on /letters.
+   *
+   * An unmount cleanup IS the client-side navigation: the page's JavaScript is
+   * still running, so the action call finishes long after this editor is gone.
+   * A real unload (tab closed, hard refresh, a link off the site) never gets
+   * here -- that case is what the localStorage net above is for.
+   *
+   * Values come from a ref because this effect runs once and its closure would
+   * hold the empty first render. The snapshot check is what keeps it honest:
+   * unmounting because a save or a publish just navigated writes nothing, and
+   * React's dev double-mount is a no-op.
+   */
+  const exitRef = useRef({ content, title, images, audienceCity, isLetter, postId });
+  exitRef.current = { content, title, images, audienceCity, isLetter, postId };
+  useEffect(() => {
+    return () => {
+      const s = exitRef.current;
+      // Only letters have drafts at all, and a save in flight is already
+      // writing this row -- adding a second write is how you get two of them.
+      if (!s.isLetter || !s.content.trim() || submittingRef.current) return;
+      if (draftSnapshot(s.content, s.title, s.images, s.audienceCity) === savedSnapshotRef.current) {
+        return;
+      }
+      const key = localDraftKey(s.postId);
+      const fd = new FormData();
+      fd.set("content", s.content);
+      fd.set("kind", "letter");
+      if (s.title.trim()) fd.set("title", s.title.trim());
+      fd.set("images", JSON.stringify(s.images));
+
+      const finish = (error?: string) => {
+        if (error) {
+          // The desk is gone, so a toast is the only way the writer hears
+          // about this at all -- and the words go back on the device, since
+          // there is nowhere else left to put them.
+          stashLocalDraft(key, s.content, s.title);
+          toast.error("That letter did not save.", {
+            description: "It is kept on this device. Open the letters desk again to retry.",
+          });
+          return;
+        }
+        dropLocalDraft(key);
+        toast("Saved to your drafts", {
+          description: "An unfinished letter keeps itself. Delete it from Letters if you would rather not.",
+        });
+      };
+
+      if (s.postId) {
+        // A resumed draft: in place, with the version token, exactly as
+        // autosave would have done had the writer paused instead of left.
+        fd.set("cityScope", s.audienceCity ?? "");
+        if (baseUpdatedAtRef.current) fd.set("baseUpdatedAt", baseUpdatedAtRef.current);
+        void callAction(() => editPost(s.postId!, fd)).then((r) => finish(r.error));
+      } else {
+        if (s.audienceCity) fd.set("cityScope", s.audienceCity);
+        fd.set("saveAsDraft", "true");
+        void callAction(() => createPost(fd)).then((r) => finish(r.error));
+      }
+    };
+  }, []);
 
   // Collapse back to the resting pill, closing any open popovers. Letters
   // default to expanded, so they never retract to a pill. Only ever called
@@ -689,6 +784,8 @@ export function CreatePostForm({
           // rather than a toast that slides away mid-sentence.
           if (!emailGate.handled(editResult.error)) toast.error(editResult.error);
         } else if (saveAsDraft) {
+          savedSnapshotRef.current = draftSnapshot(content, title, images, audienceCity);
+          clearLocalDraft();
           toast.success("Draft saved");
           onAutosaveState?.("saved");
         } else {
@@ -696,6 +793,8 @@ export function CreatePostForm({
           if ("error" in pub && pub.error) {
             if (!emailGate.handled(pub.error)) toast.error(pub.error);
           } else {
+            savedSnapshotRef.current = draftSnapshot(content, title, images, audienceCity);
+            clearLocalDraft();
             toast.success("Your letter is published");
             onPosted?.();
           }
@@ -712,9 +811,18 @@ export function CreatePostForm({
            route) and leave the editor exactly as the writer left it. The old
            behaviour - wiping the screen to a toast - is the exact failure the
            owner reported. */
+        savedSnapshotRef.current = draftSnapshot(content, title, images, audienceCity);
+        /* The device copy has served its purpose the moment the row exists.
+           Left behind, /letters/new would restore it next time as a brand new
+           letter -- and now that leaving saves, that ghost would become a
+           second draft of the same piece. */
+        clearLocalDraft();
         toast.success("Draft saved");
         onDraftSaved(result.postId);
       } else {
+        // The words are on the server now; the device copy would only come
+        // back as a ghost letter on the next visit to the desk.
+        clearLocalDraft();
         // The editor is uncontrolled contentEditable, so clearing `content` alone
         // does not clear what's on screen: clear the DOM explicitly too.
         if (richRef.current) richRef.current.innerHTML = "";
