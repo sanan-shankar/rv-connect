@@ -147,6 +147,31 @@ test("C-125: a stale device cannot replace an answer written on another one", ()
   assert.match(feed, /updatedAt: base/, "editPost lost the guard this one mirrors");
 });
 
+test("C-027: the answer window is re-read at write time, not trusted", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const start = src.indexOf("export async function submitEntry(");
+  const body = src.slice(start, src.indexOf("\nexport async function", start + 10));
+
+  // resolveSpotify sits between the status read and the write with a 3-second
+  // network budget; every other transition here CASes on status for exactly
+  // this reason.
+  assert.match(body, /tx\.catchupEdition\.count\(\{\s*where: \{ id: prompt\.editionId, status: "answering" \}/);
+  assert.match(body, /if \(open === 0\) return "closed"/);
+  assert.ok(
+    body.indexOf("resolveSpotify") < body.indexOf("catchupEdition.count"),
+    "the re-read happens before the slow call, which is the read it was meant to replace"
+  );
+  assert.ok(
+    body.indexOf("catchupEdition.count") < body.indexOf("catchupEntry.upsert"),
+    "the write happens before the window is re-read"
+  );
+  assert.ok(
+    body.indexOf("prisma.$transaction") < body.indexOf("catchupEdition.count"),
+    "the re-read is outside the transaction that writes, so it can go stale again"
+  );
+  assert.match(body, /Answering has closed for this Round/);
+});
+
 test("C-125: the answering surface actually sends the version it holds", () => {
   const experience = decomment(read("src/components/catchups/answer/answer-experience.tsx"));
   assert.match(experience, /baseUpdatedAt: versions\.current\[promptId\]/);
