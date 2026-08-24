@@ -245,6 +245,12 @@ export type NotifyReminderFn = (
      * us at 1. Omitted for a manual Keeper nudge, which is not a countdown.
      */
     daysLeft?: number;
+    /**
+     * The actual deadline, for the SENTENCE. `daysLeft` counts 24-hour blocks
+     * because it keys the once-a-day bucket; the words a member reads count
+     * valley calendar days, like the page the reminder links to (C-141/C-031).
+     */
+    closesAt?: Date | string | null;
     /** Manual Keeper nudge: reaches "off" members too. */
     bypassOff?: boolean;
     keeperName?: string;

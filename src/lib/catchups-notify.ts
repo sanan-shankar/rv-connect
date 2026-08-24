@@ -21,6 +21,7 @@
  *  All copy is placeholder. The owner rewrites it later (spec section 5).
  * ------------------------------------------------------------------ */
 
+import { answerReminderMessage } from "@/lib/catchups";
 import type {
   CatchupDb,
   NotifyAnswersOpenFn,
@@ -189,11 +190,16 @@ export const notifyReminder: NotifyReminderFn = async (db, ctx) => {
   }
   if (recipients.length === 0) return;
 
+  /* The sentence counts valley calendar days, the same way the answer page it
+     links to does. `days` above is a 24-hour count and stays that way: it keys
+     the once-a-day bucket and decides who a "last day only" member is, and
+     re-timing every nudge is not what fixing a sentence should do. Before
+     this, a deadline at 07:30 IST had the bell saying "Last day to answer"
+     from half past seven the morning BEFORE, with the page one tap away
+     saying "Answers close tomorrow" (audits C-141/C-031). */
   const message = ctx.bypassOff
     ? `${ctx.keeperName ?? "The Keeper"} is waiting on you for ${ctx.groupName}'s Catch-up.`
-    : days <= 1
-      ? `Last day to answer ${ctx.groupName}'s Catch-up.`
-      : `${days} days left to answer ${ctx.groupName}'s Catch-up.`;
+    : answerReminderMessage(ctx.groupName, ctx.closesAt, new Date());
 
   await createMany(db, recipients, "catchup_reminder", message, link);
 };
