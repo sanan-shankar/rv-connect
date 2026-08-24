@@ -304,3 +304,26 @@ test("C-029: two questions sharing a position still render in one stable order",
   );
   assert.match(capComment, /READ\s+COMMITTED/);
 });
+
+test("C-030: a heart does not nudge somebody the Round has closed to", () => {
+  const notify = decomment(read("src/lib/catchups-notify.ts"));
+  const start = notify.indexOf("export const notifyLove");
+  assert.notEqual(start, -1);
+  const body = notify.slice(start);
+
+  // A published answer stays when its author leaves, but the Round page 404s
+  // for a non-member, so the bell entry pointed at a door that no longer
+  // opens. Binned copies are excluded on the same footing as every broadcast.
+  assert.match(body, /groupMember\.count\(\{ where: \{ groupId: ctx\.groupId, userId: ctx\.authorId \} \}\)/);
+  assert.match(body, /catchupPref\.count\(\{[\s\S]*?deletedAt: \{ not: null \}/);
+  assert.match(body, /if \(stillIn === 0 \|\| binned > 0\) return;/);
+  assert.ok(
+    body.indexOf("stillIn === 0") < body.indexOf("notification.create"),
+    "the check happens after the row is written, which notifies them anyway"
+  );
+  // ...and the caller passes the group it needs to do the check.
+  assert.match(
+    decomment(read("src/app/(main)/catchups/actions.ts")),
+    /groupId: edition\.catchup\.group\.id,/
+  );
+});

@@ -267,6 +267,9 @@ export type NotifyLoveFn = (
   ctx: {
     catchupId: string;
     editionId: string;
+    /** The group behind the Catch-up, so the author's reachability can be
+     *  checked before they are written to (audit C-030). */
+    groupId: string;
     groupName: string;
     entryId: string;
     authorId: string;
