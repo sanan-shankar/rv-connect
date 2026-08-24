@@ -205,3 +205,22 @@ test("C-021: a Round with no questions cannot be opened for answering", () => {
   // ...and the member is told why, rather than getting the generic refusal.
   assert.match(body, /no questions in this Round yet/);
 });
+
+test("C-025: taking the Keeper's hat off leaves the group's own admin role alone", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const start = src.indexOf("export async function setCatchupKeeper(");
+  assert.notEqual(start, -1);
+  const body = src.slice(start, src.indexOf("\nexport async function", start + 10));
+
+  // Granting writes "keeper", never "admin", so a Catch-up Keeper is not
+  // silently made a moderator of the group's posts. The revoke must show the
+  // same care in the other direction: only a "keeper" row is demoted.
+  assert.match(
+    body,
+    /where: \{ groupId: catchup\.groupId, userId, role: "keeper" \},\s*data: \{ role: "member" \}/,
+    "the revoke writes over whatever role it finds"
+  );
+  assert.ok(!/data: \{ role: isKeeper \? "keeper" : "member" \}/.test(body));
+  // A revoke that matched nothing is only an error when they are really gone.
+  assert.match(body, /groupMember\.count\(\{\s*where: \{ groupId: catchup\.groupId, userId \}/);
+});
