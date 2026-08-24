@@ -24,6 +24,7 @@ export async function directUploadPut(
     key?: string;
     signedUrl?: string;
     publicUrl?: string;
+    contentType?: string;
     error?: string;
   };
   let status: number;
@@ -31,7 +32,15 @@ export async function directUploadPut(
     const res = await fetch("/api/upload/presign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, contentType: file.type, bytes: file.size }),
+      body: JSON.stringify({
+        kind,
+        contentType: file.type,
+        // Sent because some mobile browsers hand over a photograph with no
+        // MIME type at all, and the name is then the only thing that says
+        // what it is (audit C-066).
+        filename: file.name,
+        bytes: file.size,
+      }),
     });
     status = res.status;
     presign = await res.json();
@@ -48,7 +57,10 @@ export async function directUploadPut(
   try {
     const put = await fetch(presign.signedUrl, {
       method: "PUT",
-      headers: { "Content-Type": file.type },
+      // The type the URL was signed with, which for a blank-MIME file is the
+      // one the server derived from the name; sending anything else fails the
+      // signature.
+      headers: { "Content-Type": presign.contentType ?? file.type },
       body: file,
     });
     if (!put.ok) return null;
