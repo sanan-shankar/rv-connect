@@ -82,6 +82,49 @@ export function storedPixelFit(
 }
 
 /**
+ * WebP cannot hold a side longer than this. Not a policy of ours: it is the
+ * format's own hard limit, and an encode above it throws.
+ */
+export const WEBP_MAX_DIM = 16383;
+
+/**
+ * The box to resize an image into before storing it: inside the area budget,
+ * inside WebP's own side limit, and measured on the image the pipeline will
+ * actually produce.
+ *
+ * Both halves of that last clause were wrong at the one call site.
+ *
+ * `metadata()` reads the INPUT header and does not run the pending pipeline,
+ * so `.rotate().metadata()` returns the STORED width and height, not the
+ * upright ones -- sharp puts those in `autoOrient` (0.35, and the type defs
+ * say so). A portrait photograph whose EXIF says "turn me" therefore had a
+ * LANDSCAPE box computed for it, and `fit: "inside"` then shrank the rotated
+ * image to fit the transposed box: a 50MP portrait was stored at 22.7MP, a 43%
+ * loss, in an archive whose whole point is full resolution (audit C-067).
+ *
+ * And the area budget replaced the side limit rather than joining it: over
+ * 40MP the 16383 ceiling was simply not applied, so a legal stitched panorama
+ * (25000x2000, inside every stated limit) came out 22360px wide and threw at
+ * the encode, which the member saw as "could not process the photo" (C-070).
+ * Area and side are separate bounds; both apply.
+ */
+export function storedResizeBox(meta: {
+  width?: number;
+  height?: number;
+  autoOrient?: { width?: number; height?: number };
+}): { width: number; height: number } {
+  const upright =
+    meta.autoOrient?.width && meta.autoOrient?.height
+      ? meta.autoOrient
+      : { width: meta.width, height: meta.height };
+  const fit = storedPixelFit(upright.width, upright.height);
+  return {
+    width: Math.min(fit?.width ?? WEBP_MAX_DIM, WEBP_MAX_DIM),
+    height: Math.min(fit?.height ?? WEBP_MAX_DIM, WEBP_MAX_DIM),
+  };
+}
+
+/**
  * How many frames an image holds. 1 for an ordinary photograph.
  *
  * Metadata only, never a decode of every frame, so this is cheap enough to ask
