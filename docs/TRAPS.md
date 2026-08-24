@@ -119,8 +119,9 @@ were gone, through hard reloads and dev-server restarts, until Safari > Settings
 Website Data > localhost > Remove. If a browser-only failure survives a fix that curl says landed,
 suspect that browser's cache before suspecting the code.
 
-**`.pw-browsers/` holds a WebKit build, and it is the only way to test Safari from here.**
-`PLAYWRIGHT_BROWSERS_PATH=$PWD/.pw-browsers` with playwright's `webkit` reproduces Safari's engine;
+**Testing Safari from here means installing WebKit on demand, and deleting it afterwards.**
+`PLAYWRIGHT_BROWSERS_PATH=$PWD/.pw-browsers npx playwright install webkit` -- about 300MB, gitignored,
+and worth removing once the question is answered. Playwright's `webkit` reproduces Safari's engine;
 chrome-devtools MCP cannot, because the whole class of bug is WebKit-versus-Chromium. A clean WebKit
 loading the page perfectly is what proved the code innocent and moved the search into Safari's own
 stored state. Note also that macOS blocks Safari's storage from the terminal outright (`Operation

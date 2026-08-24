@@ -22,7 +22,8 @@ type pixel-identical, no baselines rewritten.
   Manage Website Data listing names its categories and there is none). No HSTS pin: WebKit ignores
   an HSTS header over plain http, tested against a throwaway server and a second port on the same
   hostname, so clearing history would have done nothing.
-- **`.pw-browsers/` now holds a WebKit build** (~100MB, gitignored). A clean WebKit loading the site
+- **A WebKit build, installed and then removed (297MB, over the 200MB line I should have asked at).**
+  A clean WebKit loading the site
   perfectly — first load, reload, after a 30s idle — is what cleared the code and moved the search
   into Safari's stored state. chrome-devtools MCP cannot do this; the bug class is WebKit-vs-Chromium.
 - **A second, smaller fix rode along, and it was not the cause.** `next dev` drops an idle keep-alive
