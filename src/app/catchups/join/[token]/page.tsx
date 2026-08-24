@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Wordmark } from "@/components/layout/peaks-mark";
-import { isMissingCatchupTable } from "@/lib/catchups";
+import { isMissingCatchupTable, restoreOwnCatchupCopy } from "@/lib/catchups";
 import { AcceptInvite } from "@/components/catchups/join/accept-invite";
 
 export const metadata: Metadata = {
@@ -101,7 +101,17 @@ export default async function JoinCatchupPage({
       where: { groupId_userId: { groupId: catchup.groupId, userId: session.user.id } },
       select: { id: true },
     });
-    if (membership) redirect(`/catchups/${catchup.id}`);
+    if (membership) {
+      /* Following your own invite link is an explicit "take me back into
+         this", so it disarms the bin on the way through (audit C-020).
+         Written during a render, which is normally a thing to avoid -- it is
+         allowed here because it is idempotent, touches only the caller's own
+         preference row, and there is no other moment to catch: the redirect
+         below means the join action never runs for someone already a
+         member. */
+      await restoreOwnCatchupCopy(catchup.id, session.user.id);
+      redirect(`/catchups/${catchup.id}`);
+    }
   }
 
   const here = `/catchups/join/${token}`;

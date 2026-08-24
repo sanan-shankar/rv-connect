@@ -157,3 +157,29 @@ test("C-125: the answering surface actually sends the version it holds", () => {
   assert.match(page, /entryUpdatedAt: entry\?\.updatedAt\.toISOString\(\) \?\? null/);
   assert.match(page, /select: \{ promptId: true, body: true, images: true, updatedAt: true \}/);
 });
+
+test("C-020: rejoining through the invite link disarms your own bin", () => {
+  const lib = decomment(read("src/lib/catchups.ts"));
+  const start = lib.indexOf("export async function restoreOwnCatchupCopy(");
+  assert.notEqual(start, -1, "the un-bin helper is gone");
+  const body = lib.slice(start, lib.indexOf("\nexport ", start + 10));
+  assert.match(body, /catchupPref\.updateMany/);
+  assert.match(body, /data: \{ deletedAt: null \}/, "it no longer clears the bin");
+  // Only the caller's own row, and only the bin: archiving is filing, not
+  // deletion, and nothing sweeps it.
+  assert.match(body, /where: \{ catchupId, userId, deletedAt: \{ not: null \} \}/);
+  assert.ok(!body.includes("archivedAt"), "the un-bin now also unfiles an archived copy");
+
+  // Both ways back in call it: the action, and the page that redirects an
+  // existing member before the action could ever run.
+  assert.match(
+    decomment(read("src/app/(main)/catchups/actions.ts")),
+    /restoreOwnCatchupCopy\(catchup\.id, session\.user\.id\)/
+  );
+  const page = decomment(read("src/app/catchups/join/[token]/page.tsx"));
+  assert.match(page, /await restoreOwnCatchupCopy\(catchup\.id, session\.user\.id\);/);
+  assert.ok(
+    page.indexOf("restoreOwnCatchupCopy") < page.indexOf("redirect(`/catchups/${catchup.id}`)"),
+    "the redirect happens before the bin is cleared, so it never runs"
+  );
+});
