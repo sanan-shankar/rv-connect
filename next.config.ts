@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
 
+/* Everything below that pushes a browser towards https is gated on this. In
+ * development the dev server speaks http and nothing else, so a header that
+ * says "fetch this over https instead" has nothing to reach. */
+const isProd = process.env.NODE_ENV === "production";
+
 /* Content-Security-Policy (audit H7). Built as a directive map so each entry
  * carries the reason a host is on it. The tight ones first:
  *   - frame-ancestors 'none' + X-Frame-Options: DENY are the clickjacking fix
@@ -26,7 +31,7 @@ import { withSentryConfig } from "@sentry/nextjs";
  * PostHog is same-origin (proxied through /ingest, next.config rewrites) so it
  * needs no host here; Sentry is server-only (no browser SDK), so it needs none
  * either. Iterate against the browser console if a real flow trips a directive. */
-const csp = {
+const csp: Record<string, string[]> = {
   "default-src": ["'self'"],
   "base-uri": ["'self'"],
   "object-src": ["'none'"],
@@ -94,7 +99,16 @@ const csp = {
     "https://checkout.razorpay.com",
   ],
   "worker-src": ["'self'", "blob:"],
-  "upgrade-insecure-requests": [],
+  // Production only, and this is not housekeeping: sent in development it is
+  // what broke Safari on http://localhost:3000 (2026-08-24). WebKit applies
+  // the directive to localhost, so every stylesheet, script and font on the
+  // page was re-requested over https from a dev server that only speaks http;
+  // all of them failed and the page rendered as bare unstyled HTML with no
+  // error anywhere but the network tab. Chromium exempts localhost as a
+  // potentially-trustworthy origin, which is why Brave looked perfectly fine
+  // and the bug read as "Safari is broken". Production is https end to end, so
+  // gating it here costs nothing there.
+  ...(isProd ? { "upgrade-insecure-requests": [] } : {}),
 };
 
 const cspHeader = Object.entries(csp)
@@ -118,7 +132,12 @@ const securityHeaders = [
   },
   // Vercel sets HSTS by default; stated explicitly so it does not depend on the
   // platform default and survives a move off Vercel. Two years, subdomains.
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  // Production only, for the reason above: a browser is meant to ignore HSTS
+  // arriving over plain http, but "meant to" is not a thing to rely on for two
+  // years of pinning against a hostname every dev machine here uses.
+  ...(isProd
+    ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
+    : []),
 ];
 
 const nextConfig: NextConfig = {
