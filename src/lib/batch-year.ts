@@ -60,3 +60,41 @@ export function parseBatchYearList(raw: string | undefined | null): number[] {
   }
   return out;
 }
+
+/* ------------------------------------------------------------------ *
+ *  The years somebody gives about themselves have to be possible.
+ *
+ *  Two writers ask for the same four numbers -- signup and the profile
+ *  editor -- and they disagreed. The editor refused a batch year earlier than
+ *  the year you left, calling it what it is (the two fields swapped); signup
+ *  accepted it, and then `batchTypeFromLeaving` returned null for exactly that
+ *  pair, so the row was written with no batch type at all: excluded from every
+ *  batch-targeted post and mis-joined to the batch group, silently, with no
+ *  way for the member to see why (bug-report-2 C-043).
+ *
+ *  One rule, imported by both, so they cannot drift apart again. The messages
+ *  are the editor's, verbatim: they were the ones written for a member to
+ *  read.
+ * ------------------------------------------------------------------ */
+
+export type MemberYears = {
+  batchYear?: number | null;
+  yearJoined?: number | null;
+  yearLeft?: number | null;
+  taughtFrom?: number | null;
+  taughtUntil?: number | null;
+};
+
+/** What is wrong with this set of years, in the member's own terms, or null. */
+export function yearClashMessage(y: MemberYears): string | null {
+  if (y.yearJoined && y.yearLeft && y.yearLeft < y.yearJoined) {
+    return "You cannot have left before you joined. Check the other year too.";
+  }
+  if (y.yearLeft && y.batchYear && y.batchYear < y.yearLeft) {
+    return "Your batch year cannot be before the year you left. Check the other year too.";
+  }
+  if (y.taughtFrom && y.taughtUntil && y.taughtUntil < y.taughtFrom) {
+    return "Your teaching cannot have ended before it began. Check the other year too.";
+  }
+  return null;
+}

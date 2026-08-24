@@ -20,9 +20,11 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FULL_NAME_MAX, batchTypeFromLeaving } from "@/lib/utils";
-import { titleCase, normalizePhone } from "@/lib/normalize";
+import { titleCase, normalizePhone, instagramHandle } from "@/lib/normalize";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 import { contactMethodsSchema } from "@/lib/validators";
+import { yearClashMessage } from "@/lib/batch-year";
+
 import { revalidatePath } from "next/cache";
 
 const YEAR_MIN = 1926;
@@ -155,7 +157,7 @@ export async function updateProfileField(field: ProfileField, raw: string) {
           taughtUntil: true,
         },
       });
-      const clash = years && yearClash({ ...years, [field]: n });
+      const clash = years && yearClashMessage({ ...years, [field]: n });
       if (clash) return { error: clash };
 
       data[field] = n;
@@ -226,24 +228,8 @@ export async function updateProfileField(field: ProfileField, raw: string) {
  * is a cohort finishing 12th before the person left the school -- which is
  * what `batchTypeFromLeaving` already refuses to derive a credential from.
  */
-function yearClash(y: {
-  batchYear: number | null;
-  yearJoined: number | null;
-  yearLeft: number | null;
-  taughtFrom: number | null;
-  taughtUntil: number | null;
-}): string | null {
-  if (y.yearJoined && y.yearLeft && y.yearLeft < y.yearJoined) {
-    return "You cannot have left before you joined. Check the other year too.";
-  }
-  if (y.yearLeft && y.batchYear && y.batchYear < y.yearLeft) {
-    return "Your batch year cannot be before the year you left. Check the other year too.";
-  }
-  if (y.taughtFrom && y.taughtUntil && y.taughtUntil < y.taughtFrom) {
-    return "Your teaching cannot have ended before it began. Check the other year too.";
-  }
-  return null;
-}
+/* The cross-field year rule lives in batch-year.ts, because signup asks for
+   the same four numbers and used to answer differently (C-043). */
 
 /** A trimmed string, or "" for anything that is not one. */
 function text(v: unknown): string {
@@ -323,7 +309,10 @@ export async function updateContactMethods(input: {
       // number, so every reader that predates the list keeps working.
       phone: phoneArr[0] ?? null,
       phones: phoneArr.length > 0 ? JSON.stringify(phoneArr) : null,
-      instagram: parsed.data.instagram || null,
+      /* Stored as the bare handle whatever they pasted, so the column holds
+         one shape and the profile's link is built from a handle rather than
+         from an address that has already been prefixed once (C-040). */
+      instagram: parsed.data.instagram ? instagramHandle(parsed.data.instagram) || null : null,
       linkedin: parsed.data.linkedin || null,
       facebook: parsed.data.facebook || null,
       links: links.length > 0 ? JSON.stringify(links) : null,
