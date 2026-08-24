@@ -1455,21 +1455,32 @@ export async function submitEntry(input: {
       updatedAt: true,
     } as const;
 
-    let entry;
-    if (base) {
-      const moved = await prisma.catchupEntry.updateMany({
-        where: { promptId, authorId: session.user.id, updatedAt: base },
-        data: written,
+    /* The window is re-read at WRITE time, not trusted from the read above
+     * (audit C-027).
+     *
+     * Between the two sits `resolveSpotify`, a network call with a 3-second
+     * budget, and every other transition in this feature is a CAS on status
+     * for exactly this reason. In those three seconds a Keeper's "close and
+     * prepare", or any page view's clock advance, can move the Round out of
+     * `answering` -- and this write would have landed an answer in a Round
+     * already being made ready to publish, where it appears in the keepsake
+     * with nobody expecting it. Counted inside the transaction that does the
+     * write, so nothing can move in between. */
+    const entry = await prisma.$transaction(async (tx) => {
+      const open = await tx.catchupEdition.count({
+        where: { id: prompt.editionId, status: "answering" },
       });
-      if (moved.count === 0) {
-        return {
-          error:
-            "This answer has changed somewhere else. Reload the page before you carry on, or your writing here will replace it.",
-        };
+      if (open === 0) return "closed" as const;
+
+      if (base) {
+        const moved = await tx.catchupEntry.updateMany({
+          where: { promptId, authorId: session.user.id, updatedAt: base },
+          data: written,
+        });
+        if (moved.count === 0) return "stale" as const;
+        return tx.catchupEntry.findUniqueOrThrow({ where: key, select: columns });
       }
-      entry = await prisma.catchupEntry.findUniqueOrThrow({ where: key, select: columns });
-    } else {
-      entry = await prisma.catchupEntry.upsert({
+      return tx.catchupEntry.upsert({
         where: key,
         create: {
           editionId: prompt.editionId,
@@ -1484,6 +1495,16 @@ export async function submitEntry(input: {
         update: written,
         select: columns,
       });
+    });
+
+    if (entry === "closed") {
+      return { error: "Answering has closed for this Round. Your answer was not saved." };
+    }
+    if (entry === "stale") {
+      return {
+        error:
+          "This answer has changed somewhere else. Reload the page before you carry on, or your writing here will replace it.",
+      };
     }
 
     /* Erasing everything withdraws you from the Round (audit Low 36).
