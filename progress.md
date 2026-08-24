@@ -2651,3 +2651,23 @@ it. Both were temporary edits to `sidebar.tsx` and `logo-fact.tsx`, reverted aft
 
 **Unrelated red:** `npm run visual` failed on feed desktop. The diff is entirely inside "New in the
 directory", which lists live members. Same class of false positive as the directory map on 2026-08-21.
+
+## 2026-08-24 — Occupation and organisation, editable from the panel
+
+The person page could show a member's `jobTitle` and `workplace` only through the "View profile"
+link; every other field on that card was fixable in place. Two inputs now sit between Batch and
+Bird, in the order the profile prints them ("Lawyer at Trilegal"), with the same 100-character cap
+`profileSchema` puts on the member's own form and the same `titleCase` on save, so a correction
+typed here cannot read differently from one typed there. Either half may stand alone or be cleared,
+because the profile prints the "at" only between two real halves.
+
+Labelled **Occupation** and **Organisation**, not "What they do" and "Where": the card immediately
+below is "Where they are", and two fields a screen apart both asking "where" read as one question.
+
+`revalidatePath("/directory")` was already in the action, which is what the directory's profession
+filter needs.
+
+**Not verified in a browser:** the read path is confirmed live (the inputs render the real values
+off the database at both viewports), but the classifier blocked getting a session cookie into the
+MCP browser, so the Save button was never actually clicked. The write is three lines added to the
+`prisma.user.update` that already saves name, account type and batch year from the same button.
