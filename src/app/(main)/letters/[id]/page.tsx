@@ -64,7 +64,15 @@ export default async function LetterPage({
     },
   });
 
-  if (!letter || letter.kind !== "letter" || letter.isHidden) notFound();
+  /* Existence and kind only. `isHidden` used to be tested here too, ABOVE
+     canViewPost -- which quietly cancelled both of the exemptions the rule
+     grants above its own isHidden refusal: an admin following the Open link
+     from /admin/content got a 404 on the letter they were moderating, and the
+     author of a hidden letter had no route to it at all, since a hidden letter
+     is filtered out of the feed and the letters index as well (audit C-002).
+     The rule below refuses a hidden letter to everybody else, which is all
+     this line was ever for. */
+  if (!letter || letter.kind !== "letter") notFound();
 
   /* One rule, not four hand-rolled checks (audit M31).
    *
@@ -114,6 +122,20 @@ export default async function LetterPage({
         <ArrowLeft className="h-4 w-4" />
         {letter.groupId ? "Back to group" : "All letters"}
       </Link>
+
+      {/* An admin and the author are the only two people this rule lets past a
+          hidden letter, and until now the page said nothing about it: the
+          author saw their removed letter looking exactly like a live one
+          (audit C-002). Same shape as the draft notice below it, in the
+          destructive tone, because this is the one thing on the page the
+          reader did not choose. */}
+      {letter.isHidden && (
+        <div className="mb-6 rounded-[var(--radius-md)] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
+          <span className="font-medium text-destructive">
+            Removed by a moderator. Only you and the moderators can see this.
+          </span>
+        </div>
+      )}
 
       {isDraft && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-cinnamon/30 bg-cinnamon/10 px-4 py-3 text-sm">
