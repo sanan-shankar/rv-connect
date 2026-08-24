@@ -224,3 +224,32 @@ test("C-025: taking the Keeper's hat off leaves the group's own admin role alone
   // A revoke that matched nothing is only an error when they are really gone.
   assert.match(body, /groupMember\.count\(\{\s*where: \{ groupId: catchup\.groupId, userId \}/);
 });
+
+test("C-026: a whole-group fanout fired outside a transition is metered", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+
+  /* The four builders that write a row for every member. Inside a transaction
+     (`notifyX(tx, ...)`) each one rides a status CAS, so it can fire once per
+     transition and no more. Called with the shared client it has nothing
+     bounding it at all -- which is what the manual nudge was: it bypasses the
+     daily bucket AND every "off" preference, so a loop re-created an unread
+     bell entry for the whole roster as often as the caller liked (C-026). */
+  const FANOUT = ["notifyReminder", "notifyAnswersOpen", "notifyQuestionsOpen", "notifyPublished"];
+  const unmetered = [];
+  for (const name of FANOUT) {
+    for (const m of src.matchAll(new RegExp(`await ${name}\\(prisma,`, "g"))) {
+      // The exported action this call sits in.
+      const fnStart = src.lastIndexOf("export async function ", m.index);
+      const fnEnd = src.indexOf("\nexport async function", m.index);
+      const body = src.slice(fnStart, fnEnd === -1 ? src.length : fnEnd);
+      const meter = body.indexOf("await rateLimit(");
+      if (meter === -1 || meter > m.index - fnStart) {
+        unmetered.push(`${/export async function (\w+)/.exec(body)?.[1]} -> ${name}`);
+      }
+    }
+  }
+  assert.deepEqual(unmetered, []);
+  // ...and the nudge really is one of the calls this covers, so the sweep is
+  // not passing on an empty set.
+  assert.match(src, /await notifyReminder\(prisma,/);
+});

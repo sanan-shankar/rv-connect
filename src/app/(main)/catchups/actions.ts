@@ -2125,6 +2125,16 @@ export async function nudgeGroup(editionId: string) {
       return { error: "Nudges only make sense while answers are open." };
     }
 
+    /* Metered like the other whole-group fanouts (audit C-026). This one is a
+       manual nudge: it bypasses the daily bucket AND every member's "off"
+       setting, so it is the one notification in the feature with no natural
+       ceiling of its own. Looped, it re-creates an unread bell entry for the
+       whole roster as often as the caller likes, for people who have
+       explicitly asked not to hear about it. The shared "catchups" bucket is
+       five an hour, which is far more nudging than any real Keeper does. */
+    const limited = await rateLimit("catchups", session.user.id);
+    if (!limited.ok) return { error: limited.error };
+
     await notifyReminder(prisma, {
       catchupId: edition.catchupId,
       editionId,
