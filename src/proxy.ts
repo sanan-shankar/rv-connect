@@ -107,6 +107,28 @@ function isUnder(pathname: string, prefixes: string[]): boolean {
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  /* Analytics never sees a session token.
+   *
+   * posthog-js fires at the same-origin `/ingest` path (the rewrites in
+   * next.config.ts exist so ad blockers cannot see a third-party hostname),
+   * and a same-origin request carries every cookie this site has set --
+   * including the HttpOnly session token. The rewrite then hands the whole
+   * request, cookies and all, to PostHog. The comment on the public-path list
+   * below used to claim these requests "carry no session by design"; a real
+   * signed-in browser proved otherwise, with the full authjs.session-token
+   * arriving at the rewrite's destination (bug-report-2 C-198).
+   *
+   * PostHog identifies events from the payload, never from our cookies, so
+   * there is nothing here to lose by stripping them. Done in the proxy rather
+   * than in the rewrite because a rewrite cannot edit headers -- and done for
+   * every /ingest path, event endpoint and SDK asset alike, since both are
+   * same-origin and both were carrying it. */
+  if (pathname === "/ingest" || pathname.startsWith("/ingest/")) {
+    const headers = new Headers(request.headers);
+    headers.delete("cookie");
+    return NextResponse.next({ request: { headers } });
+  }
+
   if (IS_DEMO) {
     // JSON for APIs, not a redirect: a fetch() handed a 302 to an HTML page
     // fails far more confusingly in the client than a plain 403 does.
@@ -228,9 +250,12 @@ export function proxy(request: NextRequest) {
     // the route itself; nothing there trusts an unsigned body.
     "/api/resend",
     // PostHog's reverse proxy (rewrites in next.config.ts). Analytics fires on
-    // the signed-out landing page too, and every request carries no session by
-    // design, so without this the very events we proxied to save from ad
-    // blockers would be lost to a redirect instead.
+    // the signed-out landing page too, so without this the very events we
+    // proxied to save from ad blockers would be lost to a redirect instead.
+    // These requests DO carry the session cookie -- same origin, so the
+    // browser attaches everything -- which is why the branch at the top of
+    // this file strips it before the rewrite (C-198). This entry used to
+    // claim they carried no session "by design"; they always had.
     "/ingest",
     // The nightly Catch-up advance cron (audit M27). A server-to-server GET
     // from Vercel with no session cookie; authenticated by CRON_SECRET inside

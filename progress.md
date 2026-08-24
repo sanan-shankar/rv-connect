@@ -2984,3 +2984,28 @@ open the post and read the notice there.
 at both viewports. `npm run visual` is red on the same eight routes as before
 (feed, directory, letters, catchups at both sizes) and no others — still the
 live-data drift the owner owes a decision on, not this change.
+
+## 2026-08-25 — analytics stops being handed everybody's session token
+
+**C-198**, which the audit could only mark as needing a live check. It does
+not any more. `posthog-js` fires at the same-origin `/ingest` path — the whole
+point of that path is that an ad blocker cannot see a third-party hostname —
+and a same-origin request carries every cookie this site has set, the HttpOnly
+session token included. The rewrite then hands the request on.
+
+I pointed the rewrite at a local echo server and signed a real browser in. The
+full `authjs.session-token` arrived at the destination on every analytics
+request. The comment beside the rule in `proxy.ts` had said, in writing, that
+these requests "carry no session by design".
+
+The strip happens in the proxy, because a rewrite cannot edit headers:
+`/ingest` and everything under it now lose their cookie header before the
+request goes anywhere. Re-ran the echo test — nothing arrives. Then put the
+real destination back and confirmed PostHog still accepts a live event
+(`200 {"status":"Ok"}`), still serves the SDK bundle, and that the feed renders
+with no console errors. PostHog identifies events from the payload, never from
+our cookies, so there was never anything to lose by this.
+
+One honest limit: this proves the local path. On Vercel the rewrite itself is
+served by their infrastructure and I cannot watch it from here — but the strip
+runs in middleware, which does run there.
