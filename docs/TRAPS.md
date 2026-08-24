@@ -102,6 +102,37 @@ and `tsconfig` includes them, so `tsc` fails on a route that no longer exists. M
 directory aside (`mv .next/types .next/types-stale-<date>`) rather than touching `.next` wholesale,
 which another session may be mid-build in.
 
+**Security headers must be gated to production, or Safari cannot load the dev server.** From
+2026-08-20 (`b64e44a`) `next.config.ts` sent `Strict-Transport-Security` and the CSP's
+`upgrade-insecure-requests` on every response, `next dev` included. WebKit applies
+`upgrade-insecure-requests` to `localhost`; Chromium exempts it as a potentially-trustworthy origin.
+So Safari re-requested every stylesheet, script and font over `https://localhost:3000`, which speaks
+no https at all, and drew bare unstyled HTML -- with no error anywhere but the network tab, while
+Brave looked perfect. Both headers hang off `isProd` now. Anything added there that pushes a browser
+towards https belongs behind the same gate.
+
+**Two things measured while proving that, so nobody repeats the work.** WebKit correctly IGNORES an
+HSTS header that arrives over plain http, verified against a throwaway server on one port and a
+second port on the same hostname: no pin is created, so clearing history is never the fix. And the
+damage OUTLIVES the fix -- Safari kept serving the broken era from its cache long after the headers
+were gone, through hard reloads and dev-server restarts, until Safari > Settings > Privacy > Manage
+Website Data > localhost > Remove. If a browser-only failure survives a fix that curl says landed,
+suspect that browser's cache before suspecting the code.
+
+**`.pw-browsers/` holds a WebKit build, and it is the only way to test Safari from here.**
+`PLAYWRIGHT_BROWSERS_PATH=$PWD/.pw-browsers` with playwright's `webkit` reproduces Safari's engine;
+chrome-devtools MCP cannot, because the whole class of bug is WebKit-versus-Chromium. A clean WebKit
+loading the page perfectly is what proved the code innocent and moved the search into Safari's own
+stored state. Note also that macOS blocks Safari's storage from the terminal outright (`Operation
+not permitted` on `~/Library/Safari`, `~/Library/Cookies`, the Safari container), so that state can
+only be read from Safari's own UI.
+
+**`next dev` closes an idle keep-alive connection after six seconds and tells no one** (measured on
+this server; `--keepAliveTimeout` exists only on `next start`). Chromium retries such a request on a
+fresh socket; Safari reports "the server unexpectedly dropped the connection". Dev responses carry
+`Connection: close` so there is never an idle socket to reuse. It does not touch hot reload: a
+websocket upgrade never passes through `headers()`.
+
 ## Serving images
 
 **Moving the public image host is FIVE changes, not one.** On 2026-08-21 serving moved from

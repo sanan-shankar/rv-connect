@@ -1,5 +1,38 @@
 # Progress Log
 
+## Session 2026-08-24 — Safari could not load localhost, and the cache kept it broken
+
+The owner's Safari had been unusable on `localhost:3000` for days while Brave was fine: first an
+unstyled page, then "Safari can't open the page ... the server unexpectedly dropped the connection"
+on every load until a hard reload. Three commits on `main`, not pushed. `npm run check` green (54
+tests). `npm run visual` 18/23 — all five reds read and confirmed as database drift (new members
+moved the directory count and the map clusters, a catch-up named "test" was archived); layout and
+type pixel-identical, no baselines rewritten.
+
+- **The cause was ours and dated exactly: `b64e44a`, 20 Aug 13:58.** It added
+  `Strict-Transport-Security` and the CSP's `upgrade-insecure-requests` to every response, dev
+  included. WebKit obeys `upgrade-insecure-requests` on `localhost`, Chromium exempts it, so Safari
+  fetched every stylesheet and script over an https the dev server does not speak. Both headers are
+  gated on `isProd` now. Full mechanism in `TRAPS.md`.
+- **The fix landing did not end the symptom, and that was the real lesson.** Safari served the
+  broken era from its own cache through hard reloads, dev-server restarts and a verified-correct
+  server — `curl` proved the headers were gone while the browser kept failing. It ended when the
+  owner cleared Safari > Settings > Privacy > Manage Website Data > localhost.
+- **Two suspects killed with evidence rather than guesses.** No service worker (the owner's own
+  Manage Website Data listing names its categories and there is none). No HSTS pin: WebKit ignores
+  an HSTS header over plain http, tested against a throwaway server and a second port on the same
+  hostname, so clearing history would have done nothing.
+- **`.pw-browsers/` now holds a WebKit build** (~100MB, gitignored). A clean WebKit loading the site
+  perfectly — first load, reload, after a 30s idle — is what cleared the code and moved the search
+  into Safari's stored state. chrome-devtools MCP cannot do this; the bug class is WebKit-vs-Chromium.
+- **A second, smaller fix rode along, and it was not the cause.** `next dev` drops an idle keep-alive
+  connection after six seconds (measured) and Safari, unlike Chromium, does not retry into a fresh
+  socket. Dev responses now send `Connection: close`. Verified it leaves hot reload alone by watching
+  `turbopack-connected` / `built` / `serverComponentChanges` still arrive over the HMR socket.
+- **Left alone deliberately:** `127.0.0.1:3000` renders but refuses the HMR socket, because Next's
+  dev server treats a different hostname as a different origin. One line (`allowedDevOrigins`) if it
+  is ever wanted; nobody needs that address while `localhost` works.
+
 ## Session 2026-08-22 — The Turnstile checkbox: why it shows, and the second tick
 
 The owner reported the bot check appearing in incognito, on his sister's Safari desktop in the UK,
