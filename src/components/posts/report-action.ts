@@ -9,6 +9,7 @@ import { previewOf } from "@/lib/admin-threads";
 import { notifyAdmins, isThreadRateLimited } from "@/lib/admin-threads-server";
 import { writeAudit } from "@/lib/audit";
 import { adminThreadLink } from "@/lib/notification-links";
+import { canViewPost, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 
 // How many DISTINCT members must flag one person before the admin notification
 // escalates from "someone flagged X" to "N members have now flagged X" (audit
@@ -87,6 +88,15 @@ export async function reportPost(postId: string, reason: string) {
   if (!trimmed || trimmed.length > 500) {
     return { error: "Please provide a valid reason" };
   }
+
+  /* You cannot report a post you were never allowed to see (audit H3, this
+     one found by bug-report-2 C-194). This action reads the author's name off
+     the row and prints it into the thread it opens ("A post by X"), so
+     without the guard a member could learn who wrote any private-group,
+     city-scoped or batch-targeted post from its id alone -- and post ids are
+     handed out in deep links and cursors. */
+  const visible = await canViewPost(postId, session.user);
+  if (!visible.ok) return { error: POST_NOT_VISIBLE };
 
   const post = await prisma.post.findUnique({
     where: { id: postId },

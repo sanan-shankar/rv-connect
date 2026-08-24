@@ -17,8 +17,15 @@ import { fileURLToPath } from "node:url";
  *  dossier 4.2).
  *
  *  This is a schema-shape test, not a database test: it reads
- *  prisma/schema.prisma, so it runs in the offline unit gate and fails the
- *  moment somebody adds a relation and forgets its index.
+ *  prisma/schema.prisma, so it runs in the offline unit gate.
+ *
+ *  Two halves. REQUIRED below is the ten hot reads the B-090 audit actually
+ *  measured, pinned by name. The DERIVED sweep after it is the general rule
+ *  the header used to claim on its own and did not have (bug-report-2 C-192):
+ *  every `@@unique([aId, bId])` in the schema is an index Postgres can only
+ *  use from `aId`, so the read that filters by `bId` needs an index of its
+ *  own -- and a new interaction table (a reply-love, an event RSVP) is now
+ *  caught on the day it is written rather than at two thousand members.
  * ------------------------------------------------------------------ */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -59,6 +66,61 @@ for (const [name, column, why] of REQUIRED) {
     );
   });
 }
+
+/**
+ * Trailing foreign keys that deliberately have no index of their own, each
+ * with the read that justifies it. An entry is a reviewed decision; a new
+ * unlisted one fails the sweep below.
+ */
+const NO_INDEX_NEEDED = {
+  "CatchupPref.userId":
+    "every live read leads with catchupId (the reminder fan-out, the bin sweep, the member's own row); only adminMergeUsers filters by userId alone, once, by hand",
+  "CatchupEntry.authorId":
+    "the Round reads lead with editionId or promptId, both indexed; authorId alone is only the account data export",
+  "Report.reportedUserId":
+    "the flag-count groupBy in reportUser is the only reader, on a moderation table that grows by a handful of rows a month",
+  "GroupMember.userId":
+    "NOT a settled decision: loadSavedPosts reads memberships by userId on every request, which is the same shape as B-090. Raised 2026-08-25 in docs/planning/audits/fix-ledger.md; it wants a migration, which does not belong in a test change",
+};
+
+/** Is this column the owning side of a real relation, not just a name ending in Id? */
+function isRelationColumn(body, column) {
+  return new RegExp(`@relation\\([^)]*fields:\\s*\\[${column}\\]`).test(body);
+}
+
+test("every composite unique's TRAILING foreign key can still be filtered on", () => {
+  const bodies = [...schema.matchAll(/model\s+(\w+)\s*\{/g)].map((m) => ({
+    name: m[1],
+    body: schema.slice(m.index, schema.indexOf("\n}", m.index)),
+  }));
+  assert.ok(bodies.length > 20, `parsed only ${bodies.length} models; the scan has drifted`);
+
+  let checked = 0;
+  for (const { name, body } of bodies) {
+    for (const [, first, second] of body.matchAll(/@@unique\(\[(\w+),\s*(\w+)\]/g)) {
+      // Only pairs of real foreign keys. (provider, providerAccountId) and
+      // (identifier, token) are opaque strings from someone else's system, and
+      // (userId, position) is an ordering, not a thing to filter by.
+      if (!isRelationColumn(body, first) || !isRelationColumn(body, second)) continue;
+      checked++;
+      if (NO_INDEX_NEEDED[`${name}.${second}`]) continue;
+      assert.ok(
+        leadsWith(body, second),
+        `${name} has no index leading with ${second}: the @@unique([${first}, ${second}]) cannot serve a read ` +
+          `that filters by ${second} alone, so that read scans the whole table (B-090). Add @@index([${second}]), ` +
+          `or add ${name}.${second} to NO_INDEX_NEEDED with the reason.`
+      );
+    }
+  }
+  assert.ok(checked >= 8, `only ${checked} relation pairs found; the sweep has stopped seeing them`);
+});
+
+test("the no-index list names only pairs the schema still has", () => {
+  for (const key of Object.keys(NO_INDEX_NEEDED)) {
+    const [name, column] = key.split(".");
+    assert.match(model(name), new RegExp(`\\b${column}\\b`), `${key} is exempted but ${name} has no ${column} any more`);
+  }
+});
 
 test("the gazetteer's altNames search has an index to use", () => {
   // Not expressible in schema.prisma (Prisma has no GIN trigram index), so the

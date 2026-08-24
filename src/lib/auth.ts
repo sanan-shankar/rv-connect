@@ -13,6 +13,7 @@ import { writeAudit } from "@/lib/audit";
 import { prisma } from "./prisma";
 import { normalizeEmail } from "./email-address";
 import { ownProfileLink } from "./notification-links";
+import { sessionRevoked } from "./session-revocation";
 
 /* authorize() below can only say "yes" (a user) or "no" (null), and null
    always surfaces as "Invalid email or password." These two let the login
@@ -297,21 +298,16 @@ const nextAuth = NextAuth({
             birdOverride: true,
           },
         });
-        /* Three ways a token that verifies cryptographically is still not a
-           session any more. Each returns an INVALID marker rather than a
-           patched-up session, and the auth() wrapper below turns that into
-           null -- so every one of the ~86 `if (!session?.user?.id)` guards
-           refuses, with no per-action change needed.
-
-             row gone       the account was deleted. The old code skipped the
-                            branch but still RETURNED the session with an id
-                            set from the JWT, so every guard passed and a
-                            deleted account kept browsing for 30 days (M6).
-             blocked        see authorize() above; this is the half that ends
-                            sessions the block did not catch at the door (H4).
-             stale epoch    the password was reset or changed, or the account
-                            was blocked, since this token was minted (M4). */
-        if (!dbUser || dbUser.isBlocked || (dbUser.credentialVersion ?? 0) !== (token.credentialVersion ?? 0)) {
+        /* The three ways a token that verifies cryptographically is still not
+           a session any more -- deleted row, blocked account, stale password
+           epoch -- all live in `sessionRevoked`, which spells each one out.
+           An INVALID marker is returned rather than a patched-up session, and
+           the auth() wrapper below turns that into null, so every one of the
+           ~86 `if (!session?.user?.id)` guards refuses with no per-action
+           change needed. (The row-gone case used to skip this branch but
+           still RETURN a session with an id set from the JWT, so a deleted
+           account kept browsing for 30 days -- audit M6.) */
+        if (sessionRevoked(dbUser, token.credentialVersion)) {
           session.invalid = true;
           return session;
         }

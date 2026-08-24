@@ -16,10 +16,18 @@ import { fileURLToPath } from "node:url";
  *  was Cascade too, so deleting the person who ASKED a question deleted the
  *  question and, through it, thirty other people's answers to it.
  *
- *  This test does not check those two columns. It checks the property:
- *  it walks every `onDelete: Cascade` foreign key out of `User` and asserts
- *  that no COMMUNAL container is reachable. A future model wired the same
- *  careless way fails here on the day it is written.
+ *  This test does not check those two columns. It checks the property: it
+ *  walks every `onDelete: Cascade` foreign key out of `User` and asserts that
+ *  every model it reaches is one somebody classified.
+ *
+ *  It used to filter that walk through a four-name COMMUNAL list, which meant
+ *  a NEW communal model wired Cascade-from-User -- an Events table, a shared
+ *  album -- was reachable, absent from the list, and passed silently, while
+ *  the header claimed it would "fail on the day it is written"
+ *  (bug-report-2 C-191). The assertion is now the other way round and fails
+ *  closed: the reachable set must be a SUBSET of OWN_CONTENT below, so any
+ *  newly reachable model fails until somebody says in writing why one
+ *  member's deletion may destroy it.
  * ------------------------------------------------------------------ */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -82,6 +90,41 @@ function cascadeReachableFromUser(rels) {
  */
 const COMMUNAL = ["Group", "Catchup", "CatchupEdition", "CatchupPrompt"];
 
+/**
+ * Everything a `DELETE FROM "User"` is ALLOWED to take with it, and why. The
+ * test below asserts the cascade-reachable set is a subset of these keys, so
+ * adding a model with an onDelete: Cascade path from User fails `npm run
+ * check` until it appears here -- which is the moment to ask whether it is
+ * really this one member's to lose.
+ */
+const OWN_CONTENT = {
+  Account: "their OAuth link",
+  AdminMessage: "lines inside their own admin thread; the thread itself goes below",
+  AdminThread: "their private conversation with the admins, which the purge exists to remove",
+  AuthToken: "their unused password-reset and email-confirmation tokens",
+  Bookmark: "posts they saved; private to the saver",
+  CatchupEntry: "their own answer to a Round; the question and the Round outlive them",
+  CatchupEntryLove: "hearts they gave; the count is derived, so nobody else's entry changes",
+  CatchupPref: "their per-Catch-up reminder settings",
+  Comment: "reachable only THROUGH their own posts; the direct User edge is SetNull (M34)",
+  CommentLike: "hearts they gave on comments",
+  ContentView: "their own read receipts",
+  GroupInvite: "invites they sent or hold; a dead invite helps nobody",
+  GroupMember: "their membership rows; the Group itself is communal and stays",
+  Like: "hearts they gave on posts",
+  Notification: "their bell; nobody else reads it",
+  OutboundEmail: "queued mail addressed to them, which must not be sent after the purge",
+  Photo: "Collection photographs they contributed; removing them is the point of the purge, and account-purge clears the covers pointing at them",
+  PhotoLove: "hearts they gave on photographs",
+  PollOption: "reachable only through their own post's poll",
+  PollVote: "their votes; the tallies are counts of rows, so everyone else's stands",
+  Post: "their own writing",
+  Report: "reports filed against them, which end with the account (their FILED reports go by the reporter edge, not Cascade)",
+  Session: "their signed-in devices",
+  UserPlace: "the pins on their own map",
+  Visit: "their own visit rows",
+};
+
 test("the schema parser sees the relations it is meant to", () => {
   const rels = relations(schema);
   assert.ok(rels.length > 30, `parsed only ${rels.length} relations; the parser has drifted`);
@@ -99,6 +142,25 @@ test("deleting a member destroys nothing communal", () => {
     [],
     `deleting one User cascade-deletes ${casualties.join(", ")} — other members' writing`
   );
+});
+
+test("deleting a member destroys nothing nobody has classified", () => {
+  const reachable = [...cascadeReachableFromUser(relations(schema))].sort();
+  const unclassified = reachable.filter((m) => !(m in OWN_CONTENT));
+  assert.deepEqual(
+    unclassified,
+    [],
+    `deleting one User cascade-deletes ${unclassified.join(", ")}, which nobody has said is theirs to lose. ` +
+      `If it really is their own content, add it to OWN_CONTENT with the reason; if it is shared, change the relation.`
+  );
+});
+
+test("the own-content list names only models that are still reachable", () => {
+  // The mirror: a stale entry would silently re-open the hole it was written
+  // to close, by pre-classifying a name a future model might reuse.
+  const reachable = cascadeReachableFromUser(relations(schema));
+  const stale = Object.keys(OWN_CONTENT).filter((m) => !reachable.has(m));
+  assert.deepEqual(stale, [], `OWN_CONTENT lists ${stale.join(", ")}, which a User delete no longer reaches`);
 });
 
 test("a Catch-up outlives its Keeper, exactly as the schema comment promises", () => {
