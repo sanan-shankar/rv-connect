@@ -11,11 +11,11 @@ import { droppedImages } from "@/lib/draft-images";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
-import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
+import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, audienceWhere } from "@/lib/posts";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
-import { batchTargetKey, storedBatchTargets } from "@/lib/post-visibility-rule";
+import { storedBatchTargets } from "@/lib/post-visibility-rule";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { escapeLike } from "@/lib/db-text";
 import { isUniqueViolation } from "@/lib/prisma-errors";
@@ -1030,7 +1030,6 @@ export async function loadPosts(opts?: {
   const sortBy = opts?.sortBy ?? "recent";
   const timeFilter = opts?.timeFilter ?? "all";
   const groupId = opts?.groupId;
-  const userBatch = batchTargetKey(session.user.batchType, session.user.batchYear);
   const timeDate = getTimeFilterDate(timeFilter);
 
   // Group feeds are private: only members may read them.
@@ -1053,7 +1052,13 @@ export async function loadPosts(opts?: {
   // safely with each other AND with the batch-targeting top-level `OR` added
   // below for the main feed (a second bare `OR` key would silently overwrite
   // the first instead of combining with it).
-  const andConditions: Record<string, unknown>[] = [];
+  /* The audience arms (city, batch, and the author's exemption from both)
+     come from one shared builder, which the profile page's counts and Photos
+     grid also use -- they had drifted apart, and the count beside a list was
+     answering a different question from the list (bug-report-2 C-004). */
+  const audience = audienceWhere(session.user, viewerCities);
+
+  const andConditions: Record<string, unknown>[] = [...(audience.AND ?? [])];
   if (opts?.search) {
     /* Matches title (letters), content, or the AUTHOR'S NAME, case-insensitive
        on Postgres. The author clause is there because people remember posts by
@@ -1070,16 +1075,6 @@ export async function loadPosts(opts?: {
       ],
     });
   }
-  /* City scope, unless you wrote it (audit M30). An AND-ed clause cannot be
-     escaped by the OR above, so the author exemption has to be spelled out
-     here as well: a member who has moved away and writes a letter for the city
-     they left could otherwise not see their own post in any feed. */
-  if (!isAdmin) {
-    andConditions.push({
-      OR: [cityScopeWhere(viewerCities), { authorId: session.user.id }],
-    });
-  }
-
   const baseWhere = {
     isHidden: false,
     // Drafts (letters saved before publishing) never surface in any feed,
@@ -1100,15 +1095,12 @@ export async function loadPosts(opts?: {
     : {
         ...baseWhere,
         groupId: null,
-        OR: [
-          ...batchScopeWhere(userBatch).OR,
-          // ...or you wrote it. The author is not part of their own audience,
-          // they are its source, so a post aimed at another batch used to
-          // disappear from the feed of the person who wrote it (audit M30).
-          // Mirrors the same exemption in decidePostVisibility, which is what
-          // decides the single-post case.
-          { authorId: session.user.id },
-        ],
+        // ...or you wrote it: the author is not part of their own audience,
+        // they are its source, so a post aimed at another batch used to
+        // disappear from the feed of the person who wrote it (audit M30).
+        // Mirrors the same exemption in decidePostVisibility, which is what
+        // decides the single-post case. Both arms live in audienceWhere.
+        OR: audience.OR,
       };
 
   const include = {

@@ -4,7 +4,7 @@ import { after } from "next/server";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
+import { getViewerCities } from "@/lib/city-scope";
 import { batchLine, formatPhoneDisplay, parseJsonArray } from "@/lib/utils";
 import { socialHref, socialDisplay, parseUserLinks } from "@/lib/social";
 import { academicSpanLabel, parseHouseSpans, parseHouseYearEntries } from "@/lib/house-spans";
@@ -15,7 +15,7 @@ import { STRAY_HAIR_USER_IDS } from "@/components/profile/stray-hair-ids";
 import { LetterheadProfile } from "@/components/profile/letterhead-profile";
 import { InstallAppTile } from "@/components/pwa/install-app-tile";
 import type { ContactMethod } from "@/components/profile/get-in-touch";
-import { PUBLISHED_ONLY } from "@/lib/posts";
+import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, audienceWhere } from "@/lib/posts";
 import { viewerMaySeeContacts } from "@/lib/member-gate";
 import { IS_DEMO } from "@/lib/demo";
 import { recordView } from "@/lib/content-view";
@@ -136,11 +136,18 @@ export default async function ProfilePage({
   const firstName = user.name.split(" ")[0];
   const isTeacher = user.accountType === "teacher" || user.accountType === "ex_teacher";
 
-  // Same visibility contract as loadPosts()'s authorId path (feed/actions.ts):
-  // never surface another member's private-group posts on their public
-  // profile, and respect city-scope audience targeting unless the viewer is
-  // an admin. Applies to the tab counts and the Photos grid alike, since all
-  // three read from the same underlying set of "visible posts by this author".
+  /* Same visibility contract as loadPosts()'s authorId path
+     (feed/actions.ts): never surface another member's private-group posts on
+     their public profile, and respect city and batch audience targeting.
+     Applies to the tab counts and the Photos grid alike, since all three read
+     from the same underlying set of "visible posts by this author".
+
+     Written out by hand, this claim was false on three axes (bug-report-2
+     C-004): no batch arm at all, a city arm with no author self-exemption,
+     and no author-standing filter -- so the number on a tab could disagree
+     with the list under it, and a batch-targeted photo could reach the grid
+     of somebody outside its audience. The audience arms now come from the
+     one builder loadPosts uses. */
   const viewerCities = isAdmin ? [] : await getViewerCities(session.user.id);
   const visiblePostsWhere = {
     authorId: user.id,
@@ -150,7 +157,11 @@ export default async function ProfilePage({
     // owner: an in-progress letter draft belongs on /letters ("Your drafts"),
     // never on the public Posts & Letters tab or the Photos grid.
     ...PUBLISHED_ONLY,
-    ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
+    // Applied without an admin exemption, exactly as loadPosts applies it, so
+    // an admin reading a blocked member's profile is not shown a count of
+    // eleven above an empty list.
+    ...AUTHOR_IN_GOOD_STANDING,
+    ...audienceWhere(session.user, viewerCities),
   };
 
   // Counts drive the segmented switcher's numbers. The Saved count is the

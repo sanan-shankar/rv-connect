@@ -2881,3 +2881,31 @@ bucket" — and the two files now agree.
 Proved against the running server: an arbitrary `pub-*.r2.dev` host is refused
 with "url parameter is not allowed", the legacy host and the current one are
 still accepted, and a real member avatar still optimises.
+
+## 2026-08-25 — the directory's city chips, and a count that disagreed with its list
+
+**C-091 — a city chip could lead nowhere.** Every city the directory offers as
+a filter is a string read straight back out of the member's own row. The
+filter then folded it through the gazetteer's normalizer — which strips
+accents and drops a comma-qualified tail — and compared the folded key against
+the unfolded column. Postgres folds case, never accents, so a member living in
+"Zürich" was unreachable from the one chip that names their city, and so was
+anybody whose row still carries a "Northfield, Minnesota". The picked value is
+now the first thing compared, with the folded aliases (Bangalore/Bengaluru)
+beside it. Reproduced live against a seeded row: nought members before, one
+after, with all thirty-four real facets still full and both alias pairs still
+agreeing.
+
+**C-004 — the profile's counts answered a different question from its list.**
+The tab numbers and the Photos grid were built from a hand-copied fragment of
+the feed's where-clause, and the copy had lost three things: the batch arm,
+the author's exemption from the city arm, and the author-standing filter. So a
+count could sit above a list that did not match it, and a batch-targeted photo
+could reach the grid of somebody outside its audience. One `audienceWhere`
+builder now owns those arms and both surfaces compose from it.
+
+Proved live: a batch-targeted post by an ISC-1978 member reached an ISC-1972
+viewer's profile grid under the old shape and does not under the new, while
+the author still sees their own. Swept every viewer-by-author pair in the real
+data: no count changes today, because nothing batch-targeted exists yet, so
+nothing on screen moves and the visual baselines are untouched.
