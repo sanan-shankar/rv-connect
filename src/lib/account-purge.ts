@@ -137,6 +137,10 @@ async function collectImageUrls(db: Db, userId: string): Promise<string[]> {
   return [...new Set(urls)];
 }
 
+/** Thrown inside the transaction to roll the whole purge back when the member
+ *  has cancelled; caught immediately below, never seen by a caller. */
+class PurgeCancelled extends Error {}
+
 export type PurgeResult =
   | {
       ok: true;
@@ -147,7 +151,14 @@ export type PurgeResult =
       /** Groups left with a new admin because this member was the last one. */
       groupsRehomed: number;
     }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      /** The member cancelled between the sweep's due-list read and this
+       *  purge's turn, so nothing was deleted. Not a failure -- the right
+       *  outcome, and the caller must not count it as an error. */
+      cancelled?: true;
+    };
 
 /**
  * Take the member's comments out without breaking anybody else's thread
@@ -253,7 +264,25 @@ async function clearCoversPointingAtThisMember(db: Db, userId: string): Promise<
  * The count returned is objects actually gone, not attempts (B-013): the audit
  * entry the CALLER writes quotes it, and it used to be a lie.
  */
-export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
+export async function purgeUserAccount(
+  userId: string,
+  /* Set by the nightly sweep, never by an admin's deliberate delete.
+   *
+   * The sweep reads its due list once and then purges the rows one at a time,
+   * each in its own transaction, so minutes pass between "this account is due"
+   * and "delete it". Signing in during the grace window IS the cancellation --
+   * auth.ts clears deletionRequestedAt and says so on screen -- and with an
+   * unconditional delete that member was erased anyway, irreversibly, after
+   * the app had told them it was called off (bug-report-2 C-075).
+   *
+   * A re-read at the top of the transaction would not close it: this runs at
+   * READ COMMITTED, so a sign-in committing mid-transaction is invisible to a
+   * snapshot already taken. The condition therefore rides on the DELETE
+   * itself, which locks the row and re-evaluates the predicate against the
+   * updated version. Zero rows deleted means they came back, and the whole
+   * transaction rolls back with them. */
+  opts?: { onlyIfRequestedBefore?: Date }
+): Promise<PurgeResult> {
   let urls: string[];
   let groupsRehomed: number;
 
@@ -278,7 +307,15 @@ export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
         await tx.report.deleteMany({ where: { reporterId: userId } });
         await tombstoneComments(tx, userId);
         await clearCoversPointingAtThisMember(tx, userId);
-        await tx.user.delete({ where: { id: userId } });
+        const removed = await tx.user.deleteMany({
+          where: {
+            id: userId,
+            ...(opts?.onlyIfRequestedBefore
+              ? { deletionRequestedAt: { lt: opts.onlyIfRequestedBefore } }
+              : {}),
+          },
+        });
+        if (removed.count === 0) throw new PurgeCancelled();
         return { urls: collected, rehomed };
       },
       // The default 5s is a page-render budget, not a cascade budget: this one
@@ -291,6 +328,12 @@ export async function purgeUserAccount(userId: string): Promise<PurgeResult> {
     urls = outcome.urls;
     groupsRehomed = outcome.rehomed;
   } catch (err) {
+    if (err instanceof PurgeCancelled) {
+      // Everything above rolled back with the delete: the rehoming, the image
+      // worklist, the cleared reports. The account is exactly as they left it.
+      console.info(`[purge] ${userId} was not deleted: the request no longer stands`);
+      return { ok: false, cancelled: true, error: "That account is no longer due for deletion." };
+    }
     console.error("purgeUserAccount failed:", err);
     return { ok: false, error: "Could not delete the account." };
   }

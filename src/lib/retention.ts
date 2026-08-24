@@ -77,6 +77,9 @@ export type SweepResult = {
   /** Catch-up copies whose 30 days in "Recently deleted" ran out tonight. */
   catchupCopiesEmptied: number;
   accountsPurged: number;
+  /** Accounts that were due tonight and are still here, because the member
+   *  signed in (which cancels the request) before their turn came round. */
+  accountsSpared: number;
   /** Stored images an earlier purge could not remove, cleared on this pass. */
   imagesRetried: number;
   /** ...and how many R2 still refuses. A number that only ever grows is the
@@ -253,6 +256,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
      audit entry is captured first, because afterwards nothing remembers who
      the id belonged to. */
   let accountsPurged = 0;
+  let accountsSpared = 0;
   const due = await step("accountsPurged:list", async () => {
     const rows = await prisma.user.findMany({
       where: { deletionRequestedAt: { lt: cutoff(DELETION_GRACE_DAYS) } },
@@ -269,8 +273,20 @@ export async function runRetentionSweep(): Promise<SweepResult> {
       take: PURGE_BATCH,
     });
     for (const row of rows) {
-      const purged = await purgeUserAccount(row.id);
+      /* The cutoff goes WITH the purge, not just into the list above. Between
+         that read and this call the member may have signed in, which is how
+         the app lets somebody call a deletion off -- and the purge used to
+         erase them anyway, minutes after telling them it was cancelled
+         (bug-report-2 C-075). Passing the same cutoff makes the delete itself
+         conditional; a cancellation is a skip, not a failure. */
+      const purged = await purgeUserAccount(row.id, {
+        onlyIfRequestedBefore: cutoff(DELETION_GRACE_DAYS),
+      });
       if (!purged.ok) {
+        if (purged.cancelled) {
+          accountsSpared += 1;
+          continue;
+        }
         errors.push(`purge:${row.id}`);
         continue;
       }
@@ -289,6 +305,11 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     }
     return rows.length;
   });
+  if (accountsSpared > 0) {
+    console.info(
+      `[retention] ${accountsSpared} account(s) were due but had been cancelled; left alone`
+    );
+  }
   // A full batch means there is more waiting; the next sweep takes the rest.
   if (due >= PURGE_BATCH) {
     console.info(`[retention] purge batch full (${due}); more accounts are due tomorrow`);
@@ -319,6 +340,7 @@ export async function runRetentionSweep(): Promise<SweepResult> {
     searches,
     catchupCopiesEmptied,
     accountsPurged,
+    accountsSpared,
     imagesRetried,
     imagesStillPending,
     errors,
