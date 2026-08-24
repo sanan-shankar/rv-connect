@@ -14,6 +14,8 @@ import {
   MAX_DEFERRALS,
   ATTEMPT_RETRY_MS,
   localDrainRecipient,
+  drainEligible,
+  RETRY_RESET,
 } from "./mail-policy.ts";
 
 test("a rate limit is the provider's problem, not the address's", () => {
@@ -158,4 +160,69 @@ test("development with no ADMIN_EMAIL narrows to nothing, never to everybody", (
   assert.equal(localDrainRecipient({ NODE_ENV: "test", ADMIN_EMAIL: "   " }), "");
   // ...and production is the ONLY environment that drains for everybody.
   assert.equal(localDrainRecipient({ NODE_ENV: "production" }), null);
+});
+
+/* --- The admin panel's Retry (audit C-102) -------------------------------- *
+ *
+ * A row retired by a provider outage is `failed` with deferrals at the ceiling
+ * and, because a transient failure hands its attempt back, possibly attempts
+ * at zero. Retry reset the status and the attempts and left the deferrals, so
+ * the row came back `queued` and the drain never selected it again. For a
+ * reset -- which folds -- every later "forgot my password" for that member
+ * folded into the zombie and returned without sending.
+ * ------------------------------------------------------------------------- */
+
+const NOW = new Date("2026-08-24T12:00:00Z");
+
+const deadRow = () => ({
+  // What bookFailure's give-up branch leaves behind.
+  status: "failed",
+  attempts: 0,
+  deferrals: MAX_DEFERRALS,
+  nextAttemptAt: new Date(NOW.getTime() + 60_000),
+});
+
+test("a provider-exhausted row is invisible to the drain", () => {
+  assert.equal(drainEligible(deadRow(), NOW), false);
+  // ...including after a reset that only moves the status and the attempts,
+  // which is exactly what the button used to write.
+  const halfReset = { ...deadRow(), status: "queued", attempts: 0 };
+  assert.equal(drainEligible(halfReset, NOW), false, "the deferral ceiling was not the blocker");
+});
+
+test("Retry produces a row the drain will actually pick up", () => {
+  const retried = { ...deadRow(), ...RETRY_RESET };
+  assert.equal(drainEligible(retried, NOW), true);
+});
+
+test("Retry resets every counter the drain's selection reads", () => {
+  // Pin the property, not the list: whatever drainEligible consults, Retry
+  // must write. A fifth counter added to the predicate without being added to
+  // the reset fails here rather than in production six months later.
+  const retried = { ...deadRow(), ...RETRY_RESET };
+  for (const [field, ceiling] of [
+    ["attempts", MAX_ATTEMPTS],
+    ["deferrals", MAX_DEFERRALS],
+  ]) {
+    assert.ok(field in RETRY_RESET, `Retry does not reset ${field}`);
+    assert.ok(retried[field] < ceiling, `Retry leaves ${field} at or past its ceiling`);
+  }
+  assert.equal(retried.status, "queued");
+  assert.equal(retried.nextAttemptAt, null, "Retry leaves a future nextAttemptAt in place");
+});
+
+test("the drain still refuses a row that is genuinely not ready", () => {
+  const base = { status: "queued", attempts: 0, deferrals: 0, nextAttemptAt: null };
+  assert.equal(drainEligible(base, NOW), true);
+  assert.equal(drainEligible({ ...base, status: "sending" }, NOW), false);
+  assert.equal(drainEligible({ ...base, attempts: MAX_ATTEMPTS }, NOW), false);
+  assert.equal(drainEligible({ ...base, deferrals: MAX_DEFERRALS }, NOW), false);
+  assert.equal(
+    drainEligible({ ...base, nextAttemptAt: new Date(NOW.getTime() + 1) }, NOW),
+    false
+  );
+  assert.equal(
+    drainEligible({ ...base, nextAttemptAt: new Date(NOW.getTime() - 1) }, NOW),
+    true
+  );
 });

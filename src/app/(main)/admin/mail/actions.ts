@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAction, type AdminActionResult } from "@/lib/admin";
+import { RETRY_RESET } from "@/lib/mail-policy";
 
 /**
  * Put a dead message back in the queue.
@@ -13,13 +14,20 @@ import { requireAdminAction, type AdminActionResult } from "@/lib/admin";
  * a mistyped address that has since been corrected on the person's record,
  * "try again" is the obvious next move and there was no button for it.
  *
- * `attempts` goes back to zero, not just the status: the drain only picks up
- * rows with `attempts < MAX_ATTEMPTS` (4), and a failed row is failed
- * precisely because it has spent all four. Leaving the count would put the
- * row back in a queue that will never look at it again.
+ * Every counter the drain's selection reads goes back to zero, not just the
+ * status: it picks up rows with `attempts < MAX_ATTEMPTS` (4) AND `deferrals <
+ * MAX_DEFERRALS` (10) AND nothing pending on `nextAttemptAt`. Leaving any of
+ * them would put the row back in a queue that will never look at it again.
  *
- * `claimedAt` is cleared too, so a row that died mid-send is not treated as
- * still owned by some long-gone drain pass.
+ * `deferrals` was the one this missed, and it was the one that mattered most:
+ * a row retired by a provider outage is failed with deferrals at the ceiling
+ * and its attempts possibly at zero, because a transient failure hands its
+ * attempt back. Retry made it `queued` and invisible -- and for a reset, which
+ * folds, every later "forgot my password" for that member folded into the
+ * zombie and returned without sending, so they could never get a reset email
+ * again (audit C-102).
+ *
+ * The write is `RETRY_RESET`, beside the predicate it has to satisfy.
  */
 export async function retryMail(id: string): Promise<AdminActionResult> {
   const denied = await requireAdminAction();
@@ -44,7 +52,7 @@ export async function retryMail(id: string): Promise<AdminActionResult> {
      row that moved between the read and the write. */
   const requeued = await prisma.outboundEmail.updateMany({
     where: { id, status: row.status },
-    data: { status: "queued", attempts: 0, lastError: null, claimedAt: null },
+    data: { ...RETRY_RESET },
   });
   if (requeued.count === 0) {
     return { error: "That message moved on while you were looking at it. Try again." };
