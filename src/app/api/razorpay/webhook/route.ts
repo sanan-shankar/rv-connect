@@ -16,7 +16,11 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { PAYABLE_FROM } from "@/lib/contribution-state";
+import {
+  PAYABLE_FROM,
+  REVERSED_STATUSES,
+  foldReversal,
+} from "@/lib/contribution-state";
 import { writeAudit } from "@/lib/audit";
 import { verifyWebhookSignature, type WebhookSignatureVerdict } from "@/lib/razorpay";
 
@@ -70,6 +74,16 @@ type WebhookPayment = {
   error_reason?: string;
 };
 
+/* Money coming back out. Razorpay carries it in its OWN entity, beside the
+   payment -- which is why nothing here ever read the refunded amount and any
+   refund at all un-counted the whole gift (audit C-087). `id` is the
+   idempotency key: this endpoint is retried on any non-2xx and can be resent
+   by hand from the dashboard. */
+type WebhookReversal = {
+  id?: string;
+  amount?: number;
+};
+
 export async function POST(request: Request) {
   // request.text(), never request.json(): the signature is over the exact
   // bytes Razorpay sent. Re-serialising parsed JSON reorders keys and drops
@@ -112,7 +126,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  let event: { event?: string; payload?: { payment?: { entity?: WebhookPayment } } };
+  let event: {
+    event?: string;
+    payload?: {
+      payment?: { entity?: WebhookPayment };
+      refund?: { entity?: WebhookReversal };
+      dispute?: { entity?: WebhookReversal };
+    };
+  };
   try {
     event = JSON.parse(raw);
   } catch {
@@ -146,7 +167,14 @@ export async function POST(request: Request) {
 
   const contribution = await prisma.contribution.findUnique({
     where: { razorpayOrderId: orderId },
-    select: { id: true, status: true, userId: true, amount: true },
+    select: {
+      id: true,
+      status: true,
+      userId: true,
+      amount: true,
+      refundedAmount: true,
+      reversalIds: true,
+    },
   });
 
   if (!contribution) {
@@ -228,27 +256,84 @@ export async function POST(request: Request) {
       },
     });
   } else {
-    /* Refunded or disputed. Only from "paid", conditionally, for the same
-       reason the failure branch is: a refund for an order we never recorded as
-       paid is not something to invent a state for, and the webhook can arrive
-       in any order. Nothing is deleted -- the row stays as the record that
-       money moved and came back, which is what a ten-year payment retention
-       window is for. */
+    /* Refunded or disputed. Nothing is deleted -- the row stays as the record
+       that money moved and came back, which is what a ten-year payment
+       retention window is for.
+
+       Two things this branch used to get wrong, both fixed here.
+
+       It read no amount, so ANY refund.processed moved the whole row out of
+       "paid" and, because every sum in the app filters on that status, ₹100
+       handed back on a ₹5,000 gift erased the entire ₹5,000 (audit C-087). The
+       refunded paise live in their own entity beside the payment; a partial
+       refund now leaves the row on "paid" and lands in refundedAmount, which
+       every sum subtracts.
+
+       And it matched only status "paid", so a reversal that arrived BEFORE the
+       capture event -- Razorpay delivers in no particular order, and a capture
+       can still be retrying -- matched nothing, was acknowledged with a 200,
+       and was lost for ever, un-audited, while the later capture landed the
+       row on "paid" as though the money had stayed (audit C-151). It now
+       applies to whatever state it finds, and since a reversed row is not one
+       money can arrive from, the later capture cannot undo it. */
     const to = event.event === "refund.processed" ? "refunded" : "disputed";
+    const reversal =
+      to === "refunded" ? event.payload?.refund?.entity : event.payload?.dispute?.entity;
+
+    /* The idempotency key. Falling back to the event name plus the payment id
+       is for a payload shaped in a way we have not seen: it still dedupes a
+       straight re-delivery, which is the retry Razorpay actually performs. */
+    const reversalId = reversal?.id ?? `${event.event}:${payment?.id ?? orderId}`;
+
+    const declared =
+      typeof reversal?.amount === "number" && reversal.amount > 0 ? reversal.amount : null;
+    if (declared === null) {
+      // Assume the whole thing, which is the safe direction (we stop counting
+      // money that may still be ours rather than counting money that is not),
+      // but say so: it means the payload has changed shape.
+      console.error(
+        `[razorpay] ${event.event} carried no readable amount; treating it as the full contribution`,
+        { orderId }
+      );
+    }
+
+    const folded = foldReversal({
+      amount: contribution.amount,
+      refundedAmount: contribution.refundedAmount,
+      status: contribution.status,
+      to,
+      paise: declared ?? contribution.amount,
+    });
+
+    /* Conditional, like every other write in this route. Two guards: a
+       reversal already folded in is a re-delivery (Razorpay retries anything
+       it did not 2xx, and the dashboard has a Resend button) and must not
+       subtract the same paise twice; and a row already reversed is terminal. */
     const moved = await prisma.contribution.updateMany({
-      where: { id: contribution.id, status: "paid" },
-      data: { status: to },
+      where: {
+        id: contribution.id,
+        status: { notIn: [...REVERSED_STATUSES] },
+        NOT: { reversalIds: { has: reversalId } },
+      },
+      data: {
+        status: folded.status,
+        refundedAmount: folded.refundedAmount,
+        reversalIds: { push: reversalId },
+      },
     });
     if (moved.count === 1) {
       // Loud, because this is the one thing on the money surfaces that
       // changes a number DOWNWARDS after the fact, and the owner should hear
-      // it from somewhere other than a total that quietly shrank.
+      // it from somewhere other than a total that quietly shrank. The paise
+      // named are the ones that actually went back, not the whole gift.
       await writeAudit({
         actorId: null,
         action: "razorpay.contribution_reversed",
         targetType: "contribution",
         targetId: contribution.id,
-        detail: `${to} by Razorpay (${event.event}); ${contribution.amount} paise no longer counted as given`,
+        detail: folded.full
+          ? `${to} in full by Razorpay (${event.event}); ${folded.refundedAmount} paise no longer counted as given`
+          : `partially refunded by Razorpay (${event.event}); ${folded.refundedAmount} of ${contribution.amount} paise no longer counted as given`,
       });
     }
   }

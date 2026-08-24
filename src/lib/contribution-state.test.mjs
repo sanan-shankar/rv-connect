@@ -1,15 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
   CONTRIBUTION_STATUSES,
+  CONTRIBUTION_SUM,
   PAYABLE_FROM,
   REVERSED_STATUSES,
   canBecomePaid,
+  foldReversal,
   isReversed,
+  netPaise,
 } from "./contribution-state.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -72,3 +76,112 @@ for (const [file, what] of sources) {
     );
   });
 }
+
+/* ---------------------------------------------------------------- *
+ *  Audit C-087: a partial refund un-counted the entire contribution
+ * ---------------------------------------------------------------- */
+
+test("a partial refund moves only the paise it returned", () => {
+  const row = { amount: 500_000, refundedAmount: 0, status: "paid" };
+  const folded = foldReversal({ ...row, to: "refunded", paise: 10_000 });
+  assert.equal(folded.full, false);
+  assert.equal(folded.status, "paid", "a partial refund made the whole gift disappear");
+  assert.equal(folded.refundedAmount, 10_000);
+  // The counted total drops by exactly the refunded paise, not the whole gift.
+  assert.equal(
+    netPaise({ amount: row.amount, refundedAmount: folded.refundedAmount }),
+    490_000
+  );
+});
+
+test("partial refunds accumulate, and the last one that covers the gift ends it", () => {
+  const amount = 30_000;
+  const first = foldReversal({ amount, refundedAmount: 0, status: "paid", to: "refunded", paise: 10_000 });
+  assert.equal(first.full, false);
+  const second = foldReversal({
+    amount,
+    refundedAmount: first.refundedAmount,
+    status: first.status,
+    to: "refunded",
+    paise: 20_000,
+  });
+  assert.equal(second.full, true);
+  assert.equal(second.status, "refunded");
+  assert.equal(second.refundedAmount, amount);
+  assert.equal(netPaise({ amount, refundedAmount: second.refundedAmount }), 0);
+});
+
+test("nothing can be refunded for more than it was given", () => {
+  const folded = foldReversal({
+    amount: 50_000,
+    refundedAmount: 40_000,
+    status: "paid",
+    to: "refunded",
+    paise: 999_999,
+  });
+  assert.equal(folded.refundedAmount, 50_000);
+  assert.equal(netPaise({ amount: 50_000, refundedAmount: folded.refundedAmount }), 0);
+});
+
+test("a dispute is always the whole payment", () => {
+  const folded = foldReversal({
+    amount: 50_000,
+    refundedAmount: 0,
+    status: "paid",
+    to: "disputed",
+    paise: 1,
+  });
+  assert.equal(folded.full, true);
+  assert.equal(folded.status, "disputed");
+  assert.equal(folded.refundedAmount, 50_000);
+});
+
+/* Audit C-151: a reversal arriving before the capture matched nothing and was
+ * acknowledged with a 200, so it was lost and the later capture landed the row
+ * on "paid" as though the money had stayed. */
+
+test("a reversal applies to a row the capture has not reached yet", () => {
+  const folded = foldReversal({
+    amount: 50_000,
+    refundedAmount: 0,
+    status: "created",
+    to: "refunded",
+    paise: 50_000,
+  });
+  assert.equal(folded.status, "refunded", "an early reversal was dropped");
+  // ...and the capture that arrives afterwards cannot undo it.
+  assert.equal(canBecomePaid(folded.status), false);
+});
+
+/* Every money surface counts the NET, through the shared selection and the
+ * shared reader. A new aggregate that sums the gross would re-open C-087 on
+ * exactly one page, which is the hardest kind of drift to notice. */
+
+test("no money surface reads a contribution sum's gross amount", () => {
+  assert.deepEqual(CONTRIBUTION_SUM, { amount: true, refundedAmount: true });
+
+  // Every file that both touches the Contribution table and aggregates. The
+  // call is written two ways in this repo (`prisma.contribution.aggregate(`
+  // and the awaited-chain form with `.aggregate(` on its own line), so match
+  // the pair rather than one spelling of it.
+  const files = execSync("git grep -l 'prisma.contribution' -- src ':!src/generated'", {
+    cwd: ROOT,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(Boolean)
+    .map((f) => [f, decomment(read(f))])
+    .filter(([, src]) => /\.aggregate\(/.test(src));
+  assert.ok(files.length >= 6, "the contribution aggregates have moved; retarget this test");
+
+  for (const [f, src] of files) {
+    assert.ok(
+      !/_sum:\s*\{[^}]*\bamount:\s*true/.test(src),
+      `${f} sums a contribution's gross amount instead of CONTRIBUTION_SUM`
+    );
+    assert.ok(
+      /CONTRIBUTION_SUM/.test(src) && /netPaise\(/.test(src),
+      `${f} aggregates contributions without reading the net`
+    );
+  }
+});

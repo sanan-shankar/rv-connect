@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Tree } from "@phosphor-icons/react/dist/ssr";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import { CostsCard } from "@/components/support/costs-card";
 import { BirdPlate } from "@/components/support/bird-plate";
 import { SupportContribute } from "@/components/support/support-contribute";
@@ -37,10 +38,10 @@ export default async function SupportPage() {
   // state rather than taking the page down.
   const recoveredPaise = await prisma.contribution
     .aggregate({
-      _sum: { amount: true },
+      _sum: CONTRIBUTION_SUM,
       where: { status: "paid", livemode: true },
     })
-    .then((r) => r._sum.amount ?? 0)
+    .then((r) => netPaise(r._sum))
     .catch(() => 0);
 
   // Powers the personal "your admission number" chip below; a missed read

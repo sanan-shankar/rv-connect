@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AlertTriangle, CalendarDays, CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
+import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import {
   ADMIN_MEASURE,
   AdminCapped,
@@ -68,12 +69,12 @@ export default async function AdminSupportPage() {
 
   const [all, thisMonth, givers, unfinished, rows] = await Promise.all([
     prisma.contribution.aggregate({
-      _sum: { amount: true },
+      _sum: CONTRIBUTION_SUM,
       _count: true,
       where: { status: "paid", livemode: true },
     }),
     prisma.contribution.aggregate({
-      _sum: { amount: true },
+      _sum: CONTRIBUTION_SUM,
       where: { status: "paid", livemode: true, paidAt: { gte: monthStart } },
     }),
     prisma.contribution
@@ -95,6 +96,7 @@ export default async function AdminSupportPage() {
       select: {
         id: true,
         amount: true,
+        refundedAmount: true,
         status: true,
         livemode: true,
         method: true,
@@ -132,7 +134,9 @@ export default async function AdminSupportPage() {
   for (const r of livePaid) byMethod.set(r.method ?? "unknown", (byMethod.get(r.method ?? "unknown") ?? 0) + 1);
   const avgPaise =
     livePaid.length > 0
-      ? Math.round(livePaid.reduce((n, r) => n + r.amount, 0) / livePaid.length)
+      ? Math.round(
+          livePaid.reduce((n, r) => n + r.amount - r.refundedAmount, 0) / livePaid.length
+        )
       : 0;
 
   return (
@@ -140,10 +144,10 @@ export default async function AdminSupportPage() {
       <PageHeader title="Support" />
 
       <StatStrip>
-        <StatTile label="Given, all time" value={formatPaise(all._sum.amount ?? 0)} icon={IndianRupee} />
+        <StatTile label="Given, all time" value={formatPaise(netPaise(all._sum))} icon={IndianRupee} />
         <StatTile
           label="This month"
-          value={formatPaise(thisMonth._sum.amount ?? 0)}
+          value={formatPaise(netPaise(thisMonth._sum))}
           icon={CalendarDays}
         />
         <StatTile label="People who gave" value={givers} icon={Users} />
@@ -252,6 +256,7 @@ export default async function AdminSupportPage() {
 type LedgerRow = {
   id: string;
   amount: number;
+  refundedAmount: number;
   status: string;
   livemode: boolean;
   method: string | null;
@@ -298,6 +303,16 @@ function Ledger({ rows }: { rows: LedgerRow[] }) {
                 r.method ? r.method.toUpperCase() : null
               )}
             </p>
+            {/* A refund that did not cover the whole gift leaves the row on
+                "paid" and only moves paise (audit C-087), so without this the
+                row would read as an untouched contribution while the total
+                above counted less than it shows. */}
+            {r.status === "paid" && r.refundedAmount > 0 && (
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                {formatPaise(r.refundedAmount)} refunded, {formatPaise(r.amount - r.refundedAmount)}{" "}
+                still counted
+              </p>
+            )}
             {/* Stored on every failure since the feature shipped, and read by
                 nothing until now. */}
             {r.failureReason && (

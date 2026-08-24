@@ -975,11 +975,14 @@ model Contribution {
   amount   Int
   currency String @default("INR")
   // "created" | "paid" | "failed" | "refunded" | "disputed".
-  // The last two are written only by the webhook, from "paid", when Razorpay
-  // says the money went back (audit M58). Every sum in the app filters on
-  // status: "paid", so moving the row out of it is what un-counts a returned
-  // gift everywhere at once. The row itself is never deleted -- it is the
-  // record that money moved and came back.
+  // The last two are written only by the webhook when Razorpay says the money
+  // went back (audit M58), and only for the WHOLE amount -- a partial refund
+  // leaves the row "paid" and is carried by refundedAmount below (audit
+  // C-087). Every sum in the app filters on status: "paid", so moving the row
+  // out of it is what un-counts a fully returned gift everywhere at once. The
+  // row itself is never deleted -- it is the record that money moved and came
+  // back. The states a row may become "paid" FROM are in contribution-state.ts;
+  // a reversal is terminal.
   status   String @default("created")
 
   // Real money or a test payment. This database is shared by production AND
@@ -989,6 +992,23 @@ model Contribution {
   // a real contribution. Derived from the key prefix, never from the client.
   // Anything summing this table for a public figure must filter on it.
   livemode Boolean @default(false)
+
+  // Paise handed back, cumulative. A refund is not always the whole gift --
+  // the Razorpay dashboard takes an amount -- and until this column existed
+  // ANY refund.processed flipped the whole row to "refunded", so ₹100 returned
+  // on a ₹5,000 gift erased the entire ₹5,000 from the recovery bar, from
+  // "Given, all time" and from the member's own perk ledger (audit C-087).
+  // Every money sum now reads amount MINUS this (see contribution-state.ts),
+  // and the row only moves to "refunded" when the whole amount is back.
+  refundedAmount Int @default(0)
+
+  // The Razorpay refund and dispute ids already folded into refundedAmount.
+  // The webhook is retried on any non-2xx and can be resent by hand from the
+  // dashboard, so without this a re-delivered refund.processed would subtract
+  // the same paise twice. Postgres array rather than a ledger table because a
+  // contribution has at most a handful of these and the `has` check is the
+  // whole of the idempotency.
+  reversalIds String[] @default([])
 
   // Unique: this is the idempotency key. The browser callback and the webhook
   // both race to confirm the same order, and only one of them may win.
