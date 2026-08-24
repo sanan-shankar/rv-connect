@@ -25,6 +25,13 @@ const C = {
   sage: "#8CA383", // the middle hill as it ships today
   pine: "#173F35", // the back hill as it ships today
   white: "#FFFFFF",
+  /* Three middles that are not in globals.css yet. Each is here because the
+     palette has no candidate at that job: a mid green between canopy and
+     leaf, a warm that is quieter than cinnamon, and the dry-grass gold the
+     valley actually is for eight months of the year. */
+  moss: "#3E7A5E",
+  clay: "#B4795A",
+  gold: "#C9A961",
 };
 
 /** front = Bodi on the left, mid = Middle Peak, back = Rishikonda on the right. */
@@ -129,6 +136,71 @@ const SHIPPED: Palette = {
   mid: C.cream,
   back: C.cinnamon,
 };
+
+
+/* ---------------------------------------------------------------- *
+ *  Cream and a dark green on the outside, one colour in the middle.
+ *
+ *  Two fixed hills and one variable, which is a much smaller question
+ *  than the full permutation study above and the reason it gets a
+ *  table rather than cards. Rows are the middle colour, columns are
+ *  the order. The two tables are the two grounds worth testing: cream
+ *  needs a dark tile to exist at all, so a paper tile is not one of
+ *  them.
+ * ---------------------------------------------------------------- */
+const MIDDLES = [
+  { key: "moss", name: "Moss", hex: C.moss },
+  { key: "sage", name: "Sage", hex: C.sage },
+  { key: "leaf", name: "Leaf", hex: C.leaf },
+  { key: "cinnamon", name: "Cinnamon", hex: C.cinnamon },
+  { key: "clay", name: "Clay", hex: C.clay },
+  { key: "gold", name: "Dry gold", hex: C.gold },
+  { key: "sky", name: "Blue", hex: C.sky },
+];
+
+const ORDERS = [
+  { key: "c-canopy", label: "cream, x, canopy", front: C.cream, back: C.canopy },
+  { key: "c-pine", label: "cream, x, pine", front: C.cream, back: C.pine },
+  { key: "canopy-c", label: "canopy, x, cream", front: C.canopy, back: C.cream },
+  { key: "pine-c", label: "pine, x, cream", front: C.pine, back: C.cream },
+];
+
+function OrderTable({ bg, caption }: { bg: string; caption: string }) {
+  return (
+    <div className="tbl">
+      <div className="tbl-head">
+        <span className="tbl-corner">{caption}</span>
+        {ORDERS.map((o) => (
+          <span className="tbl-col" key={o.key}>
+            {o.label}
+          </span>
+        ))}
+      </div>
+      {MIDDLES.map((m) => (
+        <div className="tbl-row" key={m.key}>
+          <span className="tbl-lab">
+            <i style={{ background: m.hex }} />
+            {m.name}
+          </span>
+          {ORDERS.map((o) => (
+            <span className="tbl-cell" key={o.key}>
+              <Icon
+                p={{ name: "", front: o.front, mid: m.hex, back: o.back }}
+                bg={bg}
+                size={82}
+              />
+              <Icon
+                p={{ name: "", front: o.front, mid: m.hex, back: o.back }}
+                bg={bg}
+                size={16}
+              />
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /* The four tiles every palette is shown on. */
 const TILES = [
@@ -258,6 +330,17 @@ export default function IconColoursLab() {
   box-shadow:inset 0 0 0 1px rgba(30,28,22,.1); }
 .solids { display:flex; flex-wrap:wrap; gap:10px; }
 .tilecheck { display:flex; flex-wrap:wrap; gap:16px; }
+.tbl { background:#F7F4EB; border:1px solid rgba(35,36,30,.07); border-radius:20px;
+  padding:14px 16px 16px; width:max-content; max-width:100%; overflow-x:auto; }
+.tbl-head, .tbl-row { display:grid; grid-template-columns:104px repeat(4,110px); align-items:center; gap:8px; }
+.tbl-head { padding-bottom:8px; }
+.tbl-col, .tbl-corner { font-size:10.5px; letter-spacing:.04em; color:var(--soft); text-align:center; }
+.tbl-corner { text-align:left; font-weight:600; }
+.tbl-row { padding:7px 0; border-top:1px solid rgba(35,36,30,.06); }
+.tbl-lab { font-size:12.5px; display:flex; align-items:center; gap:7px; }
+.tbl-lab i { width:11px; height:11px; border-radius:99px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); }
+.tbl-cell { display:flex; align-items:flex-end; justify-content:center; gap:7px; }
+.tbls { display:flex; flex-wrap:wrap; gap:18px; }
 .tilecheck .card { width:min(100%,520px); }
 /* 44px of side padding costs a whole tile column on a 390px phone. */
 @media (max-width:640px) {
@@ -319,6 +402,24 @@ export default function IconColoursLab() {
         {TAIL.map((p) => (
           <Row key={p.name} p={p} />
         ))}
+      </div>
+
+      <h2>Cream outside, one colour in the middle</h2>
+      <p className="sub">
+        Two hills fixed, one variable. Rows are the middle colour, columns are
+        the order. Cream needs something dark behind it to exist, so both
+        tables use a dark tile. The 16px next to each one is the whole test.
+      </p>
+      <p className="sub">
+        The first colour is the biggest hill, so it decides how green the icon
+        reads. Cream first makes a pale icon with green in it. Canopy or pine
+        first makes a green icon with a pale peak at the back, which is closer
+        to what you asked for. On the pine tile the pine hill disappears, so
+        two of those eight columns are only there to prove it.
+      </p>
+      <div className="tbls">
+        <OrderTable bg="#141B18" caption="on dark" />
+        <OrderTable bg={C.pine} caption="on pine" />
       </div>
 
       <h2>The tile: pine or canopy</h2>
