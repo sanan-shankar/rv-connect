@@ -11,7 +11,7 @@ import {
   keyBelongsTo,
   ownerPrefix,
 } from "@/lib/storage";
-import { sharpImage, storedPixelFit } from "@/lib/image";
+import { sharpImage, storedResizeBox } from "@/lib/image";
 import { purgeImageKey, purgeImageUrls, putAllOrNone } from "@/lib/image-purge";
 import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike } from "@/lib/db-text";
@@ -384,35 +384,21 @@ export async function contributePhotoDirect(input: {
     const dir = ownerPrefix("collection", session.user.id);
 
     // The canonical full-size image: re-encoded (so EXIF/GPS is gone, M12) and
-    // orientation baked in. Full resolution is kept for every realistic photo;
-    // the only resize is a ceiling at WebP's hard 16383px dimension limit, so a
-    // scan larger than WebP can even hold is bounded rather than throwing (the
-    // old path stored the raw original and dodged this, but the raw original is
-    // exactly the EXIF-bearing file we are no longer willing to publish).
-    // withoutEnlargement means anything under the ceiling is untouched.
-    // resolveWithObject gives us the upright dimensions directly, so there is
-    // no EXIF-orientation swap to reason about.
-    const WEBP_MAX_DIM = 16383;
-
-    /* ...and a ceiling on AREA as well as on side length (audit M16).
-       16383px per side allows a 16383x16383 image, which is 268 megapixels:
-       the dimension cap alone let anything up to the decode limit through and
-       re-encoded it at full resolution, at quality 90, inside a serverless
-       function with a fixed memory budget and a wall clock. `storedPixelFit`
-       returns null for every photograph anybody actually uploads, so this is
-       a guard on the pathological case and a no-op on the real one. Read from
-       the rotated metadata, so a portrait shot's EXIF swap is already applied
-       and the numbers are the upright ones. */
-    const upright = await sharpImage(original).rotate().metadata();
-    const areaFit = storedPixelFit(upright.width, upright.height);
+    // orientation baked in. Full resolution is kept for every realistic photo:
+    // `storedResizeBox` is a no-op on anything a phone or a flatbed produces,
+    // and only bounds the pathological case -- an image so large that
+    // re-encoding it at full resolution inside a serverless function is a
+    // memory and wall-clock problem (audit M16), or one wider than WebP can
+    // hold at all. The old path stored the raw original and dodged both, but
+    // the raw original is exactly the EXIF-bearing file we are no longer
+    // willing to publish. `withoutEnlargement` means anything inside the box
+    // is untouched, and `resolveWithObject` gives us the stored dimensions
+    // directly, so there is no orientation swap left to reason about.
+    const box = storedResizeBox(await sharpImage(original).rotate().metadata());
 
     const display = await sharpImage(original)
       .rotate()
-      .resize(
-        areaFit ? areaFit.width : WEBP_MAX_DIM,
-        areaFit ? areaFit.height : WEBP_MAX_DIM,
-        { fit: "inside", withoutEnlargement: true }
-      )
+      .resize(box.width, box.height, { fit: "inside", withoutEnlargement: true })
       .webp({ quality: 90 })
       .toBuffer({ resolveWithObject: true });
     width = display.info.width;
