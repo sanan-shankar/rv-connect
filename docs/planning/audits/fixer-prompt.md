@@ -9,9 +9,16 @@ What binds you. Read CLAUDE.md, AGENTS.md, and docs/TRAPS.md before touching cod
 - No prisma db push. Schema change = edit schema.prisma, dated idempotent file in
   prisma/migrations-manual/, npx prisma generate, apply with
   node scripts/dev/run-sql.mjs <file> AND --env .env.demo <file>.
-- Commit each coherent fix as it passes npm run check. Stage by name, never git add -A.
-  Plain conventional messages, no AI attribution. Work on main. Do NOT push — ask first.
-  (Thirty-two commits from 2026-08-24 are already unpushed: 45f71e6 through ed4d7fa.)
+- **Commit in topic-sized batches, not one per finding.** The last session made 24 commits
+  for 27 findings and that is too many to read. Fix everything in one area — the five test
+  gaps, the notification links, the Visit table — and commit that area as ONE change once
+  npm run check passes on the whole of it. Five to eight commits in a session, each a
+  subject somebody could review in a sitting. Name every finding id the commit closes in
+  its message body, so the history and the ledger agree. Do not batch across unrelated
+  subsystems: a commit nobody can bisect is the other failure mode. Stage by name, never
+  git add -A. Plain conventional messages, no AI attribution. Work on main. Do NOT push —
+  ask first. (Thirty-three commits from 2026-08-24 are already unpushed: 45f71e6
+  through 9f07754.)
 - Verify, don't trust. npm run check after each fix, and confirm runtime-shaped changes live.
   The pattern that works: a throwaway probe at the repo root, run with
   `npx tsx probe-x.mts` (must be .mts — .ts gets the CJS transform and top-level await
@@ -28,10 +35,12 @@ How to work (economy matters).
 - Re-confirm each finding is still real before fixing; concurrent sessions share this tree.
 - For SUSPECTED/NEEDS-LIVE findings, run the named runtime check FIRST — three have been
   refuted that way already and cost nothing.
-- One finding (or duplicate cluster) per commit. Ship the gate with the fix, same commit.
+- Every fix ships its gate, and the gate goes in the same commit as the fix that needs it.
   Pin the property, not a literal — and prove the gate catches the regression by
   temporarily reverting the fix and watching the test fail. Every gate so far was checked
-  that way; several were vacuous until that check exposed them.
+  that way; several were vacuous until that check exposed them. Batching the commits does
+  not batch this: prove each gate as you write it, while the fix is fresh, not in a sweep
+  at the end of the group.
 
 Where things stand. **Phases 1, 2, 3, 4 and 5 are COMPLETE.** 48 ids closed (46 fixed,
 2 refuted). Only Phase 6 remains, plus the owner-only items.
@@ -45,7 +54,10 @@ C-152, C-162, C-171, C-175, C-176, C-177, C-178, C-179. Refuted: C-096, C-055.
 sessions, split by effort rather than by count:
 
 **THIS SESSION (the heavy half).** The five test-quality gaps first — they weaken every
-other gate in the repo — then the 20 remaining actionable Mediums. Roughly 25 items.
+other gate in the repo — then the 20 remaining actionable Mediums. Roughly 25 items in
+something like six commits: the test gaps as one, then the Mediums grouped by the thing
+they touch (auth and purge; notifications and their dead links; the Visit table; the
+directory and profile; the payments and mail edges).
 
   1. **Start here: C-187** (`src/lib/auth.ts:314`) — the credentialVersion session-revocation
      comparison has no test anywhere. It is the mechanism that ends a blocked, deleted or
