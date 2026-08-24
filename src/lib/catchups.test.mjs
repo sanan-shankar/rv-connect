@@ -266,6 +266,28 @@ test("extendPhasePatch: answering moves the answer deadline and re-seeds the buc
   assert.equal(planNextAction(applyPatch(ed, patch), counts(0), NOW).kind, "none");
 });
 
+test("C-028: extending a dormant Round lands in the future, not in the past", () => {
+  /* A Round whose question window closed empty keeps a `questionsCloseAt`
+     weeks old. Extending from that put the new deadline in the past too: the
+     write applied, the Keeper was told it had worked, and the card still said
+     the same thing (audit C-028). */
+  const dormant = edition({ status: "collecting", questionsCloseAt: at(-20 * DAY_MS) });
+  const patch = extendPhasePatch(dormant, 2, NOW);
+  assert.ok(patch.questionsCloseAt.getTime() > NOW.getTime(), "the new deadline is still in the past");
+  assert.equal(patch.questionsCloseAt.getTime(), at(2 * DAY_MS).getTime());
+
+  // The same for an answer window found already closed.
+  const late = edition({ status: "answering", answersCloseAt: at(-3 * DAY_MS) });
+  const answerPatch = extendPhasePatch(late, 1, NOW);
+  assert.equal(answerPatch.answersCloseAt.getTime(), at(DAY_MS).getTime());
+
+  // ...and a live window is still extended from the DEADLINE, which is the
+  // whole point of the original design: "extend by 2 days" moves the date on
+  // the page by two days.
+  const live = edition({ status: "collecting", questionsCloseAt: at(DAY_MS) });
+  assert.equal(extendPhasePatch(live, 2, NOW).questionsCloseAt.getTime(), at(3 * DAY_MS).getTime());
+});
+
 test("extendPhasePatch: nothing left to extend once the window has closed", () => {
   assert.equal(extendPhasePatch(edition({ status: "preparing" }), 1, NOW), null);
   assert.equal(extendPhasePatch(edition({ status: "published" }), 1, NOW), null);

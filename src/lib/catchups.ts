@@ -503,15 +503,23 @@ export function answeringPatch(ed: EditionTiming, now: Date): EditionPatch {
  * `collecting` moves `questionsCloseAt`; `answering` moves `answersCloseAt`
  * and re-seeds the daily bucket, so buying the group more time does not
  * immediately spend it on a reminder saying so.
+ *
+ * From the deadline OR from now, whichever is later (audit C-028). A Round
+ * that went dormant -- its question window closed empty, its one automatic
+ * extension already spent -- keeps a `questionsCloseAt` weeks in the past, and
+ * extending from that put the new deadline in the past too: the write applied,
+ * the Keeper was told it had worked, and nothing whatsoever changed. Extending
+ * a live window still means "the date on the page moves N days", which is the
+ * thing this is careful about.
  */
 export function extendPhasePatch(ed: EditionTiming, days: number, now: Date): EditionPatch | null {
+  const anchor = (t: Date | string | null | undefined): Date =>
+    new Date(Math.max(ms(t) ?? now.getTime(), now.getTime()));
   if (ed.status === "collecting") {
-    const from = ms(ed.questionsCloseAt) ?? now.getTime();
-    return { questionsCloseAt: addDays(new Date(from), days) };
+    return { questionsCloseAt: addDays(anchor(ed.questionsCloseAt), days) };
   }
   if (ed.status === "answering") {
-    const from = ms(ed.answersCloseAt) ?? now.getTime();
-    const answersCloseAt = addDays(new Date(from), days);
+    const answersCloseAt = addDays(anchor(ed.answersCloseAt), days);
     return {
       answersCloseAt,
       remindersSent: withDailyBucket(ed.remindersSent, daysLeftUntil(answersCloseAt, now)),
