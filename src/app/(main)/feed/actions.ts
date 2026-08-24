@@ -20,6 +20,7 @@ import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { escapeLike } from "@/lib/db-text";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
+import { clearPostNotifications } from "@/lib/post-notifications";
 import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
@@ -70,7 +71,13 @@ function parseImageUrls(images: string | null | undefined): string[] {
  * sweep, which is the one path that can still find those bytes once the row
  * naming them is gone.
  */
-async function deletePostWithImages(postId: string, images: string | null): Promise<void> {
+async function deletePostWithImages(
+  postId: string,
+  images: string | null,
+  /* Only so the notifications can be found: the bell rows about a letter and
+     about a feed post carry different links. */
+  kind: string | null
+): Promise<void> {
   const urls = parseImageUrls(images);
   await prisma.$transaction(async (tx) => {
     if (urls.length > 0) {
@@ -80,6 +87,12 @@ async function deletePostWithImages(postId: string, images: string | null): Prom
     }
     await tx.post.delete({ where: { id: postId } });
   });
+  /* The bell rows that pointed at it go with it (C-054). Here rather than at
+     each caller, so a third way to delete a post cannot forget: the link is
+     dead the moment the row is, and a "X replied to your comment" aimed at a
+     deleted letter answers 404 for a year, which is how long notifications
+     are kept. */
+  await clearPostNotifications({ id: postId, kind });
   // Best-effort and after the commit: a slow R2 must not hold a transaction
   // open, and a failure here is already recorded as work to redo.
   await drainPendingImagePurges(urls);
@@ -350,13 +363,13 @@ export async function deleteDraft(postId: string) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, status: true, images: true },
+    select: { authorId: true, status: true, images: true, kind: true },
   });
   if (!post) return { error: "Draft not found" };
   if (post.authorId !== session.user.id) return { error: "Not authorized" };
   if (post.status !== "draft") return { error: "That letter isn't a draft" };
 
-  await deletePostWithImages(postId, post.images);
+  await deletePostWithImages(postId, post.images, post.kind);
   revalidatePath("/letters");
   return { success: true };
 }
@@ -416,7 +429,7 @@ export async function deletePost(postId: string) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { authorId: true, images: true, groupId: true },
+    select: { authorId: true, images: true, groupId: true, kind: true },
   });
 
   if (!post) return { error: "Post not found" };
@@ -433,8 +446,8 @@ export async function deletePost(postId: string) {
   }
   if (!authorized) return { error: "Not authorized" };
 
-  // Delete image files
-  await deletePostWithImages(postId, post.images);
+  // Delete image files (and, inside, the bell rows that pointed at it).
+  await deletePostWithImages(postId, post.images, post.kind);
   revalidatePath(post.groupId ? `/groups/${post.groupId}` : "/feed");
   return { success: true };
 }
@@ -460,6 +473,12 @@ export async function adminRemovePost(postId: string, note?: string) {
   if (!post) return { error: "Post not found" };
 
   await prisma.post.update({ where: { id: postId }, data: { isHidden: true } });
+
+  /* A hidden post refuses everybody but its author and the admins, so every
+     other member's notifications about it now lead to a 404 (C-054). The
+     author's are kept: they can still open it, and what they find there is
+     the moderation notice, which is the point. */
+  await clearPostNotifications({ id: postId, kind: post.kind }, { keepFor: post.authorId });
 
   const trimmedNote = note?.trim();
   if (trimmedNote) await notifyAdminNote(post.authorId, trimmedNote);
