@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { directUploadAvailable, presignImagePut, ownerPrefix } from "@/lib/storage";
-import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
+import { MAX_UPLOAD_BYTES, storedImageFormat } from "@/lib/upload-shared";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { originAllowed } from "@/lib/origin-rule";
@@ -24,14 +24,6 @@ import { originAllowed } from "@/lib/origin-rule";
  * client uses the old proxy-through-the-server path, which has no platform
  * body cap locally.
  */
-
-
-const EXT_BY_TYPE: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
 
 export async function POST(request: Request) {
   // A cross-site page must not be able to spend this cookie (audit M33).
@@ -60,20 +52,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: limited.error }, { status: 429 });
   }
 
-  let body: { kind?: string; contentType?: string; bytes?: number };
+  let body: { kind?: string; contentType?: string; bytes?: number; filename?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 
-  const { kind, contentType, bytes } = body;
+  const { kind, contentType, bytes, filename } = body;
   if (kind !== "post" && kind !== "collection") {
     return NextResponse.json({ error: "Unknown upload kind" }, { status: 400 });
   }
 
-  const ext = contentType ? EXT_BY_TYPE[contentType] : undefined;
-  if (!ext) {
+  // A blank MIME type falls back to the filename; a present, unsupported one
+  // does not (audit C-066).
+  const format = storedImageFormat(contentType, filename);
+  if (!format) {
     // HEIC/HEIF lands here on purpose: sharp's prebuilt binary can't decode
     // it, so it is rejected before any bytes move.
     return NextResponse.json(
@@ -102,13 +96,21 @@ export async function POST(request: Request) {
   const id = createId();
   const target =
     kind === "post"
-      ? { subdir: ownerPrefix("staging", session.user.id), filename: `${id}.${ext}` }
-      : { subdir: ownerPrefix("collection", session.user.id), filename: `${id}-o.${ext}` };
+      ? { subdir: ownerPrefix("staging", session.user.id), filename: `${id}.${format.ext}` }
+      : { subdir: ownerPrefix("collection", session.user.id), filename: `${id}-o.${format.ext}` };
 
   const { key, signedUrl, publicUrl } = await presignImagePut(
     target.subdir,
     target.filename,
-    contentType as string
+    format.contentType
   );
-  return NextResponse.json({ direct: true, key, signedUrl, publicUrl });
+  // The PUT must carry the type it was SIGNED with, which is not necessarily
+  // the one the browser knows about.
+  return NextResponse.json({
+    direct: true,
+    key,
+    signedUrl,
+    publicUrl,
+    contentType: format.contentType,
+  });
 }

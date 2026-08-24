@@ -42,6 +42,54 @@ export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
  */
 export const MAX_PHOTOS_PER_ACCOUNT = 1000;
 
+/**
+ * The four formats the pipeline can decode and store, mapped to the extension
+ * their object key gets and the MIME type the presigned PUT is signed with.
+ *
+ * A browser sometimes hands over a photograph with NO MIME type at all --
+ * which `isImageFile` already accepts on the strength of the filename (audit
+ * Low 41: refusing it "left the member holding a photograph the site would not
+ * take"). The direct-to-R2 path did not: the presign step read the blank type,
+ * found no extension for it, and answered "that photo format isn't supported"
+ * for a perfectly ordinary JPEG (audit C-066). So a blank type falls back to
+ * the name, and only the name -- a type that is present and unsupported (HEIC
+ * above all) is still a refusal, because the bytes really are one we cannot
+ * decode.
+ *
+ * Returns the canonical content type as well as the extension, because that
+ * is what the PUT must be signed with and what the caller must then send: a
+ * blank one would be signed as blank and the object would come back to us
+ * with no type at all.
+ */
+const STORED_IMAGE_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+const STORED_IMAGE_EXTENSIONS: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
+export function storedImageFormat(
+  contentType: string | null | undefined,
+  filename?: string | null
+): { ext: string; contentType: string } | null {
+  const type = (contentType ?? "").trim().toLowerCase();
+  if (type) {
+    const ext = STORED_IMAGE_TYPES[type];
+    return ext ? { ext, contentType: type } : null;
+  }
+  const named = /\.([a-z0-9]+)$/i.exec((filename ?? "").trim());
+  const ext = named ? named[1].toLowerCase() : "";
+  const implied = STORED_IMAGE_EXTENSIONS[ext];
+  return implied ? { ext: ext === "jpeg" ? "jpg" : ext, contentType: implied } : null;
+}
+
 /** The image filename extensions this app can actually process. */
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|bmp|tiff?|hei[cf])$/i;
 

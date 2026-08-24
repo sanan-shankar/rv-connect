@@ -6,6 +6,7 @@ import {
   publicBaseFor,
   describeProcessingError,
   MAX_INPUT_PIXELS,
+  storedImageFormat,
 } from "./upload-shared.ts";
 
 /* Serving moved from pub-*.r2.dev to images.rishivalley.space on 2026-08-21.
@@ -92,4 +93,48 @@ test("a 108MP photo is refused in words that name the way out", async () => {
 test("C-072: 12000x9000 really is over the limit the comment describes", () => {
   // The comment used to claim a full 108MP shot fitted. 12000 * 9000 does not.
   assert.ok(12000 * 9000 > MAX_INPUT_PIXELS);
+});
+
+/* ------------------------------------------------------------------ *
+ *  C-066: a photograph with no MIME type is still a photograph.
+ * ------------------------------------------------------------------ */
+
+test("a blank MIME type falls back to the filename, as isImageFile already does", () => {
+  // The two must agree: the composer's own check accepts these files, so the
+  // presign step refusing them was the site telling a member their ordinary
+  // JPEG was an unsupported format.
+  for (const name of ["IMG_0042.jpg", "holi.JPEG", "scan.png", "loop.gif", "shot.webp"]) {
+    assert.ok(isImageFile({ type: "", name }), `isImageFile refused ${name}`);
+    const format = storedImageFormat("", name);
+    assert.ok(format, `storedImageFormat refused ${name}`);
+    assert.match(format.contentType, /^image\//);
+    assert.ok(!format.ext.includes("."));
+  }
+  assert.deepEqual(storedImageFormat("", "IMG_0042.jpg"), { ext: "jpg", contentType: "image/jpeg" });
+  assert.deepEqual(storedImageFormat("", "holi.JPEG"), { ext: "jpg", contentType: "image/jpeg" });
+});
+
+test("C-066: a type that IS given and cannot be decoded is still refused", () => {
+  assert.equal(storedImageFormat("image/heic", "IMG.heic"), null);
+  assert.equal(storedImageFormat("image/heif", "IMG.heif"), null);
+  assert.equal(storedImageFormat("application/pdf", "deed.pdf"), null);
+  // ...and the name is only consulted when there is no type at all.
+  assert.equal(storedImageFormat("image/heic", "IMG_0042.jpg"), null);
+  // A name that says nothing decodable is refused too.
+  assert.equal(storedImageFormat("", "IMG_0042.heic"), null);
+  assert.equal(storedImageFormat("", "notes"), null);
+  assert.equal(storedImageFormat("", undefined), null);
+  assert.equal(storedImageFormat(undefined, undefined), null);
+});
+
+test("C-066: the type the PUT is signed with is the type the client sends", async () => {
+  // A signature over image/jpeg and a PUT sent as blank is a 403 at R2, so
+  // these two halves have to stay joined.
+  const { readFileSync } = await import("node:fs");
+  const presign = readFileSync(new URL("../app/api/upload/presign/route.ts", import.meta.url), "utf8");
+  const client = readFileSync(new URL("./upload-client.ts", import.meta.url), "utf8");
+  assert.match(presign, /presignImagePut\([\s\S]{0,120}format\.contentType/);
+  assert.match(presign, /contentType: format\.contentType/);
+  assert.match(client, /"Content-Type": presign\.contentType \?\? file\.type/);
+  assert.match(client, /filename: file\.name/);
 });
