@@ -2741,3 +2741,56 @@ a suite that is red for reasons nobody caused is a suite nobody reads.
 
 **Left for the owner.** C-135 (confirm Google Pay / UPI survives `payment=()` with a real test
 payment), C-165/C-166 (PostHog and Sentry free-tier ceilings), C-186 (the demo project's cron env).
+
+## 2026-08-24 (evening) — round-two fix session, phases 3, 4 and 5
+
+Continued the bug-report-2 fix run. Phases 1 and 2 were closed in the earlier
+session; this one closed **Phase 3 (uploads and orphaned bytes), Phase 5
+(client-side races and autosave) and Phase 4 (Catch-ups lifecycle and
+notifications)** — 27 findings in 23 commits, none pushed.
+
+Every fix shipped its gate in the same commit, and every gate was proved by
+reverting the fix and watching the test fail. Where a behaviour could be
+proved against the real database or real R2, it was: a forced R2 refusal
+queueing the right purge row, a two-file upload leaking an object before the
+fix and none after, a photo removed from a draft actually leaving the bucket,
+two concurrent avatar swaps orphaning one object under the old shape and none
+under the new, a 40-day bin dropping off the retention due-list, succession
+promoting the right member, a love notification reaching a member and not a
+leaver.
+
+**Phase 3** — C-063 (staged originals reclaimed on every refusal), C-064 (four
+orphan paths: both upload loops, the photo row, the display+thumb pair, and a
+photo taken off a draft), C-050/C-131 (avatar swap is a compare-and-swap),
+C-069/C-152 (a refused delete leaves a worklist), C-067 (a turned photograph
+keeps its full resolution: 22.7MP → 40.0MP), C-070 (a panorama encodes at
+all), C-072 (too many pixels says so), C-066 (a blank MIME type is still a
+photo), C-073 (every path that flattens an animation says so).
+
+**Phase 5** — C-179/C-071 (Load more drops a stale page and dedupes),
+C-133/C-178/C-010 (one `settledHeart` decision plus in-flight guards across
+all five hearts), C-125 (a second device cannot replace a Catch-up answer).
+
+**Phase 4** — C-020 (rejoining takes it out of the bin), C-021 (an empty Round
+cannot open for answers), C-023 (the hat is handed on before the last head
+leaves), C-144 (a monthly rhythm on the 31st stops skipping a month),
+C-141/C-031 (one valley-day count for every countdown surface), C-025 (the
+revoke no longer strips a group admin), C-026 (the manual nudge is metered),
+C-027 (an answer cannot land in a closed Round), C-028 (extending a dormant
+Round moves its deadline), C-029 (two questions in one slot render stably).
+
+**Owner-visible copy change**: a Catch-up countdown one day out now reads
+"closes tomorrow" where it read "last day", and the bell's one-day-out
+reminder reads "Answers close tomorrow for X's Catch-up." The reminder BUCKET
+is deliberately still counted in 24-hour blocks — it decides whether a nudge
+fires at all — and the ledger says so at C-141.
+
+**Still owed**: Phase 6 (113 Lows and 21 Mediums, including five test-coverage
+holes), and the four owner-only items (C-135, C-165/C-166, C-186). The visual
+suite is red on 8 of 20 routes from live data drift, not code — the diffs are
+whole-page shifts from new content, and the directory, which nothing this
+session touched, is among them. The owner still owes a decision on that.
+
+**Trap learned**: `python3 -c "open(p,'w').write(open(p).read() + x)"` truncates
+the file before it reads it. It emptied `fix-ledger.md` mid-session; rebuilt
+from the last commit plus this session's rows. Read first, then open for write.
