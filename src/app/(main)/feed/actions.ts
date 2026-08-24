@@ -21,6 +21,7 @@ import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
+import { isLetterDraft } from "@/lib/draft-rule";
 
 /** The author fields a rendered comment needs. One copy, two readers. */
 const COMMENT_AUTHOR_SELECT = {
@@ -109,8 +110,16 @@ export async function createPost(formData: FormData) {
      before anything looked at `saveAsDraft` -- so an unverified member could
      not save the letter they were told to keep writing, and the only way to
      keep it was to not close the tab (audit M32). The gate that matters is
-     the one on publishing, which is untouched. */
-  const savingDraft = formData.get("saveAsDraft") === "true";
+     the one on publishing, which is untouched.
+
+     Which is exactly why this asks the SAME question the create asks, through
+     the same predicate: the gate-skip once read the raw flag alone, so a
+     submission with `saveAsDraft=true` and no `kind` skipped the gate here and
+     then stored `status: "published"` down at the create (audit C-122). */
+  const savingDraft = isLetterDraft({
+    kind: formData.get("kind") as string | null,
+    saveAsDraft: formData.get("saveAsDraft") === "true",
+  });
   if (!savingDraft) {
     const gate = await requireVerifiedMember();
     if (!gate.ok) return { error: gate.error };
@@ -200,7 +209,7 @@ export async function createPost(formData: FormData) {
 
   // "Save as draft" only exists for letters; a plain post ignores the flag
   // even if a tampered form field sends it.
-  const isDraft = parsed.data.kind === "letter" && parsed.data.saveAsDraft === true;
+  const isDraft = isLetterDraft(parsed.data);
 
   // Poll options are written in the SAME create as the post, as a nested
   // create, so the post and all of its options land in one transaction (audit
