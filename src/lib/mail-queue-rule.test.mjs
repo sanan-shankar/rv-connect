@@ -81,3 +81,27 @@ test("a provider failure is told apart from a bad address", () => {
     "sendMail has no deadline again; it is awaited inside a page render"
   );
 });
+
+test("the drain's own selection reads the same counters drainEligible does", () => {
+  /* drainEligible (mail-policy.ts) is the callable copy of the where clause
+     below, and the Retry button is tested against it -- so if the two ever
+     part company the test that proves Retry works proves nothing (audit
+     C-102). Pin the join: every field the predicate consults appears in the
+     drain's selection. */
+  const find = queue.slice(queue.indexOf("async function drainWithLease"));
+  for (const field of ["status", "attempts", "deferrals", "nextAttemptAt"]) {
+    assert.ok(
+      new RegExp(`${field}:`).test(find),
+      `the drain no longer selects on ${field}, which drainEligible still weighs`
+    );
+  }
+});
+
+test("the admin Retry writes the shared reset, not a hand-listed one", () => {
+  const retry = decomment(read("src/app/(main)/admin/mail/actions.ts"));
+  assert.ok(/RETRY_RESET/.test(retry), "retryMail hand-lists the columns it resets again");
+  assert.ok(
+    !/data:\s*\{\s*status:\s*"queued"/.test(retry),
+    "retryMail writes its own requeue payload again"
+  );
+});

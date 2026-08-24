@@ -94,6 +94,54 @@ export const MAX_ATTEMPTS = 4;
 export const MAX_DEFERRALS = 10;
 
 /**
+ * Which rows the drain will look at, as a predicate.
+ *
+ * Written out here because the drain's own copy is a Prisma `where` clause and
+ * therefore cannot be called by a test -- and the one thing that has to be
+ * true of the admin panel's Retry button is that the row it produces satisfies
+ * this. It did not: Retry reset `status` and `attempts` and left `deferrals`
+ * alone, so a row retired by a provider outage (deferrals = MAX_DEFERRALS)
+ * came back as `queued` and was never selected again. Worse for a reset, which
+ * folds: every later "forgot my password" for that member folded into the
+ * queued zombie and returned without sending, so the member could never get a
+ * reset email again (audit C-102).
+ */
+export function drainEligible(
+  row: {
+    status: string;
+    attempts: number;
+    deferrals: number;
+    nextAttemptAt: Date | null;
+  },
+  now: Date
+): boolean {
+  if (row.status !== "queued") return false;
+  if (row.attempts >= MAX_ATTEMPTS) return false;
+  if (row.deferrals >= MAX_DEFERRALS) return false;
+  return row.nextAttemptAt === null || row.nextAttemptAt.getTime() <= now.getTime();
+}
+
+/**
+ * What the admin panel's Retry writes.
+ *
+ * Every counter the drain's selection reads, back to the state a fresh row is
+ * in -- which is the whole point of the button and is what makes
+ * `drainEligible` true of the result. Kept beside the predicate rather than
+ * inline in the action so the two are read together and cannot drift.
+ *
+ * `claimedAt` is here too, so a row that died mid-send is not treated as still
+ * owned by some long-gone drain pass.
+ */
+export const RETRY_RESET = {
+  status: "queued",
+  attempts: 0,
+  deferrals: 0,
+  lastError: null,
+  claimedAt: null,
+  nextAttemptAt: null,
+} as const;
+
+/**
  * Resend's error codes for "this is us, not you". Anything else — a malformed
  * address, a rejected API key, a validation error — is a fact about the
  * request that will still be true in five minutes.
