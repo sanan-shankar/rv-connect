@@ -36,6 +36,10 @@ export type AnswerPromptData = {
   /** The asker, or null when submitted anonymously (showAsker=false). */
   asker: AnswerAsker | null;
   entry: AnswerEntryDraft;
+  /** The row version this page was rendered from, or null when the member has
+   *  not answered this prompt yet. Sent back with every save so a second
+   *  device cannot silently replace what the first one wrote (audit C-125). */
+  entryUpdatedAt: string | null;
 };
 
 /** A prompt counts as "shared" once it carries text or a photo. */

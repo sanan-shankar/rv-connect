@@ -156,6 +156,9 @@ const submitEntrySchema = z.object({
   body: z.string().trim().max(6000, "Keep it under 6000 characters.").optional(),
   images: z.array(z.url()).max(3, "Up to 3 photos.").optional(),
   songUrl: z.string().trim().max(2000).optional(),
+  /* The row version this surface last saw (audit C-125). Optional, so a
+     caller that holds none keeps the unconditional upsert it always had. */
+  baseUpdatedAt: z.string().optional(),
 });
 
 // ─── Shared helpers (not exported: a "use server" file may only export async
@@ -1324,6 +1327,7 @@ export async function submitEntry(input: {
   body?: string;
   images?: string[];
   songUrl?: string;
+  baseUpdatedAt?: string;
 }) {
   return runAction(async () => {
     const session = await auth();
@@ -1395,25 +1399,68 @@ export async function submitEntry(input: {
       }
     }
 
-    const entry = await prisma.catchupEntry.upsert({
-      where: { promptId_authorId: { promptId, authorId: session.user.id } },
-      create: {
-        editionId: prompt.editionId,
-        promptId,
-        authorId: session.user.id,
-        body: bodyValue ?? null,
-        images: imagesValue ?? null,
-        songUrl: songPatch?.songUrl ?? null,
-        songTitle: songPatch?.songTitle ?? null,
-        songArt: songPatch?.songArt ?? null,
-      },
-      update: {
-        ...(hasBody ? { body: bodyValue } : {}),
-        ...(hasImages ? { images: imagesValue } : {}),
-        ...(songPatch ? songPatch : {}),
-      },
-      select: { id: true, body: true, images: true, songUrl: true },
-    });
+    /* The lost-update guard, when the caller is holding a row version (audit
+     * C-125, the same instrument editPost carries for M66).
+     *
+     * The answering surface autosaves the whole field on every blur, and the
+     * write had no precondition: a member with the same Round open on a
+     * laptop and a phone who wrote three paragraphs on the laptop, then
+     * touched the still-open phone, had the phone's stale copy silently
+     * replace all of it -- and both surfaces said "Saved".
+     *
+     * `baseUpdatedAt` is the version this surface last saw. If the row has
+     * moved on since, nobody's writing is destroyed: the save is refused and
+     * the stale surface is told to reload. A caller that sends no token keeps
+     * the unconditional upsert. */
+    const base = parsed.data.baseUpdatedAt ? new Date(parsed.data.baseUpdatedAt) : null;
+    if (base && Number.isNaN(base.getTime())) {
+      return { error: "That save could not be checked. Reload and try again." };
+    }
+
+    const key = { promptId_authorId: { promptId, authorId: session.user.id } };
+    const written = {
+      ...(hasBody ? { body: bodyValue } : {}),
+      ...(hasImages ? { images: imagesValue } : {}),
+      ...(songPatch ? songPatch : {}),
+    };
+    const columns = {
+      id: true,
+      body: true,
+      images: true,
+      songUrl: true,
+      updatedAt: true,
+    } as const;
+
+    let entry;
+    if (base) {
+      const moved = await prisma.catchupEntry.updateMany({
+        where: { promptId, authorId: session.user.id, updatedAt: base },
+        data: written,
+      });
+      if (moved.count === 0) {
+        return {
+          error:
+            "This answer has changed somewhere else. Reload the page before you carry on, or your writing here will replace it.",
+        };
+      }
+      entry = await prisma.catchupEntry.findUniqueOrThrow({ where: key, select: columns });
+    } else {
+      entry = await prisma.catchupEntry.upsert({
+        where: key,
+        create: {
+          editionId: prompt.editionId,
+          promptId,
+          authorId: session.user.id,
+          body: bodyValue ?? null,
+          images: imagesValue ?? null,
+          songUrl: songPatch?.songUrl ?? null,
+          songTitle: songPatch?.songTitle ?? null,
+          songArt: songPatch?.songArt ?? null,
+        },
+        update: written,
+        select: columns,
+      });
+    }
 
     /* Erasing everything withdraws you from the Round (audit Low 36).
      *
@@ -1432,11 +1479,19 @@ export async function submitEntry(input: {
     if (!entry.body && !entry.images && !entry.songUrl) {
       await prisma.catchupEntry.deleteMany({ where: { id: entry.id } });
       revalidatePath(`/catchups/${edition.catchupId}/answer`);
-      return { success: true, entryId: null, songWarning };
+      // No row, so no version: the next save creates one afresh.
+      return { success: true, entryId: null, updatedAt: null, songWarning };
     }
 
     revalidatePath(`/catchups/${edition.catchupId}/answer`);
-    return { success: true, entryId: entry.id, songWarning };
+    /* The new version, so the surface that just saved can hold it and keep
+       saving; without this every save after the first would look stale. */
+    return {
+      success: true,
+      entryId: entry.id,
+      updatedAt: entry.updatedAt.toISOString(),
+      songWarning,
+    };
   });
 }
 

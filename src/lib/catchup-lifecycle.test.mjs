@@ -116,3 +116,44 @@ test("B-062: the header does not count down a Catch-up whose clock is stopped", 
     "the page header prints a live countdown over the paused banner again"
   );
 });
+
+test("C-125: a stale device cannot replace an answer written on another one", () => {
+  const src = decomment(read("src/app/(main)/catchups/actions.ts"));
+  const start = src.indexOf("export async function submitEntry(");
+  assert.notEqual(start, -1);
+  const body = src.slice(start, src.indexOf("\nexport async function", start + 10));
+
+  // The precondition: the write only lands if the row still holds the version
+  // the caller last saw. Without `updatedAt: base` in the where clause this is
+  // an ordinary update and the guard is decoration.
+  assert.match(
+    body,
+    /updateMany\(\{\s*where: \{[^}]*updatedAt: base[^}]*\}/,
+    "the version precondition is gone from the entry write"
+  );
+  assert.match(body, /moved\.count === 0/, "a refused save is not detected");
+  assert.match(body, /changed somewhere else/, "a refused save says nothing to the member");
+  // The unconditional upsert survives ONLY for a caller holding no version.
+  assert.ok(
+    body.indexOf("if (base) {") < body.indexOf("catchupEntry.upsert("),
+    "the upsert is no longer behind the version check"
+  );
+  // The new version goes back, or the next save would look stale.
+  assert.match(body, /updatedAt: entry\.updatedAt\.toISOString\(\)/);
+
+  // The same instrument the letters desk carries for M66; if that one is ever
+  // removed this comparison is worth revisiting rather than silently drifting.
+  const feed = decomment(read("src/app/(main)/feed/actions.ts"));
+  assert.match(feed, /updatedAt: base/, "editPost lost the guard this one mirrors");
+});
+
+test("C-125: the answering surface actually sends the version it holds", () => {
+  const experience = decomment(read("src/components/catchups/answer/answer-experience.tsx"));
+  assert.match(experience, /baseUpdatedAt: versions\.current\[promptId\]/);
+  assert.match(experience, /versions\.current\[promptId\] = "updatedAt" in result/);
+  // Seeded from what the page rendered, not from nothing.
+  assert.match(experience, /prompts\.map\(\(p\) => \[p\.id, p\.entryUpdatedAt\]\)/);
+  const page = decomment(read("src/app/(main)/catchups/[catchupId]/answer/page.tsx"));
+  assert.match(page, /entryUpdatedAt: entry\?\.updatedAt\.toISOString\(\) \?\? null/);
+  assert.match(page, /select: \{ promptId: true, body: true, images: true, updatedAt: true \}/);
+});

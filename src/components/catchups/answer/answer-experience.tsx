@@ -117,13 +117,23 @@ export function AnswerExperience({
      prompt, and two prompts cannot overwrite each other. */
   const saveQueues = useRef<Record<string, Promise<void>>>({});
 
+  /* The row version each answer was last seen at, sent with every save so
+     this device cannot silently replace what another one wrote (audit C-125).
+     A ref, not state: it changes on every save and nothing renders from it,
+     and the queue above means the read and the write cannot interleave. */
+  const versions = useRef<Record<string, string | null>>(
+    Object.fromEntries(prompts.map((p) => [p.id, p.entryUpdatedAt]))
+  );
+
   function persist(promptId: string, patch: { body?: string; images?: string[] }) {
     const run = async () => {
       setSaveStatus((s) => ({ ...s, [promptId]: "saving" }));
       // callAction: a rejected save (deploy skew, dropped network, expired
       // session) used to leave this prompt's status stuck on "saving" forever,
       // since neither branch below ever ran (audit B-042).
-      const result = await callAction(() => submitEntry({ promptId, ...patch }));
+      const result = await callAction(() =>
+        submitEntry({ promptId, ...patch, baseUpdatedAt: versions.current[promptId] ?? undefined })
+      );
       if (result && "error" in result) {
         toast.error(result.error);
         // "failed", not "idle": idle renders nothing, and this prompt must
@@ -131,6 +141,9 @@ export function AnswerExperience({
         setSaveStatus((s) => ({ ...s, [promptId]: "failed" }));
         return;
       }
+      // Hold the version this save produced; without it every save after the
+      // first would look stale to the guard.
+      versions.current[promptId] = "updatedAt" in result ? result.updatedAt : null;
       setSaveStatus((s) => ({ ...s, [promptId]: "saved" }));
     };
     const queued = (saveQueues.current[promptId] ?? Promise.resolve()).then(run, run);

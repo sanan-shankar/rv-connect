@@ -224,7 +224,7 @@ export default async function CatchupAnswerPage({
       }),
       prisma.catchupEntry.findMany({
         where: { editionId: edition.id, authorId: session.user.id },
-        select: { promptId: true, body: true, images: true },
+        select: { promptId: true, body: true, images: true, updatedAt: true },
       }),
       prisma.catchupEntry.findMany({
         where: { editionId: edition.id },
@@ -263,6 +263,7 @@ export default async function CatchupAnswerPage({
           body: entry?.body ?? "",
           images: parseJsonArray(entry?.images),
         },
+        entryUpdatedAt: entry?.updatedAt.toISOString() ?? null,
       };
     });
 
