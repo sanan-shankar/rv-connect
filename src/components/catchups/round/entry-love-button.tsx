@@ -10,9 +10,10 @@
  *  heart itself is never forked (spec 3.6 / DESIGN-SYSTEM sec 7).
  * ------------------------------------------------------------------ */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { settledHeart } from "@/lib/heart";
 import { LoveButton } from "@/components/common/love-button";
 import { toggleEntryLove } from "@/app/(main)/catchups/actions";
 
@@ -28,15 +29,30 @@ export function EntryLoveButton({
   const [liked, setLiked] = useState(initialLoved);
   const [count, setCount] = useState(initialCount);
 
+  // One heart in flight at a time; see the matching note in post-card.tsx
+  // (audit C-010/C-178).
+  const busy = useRef(false);
+
   async function handleToggle() {
-    const next = !liked;
-    setLiked(next);
-    setCount((c) => (next ? c + 1 : c - 1));
-    const result = await callAction(() => toggleEntryLove(entryId));
-    if (result && "error" in result && result.error) {
-      setLiked(!next);
-      setCount((c) => (next ? c - 1 : c + 1));
-      toast.error(result.error);
+    if (busy.current) return;
+    const before = { liked, count };
+    setLiked(!before.liked);
+    setCount(before.liked ? before.count - 1 : before.count + 1);
+    busy.current = true;
+    try {
+      const result = await callAction(() => toggleEntryLove(entryId));
+      if (result && "error" in result && result.error) {
+        setLiked(before.liked);
+        setCount(before.count);
+        toast.error(result.error);
+        return;
+      }
+      // What the row says, not what the tap assumed (audit C-133).
+      const settled = settledHeart(before, "loved" in result ? result.loved : undefined);
+      setLiked(settled.liked);
+      setCount(settled.count);
+    } finally {
+      busy.current = false;
     }
   }
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { settledHeart } from "@/lib/heart";
 import { ShieldAlert } from "lucide-react";
 import { toggleLike, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { CommentsSection } from "@/components/posts/comments-section";
@@ -37,25 +38,53 @@ export function LetterEngagement({
   const [commentCount, setCommentCount] = useState(initialCommentCount);
   const [showModeration, setShowModeration] = useState(false);
 
+  /* One of each in flight at a time; the same refs the feed card carries
+     (audit C-010/C-178). */
+  const likeBusy = useRef(false);
+  const bookmarkBusy = useRef(false);
+
   async function handleLike() {
-    const next = !liked;
-    setLiked(next);
-    setLikeCount((c) => (next ? c + 1 : c - 1));
-    const result = await callAction(() => toggleLike(postId));
-    if (result.error) {
-      setLiked(!next);
-      setLikeCount((c) => (next ? c - 1 : c + 1));
-      toast.error(result.error);
+    if (likeBusy.current) return;
+    const before = { liked, count: likeCount };
+    setLiked(!before.liked);
+    setLikeCount(before.liked ? before.count - 1 : before.count + 1);
+    likeBusy.current = true;
+    try {
+      const result = await callAction(() => toggleLike(postId));
+      if (result.error) {
+        setLiked(before.liked);
+        setLikeCount(before.count);
+        toast.error(result.error);
+        return;
+      }
+      /* What the row says, not what the tap assumed. This page is served from
+         Next's client cache on Back, so it can re-mount showing the heart it
+         had BEFORE a like -- and tapping that stale-empty heart removes the
+         like that is really there. Adopting the answer means the heart at
+         least tells the truth about the row (audit C-133). */
+      const settled = settledHeart(before, result.liked);
+      setLiked(settled.liked);
+      setLikeCount(settled.count);
+    } finally {
+      likeBusy.current = false;
     }
   }
 
   async function handleBookmark() {
-    const next = !bookmarked;
-    setBookmarked(next);
-    const result = await callAction(() => toggleBookmark(postId));
-    if (result.error) {
-      setBookmarked(!next);
-      toast.error(result.error);
+    if (bookmarkBusy.current) return;
+    const before = bookmarked;
+    setBookmarked(!before);
+    bookmarkBusy.current = true;
+    try {
+      const result = await callAction(() => toggleBookmark(postId));
+      if (result.error) {
+        setBookmarked(before);
+        toast.error(result.error);
+        return;
+      }
+      setBookmarked(result.bookmarked ?? !before);
+    } finally {
+      bookmarkBusy.current = false;
     }
   }
 

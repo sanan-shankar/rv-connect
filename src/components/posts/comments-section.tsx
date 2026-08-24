@@ -24,6 +24,7 @@ import {
 } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { settledHeart } from "@/lib/heart";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { motion } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
@@ -578,15 +579,30 @@ function CommentItem({
 }) {
   const author = comment.author!;
 
-  async function handleLike() {
-    const newLiked = !comment.liked;
-    const newCount = newLiked ? comment.likeCount + 1 : comment.likeCount - 1;
-    onLikeToggle(comment.id, newLiked, newCount);
+  /* One like in flight at a time; the same ref the feed card carries. The
+     server is idempotent, so a double-tap cannot throw -- but two calls race
+     to decide the row, and the heart used to settle wherever the slower one
+     landed (audit C-010/C-178). */
+  const likeBusy = useRef(false);
 
-    const result = await callAction(() => toggleCommentLike(comment.id));
-    if (result.error) {
-      onLikeToggle(comment.id, comment.liked, comment.likeCount);
-      toast.error(result.error);
+  async function handleLike() {
+    if (likeBusy.current) return;
+    const before = { liked: comment.liked, count: comment.likeCount };
+    onLikeToggle(comment.id, !before.liked, before.liked ? before.count - 1 : before.count + 1);
+
+    likeBusy.current = true;
+    try {
+      const result = await callAction(() => toggleCommentLike(comment.id));
+      if (result.error) {
+        onLikeToggle(comment.id, before.liked, before.count);
+        toast.error(result.error);
+        return;
+      }
+      // What the row says, not what the tap assumed (audit C-133).
+      const settled = settledHeart(before, result.liked);
+      onLikeToggle(comment.id, settled.liked, settled.count);
+    } finally {
+      likeBusy.current = false;
     }
   }
 
