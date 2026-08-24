@@ -129,7 +129,12 @@ export type CatchupPromptView = {
   showAsker: boolean;
   accepted: boolean;
   position: number;
-  /** The asker, or null when submitted anonymously (showAsker=false) and the viewer is not a Keeper. */
+  /** The asker, or null when the question was submitted anonymously
+   *  (showAsker=false). There is no Keeper exception -- a Keeper curates the
+   *  queue without seeing who asked, which is what this comment used to say
+   *  the opposite of while one of the two renderers believed it (audit C-019).
+   *  The author always sees their own name; they are the only person who
+   *  already knows. `askerVisible()` in catchups.ts is the one authority. */
   asker: CatchupPersonRef | null;
 };
 
