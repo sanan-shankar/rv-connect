@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isImageFile, isUploadedImageUrl, publicBaseFor } from "./upload-shared.ts";
+import {
+  isImageFile,
+  isUploadedImageUrl,
+  publicBaseFor,
+  describeProcessingError,
+  MAX_INPUT_PIXELS,
+} from "./upload-shared.ts";
 
 /* Serving moved from pub-*.r2.dev to images.rishivalley.space on 2026-08-21.
    Both have to be recognised: a URL written before the move that the code
@@ -49,4 +55,41 @@ test("a picked file with no MIME type is still an image if the name says so", ()
   assert.equal(isImageFile({ type: "image/webp", name: "x.webp" }), true);
   assert.equal(isImageFile({ type: "", name: "notes.pdf" }), false);
   assert.equal(isImageFile({ type: "application/pdf", name: "x.jpg" }), false);
+});
+
+/* ------------------------------------------------------------------ *
+ *  C-072: too many pixels is not the same refusal as a bad file.
+ * ------------------------------------------------------------------ */
+
+test("a 108MP photo is refused in words that name the way out", async () => {
+  // The message is taken from sharp itself rather than typed from memory, so
+  // an upgrade that rewords it fails here instead of quietly falling through
+  // to "try a different one" -- which is what it did before, sending the
+  // member off to make a JPG export that fails at exactly the same
+  // resolution.
+  const sharp = (await import("sharp")).default;
+  const overSized = await sharp({
+    create: { width: 12000, height: 9000, channels: 3, background: "#235C49" },
+  })
+    .jpeg({ quality: 20 })
+    .toBuffer();
+
+  let thrown;
+  try {
+    await sharp(overSized, { limitInputPixels: MAX_INPUT_PIXELS }).resize(100).toBuffer();
+  } catch (e) {
+    thrown = e;
+  }
+  assert.ok(thrown, "12000x9000 no longer exceeds the decode ceiling");
+
+  const said = describeProcessingError(thrown);
+  assert.notEqual(said, describeProcessingError(new Error("something else entirely")));
+  assert.match(said, /megapixels/);
+  // The number in the sentence is the constant, not a copy of it.
+  assert.ok(said.includes(String(Math.round(MAX_INPUT_PIXELS / 1_000_000))));
+});
+
+test("C-072: 12000x9000 really is over the limit the comment describes", () => {
+  // The comment used to claim a full 108MP shot fitted. 12000 * 9000 does not.
+  assert.ok(12000 * 9000 > MAX_INPUT_PIXELS);
 });

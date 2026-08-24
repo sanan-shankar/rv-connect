@@ -5,6 +5,28 @@
  * (no fs, no server-only imports) so both server and client code can use it.
  */
 
+/**
+ * How large an image may DECODE to, independent of its file size on disk: a
+ * few-kilobyte file can carry a header claiming hundreds of megapixels and,
+ * without this, libvips will try to allocate the whole buffer and take the
+ * serverless function's memory down with it (a decompression bomb). sharp's
+ * own default is ~268MP; ours is far tighter because nothing this community
+ * uploads is a legitimate 268-megapixel image (audit M14).
+ *
+ * 100MP is above every phone's ordinary output (a 108MP sensor bins to ~12MP
+ * JPEGs) and above any flatbed scan of a heritage photograph, while a 100MP
+ * RGBA bitmap is ~400MB, the ceiling we are willing to let one decode reach.
+ * A phone shooting in its full 108MP mode is genuinely OVER it -- the comment
+ * here used to claim otherwise, and the member got told to try a JPG export,
+ * which fails identically (audit C-072). It is refused, and now says so in
+ * words that name the way out.
+ *
+ * Lives in this module rather than beside the sharp pipeline so the sentence
+ * describing the refusal can quote the number without pulling sharp into a
+ * client bundle.
+ */
+export const MAX_INPUT_PIXELS = 100_000_000;
+
 /** The one photo ceiling, everywhere: 20MB. */
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
@@ -175,6 +197,18 @@ export function describeProcessingError(error: unknown): string {
   }
   if (/premature end|truncated|invalid/i.test(message)) {
     return "That photo looks corrupted or only partially uploaded. Please try again.";
+  }
+  /* Too many PIXELS, which is not the same thing as too many megabytes and
+     needs a different sentence. A 108MP phone shot compresses to well under
+     the 20MB limit and passes every size check, then trips
+     `limitInputPixels` at the decode -- and the generic branch below told the
+     member to try a JPG export, which at the same resolution fails in exactly
+     the same way (audit C-072). The number is spelled out because the fix is
+     to scale the photo down, and you cannot do that without knowing to what. */
+  if (/exceeds pixel limit/i.test(message)) {
+    return `That photo is more megapixels than we can process (the limit is about ${Math.round(
+      MAX_INPUT_PIXELS / 1_000_000
+    )} million). Scaling it down a little and re-exporting will work.`;
   }
   /* Not the photo's fault at all.
    *
