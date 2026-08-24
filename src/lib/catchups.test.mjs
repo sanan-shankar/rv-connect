@@ -8,10 +8,18 @@
  *  resolver (with a stubbed fetch), and the P2021 guard. They import the
  *  real functions from catchups.ts; Node strips its type-only imports, so
  *  the impure drivers (which load prisma lazily) are never touched here.
+ *
+ *  One exception at the end: the anonymity sweep reads the renderers off
+ *  disk, because the bug it pins (audit C-019) was a renderer disagreeing
+ *  with a rule that was itself correct.
  * ------------------------------------------------------------------ */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   DAY_MS,
@@ -595,4 +603,52 @@ test("an anonymous question whose asker deleted their account stays anonymous", 
   assert.equal(askerVisible({ showAsker: false, authorId: null }, "anyone"), false);
   // ...and a signed-out reader cannot become the author by both being null.
   assert.equal(askerVisible({ showAsker: false, authorId: null }, null), false);
+});
+
+/* The rule above was already right, and a renderer disagreed with it anyway.
+ * The home page's inline published Round declared `const askerVisible =
+ * p.showAsker || isKeeper` INSIDE its map, which shadowed the imported helper,
+ * so the same Round named its anonymous askers to a Keeper on one page and hid
+ * them on the other (audit C-019). A behavioural test of the helper cannot see
+ * that; only a sweep of the renderers can.
+ *
+ * The three surfaces are .tsx, which node:test cannot load, so this reads
+ * them. It is deliberately about the SHAPE and not the wording: any surface
+ * that hands an `asker` to a view must get the answer from the one helper. */
+
+const CATCHUP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const decomment = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+
+/* Files that DECIDE an asker, not files that merely declare the field: a
+   ternary or a guard on the right of `asker:`. A type declaration reads
+   `asker: AnswerAsker | null;` and has nothing to get wrong. */
+const askerSurfaces = execSync(
+  "git grep -l 'asker:' -- src/app src/components ':!*.test.*'",
+  { cwd: resolve(CATCHUP_ROOT, ".."), encoding: "utf8" }
+)
+  .split("\n")
+  .filter(Boolean)
+  .map((f) => [f, decomment(readFileSync(resolve(CATCHUP_ROOT, "..", f), "utf8"))])
+  .filter(([, src]) => /asker:[\s\S]{0,200}?[?]|asker:[^\n]*&&/.test(src));
+
+test("every surface that names an asker asks the one helper", () => {
+  assert.ok(askerSurfaces.length > 0, "nothing renders an asker; retarget this test");
+  for (const [f, src] of askerSurfaces) {
+    assert.ok(
+      /askerVisible\(/.test(src),
+      `${f} decides who asked without askerVisible()`
+    );
+    // The exact shape that came back: a local binding of the same name, which
+    // shadows the import and silently wins.
+    assert.ok(
+      !/const\s+askerVisible\s*=/.test(src),
+      `${f} shadows the askerVisible helper with a local rule`
+    );
+    // And the exception itself, however it is spelled.
+    assert.ok(
+      !/showAsker\s*\|\|\s*\w*[Kk]eeper/.test(src),
+      `${f} grants a Keeper an exception to anonymity`
+    );
+  }
 });

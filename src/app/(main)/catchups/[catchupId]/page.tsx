@@ -84,8 +84,7 @@ export async function generateMetadata({
  */
 async function loadPublishedIssue(
   editionId: string,
-  viewerId: string,
-  isKeeper: boolean
+  viewerId: string
 ): Promise<PublishedIssue | null> {
   const round = await prisma.catchupEdition.findUnique({
     where: { id: editionId },
@@ -152,7 +151,12 @@ async function loadPublishedIssue(
   });
 
   const sections = round.prompts.map((p) => {
-    const askerVisible = p.showAsker || isKeeper;
+    /* The shared helper, like loadHome above and the standalone Round page.
+       This line used to be its own rule -- `p.showAsker || isKeeper` -- which
+       shadowed the import and put a Keeper exception back into exactly the
+       surface M10 removed it from, so the same Round named its anonymous
+       askers on the home page and hid them on the Round page (audit C-019). */
+    const revealAsker = askerVisible({ showAsker: p.showAsker, authorId: p.author?.id ?? null }, viewerId);
     const prompt: CatchupPromptView = {
       id: p.id,
       text: p.text,
@@ -163,7 +167,7 @@ async function loadPublishedIssue(
       position: p.position,
       // A null author is a member who has since left. Their question stays
       // in the Round (it is what everyone else answered); the byline goes.
-      asker: askerVisible && p.author ? toPersonRef(p.author) : null,
+      asker: revealAsker && p.author ? toPersonRef(p.author) : null,
     };
     const entries: RoundEntry[] = p.entries.map((e) => ({
       id: e.id,
@@ -515,7 +519,7 @@ export default async function CatchupHomePage({
   try {
     result = await loadHome(catchupId, session.user.id);
     if (result.kind === "ok" && result.edition?.status === "published") {
-      issue = await loadPublishedIssue(result.edition.id, session.user.id, result.viewer.isKeeper);
+      issue = await loadPublishedIssue(result.edition.id, session.user.id);
     }
   } catch (err) {
     if (isMissingCatchupTable(err)) {

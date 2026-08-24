@@ -9,7 +9,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseJsonArray, valleyDaysBetween } from "@/lib/utils";
-import { advanceEdition, isMissingCatchupTable, type AdvanceEditionInput } from "@/lib/catchups";
+import {
+  advanceEdition,
+  askerVisible,
+  isMissingCatchupTable,
+  type AdvanceEditionInput,
+} from "@/lib/catchups";
 import { promptKind, type EditionStatus, type PromptCategory } from "@/lib/catchups-types";
 import { PageHeader } from "@/components/layout/page-header";
 import { AlmostReady } from "@/components/catchups/almost-ready";
@@ -247,7 +252,13 @@ export default async function CatchupAnswerPage({
         // The category doubles as the question's kind (photo-wall / songs
         // switch the answering control; everything else writes text).
         kind: promptKind(p.category as PromptCategory | null),
-        asker: p.showAsker ? p.author : null,
+        // The one helper, like every other surface that names an asker. Its
+        // shape is what stops a Keeper exception growing back into one of
+        // them (audit C-019); the difference it makes here is that an
+        // anonymous asker sees their own byline on their own question.
+        asker: askerVisible({ showAsker: p.showAsker, authorId: p.author?.id ?? null }, session.user.id)
+          ? p.author
+          : null,
         entry: {
           body: entry?.body ?? "",
           images: parseJsonArray(entry?.images),
