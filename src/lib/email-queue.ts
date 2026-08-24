@@ -596,10 +596,36 @@ export interface DrainReport {
 /** The named lease one drain pass holds while it sends. */
 const DRAIN_LEASE = "mail-drain";
 
-/** How long a pass may hold the lease before another may take it. Comfortably
- *  longer than BATCH sends at Resend's pace, short enough that a process
- *  killed mid-pass only stalls the queue for half a minute. */
+/** How long a pass may hold the lease before another may take it.
+ *
+ *  Long enough for any single send to finish inside it, short enough that a
+ *  process killed mid-pass only stalls the queue for half a minute. It is
+ *  deliberately NOT long enough for a whole worst-case pass: BATCH sends each
+ *  timing out at SEND_TIMEOUT_MS is 80 seconds, and a lease sized for that
+ *  would leave the queue stalled for that long every time a serverless
+ *  instance was frozen mid-drain.
+ *
+ *  So the pass RENEWS instead (bug-report-2 C-108). The old shape took the
+ *  lease once and never looked at it again: during a Resend brownout -- the
+ *  exact condition the lease exists for -- a pass ran ~80 seconds, the lease
+ *  lapsed at 45, a concurrent page view took it, and two passes ran together,
+ *  reopening the self-inflicted 429 storm and burning deferrals twice as
+ *  fast. */
 const DRAIN_LEASE_MS = 45_000;
+
+/**
+ * Push this pass's lease out by another window, and say whether it is still
+ * ours. False means somebody else took it while we were sending, which is the
+ * one case where a pass must stop mid-loop rather than carry on sending
+ * alongside them.
+ */
+async function renewDrainLease(holder: string): Promise<boolean> {
+  const held = await prisma.queueLease.updateMany({
+    where: { name: DRAIN_LEASE, holder },
+    data: { expiresAt: new Date(Date.now() + DRAIN_LEASE_MS) },
+  });
+  return held.count === 1;
+}
 
 /**
  * Take the drain lease, or return null because somebody else has it.
@@ -666,14 +692,14 @@ export async function drainMailQueue(): Promise<DrainReport> {
   }
 
   try {
-    return await drainWithLease();
+    return await drainWithLease(lease);
   } finally {
     await releaseDrainLease(lease);
   }
 }
 
 /** The pass itself, once this process is the one allowed to send. */
-async function drainWithLease(): Promise<DrainReport> {
+async function drainWithLease(holder: string): Promise<DrainReport> {
   // Reclaim anything a dead process left mid-flight. Logged only when it
   // actually finds something: a reclaimed row is not necessarily a dead
   // process (see the comment on `writeIfStillClaimed` in claimAndSend), so
@@ -702,6 +728,14 @@ async function drainWithLease(): Promise<DrainReport> {
   let failed = 0;
 
   for (let i = 0; i < BATCH; i++) {
+    /* Before every send, not once at the top: a send may take up to
+       SEND_TIMEOUT_MS, and BATCH of them is longer than the lease (C-108).
+       Renewing keeps the one-pass-at-a-time guarantee through a brownout
+       without making the lease so long that a killed process stalls the queue.
+       Losing it means another pass legitimately took over -- stop, rather than
+       send alongside them. */
+    if (!(await renewDrainLease(holder))) break;
+
     const live = await dailyBudget();
     if (live.remaining === 0) break;
 
@@ -778,11 +812,41 @@ export async function mailHealth(): Promise<{
  * it. "It will go out tomorrow" is the kind of vague reassurance that reads as
  * a brush-off; a real clock time is a promise somebody can check.
  */
-export function nextBudgetResetAt(): Date {
+export function nextBudgetResetAt(daysForward = 1): Date {
   const now = new Date();
   return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysForward),
   );
+}
+
+/** How many confirmations a single day's budget can carry, after the reserve
+ *  the reset and security mail keeps for itself. */
+const VERIFY_PER_DAY = Math.max(1, DAILY_CAP - RESET_RESERVE);
+
+/**
+ * When THIS confirmation actually goes out, counting the queue in front of it.
+ *
+ * The banner prints this as a clock time -- "Your link goes out tomorrow at
+ * 5:30 am" -- and it used to be the next UTC midnight for everybody, with no
+ * queue-depth term at all. The drain is oldest-first, so on a launch day with
+ * 300 signups the person at position 200 was told "tomorrow" and waited three
+ * days (bug-report-2 C-161). A promise a member can watch fail is worse than a
+ * vaguer one that holds.
+ *
+ * Counted, not estimated: the rows ahead are the queued verify rows older than
+ * this one, which is exactly the order drainWithLease sends in.
+ */
+async function verifySendingAt(row: { id: string; createdAt: Date }): Promise<Date> {
+  const ahead = await prisma.outboundEmail.count({
+    where: {
+      status: "queued",
+      kind: "verify",
+      attempts: { lt: MAX_ATTEMPTS },
+      deferrals: { lt: MAX_DEFERRALS },
+      OR: [{ createdAt: { lt: row.createdAt } }, { createdAt: row.createdAt, id: { lt: row.id } }],
+    },
+  });
+  return nextBudgetResetAt(Math.floor(ahead / VERIFY_PER_DAY) + 1);
 }
 
 export type VerificationMailState =
@@ -856,6 +920,9 @@ export async function verificationMailState(
       status: true,
       sentAt: true,
       nextAttemptAt: true,
+      // For the queue-position arithmetic below, which is what makes the
+      // banner's "goes out at" honest on a busy day.
+      createdAt: true,
     },
   });
 
@@ -871,7 +938,7 @@ export async function verificationMailState(
 
   const budget = await dailyBudget();
   if (budget.verifyRemaining <= 0) {
-    return { state: "queued", sendingAt: nextBudgetResetAt() };
+    return { state: "queued", sendingAt: await verifySendingAt(row) };
   }
 
   // Budget is available, so nothing may sit queued: send it now. "lost-claim"
