@@ -18,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
+import { PAYABLE_FROM } from "@/lib/contribution-state";
 import { rateLimit } from "@/lib/rate-limit";
 import { createOrder, razorpayKeyId, razorpayLivemode, verifyPaymentSignature } from "@/lib/razorpay";
 import { PERK_MIN_PAISE, WEARABLE_SLUGS } from "@/components/support/plate-data";
@@ -178,12 +179,19 @@ export async function confirmContribution(input: {
     return { error: "That payment belongs to a different account." };
   }
 
-  if (contribution.status !== "paid") {
-    await prisma.contribution.update({
-      where: { id: contribution.id },
-      data: { status: "paid", razorpayPaymentId: paymentId, paidAt: new Date() },
-    });
-  }
+  /* Positively: the states the money can arrive FROM. "Not already paid" was
+     the same hole the webhook carried -- "refunded" and "disputed" are not
+     "paid" either, and the idempotency token here is the HMAC triple, which
+     has no expiry and was handed to the payer's own browser at checkout. So a
+     member who gave, spent the bird pick, then obtained a refund could replay
+     their saved triple and put the row back on "paid" with a fresh paidAt: the
+     returned money re-counted everywhere and a second pick was minted (audit
+     C-085). Conditional rather than check-then-write for the same reason the
+     webhook's is: the two race for the same row. */
+  await prisma.contribution.updateMany({
+    where: { id: contribution.id, status: { in: [...PAYABLE_FROM] } },
+    data: { status: "paid", razorpayPaymentId: paymentId, paidAt: new Date() },
+  });
 
   return { ok: true };
 }
