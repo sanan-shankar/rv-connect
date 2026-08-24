@@ -6,7 +6,6 @@ import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
 import {
   putImage,
-  delImage,
   getImageBuffer,
   headObjectSize,
   keyBelongsTo,
@@ -701,12 +700,10 @@ export async function adminRemovePhoto(photoId: string, note?: string) {
 
   await prisma.photo.update({ where: { id: photoId }, data: { isHidden: true } });
 
-  // The row survives (structure + note); the retrievable bytes do not.
-  await Promise.all([
-    delImage(photo.thumbUrl),
-    delImage(photo.url),
-    delImage(photo.originalUrl),
-  ]);
+  // The row survives (structure + note); the retrievable bytes do not. A
+  // delete storage refuses is queued for the nightly drain rather than logged
+  // and forgotten -- "removed by a moderator" has to mean it (audit C-069).
+  await purgeImageUrls([photo.thumbUrl, photo.url, photo.originalUrl], "moderation");
 
   const trimmedNote = note?.trim();
   if (trimmedNote) await notifyAdminNote(photo.uploaderId, trimmedNote);

@@ -8,7 +8,9 @@ import { DELETION_GRACE_DAYS } from "@/lib/account-purge";
 import { enqueueMail } from "@/lib/email-queue";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
-import { putImage, delImage, ownerPrefix } from "@/lib/storage";
+import { putImage, ownerPrefix } from "@/lib/storage";
+import { purgeImageUrls } from "@/lib/image-purge";
+import { swapPhotoUrl } from "@/lib/avatar-swap";
 import { sharpImage } from "@/lib/image";
 import {sniffImageType, describeProcessingError, isImageFile} from "@/lib/upload-shared";
 import { profileSchema } from "@/lib/validators";
@@ -244,16 +246,16 @@ export async function updateAvatar(formData: FormData) {
     return { error: describeProcessingError(e) };
   }
 
-  // Replace any prior uploaded photo, best-effort.
-  const prev = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { photoUrl: true },
-  });
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { photoUrl: url },
-  });
-  if (prev?.photoUrl && prev.photoUrl !== url) await delImage(prev.photoUrl);
+  const swap = await swapPhotoUrl(session.user.id, url);
+  if (!swap.ok) {
+    // Nothing points at what we just stored, so it goes back rather than
+    // sitting in a bucket nothing can list.
+    await purgeImageUrls([url], "avatar");
+    return { error: "That did not save. Try it once more." };
+  }
+  if (swap.previous && swap.previous !== url) {
+    await purgeImageUrls([swap.previous], "avatar");
+  }
 
   revalidatePath(`/profile/${session.user.id}`);
   return { success: true, photoUrl: url };
@@ -263,15 +265,9 @@ export async function removeAvatar() {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
-  const prev = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { photoUrl: true },
-  });
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { photoUrl: null },
-  });
-  if (prev?.photoUrl) await delImage(prev.photoUrl);
+  const swap = await swapPhotoUrl(session.user.id, null);
+  if (!swap.ok) return { error: "That did not save. Try it once more." };
+  if (swap.previous) await purgeImageUrls([swap.previous], "avatar");
 
   revalidatePath(`/profile/${session.user.id}`);
   return { success: true };

@@ -28,8 +28,11 @@ const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/
  *  keyword, never on the bare name: a file that imports a symbol and
  *  also calls it will hand an indexOf-on-the-name search the IMPORT
  *  line, and every assertion after that passes against nothing. */
-function blockAt(src, from) {
-  const open = src.indexOf("{", from);
+function blockAt(src, from, bodyBrace = false) {
+  /* `bodyBrace` skips a return-type annotation: `): Promise<{ ok: true }> {`
+     has TWO opening braces after the parameter list and the first one is the
+     type. A function body's brace is the one that ends its line. */
+  const open = bodyBrace ? from + src.slice(from).search(/\{[ \t]*\r?\n/) : src.indexOf("{", from);
   let depth = 0;
   for (let i = open; i < src.length; i++) {
     if (src[i] === "{") depth++;
@@ -41,7 +44,7 @@ function blockAt(src, from) {
 function bodyOf(src, name) {
   const decl = src.indexOf(`function ${name}(`);
   assert.notEqual(decl, -1, `${name} not found`);
-  return blockAt(src, src.indexOf(")", decl)).body;
+  return blockAt(src, src.indexOf(")", decl), true).body;
 }
 
 /* ---- C-063: the staged direct-upload original ------------------- */
@@ -184,4 +187,55 @@ test("C-064: reordering or re-adding a photo drops nothing", () => {
   assert.deepEqual(droppedImages([], [a]), []);
   // The same URL twice on the old row is let go once per entry it lost.
   assert.deepEqual(droppedImages([a, a], [a]), []);
+});
+
+/* ---- C-069/C-152: a delete that fails leaves a worklist behind --- */
+
+import { readdirSync } from "node:fs";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SRC = fileURLToPath(new URL("..", import.meta.url));
+
+function walk(dir, acc = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "generated" || entry.name === "node_modules") continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) walk(full, acc);
+    else if (/\.tsx?$/.test(entry.name)) acc.push([relative(SRC, full), readFileSync(full, "utf8")]);
+  }
+  return acc;
+}
+
+test("C-069: nothing calls delImage directly except the two places allowed to", () => {
+  // `delImage` answers false and logs; that boolean was discarded at four
+  // sites, so a bad minute at R2 left "removed" bytes live at a permanent
+  // public URL with nothing able to enumerate them and nothing to retry.
+  // Everywhere else now goes through purgeImageUrls, which queues a failure.
+  const allowed = new Set([
+    "lib/storage.ts", // where it is defined
+    "lib/image-purge.ts", // the wrapper that queues on failure
+    "lib/account-purge.ts", // the drain itself, which reads the boolean
+  ]);
+  const callers = walk(SRC)
+    .filter(([, src]) => /(?<![A-Za-z])delImage\(/.test(code(src)))
+    .map(([f]) => f)
+    .filter((f) => !allowed.has(f));
+  assert.deepEqual(callers, []);
+});
+
+test("C-050: the avatar swap is one decision, not a read and a later write", () => {
+  const settings = code(read("../components/settings/actions.ts"));
+  const swap = code(read("./avatar-swap.ts"));
+  // Compare-and-swap: the update only lands if the row still holds what was
+  // read, so two concurrent uploads supersede different URLs.
+  const body = bodyOf(swap, "swapPhotoUrl");
+  assert.ok(body.includes("photoUrl: row.photoUrl"), "the precondition is gone");
+  assert.ok(body.includes("updateMany"), "an unconditional update cannot detect the race");
+  assert.ok(/if \(swapped\.count > 0\) return \{ ok: true, previous: row\.photoUrl \}/.test(body));
+  // Both avatar writes go through it, and neither reads the previous URL itself.
+  assert.equal([...settings.matchAll(/await swapPhotoUrl\(/g)].length, 2);
+  assert.equal([...settings.matchAll(/select: \{ photoUrl: true \}/g)].length, 0);
+  // A lost swap takes its own upload back rather than leaving it unreferenced.
+  assert.ok(/if \(!swap\.ok\) \{[\s\S]*?purgeImageUrls\(\[url\]/.test(settings));
 });
