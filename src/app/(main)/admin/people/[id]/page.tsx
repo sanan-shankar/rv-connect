@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireAdminPage } from "@/lib/admin";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 import { PersonDetail } from "@/components/admin/people/person-detail";
 import { PUBLISHED_ONLY } from "@/lib/posts";
 
@@ -68,7 +69,7 @@ export default async function AdminPersonPage({
     prisma.comment.count({ where: { authorId: id, isHidden: false } }),
     prisma.photo.count({ where: { uploaderId: id, isHidden: false } }),
     prisma.contribution.aggregate({
-      _sum: { amount: true },
+      _sum: CONTRIBUTION_SUM,
       _count: true,
       // livemode, like every other money surface. This database is shared by
       // production and local dev, and a Razorpay test order is
@@ -125,7 +126,7 @@ export default async function AdminPersonPage({
         comments,
         photos,
         contributionCount: contributions._count,
-        contributionPaise: contributions._sum.amount ?? 0,
+        contributionPaise: netPaise(contributions._sum),
         reportsAgainst,
       }}
       mail={mail.map((m) => ({
