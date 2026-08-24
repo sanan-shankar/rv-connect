@@ -187,3 +187,32 @@ test("M1: updateProfileField whitelists the column before writing", () => {
   assert.ok(updateAt !== -1, "updateProfileField no longer writes the row");
   assert.ok(guardAt < updateAt, "the field allowlist runs after the write");
 });
+
+/* ------------------------------- C-198: analytics never sees a session token */
+
+test("the analytics proxy strips cookies before the rewrite", () => {
+  /* posthog-js fires at the same-origin /ingest path, so the browser attaches
+     every cookie this site has set -- including the HttpOnly session token --
+     and the rewrite hands the whole request to PostHog. Proved with a local
+     echo server standing in for the destination: a signed-in browser's
+     /ingest requests arrived carrying the full authjs.session-token before
+     this, and none after. PostHog identifies events from the payload, never
+     from our cookies; a real event still returns 200 Ok with them gone. */
+  const src = decomment(read("src/proxy.ts"));
+  const branch = src.slice(src.indexOf("export function proxy"));
+  const ingestAt = branch.search(/pathname\.startsWith\(["']\/ingest\//);
+  assert.ok(ingestAt !== -1, "the proxy no longer recognises the analytics path");
+  const strip = branch.slice(ingestAt, ingestAt + 400);
+  assert.match(strip, /headers\.delete\(["']cookie["']\)/, "the analytics branch no longer strips the cookie header");
+  assert.match(
+    strip,
+    /NextResponse\.next\(\{\s*request:\s*\{\s*headers/,
+    "the stripped headers are not passed on to the rewrite, so nothing changes"
+  );
+
+  /* Before the auth branches, or a signed-out /ingest request would be
+     redirected to /login and the strip would never run for a signed-in one
+     either -- it has to be the first thing this function decides. */
+  const authAt = branch.search(/publicPaths/);
+  assert.ok(authAt === -1 || ingestAt < authAt, "the cookie strip runs after the auth routing");
+});
