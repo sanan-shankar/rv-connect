@@ -1,3 +1,6 @@
+import { cityScopeWhere } from "@/lib/city-scope";
+import { batchTargetKey } from "@/lib/post-visibility-rule";
+
 /**
  * Shared Post query fragments.
  *
@@ -58,3 +61,43 @@ export function batchScopeWhere(key: string | null) {
  * Nothing is deleted. Unblocking puts every one of these back.
  */
 export const AUTHOR_IN_GOOD_STANDING = { author: { isBlocked: false } } as const;
+
+/**
+ * The audience half of "which posts may this viewer see": the city arm and
+ * the batch arm, composed exactly once.
+ *
+ * These two fragments used to be assembled by hand at every call site, and
+ * the profile page's copy had drifted -- it carried the city arm without the
+ * author's self-exemption, and no batch arm at all, while the tab list beside
+ * it went through loadPosts and had both. So the count and the list on one
+ * screen answered different questions, and a batch-targeted post could reach
+ * the Photos grid of somebody outside its audience (bug-report-2 C-004).
+ *
+ * Returns `AND` and `OR` keys ready to spread into a Post where-clause, or to
+ * merge into a caller that is building its own (loadPosts adds its search
+ * clause to the same AND array). Two deliberate asymmetries, both inherited
+ * from loadPosts and neither invented here:
+ *
+ *  - the CITY arm is skipped for an admin, who sees every city;
+ *  - the BATCH arm is not, because a batch-targeted post is addressed to a
+ *    batch rather than withheld from a moderator, and /admin/content is where
+ *    an admin reads everything.
+ *
+ * The author's self-exemption is in both arms: the author is not part of
+ * their own audience, they are its source (audit M30).
+ */
+export function audienceWhere(
+  viewer: { id: string; role?: string | null; batchType?: string | null; batchYear?: number | null },
+  viewerCities: string[]
+): { AND?: Record<string, unknown>[]; OR: Record<string, unknown>[] } {
+  const isAdmin = viewer.role === "admin";
+  return {
+    ...(isAdmin
+      ? {}
+      : { AND: [{ OR: [cityScopeWhere(viewerCities), { authorId: viewer.id }] }] }),
+    OR: [
+      ...batchScopeWhere(batchTargetKey(viewer.batchType ?? null, viewer.batchYear ?? null)).OR,
+      { authorId: viewer.id },
+    ],
+  };
+}

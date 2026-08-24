@@ -133,6 +133,27 @@ export function cityCoords(raw: string | null | undefined): [number, number] | n
  * compare case-insensitively. When the city is not in the gazetteer, the result
  * is just the normalized input itself.
  */
+/**
+ * Every string a city FILTER must compare a stored row against.
+ *
+ * The value the member picked comes first and untouched, because every city
+ * the directory offers -- the facet dropdown, the chips, the map's "See all"
+ * -- is a string read straight back out of `UserPlace.city`. `cityNameVariants`
+ * below normalizes: it folds accents and drops a comma-qualified tail, so
+ * "Zürich" leaves as "zurich" and "Northfield, Minnesota" as "northfield".
+ * The comparison then runs against the RAW column under Postgres's
+ * case-insensitive mode, which folds case only and never accents -- so the one
+ * chip naming a member's city led to an empty page (bug-report-2 C-091,
+ * reproduced live). Matching the picked value literally is the narrowest
+ * possible addition and the one that always works; the folded variants stay
+ * beside it for the genuinely different names of one place.
+ */
+export function cityFilterTargets(raw: string | null | undefined): string[] {
+  const picked = (raw ?? "").trim();
+  if (!picked) return [];
+  return [...new Set([picked, ...cityNameVariants(picked)])];
+}
+
 export function cityNameVariants(raw: string | null | undefined): string[] {
   if (!raw) return [];
   const key = normalizeCity(raw);

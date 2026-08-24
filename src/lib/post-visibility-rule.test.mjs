@@ -367,3 +367,62 @@ test("no page refuses a post ahead of the rule", () => {
     }
   }
 });
+
+
+/* ------------------------------------------------------------------ *
+ *  A count and the list beside it answer the same question.
+ *
+ *  The profile page hand-copied the audience half of loadPosts' where-clause
+ *  and the copy drifted: no batch arm, a city arm with no author
+ *  self-exemption, no author-standing filter. So the number on a tab
+ *  disagreed with the list underneath it, and a batch-targeted photo reached
+ *  the Photos grid of somebody outside its audience (bug-report-2 C-004).
+ *
+ *  Shape-checked because both files import through the `@/` alias, which the
+ *  unit gate's plain `node` cannot resolve. What is pinned is the property
+ *  that made the drift possible: neither surface may build those arms itself.
+ * ------------------------------------------------------------------ */
+
+/** One exported function's source, from its declaration to the next one. */
+function section(src, name) {
+  const start = src.indexOf(`export async function ${name}`);
+  assert.ok(start > -1, `${name} is gone`);
+  const next = src.indexOf("\nexport ", start + 1);
+  return next === -1 ? src.slice(start) : src.slice(start, next);
+}
+
+const AUDIENCE_SURFACES = [
+  ["src/app/(main)/feed/actions.ts", "loadPosts", "the feed and every authorId list it serves"],
+  ["src/app/(main)/profile/[id]/page.tsx", null, "the profile's tab counts and Photos grid"],
+];
+
+test("every audience-filtered surface composes its arms from one builder", () => {
+  for (const [file, fn, what] of AUDIENCE_SURFACES) {
+    const whole = decomment(readFileSync(resolve(ROOT, file), "utf8"));
+    const src = fn ? section(whole, fn) : whole;
+    assert.match(
+      src,
+      /audienceWhere\s*\(/,
+      `${file} (${what}) no longer builds its audience from the shared fragment`
+    );
+    // ...and does not rebuild either arm alongside it, which is exactly how
+    // the two came to disagree.
+    assert.ok(
+      !/cityScopeWhere\s*\(/.test(src),
+      `${file} composes the city arm by hand again; audienceWhere owns it`
+    );
+    assert.ok(
+      !/batchScopeWhere\s*\(/.test(src),
+      `${file} composes the batch arm by hand again; audienceWhere owns it`
+    );
+  }
+});
+
+test("the profile applies the author-standing filter the feed applies", () => {
+  // Without it an admin reading a blocked member's profile is shown a count
+  // of eleven above an empty list -- the same disagreement, from the other end.
+  const src = decomment(readFileSync(resolve(ROOT, "src/app/(main)/profile/[id]/page.tsx"), "utf8"));
+  const where = src.slice(src.indexOf("const visiblePostsWhere"), src.indexOf("const [postCount"));
+  assert.match(where, /AUTHOR_IN_GOOD_STANDING/, "the profile's post set no longer filters on the author's standing");
+  assert.match(where, /audienceWhere\s*\(/, "the profile's post set no longer carries the audience arms");
+});

@@ -1,4 +1,4 @@
-import { cityNameVariants } from "@/lib/city-coords";
+import { cityFilterTargets } from "@/lib/city-coords";
 // The one definition of the Postgres-only `mode: "insensitive"` gate (audit
 // R6: this file used to carry its own copy, which is the drift-by-copy-paste
 // pattern that produced M18 for real).
@@ -66,7 +66,9 @@ export function buildDirectoryWhere(filters: DirectoryFilters): Record<string, u
     // A person counts for a city filter if ANY of their (unlimited) cities
     // match -- not just a primary one -- so this is a `places.some` EXISTS,
     // not an equality on a single column.
-    const variants = cityNameVariants(filters.city);
+    /* The picked value first, then the folded variants -- see
+       cityFilterTargets, which is where the reasoning lives. */
+    const variants = cityFilterTargets(filters.city);
     const targets = variants.length > 0 ? variants : [filters.city];
     /* `equals`, not `contains` (audit Low 69). This is a FILTER -- the value
        comes from a city already on somebody's profile, chosen from a chip or a
