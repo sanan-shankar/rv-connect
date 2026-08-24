@@ -32,6 +32,9 @@ import {
   nextEditionStatus,
   planNextAction,
   addCadenceGap,
+  answerReminderMessage,
+  answersCloseSentence,
+  valleyDaysLeft,
   addDays,
   roundLabel,
   catchupTitle,
@@ -476,8 +479,15 @@ test("describeEditionStatus: readable per-status copy", () => {
     editionCountdownLabel({ status: "collecting", questionsCloseAt: at(3 * DAY_MS) }, NOW),
     "3 days left"
   );
+  /* A deadline 24 hours out is TOMORROW's, not today's: this asserted "last
+     day" until C-031, which is the day-early claim that started the whole
+     disagreement. "last day" now means the valley day the Round closes on. */
   assert.equal(
     editionCountdownLabel({ status: "answering", answersCloseAt: at(DAY_MS) }, NOW),
+    "closes tomorrow"
+  );
+  assert.equal(
+    editionCountdownLabel({ status: "answering", answersCloseAt: at(2 * 3_600_000) }, NOW),
     "last day"
   );
   assert.equal(editionCountdownLabel({ status: "published" }, NOW), null);
@@ -688,4 +698,87 @@ test("every surface that names an asker asks the one helper", () => {
       `${f} grants a Keeper an exception to anonymity`
     );
   }
+});
+
+/* ------------------------------------------------------------------ *
+ *  C-141 / C-031: every surface names the same last day.
+ *
+ *  Three surfaces printed the same deadline from two different
+ *  arithmetics -- the index card, the masthead and the bell counted
+ *  24-hour blocks, the answer page counted IST calendar days -- so with
+ *  a Round closing at 07:30 IST the bell said "Last day to answer" from
+ *  half past seven the MORNING BEFORE, one tap away from a page saying
+ *  "Answers close tomorrow".
+ * ------------------------------------------------------------------ */
+
+/** 07:30 IST is where the 02:00 UTC cron puts a close; the old count
+ *  crossed there, and the valley's day crosses at IST midnight. */
+const CLOSE = new Date("2026-06-15T02:00:00.000Z"); // 07:30 IST on the 15th
+const iso = (s) => new Date(s);
+
+test("C-141: the countdown, the page sentence and the bell agree, hour by hour", () => {
+  // Every hour of the four days running up to the close.
+  for (let h = 1; h <= 96; h++) {
+    const now = new Date(CLOSE.getTime() - h * 3_600_000);
+    const days = valleyDaysLeft(CLOSE, now);
+    const label = editionCountdownLabel({ status: "answering", answersCloseAt: CLOSE }, now);
+    const page = answersCloseSentence(CLOSE, now);
+    const bell = answerReminderMessage("Batch of '23", CLOSE, now);
+
+    if (days === 0) {
+      assert.equal(label, "last day", `${now.toISOString()}`);
+      assert.equal(page, "Answers close today.");
+      assert.match(bell, /^Last day to answer/);
+    } else if (days === 1) {
+      assert.equal(label, "closes tomorrow");
+      assert.equal(page, "Answers close tomorrow.");
+      assert.match(bell, /^Answers close tomorrow/);
+    } else {
+      assert.equal(label, `${days} days left`);
+      assert.equal(page, `Answers close in ${days} days.`);
+      assert.match(bell, new RegExp(`^${days} days left`));
+    }
+  }
+});
+
+test("C-031: 'last day' means the day it closes, not the day before", () => {
+  // 07:31 IST on the 14th: 24 hours out. The old arithmetic said "last day".
+  assert.equal(valleyDaysLeft(CLOSE, iso("2026-06-14T02:01:00.000Z")), 1);
+  assert.equal(
+    editionCountdownLabel({ status: "answering", answersCloseAt: CLOSE }, iso("2026-06-14T02:01:00.000Z")),
+    "closes tomorrow"
+  );
+  // 00:30 IST on the 15th (19:00 UTC on the 14th) is the last day, and every
+  // surface now says so -- the old count still called it 1, which it rendered
+  // as "last day" too, but only by accident of the same threshold.
+  const justAfterValleyMidnight = iso("2026-06-14T19:00:00.000Z");
+  assert.equal(valleyDaysLeft(CLOSE, justAfterValleyMidnight), 0);
+  assert.equal(answersCloseSentence(CLOSE, justAfterValleyMidnight), "Answers close today.");
+  // Past it: a transition, not a countdown.
+  assert.equal(valleyDaysLeft(CLOSE, iso("2026-06-15T03:00:00.000Z")), null);
+  assert.equal(answersCloseSentence(CLOSE, iso("2026-06-15T03:00:00.000Z")), "Answers are closing.");
+});
+
+test("C-141: the reminder BUCKET still counts 24-hour blocks", () => {
+  // Deliberate: daysLeftUntil keys the once-a-day bucket and decides who a
+  // "last day only" member is. Changing the sentence must not re-time a
+  // single nudge, so this is the one count that stays a duration.
+  assert.equal(daysLeftUntil(CLOSE, iso("2026-06-14T02:01:00.000Z")), 1);
+  assert.equal(valleyDaysLeft(CLOSE, iso("2026-06-14T02:01:00.000Z")), 1);
+  // ...and they genuinely differ, which is why this test exists.
+  assert.equal(daysLeftUntil(CLOSE, iso("2026-06-13T19:00:00.000Z")), 2);
+  assert.equal(valleyDaysLeft(CLOSE, iso("2026-06-13T19:00:00.000Z")), 1);
+});
+
+test("C-141: nothing prints a countdown from a raw millisecond gap any more", async () => {
+  const { readFileSync } = await import("node:fs");
+  const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
+  // The answer page and the bell both take their words from the shared pair.
+  assert.match(
+    read("../app/(main)/catchups/[catchupId]/answer/page.tsx"),
+    /return answersCloseSentence\(at, new Date\(\)\);/
+  );
+  assert.match(read("./catchups-notify.ts"), /answerReminderMessage\(ctx\.groupName, ctx\.closesAt/);
+  // ...and the deadline actually reaches the bell.
+  assert.match(read("./catchups.ts"), /closesAt: before\.answersCloseAt,/);
 });

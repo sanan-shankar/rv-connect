@@ -18,6 +18,7 @@
  * ------------------------------------------------------------------ */
 
 import { randomUUID } from "node:crypto";
+import { valleyDaysBetween } from "./utils.ts";
 import type {
   Cadence,
   CatchupNotifyKind,
@@ -714,13 +715,70 @@ export function planNextAction(ed: EditionTiming, counts: EditionCounts, now: Da
 
 // ─── Friendly status copy (shared so every surface reads the same) ────────────
 
-function daysUntilLabel(t: Date | string | null | undefined, now: Date): string | null {
-  const m = ms(t);
+/**
+ * Calendar days left before a deadline, counted in the valley's own days --
+ * 0 meaning "it closes today" -- or null once it has passed.
+ *
+ * Every member-facing countdown goes through this, because they used to
+ * disagree. The index card, the masthead and the bell counted 24-hour blocks
+ * (`Math.ceil` on the millisecond gap) while the answer page counted IST
+ * calendar days, so with a deadline at 07:30 IST the bell said "Last day to
+ * answer" from half past seven the MORNING BEFORE, and the page one click
+ * away said "Answers close tomorrow" (audits C-141/C-031). One frame, and it
+ * is the school's, for the same reason every timestamp on the site is.
+ *
+ * Deliberately NOT used for `daysLeftUntil`, which keys the once-a-day
+ * reminder bucket: that arithmetic decides WHETHER a reminder fires and when,
+ * and changing it here would quietly re-time every nudge. This is the count
+ * the copy says out loud; that one is the clock.
+ */
+export function valleyDaysLeft(
+  closeAt: Date | string | null | undefined,
+  now: Date
+): number | null {
+  const m = ms(closeAt);
   if (m == null) return null;
-  const diff = m - now.getTime();
-  if (diff <= 0) return "closing";
-  const days = Math.ceil(diff / DAY_MS);
-  if (days <= 1) return "last day";
+  if (m - now.getTime() <= 0) return null;
+  return Math.max(0, valleyDaysBetween(new Date(m), now));
+}
+
+/**
+ * The one sentence that says when to write by, and the bell's version of it.
+ *
+ * Both live here, next to the count they share, because the whole of
+ * C-141/C-031 was three surfaces phrasing the same deadline from two different
+ * arithmetics. Keeping the words in one place is what stops them drifting
+ * apart again; the tests call these, not a copy of them.
+ */
+export function answersCloseSentence(
+  closeAt: Date | string | null | undefined,
+  now: Date
+): string {
+  if (closeAt == null) return "Answering now.";
+  const days = valleyDaysLeft(closeAt, now);
+  if (days === null) return "Answers are closing.";
+  if (days === 0) return "Answers close today.";
+  if (days === 1) return "Answers close tomorrow.";
+  return `Answers close in ${days} days.`;
+}
+
+export function answerReminderMessage(
+  groupName: string,
+  closeAt: Date | string | null | undefined,
+  now: Date
+): string {
+  const days = valleyDaysLeft(closeAt, now);
+  if (days === null || days === 0) return `Last day to answer ${groupName}'s Catch-up.`;
+  if (days === 1) return `Answers close tomorrow for ${groupName}'s Catch-up.`;
+  return `${days} days left to answer ${groupName}'s Catch-up.`;
+}
+
+function daysUntilLabel(t: Date | string | null | undefined, now: Date): string | null {
+  if (ms(t) == null) return null;
+  const days = valleyDaysLeft(t, now);
+  if (days === null) return "closing";
+  if (days === 0) return "last day";
+  if (days === 1) return "closes tomorrow";
   return `${days} days left`;
 }
 
@@ -1015,7 +1073,12 @@ async function applyEditionAction(
       data: action.patch,
     });
     if (cas.count === 0) return false;
-    await notify.notifyReminder(tx, { ...meta, editionId, daysLeft: action.daysLeft });
+    await notify.notifyReminder(tx, {
+      ...meta,
+      editionId,
+      daysLeft: action.daysLeft,
+      closesAt: before.answersCloseAt,
+    });
     return true;
   });
 }

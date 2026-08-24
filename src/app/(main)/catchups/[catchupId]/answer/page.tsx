@@ -8,11 +8,12 @@ import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseJsonArray, valleyDaysBetween } from "@/lib/utils";
+import { parseJsonArray } from "@/lib/utils";
 import {
   advanceEdition,
   askerVisible,
   isMissingCatchupTable,
+  answersCloseSentence,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
 import { promptKind, type EditionStatus, type PromptCategory } from "@/lib/catchups-types";
@@ -60,17 +61,14 @@ function surfaceTitle(title: string | null | undefined, groupName: string): stri
 
 function closesLabel(at: Date | null): string {
   if (!at) return "Answering now.";
-  const now = new Date();
-  if (at.getTime() <= now.getTime()) return "Answers are closing.";
   /* Calendar days in the valley, not 24-hour windows. `Math.ceil` on the
      millisecond gap called anything under a day "today", so a deadline at 5pm
      tomorrow read "Answers close today" to somebody looking at 6pm this
      evening -- a whole day early, in the one sentence that exists to say when
-     to write by (audit Low 28). */
-  const days = valleyDaysBetween(at, now);
-  if (days <= 0) return "Answers close today.";
-  if (days === 1) return "Answers close tomorrow.";
-  return `Answers close in ${days} days.`;
+     to write by (audit Low 28). The shared `valleyDaysLeft` is the same count
+     the index card, the masthead and the bell now use, so no two surfaces can
+     name a different last day again (audits C-141/C-031). */
+  return answersCloseSentence(at, new Date());
 }
 
 const editionSelect = {
