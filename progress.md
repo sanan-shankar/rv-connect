@@ -2860,3 +2860,24 @@ refused all five. A re-read at the top of the transaction would not have
 closed this — READ COMMITTED cannot see a sign-in that commits mid-flight —
 which is why the condition is on the delete, where Postgres locks the row and
 re-evaluates the predicate against the version that won.
+
+## 2026-08-25 — the image optimizer stops working for strangers
+
+**C-134.** `next/image`'s optimizer is reachable signed out (avatars render on
+the login page) and it will fetch and transform anything `remotePatterns`
+vouches for. That list carried `*.r2.dev` — which is every free, self-serve
+Cloudflare bucket in the world. Anybody could host a large image on their own
+bucket and drive `/_next/image?url=...` in a loop, once per unique URL, each
+one a fresh fetch, decode and transform billed to this project's Vercel
+account, until legitimate avatars degrade too.
+
+`next.config.ts` now builds one named host list and feeds it to
+`remotePatterns`, `img-src` and `connect-src` alike; it reads
+`R2_PUBLIC_BASE_URL`, so the demo deployment needs no second edit.
+`upload-shared.ts` had already made exactly this call, in writing — "the exact
+host, not a `pub-*.r2.dev` wildcard: a wildcard would vouch for anybody else's
+bucket" — and the two files now agree.
+
+Proved against the running server: an arbitrary `pub-*.r2.dev` host is refused
+with "url parameter is not allowed", the legacy host and the current one are
+still accepted, and a real member avatar still optimises.

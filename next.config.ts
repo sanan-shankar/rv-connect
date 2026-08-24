@@ -7,6 +7,41 @@ import { withSentryConfig } from "@sentry/nextjs";
  * says "fetch this over https instead" has nothing to reach. */
 const isProd = process.env.NODE_ENV === "production";
 
+/* Every host this app's own images are served from -- and NOTHING else.
+ *
+ * This list feeds both the CSP (img-src, connect-src) and next/image's
+ * remotePatterns, which is the reason it is not a wildcard. `*.r2.dev` used to
+ * stand in all three places, and `pub-<hash>.r2.dev` buckets are free and
+ * self-serve: anybody could point /_next/image at their own bucket and have
+ * this project's Vercel account fetch, decode and transform their bytes, once
+ * per unique URL, signed out, in a loop (bug-report-2 C-134). The endpoint is
+ * deliberately public -- avatars render on /login -- so the allowlist is the
+ * only thing standing there.
+ *
+ * upload-shared.ts already made exactly this call for the ownership check, in
+ * these words: "The exact host, not a `pub-*.r2.dev` wildcard: a wildcard
+ * would vouch for anybody else's bucket, and vouching is what this file
+ * does." The two files now agree.
+ *
+ * R2_PUBLIC_BASE_URL is read so the demo deployment, which serves the same
+ * bucket under its own environment, needs no second edit here. */
+const R2_LEGACY_PUBLIC_HOST = "pub-a656209a5438484f9694738260255a5e.r2.dev";
+const imageHosts = [
+  ...new Set(
+    [
+      "images.rishivalley.space",
+      R2_LEGACY_PUBLIC_HOST,
+      (() => {
+        try {
+          return new URL(process.env.R2_PUBLIC_BASE_URL ?? "").hostname;
+        } catch {
+          return "";
+        }
+      })(),
+    ].filter(Boolean)
+  ),
+];
+
 /* Content-Security-Policy (audit H7). Built as a directive map so each entry
  * carries the reason a host is on it. The tight ones first:
  *   - frame-ancestors 'none' + X-Frame-Options: DENY are the clickjacking fix
@@ -50,15 +85,12 @@ const csp: Record<string, string[]> = {
     "'self'",
     "data:",
     "blob:",
-    // Where every uploaded photograph is served from since 2026-08-21. This
-    // has to move in step with R2_PUBLIC_BASE_URL and the remotePatterns
-    // below: without it the browser refuses every image on the site and the
-    // only sign is a console line, so the page looks broken with no error.
-    "https://images.rishivalley.space",
-    // The bucket's old free address. Kept alongside for the same reason
-    // `publicBaseFor` keeps it: a URL that escaped the rewrite must still
-    // render rather than be blocked.
-    "https://*.r2.dev",
+    // Where every uploaded photograph is served from, plus the bucket's old
+    // free address for any URL that escaped the 2026-08-21 rewrite. Named
+    // hosts, never a wildcard -- see imageHosts above. Without an entry here
+    // the browser refuses every image on the site and the only sign is a
+    // console line, so the page looks broken with no error.
+    ...imageHosts.map((h) => `https://${h}`),
     "https://*.posthog.com",
     "https://*.razorpay.com",
     "https://i.scdn.co", // Spotify album art on Catch-up answers
@@ -85,8 +117,7 @@ const csp: Record<string, string[]> = {
     // FETCHES the image in order to save it under a filename rather than just
     // opening it in a tab. Same reasoning as img-src above: it moves in step
     // with R2_PUBLIC_BASE_URL.
-    "https://images.rishivalley.space",
-    "https://*.r2.dev",
+    ...imageHosts.map((h) => `https://${h}`),
     "https://api.razorpay.com",
     "https://lumberjack.razorpay.com",
     "https://*.posthog.com",
@@ -233,22 +264,10 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
 
   images: {
-    remotePatterns: [
-      // Cloudflare R2, served from its own domain since 2026-08-21. This is
-      // what `R2_PUBLIC_BASE_URL` points at and what every new upload writes.
-      {
-        protocol: "https",
-        hostname: "images.rishivalley.space",
-      },
-      // The free `pub-<hash>.r2.dev` address the bucket used before that.
-      // Kept because it is one of the bases `publicBaseFor` still accepts: an
-      // image URL that escaped the rewrite must render rather than 404 behind
-      // a config that has forgotten where it came from.
-      {
-        protocol: "https",
-        hostname: "*.r2.dev",
-      },
-    ],
+    // The optimizer will fetch and transform anything matching this list, for
+    // anybody, without a session -- so it is the exact hosts and nothing more.
+    // See imageHosts above for what a wildcard here was paying for.
+    remotePatterns: imageHosts.map((hostname) => ({ protocol: "https" as const, hostname })),
   },
 };
 
