@@ -112,17 +112,6 @@ const reminderModeSchema = z.enum(REMINDER_MODE_VALUES);
 /** How far a Keeper may push a deadline in one go (owner, 2026-08-05). */
 const extendDaysSchema = z.union([z.literal(1), z.literal(2), z.literal(4), z.literal(7)]);
 
-const seedPromptSchema = z.object({
-  text: z.string().trim().min(1, "A question cannot be empty.").max(300, "Keep it under 300 characters."),
-  category: promptCategorySchema.optional(),
-});
-
-const createCatchupSchema = z.object({
-  groupId: z.string().min(1),
-  cadence: cadenceSchema.default("monthly"),
-  seedPrompts: z.array(seedPromptSchema).max(MAX_ACCEPTED_PROMPTS_PER_EDITION).default([]),
-});
-
 /** People-first creation: no pre-existing group needed, see createCatchupWithPeople. */
 const createCatchupWithPeopleSchema = z.object({
   name: z.string().trim().min(1, "Give this Catch-up a name.").max(80, "Keep the name under 80 characters."),
@@ -325,103 +314,6 @@ function refuseIfFrozen(
 }
 
 // ─── Catchup lifecycle (spec 3.2, 3.3 settings) ───────────────────────────────
-
-/**
- * Start a Catch-up for a group (spec 3.2). A Catch-up can only be created
- * from a group, and any group member may start one; `groupId` is unique on
- * Catchup so a race between two members creating at once is resolved by the
- * database, not by this check. Creates Round 1 already `collecting`, attaches
- * the seed prompts as accepted (the creator already holds Keeper power the
- * moment the Catchup exists), and fires `catchup_questions_open`.
- */
-export async function createCatchup(input: {
-  groupId: string;
-  cadence?: Cadence;
-  seedPrompts?: Array<{ text: string; category?: PromptCategory | null }>;
-}) {
-  return runAction(async () => {
-    const session = await auth();
-    if (!session?.user?.id) return { error: "Not authenticated" };
-
-    // Catch-ups sit wholly behind the member gate (trust model, Stage 2).
-    // Membership of the group is checked below, but membership is only as
-    // trustworthy as the gate that admitted the account in the first place.
-    const gate = await requireVerifiedMember();
-    if (!gate.ok) return { error: gate.error };
-
-    // Creation fans out to a whole group, so it is metered (audit M2).
-    const limited = await rateLimit("catchups", session.user.id);
-    if (!limited.ok) return { error: limited.error };
-
-    const parsed = createCatchupSchema.safeParse(input);
-    if (!parsed.success) return { error: parsed.error.issues[0].message };
-    const { groupId, cadence, seedPrompts } = parsed.data;
-
-    const membership = await loadMembership(groupId, session.user.id);
-    if (!membership) return { error: "Join this group before starting a Catch-up." };
-
-    const group = await prisma.group.findUnique({
-      where: { id: groupId },
-      select: { id: true, name: true },
-    });
-    if (!group) return { error: "Group not found." };
-
-    const existing = await prisma.catchup.findUnique({ where: { groupId }, select: { id: true } });
-    if (existing) {
-      return { error: "This group already has a Catch-up.", catchupId: existing.id };
-    }
-
-    const now = new Date();
-    try {
-      const catchupId = await prisma.$transaction(async (tx) => {
-        const catchup = await tx.catchup.create({
-          data: { groupId, createdById: session.user.id, cadence, inviteToken: newInviteToken() },
-        });
-        const edition = await tx.catchupEdition.create({
-          data: {
-            catchupId: catchup.id,
-            number: 1,
-            status: "collecting",
-            questionsCloseAt: addDays(now, QUESTION_WINDOW_DAYS),
-          },
-        });
-        if (seedPrompts.length > 0) {
-          await tx.catchupPrompt.createMany({
-            data: seedPrompts.map((p, i) => ({
-              editionId: edition.id,
-              authorId: session.user.id,
-              text: p.text,
-              category: p.category ?? null,
-              source: "keeper",
-              showAsker: true,
-              accepted: true,
-              position: i,
-            })),
-          });
-        }
-        await notifyQuestionsOpen(tx, {
-          catchupId: catchup.id,
-          editionId: edition.id,
-          groupId: group.id,
-          groupName: group.name,
-          excludeUserId: session.user.id,
-        });
-        return catchup.id;
-      });
-
-      revalidatePath("/catchups");
-      revalidatePath(`/catchups/${catchupId}`);
-      revalidatePath(`/groups/${groupId}`);
-      return { success: true as const, catchupId };
-    } catch (err) {
-      if (isUniqueConstraintError(err)) {
-        const raced = await prisma.catchup.findUnique({ where: { groupId }, select: { id: true } });
-        return { error: "This group already has a Catch-up.", catchupId: raced?.id ?? null };
-      }
-      throw err;
-    }
-  });
-}
 
 /**
  * Start a Catch-up from a set of PEOPLE rather than an existing group.

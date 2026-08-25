@@ -230,7 +230,7 @@ export async function registerUser(formData: FormData) {
  * is exactly the concurrency spike that needs (bug audit B-121).
  *
  * So: try to create, and let the LOSER of the race be told by the database
- * rather than by a read it did a moment earlier. Same shape createCatchup uses.
+ * rather than by a read it did a moment earlier. Same shape createCatchupWithPeople uses.
  *
  * The group has no creator. Everyone joins as a plain member, the first person
  * included, so creatorId would only have recorded who signed up first -- while

@@ -43,7 +43,6 @@ import {
   describeEditionStatus,
   resolveSpotify,
   isMissingCatchupTable,
-  suggestSeedPrompts,
   CATCHUP_PROMPT_SETS,
   dailyBucket,
   withDailyBucket,
@@ -678,15 +677,6 @@ test("every library set id is an accepted PromptCategory (the 2026-08-05 bug)", 
       PROMPT_CATEGORIES.includes(set.id),
       `library set "${set.id}" is not in PROMPT_CATEGORIES, so submitting it would be rejected`
     );
-  }
-});
-
-test("suggestSeedPrompts: two Round 1 starters, both from a real set", () => {
-  const seeds = suggestSeedPrompts();
-  assert.equal(seeds.length, 2);
-  for (const seed of seeds) {
-    assert.equal(seed.category, "right-now");
-    assert.ok(seed.text.trim().length > 0);
   }
 });
 

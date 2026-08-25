@@ -291,18 +291,6 @@ export const CATCHUP_PROMPT_SETS: CatchupPromptSet[] = [
   },
 ];
 
-/**
- * The Round 1 auto-suggestion. Both come from "Right now": the owner picked
- * "What does an ordinary day look like for you now?" by name as the example a
- * new Catch-up should open with, and a first Round wants two questions of the
- * same easy register rather than one easy and one nostalgic.
- */
-export function suggestSeedPrompts(): Array<{ category: PromptCategory; text: string }> {
-  const rightNow = CATCHUP_PROMPT_SETS.find((s) => s.id === "right-now");
-  if (!rightNow) return [];
-  return rightNow.prompts.slice(0, 2).map((text) => ({ category: "right-now" as const, text }));
-}
-
 // ─── Calendar math ───────────────────────────────────────────────────────────
 
 /**
