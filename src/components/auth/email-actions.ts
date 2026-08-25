@@ -15,6 +15,7 @@ import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { mintHumanPass } from "@/lib/human-pass";
 import { normalizeEmail } from "@/lib/email-address";
+import { reportSwallowed } from "@/lib/report-error";
 
 /* ------------------------------------------------------------------ *
  *  Everything the two email flows do on the server.
@@ -257,12 +258,17 @@ export async function requestPasswordReset(
 
   const user = await prisma.user.findUnique({
     where: { email: raw },
-    select: { id: true, name: true, email: true, password: true },
+    select: { id: true, name: true, email: true, password: true, isBlocked: true },
   });
 
-  // No account, or an account with no password to reset (the admin bypass row).
-  // Same answer either way.
-  if (!user?.password) return { ok: true };
+  // No account, an account with no password to reset (the admin bypass row),
+  // or one an admin has blocked. Same answer either way -- the identical
+  // { ok: true } is the whole point, so a blocked member learns nothing here
+  // that anybody else would not. What changes is that no reset mail goes out:
+  // sending one invited them to complete a flow ending in "we are signing you
+  // in now", after which the door refused the new password with "Invalid email
+  // or password", for ever (audit C-033).
+  if (!user?.password || user.isBlocked) return { ok: true };
 
   // `enqueueMail` writes the row and sends it immediately (it schedules its own
   // drain), so this leaves within seconds. The row exists first so that if the
@@ -415,31 +421,48 @@ export async function resetPassword(input: {
     return { ok: false, error: "That link has already been used. Ask for a new one if you still need it." };
   }
 
-  // A reset doubles as a confirmation (above), so it is also a moment the
-  // roster may vouch for this account. Same best-effort contract as in
-  // confirmEmailToken.
-  await tryRosterAutoVerifyQuietly(peek.userId);
+  /* Everything past this point is AFTER the password has changed, and none of
+     it may take that success away again (audit C-035).
+     These three were plain awaits with no catch, under a comment claiming the
+     mail was "never awaited for success". A pool timeout inside any of them
+     threw out of the server action, so the member watched "Saving..." for ever
+     with no way to know their password had in fact been written -- and the
+     token was already burned, so trying again said "That link has already been
+     used". The transaction above is the thing that had to be atomic; these are
+     the things that may be retried, or simply logged.
 
-  // Any other reset links already in flight die with this one.
-  await burnTokens(peek.userId, "reset");
+     Awaited rather than deferred to after(), because the client signs in on
+     this response and mintHumanPass has to be in place before it does. The
+     catch is what makes that safe. */
+  try {
+    // A reset doubles as a confirmation (above), so it is also a moment the
+    // roster may vouch for this account. Same best-effort contract as in
+    // confirmEmailToken.
+    await tryRosterAutoVerifyQuietly(peek.userId);
 
-  // Tell the mailbox that the password moved. This is the only warning a
-  // person gets if somebody else did it, so it is queued at high priority
-  // (just behind resets) rather than left to a launch-day backlog. Queued
-  // rather than sent, and never awaited for success: a mail failure must not
-  // undo a password change that has already been written.
-  await enqueueMail({
-    kind: "password-changed",
-    to: peek.email,
-    userId: peek.userId,
-    payload: { name: applied.name ?? "there" },
-  });
+    // Any other reset links already in flight die with this one.
+    await burnTokens(peek.userId, "reset");
 
-  // The client signs the person straight in with their new password, which
-  // now crosses authorize()'s bot check. Consuming a single-use emailed link
-  // is already proof of a human with the mailbox, so it earns the same
-  // five-minute pass a fresh signup gets.
-  await mintHumanPass(peek.email);
+    // Tell the mailbox that the password moved. This is the only warning a
+    // person gets if somebody else did it, so it is queued at high priority
+    // (just behind resets) rather than left to a launch-day backlog. Queued
+    // rather than sent: a mail failure must not undo a password change that
+    // has already been written.
+    await enqueueMail({
+      kind: "password-changed",
+      to: peek.email,
+      userId: peek.userId,
+      payload: { name: applied.name ?? "there" },
+    });
+
+    // The client signs the person straight in with their new password, which
+    // now crosses authorize()'s bot check. Consuming a single-use emailed link
+    // is already proof of a human with the mailbox, so it earns the same
+    // five-minute pass a fresh signup gets.
+    await mintHumanPass(peek.email);
+  } catch (err) {
+    reportSwallowed("reset", err, { userId: peek.userId, step: "post-commit" });
+  }
 
   return { ok: true, email: peek.email };
 }

@@ -11,6 +11,7 @@ import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { SPRINGS } from "@/components/common/motion";
 import { resetPassword, type ResetLinkState } from "@/components/auth/email-actions";
+import { callAction } from "@/lib/call-action";
 import { nextPathFromLocation } from "@/lib/next-path";
 
 /* ------------------------------------------------------------------ *
@@ -114,7 +115,13 @@ export function ResetPasswordClient({
     }
 
     setBusy(true);
-    const result = await resetPassword({ token, password });
+    /* Through callAction, like every other surface that dispatches one (audit
+       C-034). A rejected action -- a dropped connection, a deploy skew where
+       the action id no longer resolves -- used to reject this await, so
+       setBusy(false) never ran and the button sat on "Saving..." until a
+       reload. On THIS screen that is the worst version of it: the password may
+       genuinely have changed, and nothing on screen says so. */
+    const result = await callAction(() => resetPassword({ token, password }));
 
     if (!result.ok) {
       setError(result.error);

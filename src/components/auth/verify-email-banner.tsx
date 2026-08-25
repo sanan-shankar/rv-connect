@@ -35,11 +35,18 @@ export type BannerState =
   | { state: "none"; sentTo: string };
 
 /**
- * "tomorrow at 5:30 am", or "at 5:30 am" when the refill lands later the same
- * local day. Formatted in the BROWSER's timezone: the server cannot know where
- * the reader is, and "sometime tomorrow" is the kind of vague reassurance that
- * reads as a brush-off. Exported for the dialog, so the two never phrase the
- * same moment two ways.
+ * "tomorrow at 5:30 am IST", or "at 5:30 am IST" when the refill lands later
+ * the same valley day. "Sometime tomorrow" is the kind of vague reassurance
+ * that reads as a brush-off, so this says the hour.
+ *
+ * Formatted in the VALLEY's timezone, not the reader's. This docstring used to
+ * claim the opposite, describing behaviour that had already been replaced --
+ * an invitation for a later session to "restore" browser-local formatting and
+ * re-break the day comparison the inner comment says was fixed (audit C-037).
+ * The zone is named in the string because a member in London reading an
+ * unlabelled "5:30 am" reads it as their own, and checks an empty inbox at the
+ * wrong hour. Exported for the dialog, so the two never phrase the same moment
+ * two ways.
  */
 export function sendTimeLabel(iso: string): string {
   const d = new Date(iso);
@@ -55,7 +62,7 @@ export function sendTimeLabel(iso: string): string {
   // now printed in. Comparing browser-local calendar fields against an IST
   // clock face made the two disagree for any member reading from abroad.
   const sameDay = valleyDayKey(d) === valleyDayKey(now);
-  return sameDay ? `at ${time}` : `tomorrow at ${time}`;
+  return sameDay ? `at ${time} IST` : `tomorrow at ${time} IST`;
 }
 
 /** A store that never notifies: the "external" value here is the browser's
@@ -121,14 +128,17 @@ export function VerifyEmailBanner({ initial }: { initial: BannerState }) {
   const imminent = state.state === "imminent";
   const Icon = queued || imminent ? Clock : MailWarning;
 
-  // The refill time is formatted ONLY in the browser. sendTimeLabel reads the
-  // reader's locale, and the server's locale is not the reader's: SSR said
-  // "5:30 am" where a 24-hour browser said "5:30", and React threw a
-  // hydration mismatch over the difference (caught live, 2026-08-13).
-  // useSyncExternalStore is the sanctioned tool for a value that legitimately
-  // differs between server and client: the server snapshot is empty (both
-  // sides hydrate on the bare "tomorrow"), and the client snapshot formats in
-  // the reader's own locale on the very next render.
+  // The refill time is rendered ONLY in the browser. The original reason was
+  // locale -- SSR said "5:30 am" where a 24-hour browser said "5:30", and
+  // React threw a hydration mismatch (caught live, 2026-08-13) -- and that is
+  // now pinned to en-GB, so it is no longer the reason. What is still
+  // server-and-client-dependent is `now`: sendTimeLabel compares the send
+  // against the current valley day to choose "at" or "tomorrow at", and the
+  // server renders at one instant while the browser hydrates at another. Land
+  // either side of valley midnight and the two disagree.
+  // useSyncExternalStore is the sanctioned tool for exactly that: the server
+  // snapshot is empty (both sides hydrate on the bare "tomorrow") and the
+  // client fills it in on the very next render.
   const sendingAtIso = state.state === "queued" ? state.sendingAt : null;
   const timeLabel = useSyncExternalStore(
     subscribeNever,
