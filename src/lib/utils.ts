@@ -190,31 +190,13 @@ export function fullNameFits(firstName: string, lastName: string): boolean {
   return firstName.trim().length + 1 + lastName.trim().length <= FULL_NAME_MAX
 }
 
-// Vivid, evenly-walked palette (see docs/spec/color.md). Each passes AA against
-// white initials/glyphs; adjacent people in a list read as clearly different.
-const AVATAR_COLORS = [
-  "#2E9E54", "#3F7CA6", "#1F9C8E", "#E14B3C", "#C2622F",
-  "#C79318", "#8A5BB0", "#5566C4", "#C7508A", "#4F7E5C",
-]
-
-export function pickAvatarColor(): string {
-  return AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]
-}
-
-export function formatBatch(
-  batchType: string | null,
-  batchYear: number | null
-): string {
-  if (batchYear == null) return ""
-  return `Batch of '${String(batchYear).slice(-2)}`
-}
-
-/* `formatBatchChip` lived here until 2026-08-02. It was the one place in the app
-   that rendered the credential form "ISC 2023", and it existed to serve exactly
-   one call site, the sidebar account chip. The owner asked for that chip to read
-   "Batch of '23" like every other byline in the app, so the call site moved to
-   `batchLine()` below and the function went with it rather than staying as a
-   dead export offering a second, off-house batch format. */
+/* One batch format in this app, and `batchLine()` below owns it. Two rivals
+   lived here and both went rather than stay as dead exports offering a second,
+   off-house form: `formatBatchChip` ("ISC 2023", for the sidebar account chip)
+   on 2026-08-02, when the owner asked that chip to read "Batch of '23" like
+   every other byline; and `formatBatch` ("Batch of '23", but blind to
+   accountType, so every teacher read as nothing) in the 2026-08-25 refactor
+   audit, by which point its last caller was three weeks gone. */
 
 /* ------------------------------------------------------------------ *
  *  Phone display.
@@ -383,7 +365,7 @@ export function formatDisplayDate(date: Date | string): string {
  *
  * Note: this reads batchYear only, never batchType, so a mid-school leaver who
  * has no board credential (batchType null) still reads "Batch of '09" as long
- * as batchYear was computed. See computeBatchFromSchooling below.
+ * as batchYear was computed.
  *
  * The site's Anonymous profile (id "anonymous", the byline for curated/archive
  * content) gets "" rather than the "Member" fallback: a manufactured word under
@@ -488,84 +470,6 @@ export function batchTypeFromLeaving(
   if (gradeAtLeaving >= 12) return "ISC"
   if (gradeAtLeaving >= 10) return "ICSE"
   return null
-}
-
-export type BatchComputation =
-  | {
-      ok: true
-      /** the grade the person was in during their final academic year */
-      gradeAtLeaving: number
-      /** the year that grade cohort finishes 12th (their "Batch of") */
-      batchYear: number
-      /** derived board credential; null for a leaver who never sat a board */
-      batchType: "ICSE" | "ISC" | null
-    }
-  | { ok: false; error: string }
-
-/**
- * Work out which batch someone belongs to from three plain facts: the year they
- * joined, the year they left, and the grade they joined in. This is the single
- * source of truth for placing an alumnus, used by both the live sign-up preview
- * (client) and registration (server), so the two can never disagree.
- *
- * Model: a joining year is the START of an academic year, a leaving year is the
- * END of one, and the grade climbs by one each academic year. So the number of
- * academic years attended is (yearLeft - yearJoined), and the grade in the final
- * year is gradeJoined + (yearLeft - yearJoined) - 1. The batch is the year that
- * final cohort would finish 12th: yearLeft + (12 - gradeAtLeaving).
- *
- * Worked examples:
- *   joined 2014 in grade 4, left 2021 -> grade 10 at leaving -> Batch of 2023
- *   joined 2019 in grade 11, left 2021 -> grade 12 at leaving -> Batch of 2021
- *   a 12th-grade leaver -> gradeAtLeaving 12 -> batchYear == yearLeft
- */
-export function computeBatchFromSchooling(
-  yearJoined: number,
-  yearLeft: number,
-  gradeJoined: number
-): BatchComputation {
-  const thisYear = valleyYear()
-
-  if (
-    !Number.isInteger(yearJoined) ||
-    !Number.isInteger(yearLeft) ||
-    !Number.isInteger(gradeJoined)
-  ) {
-    return { ok: false, error: "Please enter whole numbers for the years and grade." }
-  }
-  if (gradeJoined < 1 || gradeJoined > 12) {
-    return { ok: false, error: "The grade you joined in should be between 1 and 12." }
-  }
-  if (yearJoined < 1926 || yearJoined > thisYear) {
-    return { ok: false, error: `The year you joined should be between 1926 and ${thisYear}.` }
-  }
-  if (yearLeft < 1926 || yearLeft > thisYear + 1) {
-    return { ok: false, error: `The year you left should be between 1926 and ${thisYear + 1}.` }
-  }
-  if (yearLeft < yearJoined) {
-    return { ok: false, error: "The year you left cannot be before the year you joined." }
-  }
-
-  const gradeAtLeaving = gradeJoined + (yearLeft - yearJoined) - 1
-
-  if (gradeAtLeaving < gradeJoined) {
-    return {
-      ok: false,
-      error: "That is too short a stay to place you. Check the years you entered.",
-    }
-  }
-  if (gradeAtLeaving > 12) {
-    return {
-      ok: false,
-      error: "Those years add up to past 12th grade. Check your joining grade and years.",
-    }
-  }
-
-  const batchYear = yearLeft + (12 - gradeAtLeaving)
-  const batchType: "ICSE" | "ISC" | null =
-    gradeAtLeaving >= 12 ? "ISC" : gradeAtLeaving >= 10 ? "ICSE" : null
-
-  return { ok: true, gradeAtLeaving, batchYear, batchType }
 }
 
 /**
