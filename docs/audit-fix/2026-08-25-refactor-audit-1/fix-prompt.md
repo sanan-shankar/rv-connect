@@ -64,8 +64,17 @@ list them under "awaiting owner" in the session log.
 3. The tree is shared: stage by name, never `git add -A`, never touch others' WIP. Never
    `prisma db push`; schema changes go schema-edit → dated file in
    `prisma/migrations-manual/` → `npx prisma generate` → `run-sql.mjs`, BOTH databases.
-4. Re-verify dead-code claims cheaply at HEAD before deleting (one grep) — the tree moves
-   between sessions; one audit finding was refuted by a same-day commit.
+4. **Every item gets a pre-flight before any edit — never execute blind.** The audit ran
+   against a moving tree, and its own verification refuted one finding a same-day commit
+   had invalidated. Per item, before touching code: (a) open the cited lines at today's
+   HEAD and confirm the claim still holds — the dead symbol still has zero callers (one
+   grep), the clone still exists, the comment is still wrong; (b) check the finding's own
+   falsifier — every entry carries "the one thing that would change my mind" — and check
+   that thing; (c) read report §3's corrections and the item's `work/verify/` cluster
+   verdict, which override the agent text. If the claim no longer holds, or the evidence
+   does not convince you, do NOT force the fix: skip it and record it in the session log
+   as "re-refuted at fix time" with the reason. A logged skip is a correct outcome; a
+   blind edit is not.
 5. Usage discipline: this is mostly hand-work; agents only where the report says a sweep
    is mechanical and big (e.g. the 57-file `m.` rename). No fan-out without a wave plan.
 6. Owner-visible changes (anything a member could see, incl. side effects) get named to
