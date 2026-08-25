@@ -71,6 +71,16 @@ const ALLOWED_WRITE_MODELS: ReadonlySet<string> = new Set([
   "PhotoLove",
   "Notification",
   "UserPlace",
+  /* A Catch-up's roster IS a Group row and its GroupMember rows -- the
+     Groups feature itself is gone, and nothing else writes them. Without
+     these two, "Start a Catch-up" was reachable in the demo and could never
+     succeed: the first write in the creating transaction is `group.create`,
+     so the flagship flow died on the guard and told the visitor "Something
+     went wrong. Please try again." for ever (audit C-113). The reset wipes
+     groupMember, groupInvite and group along with everything else, so a
+     visitor-made Catch-up lasts exactly as long as their session's data. */
+  "Group",
+  "GroupMember",
   "Catchup",
   "CatchupEdition",
   "CatchupPrompt",

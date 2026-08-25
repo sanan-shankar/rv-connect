@@ -390,6 +390,30 @@ function ms(t: Date | string | null | undefined): number | null {
 }
 
 /**
+ * How far before a deadline the clock is allowed to count it as passed.
+ *
+ * Every phase deadline is minted as `now + N days` where `now` is the instant
+ * the DAY-0 tick happened to run, and the day-N tick runs at its own,
+ * independent offset. If day N fires even a second earlier than day 0 did, the
+ * `t >= m` comparison misses and the whole phase waits another twenty-four
+ * hours for the next tick -- roughly half the time, for any non-zero jitter at
+ * all, and the magnitude does not matter (audit C-142). A dormant group whose
+ * members never open a page has no lazy advance to heal it, so its cadence
+ * simply drifts later.
+ *
+ * Five minutes: comfortably more than a scheduler's run-to-run wobble, which
+ * is what the whole failure is made of, and small enough to stay well inside
+ * the shortest thing here measured in hours (the 24-hour preparing hold). A
+ * Round can now be at most five minutes "early", which no surface counting in
+ * days or hours can show, and can no longer be a day late.
+ *
+ * Applied inside `computeStatus` rather than to the stored deadlines, so the
+ * advance and the render remain the same function: a page loaded in those last
+ * five minutes and the tick that follows it agree about what the Round is.
+ */
+export const TICK_GRACE_MS = 5 * 60 * 1000;
+
+/**
  * The status a Round SHOULD be in given its timestamps and the clock. Pure and
  * forward-only: it never returns a status earlier than the stored one, and it
  * never writes. Draft and published are terminal to the clock (draft only opens
@@ -399,7 +423,7 @@ export function computeStatus(ed: EditionTiming, now: Date): EditionStatus {
   const t = now.getTime();
   const passed = (at: Date | string | null | undefined) => {
     const m = ms(at);
-    return m != null && t >= m;
+    return m != null && t >= m - TICK_GRACE_MS;
   };
 
   let s = ed.status;
