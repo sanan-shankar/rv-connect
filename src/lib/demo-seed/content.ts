@@ -15,7 +15,7 @@
  *  anywhere. The community is "Rishi Valley", never "the alumni".
  * ------------------------------------------------------------------ */
 
-export interface DemoComment {
+interface DemoComment {
   author: string; // person slug
   text: string;
   /** Hours after the parent post was written. */
@@ -812,7 +812,7 @@ export const DEMO_PHOTOS: DemoPhoto[] = [
  *  or inert.
  * ---------------------------------------------------------------- */
 
-export interface DemoEntry {
+interface DemoEntry {
   author: string;
   body: string;
   loves?: string[];

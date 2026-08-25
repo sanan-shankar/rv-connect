@@ -59,13 +59,27 @@ function exportedActions(src) {
   return names;
 }
 
+/**
+ * Every async function in the file, exported or not. Only the EXPORTED ones
+ * are asserted over (they are the network endpoints); this wider list exists
+ * so the delegation pass below can see a gate that lives in a private helper.
+ * De-exporting such a helper removes an invocable endpoint without removing
+ * its check, and the sweep must not punish that.
+ */
+function allActions(src) {
+  const names = [];
+  const re = /(?:export\s+)?async\s+function\s+([A-Za-z0-9_]+)/g;
+  for (let m; (m = re.exec(src)); ) names.push(m[1]);
+  return names;
+}
+
 // fnBody, the audit-status version verbatim: balance the parameter parens,
 // skip a `: ReturnType<{...}>` annotation (whose braces are NOT the body —
 // the naive indexOf("{") version reported loadDirectoryPage as ungated
 // because it landed inside `Promise<{ users: ... }>`), then take the
 // balanced body.
 function fnBody(text, name) {
-  const m = text.match(new RegExp(`export\\s+async\\s+function\\s+${name}\\b`));
+  const m = text.match(new RegExp(`(?:export\\s+)?async\\s+function\\s+${name}\\b`));
   if (!m) return null;
   let i = text.indexOf("(", m.index);
   if (i < 0) return null;
@@ -172,8 +186,10 @@ for (const file of files) {
   test(`every exported action in ${file} is gated or deliberately public`, () => {
     const src = decomment(read(file));
     const names = exportedActions(src);
-    // Pass 1: functions whose own body carries a gate marker.
-    const gated = new Set(names.filter((n) => GATE.test(fnBody(src, n) ?? "")));
+    // Pass 1: functions whose own body carries a gate marker. Built over
+    // allActions, not names, so a private helper counts as a gate for pass 2;
+    // the assertion below still runs only over the exported ones.
+    const gated = new Set(allActions(src).filter((n) => GATE.test(fnBody(src, n) ?? "")));
     // Pass 2: thin delegations — a body that calls a gated sibling (the
     // theme actions' one-implementation-two-names pattern) inherits its gate.
     const delegates = (n) =>

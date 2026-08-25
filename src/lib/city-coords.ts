@@ -154,7 +154,7 @@ export function cityFilterTargets(raw: string | null | undefined): string[] {
   return [...new Set([picked, ...cityNameVariants(picked)])];
 }
 
-export function cityNameVariants(raw: string | null | undefined): string[] {
+function cityNameVariants(raw: string | null | undefined): string[] {
   if (!raw) return [];
   const key = normalizeCity(raw);
   const variants = new Set<string>([key]);
@@ -192,7 +192,7 @@ export function cityNameVariants(raw: string | null | undefined): string[] {
  * matters more than its distance from the nearest town; the grid is the right
  * default for everywhere else.
  */
-export const OWN_PIN_CITIES = new Set(["rishi valley"]);
+const OWN_PIN_CITIES = new Set(["rishi valley"]);
 
 /** True when this city gets a pin of its own rather than sharing a grid square. */
 export function hasOwnPin(raw: string | null | undefined): boolean {

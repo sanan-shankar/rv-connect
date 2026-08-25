@@ -13,7 +13,7 @@
  *  is added or removed by editing that array, nothing else.
  * ------------------------------------------------------------------ */
 
-export type TourStopId = "feed" | "directory" | "collection" | "catchups";
+type TourStopId = "feed" | "directory" | "collection" | "catchups";
 
 export interface TourStop {
   id: TourStopId;

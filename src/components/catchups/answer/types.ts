@@ -9,7 +9,7 @@
 
 import type { PromptKind } from "@/lib/catchups-types";
 
-export type AnswerAsker = {
+type AnswerAsker = {
   id: string;
   name: string;
   photoUrl: string | null;

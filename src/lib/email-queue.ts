@@ -374,7 +374,7 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
   }
 }
 
-export interface Budget {
+interface Budget {
   /** Sent since midnight UTC. */
   used: number;
   /** Total left today, resets included. */

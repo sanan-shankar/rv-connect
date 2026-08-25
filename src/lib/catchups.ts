@@ -126,10 +126,10 @@ export function newInviteToken(): string {
 }
 
 export const QUESTION_WINDOW_DAYS = 3;
-export const ANSWER_WINDOW_DAYS = 7;
-export const PREPARING_HOLD_HOURS = 24;
+const ANSWER_WINDOW_DAYS = 7;
+const PREPARING_HOLD_HOURS = 24;
 /** Too-few-answers auto-extend, applied at most once. */
-export const EXTEND_DAYS = 3;
+const EXTEND_DAYS = 3;
 
 /** remindersSent low bits (spec section 2.4). */
 export const REMINDER_TWO_DAYS = 1; // legacy: superseded by the daily bucket below
@@ -194,7 +194,7 @@ export function daysLeftUntil(closeAt: Date | string | null | undefined, now: Da
 }
 
 /** Forward-only order of the Round state machine. */
-export const STATUS_ORDER: EditionStatus[] = [
+const STATUS_ORDER: EditionStatus[] = [
   "draft",
   "collecting",
   "answering",
@@ -450,7 +450,7 @@ export function nextEditionStatus(ed: EditionTiming, now: Date): EditionStatus |
  * `answeringPatch`), so the first daily nudge lands a day LATER rather than
  * piling straight on top of the "answers are open" notification.
  */
-export function dueReminder(ed: EditionTiming, now: Date): { daysLeft: number } | null {
+function dueReminder(ed: EditionTiming, now: Date): { daysLeft: number } | null {
   if (ed.status !== "answering") return null;
   const daysLeft = daysLeftUntil(ed.answersCloseAt, now);
   if (daysLeft === 0) return null; // past the window: we transition instead of nudging
@@ -476,7 +476,7 @@ export function shouldExtendForTooFew(ed: EditionTiming, entryCount: number): bo
  * in, and it is self-healing: the first question submitted revives it
  * (`reviveDormantRound` in the actions).
  */
-export function shouldExtendForNoQuestions(ed: EditionTiming, promptCount: number): boolean {
+function shouldExtendForNoQuestions(ed: EditionTiming, promptCount: number): boolean {
   return promptCount === 0 && (ed.remindersSent & REMINDER_QUESTIONS_EXTENDED) === 0;
 }
 
@@ -607,7 +607,7 @@ export function shiftEditionPatch(
 }
 
 /** No-questions extension: push the question window 3 days and set bit 3. */
-export function questionsExtendPatch(ed: EditionTiming, now: Date): EditionPatch {
+function questionsExtendPatch(ed: EditionTiming, now: Date): EditionPatch {
   return {
     questionsCloseAt: addDays(now, EXTEND_DAYS),
     remindersSent: ed.remindersSent | REMINDER_QUESTIONS_EXTENDED,
@@ -631,7 +631,7 @@ export function extendPatch(ed: EditionTiming, now: Date): EditionPatch {
 
 // ─── The one-step plan (pure) ────────────────────────────────────────────────
 
-export type EditionAction =
+type EditionAction =
   | { kind: "none" }
   | {
       kind: "transition";
@@ -652,7 +652,7 @@ export type EditionAction =
  * too-few auto-extend). Named rather than positional so a call site cannot
  * quietly swap them.
  */
-export type EditionCounts = { entries: number; prompts: number };
+type EditionCounts = { entries: number; prompts: number };
 
 /**
  * What advanceEdition should do next, as a single step. Pure: given the same

@@ -43,7 +43,7 @@ export const PRIORITY: Record<MailKind, number> = {
  * and every account-deletion confirmation, including the alarm a takeover
  * victim gets during their 60-day undo window, sat queued forever (B-070).
  */
-export const RESERVED_KINDS: MailKind[] = (Object.keys(PRIORITY) as MailKind[]).filter(
+const RESERVED_KINDS: MailKind[] = (Object.keys(PRIORITY) as MailKind[]).filter(
   (k) => k !== "verify"
 );
 

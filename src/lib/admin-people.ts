@@ -25,7 +25,7 @@ export const PEOPLE_PAGE_SIZE = 60;
  * ---------------------------------------------------------------- */
 
 /** Standing: what this person has or has not settled. */
-export type PeopleState =
+type PeopleState =
   | "any"
   | "attention"
   | "email-pending"
@@ -33,7 +33,7 @@ export type PeopleState =
   | "blocked";
 
 /** Kind: what sort of account this is. */
-export type PeopleKind = "any" | "admins" | "teachers" | "alumni";
+type PeopleKind = "any" | "admins" | "teachers" | "alumni";
 
 export const STATE_OPTIONS: FacetOption[] = [
   { value: "attention", label: "Needs a look" },

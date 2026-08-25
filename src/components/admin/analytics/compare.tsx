@@ -181,7 +181,7 @@ export function GroupTable({
 
 /** Pearson r. Returns null when a column is flat, because a correlation with
  *  something that never varies is undefined rather than zero. */
-export function correlate(a: number[], b: number[]): number | null {
+function correlate(a: number[], b: number[]): number | null {
   const n = a.length;
   if (n < 3) return null;
   const ma = a.reduce((x, y) => x + y, 0) / n;

@@ -31,7 +31,7 @@ import { MENU_PANEL_CLASS } from "@/components/ui/menu-material";
  *    instalments. It now lands in one frame, like the text it belongs to.
  * The `active` press sink is the only thing left that needs a curve.
  */
-export const PILL_BASE =
+const PILL_BASE =
   "inline-flex h-10 shrink-0 items-center rounded-full border text-[13px] font-medium transition-transform duration-150 has-[[data-facet-trigger]:focus-visible]:ring-2 has-[[data-facet-trigger]:focus-visible]:ring-canopy/40 active:scale-[0.97]";
 
 /* Idle hover is `state-layer`, the app's one neutral hover, NOT `hover:bg-accent`.
@@ -39,7 +39,7 @@ export const PILL_BASE =
    on the sheet's own surface on mobile, and one opaque hover hex cannot serve
    both: --accent measured +8.12 dL* on the page against +2.06 on a card. The
    translucent ladder lands at -4.30 against `--secondary` wherever the bar sits. */
-export const PILL_IDLE = "border-border bg-secondary text-foreground state-layer";
+const PILL_IDLE = "border-border bg-secondary text-foreground state-layer";
 
 /* Set KEEPS a canopy hover rather than taking the neutral state layer: canopy is
    this kit's semantic for "this facet is narrowing your results", and a grey tint

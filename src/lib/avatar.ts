@@ -63,7 +63,7 @@ export const ROLLER_SPECIES_INDEX = 50;
  * hashable pool plus the reserved Roller. Only used to bound an explicit override index; the hash
  * never sees it.
  */
-export const DRAWN_SPECIES_COUNT = ROLLER_SPECIES_INDEX + 1;
+const DRAWN_SPECIES_COUNT = ROLLER_SPECIES_INDEX + 1;
 
 /**
  * The ids allowed to wear the Roller. Two entries for two databases: the local demo seed and the
@@ -83,7 +83,7 @@ export const ROLLER_RESERVED_USER_IDS: readonly string[] = [
  * (For production this should migrate to an avatarSpecies column; ids differ per database, which is
  * why both the seed-demo and the live owner id are listed.)
  */
-export const SPECIES_PINS: Record<string, number> = Object.fromEntries(
+const SPECIES_PINS: Record<string, number> = Object.fromEntries(
   ROLLER_RESERVED_USER_IDS.map((id) => [id, ROLLER_SPECIES_INDEX])
 );
 

@@ -150,40 +150,6 @@ export type CatchupEntryView = {
   createdAt: Date | string;
 };
 
-/** One question and every answer to it, for the reader and the home console. */
-export type CatchupRoundSection = {
-  prompt: CatchupPromptView;
-  entries: CatchupEntryView[];
-};
-
-export type CatchupRoundView = {
-  editionId: string;
-  catchupId: string;
-  number: number;
-  status: EditionStatus;
-  groupId: string;
-  groupName: string;
-  /** Catchup.title, or the "{group} Catch-ups" fallback. */
-  title: string;
-  cadence: Cadence;
-  questionsCloseAt: Date | string | null;
-  answersCloseAt: Date | string | null;
-  publishAt: Date | string | null;
-  publishedAt: Date | string | null;
-  nextOpensAt: Date | string | null;
-  sections: CatchupRoundSection[];
-  contributors: CatchupPersonRef[];
-};
-
-/** Who the viewer is relative to one Catch-up. Effective Keeper = creator OR group admin. */
-export type CatchupViewerRole = {
-  isMember: boolean;
-  isCreator: boolean;
-  isGroupAdmin: boolean;
-  /** isCreator || isGroupAdmin — holds every Keeper power. */
-  isKeeper: boolean;
-};
-
 /** One row on the index "Your Catch-ups" column (one per group the viewer belongs to). */
 export type CatchupIndexCard = {
   groupId: string;
@@ -200,16 +166,6 @@ export type CatchupIndexCard = {
   cta: { label: string; href: string } | null;
 };
 
-/** One vellum spine in the archive shelf. */
-export type CatchupArchiveRow = {
-  editionId: string;
-  number: number;
-  publishedAt: Date | string | null;
-  contributorCount: number;
-  /** A one-line teaser pulled from the most-loved answer. */
-  teaser: string | null;
-};
-
 // ─── Notify-builder signatures ───────────────────────────────────────────────
 
 /**
@@ -219,7 +175,7 @@ export type CatchupArchiveRow = {
  */
 export type CatchupDb = PrismaClient | Prisma.TransactionClient;
 
-export type NotifyBaseCtx = {
+type NotifyBaseCtx = {
   catchupId: string;
   editionId: string;
   groupId: string;

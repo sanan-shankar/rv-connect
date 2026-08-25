@@ -14,7 +14,7 @@
 
 const STATE_PREFIX = "rv:tour:";
 
-export type TourLocalState = "completed" | "dismissed";
+type TourLocalState = "completed" | "dismissed";
 
 function safeGet(key: string): string | null {
   if (typeof window === "undefined") return null;
@@ -35,7 +35,7 @@ function safeSet(key: string, value: string): void {
 }
 
 /** The stored state for this user, or null if the tour has never been settled. */
-export function readTourState(userId: string): TourLocalState | null {
+function readTourState(userId: string): TourLocalState | null {
   const v = safeGet(STATE_PREFIX + userId);
   return v === "completed" || v === "dismissed" ? v : null;
 }

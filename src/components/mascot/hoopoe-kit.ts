@@ -67,7 +67,7 @@ export const PARTS = {
   eyeClosed: "[data-eyeshape=closed]",
 } as const;
 
-export type EyeShape = "round" | "wide" | "happy" | "sleepy" | "closed";
+type EyeShape = "round" | "wide" | "happy" | "sleepy" | "closed";
 
 /* ---- public types ---- */
 export type Dir = "left" | "right";

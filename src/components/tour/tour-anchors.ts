@@ -25,7 +25,7 @@ const registry = new Map<string, HTMLElement>();
 const waiters = new Map<string, Array<(el: HTMLElement | null) => void>>();
 
 /** DESTINATION: report the element the tour should spotlight for this key. */
-export function reportSpotlight(key: string, el: HTMLElement): void {
+function reportSpotlight(key: string, el: HTMLElement): void {
   registry.set(key, el);
   const list = waiters.get(key);
   if (list?.length) {

@@ -19,8 +19,8 @@
  * below to render the pairing; it carries the pair's optical nudges so
  * they only ever need tuning in one place.
  */
-export const WORDMARK_LOGO_SIZE = 24;
-export const WORDMARK_FONT_SIZE = 18;
+const WORDMARK_LOGO_SIZE = 24;
+const WORDMARK_FONT_SIZE = 18;
 
 const VIEWBOX_WIDTH = 1140;
 const VIEWBOX_HEIGHT = 350;

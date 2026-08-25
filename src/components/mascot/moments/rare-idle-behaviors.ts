@@ -21,7 +21,7 @@
 
 import type { HoopoeApi } from "../hoopoe-kit";
 
-export const RARE_IDLE_CHANCE = 0.01;
+const RARE_IDLE_CHANCE = 0.01;
 
 function inMonsoonWindow(now: Date = new Date()): boolean {
   const month = now.getMonth(); // 0-indexed

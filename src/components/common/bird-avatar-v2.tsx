@@ -84,7 +84,7 @@ type Arche = {
 };
 
 /** Transform that applies a bird's optical-centering adjust (scale about centre, then nudge). */
-export function archeTransform(a: Arche): string | undefined {
+function archeTransform(a: Arche): string | undefined {
   const adj = ADJUST_MAP[a.name];
   if (!adj) return undefined;
   const s = adj.s ?? 1;

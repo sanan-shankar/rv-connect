@@ -14,7 +14,7 @@ import type { FacetOption } from "@/components/common/filters/types";
  *  actions that already existed.
  * ------------------------------------------------------------------ */
 
-export type ContentType = "all" | "post" | "letter" | "comment" | "photo" | "pending";
+type ContentType = "all" | "post" | "letter" | "comment" | "photo" | "pending";
 
 export const TYPE_OPTIONS: FacetOption[] = [
   { value: "post", label: "Posts" },

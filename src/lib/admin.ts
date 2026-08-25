@@ -201,7 +201,7 @@ export async function loadAdminCounts(): Promise<AdminCounts> {
   };
 }
 
-export interface WorklistCounts {
+interface WorklistCounts {
   messages: number;
   reports: number;
   photos: number;
@@ -237,7 +237,7 @@ export function overdueEditionWhere(now: Date) {
  * length, which would trade six index counts for six `findMany`s on every
  * page. The rail is fed by the layout because the rail is in the layout.
  */
-export async function worklistCounts(): Promise<WorklistCounts> {
+async function worklistCounts(): Promise<WorklistCounts> {
   const now = new Date();
   const [messages, reports, photos, flagged, pendingVerify, failedMail, stuckCatchups] =
     await Promise.all([

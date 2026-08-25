@@ -16,7 +16,7 @@ import { overdueEditionWhere } from "@/lib/admin";
 import { threadTitle } from "@/lib/admin-threads";
 import type { WorkItem } from "@/lib/admin-worklist";
 
-export const PER_QUEUE = 20;
+const PER_QUEUE = 20;
 
 /**
  * True when at least one queue filled its slice, so the list is showing less
