@@ -5,7 +5,8 @@
 > **Implementation status (2026-06-29): SHIPPED — reborn as 50 real Rishi Valley birds in colour.**
 > The original mono-white silhouette system was replaced: the owner found the off-white birds
 > indistinguishable at profile size. The live system is now in **`src/components/common/bird-avatar-v2.tsx`**
-> (`BirdAvatar` delegates to it via the `USE_V2` flag; the legacy mono path remains behind `USE_V2=false`).
+> (`BirdAvatar` delegates to it unconditionally). The legacy mono path sat behind a `USE_V2` flag
+> that was never once flipped after 2026-06-29, and was deleted in the 2026-08-25 refactor audit.
 >
 > Current system:
 > - **50 species**, each a real bird recorded at/around Rishi Valley, drawn in its **real colours**
