@@ -583,6 +583,14 @@ model Report {
   // distinct in a unique index, so this constrains only user-to-user reports
   // and leaves post reporting unaffected.
   @@unique([reporterId, reportedUserId])
+  // ONE MORE INDEX EXISTS THAT PRISMA CANNOT SEE.
+  // `Report_open_post_per_reporter_key` is a PARTIAL unique on
+  // (reporterId, postId) WHERE targetType='post' AND status='pending'
+  // (prisma/migrations-manual/2026-08-25-report-one-open-per-post.sql). The
+  // unique below cannot serve that rule: a post report leaves reportedUserId
+  // NULL and Postgres treats NULLs as distinct. Partial indexes have no
+  // schema.prisma syntax, so this file is not the whole truth about the table
+  // -- and `prisma db push`, already forbidden here, would drop it.
 }
 
 /**

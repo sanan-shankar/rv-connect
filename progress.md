@@ -3486,3 +3486,41 @@ derived sweep covers the column rather than carrying an excuse for it. Proved
 live: EXPLAIN reports `Index Scan using "GroupMember_userId_idx"` where it was
 a sequential scan. Not urgent at today's size; a full scan of a few thousand
 rows on a page load at the 2,000-member ceiling this audit is sized against.
+
+## 2026-08-25 (later) — the long tail, part six: reporting
+
+Four findings on the two report paths. One was already closed (C-001:
+`canViewPost` went in with the C-194 work). The other three are all about the
+same few lines.
+
+**One complaint could look like a pattern (C-060).** `Report` carries a unique
+on (reporterId, reportedUserId), which was meant to be the one-open-report
+rule. It is not: a POST report leaves reportedUserId NULL, and Postgres treats
+NULLs as distinct, so that index constrains member-to-member reports and
+nothing else. The rule lived in a findFirst instead, which under READ COMMITTED
+two simultaneous submissions both pass -- two reports, two admin threads, two
+notifications, from one person double-tapping. That is the exact effect M29 set
+out to stop, surviving M29.
+
+M29 declined a unique index because the live table already holds duplicates
+from before the rule and a full constraint would mean deleting moderation
+records. A **partial** one does not: it covers only PENDING post reports, so
+every resolved row stays exactly where it is, and a post going wrong again
+still files a fresh report. Zero conflicting rows in either database. Proved
+live: three simultaneous reports leave one report and one thread where the old
+shape left three of each.
+
+**A report that reached nobody, for ever (C-007).** The Report row, its
+AdminThread and the admin notification were separate awaits. A pool timeout
+after the first left a pending report with no thread -- and the dedupe above it
+selected `thread.id` and ignored that it was null, so every retry answered
+"already reported, an admin is looking at it" while it sat on nobody's desk.
+They are one transaction now, in both report paths, and the dedupe repairs a
+thread-less report rather than reporting success over it.
+
+**A dead end at the end of a 500-character field (C-013).** The details box
+advertised 500 characters; the submitted string is `"<reason>: <details>"`, and
+the server refuses anything over 500 with a flat "Please provide a valid
+reason". Somebody who did exactly what the field invited got a refusal naming
+nothing to fix. The box's cap is derived from the longest reason now, so adding
+a longer one cannot re-open the gap.
