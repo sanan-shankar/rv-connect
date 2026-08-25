@@ -619,18 +619,47 @@ export async function loadRhythm() {
  *  Faces: the superlatives, and who is interested in whom
  * ---------------------------------------------------------------- */
 
+/** One row of a person leaderboard, as every one of those queries returns it. */
+type PersonRow = { id: string; name: string; batchYear: number | null; n: bigint };
+
+/**
+ * A leaderboard, keyed on WHO rather than on what they are called.
+ *
+ * Every one of these lists used to `GROUP BY u."name"`, and User.name has no
+ * unique constraint -- two members called the same thing collapsed into one
+ * bar carrying the sum of both their counts, under one of their identities
+ * (audit C-080). At two thousand alumni a shared name is not a hypothesis. The
+ * numbers were quietly wrong and nothing on the page could show it, which is
+ * the worst way for an analytics room to be wrong.
+ *
+ * Grouping by id then makes a NEW problem visible rather than hiding it: two
+ * bars reading the same name. So a name that appears twice in one list -- and
+ * only then -- carries its batch as a hint, which is also how the directory
+ * tells two people apart. Unhinted rows are left exactly as they were, so the
+ * usual list looks the way it always did.
+ */
+function personList(rows: PersonRow[], value: (r: PersonRow) => number = (r) => Number(r.n)) {
+  const seen = new Map<string, number>();
+  for (const r of rows) seen.set(r.name, (seen.get(r.name) ?? 0) + 1);
+  return rows.map((r) => ({
+    label: r.name,
+    value: value(r),
+    hint: (seen.get(r.name) ?? 0) > 1 && r.batchYear != null ? `'${String(r.batchYear).slice(2)}` : undefined,
+  }));
+}
+
 export async function loadFaces() {
   const [heartsGiven, heartsGot, loyal, longest, deepest, mostViewed, watchers, lurkers, isolated] =
     await Promise.all([
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", count(*)::bigint AS n
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear", count(*)::bigint AS n
         FROM "Like" l JOIN "User" u ON u.id = l."userId"
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", count(*)::bigint AS n
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear", count(*)::bigint AS n
         FROM "Like" l JOIN "Post" p ON p.id = l."postId" JOIN "User" u ON u.id = p."authorId"
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       /* Distinct DAYS present, which is loyalty. Total visits rewards one
        * frantic afternoon; distinct days rewards turning up.
@@ -641,38 +670,38 @@ export async function loadFaces() {
        * of IST midnight counted as one (audit Low 46). Same double conversion
        * the Rhythms heatmap uses, and for the same reason (B-101): stamp the
        * naive value as UTC first, then read it in Asia/Kolkata. */
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name",
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear",
                count(DISTINCT date_trunc('day', (v."startedAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata'))::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name",
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear",
                max(EXTRACT(EPOCH FROM (v."endedAt" - v."startedAt")))::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", max(v."views")::bigint AS n
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear", max(v."views")::bigint AS n
         FROM "Visit" v JOIN "User" u ON u.id = v."userId"
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       /* Whose profile gets looked at most. Self-views are never recorded, so
        * nobody tops their own list. */
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", sum(cv."count")::bigint AS n
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear", sum(cv."count")::bigint AS n
         FROM "ContentView" cv JOIN "User" u ON u.id = cv."targetId"
         WHERE cv.kind = 'profile'
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       /* And who does the looking. The pair of these two lists is the closest
        * thing this community has to a social graph. */
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", sum(cv."count")::bigint AS n
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear", sum(cv."count")::bigint AS n
         FROM "ContentView" cv JOIN "User" u ON u.id = cv."viewerId"
         WHERE cv.kind = 'profile'
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       /* Present but silent: visits recorded, nothing ever written. Not a
        * criticism -- most of any community reads -- but the ratio is the
@@ -707,19 +736,16 @@ export async function loadFaces() {
       `,
     ]);
 
-  const list = (rows: { name: string; n: bigint }[]) =>
-    rows.map((r) => ({ label: r.name, value: Number(r.n) }));
-
   return {
-    heartsGiven: list(heartsGiven),
-    heartsGot: list(heartsGot),
-    loyal: list(loyal),
+    heartsGiven: personList(heartsGiven),
+    heartsGot: personList(heartsGot),
+    loyal: personList(loyal),
     /* Seconds in, minutes out: an hour-long visit shown as 3,600 is a number
      * nobody reads at a glance. */
-    longest: longest.map((r) => ({ label: r.name, value: Math.round(Number(r.n) / 60) })),
-    deepest: list(deepest),
-    mostViewed: list(mostViewed),
-    watchers: list(watchers),
+    longest: personList(longest, (r) => Math.round(Number(r.n) / 60)),
+    deepest: personList(deepest),
+    mostViewed: personList(mostViewed),
+    watchers: personList(watchers),
     lurkers: Number(lurkers[0]?.n ?? 0),
     isolated,
   };
@@ -829,14 +855,21 @@ export async function loadNotifications() {
   };
 }
 
-/** Joins per month: the growth curve, straight off createdAt. */
+/** Joins per month: the growth curve, off createdAt in the VALLEY's month.
+ *
+ *  Not UTC's. `createdAt` is a naive timestamp holding UTC wall time, so
+ *  truncating it directly cuts the month at 05:30 IST on the 1st -- somebody
+ *  who joined at ten in the evening on the last day of a month landed in the
+ *  month before (audit C-143). Every other bucket in this file already does
+ *  the double conversion (the Rhythms heatmap, the loyalty count, joinedMonth
+ *  below); these two were the ones that never got it. */
 export async function loadGrowth() {
   const rows = await prisma.$queryRaw<{ month: string; n: bigint }[]>`
-    SELECT to_char(date_trunc('month', "createdAt"), 'Mon YYYY') AS month,
+    SELECT to_char(date_trunc('month', ("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata'), 'Mon YYYY') AS month,
            count(*)::bigint AS n
     FROM "User"
-    GROUP BY date_trunc('month', "createdAt")
-    ORDER BY date_trunc('month', "createdAt") DESC
+    GROUP BY date_trunc('month', ("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata')
+    ORDER BY date_trunc('month', ("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata') DESC
     LIMIT 12
   `;
   return rows.map((r) => ({ label: r.month, value: Number(r.n) }));
@@ -846,31 +879,29 @@ export async function loadGrowth() {
 export async function loadInteractions() {
   const [topCommenters, threads, adminMsgs, pollVotes, bookmarkers, photoLovers] =
     await Promise.all([
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", count(*)::bigint AS n
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear", count(*)::bigint AS n
         FROM "Comment" c JOIN "User" u ON u.id = c."authorId"
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
       prisma.adminThread.count(),
       prisma.adminMessage.count(),
       prisma.pollVote.count(),
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", count(*)::bigint AS n
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear", count(*)::bigint AS n
         FROM "Bookmark" b JOIN "User" u ON u.id = b."userId"
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
-      prisma.$queryRaw<{ name: string; n: bigint }[]>`
-        SELECT u."name", count(*)::bigint AS n
+      prisma.$queryRaw<PersonRow[]>`
+        SELECT u.id, u."name", u."batchYear", count(*)::bigint AS n
         FROM "PhotoLove" pl JOIN "User" u ON u.id = pl."userId"
-        GROUP BY u."name" ORDER BY n DESC LIMIT 8
+        GROUP BY u.id, u."name", u."batchYear" ORDER BY n DESC LIMIT 8
       `,
     ]);
-  const list = (r: { name: string; n: bigint }[]) =>
-    r.map((x) => ({ label: x.name, value: Number(x.n) }));
   return {
-    topCommenters: list(topCommenters),
-    bookmarkers: list(bookmarkers),
-    photoLovers: list(photoLovers),
+    topCommenters: personList(topCommenters),
+    bookmarkers: personList(bookmarkers),
+    photoLovers: personList(photoLovers),
     threads,
     adminMsgs,
     pollVotes,
@@ -1000,7 +1031,9 @@ export async function loadMemberMetrics(): Promise<MemberRow[]> {
       (u."photoUrl" IS NOT NULL)                                        AS "hasPhoto",
       coalesce(place.c, 'unknown')                                      AS country,
       coalesce(vis.dev, 'never visited')                                AS device,
-      to_char(u."createdAt", 'Mon YYYY')                                AS "joinedMonth",
+      -- The valley's month, not UTC's (audit C-143), same conversion as the
+      -- visit-day count above it.
+      to_char((u."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kolkata', 'Mon YYYY') AS "joinedMonth",
       (   (u."about"       IS NOT NULL AND u."about"       <> '')::int
         + (u."workplace"   IS NOT NULL AND u."workplace"   <> '')::int
         + (u."jobTitle"    IS NOT NULL AND u."jobTitle"    <> '')::int

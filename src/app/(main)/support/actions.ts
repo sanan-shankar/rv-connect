@@ -190,7 +190,25 @@ export async function confirmContribution(input: {
      webhook's is: the two race for the same row. */
   await prisma.contribution.updateMany({
     where: { id: contribution.id, status: { in: [...PAYABLE_FROM] } },
-    data: { status: "paid", razorpayPaymentId: paymentId, paidAt: new Date() },
+    data: {
+      status: "paid",
+      razorpayPaymentId: paymentId,
+      paidAt: new Date(),
+      /* Cleared, exactly as the webhook's captured branch clears it (audit
+         Low 116, which only ever landed on that side -- audit C-088). A first
+         attempt that failed and a second that went through are ONE row, and
+         whichever writer wins the race owns the whole transition. This one
+         usually wins: the payer retries inside the same modal, the callback
+         fires immediately, and the webhook's captured branch then matches
+         nothing because the row is already paid. So the stale reason lived on
+         under a successful gift and the admin ledger printed it in red.
+
+         `method` cannot be set here -- the checkout callback carries an order
+         id, a payment id and a signature, and nothing about how it was paid.
+         The webhook backfills it (see the captured branch), which is why that
+         one no longer gives up when it finds the row already paid. */
+      failureReason: null,
+    },
   });
 
   return { ok: true };
@@ -211,9 +229,14 @@ export async function confirmContribution(input: {
  * is, so a developer's test payment unlocks the picker against test keys and
  * never against live ones.
  *
- * Re-picking is allowed indefinitely. The perk is standing, and the write is
- * idempotent, so there is nothing to meter and no state to corrupt by
- * clicking twice.
+ * ONE PICK PER CONTRIBUTION (owner, 2026-08-18). This paragraph used to say
+ * the opposite -- "re-picking is allowed indefinitely ... nothing to meter and
+ * no state to corrupt by clicking twice" -- which describes the model that was
+ * abolished, not the one below it (audit C-049). What ships: a pick is SPENT
+ * on use (`birdPickedAt`) and regranted only by a paid contribution newer than
+ * the last spend. So it absolutely meters, and clicking twice absolutely does
+ * corrupt state -- the first click spends the grant and the second is refused.
+ * The gate is deliberate; it is the comment that was wrong.
  */
 export async function chooseBird(slug: string): Promise<{ ok: true } | { error: string }> {
   const session = await auth();

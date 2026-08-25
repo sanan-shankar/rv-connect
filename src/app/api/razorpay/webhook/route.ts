@@ -234,6 +234,27 @@ export async function POST(request: Request) {
        ordinary case -- browser survives, redirects straight to the picker --
        does not also collect one. Best-effort: a failure here must not make
        Razorpay retry a payment we have already recorded. */
+    /* Nothing moved because the browser callback got there first, which is the
+       ORDINARY case: the payer's tab survives, `confirmContribution` fires
+       immediately and this webhook arrives seconds later to a row already
+       paid. That row is missing the one fact only this event carries -- how it
+       was paid -- because the callback is handed an order id, a payment id and
+       a signature and nothing else. Left unwritten, every gift the happy path
+       recorded landed in the admin panel's "Most used" tile as "unknown"
+       (audit C-088).
+
+       Narrow on purpose. Only a row that is still `paid` and still has no
+       method, so this cannot resurrect a refunded or disputed gift the way the
+       old "anything but paid" negation did (C-084): status is never touched,
+       paidAt is never touched, and a row that already knows its method is left
+       alone. */
+    if (moved.count === 0 && payment?.method) {
+      await prisma.contribution.updateMany({
+        where: { id: contribution.id, status: "paid", method: null },
+        data: { method: payment.method },
+      });
+    }
+
     if (moved.count === 1 && contribution.userId) {
       try {
         await prisma.notification.create({

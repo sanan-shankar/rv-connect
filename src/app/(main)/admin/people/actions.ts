@@ -14,10 +14,11 @@ import { readPeopleFilters, type PeoplePage } from "@/lib/admin-people";
 import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
 import { purgeImageUrls } from "@/lib/image-purge";
-import { valleyYear } from "@/lib/utils";
+import { batchTypeFromLeaving, valleyYear } from "@/lib/utils";
 import { parsePlaces, resolvePlaces } from "@/lib/place-input";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 import { SPECIES_SLUGS } from "@/components/common/bird-avatar-v2";
+import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
 
 /* ------------------------------------------------------------------ *
  *  Everything you can do TO a person, from the panel.
@@ -145,12 +146,36 @@ export async function adminUpdatePerson(
     return { error: `Keep the occupation and the organisation under ${MAX_OCCUPATION} characters.` };
   }
 
+  /* batchType is DERIVED from the two years, never typed, and this action
+     writes one of them -- so it has to re-derive the other half exactly as
+     `updateProfileField` does when the member edits their own (audit C-041).
+     It did not, and the credential drifted: correct somebody's batch year
+     across the ICSE/ISC boundary and the stored board stayed as it was, so
+     `batchTargetKey` built "ISC-2012" where the truth is "ICSE-2012" and a
+     batch-targeted post went to the wrong set of people. Nothing visible gave
+     it away, because the byline formats from batchYear alone.
+
+     A cleared year clears the credential too. That is the teacher case the
+     year parsing above exists for, and there is no board to derive from a
+     year nobody has. */
+  const current = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { yearLeft: true },
+  });
+  const batchType =
+    batchYear != null && current?.yearLeft != null
+      ? batchTypeFromLeaving(current.yearLeft, batchYear)
+      : batchYear == null
+        ? null
+        : undefined;
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       name,
       accountType,
       batchYear,
+      batchType,
       // Clearing the override returns them to their deterministic bird, which
       // is the fix the owner needed on 2026-08-18 when a stale override was
       // hiding an Indian Roller.
@@ -159,6 +184,13 @@ export async function adminUpdatePerson(
       workplace: workplace || null,
     },
   });
+
+  /* The office roster matches on name and batch year, and an admin fixing
+     either is the moment a member who could not be matched becomes matchable
+     -- the same hook `updateProfileField` fires when they fix it themselves.
+     Best-effort and silent, like every roster call: it can only ever raise
+     standing, so a failure leaves the person exactly where they were. */
+  await tryRosterAutoVerifyQuietly(userId);
 
   revalidateAdmin(userId);
   revalidatePath("/directory");
