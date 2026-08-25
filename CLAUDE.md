@@ -45,6 +45,13 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   the answer to that prompt is no unless the owner says otherwise in the same breath.
 - **Git commits**: never include `Co-Authored-By`, model names, or any AI attribution. Plain
   conventional commit messages.
+- **150 words is the ceiling for a commit message**, subject line included, and it is absolute, not a
+  target to drift past. Most commits want far less: a subject line and two or three sentences saying
+  what changed and why. The body is for the reasoning a future `git blame` cannot recover — not a
+  retelling of the diff, not a bulleted inventory of every touched file, not the session's narration.
+  Going over needs a reason you can state out loud (a migration whose ordering must be recorded, a
+  security fix whose blast radius has to be spelled out); "there was a lot in this commit" is not one
+  — that is a sign it should have been several commits.
 - **Version control is maintained, not asked for**: work on `main`, no feature branches. Commit each
   coherent piece as it lands and passes `npm run check` — do not wait to be told, and do not let a
   session end with a working tree full of unrelated changes. Stage the files your task touched, by
