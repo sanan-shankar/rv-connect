@@ -3944,3 +3944,87 @@ destroyed data. Ordinary edits and content moderation are outside it by design,
 not by omission. And whether a refund should revoke the bird already picked
 with that money is a product decision about a cosmetic perk, not a defect —
 the finder said as much. Both are rows in the ledger, not changes.
+
+## 2026-08-25 (evening) — the last stretch, part three: settings, onboarding and the odds
+
+Ten findings. One was already closed, one is refuted, and the rest are single
+lines in eight different files — but three of them share a shape worth naming:
+**a rule written in three places, mirrored twice**.
+
+**A city you deleted, back on your page (C-101).** The profile falls back to
+`[currentCity, secondaryCity]` while a member's places list is empty, and all
+three writers of that list mirrored only the FIRST place into the legacy pair.
+So a member carrying a pre-migration `secondaryCity` who then cleared every
+place got `currentCity` nulled and the stale second city resurrected — a place
+they had just removed, printed on their own profile. One `legacyCityColumns`
+helper now, called by all three; the gate counts the callers, because a check
+that "some file calls it" passes on a codebase where two of the three still
+hand-roll it.
+
+**C-042 was already closed**, by the 2026-08-22 canonical-city work: onboarding
+now shares `placesSchema` and `resolvePlaces` with the other two. It only
+needed a ledger row — and, as it turned out, the third `legacyCityColumns`
+call above.
+
+**Two dates for one day (C-146).** Requesting account deletion writes an audit
+line and posts the member a confirmation naming the purge date. The email is
+formatted in the valley's zone, with a comment above it explaining exactly why
+it must be; the audit line eight lines earlier used `toISOString()`. For any
+request made between midnight and 05:30 IST the two named different days, and
+an admin cross-checking them had nothing to say which was right. Same on the
+purge side in `retention.ts`.
+
+**The theme was never going to come back (C-138).** Two comments promised that
+`User.theme` is "the source of truth" and that a forgotten device would "drift
+back to the DB truth on next sign-in". Nothing anywhere copies that column into
+a cookie, so a new device starts light. I corrected the comments rather than
+building the restore, and the reason is in the code beside them: /dark-mode
+gates on the COOKIE, deliberately, and dark mode on this site is something you
+EARN by beating the day's Wordle. Restoring it silently on the second device
+would quietly delete the one feature the gauntlet is. **Owner: if the theme
+should follow a member across devices, it is one line at sign-in — and the
+gauntlet stops being a gauntlet.**
+
+**A first photo, beheaded (C-051).** `updateAvatar` ends in a fixed
+`resize(512, 512, { fit: "cover", position: "centre" })`. The profile opens the
+crop dialog before calling it, precisely because "the old path shipped the
+ORIGINAL bytes to a hard-coded centre crop"; onboarding did not. B-030 fixed
+the SIZE half of this for onboarding and left the framing half, so the very
+first photo a new member uploads — usually straight off a phone, where the face
+is rarely centred — was cut blind. It opens the same dialog now, verified by
+driving it: pick a file, "Frame your photo" appears, desktop and at 390.
+
+**A cap that was never there (C-169).** Nothing on the image path bounded URL
+LENGTH: `postSchema.images` is a bare `z.string()`, `parseImageUrls` only checks
+the JSON parses into strings, and the key parser is happy with any number of
+characters after the prefix. So `uploads/<own id>/<megabytes of junk>.webp` was
+app-minted, owned, and stored verbatim in a column every feed reader downloads
+and re-parses per render — the identical resource class already closed for the
+sibling `targetBatches` field. The cap sits in the pure ownership rule, so all
+four paths (post, edit, Catch-up entry, message screenshot) get it at once.
+
+It is written `!(length <= cap)` rather than `length > cap`, and that is
+deliberate: a candidate built without the field would make `undefined > 512`
+false and disable the check everywhere while every reader still believed in it.
+There is a test for exactly that.
+
+**Three quieter ones.** `pick-bird` caught its own database errors into values
+that changed a redirect (C-155), so a member who HAD paid, hitting a pool
+timeout at the busy moment payments cluster, was silently classified as a
+non-supporter and sent to the page whose one call to action is to pay again.
+The catches are gone; a broken read reaches the error boundary, which says so
+and offers Try again. The roster import script wrote `verifyState` without
+`verifyStateAt` (C-046), against the rule the schema states at that column, so
+an entire import batch sorted by its members' SIGNUP times and never appeared
+in "recently verified" — swept now across the app AND the scripts, since the
+one that got it wrong was a script no typechecker was ever going to read. And
+`getWordleAnswer` had no deadline (C-116).
+
+**That last one is the trap of this batch.** Its catch only ever caught a
+REJECTION, and the failure the file exists to survive is an endpoint that
+accepts the connection and never replies — which does not reject. Proved both
+ways, and the first attempt at the proof was itself the bug in miniature: a
+`fetch` stub that ignored the abort signal hung for ever and proved only that
+the stub ignores signals. A stub that HONOURS the signal shows it exactly: the
+old code is still waiting at 8 seconds, the new one aborts at 3,019ms and
+returns a fallback word.

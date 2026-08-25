@@ -196,8 +196,16 @@ if (MATCH_EXISTING) {
     }
     const how = emailHit ? "email" : "name+batch";
     if (APPLY) {
+      /* `verifyStateAt` too, which the schema's own comment demands of every
+         writer of verifyState and which this one alone omitted (audit C-046).
+         It defaults to now() at row creation and is never touched again, so a
+         member verified by this script kept their SIGNUP timestamp -- and the
+         admin worklist orders "recently verified" and "waiting longest" by
+         that column, so an entire import batch sorted as though it had never
+         happened and never surfaced in the recently-verified view. */
       await db.query(
-        `UPDATE "User" SET "verifyState" = 'verified', "verifyMethod" = 'office_list', "verifiedAt" = now()
+        `UPDATE "User" SET "verifyState" = 'verified', "verifyMethod" = 'office_list',
+                "verifiedAt" = now(), "verifyStateAt" = now()
          WHERE id = $1 AND "verifyState" IN ('unverified', 'pending')`,
         [m.id]
       );

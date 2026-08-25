@@ -15,6 +15,19 @@
 
 const FALLBACK_WORDS = ["crane", "slate", "perch", "robin", "stork"] as const;
 
+/**
+ * How long the NYT gets to answer before the gauntlet stops waiting.
+ *
+ * The catch below only ever caught a REJECTION, and the failure this file
+ * exists to survive is not always a rejection: an endpoint that accepts the
+ * connection and then never replies does not reject, so the await sat in the
+ * /dark-mode render until the platform killed the function -- a 504 for the
+ * first visitor after each cache expiry, which is precisely the hard-fail the
+ * header above promises cannot happen (audit C-116). Three seconds is far
+ * longer than this call has ever needed and far shorter than a page render.
+ */
+const NYT_TIMEOUT_MS = 3000;
+
 function istDateKey(date: Date = new Date()): string {
   // en-CA renders YYYY-MM-DD, which is exactly the NYT URL format.
   return date.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
@@ -37,6 +50,10 @@ export async function getWordleAnswer(): Promise<string> {
       // One-hour cache: the answer only changes once a day, but a short
       // window keeps a bad cached failure from sticking all day.
       next: { revalidate: 3600 },
+      // A deadline, so a hang becomes the rejection the catch below can
+      // actually act on. Without it the fallback was unreachable in the one
+      // case it was written for.
+      signal: AbortSignal.timeout(NYT_TIMEOUT_MS),
     });
     if (res.ok) {
       const data = (await res.json()) as { solution?: string };

@@ -192,3 +192,26 @@ export async function resolvePlaces(
 
   return out;
 }
+
+/**
+ * The legacy city columns, mirrored from the places list.
+ *
+ * `User.currentCity` and `User.secondaryCity` predate UserPlace and are still
+ * read: by the directory, by the profile's fallback while a member's places
+ * list is empty, and by the account export. Both writers used to mirror only
+ * the FIRST place and leave `secondaryCity` alone, so a member who had one
+ * from before the migration and then cleared every place got `currentCity`
+ * nulled while the profile's fallback resurrected the stale second city --
+ * a place they had just deleted, back on their page (audit C-101).
+ *
+ * Written here, once, because two actions do this and the whole bug was that
+ * they each mirrored half of it. Positional, matching the list's own order.
+ */
+export function legacyCityColumns(
+  cleaned: Array<{ label: string }>
+): { currentCity: string | null; secondaryCity: string | null } {
+  return {
+    currentCity: cleaned[0]?.label ?? null,
+    secondaryCity: cleaned[1]?.label ?? null,
+  };
+}

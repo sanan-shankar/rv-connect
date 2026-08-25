@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { speciesNameFor, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
+import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import { updateAvatar } from "@/components/settings/actions";
 import type { OnboardingUser } from "../onboarding-flow";
 import { isImageFile } from "@/lib/upload-shared";
@@ -19,6 +20,14 @@ import { isImageFile } from "@/lib/upload-shared";
  * "Proudly keep your bird" names their actual deterministic bird instead of
  * just showing the glyph, so the default reads as a real choice, not a
  * placeholder.
+ *
+ * And the same crop dialog the profile uses, for the same reason. `updateAvatar`
+ * ends in a fixed `resize(512, 512, { fit: "cover", position: "centre" })`, so
+ * whatever is not in the middle of the frame is cut off -- and this is the FIRST
+ * photo a new member ever uploads, usually straight off a phone where the face
+ * is rarely centred. B-030 fixed the SIZE half of this for onboarding
+ * (shrinkForUpload) and left the framing half, so a step designed to make
+ * somebody feel welcome could behead them (audit C-051).
  */
 export function PhotoStep({
   user,
@@ -34,33 +43,18 @@ export function PhotoStep({
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
   const [busy, setBusy] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
+  /** The picked file, waiting to be framed. The dialog is open while it is set. */
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const speciesName = speciesNameFor(user.id, resolveBirdOverride(user.id, user.birdOverride));
 
-  async function handlePick(file: File | null) {
-    if (!file) return;
-    if (!isImageFile(file)) {
-      toast.error("Please choose an image");
-      return;
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error("Photo must be under 15MB");
-      return;
-    }
+  async function upload(payload: Blob | File) {
     setBusy(true);
     try {
-      // Shrunk in the BROWSER before it goes anywhere. A normal phone photo is
-      // 5 to 12MB, and Vercel rejects a request body over about 4.5MB at the
-      // platform, before this Server Action runs -- so the very first thing a
-      // new member does used to fail with a stuck spinner and no message
-      // (bug audit B-030). The profile page's avatar path already cropped
-      // client-side; this one had nothing.
-      const ready = await shrinkForUpload([file]);
-      if (!ready.ok) {
-        toast.error(ready.error);
-        return;
-      }
       const fd = new FormData();
-      fd.set("file", ready.files[0]);
+      fd.set(
+        "file",
+        payload instanceof File ? payload : new File([payload], "avatar.webp", { type: "image/webp" })
+      );
       const result = await callAction(() => updateAvatar(fd));
       if (result.error) {
         toast.error(result.error);
@@ -73,6 +67,43 @@ export function PhotoStep({
       // this control stuck spinning for the rest of onboarding (audit B-042).
       setBusy(false);
     }
+  }
+
+  function handlePick(file: File | null) {
+    if (!file) return;
+    if (!isImageFile(file)) {
+      toast.error("Please choose an image");
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Photo must be under 15MB");
+      return;
+    }
+    // Frame it first, exactly as the profile does. The dialog hands back a
+    // 512x512 WebP, which is both the crop and the shrink.
+    setCropFile(file);
+  }
+
+  async function uploadUnframed(file: File) {
+    /* The browser could not decode it (HEIC, mostly), so there is nothing to
+       frame. Shrunk in the BROWSER before it goes anywhere: a normal phone
+       photo is 5 to 12MB and Vercel rejects a request body over about 4.5MB at
+       the platform, before the Server Action runs -- so the very first thing a
+       new member does failed with a stuck spinner and no message at all (bug
+       audit B-030). The server's sharp pipeline either handles the format or
+       answers with the friendly "export as JPG" message. */
+    setBusy(true);
+    let ready;
+    try {
+      ready = await shrinkForUpload([file]);
+    } finally {
+      setBusy(false);
+    }
+    if (!ready.ok) {
+      toast.error(ready.error);
+      return;
+    }
+    await upload(ready.files[0]);
   }
 
   return (
@@ -94,6 +125,18 @@ export function PhotoStep({
           onFiles={(files) => handlePick(files[0] ?? null)}
           multiple={false}
           title="Add a photo"
+        />
+        <AvatarCropDialog
+          file={cropFile}
+          onConfirm={async (blob) => {
+            setCropFile(null);
+            await upload(blob);
+          }}
+          onCancel={() => setCropFile(null)}
+          onDecodeError={(f) => {
+            setCropFile(null);
+            void uploadUnframed(f);
+          }}
         />
         <BirdAvatar
           user={{

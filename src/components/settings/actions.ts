@@ -14,11 +14,11 @@ import { swapPhotoUrl } from "@/lib/avatar-swap";
 import { sharpImage } from "@/lib/image";
 import {sniffImageType, describeProcessingError, isImageFile} from "@/lib/upload-shared";
 import { profileSchema } from "@/lib/validators";
-import { batchTypeFromLeaving, VALLEY_TIME_ZONE } from "@/lib/utils";
+import { batchTypeFromLeaving, valleyDayKey, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { titleCase, normalizePhone } from "@/lib/normalize";
 import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
-import { parsePlaces, resolvePlaces } from "@/lib/place-input";
+import { legacyCityColumns, parsePlaces, resolvePlaces } from "@/lib/place-input";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
@@ -175,7 +175,10 @@ export async function updateUserPlaces(
     ),
     prisma.user.update({
       where: { id: userId },
-      data: { currentCity: cleaned[0]?.label ?? null },
+      // Both legacy columns, from one place. Mirroring only the first left a
+      // pre-migration secondaryCity behind for the profile's fallback to
+      // resurrect the moment the member cleared their places (audit C-101).
+      data: legacyCityColumns(cleaned),
     }),
   ]);
 
@@ -344,7 +347,12 @@ export async function requestAccountDeletion(formData: FormData) {
     action: "account.delete_request",
     targetType: "user",
     targetId: userId,
-    detail: `${me.name} <${me.email}> — purge due ${purgeAt.toISOString().slice(0, 10)}`,
+    /* The VALLEY's day, the same one the member's email names twenty lines
+       below (audit C-146). This line was formatted in UTC, so a request made
+       between midnight and 05:30 IST wrote one date into the audit log and
+       posted a different one to the member -- and an admin cross-checking the
+       two would find them a day apart with nothing to say which was right. */
+    detail: `${me.name} <${me.email}> — purge due ${valleyDayKey(purgeAt)}`,
   });
 
   // The written confirmation, and the takeover alarm: if somebody else did
