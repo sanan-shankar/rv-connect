@@ -400,9 +400,16 @@ export async function publishDraft(postId: string) {
 }
 
 /**
- * Deletes a letter draft. Author-only (a draft is never visible to anyone
- * else, admins included, so there is no group-admin or site-admin bypass
- * here the way deletePost has).
+ * Deletes a letter draft. Author-only: nobody else has a reason to delete
+ * somebody's unpublished writing, so there is no group-admin or site-admin
+ * bypass here the way deletePost has.
+ *
+ * This used to justify itself with "a draft is never visible to anyone else,
+ * admins included", which is not true (audit C-012). `decidePostVisibility`
+ * grants admins their exemption ABOVE its draft refusal, and a test pins that
+ * -- so an admin holding a letter id can read an unpublished draft at
+ * /letters/<id>. Author-only deletion is still right; the reason given for it
+ * was wrong, and worth correcting rather than quietly relying on.
  */
 export async function deleteDraft(postId: string) {
   const session = await auth();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
@@ -44,6 +44,8 @@ export function ProfileAuthorFeed({
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  /** The same flag, readable in the same tick. See handleLoadMore. */
+  const loadingMoreRef = useRef(false);
   const [animateRef] = useAutoAnimate();
 
   // `loading` starts true and is only ever turned OFF here, from the fetch's
@@ -76,6 +78,11 @@ export function ProfileAuthorFeed({
   }, [authorId, kind]);
 
   async function handleLoadMore() {
+    // Synchronous guard and an id-dedupe, the same pair PostFeed carries and
+    // for the same reason (audit C-180): `disabled={loadingMore}` binds on the
+    // next render, so a double tap appends the same page twice.
+    if (loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
       const data = await callAction(() => loadPosts({ authorId, kind, cursor }));
@@ -83,13 +90,17 @@ export function ProfileAuthorFeed({
         toast.error(data.error);
         return;
       }
-      setPosts((prev) => [...prev, ...data.posts]);
+      setPosts((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        return [...prev, ...data.posts.filter((p) => !seen.has(p.id))];
+      });
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
     } finally {
       // finally, not a trailing statement: a rejected call used to leave
       // "Load more" disabled for the rest of the session (audit B-042).
       setLoadingMore(false);
+      loadingMoreRef.current = false;
     }
   }
 

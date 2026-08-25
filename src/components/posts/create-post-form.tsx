@@ -78,7 +78,36 @@ const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
    the server was last told. Both live out here, taking their values as
    arguments, because the leave-the-page save below runs from an unmount
    cleanup and cannot read a hook's closure. */
-const localDraftKey = (postId?: string) => `rv:letter-draft:${postId ?? "new"}`;
+/**
+ * The crash-net key, scoped to the ACCOUNT as well as the row.
+ *
+ * It used to be `rv:letter-draft:${postId ?? "new"}`, with no member in it.
+ * Signing out clears cookies, not localStorage, and the ":new" key is only
+ * cleared by a successful save -- so on a shared browser (a family laptop, a
+ * library machine, the one the owner demos on) the next person to open
+ * /letters/new had the previous member's unsaved letter restored silently into
+ * their composer, under their own name (audit C-014).
+ *
+ * A key with nobody's id in it simply does not match anybody else's, so the
+ * old rows are unreachable rather than wrong. They expire with the browser.
+ */
+/**
+ * Release the `blob:` previews this composer minted, leaving stored urls alone.
+ *
+ * `URL.createObjectURL` pins the whole file in memory for the document's life
+ * unless it is revoked, and only `removeImage` revoked -- so every photograph
+ * actually POSTED stayed pinned, and so did every preview on an unmount that
+ * was not a post (navigating away from the letters desk). A resumed draft's
+ * previews are R2 urls, which own nothing and revoke to nothing (audit C-183).
+ */
+function revokeBlobPreviews(urls: string[]): void {
+  for (const u of urls) {
+    if (u.startsWith("blob:")) URL.revokeObjectURL(u);
+  }
+}
+
+const localDraftKey = (userId: string | null | undefined, postId?: string) =>
+  `rv:letter-draft:${userId ?? "anon"}:${postId ?? "new"}`;
 
 function stashLocalDraft(key: string, content: string, title: string) {
   if (typeof window === "undefined") return;
@@ -278,7 +307,21 @@ export function CreatePostForm({
    * never shadow a good server one. Restored silently on mount, because in both
    * of those cases the local copy is unambiguously the newest thing there is.
    */
-  const draftKey = localDraftKey(postId);
+  /* The freshest preview list, for the two places that must read it OUTSIDE a
+     render: the post-success revoke and the unmount cleanup, neither of which
+     can close over state and be right. */
+  const previewsRef = useRef<string[]>([]);
+  useEffect(() => {
+    previewsRef.current = previews;
+  }, [previews]);
+  useEffect(
+    () => () => {
+      revokeBlobPreviews(previewsRef.current);
+    },
+    []
+  );
+
+  const draftKey = localDraftKey(currentUser?.id, postId);
   const writeLocalDraft = useCallback(
     () => stashLocalDraft(draftKey, content, title),
     [draftKey, content, title]
@@ -316,7 +359,7 @@ export function CreatePostForm({
     const flush = () => {
       if (!exitRef.current.content.trim()) return;
       stashLocalDraft(
-        localDraftKey(exitRef.current.postId),
+        localDraftKey(currentUser?.id, exitRef.current.postId),
         exitRef.current.content,
         exitRef.current.title
       );
@@ -330,7 +373,10 @@ export function CreatePostForm({
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onHidden);
     };
-  }, [defaultLetter]);
+    // currentUser?.id is in the key these handlers write to (audit C-014); it
+    // cannot change without this component remounting, but the linter cannot
+    // know that and re-registering two listeners costs nothing.
+  }, [defaultLetter, currentUser?.id]);
 
   const restoredRef = useRef(false);
   useEffect(() => {
@@ -510,7 +556,7 @@ export function CreatePostForm({
       if (draftSnapshot(s.content, s.title, s.images, s.audienceCity) === savedSnapshotRef.current) {
         return;
       }
-      const key = localDraftKey(s.postId);
+      const key = localDraftKey(currentUser?.id, s.postId);
       const fd = new FormData();
       fd.set("content", s.content);
       fd.set("kind", "letter");
@@ -546,7 +592,10 @@ export function CreatePostForm({
         void callAction(() => createPost(fd)).then((r) => finish(r.error));
       }
     };
-  }, []);
+    // Mount/unmount only -- everything this reads comes off `exitRef`, which is
+    // kept current by its own effect. currentUser?.id is named because the
+    // draft key now includes it (audit C-014).
+  }, [currentUser?.id]);
 
   // Collapse back to the resting pill, closing any open popovers. Letters
   // default to expanded, so they never retract to a pill. Only ever called
@@ -931,6 +980,14 @@ export function CreatePostForm({
         setTitle("");
         setKind(defaultLetter ? "letter" : "post");
         setImages([]);
+        /* The blob URLs this composer minted are released before the list is
+           dropped (audit C-183). `URL.createObjectURL` pins the whole file in
+           memory until it is revoked or the document unloads, and only
+           removeImage revoked -- so every photograph actually POSTED stayed
+           pinned for the rest of the session, and on the immersive letters
+           desk that session is long. R2 urls (a resumed draft's existing
+           images) are left alone; revoking one of those does nothing. */
+        revokeBlobPreviews(previewsRef.current);
         setPreviews([]);
         setToCollection(false);
         setPollOptions(null);
