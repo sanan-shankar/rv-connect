@@ -19,6 +19,7 @@ import {
   ROLLER_SPECIES_INDEX,
   ROLLER_RESERVED_USER_IDS,
   HOOPOE_SPECIES_INDEX,
+  HOOPOE_HASH_REMAP_INDEX,
 } from "./avatar.ts";
 
 const SPECIES_COUNT = 50;
@@ -94,6 +95,40 @@ checkAxis("pose", pose, POSE_COUNT, 0.1);
 
 const distinct = triples.size;
 if (distinct < 500) fails.push(`only ${distinct} distinct combinations observed, need >= 500`);
+
+/* ---------------------------------------------------------------- *
+ *  Parity: the mirror above and the real hash are still the same hash.
+ *
+ *  The distribution block deliberately re-implements the salted FNV-1a in
+ *  plain JS, so a bug in avatar.ts cannot hide behind the same bug in its
+ *  test. Sound -- but nothing asserted the two agreed on even one seed, so if
+ *  avatar.ts changed its salt, its `>>> 13` window or its species count, the
+ *  mirror would go on happily validating the OLD algorithm for ever and every
+ *  band above would be a statement about code nobody runs (audit C-196).
+ *
+ *  The reserved block below imports the real module but only bounds the RANGE,
+ *  so a degenerate-but-in-range regression passes it too. This is the tripwire
+ *  that ties the two halves together. `hashSpeciesFor` remaps the Hoopoe, so
+ *  the mirror is compared through the same remap.
+ * ---------------------------------------------------------------- */
+let mismatch = 0;
+let firstMismatch = null;
+for (let i = 0; i < 2000; i++) {
+  const seed = fakeCuid(i);
+  const raw = birdFor(seed).species;
+  const mirrored = raw === HOOPOE_SPECIES_INDEX ? HOOPOE_HASH_REMAP_INDEX : raw;
+  const real = hashSpeciesFor(seed);
+  if (mirrored !== real) {
+    mismatch++;
+    if (!firstMismatch) firstMismatch = `${seed}: mirror ${mirrored}, avatar.ts ${real}`;
+  }
+}
+if (mismatch > 0) {
+  fails.push(
+    `the test's mirror of the hash has parted ways with avatar.ts on ${mismatch}/2000 seeds ` +
+      `(first: ${firstMismatch}) -- every distribution band above is now measuring the wrong algorithm`
+  );
+}
 
 /* ---------------------------------------------------------------- *
  *  Reserved birds.

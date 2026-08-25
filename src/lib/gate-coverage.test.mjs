@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { execSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /* ------------------------------------------------------------------ *
@@ -94,19 +93,79 @@ function fnBody(text, name) {
   return text.slice(i);
 }
 
-const files = execSync(`git grep -l '"use server"' -- 'src/**/*.ts' || true`, {
-  cwd: ROOT,
-  encoding: "utf8",
-})
-  .split("\n")
-  .filter(Boolean)
-  // Only files where "use server" is the module DIRECTIVE. A grep hit inside
-  // a comment (two lib files explicitly document that they are NOT use-server
-  // modules, quoting the directive) is not an action file.
-  .filter((f) => /^\s*(['"])use server\1/.test(read(f)));
+/* Walked off the FILESYSTEM, not asked of git.
+   This used to be `git grep -l '"use server"'`, which failed open three ways
+   at once (audit C-189). It matched the literal DOUBLE-quoted directive, so an
+   equally valid `'use server'` file was never listed and the char-class
+   defence on the filter below never got the chance to run. It required the
+   directive at character zero, so a file opening with its docblock -- the
+   likely shape in a codebase as comment-heavy as this one -- was dropped
+   whole. And `git grep` only sees TRACKED files, so a new action file was
+   invisible to this sweep until somebody staged it, which is precisely the
+   moment you would want it to speak up.
+
+   Every one of those produces NO assertion rather than a failing one, so a new
+   ungated action simply ships. A walk sees every file; the filter below is the
+   one strict place. */
+/* Not named `useServerFiles`: ESLint's rules-of-hooks reads a `use` prefix as
+   a React hook and refuses it at the top level. */
+function serverActionFiles(dir, acc = []) {
+  for (const entry of readdirSync(dir)) {
+    if (entry === "node_modules" || entry === ".next" || entry === "generated") continue;
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      serverActionFiles(full, acc);
+      continue;
+    }
+    if (!entry.endsWith(".ts")) continue;
+    /* The directive must be the first STATEMENT, not the first line: leading
+       comments are stripped before the test. A grep hit inside a comment (two
+       lib files explicitly document that they are NOT use-server modules,
+       quoting the directive) is not an action file, and this is what tells
+       the two apart. */
+    const head = readFileSync(full, "utf8").replace(
+      /^(?:\s*(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*)\s*)*/,
+      ""
+    );
+    if (/^(['"])use server\1/.test(head)) acc.push(relative(ROOT, full));
+  }
+  return acc;
+}
+
+const files = serverActionFiles(resolve(ROOT, "src")).sort();
 
 test("there are server-action files to sweep", () => {
   assert.ok(files.length >= 15, `only found ${files.length}; the git grep broke`);
+});
+
+test("no action file exports a shape this sweep cannot see", () => {
+  /* `exportedActions` above matches `export async function NAME` and nothing
+     else, so `export const doThing = async () => {}` or a re-exported
+     `export { doThing }` would be swept up by no assertion at all and ship
+     ungated (audit C-189, vector three). Rather than teach the regex every
+     export form JavaScript has -- which is the version that quietly falls
+     behind -- this pins the ASSUMPTION: an action file exports async functions
+     and types, full stop. Every current file already conforms; the day one
+     does not, this says so instead of the sweep silently shrinking.
+
+     If a new form is genuinely wanted, the fix is to extend `exportedActions`
+     AND this list together, which is exactly the coupling that was missing. */
+  const offenders = [];
+  for (const file of files) {
+    for (const m of read(file).matchAll(/^export\s+.*$/gm)) {
+      const line = m[0];
+      if (/^export\s+async\s+function\s/.test(line)) continue;
+      // Types are erased; they carry no callable surface to gate.
+      if (/^export\s+(type|interface)\s/.test(line)) continue;
+      offenders.push(`${file}: ${line.slice(0, 90)}`);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    "a use-server file exports something exportedActions() cannot see, so it is " +
+      "swept by nothing:\n" + offenders.join("\n")
+  );
 });
 
 for (const file of files) {
@@ -220,12 +279,18 @@ test("the visibility exemption list names only actions that still exist", () => 
  * ------------------------------------------------------------------ */
 
 test("every /admin page checks the role itself", () => {
-  const files = execSync('git ls-files "src/app/(main)/admin/**/page.tsx"', {
-    cwd: ROOT,
-    encoding: "utf8",
-  })
-    .split("\n")
-    .filter(Boolean);
+  // Walked, not `git ls-files`: a new admin page is untracked until somebody
+  // stages it, and that is exactly when this should already be shouting
+  // (same reasoning as the use-server walk above, audit C-189).
+  const walk = (dir, acc = []) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) walk(full, acc);
+      else if (entry === "page.tsx") acc.push(relative(ROOT, full));
+    }
+    return acc;
+  };
+  const files = walk(resolve(ROOT, "src/app/(main)/admin"));
   assert.ok(files.length >= 10, `found only ${files.length} admin pages; the glob has drifted`);
   for (const file of files) {
     assert.ok(
