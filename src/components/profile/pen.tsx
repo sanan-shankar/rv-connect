@@ -375,6 +375,16 @@ export function useAutoSave() {
      flight has to keep the spinner up rather than tick early. */
   const inFlight = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* The tail of the save queue (audit C-045).
+     `run` only COUNTED in-flight writes; it never ordered them. The places
+     picker commits on every change and `updateUserPlaces` is a
+     wipe-and-recreate transaction, so two edits a moment apart raced: under
+     READ COMMITTED each deletes what it can see and then inserts, and the
+     @@unique([userId, position]) aborts the loser. Nothing was corrupted --
+     that unique exists for this -- but the loser surfaced "check your
+     connection" over a save that was fine, and which of the two lists survived
+     was down to timing. Chaining them makes the last edit the last write. */
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(
     () => () => {
@@ -388,9 +398,14 @@ export function useAutoSave() {
     if (timer.current) clearTimeout(timer.current);
     setState("saving");
     setMessage(null);
+    // Behind everything already queued, so writes land in the order they were
+    // made. The spinner goes up NOW, not when this one's turn comes: from the
+    // member's side the save started when they made the edit.
+    const mine = queue.current.then(() => fn());
+    queue.current = mine.catch(() => {});
     let failed: string | null = null;
     try {
-      const result = await fn();
+      const result = await mine;
       if (result && "error" in result && result.error) failed = result.error;
     } catch {
       failed = "That did not save. Check your connection.";

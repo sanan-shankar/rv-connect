@@ -94,7 +94,11 @@ export async function reportPost(postId: string, reason: string) {
     return { error: "That's a lot of reports at once. Give it an hour and send the rest." };
   }
 
-  const trimmed = reason?.trim() ?? "";
+  /* `reason` is typed a string and that type is erased at runtime: a crafted
+     call past the verified-member and rate-limit gates could send a number,
+     and `(5).trim()` threw a 500 digest instead of a refusal (audit C-174). */
+  if (typeof reason !== "string") return { error: "Please provide a valid reason" };
+  const trimmed = reason.trim();
   if (!trimmed || trimmed.length > 500) {
     return { error: "Please provide a valid reason" };
   }
@@ -234,7 +238,11 @@ export async function reportUser(reportedUserId: string, reason: string) {
     return { error: "That's a lot of reports at once. Give it an hour and send the rest." };
   }
 
-  const trimmed = reason?.trim() ?? "";
+  /* `reason` is typed a string and that type is erased at runtime: a crafted
+     call past the verified-member and rate-limit gates could send a number,
+     and `(5).trim()` threw a 500 digest instead of a refusal (audit C-174). */
+  if (typeof reason !== "string") return { error: "Please provide a valid reason" };
+  const trimmed = reason.trim();
   if (!trimmed || trimmed.length > 500) {
     return { error: "Please provide a valid reason" };
   }

@@ -22,13 +22,36 @@ import { prisma } from "@/lib/prisma";
 import { FULL_NAME_MAX, batchTypeFromLeaving } from "@/lib/utils";
 import { titleCase, normalizePhone, instagramHandle } from "@/lib/normalize";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
-import { contactMethodsSchema } from "@/lib/validators";
+import { contactMethodsSchema, profileSchema } from "@/lib/validators";
+import type { ZodTypeAny } from "zod";
 import { yearClashMessage } from "@/lib/batch-year";
 
 import { revalidatePath } from "next/cache";
 
 const YEAR_MIN = 1926;
-const YEAR_MAX = 2100;
+
+/**
+ * Whether a value this action has already converted clears the bound the
+ * SHARED schema sets for that column.
+ *
+ * Every bound here used to be typed out locally, and all three had drifted
+ * from the schema every other writer of the same columns uses: jobTitle and
+ * workplace at 120 against its 100, admissionNumber at 100000 against its
+ * 10000, and a flat year ceiling of 2100 against `yearField`'s per-parse
+ * valleyYear()+ahead (audits C-047, C-048, C-172). This is the ONLY live
+ * editor of these columns, so its numbers were the ones that shipped and the
+ * schema's were the ones nobody reached -- the same shape as Low 84, where a
+ * local 80 refused a name signup had already accepted.
+ *
+ * The schema decides; this file keeps the sentence. Zod's own message ("Too
+ * big: expected string to have <=100 characters") is not how anything else
+ * here talks to a member.
+ */
+function outsideSchemaBound(field: ProfileField, value: string | number): boolean {
+  const shape = (profileSchema.shape as Record<string, ZodTypeAny | undefined>)[field];
+  if (!shape) return false;
+  return !shape.safeParse(value).success;
+}
 
 /* The only columns this action may touch. A "use server" export is a
    network-callable POST and the `field: ProfileField` type is erased at
@@ -75,6 +98,13 @@ export async function updateProfileField(field: ProfileField, raw: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
+  /* `raw` is typed a string and that type is ERASED at runtime: a "use server"
+     export is a network-callable POST, so a crafted call can send a number, an
+     object or null, and `raw.trim()` below then threw a TypeError out of the
+     action -- a 500 digest in the logs instead of a refusal (audit C-174, the
+     class Low 83 already fixed once in updateContactMethods). */
+  if (typeof raw !== "string") return { error: "That value cannot be saved." };
+
   // Refuse any column not in the edit set before a single write is composed
   // (mass-assignment guard -- see EDITABLE_FIELDS above).
   if (!EDITABLE_FIELDS.has(field)) return { error: "That field cannot be edited here." };
@@ -94,13 +124,13 @@ export async function updateProfileField(field: ProfileField, raw: string) {
       break;
     }
     case "about": {
-      if (value.length > 4000) return { error: "That is longer than About allows." };
+      if (outsideSchemaBound(field, value)) return { error: "That is longer than About allows." };
       data.about = value || null;
       break;
     }
     case "jobTitle":
     case "workplace": {
-      if (value.length > 120) return { error: "That is too long." };
+      if (outsideSchemaBound(field, value)) return { error: "That is too long." };
       data[field] = value ? titleCase(value) : null;
       break;
     }
@@ -110,7 +140,7 @@ export async function updateProfileField(field: ProfileField, raw: string) {
         break;
       }
       const n = Number(value);
-      if (!Number.isInteger(n) || n < 0 || n > 100000)
+      if (!Number.isInteger(n) || n < 0 || outsideSchemaBound("admissionNumber", n))
         return { error: "That is not an admission number." };
       data.admissionNumber = n;
       break;
@@ -118,7 +148,8 @@ export async function updateProfileField(field: ProfileField, raw: string) {
     case "subjects": {
       // A teacher's comma list ("Physics, Astronomy Club"), each entry
       // title-cased on its own, same as the onboarding save.
-      if (value.length > 200) return { error: "That is longer than Subjects allows." };
+      if (outsideSchemaBound("subjects", value))
+        return { error: "That is longer than Subjects allows." };
       data.subjects = value
         ? value.split(",").map((s) => titleCase(s)).filter(Boolean).join(", ") || null
         : null;
@@ -134,8 +165,13 @@ export async function updateProfileField(field: ProfileField, raw: string) {
         break;
       }
       const n = Number(value);
-      if (!Number.isInteger(n) || n < YEAR_MIN || n > YEAR_MAX)
-        return { error: `A year between ${YEAR_MIN} and ${YEAR_MAX}, please.` };
+      /* The ceiling comes from `yearField`'s per-parse refine, not from a flat
+         2100: a batch year may run to valleyYear()+7 and a teacher's tenure to
+         this year, and the pen was the one door accepting "2099" for all of
+         them (audit C-048). YEAR_MIN stays local because it is the same 1926
+         everywhere and reads better in the sentence below. */
+      if (!Number.isInteger(n) || n < YEAR_MIN || outsideSchemaBound(field, n))
+        return { error: `That year is not one this can be. A year from ${YEAR_MIN}, please.` };
 
       /* Cross-field sanity (audit Low 96). Each year was checked only against
          the calendar, never against the others, so "joined 2020, left 2010"
