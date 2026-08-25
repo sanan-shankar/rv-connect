@@ -13,7 +13,7 @@
  *  and only passes the resulting url array back in.
  * ------------------------------------------------------------------ */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { shrinkForUpload } from "@/lib/image-downscale";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { ImagePlus, X } from "lucide-react";
@@ -36,6 +36,18 @@ export function PhotoAttachments({
   const [uploading, setUploading] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [listRef] = useAutoAnimate();
+  /* The freshest `images`, for the one place that reads it AFTER an await.
+     `handleFiles` closes over the prop as it was when the picker returned, and
+     an upload is long enough on a phone to remove a photo mid-flight: the
+     removal reached the parent, then the upload landed and spread the stale
+     list back over it, resurrecting the photo the member had just taken off
+     (audit C-182). The Remove button stays live during an upload on purpose --
+     waiting for someone else's photo to finish before you can undo your own is
+     the worse answer. */
+  const imagesRef = useRef(images);
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
 
   const single = max === 1;
   const plateSize = single ? "h-44 w-full sm:w-72" : "h-20 w-20";
@@ -78,7 +90,7 @@ export function PhotoAttachments({
       }
       // Anything the server changed about the file, said out loud (audit M15).
       for (const notice of (data.notices ?? []) as string[]) toast.info(notice);
-      onChange([...images, ...(data.urls as string[])]);
+      onChange([...imagesRef.current, ...(data.urls as string[])]);
     } catch {
       toast.error("That photo would not upload. Try again.");
     } finally {

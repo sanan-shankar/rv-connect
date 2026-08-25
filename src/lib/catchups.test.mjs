@@ -48,6 +48,7 @@ import {
   dailyBucket,
   withDailyBucket,
   daysLeftUntil,
+  TICK_GRACE_MS,
   extendPhasePatch,
   REMINDER_QUESTIONS_EXTENDED,
   shiftEditionPatch,
@@ -102,6 +103,47 @@ test("computeStatus: published is terminal", () => {
 test("computeStatus: collecting holds until questionsCloseAt, then answering", () => {
   assert.equal(computeStatus(edition({ status: "collecting", questionsCloseAt: at(DAY_MS) }), NOW), "collecting");
   assert.equal(computeStatus(edition({ status: "collecting", questionsCloseAt: at(-1) }), NOW), "answering");
+});
+
+test("computeStatus: a deadline the next tick just undershoots still fires (C-142)", () => {
+  /* The failure this pins: a deadline is minted as `day-0 tick + N days`, and
+     the day-N tick runs at its own independent offset. Fire even a second
+     earlier than day 0 did and the comparison misses, so the phase waits a
+     whole further day -- about half the time, for any jitter at all. The
+     grace makes an undershoot smaller than a scheduler's wobble irrelevant.
+
+     Expressed as a fraction of the grace, not as a literal, so tuning the
+     constant does not need this test rewritten. */
+  const undershoot = TICK_GRACE_MS / 2;
+  assert.equal(
+    computeStatus(edition({ status: "collecting", questionsCloseAt: at(undershoot) }), NOW),
+    "answering",
+    "a tick firing inside the grace before the deadline must still advance"
+  );
+  assert.equal(
+    computeStatus(edition({ status: "answering", answersCloseAt: at(undershoot) }), NOW),
+    "preparing"
+  );
+  assert.equal(
+    computeStatus(edition({ status: "preparing", publishAt: at(undershoot) }), NOW),
+    "published"
+  );
+});
+
+test("computeStatus: the grace is a wobble, not a shortened phase (C-142)", () => {
+  // A whole day still to run is a whole day still to run.
+  assert.equal(
+    computeStatus(edition({ status: "collecting", questionsCloseAt: at(DAY_MS) }), NOW),
+    "collecting"
+  );
+  // And the grace stays far below the granularity the deadlines are set in.
+  // Still holding with an hour to run: the grace must not eat into the
+  // shortest thing here measured in hours, the 24-hour preparing hold.
+  assert.equal(
+    computeStatus(edition({ status: "preparing", publishAt: at(HOUR_MS) }), NOW),
+    "preparing"
+  );
+  assert.ok(TICK_GRACE_MS < HOUR_MS, `a grace of ${TICK_GRACE_MS}ms is not a wobble`);
 });
 
 test("computeStatus: collecting cannot skip past answering when the later close is not set", () => {
@@ -803,4 +845,36 @@ test("C-141: nothing prints a countdown from a raw millisecond gap any more", as
   assert.match(read("./catchups-notify.ts"), /answerReminderMessage\(ctx\.groupName, ctx\.closesAt/);
   // ...and the deadline actually reaches the bell.
   assert.match(read("./catchups.ts"), /closesAt: before\.answersCloseAt,/);
+});
+
+test("C-182: a photo removed mid-upload is not resurrected when the upload lands", () => {
+  /* `handleFiles` closes over the `images` prop as it was when the picker
+     returned, and awaits an upload. Remove a photo in that window -- the
+     Remove button stays live, deliberately -- and the completion used to
+     spread the STALE list back over the parent, putting the removed photo
+     back and autosaving it to the row.
+
+     Structural, because the bug is which binding is read after an await, and
+     that is not observable from the component's rendered output. */
+  const src = readFileSync(
+    resolve(CATCHUP_ROOT, "components/catchups/answer/photo-attachments.tsx"),
+    "utf8"
+  );
+  const fn = src.slice(src.indexOf("async function handleFiles"));
+  const body = fn.slice(0, fn.indexOf("\n  }\n"));
+  assert.match(
+    body,
+    /onChange\(\[\.\.\.imagesRef\.current,/,
+    "the post-upload onChange reads the captured prop, not the freshest one"
+  );
+  assert.doesNotMatch(
+    body,
+    /onChange\(\[\.\.\.images,/,
+    "the stale closure is back"
+  );
+  assert.match(
+    src,
+    /imagesRef\.current = images;/,
+    "nothing keeps the ref in step with the prop"
+  );
 });

@@ -1706,11 +1706,17 @@ async function loadOwnCatchupCopy(catchupId: string, viewerId: string) {
  * Write one member's own state for one Catch-up, creating the row if this is
  * the first opinion they have ever had about it.
  *
- * The P2002 retry is not decoration: `upsert` is a read-then-write inside
- * Postgres, so two taps landing together (the archive toggle is one click away
- * from the delete item in the same menu) can both miss the row and both try to
- * create it. The loser's violation means the row we wanted now exists, so the
- * honest answer is to update it (audit B-040's pattern, applied here).
+ * The P2002 retry is a belt, not the braces, and the comment here used to say
+ * the opposite: that `upsert` is a read-then-write inside Postgres and two
+ * taps landing together can both miss the row. Checked against the live
+ * database rather than argued about (audit C-127): for this shape -- a `where`
+ * that is exactly a compound unique which also appears in `create`, no nested
+ * writes -- Prisma 7.9 emits a single
+ * `INSERT ... ON CONFLICT ("catchupId","userId") DO UPDATE`, and 75 deliberately
+ * simultaneous first-writes produced zero violations. Postgres decides it, not
+ * us. The catch stays because it costs nothing and an upsert shape that stops
+ * qualifying for the native path would otherwise fail loudly for a member; it
+ * is no longer the thing keeping the archive toggle honest.
  */
 async function upsertCatchupPref(
   catchupId: string,

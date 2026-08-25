@@ -3196,3 +3196,52 @@ with a sentence saying why.
 
 Gate: `src/lib/feed-write-rule.test.mjs`, eighteen assertions, every one proved
 by reverting its fix and watching it fail.
+
+## 2026-08-25 (later) — the long tail, part two: Catch-ups
+
+Ten findings pointed at Catch-ups. Four were already closed by the Mediums
+above them -- checking first is the whole reason the ledger exists -- and two
+more did not survive being looked at.
+
+**The demo's flagship flow could never finish (C-113).** "Start a Catch-up" is
+a permanent button on the demo's Catch-ups index and /catchups/new is
+deliberately open, but the creating transaction's first write is
+`group.create`, and Group and GroupMember were not on the demo's write
+allowlist. So every attempt died on the guard and told the visitor "Something
+went wrong. Please try again." -- for ever, on the one flow the demo exists to
+show off. Both models are now allowed; the reset already wiped all three group
+tables. The gate derives the model list from the transaction itself, so a
+write added later cannot quietly re-open the hole.
+
+**A phase that slips a whole day, about half the time (C-142).** Every
+deadline is minted as `now + N days` where `now` is whenever the day-0 tick
+happened to run, and the day-N tick runs at its own offset. Fire a second
+earlier than day 0 did and `t >= deadline` misses, so the Round waits another
+twenty-four hours. Magnitude does not matter; sign does. `TICK_GRACE_MS` is
+five minutes -- more than any scheduler's wobble, far less than the hours the
+shortest phase is measured in -- and it lives in `computeStatus`, so what the
+tick does and what the page says stay one function.
+
+**A photo that came back after being removed (C-182).** The upload handler
+closes over the `images` prop from before its await, so removing a photo
+mid-upload was undone the moment the upload landed, and the parent autosaved
+the resurrected list. It reads a ref now. Remove stays live during an upload
+on purpose: waiting for someone else's photo to finish before you can undo
+your own is the worse answer.
+
+**The invite link had no loading boundary (C-139).** It is the one async
+database route outside `(main)`, so nothing above it applied and a stranger
+opening a forwarded link on a cold function watched a blank tab. Its skeleton
+is the page's own Shell with the wordmark real from the first frame; every
+block is the real element's line box, and the width at which the paragraph
+stops wrapping to five lines (472px, where the card stops shrinking) was
+measured in the browser rather than guessed. Checked at 1440x900 and at a true
+390x844.
+
+**One refuted by asking the database (C-127).** Two comments in this codebase
+contradicted each other about whether `upsert` is atomic. It is: Prisma 7.9
+emits `INSERT ... ON CONFLICT DO UPDATE` for this shape, and 75 deliberately
+simultaneous first-writes produced zero violations. The comment claiming
+otherwise was the wrong half and now says what Postgres actually does. The
+P2002 catch stays as cheap insurance, no longer as the thing holding the
+toggle up.

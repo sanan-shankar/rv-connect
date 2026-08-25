@@ -290,3 +290,36 @@ test("the demo says why it will not remove a photo, rather than failing", () => 
     "the demo sentence comes after the write it exists to prevent"
   );
 });
+
+test("the demo's flagship flow can actually finish", () => {
+  /* "Start a Catch-up" is a permanent button on the demo's Catch-ups index
+     and /catchups/new is deliberately open, so the creating transaction has
+     to pass the write guard end to end. It did not: Group and GroupMember
+     were missing from the allowlist, the very first write threw, and the
+     visitor was told "Something went wrong. Please try again." on every
+     attempt, for ever (audit C-113).
+
+     The models are DERIVED from the transaction rather than listed here, so a
+     write added to it later cannot quietly re-open the same hole. */
+  const src = readFileSync(resolve(HERE, "../app/(main)/catchups/actions.ts"), "utf8");
+  const fn = src.slice(src.indexOf("export async function createCatchupWithPeople"));
+  const tx = fn.slice(fn.indexOf("prisma.$transaction"), fn.indexOf("\n  });"));
+  const written = new Set(
+    [...tx.matchAll(/\btx\.([a-zA-Z]+)\.(create|createMany|update|updateMany|upsert)\b/g)].map(
+      (m) => m[1][0].toUpperCase() + m[1].slice(1)
+    )
+  );
+  // Nested relation creates ride on their parent's permission, but the rows
+  // they make are still rows: name them too.
+  if (/members:\s*\{\s*create:/.test(tx)) written.add("GroupMember");
+
+  assert.ok(written.size >= 4, `only scraped ${[...written]} from the creating transaction; the slice has drifted`);
+  for (const model of written) {
+    assert.equal(
+      demoWriteAllowed(model, "create", {}),
+      true,
+      `starting a Catch-up writes ${model}, which the demo refuses -- so the ` +
+        `visitor gets a generic retry message on a flow the demo opens to them`
+    );
+  }
+});
