@@ -376,11 +376,16 @@ export function CommentsSection({
                           comment={reply}
                           onReply={() =>
                             setReplyTo({
-                              // Replying under a deleted parent targets the
-                              // REPLY (still alive, so the server accepts it
-                              // and reparents to the root as usual); a
-                              // deleted id would be refused.
-                              id: comment.deleted ? reply.id : comment.id,
+                              /* The TAPPED reply, always. The server reparents
+                                 to the root for storage, so the thread shape is
+                                 the same either way -- but it also notifies
+                                 whoever this id belongs to, and sending the
+                                 root's id told the wrong person while the
+                                 composer said "Replying to <them>" about this
+                                 one (audit C-016). It also keeps working under
+                                 a deleted parent, whose own id would be
+                                 refused. */
+                              id: reply.id,
                               name: reply.author!.name,
                             })
                           }

@@ -14,6 +14,23 @@ const IS_POSTGRES = (process.env.DATABASE_URL ?? "").startsWith("postgres");
 export const insensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
 
 /**
+ * The longest search pattern any `contains` filter will carry.
+ *
+ * `contains` compiles to `LIKE '%pattern%'`, which Postgres matches by naive
+ * substring scan with no wildcard early-out, so the work per row is roughly
+ * pattern length x text length. Nothing capped the term: `loadPosts` and
+ * `buildDirectoryWhere` are unmetered reads on directly-callable paths, so a
+ * 20KB `q` turned each ~20k-character letter into hundreds of millions of
+ * comparisons and held one of five pool connections for the full 20s query
+ * timeout, repeatably (audit C-015).
+ *
+ * A hundred characters is longer than any name, city or phrase somebody
+ * actually searches for, so the clamp is invisible to a member and the whole
+ * shape of the attack is gone.
+ */
+export const SEARCH_TERM_MAX = 100;
+
+/**
  * Escape the LIKE wildcards in a value a human typed into a `contains` search.
  *
  * Prisma parameterises the value (so this is never a SQL-injection question)
@@ -31,5 +48,9 @@ export const insensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {}
  * server-controlled and carry no wildcards.
  */
 export function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+  /* Clamped BEFORE escaping, never after: truncating the escaped string could
+     cut a `\\%` pair in half and leave a trailing lone backslash, which
+     Postgres rejects outright ("LIKE pattern must not end with escape
+     character"). */
+  return value.slice(0, SEARCH_TERM_MAX).replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }

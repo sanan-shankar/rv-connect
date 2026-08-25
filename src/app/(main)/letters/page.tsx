@@ -9,7 +9,12 @@ import { Button } from "@/components/ui/button";
 import { IdentityRow } from "@/components/common/identity-row";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { batchLine, formatDisplayDate, letterTitle, metaLine } from "@/lib/utils";
-import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
+import {
+  AUTHOR_IN_GOOD_STANDING,
+  PUBLISHED_ONLY,
+  VISIBLE_COMMENT,
+  batchScopeWhere,
+} from "@/lib/posts";
 import { batchTargetKey } from "@/lib/post-visibility-rule";
 
 export const metadata: Metadata = {
@@ -79,7 +84,7 @@ export default async function LettersPage({
       author: {
         select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, accountType: true, batchType: true, batchYear: true },
       },
-      _count: { select: { comments: { where: { isHidden: false, deletedAt: null } }, likes: true } },
+      _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
     },
     orderBy: { createdAt: "desc" },
     // One extra, purely to answer "is there another page" without a count.
