@@ -507,12 +507,6 @@ export function DirectoryClient({
       >
         {renderPrimaryFacets(true)}
         {renderSecondaryFacets(true)}
-        {/* Sort rides in the sheet too below sm, where it is pulled off the
-            top row for space. Above that it is already on the toolbar, so
-            showing it here as well would be the same duplication this whole
-            change removes. */}
-        <div className="sm:hidden">
-        </div>
       </FilterSheet>
 
       {browseView === "people" ? (

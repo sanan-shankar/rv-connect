@@ -75,7 +75,7 @@ import Image from "next/image";
 import { motion } from "motion/react";
 import { Camera, Feather, Images, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ProfileAvatar } from "@/components/profile/profile-avatar";
+import { ProfileAvatar } from "./_profile-avatar";
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";

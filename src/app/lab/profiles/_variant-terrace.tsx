@@ -77,7 +77,7 @@ import { motion } from "motion/react";
 import { Camera, Feather, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FadeRise, SPRINGS } from "@/components/common/motion";
-import { ProfileAvatar } from "@/components/profile/profile-avatar";
+import { ProfileAvatar } from "./_profile-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { AdmissionStamp } from "@/components/profile/admission-stamp";
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
