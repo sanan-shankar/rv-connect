@@ -38,7 +38,6 @@ export type HomePersonRef = {
 // question count is shown as a plain "N questions in this round". The
 // companion per-member pending cap went with the approval step it capped
 // (2026-08-05): nothing pends, so nothing needed counting.
-export const MAX_ACCEPTED_PROMPTS_PER_EDITION = 40;
 
 export type HomePromptView = {
   id: string;

@@ -377,7 +377,7 @@ const nextAuth = NextAuth({
   },
 });
 
-export const { handlers, signIn, signOut } = nextAuth;
+export const { handlers } = nextAuth;
 
 /* ------------------------------------------------------------------ *
  *  Demo mode: everyone is already signed in.

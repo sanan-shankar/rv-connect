@@ -280,11 +280,6 @@ export const commentSchema = z.object({
   parentId: z.string().optional(),
 });
 
-export const reportSchema = z.object({
-  postId: z.string().min(1),
-  reason: z.string().min(1, "Please provide a reason").max(500),
-});
-
 // Messages between a member and the admins (src/lib/admin-threads.ts). The
 // only required field anywhere in this feature is the text itself: the kind
 // chip and the screenshot are both optional, so the fast path stays "type one

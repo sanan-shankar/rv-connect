@@ -251,4 +251,3 @@ export async function sendMail(opts: {
 // import. The implementation lives in its own dependency-free file because the
 // client needs it too, and importing this module into a client component would
 // drag the Resend SDK into the browser bundle.
-export { maskEmail } from "./mask-email";

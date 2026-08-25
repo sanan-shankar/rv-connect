@@ -125,9 +125,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   },
 ];
 
-/** Flat list, for lookups that do not care about the grouping. */
-export const ADMIN_SECTIONS: AdminSectionDef[] = ADMIN_NAV.flatMap((g) => g.sections);
-
 /**
  * Active-row test.
  *

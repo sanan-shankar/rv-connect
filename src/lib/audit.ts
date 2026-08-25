@@ -3,23 +3,24 @@ import { IS_DEMO } from "@/lib/demo";
 
 /**
  * The audit log's one writer (audit H10 / H14 / M36). Every accountability
- * event goes through here: sign-ins, admin actions, deletions, verification
- * and role changes, reports.
+ * event goes through here: admin actions, deletions, verification and role
+ * changes, reports. Sign-ins are NOT among them -- they are recorded by
+ * `recordLoginAttempt` into LoginAttempt, and a session that logged them here
+ * too would double-log.
  *
  * The dotted actions, so a reader (and the /admin/audit view) can group them:
- *   signin.success  signin.fail
  *   admin.block  admin.unblock  admin.delete  admin.role  admin.verify
  *   admin.unverify  admin.merge
  *   account.delete_request  account.delete_cancel  account.purge  account.export
  *   report.user  report.post
  *   retention.sweep
  *
- * ("account.delete" was the pre-grace-period self-deletion event; nothing
- * writes it since Phase 8, but old rows still carry it.)
+ * ("account.delete" was the pre-grace-period self-deletion event, and
+ * "signin.success"/"signin.fail" were Phase 7 sign-in events superseded by
+ * LoginAttempt; nothing writes any of them now, but old rows may still carry
+ * them. The view renders whatever string a row holds, so they still display.)
  */
 export type AuditAction =
-  | "signin.success"
-  | "signin.fail"
   | "admin.block"
   | "admin.unblock"
   | "admin.delete"

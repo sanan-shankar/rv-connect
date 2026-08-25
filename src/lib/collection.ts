@@ -37,8 +37,6 @@ export const ERAS = [
   { value: "unknown", label: "Not sure" },
 ] as const;
 
-export const SUBJECT_VALUES = SUBJECTS.map((s) => s.value);
-export const AREA_VALUES = AREAS.map((a) => a.value);
 export const ERA_VALUES = ERAS.map((e) => e.value);
 
 const SUBJECT_LABELS = Object.fromEntries(SUBJECTS.map((s) => [s.value, s.label]));

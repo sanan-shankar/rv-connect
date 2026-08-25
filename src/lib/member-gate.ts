@@ -27,7 +27,6 @@ import type { GateResult } from "./email-verification";
  *  exist to make the rule visible, not to make it true.
  * ------------------------------------------------------------------ */
 
-export { MEMBER_UNVERIFIED } from "./member-gate-message";
 export type { GateResult } from "./email-verification";
 
 /**

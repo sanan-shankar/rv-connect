@@ -5,8 +5,6 @@ import { instagramHandle } from "@/lib/normalize";
  * page so onboarding, settings, and the profile all normalise handles the same
  * way (prepend https://, turn an @handle into a full instagram.com URL, etc.).
  */
-export { instagramHandle };
-
 export type SocialKind = "instagram" | "linkedin" | "facebook" | "website" | "link";
 
 /** Turn a stored handle/URL into a safe, openable href. */

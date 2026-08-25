@@ -22,13 +22,12 @@ import { EMAIL_UNVERIFIED } from "./email-gate-message";
  *  after the authentication check.
  * ------------------------------------------------------------------ */
 
-// The sentinel every gated action returns. Defined in its own dependency-free
-// file so the client dialog can match on it without importing `auth()` (and
-// with it NextAuth and Prisma) into the browser bundle. Re-exported here so
-// server callers can reach it from the module they already import.
-export { EMAIL_UNVERIFIED } from "./email-gate-message";
+// The sentinel every gated action returns lives in its own dependency-free
+// file (./email-gate-message) so the client dialog can match on it without
+// importing `auth()` -- and with it NextAuth and Prisma -- into the browser
+// bundle. Every caller imports it from there directly.
 
-export interface VerifiedViewer {
+interface VerifiedViewer {
   id: string;
   name: string;
   email: string;

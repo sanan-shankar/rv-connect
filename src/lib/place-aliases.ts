@@ -66,11 +66,6 @@ export function canonicalPlaceId(id: number): number {
   return BY_ID.get(id) ?? id;
 }
 
-/** True if this gazetteer row should never be offered as a choice. */
-export function isAliasedPlaceId(id: number): boolean {
-  return BY_ID.has(id);
-}
-
 /**
  * The gazetteer id a hand-typed city should become, or null to leave it alone.
  * Reads only the part before the first comma, so "Delhi" and "Delhi, India"

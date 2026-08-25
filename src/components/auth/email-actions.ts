@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { maskEmail } from "@/lib/email";
+import { maskEmail } from "@/lib/mask-email";
 import { burnTokens, hashToken, readToken } from "@/lib/auth-tokens";
 import { passwordProblem } from "@/lib/password-rule";
 import { enqueueMail, verificationMailState } from "@/lib/email-queue";
