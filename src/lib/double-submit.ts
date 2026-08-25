@@ -15,3 +15,38 @@
  * No imports, so `node --test` can load anything that uses it.
  */
 export const DOUBLE_SUBMIT_MS = 10_000;
+
+/**
+ * Whether a candidate row inside the window is the SAME post as the one being
+ * created, rather than merely one carrying the same words.
+ *
+ * The window query can only match columns, and it matched author + text +
+ * kind + status alone. That is not a post: two photographs shared seconds
+ * apart under the caption "Reunion!" are two posts, and the second was
+ * swallowed while the composer said "Post shared!" (audit C-009). The
+ * attachments, the letter's title and the poll are as much the post as the
+ * body is, so a twin has to agree about all of them.
+ *
+ * `images` is compared as the stored string because both sides are built the
+ * same way -- normalised and de-duplicated by ownedUploadUrls, then
+ * JSON.stringify'd -- so equal lists give equal text, and a different ORDER is
+ * a different post to whoever reads it.
+ *
+ * Pure and importless so `node --test` can load it.
+ */
+export function isPostTwin(
+  candidate: {
+    title: string | null;
+    images: string | null;
+    pollOptions: { text: string; position: number }[];
+  },
+  incoming: { title: string | null; images: string | null; pollOptions: string[] }
+): boolean {
+  if ((candidate.title ?? "") !== (incoming.title ?? "")) return false;
+  if ((candidate.images ?? "") !== (incoming.images ?? "")) return false;
+  const stored = [...candidate.pollOptions]
+    .sort((a, b) => a.position - b.position)
+    .map((o) => o.text);
+  if (stored.length !== incoming.pollOptions.length) return false;
+  return stored.every((text, i) => text === incoming.pollOptions[i]);
+}

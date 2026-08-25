@@ -11,7 +11,12 @@ import { droppedImages } from "@/lib/draft-images";
 import { copyPostImagesToCollection } from "@/lib/collection-intake";
 import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
 import { notifyAdminNote } from "@/lib/admin-note";
-import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, audienceWhere } from "@/lib/posts";
+import {
+  AUTHOR_IN_GOOD_STANDING,
+  PUBLISHED_ONLY,
+  VISIBLE_COMMENT,
+  audienceWhere,
+} from "@/lib/posts";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
@@ -22,7 +27,7 @@ import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { clearPostNotifications } from "@/lib/post-notifications";
 import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
-import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
+import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { isLetterDraft } from "@/lib/draft-rule";
 
@@ -79,13 +84,35 @@ async function deletePostWithImages(
   kind: string | null
 ): Promise<void> {
   const urls = parseImageUrls(images);
-  await prisma.$transaction(async (tx) => {
-    if (urls.length > 0) {
+  const orphaned = await prisma.$transaction(async (tx) => {
+    /* Only bytes that no surviving row names (audit C-018).
+     *
+     * `images` is caller-supplied JSON and ownedUploadUrls only checks the
+     * prefix and the mint, so nothing stops the same own-upload url being
+     * attached to two posts. Purging on the first delete then 404s the
+     * second one's photograph -- the same "live post with broken pictures"
+     * this function was written to prevent, arrived at from the other side.
+     * Three urls at most, matched inside the transaction so a concurrent
+     * delete cannot slip between the check and the queue. */
+    const stillUsed =
+      urls.length > 0
+        ? await tx.post.findMany({
+            where: {
+              id: { not: postId },
+              OR: urls.map((url) => ({ images: { contains: url } })),
+            },
+            select: { images: true },
+          })
+        : [];
+    const kept = new Set(stillUsed.flatMap((row) => parseImageUrls(row.images)));
+    const orphaned = urls.filter((url) => !kept.has(url));
+    if (orphaned.length > 0) {
       await tx.pendingImagePurge.createMany({
-        data: urls.map((url) => ({ url, reason: "post" })),
+        data: orphaned.map((url) => ({ url, reason: "post" })),
       });
     }
     await tx.post.delete({ where: { id: postId } });
+    return orphaned;
   });
   /* The bell rows that pointed at it go with it (C-054). Here rather than at
      each caller, so a third way to delete a post cannot forget: the link is
@@ -95,7 +122,7 @@ async function deletePostWithImages(
   await clearPostNotifications({ id: postId, kind });
   // Best-effort and after the commit: a slow R2 must not hold a transaction
   // open, and a failure here is already recorded as work to redo.
-  await drainPendingImagePurges(urls);
+  await drainPendingImagePurges(orphaned);
 }
 
 
@@ -232,17 +259,19 @@ export async function createPost(formData: FormData) {
   // existed, and a failure mid-loop left a post carrying a partial poll.
   // Drafts are letters-only, so a poll never applies to one, but the guard
   // costs nothing.
-  const withPoll =
+  const wantedPollOptions =
     !isDraft && parsed.data.pollOptions && parsed.data.pollOptions.length >= 2
+      ? parsed.data.pollOptions.map((text) => text.trim())
+      : [];
+  const withPoll =
+    wantedPollOptions.length > 0
       ? {
           pollOptions: {
-            create: parsed.data.pollOptions.map((text, i) => ({
-              text: text.trim(),
-              position: i,
-            })),
+            create: wantedPollOptions.map((text, i) => ({ text, position: i })),
           },
         }
       : {};
+  const wantedTitle = parsed.data.kind === "letter" ? parsed.data.title || null : null;
 
   /* The server half of the double-submit guard (audit M35).
    *
@@ -251,8 +280,14 @@ export async function createPost(formData: FormData) {
    * call. The same author publishing the same words seconds apart is a
    * duplicate submission, so the first row is handed back as though this call
    * had made it. Narrow on purpose: same kind, same status, same text, ten
-   * seconds. A draft autosave is not affected -- those go through editPost. */
-  const twin = await prisma.post.findFirst({
+   * seconds. A draft autosave is not affected -- those go through editPost.
+   *
+   * The columns are only the coarse filter. Title, photographs and poll are
+   * part of the post too, and matching on text alone silently dropped a second
+   * photograph shared under the same caption (audit C-009), so the shortlist
+   * -- one author, ten seconds, so at most a handful of rows -- is settled by
+   * `isPostTwin`. */
+  const candidates = await prisma.post.findMany({
     where: {
       authorId: session.user.id,
       content: parsed.data.content,
@@ -260,8 +295,20 @@ export async function createPost(formData: FormData) {
       status: isDraft ? "draft" : "published",
       createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
     },
-    select: { id: true },
+    select: {
+      id: true,
+      title: true,
+      images: true,
+      pollOptions: { select: { text: true, position: true } },
+    },
   });
+  const twin = candidates.find((row) =>
+    isPostTwin(row, {
+      title: wantedTitle,
+      images: imagesJson,
+      pollOptions: wantedPollOptions,
+    })
+  );
   if (twin) {
     if (!isDraft) revalidatePath("/feed");
     if (parsed.data.kind === "letter") revalidatePath("/letters");
@@ -272,7 +319,7 @@ export async function createPost(formData: FormData) {
     data: {
       authorId: session.user.id,
       kind: parsed.data.kind || "post",
-      title: parsed.data.kind === "letter" ? parsed.data.title || null : null,
+      title: wantedTitle,
       content: parsed.data.content,
       // Rebuilt from the parse rather than stored through, the same way
       // `images` is rebuilt from ownedUploadUrls above: what lands in the
@@ -598,7 +645,18 @@ export async function editPost(postId: string, formData: FormData) {
         },
         select: { city: true },
       });
-      cityScopeUpdate = { cityScope: ownPlace?.city ?? null };
+      /* A miss is REFUSED, not folded to null (audit C-017).
+         "Everyone" and "the city I asked for, which I apparently no longer
+         list" are different intentions that both used to store the same
+         value. Since the desk autosaves the audience on every keystroke, a
+         member who removed that city from their profile in another tab had
+         the next keystroke quietly widen their letter to everybody -- the chip
+         still said "X only" -- and publishDraft then honoured the widening.
+         Refusing keeps the stored audience and tells them why. */
+      if (!ownPlace) {
+        return { error: `You no longer list ${wanted}, so it cannot be the audience.` };
+      }
+      cityScopeUpdate = { cityScope: ownPlace.city };
     }
   }
 
@@ -813,6 +871,12 @@ export async function createComment(formData: FormData) {
 
   // If replying to a reply, redirect to the parent comment (enforce 1-level depth)
   let parentId = parsed.data.parentId || null;
+  /* Who the reply was actually AIMED at, before the reparenting below.
+     Threads are one level deep, so a reply to a reply is stored under the
+     root -- but the person being answered is the one whose name the composer
+     printed, and notifying the root's author instead told somebody else
+     entirely while the addressee heard nothing (audit C-016). */
+  const repliedToId = parentId;
   if (parentId) {
     const parent = await prisma.comment.findUnique({
       where: { id: parentId },
@@ -893,10 +957,10 @@ export async function createComment(formData: FormData) {
     });
   }
 
-  // Notify parent comment author about reply
-  if (!twin && parentId) {
+  // Notify the author of the comment that was replied to
+  if (!twin && repliedToId) {
     const parentComment = await prisma.comment.findUnique({
-      where: { id: parentId },
+      where: { id: repliedToId },
       select: { authorId: true },
     });
     /* `authorId` is nullable since audit M34: a comment whose author has been
@@ -1135,7 +1199,7 @@ export async function loadPosts(opts?: {
         batchYear: true,
       },
     },
-    _count: { select: { comments: { where: { isHidden: false, deletedAt: null } }, likes: true } },
+    _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
     likes: { where: { userId: session.user.id }, select: { id: true } },
     bookmarks: { where: { userId: session.user.id }, select: { id: true } },
     pollOptions: {
@@ -1303,7 +1367,7 @@ export async function loadSavedPosts() {
               batchYear: true,
             },
           },
-          _count: { select: { comments: { where: { isHidden: false, deletedAt: null } }, likes: true } },
+          _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
           likes: { where: { userId }, select: { id: true } },
           bookmarks: { where: { userId }, select: { id: true } },
           pollOptions: {
@@ -1407,18 +1471,6 @@ export async function toggleCommentLike(commentId: string) {
   // heart scroll-jump bug (the post-action refresh occasionally reset scroll to the top).
   return { success: true, liked: true };
 }
-
-/** A comment row still shown to readers: neither admin-hidden nor self-deleted. */
-/* A comment worth rendering: not hidden by a moderator, not deleted by its
-   author, and written by somebody still in good standing (audit Low 78, owner
-   decision -- see AUTHOR_IN_GOOD_STANDING). A blocked member's comment leaves
-   the thread; if replies hang off it, the roots query below still keeps it as
-   an anonymous "[deleted]" stub so those replies keep their anchor. */
-const VISIBLE_COMMENT = {
-  isHidden: false,
-  deletedAt: null,
-  ...AUTHOR_IN_GOOD_STANDING,
-} as const;
 
 /**
  * One page of a post's thread. Pagination walks TOP-LEVEL comments only

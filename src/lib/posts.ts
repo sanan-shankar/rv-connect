@@ -63,6 +63,27 @@ export function batchScopeWhere(key: string | null) {
 export const AUTHOR_IN_GOOD_STANDING = { author: { isBlocked: false } } as const;
 
 /**
+ * A comment row a reader is actually shown: neither admin-hidden nor
+ * self-deleted, and written by somebody still in good standing.
+ *
+ * It lives here, beside the post fragment, because the COUNT on a card and
+ * the LIST in the thread must be the same question. They were not: the four
+ * `_count.comments` fragments filtered on hidden + deleted only, so a post
+ * whose one comment was written by a since-blocked member showed "1" on the
+ * card and rendered an empty thread (audit C-003). Spread this into both
+ * halves and the two cannot drift again.
+ *
+ * A blocked member's comment leaves the thread; if replies hang off it, the
+ * roots query keeps it as an anonymous "[deleted]" stub so those replies keep
+ * their anchor (audit Low 78, owner decision -- see AUTHOR_IN_GOOD_STANDING).
+ */
+export const VISIBLE_COMMENT = {
+  isHidden: false,
+  deletedAt: null,
+  ...AUTHOR_IN_GOOD_STANDING,
+} as const;
+
+/**
  * The audience half of "which posts may this viewer see": the city arm and
  * the batch arm, composed exactly once.
  *

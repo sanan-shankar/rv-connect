@@ -82,3 +82,9 @@ refuted); one Medium is owner-only (C-135) and 121 distinct Lows remain for the 
 | C-110 | fixed f7bb8cd | duplicate of C-044; closed by the same allowlist change |
 | C-185 | fixed 9a80516 | duplicate of C-108; closed by the same lease renewal |
 | C-039 | fixed bff17be | duplicate of C-004; closed by the same `audienceWhere` builder |
+| C-018 | fixed 4a4a4f8 | `deletePostWithImages` queues only urls no surviving Post row names; matched inside the same transaction as the delete. Proved live against Postgres: two posts sharing one url, deleting the first purges its solo image and leaves the shared one |
+| C-003 | fixed 4a4a4f8 | `VISIBLE_COMMENT` moved to `src/lib/posts.ts` and spread into all four `_count.comments` fragments as well as the thread query, so the card's number and the thread's list are one question |
+| C-009 | fixed 4a4a4f8 | the twin window is now a shortlist settled by `isPostTwin` (title, images, poll options), so a second photograph under the same caption is a post rather than a swallowed duplicate |
+| C-015 | fixed 4a4a4f8 | `escapeLike` clamps at `SEARCH_TERM_MAX` (100) BEFORE escaping, which covers the feed, the directory, the collection, users-search and admin search in one place |
+| C-016 | fixed 4a4a4f8 | the composer sends the TAPPED reply's id and `createComment` notifies that comment's author; the stored parent is still the root, so the thread shape is unchanged |
+| C-017 | fixed 4a4a4f8 | a cityScope the author no longer lists is REFUSED with an error instead of folding to null, which was the same stored value as a deliberate "Everyone" |

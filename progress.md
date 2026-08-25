@@ -3149,3 +3149,50 @@ that only IMPORTS it. It went vacuous three separate times today before each
 gate was proved by reverting the fix. A per-file sweep has a second version of
 the same hole — it passes when a file has two takedown paths and you only
 fixed one. Count the sites, don't detect them.
+
+## 2026-08-25 (later) — the long tail, part one: the feed's write paths
+
+The last session of the run. Everything above Low was closed; what is left is
+121 small findings, worked in FILE order rather than id order so a module is
+opened once.
+
+**The feed's writes (C-018, C-003, C-009, C-015, C-016, C-017).** Six findings
+in one file, and four of them are the same shape: a query that answers a
+slightly different question from the one the surface is asking.
+
+Deleting a post purged every url it named, whether or not another post still
+named the same one. `images` is caller-supplied JSON and the ownership check
+only vets the prefix, so attaching one own-upload to two posts and deleting
+the first left the second's photograph 404ing — the exact "live post with
+broken pictures" this function was written to prevent, reached from the other
+side. It now queues only the urls no surviving row names, matched inside the
+delete's own transaction. Proved against Postgres with two posts sharing one
+image: the shared byte survives, the solo one goes.
+
+The count on a card and the list in a thread were two different questions. The
+four `_count.comments` fragments filtered on hidden + deleted; the thread also
+required the author to be in good standing. A post whose only comment came
+from a since-blocked member showed "1" and rendered nothing. `VISIBLE_COMMENT`
+now lives in `src/lib/posts.ts` and both halves spread it.
+
+The double-submit guard matched author, text, kind and status — not the
+photographs, the letter's title or the poll. Two pictures shared seconds apart
+under "Reunion!" were one post, and the composer said "Post shared!" about the
+one it dropped. The window query is now a shortlist that `isPostTwin` settles.
+
+`escapeLike` clamps at 100 characters before escaping (before, never after: cut
+an escape pair in half and Postgres refuses the pattern outright). That one
+line covers the feed, the directory, the Collection, users-search and admin
+search, none of which capped the term and all of which are unmetered reads.
+
+**Two are member-visible.** Replying to a reply notified the ROOT comment's
+author while the composer said "Replying to <somebody else>"; the person whose
+name was on screen heard nothing. The composer now sends the tapped reply's id
+and the server notifies its author — the stored parent is still the root, so
+the thread looks exactly as it did. And a letter draft scoped to a city the
+author had since removed from their profile silently widened to Everyone on the
+next autosave keystroke, chip still reading "X only". That save is now refused
+with a sentence saying why.
+
+Gate: `src/lib/feed-write-rule.test.mjs`, eighteen assertions, every one proved
+by reverting its fix and watching it fail.
