@@ -4170,3 +4170,43 @@ felt: at 390px the right cluster is 195px against a 151px title inside a 358px
 baseline has it on one. Four pixels is not worth an icon nobody can read. It sits on its
 own row under the header now, admin-only, in Canopy, saying what it is — "Every Catch-up on
 the site". Screenshotted at both viewports; the title is back on one line.
+
+## 2026-08-25 (evening) — the reading room
+
+**An admin can read every Catch-up now, without being in one** (owner, 2026-08-25: "I
+should be able to see everything in all catch ups as if I'm a member but I don't show up as
+a member"). `/admin/catchups/[catchupId]`: every Round newest first, every question, every
+answer under it, with hearts and dates.
+
+**Why a separate page and not an observer mode.** The member-facing screen is 2,212 lines
+of client components built around a `viewer` who is a member — composers, the curation
+console, the Keeper's settings, a people panel with remove and promote controls. Each one
+would need a read-only branch, and a missed branch is a button that looks live and then
+fails. The reading room has no interactive component at all, so there is nothing to disable
+and nothing to forget. Same posture the `/admin/catchups` list already states for itself:
+oversight, not a second control panel.
+
+It writes nothing and joins nothing — no `GroupMember` row, no `CatchupPref`, no server
+action on the page — so reading a Catch-up cannot make the reader appear inside it. Proved
+the guard live: signed in as a real member, `/admin/catchups/<id>` answers 307 to /feed and
+the response body contains none of the questions or answers.
+
+**Anonymous questions ARE attributed here**, which is the owner's decision and the one place
+in the app where it happens. Marked on the row with a sky chip reading "Only you see this",
+and stated once at the top of the page, so the exception is visible to whoever is reading
+rather than silent. A member still never learns who asked — `HomePromptView.author` stays
+null over the wire, which is what audit C-019 was about. If it is ever regretted it is one
+`select` and one block.
+
+**The C-189 fix earned its keep within the hour.** gate-coverage's admin-page sweep now
+walks the filesystem instead of asking `git ls-files`, and it caught this brand-new page
+while it was still untracked — under the old version it would have been invisible to the
+"every /admin page checks the role itself" gate until somebody staged it.
+
+**And the free-tier sizing in OPERATIONS.md is measured now rather than asserted** (the
+C-165/C-166 questions). 63 members produced 9,219 page views in thirty days, which puts
+PostHog at roughly 4% of its 1M-event month — but the number scales with MEMBERS, and at
+2,000 the same behaviour is well past it. Sentry is tighter than it looks: at that traffic
+the 10,000-SPAN allowance is already the closer of its two limits, not a distant one.
+Neither breaks the site at the cap; both go blind, which in launch month is the whole point
+of having them. The levers are one line each and the doc names them.

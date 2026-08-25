@@ -125,6 +125,19 @@ pushes costs one run, and every job sets `timeout-minutes`.
 Server-side only, EU region, free Developer plan (5,000 errors and 10,000 spans a month;
 the 14-day Business trial lapses back to free with no card on file and no charge).
 
+**The sampling is sized for today's traffic and says so in the code** --
+`tracesSampleRate: 0.1` in `src/instrumentation.ts`, justified there with "this site's
+traffic is tiny". That justification inverts with scale (audit C-166): at 9,219 page views
+a month, 10% tracing is around 900 traces, and a page-load trace is many spans, so the
+10,000-span allowance is already the closer of the two limits rather than a distant one. At
+2,000 members it is exceeded many times over. The error budget has a sharper edge: 5,000 a
+month is about three hours of one hot-path bug on a busy day.
+
+**Neither breaks the site.** Over quota, Sentry drops what it cannot take and the app
+carries on; what is lost is the smoke alarm, at exactly the moment something is burning.
+Tracing is the cheap thing to give up -- `tracesSampleRate` can go to 0.01 or 0 without
+touching error reporting at all, which is the half that actually pages somebody.
+
 **What it catches:** 500s, failed Server Actions, database errors — the class that produced
 the "passed `tsc`, then 500'd the feed" incident in CLAUDE.md gotcha 3.
 
@@ -198,8 +211,27 @@ mail, and this is a community's inbox, not a marketing funnel.
 
 **Fires by itself.** Read it at **https://eu.posthog.com**.
 
-Funnels, paths, search terms, conversion. Free tier is 1M events a month against usage of
-maybe 600k a *year*, so there is no bill to reach.
+Funnels, paths, search terms, conversion. Free tier is **1M events a month**.
+
+**How close we are, measured rather than guessed (2026-08-25):** 63 members produced 9,219
+page views in the last thirty days. Autocapture is on, plus a pageview per client-side
+navigation and a pageleave, and every click is its own event -- call it four or five events
+a page view. So today is somewhere around 40k events a month: about 4% of the ceiling, and
+nothing to think about.
+
+**It does not stay nothing to think about.** That is ~146 page views per member per month,
+and the number that matters scales with MEMBERS, not with time. At the 2,000 the project
+plans for, the same behaviour is roughly 292k page views and therefore well over 1M events.
+This paragraph used to say "usage of maybe 600k a *year*, so there is no bill to reach",
+which was true at 52 members and is off by two orders of magnitude at 2,000 (audit C-165).
+
+**What happens at the ceiling is not a broken site.** PostHog stops ingesting for the rest
+of the billing month unless there is a card on file; the app itself is unaffected, because
+every capture is fire-and-forget in the browser. What is lost is the DATA -- and the month
+it would be lost in is launch month, which is the one month worth measuring. The lever, if
+it comes to it, is one line: `capture_pageleave: false` roughly halves it, and PostHog's
+own `before_send` sampling can take any fraction from there. Decide before launch, not
+during.
 
 **Routed through `/ingest` on our own domain** (rewrites in `next.config.ts`). Ad blockers
 list posthog.com, so a direct connection loses ~10-25% of visitors silently.

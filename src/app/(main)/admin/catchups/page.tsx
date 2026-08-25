@@ -125,8 +125,13 @@ export default async function AdminCatchupsPage() {
       >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
+            {/* To the READING ROOM, not to /catchups/<id>. That is the
+                member-facing screen, and it answers "This Catch-up is for
+                group members" to an admin who is not in the group -- which is
+                every admin, for almost every Catch-up. So this list linked to
+                a wall (owner, 2026-08-25). */}
             <Link
-              href={`/catchups/${c.id}`}
+              href={`/admin/catchups/${c.id}`}
               className="truncate rounded-sm text-[13.5px] font-semibold text-foreground underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {c.title ?? `${c.group.name} Catch-ups`}
