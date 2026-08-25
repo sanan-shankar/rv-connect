@@ -50,10 +50,10 @@ defaults.
 - Locomotion: `walk(steps, dir)`, `hop(count, dir)`, `flyTo(target)`, `flyIn(edge, target?)`, `land()`, `turn(dir | 0)`.
 - Gesture: `point(target | "left" | "right", { label, hold })`, `wave(times)`, `nod(times)`, `shake(times)`, `crest(open)`, `crestFlick()`, `preen()`, `peck()`.
 - Expression: `express(name, { hold })`, `celebrate(level 1 | 2 | 3)`, `blinkOnce(double)`, `sleep()`, `wake()`.
-- Continuous (not queued): `gaze(number | target)`, `coverEyes()`, `peek()`, `bindPassword(getRevealed)`.
+- Continuous (not queued): `gaze(number | target)`, `coverEyes()`, `peek()`.
 - Composition + control: `sequence(...steps)`, `react(event)`, `stop()`, `cancel()`, `rest()`, `isBusy()`.
 
-`Step` is a verb tuple (`["walk", 4, "right"]`), a thunk, `wait(ms)`, or `parallel(...steps)`.
+`Step` is a verb tuple (`["walk", 4, "right"]`), a thunk, or `wait(ms)`.
 
 `Expression`: content, curious, happy, surprise, sad, sleepy, love, alert, proud, worried, asleep. Each is a
 CHORD: crest spread + height, brows (height + angle + opacity), eye shape, bill open, head tilt, body lean,

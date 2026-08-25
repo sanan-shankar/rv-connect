@@ -31,7 +31,6 @@ export const SPRINGS = {
 
 // duration-based easings for timeline beats (walk clock, particle drifts)
 export const EASE_SPRING = [0.34, 1.5, 0.64, 1] as const;
-export const EASE_POP = [0.34, 1.56, 0.64, 1] as const;
 // a soft symmetric ease for head bobs and wing sweeps (no overshoot snap)
 export const EASE_SOFT = [0.37, 0, 0.31, 1] as const;
 
@@ -123,11 +122,9 @@ export type SemanticEvent =
 export type Step =
   | [string, ...unknown[]]
   | (() => Promise<void> | void)
-  | { wait: number }
-  | { parallel: Step[] };
+  | { wait: number };
 
 export const wait = (ms: number): Step => ({ wait: ms });
-export const parallel = (...steps: Step[]): Step => ({ parallel: steps });
 
 export interface HoopoeApi {
   walk(steps: number, dir?: Dir): Promise<void>;
@@ -173,7 +170,6 @@ export interface HoopoeApi {
   celebrate(level?: Level): Promise<void>;
   blinkOnce(double?: boolean): Promise<void>;
   gaze(to: number | Target): void;
-  bindPassword(getRevealed: () => boolean): () => void;
   coverEyes(): void;
   peek(): void;
   // Deep-idle rest: closes the eyes, wilts the crest more than `sleepy`, and
