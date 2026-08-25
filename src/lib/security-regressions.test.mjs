@@ -216,3 +216,65 @@ test("the analytics proxy strips cookies before the rewrite", () => {
   const authAt = branch.search(/publicPaths/);
   assert.ok(authAt === -1 || ingestAt < authAt, "the cookie strip runs after the auth routing");
 });
+
+test("C-060/C-007: a report and the thread that answers it are one write", () => {
+  /* Three failures with one root: the report row and its AdminThread were
+     separate awaits with nothing making them atomic, and the dedupe that reads
+     "is there already an open report" then honoured a half-written one for
+     ever. Both report paths are checked, because they are a matched pair and
+     half-fixing one of a pair is how this file's other entries came to exist. */
+  const src = read("src/components/posts/report-action.ts");
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+  // openReportThread must write through whatever client it is given.
+  assert.match(code, /db: Prisma\.TransactionClient \| typeof prisma;/, "openReportThread cannot join a transaction");
+  assert.doesNotMatch(
+    code.slice(code.indexOf("async function openReportThread"), code.indexOf("export async function reportPost")),
+    /await prisma\./,
+    "openReportThread still writes through the top-level client, so it cannot be atomic with its report"
+  );
+
+  // Both paths create their report INSIDE a transaction that also opens the thread.
+  const paths = ["reportPost", "reportUser"];
+  for (const name of paths) {
+    const from = code.indexOf(`export async function ${name}`);
+    assert.ok(from > 0, `${name} is gone`);
+    const next = code.indexOf("export async function", from + 10);
+    const body = next === -1 ? code.slice(from) : code.slice(from, next);
+    assert.match(body, /await prisma\.\$transaction\(async \(tx\) => \{/, `${name} does not write atomically`);
+    assert.match(body, /tx\.report\.create\(/, `${name}'s report is created outside its transaction`);
+    assert.match(body, /db: tx,/, `${name}'s thread is opened outside its transaction`);
+    assert.match(body, /isUniqueViolation\(err\)/, `${name} does not survive losing the unique-index race`);
+  }
+
+  // And the dedupe repairs a thread-less report instead of reporting success over it.
+  const post = code.slice(code.indexOf("export async function reportPost"), code.indexOf("export async function reportUser"));
+  assert.match(post, /if \(!openAlready\.thread\) \{/, "a pending report with no thread is still treated as done");
+});
+
+test("C-060: the partial unique index that actually enforces one open report", () => {
+  /* It cannot live in schema.prisma -- there is no partial-index syntax -- so
+     the SQL file IS the definition and the schema carries only a note. Both
+     are pinned, because a rule nothing can see is a rule nothing maintains. */
+  const sql = read("prisma/migrations-manual/2026-08-25-report-one-open-per-post.sql");
+  assert.match(sql, /CREATE UNIQUE INDEX IF NOT EXISTS "Report_open_post_per_reporter_key"/);
+  assert.match(sql, /WHERE "targetType" = 'post' AND status = 'pending'/, "the index is not partial, so it would need history deleted");
+  assert.match(
+    read("prisma/schema.prisma"),
+    /Report_open_post_per_reporter_key/,
+    "schema.prisma does not mention the index it cannot express, so the next reader will not know it exists"
+  );
+});
+
+test("C-013: the details box cannot compose a string the server refuses", () => {
+  const src = read("src/components/posts/report-dialog.tsx");
+  assert.match(src, /const DETAILS_MAX =\s*\n?\s*REASON_MAX - Math\.max\(/, "the details cap is not derived from the reasons");
+  assert.match(src, /maxLength=\{DETAILS_MAX\}/, "the box still advertises a length the server will refuse");
+  // The server's cap is what DETAILS_MAX is derived against; if it moves, this fails.
+  const server = read("src/components/posts/report-action.ts");
+  const caps = [...server.matchAll(/trimmed\.length > (\d+)/g)].map((m) => Number(m[1]));
+  assert.ok(caps.length >= 2, `only found ${caps.length} server caps; the pair has drifted`);
+  for (const cap of caps) {
+    assert.equal(cap, 500, `a report path refuses at ${cap}, but the dialog derives its box from 500`);
+  }
+});

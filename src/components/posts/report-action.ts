@@ -5,6 +5,8 @@ import { IS_DEMO } from "@/lib/demo";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { isUniqueViolation } from "@/lib/prisma-errors";
 import { previewOf } from "@/lib/admin-threads";
 import { notifyAdmins, isThreadRateLimited } from "@/lib/admin-threads-server";
 import { writeAudit } from "@/lib/audit";
@@ -25,17 +27,25 @@ const FLAG_ESCALATION_THRESHOLD = 3;
  * at that conversation, so tapping it lands on the thread rather than nowhere.
  */
 async function openReportThread({
+  db,
   reportId,
   reporterId,
   subject,
   opening,
 }: {
+  /* The client to write through: the caller's transaction where there is one,
+     so the Report row and the thread that answers it land together (audit
+     C-007). Before this they were separate awaits, and a pool timeout between
+     them left a pending Report with no thread and no admin notification --
+     which the dedupe below then treated as "already reported", returning
+     success on every retry for ever. */
+  db: Prisma.TransactionClient | typeof prisma;
   reportId: string;
   reporterId: string;
   subject: string;
   opening: string;
 }) {
-  const thread = await prisma.adminThread.create({
+  const thread = await db.adminThread.create({
     data: {
       memberId: reporterId,
       kind: "report",
@@ -51,7 +61,7 @@ async function openReportThread({
     select: { id: true },
   });
 
-  await prisma.notification.create({
+  await db.notification.create({
     data: {
       userId: reporterId,
       type: "report_update",
@@ -121,6 +131,9 @@ export async function reportPost(postId: string, reason: string) {
    *
    * Only PENDING reports count. Once an admin has dismissed or acted on one,
    * the post going wrong again is genuinely new information. */
+  const subject = `A post by ${post.author.name}`;
+  const opening = `You reported a post by ${post.author.name}, saying: "${trimmed}"\n\nAn admin will read it. Anything you want to add, write it below.`;
+
   const openAlready = await prisma.report.findFirst({
     where: {
       reporterId: session.user.id,
@@ -128,32 +141,62 @@ export async function reportPost(postId: string, reason: string) {
       targetType: "post",
       status: "pending",
     },
-    select: { thread: { select: { id: true } } },
+    select: { id: true, thread: { select: { id: true } } },
   });
   if (openAlready) {
+    /* A pending report with NO thread is one that failed halfway before the
+       write became atomic (audit C-007). This branch used to select the thread
+       id and ignore that it was null, so every retry answered "already
+       reported" and the complaint sat on nobody's desk for ever. Repair it
+       rather than report success over it. */
+    if (!openAlready.thread) {
+      await openReportThread({
+        db: prisma,
+        reportId: openAlready.id,
+        reporterId: session.user.id,
+        subject,
+        opening,
+      });
+    }
     // Success, not an error: they did the thing they meant to do, and it is
     // already on the moderator's desk. Saying "you already reported this"
     // as a failure would read as the report not having worked.
     return { success: true as const, alreadyReported: true as const };
   }
 
-  const report = await prisma.report.create({
-    data: {
-      targetType: "post",
-      postId,
-      reporterId: session.user.id,
-      reason: trimmed,
-    },
-    select: { id: true },
-  });
-
-  const subject = `A post by ${post.author.name}`;
-  const thread = await openReportThread({
-    reportId: report.id,
-    reporterId: session.user.id,
-    subject,
-    opening: `You reported a post by ${post.author.name}, saying: "${trimmed}"\n\nAn admin will read it. Anything you want to add, write it below.`,
-  });
+  /* The Report and the thread that answers it, in ONE transaction (audit
+     C-007). Four separate awaits meant a pool timeout after the first left a
+     pending Report the dedupe above would then honour for ever. */
+  let thread: { id: string };
+  try {
+    thread = await prisma.$transaction(async (tx) => {
+      const report = await tx.report.create({
+        data: {
+          targetType: "post",
+          postId,
+          reporterId: session.user.id,
+          reason: trimmed,
+        },
+        select: { id: true },
+      });
+      return openReportThread({
+        db: tx,
+        reportId: report.id,
+        reporterId: session.user.id,
+        subject,
+        opening,
+      });
+    });
+  } catch (err) {
+    /* Lost the race to the partial unique index (audit C-060). The findFirst
+       above is a fast path, not the guarantee -- under READ COMMITTED two
+       submissions landing together both see no open report and both write.
+       `Report_open_post_per_reporter_key` decides it; the loser has the
+       outcome it wanted, which is one open report on the desk. Same shape as
+       reportUser, which has had this since M29. */
+    if (!isUniqueViolation(err)) throw err;
+    return { success: true as const, alreadyReported: true as const };
+  }
 
   await notifyAdmins(
     `${session.user.name} reported a post by ${post.author.name}: ${previewOf(trimmed, 60)}`,
@@ -215,25 +258,41 @@ export async function reportUser(reportedUserId: string, reason: string) {
     return { success: true, alreadyFlagged: true };
   }
 
-  let report: { id: string };
+  const subject = `${reported.name}'s profile`;
+  const opening = `You flagged ${reported.name}, saying: "${trimmed}"\n\nAn admin will look into it. Anything you want to add, write it below.`;
+
+  /* The Report and the thread that answers it, in ONE transaction, exactly as
+     reportPost does (audit C-007). These were separate awaits here too, so a
+     pool timeout between them left a flag on the record with no thread and no
+     admin notification -- and the dedupe above would then honour it for ever.
+     The two report paths are kept the same shape on purpose: half-fixing one
+     of a matched pair is how this codebase has drifted before. */
+  let thread: { id: string };
   try {
-    report = await prisma.report.create({
-      data: {
-        targetType: "user",
-        reportedUserId,
+    thread = await prisma.$transaction(async (tx) => {
+      const report = await tx.report.create({
+        data: {
+          targetType: "user",
+          reportedUserId,
+          reporterId: session.user.id,
+          reason: trimmed,
+        },
+        select: { id: true },
+      });
+      return openReportThread({
+        db: tx,
+        reportId: report.id,
         reporterId: session.user.id,
-        reason: trimmed,
-      },
-      select: { id: true },
+        subject,
+        opening,
+      });
     });
   } catch (err) {
     // The findFirst above is a fast path, not the guarantee — two flags of the
     // same pair racing in together both pass it, and one loses to the unique
     // index (audit H5). That is the SAME "already flagged" answer, not a 500.
-    if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
-      return { success: true, alreadyFlagged: true };
-    }
-    throw err;
+    if (!isUniqueViolation(err)) throw err;
+    return { success: true, alreadyFlagged: true };
   }
 
   /* This used to also write verifyState:"flagged" onto the reported member --
@@ -242,14 +301,6 @@ export async function reportUser(reportedUserId: string, reason: string) {
      have let one report strip a member's ability to post and see contacts.
      The report row and the admin notification below ARE the flag; standing
      changes only by an admin's hand (Phase 7 adds the threshold rule). */
-
-  const subject = `${reported.name}'s profile`;
-  const thread = await openReportThread({
-    reportId: report.id,
-    reporterId: session.user.id,
-    subject,
-    opening: `You flagged ${reported.name}, saying: "${trimmed}"\n\nAn admin will look into it. Anything you want to add, write it below.`,
-  });
 
   // How many DISTINCT members have now flagged this person (this reporter is a
   // new distinct one, since the dedup above just let them through). At or past

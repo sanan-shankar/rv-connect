@@ -21,6 +21,25 @@ import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { reportPost } from "./report-action";
 
+/** The reasons offered, and the server's cap on the whole submitted string. */
+const REASONS = ["Inappropriate content", "Spam", "Harassment", "Other"] as const;
+
+/** Must match the `trimmed.length > 500` refusal in reportPost/reportUser. */
+const REASON_MAX = 500;
+
+/**
+ * How much the optional details box may hold.
+ *
+ * The submitted string is `"<reason>: <details>"`, so the prefix eats into the
+ * server's cap. The box advertised the full 500 and the server refused the
+ * composed string with a flat "Please provide a valid reason" -- a dead end
+ * naming nothing to fix, for somebody who had done exactly what the field
+ * invited (audit C-013). DERIVED from the longest reason rather than a number
+ * typed here, so adding a longer one cannot re-open the gap.
+ */
+const DETAILS_MAX =
+  REASON_MAX - Math.max(...REASONS.map((r) => r.length)) - ": ".length;
+
 export function ReportDialog({
   postId,
   open,
@@ -83,10 +102,11 @@ export function ReportDialog({
               plus the shared 144px floor. Standard item padding (same as every
               other Select in the app), so it stays compact, not sprawling. */}
           <SelectContent className="w-fit">
-            <SelectItem value="Inappropriate content">Inappropriate content</SelectItem>
-            <SelectItem value="Spam">Spam</SelectItem>
-            <SelectItem value="Harassment">Harassment</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
+            {REASONS.map((r) => (
+              <SelectItem key={r} value={r}>
+                {r}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -94,7 +114,7 @@ export function ReportDialog({
           placeholder="Additional details (optional)"
           value={details}
           onChange={(e) => setDetails(e.target.value)}
-          maxLength={500}
+          maxLength={DETAILS_MAX}
           rows={3}
         />
 
