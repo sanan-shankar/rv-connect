@@ -86,7 +86,6 @@ export type CatchupHomeData = {
   title: string;
   cadence: Cadence;
   catchupStatus: CatchupStatus;
-  keeperName: string | null;
   members: HomePersonRef[];
   viewer: {
     id: string;

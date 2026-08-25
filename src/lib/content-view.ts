@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
  *  and the table stays bounded by distinct PAIRS rather than by traffic.
  * ------------------------------------------------------------------ */
 
-export type ViewKind = "profile" | "letter" | "post" | "photo" | "round";
+export type ViewKind = "profile" | "letter" | "photo" | "round";
 
 /**
  * Record a view. Fire-and-forget; never throws.

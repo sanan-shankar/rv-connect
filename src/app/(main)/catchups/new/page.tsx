@@ -94,7 +94,6 @@ export default async function NewCatchupPage() {
         cadenceLabels={CADENCE_LABELS}
         myBatchYear={batchYear}
         suggestedName={batchYear ? `Batch of ${batchYear}` : ""}
-        initialPeople={[]}
         me={me}
       />
     </div>

@@ -70,12 +70,6 @@ const buttonVariants = cva(
         // The one filled CTA variant, explicitly named for what it is (was
         // misleadingly called "leaf" though it always filled canopy).
         primary: CANOPY_FILL,
-        // Deprecated alias for "primary", kept only so the held-off
-        // src/components/catchups/* (separate GSD rebuild, do not touch) keeps
-        // compiling against its existing variant="leaf" call sites. Renders
-        // identically to "primary". Do not add new "leaf" call sites; use
-        // "primary" everywhere else.
-        leaf: CANOPY_FILL,
         // The three neutral variants all hover through `state-layer` (globals.css).
         // They used to hover to --accent #FAF8F2, an OPAQUE hex, which cannot be
         // one hover across surfaces that span ~10 dL*: it measured +8.12 dL* on

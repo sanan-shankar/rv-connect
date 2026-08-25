@@ -209,7 +209,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
           },
         },
       },
-      createdBy: { select: { id: true, name: true } },
       editions: {
         orderBy: { number: "desc" },
         take: 1,
@@ -273,9 +272,9 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
       })
     : null;
 
-  // Viewer first: MemberStrip shows only its first `max`, and someone who
-  // fell off the end of an unordered list read that as not being a member at
-  // all (owner, 2026-08-04). Keepers next, then everyone else in name order,
+  // Viewer first: the people panel shows only the first PILLS_SHOWN, and
+  // someone who fell off the end of an unordered list read that as not being a
+  // member at all (owner, 2026-08-04). Keepers next, then everyone else in name order,
   // so the roster reads the same way every time it is opened rather than in
   // whatever order the join table happened to return.
   const members: HomePersonRef[] = catchup.group.members
@@ -467,7 +466,6 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     title: homeTitle(catchup.title, catchup.group.name),
     cadence: catchup.cadence as Cadence,
     catchupStatus: catchup.status as CatchupStatus,
-    keeperName: catchup.createdBy?.name ?? null,
     members,
     viewer: {
       id: viewerId,

@@ -103,7 +103,7 @@ export function CatchupHomeShell({
           onChanged={refresh}
         />
         <ReminderPrefControl catchupId={data.catchupId} initialMode={viewer.reminderMode} />
-        <ArchiveShelf rows={data.archive} groupName={data.groupName} />
+        <ArchiveShelf rows={data.archive} />
         {/* Above the settings dialog, not inside it: a deadline is something a
             Keeper reaches for in the moment, on the day it matters, and it is
             useless once the window it extends has closed. */}

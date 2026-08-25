@@ -1608,7 +1608,6 @@ const ARCHES: Arche[] = [
   },
 ];
 
-export const ARCHETYPE_COUNT = ARCHES.length;
 
 /** Exposed for the optical-centering harness (preview/centroid + scripts/dev/centroid.mjs). */
 export const ARCHETYPES = ARCHES;

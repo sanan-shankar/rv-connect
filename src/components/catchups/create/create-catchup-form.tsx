@@ -38,7 +38,6 @@ export function CreateCatchupForm({
   cadenceLabels,
   myBatchYear,
   suggestedName,
-  initialPeople = [],
   me,
 }: {
   cadenceLabels: Record<Cadence, string>;
@@ -50,11 +49,10 @@ export function CreateCatchupForm({
   /** Preloaded from `?group=<id>` (an existing group with no Catch-up yet
    *  clicking "Start one"): the page resolves the group's members server-side
    *  so the picker opens with them already chipped in instead of empty. */
-  initialPeople?: PickedPerson[];
 }) {
   const router = useRouter();
   const [name, setName] = useState(suggestedName);
-  const [people, setPeople] = useState<PickedPerson[]>(initialPeople);
+  const [people, setPeople] = useState<PickedPerson[]>([]);
   const [cadence, setCadence] = useState<Cadence>("monthly");
   const [submitting, setSubmitting] = useState(false);
   /* A ref as well as the flag: `disabled` only takes effect on the next
