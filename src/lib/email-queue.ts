@@ -8,6 +8,7 @@ import {
   MAX_ATTEMPTS,
   MAX_DEFERRALS,
   PRIORITY,
+  STALE_CLAIM_MS,
   eligibleKindsFor,
   isRetryableSkip,
   localDrainRecipient,
@@ -94,10 +95,6 @@ const RESET_RESERVE = 20;
  *  small and the next page view picks up where it left off. */
 const BATCH = 8;
 
-/** A row claimed but not finished within this long is assumed to belong to a
- *  process that died mid-send, and is returned to the queue. Long enough that
- *  a slow Resend call is never mistaken for a crash. */
-const STALE_CLAIM_MS = 2 * 60_000;
 
 
 /**
@@ -711,6 +708,34 @@ export async function drainMailQueue(): Promise<DrainReport> {
   // members; a process that half-participates is how a localhost drain once
   // marked a real member's mail sent off a console.log.
   if (!queueIsSendable()) return { sent: 0, failed: 0, backlog: false };
+
+  /* Is there anything to do? One indexed count, before the lease.
+     `after()` runs this on EVERY authenticated page view, and with an empty
+     queue the pass below still took the lease, reclaimed, counted the budget
+     four times over and handed the lease back: around nine statements, three
+     of them writes, on the hottest path in the app, 99% of the time to send
+     nothing (audit C-104). The lease row makes it worse than it looks --
+     releaseDrainLease expires it deliberately, so every single view WINS the
+     lease and does the whole dance.
+
+     The where is `drainHasWork` (mail-policy.ts) spelled as a query, both
+     arms -- written out there so a test can call it, exactly as `drainEligible`
+     is for the row selection below. Counting only
+     `queued` would be the tempting version and would strand a row whose
+     sender died mid-send for ever, because reclaiming it is this pass's own
+     job and this precheck would be what skipped the pass. */
+  const pending = await prisma.outboundEmail.count({
+    where: {
+      OR: [
+        { status: "queued" },
+        {
+          status: "sending",
+          claimedAt: { lt: new Date(Date.now() - STALE_CLAIM_MS) },
+        },
+      ],
+    },
+  });
+  if (pending === 0) return { sent: 0, failed: 0, backlog: false };
 
   const lease = await takeDrainLease();
   if (!lease) {

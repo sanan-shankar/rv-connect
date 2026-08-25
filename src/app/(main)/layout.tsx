@@ -23,7 +23,15 @@ export default async function MainLayout({
   const session = await auth();
 
   if (!session?.user) {
-    redirect("/login");
+    /* With the destination in tow, exactly as src/proxy.ts does (B-022).
+       The two gates were asymmetric: the proxy only adds `next` when there is
+       NO session cookie, and a cookie that exists but no longer authenticates
+       -- the state a password reset or a block deliberately creates on every
+       other device -- sails past it and lands here, where a bare
+       redirect("/login") threw the link away and dropped the member on /feed
+       after they signed in (audit C-117/C-200). */
+    const path = await currentTarget();
+    redirect(path ? `/login?next=${encodeURIComponent(path)}` : "/login");
   }
 
   /* Lazy, read-time Catch-up advance (spec 2.4), piggy-backed alongside the
@@ -154,4 +162,15 @@ export default async function MainLayout({
 async function currentPath(): Promise<string | undefined> {
   const h = await headers();
   return h.get("x-pathname") ?? undefined;
+}
+
+/* The same page WITH its query string, which is what a sign-in detour has to
+   carry back: /directory?batch=2011 is a different destination from
+   /directory. Separate from currentPath because touchLastSeen wants the page,
+   not the search. Both headers come from src/proxy.ts. */
+async function currentTarget(): Promise<string | undefined> {
+  const h = await headers();
+  const path = h.get("x-pathname");
+  if (!path) return undefined;
+  return path + (h.get("x-search") ?? "");
 }

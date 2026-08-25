@@ -22,6 +22,7 @@ const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 const ACTIONS = code(read("src/app/(main)/messages/actions.ts"));
+const NOTICE = code(read("src/app/(main)/notice/[id]/page.tsx"));
 
 /* ---- C-059: a cut never lands inside a character ---------------- */
 
@@ -161,4 +162,39 @@ test("C-058/C-081: every capped thread list carries a count and an escape", () =
   const admin = code(read("src/app/(main)/admin/messages/page.tsx"));
   const openQuery = admin.slice(admin.indexOf('where: { status: { not: "closed" } }'));
   assert.match(openQuery.slice(0, 300), /take: OPEN_PAGE/, "the open queue is unbounded again");
+});
+
+/* ---- C-115: two first-opens of one legacy note make one thread --- */
+
+test("the legacy notice resolution is serialised on the notification row", () => {
+  /* M46 claimed to have fixed this and had not: a findFirst followed by a
+     create is idempotent only if something stops two concurrent readers from
+     both seeing nothing, and AdminThread has no unique key for (memberId,
+     kind, createdAt). Proved live before the fix -- two simultaneous opens
+     left two identical conversations about one note.
+
+     The lock is the notification row, taken FOR UPDATE inside the same
+     transaction as the create, so the second request waits and then sees the
+     link the first one wrote. */
+  assert.ok(NOTICE.length > 400, "the notice page did not read; this test is vacuous");
+  assert.ok(/\$transaction\(/.test(NOTICE), "the resolution left its transaction (C-115)");
+  const tx = NOTICE.slice(NOTICE.indexOf("$transaction("));
+  assert.ok(
+    /FOR UPDATE/.test(tx),
+    "the notification row is no longer locked, so both readers see no thread again"
+  );
+  assert.ok(
+    tx.indexOf("FOR UPDATE") < tx.indexOf("openAdminNoticeThread"),
+    "the create happens before the lock is taken, which is no lock at all"
+  );
+  assert.ok(
+    /db: tx/.test(tx),
+    "openAdminNoticeThread is called on the global client, so the create commits " +
+      "outside the lock that was taken to serialise it"
+  );
+  assert.ok(
+    /tx\.notification\.update/.test(tx),
+    "the link write left the transaction: the thread would commit without the " +
+      "record that says which thread it is"
+  );
 });
