@@ -1,0 +1,6 @@
+== TODO/FIXME/HACK/XXX in src, scripts, e2e ==
+src/app/(main)/catchups/round/[editionId]/page.tsx:63: * TODO: this is now the third copy of the same one-liner (see `homeTitle` in
+src/app/(main)/catchups/round/[editionId]/page.tsx:332:      // typed song name in `body` (see the TODO in answer/song-attachment.tsx
+src/components/catchups/answer/types.ts:22: * songs prompt (see the TODO in song-attachment.tsx for why a named song lives
+src/components/catchups/answer/song-attachment.tsx:13: *  ── TODO (needs a migration, deliberately not done in this pass) ──────
+src/components/catchups/round/answer-card.tsx:61:  // column yet - see the TODO in answer/song-attachment.tsx, and note that

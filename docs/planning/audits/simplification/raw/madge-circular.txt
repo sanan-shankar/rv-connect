@@ -1,0 +1,54 @@
+- Finding files
+Processed 645 files (3.8s) (3 warnings)
+
+✖ Found 48 circular dependencies!
+
+1) generated/prisma/internal/class.ts > generated/prisma/internal/prismaNamespace.ts
+2) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/commonInputTypes.ts
+3) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Account.ts
+4) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/AdminMessage.ts
+5) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/AdminThread.ts
+6) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/AuditLog.ts
+7) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/AuthToken.ts
+8) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Bookmark.ts
+9) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Catchup.ts
+10) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/CatchupEdition.ts
+11) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/CatchupEntry.ts
+12) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/CatchupEntryLove.ts
+13) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/CatchupPref.ts
+14) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/CatchupPrompt.ts
+15) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Comment.ts
+16) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/CommentLike.ts
+17) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/ContentView.ts
+18) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Contribution.ts
+19) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Group.ts
+20) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/GroupInvite.ts
+21) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/GroupMember.ts
+22) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/LabRoomState.ts
+23) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Like.ts
+24) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/LoginAttempt.ts
+25) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/MetricSnapshot.ts
+26) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Notification.ts
+27) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/OutboundEmail.ts
+28) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/PendingImagePurge.ts
+29) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Photo.ts
+30) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/PhotoLove.ts
+31) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Place.ts
+32) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/PollOption.ts
+33) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/PollVote.ts
+34) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Post.ts
+35) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/QueueLease.ts
+36) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Report.ts
+37) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/RosterEntry.ts
+38) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/SearchLog.ts
+39) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Session.ts
+40) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/User.ts
+41) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/UserPlace.ts
+42) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/VerificationToken.ts
+43) generated/prisma/internal/prismaNamespace.ts > generated/prisma/models.ts > generated/prisma/models/Visit.ts
+44) lib/catchups.ts > lib/catchups-notify.ts
+45) components/feed/feed-rail.tsx > components/feed/rail/letters-module.tsx
+46) components/onboarding/onboarding-flow.tsx > components/onboarding/steps/houses-step.tsx
+47) components/onboarding/onboarding-flow.tsx > components/onboarding/steps/photo-step.tsx
+48) components/onboarding/onboarding-flow.tsx > components/onboarding/steps/register-step.tsx
+

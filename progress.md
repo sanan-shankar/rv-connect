@@ -4313,3 +4313,47 @@ still gets 200 and the real page; signed out is still the proxy's 307 to /login.
 
 `npm run visual` was NOT run: no baselined route can reach this boundary (the suite signs in as
 admin, who never sees it), and the run had already hung the owner's machine once this session.
+
+## 2026-08-25 (night) — the simplification audit, start to finish
+
+The pre-release simplification audit ran end to end in one session: 18 reader agents
+(13 territories sized so every file got read, 5 cross-cutting lenses), every static tool
+in the brief, two timed builds, ~30 orchestrator hand-checks, a 10-cluster adversarial
+verification pass (161 verdicts: 120 confirmed, 40 corrected in detail, 1 refuted), and
+two completeness-critic rounds. The deliverable is
+`docs/planning/audits/simplification-report.md` — 241 findings compiled into a six-phase
+fix plan sized for later sessions, with the 18 full agent reports as appendices under
+`docs/planning/audits/simplification/agents/` and the verification evidence under
+`verify/`.
+
+**The shape of what was found.** Not rot smeared everywhere — rot concentrated in a dozen
+superseded entry points, plus loading-strategy debt. The five headlines: every member
+page ships ~1.4MB of raw JS of which ~360-380KB comes off with autonomous changes
+(posthog-js is 245KB on all 92 routes, statically initialised; the full framer-motion
+runtime rides `template.tsx`); ~5,000 lines of dead or duplicated code (a ~595-line
+avatar renderer unreachable since June behind `USE_V2 = true`, two live-but-uncalled
+server actions, the auth preamble pasted ~75 times, a test helper pasted 33 times in two
+divergent spellings); 6.4MB of tracked files nothing references (raw WhatsApp originals
+publicly served among them); four dead database tables, five dead columns, three unusable
+indexes — the NextAuth Prisma adapter has never been called under JWT+Credentials; and
+the README currently teaches three forbidden operations, including the admin-login bypass
+deleted by C1-b.
+
+**Two working discoveries along the way.** `npm run analyze` has been a silent no-op the
+whole time — `@next/bundle-analyzer` is incompatible with Turbopack builds; the audit used
+`next experimental-analyze` (works, decoded) and a manifest-derived per-route JS table
+instead. And a usage-limit cutoff kills every in-flight subagent at once: the first
+fan-out lost ~1.8M tokens with nothing on disk, after which everything ran in waves of six
+with agents persisting their own reports before returning — the second cutoff cost nothing.
+
+**What was deliberately not touched:** the comment mass (it is the institutional memory,
+verified block by block), the lab (zero bytes of member-facing JS, proven chunk by chunk),
+the mail queue (every mechanism pins a dated incident), the gazetteer (the villages are
+the point), and the migrations folder. Section 5 of the report records these so no future
+audit re-litigates them.
+
+**Owner decisions pending** (report §4, eighteen items): the landing showcase's fate and
+the missing public policy links, the tour at launch, the database drops, moving 19k lines
+of imported skill prose out of the repo, PostHog-vs-Vercel-Analytics, and the §7 process
+mechanism — the scripts-ledger gate, the test survival rule, and the "close it out"
+checklist he asked for, worded and ready for sign-off.
