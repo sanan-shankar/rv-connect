@@ -99,7 +99,7 @@ export const signupSchema = z
 // Settings uses the same direct-batch model as sign-up: batchYear is entered
 // directly, alongside the plain yearJoined/yearLeft. batchType is derived
 // server-side from yearLeft + batchYear via batchTypeFromLeaving (see
-// updateUserProfile), so it is an output and not part of this input schema.
+// profile-actions.ts), so it is an output and not part of this input schema.
 // The retired gradeJoined field is deliberately absent here; its DB column is
 // left untouched.
 export const profileSchema = z.object({
@@ -124,8 +124,8 @@ export const profileSchema = z.object({
   // max(24) matches signupSchema's phone cap (it was 20, so a number accepted
   // at sign-up could fail to save in settings).
   phone: z.string().max(24).optional(),
-  // Multiple phone numbers (the settings repeater). Free-form here;
-  // updateUserProfile runs each through normalizePhone before storing and
+  // Multiple phone numbers (the profile's phone repeater). Free-form here;
+  // profile-actions.ts runs each through normalizePhone before storing and
   // mirrors the first into legacy `phone`.
   phones: phoneList().optional(),
   instagram: z.string().max(100).optional(),
