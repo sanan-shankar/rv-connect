@@ -1,5 +1,59 @@
 # Progress Log
 
+## Session 2026-08-26 — phase 1a of the refactor campaign: 2,052 lines that ran nothing
+
+The first fix session of the 2026-08-25 refactor audit. All 16 phase-1a rows executed in 21
+commits: 2,320 lines deleted, 268 added. `npm run check` green before each commit and at the
+end; `verify:crawl` 200 on all 17 routes.
+
+- **The biggest single win was a flag that had never once been flipped.** `bird-avatar.tsx`
+  carried a 52-case mono-silhouette renderer behind `const USE_V2 = true`, set on 2026-06-29
+  and never changed, so nothing below line 682 could execute. 734 lines to 118. It was not
+  even a working fallback: the file's own comment admitted the legacy index mapping was
+  "approximate for that dead path", because the case order never learned about the
+  species-per-member migration or the Roller/Dove swap. 45 modules import `BirdAvatar`, so
+  this rode into nearly every client chunk that shows a face.
+- **Two dead server actions were also live POST endpoints.** `updateUserProfile` (the
+  whole-form profile save, superseded when the owner asked the profile to save on blur) and
+  `createCatchup` (the groups-era creation path). In Next an exported server action is
+  invocable by action id whether or not any component references it, so a dead one is not
+  just weight, it is surface. `setTheme` was a third, and de-exporting it is what forced the
+  one test change below.
+- **The analytics room was paying for numbers nobody renders.** `loadSupport` had no caller
+  at all; eight further fields were fetched from Mumbai and dropped on the floor — a groupBy
+  plus a follow-up findMany plus a label map on every ContentView open, a user groupBy per
+  PeopleView, a ten-row findMany per ReachView. All four views re-opened and eyeballed
+  afterwards; every tile still there.
+- **The audit was wrong in six places, and the pre-flight caught all six.** `ContactKind` is
+  genuinely imported (tsc refused the de-export). `Profession` was fully dead rather than
+  internal, so it went entirely. `MAX_INPUT_PIXELS` was a re-export line, not a declaration.
+  `TourStopId` and `CatchupRoundSection` were used in-file. `SORT_OPTIONS` was a cascade
+  nobody had spotted. Every one of those is the rule-4 pre-flight earning its place: the
+  report is evidence, not instruction.
+- **One test had to be widened, and it is worth the owner's eye.**
+  `gate-coverage.test.mjs` builds the set of "gated" actions from EXPORTED functions only,
+  then lets a thin public wrapper inherit a gate from a gated sibling. Making `setTheme`
+  private therefore orphaned `setThemePreference` — the check had not moved, only its
+  visibility. The gated set now reads every async function in the file; the assertion still
+  runs over exported ones alone, so it is strictly wider. Proved by injecting an ungated
+  exported action and watching the sweep fail on it.
+- **Two tests were rewritten rather than deleted.** `normalize.test.mjs` sliced `social.ts`
+  using `indexOf("export function socialIcon")` as an *end* boundary; deleting that function
+  would have made indexOf return -1 and the slice silently swallow the rest of the file while
+  still passing. Both boundaries now sit on surviving declarations.
+  `house-spans.test.mjs` was 100% pins on a dead function, so instead of dropping the file
+  below the suite's floor it now pins what ships, including a regression test for audit
+  Low 99 (a skipped year must open a new house span, not claim a year nobody recorded).
+- **`npm run visual` is red on four routes and it is not this work.** Same 8 failures before
+  and after every change: feed, directory, letters, catchups at both viewports, all from live
+  database drift (a new post at the top, new signups) shifting everything below. The other 15
+  pass, `/birds` included. Not rebaselined — that would misattribute real rows to this commit
+  and go stale on the next post. It is a suite-design question for the owner.
+- **Found in passing, not fixed:** `crawl.mjs`'s hardcoded `OWN`/`OTHER` profile ids no
+  longer exist, and the crawler prints `OK 200` for a page that renders the 404 — those two
+  rows have been proving nothing. Filed for the scripts territory.
+
+
 ## Session 2026-08-25 — "Still locked out: 1" was a ghost, and the panel could not tell
 
 The owner opened `/admin/analytics` -> Joining and read a red **Still locked out: 1** over a panel

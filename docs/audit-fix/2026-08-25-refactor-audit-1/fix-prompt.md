@@ -20,7 +20,7 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
 
 ## Status board (update every session)
 
-- [ ] Phase 1a — dead code in src (~1,800 lines)
+- [x] Phase 1a — dead code in src — **done 2026-08-26**, 21 commits, 2,320 lines deleted / 268 added (net −2,052 against a ~1,800 estimate). All 16 plan rows executed; see session 1 below for the six places the audit's text was wrong and what was done instead.
 - [ ] Phase 1b — root, docs, assets, dependencies
       (**partially done 2026-08-26**: the "archive the closed bug audit" item — move,
       JSON-dump deletion, ledger owner-block into bugs.md — was executed by the
@@ -93,7 +93,87 @@ leave a half-item uncommitted without describing its exact state in the session 
 
 ## Session log (append; newest last)
 
-*(none yet — campaign not started)*
+### 2026-08-26 — session 1 (phase 1a)
+
+**Done** (in order; every item pre-flighted at HEAD per rule 4):
+bug-lead filing → `1639bba` · ui/badge+ui/tabs → `a88ff68` · 23 shadcn sub-primitives →
+`a8486d9` · utils.ts dead trio → `747297e` · updateUserProfile → `d5da4d7` · createCatchup
+→ `6ae9d98` · loadSupport + 8 analytics fields → `b301cc4` · legacy mono avatar path
+(734→118 lines) → `f8094ac` · dead-with-a-test trio → `aebeb88` · house-spans year-row
+library → `d960b45` · ProfileAvatar→lab + directory sort stub → `0e4a264` · auth
+metadata-only layouts → `99dcc4e` · globals.css dead tokens → `bdfadf4` ·
+LOGIN_TRANSITION_FLAG → `17fcfeb` · tour `enabled` → `5ec94b2` · flight `speed` →
+`a4f89cb` · bindPassword/parallel/EASE_POP → `71e6c70` · lib dead exports →
+`e23e80c` · component dead props → `2ecb5f2` · lab kit exports → `09f5ebe` · de-export
+sweep → `2f43a3d`.
+
+**Where the audit was wrong, and what was done instead** (rule 4 outcomes):
+- `ContactKind` (dead-code-11, "P") — **re-refuted**: `contacts-editor.tsx:42` imports it.
+  Left exported. tsc caught it.
+- `Profession` (dead-code-11, "P, verify with tsc") — verified: fully dead, not internal.
+  **Deleted** rather than de-exported.
+- `AdminSectionDef` — correction honoured, kept (used at `admin-nav.ts:43`); only
+  `ADMIN_SECTIONS` went.
+- `CONTRIBUTION_STATUSES`/`canBecomePaid` — withdrawal honoured, untouched.
+- `MAX_INPUT_PIXELS` (dead-code-10, "P") — it is a *re-export line* in image.ts, not a
+  declaration. Deleted the line; the const lives in upload-shared.
+- `TourStopId`, `CatchupRoundSection` — listed "D", actually used in-file. De-exported,
+  not deleted (CatchupRoundSection then died with CatchupRoundView anyway).
+- `SORT_OPTIONS` — a cascade the audit missed: it existed only for
+  `directorySortOptions`, so it went too.
+- `prisma-errors.test.mjs` does **not** empty when `isRecordNotFound` goes (the audit
+  feared it would) — it pins three predicates, two of which are live. No floor change.
+  `house-spans.test.mjs` *would* have emptied, so it was rewritten to pin the live
+  parsers, including a regression pin for audit Low 99.
+
+**Deliberately deferred** (not skipped — they belong to a later phase):
+- `feed-posts-13`'s `scope` / `groupId` / `composerScope` / `FeedScope` half is Groups
+  plumbing; it must land with **phase 2**'s Groups-residue item, as the finding says.
+  Only the uncoupled props (`emptyTitle`/`emptyHint`/`placeholder`) were taken here.
+
+**One test was widened, deliberately** — `src/lib/gate-coverage.test.mjs`. Its delegation
+pass built the "gated" set from EXPORTED actions only, so de-exporting `setTheme` (an
+accidentally-public server action) orphaned `setThemePreference`'s inherited gate. It now
+reads every async function in the file; the assertion still runs only over exported ones,
+so it is strictly wider, not weaker. Verified by injecting an ungated exported action and
+watching it fail, then removing it. **Owner should sight this one.**
+
+**Verification**: `npm run check` ✓ green before every commit and at session end (TS,
+ESLint, protocol, lab registry 42, unit 75/75). `npm run verify:crawl` ✓ all 17 routes 200.
+Eyeballed: all four `/admin/analytics` views, `/admin/support`, own profile, `/feed`,
+`/catchups`, `/catchups/new`, `/directory`, `/lab/profiles` (+passport/terrace),
+`/lab/craft`, `/lab/type`, `/lab/transitions`, `/lab/location-picker`, `/dark-mode`; the
+landing→Sign in flight sampled frame by frame; the /login password peek-a-boo clicked.
+
+**`npm run visual` is RED and it is not this work** — 8 failures, the same 8 before and
+after every change: `/feed`, `/directory`, `/letters`, `/catchups` at both viewports. Cause
+is **live database drift** (a new post at the top of the feed, new directory signups), which
+shifts everything below it. The other 15 pass, including `/birds`. **Not rebaselined**:
+these are real rows, not an intentional UI change, and staging today's data as a baseline
+would both misattribute the movement to this commit and go stale on the next post. This is
+an owner decision (see below), and the next session should not treat those 8 as its own.
+
+**Also found in passing, not fixed** (both belong to phase 1b/scripts-e2e-ci territory):
+- `scripts/qa/crawl.mjs:11` — the hardcoded `OWN` profile id
+  (`cmmz0vvws0000ynsg3ueb9scp`) no longer exists, and the crawler reports it **`OK 200`
+  while the page renders the 404**. The crawl's two profile rows are therefore proving
+  nothing. Same for `OTHER`.
+- `next build`'s `.next/types/validator.ts` was stale and referenced the deleted auth
+  layouts; moved aside to `validator.ts-stale` rather than rebuilding, because another
+  session was mid-build. Harmless, regenerates on the next real build.
+
+**Awaiting owner** (nothing blocked phase 1a; these are new):
+1. The visual suite's four content routes will keep going red as members post. Mask, seed,
+   or accept? (Not a regression; a suite-design question.)
+2. Sight the `gate-coverage.test.mjs` widening above.
+
+**State left**: clean — every file I touched is committed. `CLAUDE.md` is modified in the
+tree and is **not mine** (the owner's 150-word commit rule).
+
+**Next session**: phase 1b (root, docs, assets, dependencies). Read the status-board note
+first — several 1b rows were already executed by the `docs/audit-fix/` reorganisation and
+must not be redone. 1b needs owner input before it starts: WhatsApp originals, overflow
+PDF destination, brand 4096 PNG, xlsx path (report §4 #14, #3-adjacent).
 
 Template:
 ```
