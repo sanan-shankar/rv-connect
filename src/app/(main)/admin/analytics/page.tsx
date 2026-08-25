@@ -22,6 +22,7 @@ import {
   loadSearches,
   loadTrends,
 } from "@/lib/admin-analytics";
+import type { LoginReason } from "@/lib/login-attempt";
 import { AnalyticsTabs, isViewKey, VIEWS, type ViewKey } from "@/components/admin/analytics/tabs";
 import { BarList, Panel, StatGrid, type Stat } from "@/components/admin/analytics/stat";
 import { PresenceList } from "@/components/admin/analytics/presence";
@@ -782,11 +783,22 @@ async function JourneyView() {
   const j = await loadJourney();
   const totalFails = j.failures.reduce((n, f) => n + f.value, 0);
 
-  const REASON: Record<string, string> = {
+  /* Every reason `LoginReason` can write, in the owner's words rather than the
+   * slug. Missing keys fall through to the raw slug below, which is how a bar
+   * reading "blocked" sat on this page from the day audit H4 added the reason
+   * (2026-08-20) until somebody read it as a member being locked out
+   * (2026-08-25). A label map that silently half-covers its vocabulary is
+   * worse than none: the gap looks like data. Keyed on LoginReason rather
+   * than string, so the gap cannot reopen -- adding a reason without a label
+   * here is now a tsc error, not a slug that ships. */
+  const REASON: Record<LoginReason, string> = {
     ok: "Signed in fine",
     "no-account": "No account with that address",
     "no-password-set": "Account exists but has no password",
     "wrong-password": "Wrong password",
+    blocked: "Account is blocked",
+    "rate-limited": "Too many tries, turned away",
+    "bot-check": "Failed the are-you-human check",
   };
 
   return (
@@ -832,7 +844,7 @@ async function JourneyView() {
           note="A wrong address needs different help from a wrong password, so they are counted separately."
         >
           <BarList
-            items={j.failures.map((f) => ({ label: REASON[f.label] ?? f.label, value: f.value }))}
+            items={j.failures.map((f) => ({ label: REASON[f.label as LoginReason] ?? f.label, value: f.value }))}
             empty="No sign-in attempts recorded yet."
           />
         </Panel>

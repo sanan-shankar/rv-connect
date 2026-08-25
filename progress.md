@@ -1,5 +1,45 @@
 # Progress Log
 
+## Session 2026-08-25 — "Still locked out: 1" was a ghost, and the panel could not tell
+
+The owner opened `/admin/analytics` -> Joining and read a red **Still locked out: 1** over a panel
+that says "worth emailing them directly", plus a bar in "Why sign-ins fail" labelled with the raw
+slug `blocked`. One commit on `main`, not pushed. `npm run check` green (70 tests).
+
+- **Nobody was locked out, and no account has ever been blocked.** `SELECT ... WHERE "isBlocked" =
+  true` returns zero rows. The address was `phase2-probe-1787166205085@example.invalid`, a throwaway
+  the Phase 2 security probe created on 19 Aug, blocked on purpose to prove audit H4 held, and then
+  deleted. `.invalid` is the RFC 2606 reserved domain, so it was never a person.
+- **The bug is that a deleted account keeps counting as somebody locked out.** `loadJourney`'s
+  locked-out query read `LoginAttempt` alone, with no join to `User`, and `purgeUserAccount` clears
+  neither this table nor the `userId` on it. So this was never only about probes: any member who
+  self-deletes after a run of failed sign-ins would have appeared under the same instruction to email
+  them. It now `LEFT JOIN`s `User` and drops any address whose attempts point at an account that has
+  vanished. A `userId` of NULL is deliberately kept — that is the ordinary "no account with that
+  address" failure, which is exactly the person the panel is for.
+- **Both conditions are aggregates, and the test says why.** A row-level `WHERE` would drop the
+  purged account's SUCCESSFUL attempt and leave its failures, flipping the address *into* the list —
+  the opposite of the fix. `src/lib/login-attempt-rule.test.mjs` pins the join, pins that the guard
+  stays inside the `HAVING`, and fails if `purgeUserAccount` ever starts touching `LoginAttempt`, at
+  which point the comment needs re-reading rather than the guard deleting. All four assertions were
+  mutation-tested: each fix reverted individually, each caught by its own test.
+- **The raw slug was a label map that half-covered its vocabulary.** `REASON` named four of the seven
+  reasons `LoginReason` can write; `blocked`, `rate-limited` and `bot-check` fell through to the slug.
+  Keyed on `LoginReason` now, so the gap cannot reopen — an unlabelled reason is a tsc error rather
+  than something the owner reads as a member in trouble. A gap that looks like data is worse than no
+  label at all.
+- **Nine synthetic rows removed, five addresses, all on `@example.invalid`**
+  (`prisma/migrations-manual/2026-08-25-purge-synthetic-login-attempts.sql`, guarded to refuse if any
+  account exists on that domain, re-run clean). This is housekeeping, not the fix — the join alone
+  already takes the tile to zero, verified against the live database before deleting anything. It
+  takes the probe noise out of the three totals the join does not touch. Retention would not have:
+  `LoginAttempt` is kept 365 days, so these were due to clear in August 2027. Not applied to the demo
+  database, on purpose: data-only file, and that `LoginAttempt` table is empty.
+- **Verified at both viewports.** The tile reads a green 0, the panel reads "Nobody is locked out",
+  and the reason breakdown is 31 / 5 / 1 with no slug. `npm run visual` not run: the change is
+  admin-only, `/admin/analytics` is not in `ROUTES`, and another session has `e2e/visual.spec.ts`
+  open mid-investigation.
+
 ## Session 2026-08-24 — Safari could not load localhost, and the cache kept it broken
 
 The owner's Safari had been unusable on `localhost:3000` for days while Brave was fine: first an
