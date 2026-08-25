@@ -79,8 +79,6 @@ const NO_INDEX_NEEDED = {
     "the Round reads lead with editionId or promptId, both indexed; authorId alone is only the account data export",
   "Report.reportedUserId":
     "the flag-count groupBy in reportUser is the only reader, on a moderation table that grows by a handful of rows a month",
-  "GroupMember.userId":
-    "NOT a settled decision: loadSavedPosts reads memberships by userId on every request, which is the same shape as B-090. Raised 2026-08-25 in docs/planning/audits/fix-ledger.md; it wants a migration, which does not belong in a test change",
 };
 
 /** Is this column the owning side of a real relation, not just a name ending in Id? */

@@ -3430,3 +3430,19 @@ still owed a decision by the owner.
 It passes, covers no pixels, and the test goes on failing for the reason you
 thought you had just masked. Check the -actual.png for the magenta block before
 believing a mask worked.
+
+## 2026-08-25 (later) — the index the last session handed over
+
+`GroupMember` carried one index, the composite unique `(groupId, userId)`.
+Postgres can only use a composite when the LEADING column is constrained, so
+`where: { userId }` alone could not touch it -- and `loadSavedPosts` asks
+exactly that on every request, which is B-090 all over again. The previous
+session found it while generalising the index sweep and wrote it into the
+test's own exemption list rather than leaving it silent, because it needed a
+migration.
+
+`@@index([userId])`, applied to both databases, exemption removed so the
+derived sweep covers the column rather than carrying an excuse for it. Proved
+live: EXPLAIN reports `Index Scan using "GroupMember_userId_idx"` where it was
+a sequential scan. Not urgent at today's size; a full scan of a few thousand
+rows on a page load at the 2,000-member ceiling this audit is sized against.
