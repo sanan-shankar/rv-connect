@@ -1,0 +1,35 @@
+
+  warn no-orphans: src/proxy.ts
+    -
+
+  warn no-orphans: src/instrumentation.ts
+    -
+
+  error no-circular: src/lib/catchups-notify.ts → 
+      src/lib/catchups.ts →
+      src/lib/catchups-notify.ts
+    -
+
+  error no-circular: src/components/onboarding/onboarding-flow.tsx → 
+      src/components/onboarding/steps/register-step.tsx →
+      src/components/onboarding/onboarding-flow.tsx
+    -
+
+  error no-circular: src/components/onboarding/onboarding-flow.tsx → 
+      src/components/onboarding/steps/photo-step.tsx →
+      src/components/onboarding/onboarding-flow.tsx
+    -
+
+  error no-circular: src/components/onboarding/onboarding-flow.tsx → 
+      src/components/onboarding/steps/houses-step.tsx →
+      src/components/onboarding/onboarding-flow.tsx
+    -
+
+  error no-circular: src/components/feed/feed-rail.tsx → 
+      src/components/feed/rail/letters-module.tsx →
+      src/components/feed/feed-rail.tsx
+    -
+
+
+x 7 dependency violations (5 errors, 2 warnings). 668 modules, 1981 dependencies cruised.
+

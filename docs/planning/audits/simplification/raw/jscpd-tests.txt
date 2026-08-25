@@ -1,0 +1,49 @@
+[1mClone found (javascript)[22m
+ - [1m[32madmin-guard-rule.test.mjs[39m[22m [1:1 - 24:80] (24 lines, 95 tokens)
+   catchup-lifecycle.test.mjs [1:1 - 22:80]
+[1mClone found (javascript)[22m
+ - [1m[32madmin-guard-rule.test.mjs[39m[22m [1:1 - 26:6] (26 lines, 96 tokens)
+   mail-queue-rule.test.mjs [1:1 - 21:6]
+[1mClone found (javascript)[22m
+ - [1m[32madmin-guard-rule.test.mjs[39m[22m [1:1 - 26:18] (26 lines, 97 tokens)
+   presence-rule.test.mjs [1:1 - 35:6]
+[1mClone found (javascript)[22m
+ - [1m[32madmin-guard-rule.test.mjs[39m[22m [1:1 - 26:18] (26 lines, 97 tokens)
+   purge-rule.test.mjs [1:1 - 27:6]
+[1mClone found (javascript)[22m
+ - [1m[32madmin-guard-rule.test.mjs[39m[22m [1:1 - 26:6] (26 lines, 96 tokens)
+   verify-outcome-rule.test.mjs [1:1 - 32:6]
+[1mClone found (javascript)[22m
+ - [1m[32madmin-guard-rule.test.mjs[39m[22m [3:39 - 26:18] (24 lines, 81 tokens)
+   notification-reach.test.mjs [4:46 - 34:6]
+[1mClone found (javascript)[22m
+ - [1m[32madmin-guard-rule.test.mjs[39m[22m [4:10 - 26:6] (23 lines, 77 tokens)
+   gate-coverage.test.mjs [4:26 - 31:6]
+[1mClone found (javascript)[22m
+ - [1m[32mdirectory-rule.test.mjs[39m[22m [1:1 - 21:6] (21 lines, 73 tokens)
+   login-attempt-rule.test.mjs [1:1 - 19:6]
+[1mClone found (javascript)[22m
+ - [1m[32mdirectory-rule.test.mjs[39m[22m [1:1 - 23:6] (23 lines, 96 tokens)
+   profile-editor-rule.test.mjs [1:1 - 22:6]
+[1mClone found (javascript)[22m
+ - [1m[32mnotification-reach.test.mjs[39m[22m [1:1 - 34:5] (34 lines, 103 tokens)
+   people-search-rule.test.mjs [1:1 - 34:6]
+[1mClone found (javascript)[22m
+ - [1m[32mnotification-reach.test.mjs[39m[22m [3:23 - 34:6] (32 lines, 91 tokens)
+   security-regressions.test.mjs [3:35 - 24:6]
+[1mClone found (javascript)[22m
+ - [1m[32mprofile-editor-rule.test.mjs[39m[22m [5:45 - 22:27] (18 lines, 70 tokens)
+   threads-rule.test.mjs [8:54 - 24:27]
+[90m┌────────────┬────────────────┬─────────────┬──────────────┬──────────────┬──────────────────┬───────────────────┐[39m
+[90m│[39m[31m Format     [39m[90m│[39m[31m Files analyzed [39m[90m│[39m[31m Total lines [39m[90m│[39m[31m Total tokens [39m[90m│[39m[31m Clones found [39m[90m│[39m[31m Duplicated lines [39m[90m│[39m[31m Duplicated tokens [39m[90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m javascript [90m│[39m 68             [90m│[39m 10516       [90m│[39m 61865        [90m│[39m 12           [90m│[39m 291 (2.77%)      [90m│[39m 1072 (1.73%)      [90m│[39m
+[90m├────────────┼────────────────┼─────────────┼──────────────┼──────────────┼──────────────────┼───────────────────┤[39m
+[90m│[39m [1mTotal:[22m     [90m│[39m 68             [90m│[39m 10516       [90m│[39m 61865        [90m│[39m 12           [90m│[39m 291 (2.77%)      [90m│[39m 1072 (1.73%)      [90m│[39m
+[90m└────────────┴────────────────┴─────────────┴──────────────┴──────────────┴──────────────────┴───────────────────┘[39m
+[90mFound 12 clones.[39m
+[90mtime: 10.851ms[39m
+
+[90m💡 Auto-refactor with AI: [1m[39mnpx skills add https://github.com/kucherenko/jscpd --skill dry-refactoring[90m[22m
+[90m🎩 New: Gangsta Agents — discipline your AI coding → gangsta.page[39m
+[90m💖 Support jscpd project → https://opencollective.com/jscpd[39m

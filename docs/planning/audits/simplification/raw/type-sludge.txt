@@ -1,0 +1,81 @@
+== explicit any / assertions / suppressions in src (excl lab, generated, tests) ==
+: any\b                      5
+\bas any\b                   4
+@ts-ignore                   0
+@ts-expect-error             0
+as unknown as                11
+eslint-disable               52
+\bconsole\.(log|warn|error)\( 63
+
+== per-hit detail ==
+src/app/not-found.tsx:344:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/app/(main)/collection/[id]/page.tsx:95:          {/* eslint-disable-next-line @next/next/no-img-element */}
+src/app/(main)/profile/[id]/page.tsx:351:            {/* eslint-disable-next-line @next/next/no-img-element */}
+src/app/(main)/catchups/[catchupId]/answer/page.tsx:1:/* eslint-disable react-hooks/error-boundaries --
+src/app/(main)/catchups/actions.ts:20: *  The lazy-advance touchpoint (spec 2.4): any action that reads a Round's
+src/app/(auth)/signup/signup-client.tsx:115:    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate pre-paint lift; see the comment above
+src/components/landing/landing-hero.tsx:179:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reveals from the image's load state, including the cache-hit case where the element is already complete and onLoad will never fire.
+src/components/landing/landing-hero.tsx:367:                  /* eslint-disable-next-line no-restricted-syntax -- "surfaces are never pure
+src/components/collection/collection-client.tsx:40:      {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/collection/contribute-dialog.tsx:219:              {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/letters/letter-images.tsx:34:            {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/posts/create-post-form.tsx:294:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/create-post-form.tsx:434:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/create-post-form.tsx:527:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/posts/create-post-form.tsx:1180:                {/* eslint-disable-next-line @next/next/no-img-element -- local
+src/components/auth/signup-form.tsx:38:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks matchMedia whether the device has a real pointer. A media query has no server-side answer, so this has to happen after mount.
+src/components/admin/analytics/compare.tsx:6: *  Compare: any measure, any way of grouping people.
+src/components/mascot/hoopoe-playground.tsx:188:    // rather than asking the scene for its first <svg>: any icon dropped into
+src/components/admin/content/content-list.tsx:256:                /* eslint-disable-next-line @next/next/no-img-element */
+src/components/mascot/sidebar-hoopoe.tsx:84:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Subscribes to the md breakpoint and mirrors it into state, so the idle machinery only ever arms on desktop.
+src/components/mascot/sidebar-hoopoe.tsx:99:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Tears the idle machinery down when the breakpoint stops matching, rather than leaving a bird stranded mid-flight.
+src/components/common/image-viewer.tsx:309:                {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/mascot/moments/celebration-signals.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/mascot/hoopoe.tsx:238:  const anim = animate as unknown as (
+src/components/mascot/hoopoe.tsx:247:  const NOOP = { finished: Promise.resolve(), stop() {} } as unknown as AnimationPlaybackControls;
+src/components/mascot/hoopoe.tsx:1136:      const fn = (api as unknown as Record<string, (...a: unknown[]) => Promise<void>>)[name];
+src/components/mascot/hoopoe.tsx:1160:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/hoopoe.tsx:1171:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/mascot/hoopoe.tsx:1258:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/common/rich-text-area.tsx:60:    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial value only; later edits live in the DOM
+src/components/common/location-picker.tsx:147:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clears the result list the moment the query empties, before any request is issued.
+src/components/common/location-picker.tsx:274:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/directory/alumni-map.tsx:85:// eslint-disable-next-line @typescript-eslint/no-explicit-any
+src/components/directory/alumni-map.tsx:86:const land = feature(worldData as any, (worldData as any).objects.countries) as unknown as {
+src/components/directory/alumni-map.tsx:179:  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+src/components/directory/alumni-map.tsx:290:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/feed/rail/collection-module.tsx:33:          {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/tour/tour-provider.tsx:209:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/feed/rail/pulse-module.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/tour/tour-spotlight.tsx:42:      // eslint-disable-next-line react-hooks/set-state-in-effect -- Measures the spotlit element's box after layout so the cut-out can be drawn over it.
+src/components/catchups/answer/answer-redirect.tsx:20:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/tour/tour-anchors.ts:13: *  re-reporting is needed to stay accurate: any consumer reading the
+src/components/support/support-contribute.tsx:112:    if ((window as unknown as { Razorpay?: RazorpayCtor }).Razorpay) return resolve();
+src/components/support/support-contribute.tsx:185:    const Razorpay = (window as unknown as { Razorpay?: RazorpayCtor }).Razorpay;
+src/components/settings/nightfall.tsx:66:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/catchups/round/question-section.tsx:34:          {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/onboarding/onboarding-flow.tsx:140:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/tour/tour-offer.tsx:67:            // eslint-disable-next-line react-hooks/refs
+src/components/landing/section-reveal.tsx:32:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Arms the hidden start state, then reveals from an IntersectionObserver.
+src/components/catchups/answer/photo-attachments.tsx:119:            {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/posts/post-card.tsx:429:                    {/* eslint-disable-next-line @next/next/no-img-element */}
+src/components/auth/auth-panel.tsx:111:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/layout/logo-fact.tsx:57:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Picks a random fact on the client only, so the server and client markup agree.
+src/components/mascot/moments/moment-hoopoe.tsx:42:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks the DOM whether another hoopoe is already on screen. Only answerable after mount.
+src/components/mascot/moments/celebration-detector.tsx:161:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/lib/prisma.ts:5:const globalForPrisma = globalThis as unknown as {
+src/lib/prisma.ts:88:  }) as unknown as PrismaClient;
+src/lib/prisma.ts:97:// commit as any schema change. That is a rule which works right up until
+src/lib/prisma.ts:120:const globalForPrismaKey = globalThis as unknown as { prismaKey: string | undefined };
+src/lib/prisma.ts:123:  Object.entries(Prisma as unknown as Record<string, unknown>)
+src/components/common/motion.tsx:154:  const Comp = (motion as unknown as Record<string, typeof motion.button>)[as] ?? motion.button;
+src/components/common/verified-mark.tsx:67:    // eslint-disable-next-line react-hooks/set-state-in-effect -- Measures the tooltip against the viewport and flips it to the other side if it would overflow. Pure measure-then-position; the opacity fade hides the one-frame correction.
+src/components/profile/house-chain-editor.tsx:129:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/feed/rail/letters-module.tsx:1:/* eslint-disable react-hooks/purity --
+src/components/tour/tour-panel.tsx:77:    // eslint-disable-next-line react-hooks/exhaustive-deps
+src/components/catchups/answer/song-attachment.tsx:11: *  song answer saves through the same path as any other answer.
+src/components/catchups/round/spotify-card.tsx:30:        // eslint-disable-next-line @next/next/no-img-element
+src/components/catchups/round/answer-card.tsx:44:        // eslint-disable-next-line @next/next/no-img-element
+src/lib/demo-seed/seed.ts:20: *  database legible when something goes wrong: any cuid in the demo
+src/lib/auth.ts:57:  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+src/lib/auth.ts:58:  adapter: PrismaAdapter(prisma as any),
