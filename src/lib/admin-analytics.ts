@@ -1130,12 +1130,30 @@ export async function loadJourney() {
       orderBy: { _count: { reason: "desc" } },
     }),
     /* THE LIST THAT MATTERS. Addresses that have failed and never once
-     * succeeded: somebody trying to get in who still cannot. */
+     * succeeded: somebody trying to get in who still cannot.
+     *
+     * The LEFT JOIN is the second half of that sentence. Purging an account
+     * deletes the User row and leaves its LoginAttempt rows standing --
+     * account-purge.ts touches neither this table nor the userId on it -- so
+     * without the join an address whose owner is GONE keeps being counted as
+     * a person locked out, under a panel that says "worth emailing them
+     * directly". Found 2026-08-25: the tile had been red for six days over
+     * phase2-probe-...@example.invalid, a throwaway the security probe blocked
+     * on purpose and then deleted. Nobody was locked out.
+     *
+     * Both conditions are aggregates over the whole address, deliberately, so
+     * one dropped row cannot flip an address INTO the list: keep it only if
+     * every attempt failed AND no attempt points at an account that has since
+     * vanished. A userId of NULL is not a vanished account -- it is the
+     * ordinary "no account with that address" failure, which is exactly the
+     * person this panel is for. */
     prisma.$queryRaw<{ email: string; tries: bigint; last: Date }[]>`
-      SELECT email, count(*)::bigint AS tries, max("createdAt") AS last
-      FROM "LoginAttempt"
-      GROUP BY email
-      HAVING bool_and(ok = false)
+      SELECT l.email, count(*)::bigint AS tries, max(l."createdAt") AS last
+      FROM "LoginAttempt" l
+      LEFT JOIN "User" u ON u.id = l."userId"
+      GROUP BY l.email
+      HAVING bool_and(l.ok = false)
+         AND bool_and(l."userId" IS NULL OR u.id IS NOT NULL)
       ORDER BY count(*) DESC
       LIMIT 20
     `,
