@@ -63,13 +63,16 @@ test("a handle is not mangled by the stripping", () => {
 });
 
 test("both sides of the Instagram field spend the rule", () => {
-  /* The rule is worth nothing where it is not called. Shape-checked because
-     social.ts imports lucide-react, which the unit gate's plain `node` cannot
-     load. Read side AND write side: the read fixes the rows that already hold
-     a pasted URL, the write stops new ones arriving. */
+  /* The rule is worth nothing where it is not called. Shape-checked over the
+     source text rather than by calling the functions, so it pins that the CALL
+     is written where it belongs. Read side AND write side: the read fixes the
+     rows that already hold a pasted URL, the write stops new ones arriving.
+     The end boundaries below are the NEXT declaration in social.ts -- keep them
+     in step if that file's order changes, or indexOf returns -1 and the slice
+     silently swallows the rest of the file. */
   const social = read("src/lib/social.ts");
-  const href = social.slice(social.indexOf("export function socialHref"), social.indexOf("export function socialIcon"));
-  const display = social.slice(social.indexOf("export function socialDisplay"), social.indexOf("export function socialHost"));
+  const href = social.slice(social.indexOf("export function socialHref"), social.indexOf("export function socialDisplay"));
+  const display = social.slice(social.indexOf("export function socialDisplay"), social.indexOf("export interface UserLink"));
   assert.match(href, /instagramHandle\s*\(/, "socialHref builds the Instagram URL without normalising the handle again");
   assert.match(display, /instagramHandle\s*\(/, "socialDisplay prints the stored value raw again");
 

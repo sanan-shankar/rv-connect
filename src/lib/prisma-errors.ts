@@ -1,5 +1,5 @@
 /**
- * The three Prisma error codes this app has to answer rather than throw.
+ * The two Prisma error codes this app has to answer rather than throw.
  *
  * Each one is a race the database has already settled correctly, arriving as an
  * exception. A unique violation on a like means the other tap won and the row
@@ -11,6 +11,12 @@
  *
  * Collected here because there were four hand-written `code === "P2002"` checks
  * scattered across the codebase and no name for what any of them meant.
+ *
+ * P2025 ("update/delete matched no row") had a predicate here too until the
+ * 2026-08-25 refactor audit found it callerless. It is not an oversight: seven
+ * places in this codebase answer that race by reaching for `updateMany` rather
+ * than `update`, which simply affects zero rows instead of throwing. Do that
+ * rather than re-adding a hand-rolled `code === "P2025"`.
  */
 function code(err: unknown): string | undefined {
   if (!err || typeof err !== "object") return undefined;
@@ -21,11 +27,6 @@ function code(err: unknown): string | undefined {
 /** P2002: a unique constraint rejected the write. The row is already there. */
 export function isUniqueViolation(err: unknown): boolean {
   return code(err) === "P2002";
-}
-
-/** P2025: `update`/`delete` matched no row. It is already gone. */
-export function isRecordNotFound(err: unknown): boolean {
-  return code(err) === "P2025";
 }
 
 /** P2003: a foreign key pointed at something that does not exist. */

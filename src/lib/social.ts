@@ -1,4 +1,3 @@
-import { Instagram, Linkedin, Facebook, Globe, ExternalLink, type LucideIcon } from "lucide-react";
 import { instagramHandle } from "@/lib/normalize";
 
 /**
@@ -22,24 +21,6 @@ export function socialHref(kind: SocialKind, value: string): string {
   return `https://${v}`;
 }
 
-/** The Lucide icon for a social kind. */
-export function socialIcon(kind: SocialKind): LucideIcon {
-  switch (kind) {
-    case "instagram":
-      return Instagram;
-    case "linkedin":
-      return Linkedin;
-    case "facebook":
-      return Facebook;
-    case "website":
-      return Globe;
-    // "link" is the user-defined "Other links" row: a plain external-link
-    // glyph, deliberately favicon-less (no per-site brand icon).
-    default:
-      return ExternalLink;
-  }
-}
-
 /** The value shown next to a social link (handle for IG, bare host otherwise). */
 export function socialDisplay(kind: SocialKind, value: string): string {
   const v = value.trim();
@@ -48,16 +29,6 @@ export function socialDisplay(kind: SocialKind, value: string): string {
     return handle ? `@${handle}` : "";
   }
   return v.replace(/^https?:\/\//, "").replace(/\/$/, "");
-}
-
-/** The faint secondary host label, e.g. "instagram.com" / "linkedin.com". */
-export function socialHost(kind: SocialKind, value: string): string {
-  try {
-    const url = new URL(socialHref(kind, value));
-    return url.host.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
 }
 
 export interface UserLink {
