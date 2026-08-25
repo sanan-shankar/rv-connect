@@ -4,11 +4,13 @@
  *  Writes for the editable letterhead.
  *
  *  Its own file rather than more of src/components/settings/actions.ts,
- *  because the two answer to different shapes. That module writes a
- *  whole FORM: updateUserProfile reads fourteen names off one FormData
- *  and sets all of them, which is right when a Save button posted the
+ *  because the two answer to different shapes. That module wrote a
+ *  whole FORM: `updateUserProfile` read fourteen names off one FormData
+ *  and set all of them, which is right when a Save button posted the
  *  lot and catastrophic when a single blur did, since the fields that
- *  were not on the form arrive as undefined and clear.
+ *  were not on the form arrive as undefined and clear. (It was deleted
+ *  unused in the 2026-08-25 refactor audit, having been superseded by
+ *  everything below; the shape lesson is why this file exists.)
  *
  *  The profile has no Save button (owner, 2026-08-07: "let the profile
  *  automatically save"), so every field commits on its own. That means

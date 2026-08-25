@@ -446,9 +446,9 @@ export function metaLine(
  * the batch year and the year they left, so a 12th-grade leaver reads ISC, a
  * 10th/11th leaver ICSE, and an earlier leaver has no board credential.
  *
- * Single source of truth for both sign-up (registerUser) and settings
- * (updateUserProfile) so the two can never disagree; neither reads the
- * retired gradeJoined field.
+ * Single source of truth for sign-up (registerUser), the profile's own
+ * per-field save (profile-actions.ts) and the admin editor, so none of
+ * them can disagree; none reads the retired gradeJoined field.
  */
 export function batchTypeFromLeaving(
   yearLeft: number,
