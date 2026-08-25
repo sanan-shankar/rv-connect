@@ -239,3 +239,69 @@ test("C-050: the avatar swap is one decision, not a read and a later write", () 
   // A lost swap takes its own upload back rather than leaving it unreferenced.
   assert.ok(/if \(!swap\.ok\) \{[\s\S]*?purgeImageUrls\(\[url\]/.test(settings));
 });
+
+/* ------------------------------------------------------------------ *
+ *  The Collection's own three, from the same run.
+ * ------------------------------------------------------------------ */
+
+test("C-129: a staged upload can be contributed exactly once", () => {
+  /* Two calls carrying the same key both read the original before either
+     delete ran, so both re-encoded it, both stored a pair of objects, and both
+     created a row -- with the per-account ceiling checked before either
+     insert. Application code cannot close that under READ COMMITTED, so the
+     database does. */
+  const schema = read("../../prisma/schema.prisma");
+  assert.match(schema, /sourceKey\s+String\?\s+@unique/, "Photo.sourceKey is not unique");
+  const sql = read("../../prisma/migrations-manual/2026-08-25-photo-source-key.sql");
+  assert.match(sql, /CREATE UNIQUE INDEX IF NOT EXISTS "Photo_sourceKey_key"/);
+  const actions = read("../app/(main)/collection/actions.ts");
+  assert.match(actions, /sourceKey: input\.key,/, "the direct path does not record the key it claims");
+  assert.match(
+    actions,
+    /if \(!isUniqueViolation\(err\)\) throw err;\s*\n\s*revalidatePath\("\/collection"\);/,
+    "losing the claim is not treated as the outcome the member wanted"
+  );
+});
+
+test("C-074/C-130: concurrent moderation is answered, not thrown at", () => {
+  const src = read("../app/(main)/collection/actions.ts");
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  // Both admin writes on a possibly-stale row.
+  assert.match(code, /const approved = await prisma\.photo\.updateMany\(/, "approvePhoto still throws P2025");
+  assert.match(code, /approved\.count === 0/, "approvePhoto ignores having matched nothing");
+  assert.match(code, /const gone = await tx\.photo\.deleteMany\(/, "declinePhoto's delete still throws P2025");
+  assert.match(code, /err instanceof AlreadyDeclined/, "the rolled-back decline is not mapped to a sentence");
+});
+
+test("C-159: the Collection intake keeps its resolve-always promise", () => {
+  const src = read("./collection-intake.ts");
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  // No await outside a try before the loop.
+  const head = code.slice(0, code.indexOf("toCopy.map"));
+  const awaits = [...head.matchAll(/await /g)];
+  const firstTry = head.indexOf("try {");
+  assert.ok(firstTry > 0, "the pre-loop reads are not guarded at all");
+  for (const a of awaits) {
+    assert.ok(a.index > firstTry, "a pre-loop await sits outside the try, so after() can reject");
+  }
+  // And a failure mid-copy books the bytes it already stored.
+  assert.match(code, /stagedCopiedUrl = copiedUrl;/, "the catch cannot see what was stored");
+  assert.match(
+    code,
+    /pendingImagePurge\s*\n?\s*\.createMany\(\{ data: stored\.map/,
+    "a failed copy still orphans the objects it stored, which nothing can enumerate"
+  );
+});
+
+test("C-157/C-158: a fetch that failed is not mistaken for one that worked", () => {
+  const viewer = read("../components/common/image-viewer.tsx");
+  assert.match(
+    viewer,
+    /if \(!res\.ok\) throw new Error\(String\(res\.status\)\);/,
+    "an error body is still saved to disk under the photograph's name"
+  );
+  const upload = read("./upload-client.ts");
+  // Backtick OR quote, and the string may wrap to the next line.
+  const warns = [...upload.matchAll(/console\.warn\(\s*[`"]\[upload\]/g)];
+  assert.equal(warns.length, 3, `${warns.length} of the 3 silent fallbacks say anything`);
+});

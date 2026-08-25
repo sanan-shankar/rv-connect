@@ -181,6 +181,16 @@ model Photo {
 
   caption      String?
 
+  /// The staged upload this row was made from, held UNIQUE so it can only be
+  /// made once. A direct upload PUTs its original under a fresh key and then
+  /// calls contributePhotoDirect with it; two of those calls landing together
+  /// both read the original before either deleted it, so both re-encoded it
+  /// and both created a row -- two Collection photos and two pairs of stored
+  /// objects from one contribution, and a per-account quota checked before
+  /// either insert (audit C-129). Null for every row made before this and for
+  /// the proxied path, which has no staged key of its own.
+  sourceKey    String?   @unique
+
   // faceted taxonomy (fixed enums validated by Zod; comma-joined where multi).
   // subject/freeTags are no longer collected by the contribute form (2026-07-18
   // rework) but stay on the model for old rows and any other Collection reader.

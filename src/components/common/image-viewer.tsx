@@ -182,6 +182,12 @@ export function ImageViewer({
     const name = current.downloadName ?? basename(current.src);
     try {
       const res = await fetch(current.src);
+      /* A 404 or a 5xx RESOLVES, so without this the XML or HTML of the error
+         was saved to disk under the photograph's own name and the member was
+         told nothing went wrong (audit C-157). Throwing puts it into the catch
+         below, which opens the URL in a tab -- where at least the browser
+         says what happened. */
+      if (!res.ok) throw new Error(String(res.status));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
