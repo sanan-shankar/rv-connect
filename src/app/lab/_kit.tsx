@@ -9,8 +9,6 @@
 
 import {
   motion,
-  useScroll,
-  useTransform,
   type MotionProps,
 } from "motion/react";
 import {
@@ -116,18 +114,6 @@ export function SpringPress({
     >
       {children}
     </Comp>
-  );
-}
-
-/* scroll-linked vertical drift; freezes under reduced motion */
-export function AmbientLayer({ children, factor = 0.07, className }: { children: ReactNode; factor?: number; className?: string }) {
-  const { reduced } = useValleyMotion();
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, (v) => (reduced ? 0 : v * factor));
-  return (
-    <motion.div className={className} style={{ y }}>
-      {children}
-    </motion.div>
   );
 }
 
@@ -237,17 +223,6 @@ export function DelightShell({
         <main className="dl-main">{children}</main>
       </div>
     </ReducedCtx.Provider>
-  );
-}
-
-/* link card used on the index to reach each sub-route */
-export function RouteLink({ href, title, desc }: { href: string; title: string; desc: string }) {
-  return (
-    <SpringPress as="a" className="dl-routelink" {...({ href } as object)}>
-      <h3 className="v2-display">{title}</h3>
-      <p>{desc}</p>
-      <span className="dl-routelink-go">Open</span>
-    </SpringPress>
   );
 }
 

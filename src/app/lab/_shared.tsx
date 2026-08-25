@@ -121,7 +121,7 @@ export const DIRECTIONS: Record<DirKey, Tokens> = {
 /*  Shared CSS — driven entirely by the tokens above                   */
 /* ------------------------------------------------------------------ */
 
-export function PreviewStyles() {
+function PreviewStyles() {
   return (
     <style
       dangerouslySetInnerHTML={{

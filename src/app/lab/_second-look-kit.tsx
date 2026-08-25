@@ -18,99 +18,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
- *  Type scale.
- *
- *  Whole pixels, eight steps, no half-steps. The craft room in this very
- *  lab counts 252 fractional sizes across the product and calls them a
- *  habit nobody chose; the first draft of this kit then used 10.5, 11.5,
- *  12.5 and 13.5 itself. Everything below is a whole number, and every
- *  step is used for one job.
- *
- *   T.label  12  uppercase section rules, chips, eyebrow labels
- *   T.small  14  captions, mount notes, secondary asides
- *   T.data   15  ledger cells, dense tabular reading
- *   T.body   17  running prose. This is the page's reading size.
- *   T.lede   19  the masthead lede and the tell
- *   T.stat   30  the scoreboard numerals
- * ------------------------------------------------------------------ */
-export const T = {
-  label: "text-[12px]",
-  small: "text-[14px]",
-  data: "text-[15px]",
-  body: "text-[17px]",
-  lede: "text-[19px]",
-} as const;
-
-/** running prose: the single class string every paragraph in a room should use */
-export const PROSE = "text-[17px] leading-[1.65]";
-/** an inline code span sized to sit inside PROSE without shrinking the line */
-export const CODE = "rounded bg-mist px-1.5 py-0.5 text-[15px] text-foreground";
-
-/* ---- the room registry ---- */
-
-export type Room = {
-  slug: string;
-  title: string;
-  /** the one-line premise: what looked fine */
-  looked: string;
-  /** what is actually wrong */
-  tell: string;
-  status: "built" | "planned";
-};
-
-export const ROOMS: Room[] = [
-  {
-    slug: "craft",
-    title: "Why the sidebar looks 1080p",
-    looked: "The nav has been there since day one and nobody flagged it.",
-    tell: "Idle nav text is a 70% alpha of white over green: 4.31:1. That turned out to be the smallest version of the problem. The colour used 568 times across the app fails AA too.",
-    status: "built",
-  },
-  {
-    slug: "spine",
-    title: "Six different left edges",
-    looked: "Every page header looks reasonable on its own.",
-    tell: "Feed starts at 284px, Collection at 332, Groups at 396, Letters at 460, Messages at 508. You never see two at once, so a 224px drift stays invisible and constant.",
-    status: "built",
-  },
-  {
-    slug: "support",
-    title: "The ask that argues against itself",
-    looked: "Honest, well written, nothing broken enough to file.",
-    tell: "A progress bar at 0% of ₹4,00,000, drawn at 1.09:1 against its own card, animated with a count-up that counts to zero, above a caption saying it does not matter if it never fills.",
-    status: "built",
-  },
-  {
-    slug: "everything",
-    title: "Everything else",
-    looked: "Nine surfaces, all of which pass a glance.",
-    tell: "76 findings from one read-through: 21 actually broken, 47 working but never decided, 8 genuinely good and worth protecting. The whole map, filterable.",
-    status: "built",
-  },
-  {
-    slug: "tiles",
-    title: "When a box earns its border",
-    looked: "Tiles everywhere. Consistent, tidy, inoffensive.",
-    tell: "A border is the heaviest grouping tool there is. Four gates decide whether one is earned; score eight real surfaces yourself and watch the feed post pass 4 of 4 while a Catch-up row passes 1.",
-    status: "built",
-  },
-  {
-    slug: "houses",
-    title: "The houses picker, as a game",
-    looked: "A working multi-year form with a genuinely clever auto-advance.",
-    tell: "It asks the same question five times, each an unaided scan of 22 uncoloured pills, about a fact you only have once. Three live alternatives; the best is one interaction.",
-    status: "built",
-  },
-  {
-    slug: "type",
-    title: "The font question",
-    looked: "Libre Baskerville and Source Sans 3. Perfectly respectable.",
-    tell: "No, you cannot legally use the Apple font, and it would be wrong anyway. But the type ships as six static files where four variable ones would carry more, and Libre Baskerville is a body face doing display work. Five pairings, measured off the binaries, live.",
-    status: "built",
-  },
-];
-
-/* ------------------------------------------------------------------ *
  *  Shell
  * ------------------------------------------------------------------ */
 
@@ -602,12 +509,4 @@ export function Pick<K extends string>({
       ))}
     </div>
   );
-}
-
-export function useToggles<K extends string>(initial: Record<K, boolean>) {
-  const [state, setState] = useState(initial);
-  const toggle = (k: K) => setState((s) => ({ ...s, [k]: !s[k] }));
-  const setAll = (v: boolean) =>
-    setState((s) => Object.fromEntries(Object.keys(s).map((k) => [k, v])) as Record<K, boolean>);
-  return { state, toggle, setAll };
 }
