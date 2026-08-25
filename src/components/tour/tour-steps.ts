@@ -9,9 +9,8 @@
  *  "quiet"/"quietly" in user-facing copy; it never appears below (the
  *  spec's server-cost joke in the Feed note is rephrased without it).
  *
- *  Groups keeps a reserved slot (`enabled: false`) between Catch-ups and
- *  Finish, per the owner brief: its rework is being designed separately.
- *  Flipping it on later is a one-line change plus the copy below.
+ *  TOUR_STOPS is the run list, in order; the progress dots count it. A stop
+ *  is added or removed by editing that array, nothing else.
  * ------------------------------------------------------------------ */
 
 export type TourStopId = "feed" | "directory" | "collection" | "catchups";
@@ -27,7 +26,6 @@ export interface TourStop {
   body: string[];
   /** Optional soft callout block (a nested, smaller-radius aside). */
   note?: string;
-  enabled: boolean;
 }
 
 export interface TourCardCopy {
@@ -58,7 +56,6 @@ export const TOUR_STOPS: TourStop[] = [
     id: "feed",
     route: "/feed",
     spotlight: "feed-composer",
-    enabled: true,
     title: "The Feed",
     body: [
       "This is where the valley shares its news and reads it. Someone is planning a reunion, a batch has an update, the school has an announcement: it goes here, where everyone can see it.",
@@ -72,7 +69,6 @@ export const TOUR_STOPS: TourStop[] = [
     id: "directory",
     route: "/directory",
     spotlight: "directory-search",
-    enabled: true,
     title: "The Directory",
     body: [
       "This is how you find people again. Search by name, or open the map to see where everyone landed. You can also browse batch by batch.",
@@ -84,7 +80,6 @@ export const TOUR_STOPS: TourStop[] = [
     id: "collection",
     route: "/collection",
     spotlight: "collection-contribute",
-    enabled: true,
     title: "The Valley Collection",
     body: [
       "Have you ever tried to show someone what Rishi Valley looks like, searched online, and found nothing that did it justice? This is us fixing that.",
@@ -98,7 +93,6 @@ export const TOUR_STOPS: TourStop[] = [
     id: "catchups",
     route: "/catchups",
     spotlight: "catchups-explainer",
-    enabled: true,
     title: "Catch-ups",
     body: [
       "A Catch-up is a little group letter that comes around now and then. It happens in three easy steps.",
@@ -107,6 +101,3 @@ export const TOUR_STOPS: TourStop[] = [
     ],
   },
 ];
-
-/** The stops the tour actually runs, in order. Progress dots count these only. */
-export const ENABLED_TOUR_STOPS: TourStop[] = TOUR_STOPS.filter((s) => s.enabled);

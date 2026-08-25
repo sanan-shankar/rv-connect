@@ -23,7 +23,7 @@ import { hasSeenOnboarding } from "@/lib/onboarding-local";
 import { shouldAutoOfferTour } from "@/lib/tour-auto-offer";
 import { hasSettledTour, markTourCompleted, markTourDismissed } from "@/lib/tour-local";
 import { awaitSpotlight, clearSpotlight } from "./tour-anchors";
-import { ENABLED_TOUR_STOPS } from "./tour-steps";
+import { TOUR_STOPS } from "./tour-steps";
 import { TourOffer } from "./tour-offer";
 import { TourPanel, type TourPanelApi } from "./tour-panel";
 import { TourSpotlight } from "./tour-spotlight";
@@ -113,7 +113,7 @@ export function TourProvider({ userId, children, autoOffer = false }: TourProvid
   const apiRef = useRef<TourPanelApi | null>(null);
   const [spotlightKey, setSpotlightKey] = useState<string | null>(null);
 
-  const stops = ENABLED_TOUR_STOPS;
+  const stops = TOUR_STOPS;
 
   // Dormant by default. When explicitly opted in, offer on the first /feed
   // arrival only while nothing has been decided yet.
