@@ -4,6 +4,7 @@ import { getImageBuffer, keyForUrl, putImage, ownerPrefix } from "@/lib/storage"
 import { sharpImage } from "@/lib/image";
 import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
 import { plainExcerpt } from "@/lib/utils";
+import { reportSwallowed } from "@/lib/report-error";
 
 /* ------------------------------------------------------------------ *
  *  Posting a photograph into the Valley Collection.
@@ -54,10 +55,23 @@ export async function copyPostImagesToCollection({
 }): Promise<number> {
   if (imageUrls.length === 0) return 0;
 
-  const me = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true, photoTrusted: true },
-  });
+  /* The two reads before the loop are inside the same total-resolution
+     promise as everything after them (audit C-159). This function's docblock
+     promises "the whole thing resolves rather than throwing", because it runs
+     in `after()` where a rejection reaches nobody -- and these two sat outside
+     any try, so a pool timeout on either rejected the after() callback and the
+     promise was quietly broken. */
+  let me: { role: string; photoTrusted: boolean } | null;
+  let existing: number;
+  try {
+    [me, existing] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { role: true, photoTrusted: true } }),
+      prisma.photo.count({ where: { uploaderId: userId } }),
+    ]);
+  } catch (e) {
+    reportSwallowed("collection-intake", e, { userId, step: "pre-loop" });
+    return 0;
+  }
   if (!me) return 0;
   const autoApprove = me.role === "admin" || me.photoTrusted;
 
@@ -66,7 +80,6 @@ export async function copyPostImagesToCollection({
   // could tick "add to the Collection" on post after post and never hit the
   // cap the two dialog paths enforce. Take only as many as the account has room
   // for; the rest are simply not copied (the tick is best-effort by design).
-  const existing = await prisma.photo.count({ where: { uploaderId: userId } });
   const room = Math.max(0, MAX_PHOTOS_PER_ACCOUNT - existing);
   if (room === 0) return 0;
   const toCopy = imageUrls.slice(0, room);
@@ -77,6 +90,10 @@ export async function copyPostImagesToCollection({
 
   const results = await Promise.all(
     toCopy.map(async (url) => {
+      /* Set as soon as each PUT lands, so the catch below knows what it has to
+         clean up. `let`, outside the try, for exactly that reason. */
+      let stagedCopiedUrl: string | null = null;
+      let stagedThumbUrl: string | null = null;
       const key = keyForUrl(url);
       // Not ours (a legacy host, an external URL): there are no bytes to read
       // and no thumbnail to build, so there is nothing to contribute.
@@ -98,6 +115,11 @@ export async function copyPostImagesToCollection({
         // declinePhoto now delete the file) made an aliased delete silently
         // break the still-live feed post. A distinct object keeps the two rows
         // independent, at the cost of one extra PUT of bytes already in memory.
+        /* Named OUTSIDE the try's inner scope so the catch can reach them
+           (audit C-159). A `photo.create` that fails after both PUTs have
+           landed used to leave two fresh R2 objects that no row names -- and
+           nothing in this system can enumerate the bucket, so they are
+           unreachable for ever. */
         const [copiedUrl, thumbUrl] = await Promise.all([
           putImage(original, ownerPrefix("collection", userId), `${createId()}.webp`),
           sharpImage(original)
@@ -107,6 +129,9 @@ export async function copyPostImagesToCollection({
             .toBuffer()
             .then((thumb) => putImage(thumb, ownerPrefix("collection", userId), `${createId()}-t.webp`)),
         ]);
+
+        stagedCopiedUrl = copiedUrl;
+        stagedThumbUrl = thumbUrl;
 
         await prisma.photo.create({
           data: {
@@ -131,7 +156,22 @@ export async function copyPostImagesToCollection({
         });
         return true;
       } catch (e) {
-        console.error("[collection-intake] could not copy", url, e);
+        reportSwallowed("collection-intake", e, { url });
+        /* Whatever this attempt stored before it failed goes into the purge
+           queue, so the nightly sweep can reach bytes no row names (audit
+           C-159). Queued rather than deleted inline: this runs inside after(),
+           with nobody to tell if a delete also fails. */
+        const stored = [stagedCopiedUrl, stagedThumbUrl].filter(
+          (u): u is string => typeof u === "string" && u.length > 0
+        );
+        if (stored.length > 0) {
+          await prisma.pendingImagePurge
+            .createMany({ data: stored.map((u) => ({ url: u, reason: "intake-failed" })) })
+            .catch(() => {
+              // The queue itself is unreachable. Nothing further to try here;
+              // the report above is the record.
+            });
+        }
         return false;
       }
     })

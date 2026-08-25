@@ -44,7 +44,14 @@ export async function directUploadPut(
     });
     status = res.status;
     presign = await res.json();
-  } catch {
+  } catch (err) {
+    /* Said out loud (audit C-158). This fallback is INVISIBLE by design -- the
+       caller downscales in the browser and proxies through the server instead,
+       so the upload works and nobody notices -- and that is exactly how direct
+       uploads stayed broken for weeks while everything looked fine
+       (docs/TRAPS.md). A console line costs nothing and makes a recurrence
+       diagnosable from the one place somebody would look. */
+    console.warn("[upload] presign unreachable; falling back to the server proxy", err);
     return null; // network hiccup: let the caller's classic path try
   }
 
@@ -63,11 +70,18 @@ export async function directUploadPut(
       headers: { "Content-Type": presign.contentType ?? file.type },
       body: file,
     });
-    if (!put.ok) return null;
-  } catch {
-    // The browser blocked the PUT, which in practice means this origin is not
-    // named in the bucket's CORS allowlist. Fall back rather than strand the
-    // upload.
+    if (!put.ok) {
+      console.warn(
+        `[upload] direct PUT refused (${put.status}); falling back to the server proxy`
+      );
+      return null;
+    }
+  } catch (err) {
+    /* The browser blocked the PUT, which in practice means this origin is not
+       named in the bucket's CORS allowlist -- or the S3 endpoint is missing
+       from the CSP's connect-src, which is the pair that hid this for weeks.
+       Fall back rather than strand the upload, but say so (audit C-158). */
+    console.warn("[upload] direct PUT blocked; falling back to the server proxy", err);
     return null;
   }
 

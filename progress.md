@@ -3660,3 +3660,47 @@ type-ahead search exhausts the Upstash free command quota at 2,000 members
 (C-167). Both are recorded rather than guessed at. C-167 is materially less
 dangerous than it was: a quota exhaustion now reports instead of silently
 switching every rate limit off.
+
+## 2026-08-25 (later) — the long tail, part ten: uploads and the Collection
+
+Seven findings, one of them needing the database's help.
+
+**One contribution, two photographs (C-129).** The direct-upload path PUTs a
+full-resolution original under a fresh key, then the action reads it,
+re-encodes it, stores a display copy and a thumbnail, creates the row, and only
+THEN deletes the staged original. Two calls with the same key landing together
+both read before either delete ran, so both did all of that: two Collection
+photos, four stored objects, and a per-account ceiling checked before either
+insert. Sequential resubmission was already safe; the concurrent case is not
+something application code can close under READ COMMITTED, so `Photo.sourceKey`
+is unique now. Nullable, so every existing row and the proxied path -- which
+has no staged key -- coexist without a backfill. Proved against Postgres: three
+simultaneous contributes of one key leave one photograph.
+
+**Two admins clearing the queue together (C-074, C-130).** `approvePhoto` was a
+bare `update` and `declinePhoto`'s delete sat inside a transaction after a
+pre-read. Whoever moved second got a raw P2025, which `callAction` renders as
+"check your connection and try again" -- a wrong diagnosis that invites a retry
+of something that will never work. Both answer in words now, and the decline's
+rollback takes its purge rows with it, since whoever won the race queued the
+same urls.
+
+**A download that saved the error (C-157).** The photo viewer fetched and
+called `.blob()` without checking `res.ok`, so a 404 or a 5xx resolved and the
+XML or HTML of the error was written to disk under the photograph's own name,
+with nothing on screen saying anything had gone wrong.
+
+**A fallback nobody could see (C-158).** The direct-upload path falls back to
+the server proxy on a presign failure or a blocked PUT, silently, by design --
+the upload still works. That is precisely how direct uploads stayed broken for
+weeks (TRAPS.md records it). All three fallbacks say so now.
+
+**A promise the intake could not keep (C-159).** Its docblock says the whole
+thing resolves rather than throwing, because it runs inside `after()` where a
+rejection reaches nobody -- but the two reads before the loop sat outside any
+try. And a copy that failed after both PUTs had landed left two fresh R2
+objects no row names, which is unrecoverable, because nothing here can
+enumerate the bucket. Both closed.
+
+C-068 refuted by its own test: the dev `.env` carries full R2 credentials, so
+the host-recognition branch it depends on is live locally.

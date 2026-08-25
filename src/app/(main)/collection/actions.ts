@@ -447,26 +447,42 @@ export async function contributePhotoDirect(input: {
   const me = await mePromise;
   const autoApprove = session.user.role === "admin" || !!me?.photoTrusted;
 
-  await createPhotoRow({
-    data: {
-      uploaderId: session.user.id,
-      thumbUrl,
-      url,
-      width,
-      height,
-      caption: parsed.data.caption || null,
-      subject: "",
-      area: parsed.data.area || null,
-      era,
-      freeTags: null,
-      photoYear: parsed.data.photoYear ?? null,
-      photoMonth: parsed.data.photoMonth ?? null,
-      datePrecision: parsed.data.datePrecision ?? (parsed.data.photoYear !== undefined ? "year" : "unknown"),
-      approved: autoApprove,
-      approvedAt: autoApprove ? new Date() : null,
-      approvedById: autoApprove ? session.user.id : null,
-    },
-  }, [url, thumbUrl]);
+  try {
+    await createPhotoRow({
+      data: {
+        uploaderId: session.user.id,
+        /* The staged key, held unique (audit C-129). It is what makes one
+           contribution one photograph: two calls carrying the same key both
+           read the original before either delete ran, so both re-encoded it,
+           both stored a pair of objects and both created a row -- with the
+           per-account ceiling checked before either insert. */
+        sourceKey: input.key,
+        thumbUrl,
+        url,
+        width,
+        height,
+        caption: parsed.data.caption || null,
+        subject: "",
+        area: parsed.data.area || null,
+        era,
+        freeTags: null,
+        photoYear: parsed.data.photoYear ?? null,
+        photoMonth: parsed.data.photoMonth ?? null,
+        datePrecision: parsed.data.datePrecision ?? (parsed.data.photoYear !== undefined ? "year" : "unknown"),
+        approved: autoApprove,
+        approvedAt: autoApprove ? new Date() : null,
+        approvedById: autoApprove ? session.user.id : null,
+      },
+    }, [url, thumbUrl]);
+  } catch (err) {
+    /* Lost the race to `Photo_sourceKey_key`. The contribution the member
+       meant to make exists, so this is their outcome, not an error --
+       `createPhotoRow` has already purged the pair of objects this attempt
+       stored, which is exactly what it is for. */
+    if (!isUniqueViolation(err)) throw err;
+    revalidatePath("/collection");
+    return { success: true, autoApprove, notice };
+  }
 
   revalidatePath("/collection");
   return { success: true, autoApprove, notice };
@@ -620,14 +636,26 @@ export async function approvePhoto(photoId: string) {
   const session = await auth();
   if (session?.user?.role !== "admin") return { error: "Not authorized" };
 
-  await prisma.photo.update({
+  /* updateMany, so a row another admin declined a moment ago is ANSWERED
+     rather than thrown at (audit C-074/C-130). `update` raises P2025 on a
+     missing row, which reached callAction as "check your connection and try
+     again" -- a wrong diagnosis that invites the admin to retry something that
+     will never work. Two admins clearing the queue together is the ordinary
+     way this happens, not an exotic race. */
+  const approved = await prisma.photo.updateMany({
     where: { id: photoId },
     data: { approved: true, approvedAt: new Date(), approvedById: session.user.id },
   });
+  if (approved.count === 0) return { error: "That photo is no longer here." };
   revalidatePath("/collection");
   revalidatePath("/admin");
   return { success: true };
 }
+
+/** Thrown to roll back a decline whose row somebody else already removed.
+ *  A sentinel rather than a flag, because the only way out of a Prisma
+ *  interactive transaction without committing is to throw. */
+class AlreadyDeclined extends Error {}
 
 export async function declinePhoto(photoId: string) {
   const session = await auth();
@@ -649,14 +677,28 @@ export async function declinePhoto(photoId: string) {
   const urls = [photo.thumbUrl, photo.url, photo.originalUrl].filter(
     (u): u is string => typeof u === "string" && u.length > 0
   );
-  await prisma.$transaction(async (tx) => {
-    if (urls.length > 0) {
-      await tx.pendingImagePurge.createMany({
-        data: urls.map((url) => ({ url, reason: "declined" })),
-      });
-    }
-    await tx.photo.delete({ where: { id: photoId } });
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (urls.length > 0) {
+        await tx.pendingImagePurge.createMany({
+          data: urls.map((url) => ({ url, reason: "declined" })),
+        });
+      }
+      /* deleteMany for the same reason as approvePhoto above (audit C-130): a
+         second admin declining the same photo in the same moment would
+         otherwise throw P2025 out of the transaction, and the purge rows just
+         written would roll back with it. */
+      const gone = await tx.photo.deleteMany({ where: { id: photoId } });
+      if (gone.count === 0) {
+        // Somebody else got there first. Rolling this transaction back is
+        // correct: whoever won the race queued the same urls.
+        throw new AlreadyDeclined();
+      }
+    });
+  } catch (err) {
+    if (!(err instanceof AlreadyDeclined)) throw err;
+    return { error: "That photo is no longer here." };
+  }
   // After the commit, so a slow R2 cannot hold the transaction open. Anything
   // it cannot reach is retried by the nightly sweep.
   await drainPendingImagePurges(urls);
