@@ -156,7 +156,7 @@ export function ProfileAvatar({
           with the rest of the page instead of lazy-loading ~1s later; the bird
           SVG already paints instantly, so it keeps the plain BirdAvatar path. */}
       <motion.span
-        className="inline-grid place-items-center rounded-full group- group- focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="inline-grid place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         animate={controls}
         initial={false}
         style={{ willChange: "transform" }}

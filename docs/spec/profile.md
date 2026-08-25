@@ -54,7 +54,8 @@ Every decision below states the delta against this baseline.
 > **Superseded 2026-07-02.** This section's premise (`UserAvatar` initials-only vs a v2 bird
 > `Avatar`, needing convergence) predates the actual convergence. `src/components/common/
 > user-avatar.tsx` no longer exists in the codebase; it has already been replaced by
-> `src/components/profile/profile-avatar.tsx` (profile-specific wrapper) plus the shared
+> `src/app/lab/profiles/_profile-avatar.tsx` (a prototype; only the lab renders it, and the shipped
+> profile draws its bird through `PerchedBird` in letterhead-profile.tsx) plus the shared
 > `src/components/common/bird-avatar.tsx` / `bird-avatar-v2.tsx` (50-species deterministic-hash
 > system, see `docs/spec/avatars.md`, the canonical avatar doc). There is no `birdVariant`
 > prop/column and no 0..2 variant scheme; species/colour/pose are all derived from salted
