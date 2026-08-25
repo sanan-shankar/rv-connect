@@ -84,9 +84,29 @@ if (typeof window !== "undefined" && KEY && !posthog.__loaded) {
      * data held about people who only ever looked at the landing page. */
     person_profiles: "identified_only",
 
-    /* Belt and braces on top of replay being off: never transmit the
-     * contents of an input. A directory search box or a letter draft is
-     * not analytics data. */
+    /* What these two actually do -- the comment here used to claim they were
+     * "belt and braces ... never transmit the contents of an input", and
+     * neither of them is that (audit C-120).
+     *
+     * The contents of an input are safe for a different reason, and it is
+     * worth writing down where, because it is not here. posthog-js excludes
+     * them itself, in two places, whatever this config says: element
+     * attributes are only read for `name`, `id`, `class` and `aria-label`
+     * once the element is an input, textarea, select or contenteditable, so
+     * `value` is never among them; and its safe-text walk returns the empty
+     * string outright for those same elements, so a letter draft cannot ride
+     * out as `$el_text` either. (Read in node_modules/posthog-js, not
+     * assumed -- and worth re-reading if the library is ever upgraded, since
+     * it is their default we are leaning on and not a setting of ours.)
+     *
+     * mask_all_element_attributes stays FALSE, deliberately: it governs every
+     * OTHER element, and autocapture identifies what somebody clicked by the
+     * attributes on it. Turning it on would keep nothing extra from an input
+     * and would blind the "ask a question in three months" purpose above.
+     *
+     * mask_personal_data_properties is about event PROPERTIES rather than
+     * elements -- the URL, the referrer -- and it is on because an address or
+     * a card number that appeared in a query string is not analytics data. */
     mask_all_element_attributes: false,
     mask_personal_data_properties: true,
 

@@ -159,3 +159,53 @@ test("the confirmation ETA counts the queue in front of it", () => {
     "verificationMailState went back to promising the next budget reset to everybody"
   );
 });
+
+test("an empty queue costs one read, not the whole pass", () => {
+  /* C-104. drainMailQueue runs in `after()` on every authenticated page view.
+     Without a precheck it took the lease (a write), reclaimed (a write),
+     counted the budget four times, counted the backlog and released the lease
+     (a write) -- around nine statements to send nothing.
+
+     Asserted on ORDER, because a precheck that happens after the lease is
+     the same cost it was meant to remove. */
+  const fn = queue.slice(queue.indexOf("export async function drainMailQueue"));
+  const body = fn.slice(0, fn.indexOf("\nasync function drainWithLease"));
+  assert.ok(body.length > 400, "drainMailQueue's body did not slice; this test is vacuous");
+
+  const precheck = body.indexOf("outboundEmail.count");
+  const lease = body.indexOf("takeDrainLease()");
+  assert.ok(precheck > -1, "the empty-queue precheck is gone (C-104)");
+  assert.ok(lease > -1, "the drain lease is gone (B-072)");
+  assert.ok(
+    precheck < lease,
+    "the precheck runs after the lease is taken, which is the cost it exists to avoid"
+  );
+  assert.ok(
+    /if \(pending === 0\) return/.test(body),
+    "the precheck's answer is read but not acted on -- the pass runs anyway"
+  );
+});
+
+test("the precheck counts stale claims too, or a dead send is stranded", () => {
+  /* The dangerous half of C-104. Reclaiming a row whose sender died mid-send
+     is the drain's own job, so a precheck that counted only `queued` would
+     skip the only pass that could ever rescue it. Both arms, and the same
+     window the reclaim uses -- imported from mail-policy, not typed twice. */
+  const fn = queue.slice(queue.indexOf("export async function drainMailQueue"));
+  const body = fn.slice(0, fn.indexOf("\nasync function drainWithLease"));
+  const where = body.slice(body.indexOf("outboundEmail.count"), body.indexOf("if (pending === 0)"));
+  assert.ok(/status: "queued"/.test(where), "the precheck stopped counting queued rows");
+  assert.ok(
+    /status: "sending"/.test(where) && /claimedAt: \{ lt:/.test(where),
+    "the precheck no longer counts a stale claim, so a dead send is never reclaimed"
+  );
+  assert.ok(
+    /STALE_CLAIM_MS/.test(where),
+    "the precheck's stale window is typed out rather than shared with the reclaim"
+  );
+  assert.ok(
+    !/const STALE_CLAIM_MS/.test(queue),
+    "STALE_CLAIM_MS is defined locally again; it must come from mail-policy so " +
+      "drainHasWork and the query cannot drift"
+  );
+});

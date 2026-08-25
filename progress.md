@@ -3793,3 +3793,80 @@ matching nothing — each produced a proof that looked exactly like the fix
 working. All three are written into the handover. The rule that survives them:
 assert on something that could only be true if the code under test ran, never
 on the absence of an outcome.
+
+## 2026-08-25 (evening) — the last stretch, part one: the shell every page renders
+
+Five findings, all in the two files that run before anything else does.
+
+**Nine statements to send nothing (C-104).** `drainMailQueue` sits in the
+layout's `after()`, so it runs on every authenticated page view. With an empty
+queue it still took the drain lease, reclaimed stale claims, counted the daily
+budget four times over, counted the backlog and released the lease again:
+around nine statements including three writes, on the hottest path in the app,
+to do nothing. The lease made it worse than it reads --
+`releaseDrainLease` deliberately expires the row, so every single view WINS the
+lease and does the whole dance. There is one indexed count in front of it now,
+and the live queue is empty, so that is what a page view costs today: measured,
+one statement.
+
+The interesting half is the arm that is easy to leave out. Counting only
+`queued` rows is the obvious precheck and would strand a row whose sender died
+mid-send for ever, because reclaiming it is this pass's own job and the
+precheck would be what skipped the pass. `drainHasWork` in mail-policy.ts spells
+both arms out where a test can call them, exactly as `drainEligible` already
+does for the row selection, and `STALE_CLAIM_MS` moved there so the query and
+the predicate cannot drift.
+
+**Two gates, one of which threw the link away (C-117, C-200 — the same bug
+twice).** The proxy adds `?next=` when there is NO session cookie (B-022). A
+cookie that exists but no longer authenticates passes its presence check and
+lands in the `(main)` layout, which redirected to a bare `/login`. That is not
+an exotic state: it is precisely what a password reset or a block leaves on
+every other device the member is signed in on. So the realistic case is a
+member who reset their password on their phone, then opens an emailed letter
+link on the laptop, signs in, and arrives at /feed with no idea what happened
+to the link. The layout now redirects with the destination in tow, and the
+proxy forwards the query string as `x-search` so the two gates produce the same
+Location — verified with both: a present-but-invalid cookie and no cookie at
+all now both answer `/login?next=%2Fdirectory%3Fbatch%3D2011`. `x-search` is a
+second header rather than an addition to `x-pathname`, because touchLastSeen
+records that one as the page somebody was on and a search term is not part of
+a page's name.
+
+**A comment claiming a guard that was not there (C-120).** The PostHog config
+said its two masking options were "belt and braces ... never transmit the
+contents of an input", and neither of them is that: one governs event
+properties, the other is the literal non-masking setting. Input contents are
+safe, but for a reason that is not in this file — posthog-js excludes them
+itself, in two places, and I read them rather than assuming: element attributes
+are only collected for `name`, `id`, `class` and `aria-label` once the element
+is an input, textarea, select or contenteditable, so `value` is never among
+them, and its safe-text walk returns the empty string outright for those same
+elements, so a letter draft cannot leave as `$el_text` either. That is now
+written at the config, including the part that matters — it is their default we
+are leaning on, so it is worth re-reading on an upgrade.
+
+**M46's fix was the comment, not the code (C-115).** The legacy `/notice/[id]`
+page resolves an old admin_note into a real conversation. Its comment describes
+two simultaneous opens both minting a thread as the OLD behaviour. It was still
+the current behaviour: a findFirst followed by a create is idempotent only if
+something stops both concurrent readers from seeing nothing, and AdminThread has
+no unique key for (memberId, kind, createdAt). Proved live before touching it —
+two parallel opens, two identical conversations about one note, one of them
+orphaned in the member's list and the admin's inbox for ever.
+
+The lock is the notification row, `FOR UPDATE`, with the create inside the same
+transaction: this resolution is the only writer of that row's link, exactly one
+request may move it from a legacy link to a thread, and the second then sees
+what the first wrote and takes the short-circuit a later visit would. A partial
+unique index was the other route and was declined — notice threads are also
+opened in bursts by moderation, one per removed post, where two in the same
+millisecond would throw at an admin, which is a worse failure than the duplicate
+it prevents.
+
+**The trap this time was the dev server's own compiler.** The first probe said
+one thread with the fix AND one thread without it — a convincing zero of the
+kind this run keeps producing. The first request to a route in dev compiles it
+and every other request waits on that compile, which serialised the two and
+destroyed the race being probed. Warm the route first, then race. With that,
+the old code gives two threads every time and the new code gives one.

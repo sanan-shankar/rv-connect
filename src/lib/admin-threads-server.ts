@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   MAX_MESSAGES_PER_HOUR,
   MAX_NEW_THREADS_PER_HOUR,
@@ -101,10 +102,16 @@ export async function noteOnReportThread(reportId: string, body: string): Promis
 export async function openAdminNoticeThread(
   memberId: string,
   note: string,
-  opts: { authorId?: string | null; createdAt?: Date } = {}
+  opts: { authorId?: string | null; createdAt?: Date; db?: Prisma.TransactionClient } = {}
 ) {
   const createdAt = opts.createdAt ?? new Date();
-  return prisma.adminThread.create({
+  /* `db` so a caller that is already inside a transaction can put this create
+     inside it too. The legacy /notice/[id] resolution needs exactly that: it
+     locks the notification row and then creates, and a create on the global
+     client would have committed outside that lock, which is the race the lock
+     was taken to close (audit C-115). */
+  const db = opts.db ?? prisma;
+  return db.adminThread.create({
     data: {
       memberId,
       kind: "notice",

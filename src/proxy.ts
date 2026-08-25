@@ -321,6 +321,14 @@ export function proxy(request: NextRequest) {
      (src/lib/last-seen.ts) to record which page a member is actually on. */
   const withPath = new Headers(request.headers);
   withPath.set("x-pathname", pathname);
+  /* And the query string, separately, for the (main) layout's own sign-in
+     redirect (audit C-117/C-200). That gate fires for a cookie this one waved
+     through on presence alone -- a revoked session after a password reset --
+     and without the search string a filtered directory link or a Catch-up
+     invitation comes back stripped. Kept apart from x-pathname rather than
+     appended to it because touchLastSeen records that header as the page
+     somebody was on, and a search term is not part of the page's name. */
+  withPath.set("x-search", search);
 
   /* THE VISIT ID, held in a rolling 30-minute cookie.
      touchLastSeen used to find-then-create ("is there an open visit? no ->

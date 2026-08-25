@@ -15,6 +15,8 @@ import {
   ATTEMPT_RETRY_MS,
   localDrainRecipient,
   drainEligible,
+  drainHasWork,
+  STALE_CLAIM_MS,
   RETRY_RESET,
 } from "./mail-policy.ts";
 
@@ -225,4 +227,25 @@ test("the drain still refuses a row that is genuinely not ready", () => {
     drainEligible({ ...base, nextAttemptAt: new Date(NOW.getTime() - 1) }, NOW),
     true
   );
+});
+
+test("an empty queue is not a reason to run a drain pass", () => {
+  // C-104: the pass ran on every authenticated page view -- lease, reclaim,
+  // four budget counts, release -- with nothing to send.
+  assert.equal(drainHasWork({ status: "sent", claimedAt: null }, NOW), false);
+  assert.equal(drainHasWork({ status: "failed", claimedAt: null }, NOW), false);
+  assert.equal(drainHasWork({ status: "queued", claimedAt: null }, NOW), true);
+});
+
+test("a stale claim IS a reason, because nobody else will reclaim it", () => {
+  // The arm that makes the precheck safe. A row whose sender died mid-send is
+  // returned to the queue by the drain and by nothing else, so a precheck that
+  // counted only `queued` would strand it in "sending" for ever.
+  const fresh = new Date(NOW.getTime() - STALE_CLAIM_MS + 1000);
+  const stale = new Date(NOW.getTime() - STALE_CLAIM_MS - 1000);
+  assert.equal(drainHasWork({ status: "sending", claimedAt: stale }, NOW), true);
+  assert.equal(drainHasWork({ status: "sending", claimedAt: fresh }, NOW), false);
+  // A "sending" row with no claim stamp at all is not a stale claim; it is a
+  // row mid-write, and guessing about it is how a message gets sent twice.
+  assert.equal(drainHasWork({ status: "sending", claimedAt: null }, NOW), false);
 });

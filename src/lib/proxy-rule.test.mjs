@@ -134,3 +134,54 @@ test("C-119: the browser chrome follows the theme cookie", () => {
   assert.equal(colors[1].toLowerCase(), light[1].toLowerCase(), "the light chrome is not --background");
   assert.equal(colors[2].toLowerCase(), dark[1].toLowerCase(), "the dark chrome is not .dark --background");
 });
+
+test("C-117/C-200: both sign-in gates carry the destination, not just the proxy", () => {
+  /* Two gates decide "you need to sign in", and only one of them kept the
+     link. The proxy adds `next` when there is NO session cookie (B-022); a
+     cookie that exists but no longer authenticates -- what a password reset or
+     a block deliberately leaves on every other device -- passes the proxy's
+     presence check and lands in the (main) layout, which redirected to a bare
+     /login and dropped the member on /feed.
+
+     Both halves are pinned here because they only work together: the layout
+     can only preserve the query string if the proxy forwards it. */
+  const LAYOUT = read("src/app/(main)/layout.tsx");
+
+  assert.ok(
+    /loginUrl\.searchParams\.set\("next", pathname \+ search\)/.test(PROXY),
+    "the proxy stopped sending the destination with the sign-in redirect (B-022)"
+  );
+  assert.ok(
+    /withPath\.set\("x-search"/.test(PROXY),
+    "x-search is no longer forwarded, so the layout's next= loses the query string"
+  );
+  assert.ok(
+    /withPath\.set\("x-pathname"/.test(PROXY),
+    "x-pathname is no longer forwarded"
+  );
+
+  const gate = LAYOUT.slice(LAYOUT.indexOf("if (!session?.user)"));
+  const branch = gate.slice(0, gate.indexOf("\n  }") + 4);
+  assert.ok(branch.length > 40, "the layout's auth gate did not slice; this test is vacuous");
+  assert.ok(
+    /next=/.test(branch),
+    "the (main) layout redirects to a bare /login again: a revoked session " +
+      "following a deep link loses it (C-117/C-200)"
+  );
+  assert.ok(
+    /encodeURIComponent/.test(branch),
+    "the destination is not encoded, so a path with & or # truncates the next param"
+  );
+  // The header it must read is the one WITH the query string. x-pathname alone
+  // is the page touchLastSeen records, and /directory is not the same
+  // destination as /directory?batch=2011.
+  assert.ok(
+    /currentTarget\(/.test(branch),
+    "the layout builds next= from something other than currentTarget(); if that " +
+      "is x-pathname it has silently dropped every query string"
+  );
+  assert.ok(
+    /x-search/.test(LAYOUT),
+    "currentTarget no longer reads x-search"
+  );
+});

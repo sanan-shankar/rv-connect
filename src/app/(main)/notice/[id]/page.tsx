@@ -38,7 +38,7 @@ export default async function AdminNoticePage({
     redirect(notification.link);
   }
 
-  /* Resolve idempotently (bug audit M46).
+  /* Resolve idempotently (bug audit M46, finished in audit C-115).
    *
    * This used to create a thread unconditionally, so the resolution was only
    * ever as reliable as the update below it: two requests arriving together --
@@ -50,27 +50,55 @@ export default async function AdminNoticePage({
    *
    * The note itself is the key: this member, a notice thread, opened at the
    * notification's own timestamp. Nothing else can collide with that, and it is
-   * exactly what openAdminNoticeThread stamps below. */
-  const existing = await prisma.adminThread.findFirst({
-    where: {
-      memberId: notification.userId,
-      kind: "notice",
-      createdAt: notification.createdAt,
-    },
-    select: { id: true },
-  });
+   * exactly what openAdminNoticeThread stamps below.
+   *
+   * That key made SEQUENTIAL revisits idempotent and nothing more. A read
+   * followed by a create is idempotent only if something stops the two
+   * concurrent readers from both seeing nothing, and there was no such thing:
+   * no unique constraint (AdminThread has one, on reportId, and it is not this)
+   * and no lock. The M46 comment claimed the double tap was fixed; it was still
+   * the exact failure it described.
+   *
+   * The lock is the NOTIFICATION row, not a new constraint. This resolution is
+   * the only writer of that row's link, exactly one request may move it from a
+   * legacy link to a thread, and `FOR UPDATE` makes the second request wait and
+   * then SEE that -- so it short-circuits on the same branch a later visit
+   * takes. A partial unique index on (memberId, createdAt) was the other route
+   * and was declined: notice threads are also opened in bursts by moderation
+   * (one per removed post), where two in the same millisecond would then throw
+   * at an admin, which is a worse failure than the duplicate it prevents. */
+  const threadId = await prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<{ link: string | null }[]>`
+      SELECT "link" FROM "Notification" WHERE "id" = ${notification.id} FOR UPDATE
+    `;
+    // Re-read INSIDE the lock: whoever held it before us has committed by now,
+    // so this is the first sight of their thread rather than our stale copy.
+    const link = locked[0]?.link ?? null;
+    if (link?.startsWith("/messages/")) return link.slice("/messages/".length);
 
-  const threadId =
-    existing?.id ??
-    (
-      await openAdminNoticeThread(notification.userId, notification.message, {
+    const existing = await tx.adminThread.findFirst({
+      where: {
+        memberId: notification.userId,
+        kind: "notice",
         createdAt: notification.createdAt,
-      })
-    ).id;
+      },
+      select: { id: true },
+    });
 
-  await prisma.notification.update({
-    where: { id: notification.id },
-    data: { link: `/messages/${threadId}`, read: true },
+    const id =
+      existing?.id ??
+      (
+        await openAdminNoticeThread(notification.userId, notification.message, {
+          createdAt: notification.createdAt,
+          db: tx,
+        })
+      ).id;
+
+    await tx.notification.update({
+      where: { id: notification.id },
+      data: { link: `/messages/${id}`, read: true },
+    });
+    return id;
   });
 
   redirect(`/messages/${threadId}`);

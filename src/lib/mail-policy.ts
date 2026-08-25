@@ -300,3 +300,36 @@ export function startOfUtcDay(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
+
+/**
+ * A row claimed but not finished within this long is assumed to belong to a
+ * process that died mid-send, and is returned to the queue. Long enough that
+ * a slow Resend call is never mistaken for a crash.
+ *
+ * Lives here rather than in the queue because `drainHasWork` below has to
+ * agree with the reclaim exactly -- a precheck that decides a stale claim is
+ * "nothing to do" is a row stuck in `sending` for ever.
+ */
+export const STALE_CLAIM_MS = 2 * 60_000;
+
+/**
+ * Whether one row is a reason to run a drain pass at all.
+ *
+ * The drain is called from `after()` on EVERY authenticated page view, and
+ * with an empty queue it still took the lease, reclaimed, counted the budget
+ * four times and released the lease again: about nine statements including
+ * three writes, doing nothing, on the hottest path in the app (audit C-104).
+ * A single indexed count in front of it collapses that to one read.
+ *
+ * Both arms matter. "Queued" is the obvious work; a STALE CLAIM is the work
+ * nobody else will ever do, because reclaiming it is the drain's own job and
+ * skipping the pass is what would strand it.
+ */
+export function drainHasWork(
+  row: { status: string; claimedAt: Date | null },
+  now: Date
+): boolean {
+  if (row.status === "queued") return true;
+  if (row.status !== "sending") return false;
+  return row.claimedAt !== null && row.claimedAt.getTime() < now.getTime() - STALE_CLAIM_MS;
+}
