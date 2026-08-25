@@ -31,7 +31,7 @@ const ADJUST_MAP = ADJUST as Record<string, { x?: number; y?: number; s?: number
  * scripts/dev/centroid.mjs - sized by visual mass, not the geometric box).
  *
  * Drawing space is viewBox 0..100, centre (50,50); keep visual mass inside r~45.
- * Background treatment is controlled by BG_MODE; wired in behind the USE_V2 flag in bird-avatar.tsx.
+ * Background treatment is controlled by BG_MODE; BirdAvatar in bird-avatar.tsx renders this.
  */
 
 const INK = "#33302B";
