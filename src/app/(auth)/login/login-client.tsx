@@ -15,7 +15,7 @@ import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
 import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
-import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, LOGIN_TRANSITION_FLAG } from "@/components/landing/hero-photo";
+import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
 import { reportPerch, onHandoff, FLIGHT_FLAG, PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
 import { nextPathFromLocation } from "@/lib/next-path";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
@@ -45,20 +45,6 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
   // motion.div below) so ordinary arrivals get the same pleasant entrance
   // /signup has always had, instead of just popping in.
   //
-  // The read here is PURE (no clear): React Strict Mode double-invokes state
-  // initializers in dev, so clearing inside it would wipe the flag on the first
-  // call and make the second call (whose value React keeps) return false,
-  // silently breaking the hero-transition detection below. We consume the
-  // one-shot flag in the effect below instead.
-  const [arrivedViaTransition] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.sessionStorage.getItem(LOGIN_TRANSITION_FLAG) === "1";
-    } catch {
-      return false;
-    }
-  });
-
   // Whether the ONE hoopoe is flying in from the landing CTA (button-to-perch
   // flight). When true, this page keeps its own hoopoe hidden and at rest until
   // the flyer lands and hands off, so only one bird is ever on screen. Read
@@ -96,19 +82,6 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
   });
   // Guards the scheduled fly-in so it can only ever fire once.
   const mobileFlyInFired = useRef(false);
-
-  // Consume the one-shot flag after mount so a later reload or a fresh direct
-  // visit within the same tab session does not mistake itself for a hero
-  // transition (the flag is otherwise unused now that the entrance below
-  // plays for every arrival, but this keeps it from lingering as stale state).
-  useEffect(() => {
-    if (!arrivedViaTransition) return;
-    try {
-      window.sessionStorage.removeItem(LOGIN_TRANSITION_FLAG);
-    } catch {
-      // storage disabled: nothing to clear
-    }
-  }, [arrivedViaTransition]);
 
   // The hoopoe covers its eyes (wings up) while the password is hidden, and peeks
   // when you reveal it; while peeking it follows what you type. One mascot, driven
