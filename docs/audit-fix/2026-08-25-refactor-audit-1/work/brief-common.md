@@ -228,7 +228,7 @@ in plain non-technical language with your recommendation. Never as a silent cut.
 - Include **not-findings**: things that look like bloat and are verified intentional, with
   the spec line or commit that defends them, so no future audit re-litigates them.
 
-## 6. Raw tool output on disk (`docs/planning/audits/simplification/raw/`)
+## 6. Raw tool output on disk (`docs/audit-fix/2026-08-25-refactor-audit-1/work/raw/`)
 
 Grep these for your paths instead of re-running anything:
 - `cloc-summary.txt`, `cloc-per-dir.csv`, `cloc-by-file.csv` (language,file,blank,comment,code)

@@ -1,6 +1,9 @@
 # ultracode
 
-# The Pre-Release Simplification Audit
+# The Refactor (Simplification) Audit
+
+*Run on Fable, ultracode. Artifacts land in a dated folder under `docs/audit-fix/`. The
+first run was 2026-08-25 (`docs/audit-fix/2026-08-25-refactor-audit-1/`).*
 
 You are running a complete, dedicated session with one job: perform a formal, exhaustive
 **simplification audit** of this codebase and produce a report so thorough and so precise that one
@@ -105,7 +108,8 @@ agent brief in this session:
 ## 4. Hard rules for this session
 
 1. **Audit-only.** No edits to application code, styles, config, schema, or tests. The only files
-   you create or modify are your report and working notes under `docs/planning/audits/`.
+   you create or modify are your report and working notes under
+   `docs/audit-fix/<yyyy-mm-dd>-refactor-audit-N/` (report top-level, notes in `work/`).
 2. **Containment**: every command runs inside `/Users/sanan/Documents/rv-connect/`.
 3. **Never** run `prisma db push` (one live database serves prod and dev), never run any Vercel CLI
    deploy command, never push to git (a push is a deploy). Committing your report files to `main`
@@ -138,7 +142,7 @@ agent brief in this session:
 | `/simplify` (built-in) | The reuse/simplification/efficiency/altitude review dimensions. This session runs its *review* thinking, not its apply step. |
 | `impeccable-distill` + `impeccable-optimize` | UI-side essence-stripping and UI performance diagnosis (loading, rendering, bundle size). |
 | `superpowers` suite | `dispatching-parallel-agents` for how you fan out; `verification-before-completion` before you declare the report done — evidence before assertions, always. |
-| `planning-with-files` | Keep `task_plan.md` / `findings.md` under `docs/planning/audits/` so the session survives any interruption. |
+| `planning-with-files` | Keep `task_plan.md` / `findings.md` under the audit folder's `work/` so the session survives any interruption. |
 
 ### 5b. Static-analysis ground truth — run these YOURSELF, early, and feed raw output to agents
 
@@ -255,7 +259,7 @@ recommendations to silently cut.
 
 **Phase 0 — orient.** Read CLAUDE.md, AGENTS.md, the goal-sloc skill in full, code-simplifier,
 and skim the spec folder. Run the full 5b toolkit yourself and save raw outputs under
-`docs/planning/audits/raw/`. Record the baseline metrics. Verify `npm run check` is green so the
+the audit folder's `work/raw/`. Record the baseline metrics. Verify `npm run check` is green so the
 audit starts from a known-good tree; if it is not green because of someone else's in-progress work,
 note it and audit around it.
 
@@ -288,8 +292,8 @@ rounds surface nothing new.
 
 ## 7. The deliverable
 
-`docs/planning/audits/simplification-report.md` (plus `raw/` outputs and any per-area appendix
-files that keep the main report readable). Structure:
+`docs/audit-fix/<yyyy-mm-dd>-refactor-audit-N/report.md` (plus `work/raw/` outputs and the
+per-agent appendix files that keep the main report readable). Structure:
 
 1. **Executive summary**: baseline metrics table (SLOC by area, First Load JS per route, build
    time, dep count, duplication %, knip totals); the expected post-diet numbers; the five biggest
@@ -325,3 +329,26 @@ Effeilo/claude-code-frontend-skills, jonesrussell's codebase-cleanup-skill write
 reduce-LOC guide (the six LLM signatures), Vercel's "How we optimized package imports in Next.js",
 Catch Metrics on barrel files, knip.dev and Effective TypeScript on knip, arXiv 2511.04824 on
 agentic refactoring reliability.*
+
+## Standing session rules (owner, 2026-08-25 — these apply to every run of this prompt)
+
+1. **Crash-safe by construction.** The session may die abruptly (usage limits or anything
+   else). Every agent writes its own report to disk BEFORE returning; the orchestrator
+   keeps a `task_plan.md` with a resume protocol, updated per phase, so a fresh session
+   that hears "continue" picks up without redoing anything. Fan-outs run in WAVES (~6
+   agents) with a stop-if-the-whole-wave-failed guard and a done-list so relaunches skip
+   reports already on disk — a usage cutoff kills every in-flight agent at once, so one
+   big parallel batch can lose everything (it did once: ~1.8M tokens, nothing on disk).
+2. **Usage discipline.** Quality is the priority and is never traded away — but where a
+   slower or cheaper route gives the same thoroughness, take it. No preventable retries,
+   no re-derivation, no agent doing what a grep answers, and verification sized to the
+   evidence (cluster verifiers over one-per-item where the claim class allows it).
+3. **Artifacts.** Everything lands under `docs/audit-fix/<yyyy-mm-dd>-<name>/`: the
+   report at the top level, the working mess (plans, raw tool output, agent reports,
+   verdicts) under `work/`. Prepare `fix-prompt.md` beside the report as the fix
+   campaign's living handover, and add the audit's row to `docs/audit-fix/README.md`
+   in the closing commit.
+4. **Scratch discipline.** Anything created only to answer a question this session dies
+   before the closing commit unless it earns its ledger line; repo bloat — leftover
+   scripts, stale docs, screenshot piles, the root directory — is in scope for every
+   audit, not just the code.

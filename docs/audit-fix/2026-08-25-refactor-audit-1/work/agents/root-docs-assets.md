@@ -20,21 +20,21 @@ classification depth, all public listings with per-file reference greps, migrati
   `docs/OPERATIONS.md`, `docs/ROADMAP.md` (headers + decision log), `docs/planning/bugs.md` (header),
   `docs/planning/leads-to-follow.md` (header + privacy preamble), `docs/planning/catchups-fixes-brief.md`
   (header), `docs/spec/person-row-audit.md` (header), `docs/spec/profile.md` (banner),
-  `docs/planning/audits/fix-ledger.md` (header + owner-decision list), whatsapp-curation
+  `docs/audit-fix/2026-08-22-bug-audit-2/fix-ledger.md` (header + owner-decision list), whatsapp-curation
   (`overflow.md`, `picks.md` headers; `picks.json` reference trace), `.gitignore` line by line.
 - Skimmed (why): `docs/spec/*` beyond banners (the spec CONTENT belongs to the territory agents;
   I judged staleness markers and cross-references only); `progress.md` (charter says structure and
   size only: 4,315 lines, 101 session headers, formats counted); `prisma/migrations-manual/*.sql`
   (headers/filenames only per charter; cloc numbers used for content ratios);
-  `docs/planning/audits/bug-report-2.md` (748 lines; classification, not re-audit);
+  `docs/audit-fix/2026-08-22-bug-audit-2/bug-report-2.md` (748 lines; classification, not re-audit);
   `docs/content/DELIGHT.md` (reference check at line 379 only).
 - Not read (why): the two audit JSON dumps' contents (`findings-raw.json`, `verdicts-merged.json` -
   machine output of a closed audit; only their size, line count and referrers matter here);
   `overflow-stories.pdf` (binary); `sanan's stuff/` contents beyond `du` (owner's private folder;
-  listing sizes was enough and reading further felt wrong); `docs/planning/audits/simplification/`
+  listing sizes was enough and reading further felt wrong); `docs/audit-fix/2026-08-25-refactor-audit-1/work/`
   (this audit's own working set - excluded from findings, it is live WIP).
 - Uncommitted edits seen (someone else's WIP): at my read time `git status --short` showed only
-  `?? docs/planning/audits/simplification-report.md` and `?? docs/planning/audits/simplification/`
+  `?? docs/audit-fix/2026-08-25-refactor-audit-1/report.md` and `?? docs/audit-fix/2026-08-25-refactor-audit-1/work/`
   (this audit's own outputs). The WIP my charter warned about (next.config.ts, src/lib/admin.ts,
   scripts/qa/phase7-probe.mjs, manual-tour-entry.test.mjs, forbidden.tsx) had been committed as
   `c74d99f feat(admin): a non-admin who asks for /admin is told 'nice try'` before I started, so the
@@ -120,7 +120,7 @@ exist are findings 06, 07, 11, 12, 14 below.
   finished run; `fix-ledger.md:10-11` says the ledger and `verdicts-merged.json` "reconcile exactly
   - 203 against 203", so the human-readable ledger now carries the same disposition data.
 - **What to do**: `git mv` the nine audits/ files plus `docs/planning/bug-audit-prompt.md` and
-  `docs/planning/audit-assets/` into `docs/planning/audits/archive/2026-08-bug-audit/` (keep every
+  `docs/planning/audit-assets/` into `docs/audit-fix/2026-08-bug-audit/` (keep every
   filename unchanged so the C-id citations stay one `git grep bug-report-2` away). Then `git rm`
   `findings-raw.json` and `verdicts-merged.json` from the archive - git history is their archive,
   and the ledger + report are the readable record. Before archiving `fix-ledger.md`, copy its
@@ -128,7 +128,7 @@ exist are findings 06, 07, 11, 12, 14 below.
   into `docs/planning/bugs.md` so the only live content in the ledger keeps living in the live
   tracker. Add one line to `docs/README.md`'s planning entry naming the archive convention. When
   THIS simplification audit closes, its working set (`audits/simplification/`,
-  `audits/simplification-report.md`, `docs/planning/simplification-audit-prompt.md`) follows the
+  `audits/simplification-report.md`, `docs/audit-fix/prompts/refactor-audit-prompt.md`) follows the
   same route into `archive/2026-08-simplification/`.
 - **Saving**: 7,767 cloc JSON lines and ~994KB deleted; ~1.28MB of md relocated out of the working
   docs tree; and a convention that stops the next audit's leftovers accumulating (the owner's stated
@@ -142,7 +142,7 @@ exist are findings 06, 07, 11, 12, 14 below.
   eight-plus source comments cite its finding ids, the owner reads it, and it is the project's best
   evidence of pre-release diligence. Archive, don't delete. `db-indexes-live.json` is still being
   used as an input by this simplification audit's data-layer lens - move it only when this audit
-  closes, or move it now and update the one path in `docs/planning/simplification-audit-prompt.md`;
+  closes, or move it now and update the one path in `docs/audit-fix/prompts/refactor-audit-prompt.md`;
   I flagged it in the file list so the fixer decides with current knowledge.
 
 ### root-docs-assets-02 - Delete the two never-referenced WhatsApp originals from public/
@@ -544,7 +544,7 @@ exist are findings 06, 07, 11, 12, 14 below.
 ## Owner decisions
 
 1. **The archive convention itself (finding 01).** Recommendation: adopt
-   `docs/planning/audits/archive/<yyyy-mm>-<name>/` and make "archive the artefacts in the commit
+   `docs/audit-fix/<yyyy-mm>-<name>/` and make "archive the artefacts in the commit
    that closes the audit" a one-line rule in docs/README.md. Everything about finding 01 except the
    JSON deletion can be executed today without you; the JSONs I recommend deleting because git
    history keeps them and the readable ledger duplicates their verdicts.
@@ -620,7 +620,7 @@ exist are findings 06, 07, 11, 12, 14 below.
 - **lib-core-config**: AGENTS.md "Commands: `npx prisma db push`" line - same forbidden-command
   defect as README (my finding 05 covers both, flagging here since AGENTS architecture prose may
   be your file).
-- **data-layer**: `docs/planning/audits/db-indexes-live.json` is your input; findings 01 moves it
+- **data-layer**: `docs/audit-fix/2026-08-22-bug-audit-2/work/db-indexes-live.json` is your input; findings 01 moves it
   only after this audit closes - coordinate.
 - **catchups**: `catchups-fixes-brief.md` fold-into-spec opportunity (Not-findings above).
 - **dependency-diet**: finding 04 releases `qrcode` + `jsqr`; finding 01/03 do not touch deps.

@@ -102,7 +102,7 @@ write in this session:
 ## 4. Hard rules for this session
 
 1. **Audit-only.** No edits to application code, config, schema, or tests. The only files you
-   create or modify are your report and working notes under `docs/planning/audits/`.
+   create or modify are your report and working notes under `docs/audit-fix/<yyyy-mm-dd>-bug-audit-N/work/`.
 2. **Containment**: every command runs inside `/Users/sanan/Documents/rv-connect/`.
 3. **Never** run `prisma db push`, never run any Vercel CLI deploy command, never push to git (a
    push is a deploy). Committing your report files to `main` at the end is allowed and expected;
@@ -135,12 +135,12 @@ write in this session:
 | `review-swarm` skill | Parallel high-signal review: behavioral regressions, reliability, performance, contract gaps, prioritized fix path. |
 | `code-review-skill` (`.claude/skills/code-review-skill/`) | ~21k lines of review reference. The gold is in `reference/common-bugs-checklist.md`, `reference/typescript.md`, `reference/react.md`, and `reference/cross-cutting/` (async/concurrency, N+1 queries — some deep-dives are in Chinese; read them anyway, you read Chinese fine). |
 | Anthropic's PR-review agents, now project agents (`.claude/agents/`) | `silent-failure-hunter` (interrogates EVERY catch block, fallback, and error path — spawn it over the whole `src/lib` + actions surface, not just a diff), `code-reviewer`, `pr-test-analyzer` (are the tests testing anything?), `type-design-analyzer`, `comment-analyzer` (comments that lie about the code are bug evidence). |
-| `docs/planning/audit-assets/anthropic-code-review-pipeline.md` | Anthropic's production review pipeline, downloaded verbatim. Its architecture is MANDATORY here (see section 7): parallel finders → **one independent validation agent per finding** → filter. Its false-positive exclusions apply too: pre-existing-and-tracked, pedantic nitpicks, things a linter catches, style. |
+| `docs/audit-fix/2026-08-22-bug-audit-2/work/audit-assets/anthropic-code-review-pipeline.md` | Anthropic's production review pipeline, downloaded verbatim. Its architecture is MANDATORY here (see section 7): parallel finders → **one independent validation agent per finding** → filter. Its false-positive exclusions apply too: pre-existing-and-tracked, pedantic nitpicks, things a linter catches, style. |
 | `write-path-reviewer` agent | This repo's own four write-path invariants + the demo's three layers. Run it across every actions.ts and API route, not just diffs. |
 | `superpowers` suite | `systematic-debugging` (four-phase root cause) whenever a repro behaves unexpectedly; `verification-before-completion` before you call the report done; `dispatching-parallel-agents` for the fan-out. |
 | `VibeSec-Skill` | Web-app secure-patterns lens; its checklist overlaps stability (mass assignment, validation gaps). |
-| `planning-with-files` | Keep `task_plan.md` / `findings.md` under `docs/planning/audits/` so the session survives interruption. |
-| `docs/planning/audit-assets/blns.txt` | The Big List of Naughty Strings (742 lines), downloaded. Feed it through every text input via the browser MCP: posts, comments, letters, names, bios, search, catch-up answers. Also mine github.com/kdeldycke/awesome-falsehood taxonomies (time, names, emails) for input designs. |
+| `planning-with-files` | Keep `task_plan.md` / `findings.md` under `docs/audit-fix/<yyyy-mm-dd>-bug-audit-N/work/` so the session survives interruption. |
+| `docs/audit-fix/2026-08-22-bug-audit-2/work/audit-assets/blns.txt` | The Big List of Naughty Strings (742 lines), downloaded. Feed it through every text input via the browser MCP: posts, comments, letters, names, bios, search, catch-up answers. Also mine github.com/kdeldycke/awesome-falsehood taxonomies (time, names, emails) for input designs. |
 
 ### 5b. The distilled community + Anthropic methodology, appended as the owner asked
 
@@ -302,7 +302,7 @@ the report, log the session in `progress.md`.
 
 ## 8. The deliverable
 
-`docs/planning/audits/bug-report.md` (plus appendices under `docs/planning/audits/` where needed).
+`docs/audit-fix/<yyyy-mm-dd>-bug-audit-N/bug-report-N.md` (plus appendices under `docs/audit-fix/<yyyy-mm-dd>-bug-audit-N/work/` where needed).
 Structure:
 
 1. **Executive summary** in plain language the owner (non-technical) can read: is this app ready
@@ -343,3 +343,26 @@ minimaxir/big-list-of-naughty-strings, kdeldycke/awesome-falsehood, Prisma+pgbou
 connection-management docs, Vercel function-limit docs, Cloudflare R2 limits doc, next-auth issues
 #9183/#11782/#8788, the Next.js four-cache-layer literature, k6 load-testing methodology, and the
 fault-localization research line (AgentFL, MemFL, FLAME, CONCUR).*
+
+## Standing session rules (owner, 2026-08-25 — these apply to every run of this prompt)
+
+1. **Crash-safe by construction.** The session may die abruptly (usage limits or anything
+   else). Every agent writes its own report to disk BEFORE returning; the orchestrator
+   keeps a `task_plan.md` with a resume protocol, updated per phase, so a fresh session
+   that hears "continue" picks up without redoing anything. Fan-outs run in WAVES (~6
+   agents) with a stop-if-the-whole-wave-failed guard and a done-list so relaunches skip
+   reports already on disk — a usage cutoff kills every in-flight agent at once, so one
+   big parallel batch can lose everything (it did once: ~1.8M tokens, nothing on disk).
+2. **Usage discipline.** Quality is the priority and is never traded away — but where a
+   slower or cheaper route gives the same thoroughness, take it. No preventable retries,
+   no re-derivation, no agent doing what a grep answers, and verification sized to the
+   evidence (cluster verifiers over one-per-item where the claim class allows it).
+3. **Artifacts.** Everything lands under `docs/audit-fix/<yyyy-mm-dd>-<name>/`: the
+   report at the top level, the working mess (plans, raw tool output, agent reports,
+   verdicts) under `work/`. Prepare `fix-prompt.md` beside the report as the fix
+   campaign's living handover, and add the audit's row to `docs/audit-fix/README.md`
+   in the closing commit.
+4. **Scratch discipline.** Anything created only to answer a question this session dies
+   before the closing commit unless it earns its ledger line; repo bloat — leftover
+   scripts, stale docs, screenshot piles, the root directory — is in scope for every
+   audit, not just the code.

@@ -1,6 +1,10 @@
 # Catch-ups
 
-> **COPY AND LAYOUT SUPERSEDED 2026-07-25 by `docs/planning/catchups-fixes-brief.md`. Read that first.**
+> **COPY AND LAYOUT rules from the owner's 2026-07-25 review are LAW.** The review brief
+> that carried them (`docs/planning/catchups-fixes-brief.md`) was fully executed by the
+> Catch-ups rebuild and deleted on 2026-08-26; recover it with
+> `git log --follow -- docs/planning/catchups-fixes-brief.md` if the full text is ever
+> needed. The two standing rules and the owner's words below remain current.
 >
 > The owner reviewed the shipped feature end to end and rejected most of the copy in this
 > document, in these words: "what the hell is a gentle group newsletter", "tell me what the

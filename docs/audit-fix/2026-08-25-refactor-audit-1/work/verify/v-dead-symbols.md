@@ -7,7 +7,7 @@ Working tree clean apart from the audit's own untracked files, so tree == HEAD.
 Method: every symbol each finding declares dead or internal-only was re-grepped with word
 boundaries (`grep -rEow "\bSYM\b"`) across `src`, `scripts`, `e2e`, `prisma`, `.github`, `docs`
 (ts/tsx/mjs/js/md/yml/json/sql/prisma), excluding `src/generated` and the audit's own output
-under `docs/planning/audits/simplification/`. Every ambiguous hit was opened and classified
+under `docs/audit-fix/2026-08-25-refactor-audit-1/work/`. Every ambiguous hit was opened and classified
 comment vs code. Staleness focus: the same-day commits 730f1c6 (ninety-day sessions + admin
 Catch-up route), 6d5609e (admin reading room), 1d3f996 (admin header circle), c74d99f (nice-try
 page) are all IN the tree I grepped, so any caller they added would have surfaced. None did.

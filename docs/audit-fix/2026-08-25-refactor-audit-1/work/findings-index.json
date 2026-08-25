@@ -1069,7 +1069,7 @@
   "id": "dead-code-18",
   "title": "Close the knip config gap so this audit stays cheap",
   "file": "dead-code.md",
-  "where": "`docs/planning/audits/simplification/knip.json` (the audit's ad-hoc config); whatever knip config the repo adopts",
+  "where": "`docs/audit-fix/2026-08-25-refactor-audit-1/work/knip.json` (the audit's ad-hoc config); whatever knip config the repo adopts",
   "phase": "architecture (tooling)",
   "tier": "T2",
   "class": "cheap",

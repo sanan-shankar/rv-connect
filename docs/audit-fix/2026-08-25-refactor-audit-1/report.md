@@ -1,18 +1,18 @@
 # Pre-release simplification audit — report
 
-Audit-only session, 2026-08-25. Working files: `docs/planning/audits/simplification/`
-(`task_plan.md`, `findings.md`, `brief-common.md`, `raw/` tool output, `agents/` — the 18
+Audit-only session, 2026-08-25. Working files: `docs/audit-fix/2026-08-25-refactor-audit-1/work/`
+(`work/task_plan.md`, `findings.md`, `brief-common.md`, `raw/` tool output, `agents/` — the 18
 full agent reports, `verify/` — adversarial verdicts). This file is the deliverable; the
 agent reports are its appendices and carry the per-finding evidence, exact line ranges,
 steps, risks and gates.
 
 How to read this: section 2 is the plan — six fix sessions plus one owner conversation,
 executable top to bottom. Every item carries its finding id(s); the full detail for an id
-lives in the agent report named by its prefix (`simplification/agents/<prefix>.md`). A fix
+lives in the agent report named by its prefix (`work/agents/<prefix>.md`). A fix
 session takes a phase, and reads each item's full entry before touching code.
 Verification: every finding came from a reader agent, ~30 were hand-checked by the
 orchestrator (one refuted and corrected), and the high-risk clusters were re-tested
-adversarially at HEAD (verdicts in `simplification/verify/`, summarized in §6).
+adversarially at HEAD (verdicts in `work/verify/`, summarized in §6).
 
 Decomposition rationale (one sentence, as the prompt asks): thirteen territory readers
 sized 4–13k lines so each could read every file it owned, plus five cross-cutting lenses
@@ -226,10 +226,10 @@ the agent entry names the exact test pins that must ride in the same commit.
 
 ## 3. Findings
 
-All 241 findings live in the 18 agent reports under `simplification/agents/`, in a fixed
+All 241 findings live in the 18 agent reports under `work/agents/`, in a fixed
 format (Where / Phase / Tier / Class / Decides / Evidence / What to do / Saving / Risk &
 gate / Confidence / Notes), with ids `<agent>-NN`. The machine-readable index is
-`simplification/findings-index.json` (241 entries: 94 T1 · 110 T2 · 30 T3 · 7 T4).
+`work/findings-index.json` (241 entries: 94 T1 · 110 T2 · 30 T3 · 7 T4).
 Section 2 above is the deduplicated execution ordering; where two agents found the same
 thing independently the plan row lists every id with `=`, and merged programmes carry
 their fragment ids. Two critic rounds diffed the index against the plan; everything is
@@ -251,7 +251,7 @@ Corrections from verification (authoritative over the agent text):
   taste items — the stale references they found are fixed regardless (phase 2).
 - **The adversarial pass (161 verdicts: 120 confirmed, 40 confirmed-with-correction, 1
   refuted — catchups-16 above) added these load-bearing corrections**; a fix session
-  executing any ⚠ item must still read its cluster's file in `simplification/verify/`:
+  executing any ⚠ item must still read its cluster's file in `work/verify/`:
   - **LazyMotion settled**: `domMax` IS required (8 `layout` props in 5 files, 10 `layoutId`
     in 9 incl. the sidebar marker on every authed page, drag in viewer + crop). So the
     sync-adoption saving is the ~8–12 KB gz band; the operative plan is bundle-build-02's
@@ -421,7 +421,7 @@ The full lists live in each agent report; the ones that will tempt every future 
   (bundle-build, dependency-diet, duplication, dead-code, data-layer). Every tracked file
   belonged to exactly one territory; each report's Coverage section names what was read
   fully vs sampled and why. Combined reading: ~100k lines.
-- **Tools run** (raw output in `simplification/raw/`): cloc (4 cuts), knip ×3 (default,
+- **Tools run** (raw output in `work/raw/`): cloc (4 cuts), knip ×3 (default,
   production, configured), madge ×2, jscpd ×2, tsc-unused, dependency-cruiser ×2 (TS-6
   pinned), grep suites (type-sludge, env-flags, todos, commented-out, use-client,
   comment-density), timed `next build` ×2, `next experimental-analyze` (decoded),
@@ -431,7 +431,7 @@ The full lists live in each agent report; the ones that will tempt every future 
 - **Verification**: ~30 orchestrator hand-checks during compilation (1 refutation);
   10 adversarial cluster-verifiers re-tested the dead-code, schema/auth, bundle-facts,
   Groups-residue, dedupe-evidence, pinned-file-safety, root-docs, scripts and
-  member/admin clusters at HEAD (verdicts: `simplification/verify/`).
+  member/admin clusters at HEAD (verdicts: `work/verify/`).
 - **Consciously left out**: live-database queries (read-only audit; every DB-dependent
   claim is marked and carries the exact SQL for the fix session); running probes,
   Playwright, browsers (owner's machine-load rule); lab room interiors beyond
@@ -466,7 +466,7 @@ root-docs-assets-01/06/12 (wording ships in phase 4; CLAUDE.md edits get owner s
    die in their own session. Plus a ~25-line check.mjs arm enforcing clauses 1 and 3.
 3. **A knip config** that makes `npx knip`'s unused-files list a true leftovers detector
    (today 124 false positives; after, a leftover shows up the day it is orphaned).
-4. **An audit-archive convention**: `docs/planning/audits/archive/<yyyy-mm>-<name>/`,
+4. **An audit-archive convention**: `docs/audit-fix/<yyyy-mm>-<name>/`,
    applied to the closed bug audit now and to this audit when its fixes finish.
 5. **The "close it out" checklist** (six lines, run only when the owner says so):
    scratch files deleted or ledgered; `git status` shows only named commits and others'

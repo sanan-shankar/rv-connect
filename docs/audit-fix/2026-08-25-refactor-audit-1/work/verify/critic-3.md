@@ -119,4 +119,4 @@ complete, the §3 coverage claim is now true, and the sampled repair rows are fa
 their sources. The four residues above are one-word or bookkeeping polish a fix session
 absorbs in passing; none changes what the owner is asked to decide or what a session
 executes. The audit closes; per §7.4, archive to
-`docs/planning/audits/archive/2026-08-simplification/` when the fixes finish.
+`docs/audit-fix/2026-08-simplification/` when the fixes finish.

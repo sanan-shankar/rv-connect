@@ -49,7 +49,7 @@ coverage from `git check-ignore -v`.
   db-indexes-live.json 651; db-sizes-live.json 66; bug-report-2.md 748; fix-ledger.md 241.
 - Live caveat the finding already carries and which still holds: `db-indexes-live.json` is an
   input to this simplification audit's data-layer lens
-  (`docs/planning/audits/simplification/agents/data-layer.md` references it) - sequence the move
+  (`docs/audit-fix/2026-08-25-refactor-audit-1/work/agents/data-layer.md` references it) - sequence the move
   after this audit closes.
 
 ### root-docs-assets-02 (WhatsApp originals) - CONFIRMED
