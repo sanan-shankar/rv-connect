@@ -3561,3 +3561,38 @@ list survived came down to timing. The queue is chained now. A failed places
 save also refreshes: a refused wipe-and-recreate leaves the OLD list on file
 while the screen shows the new one, which is the one state where keeping the
 local copy tells a lie.
+
+## 2026-08-25 (later) — the long tail, part eight: conversations
+
+Nine findings on member-to-admin threads. Two themes.
+
+**A flag cleared for something nobody had seen (C-053, C-061).** The unread
+mark is the only signal either side gets that a message exists, so clearing it
+wrongly does not degrade a surface -- it deletes the message from everyone's
+attention. "Sorted" cleared `adminUnread` unconditionally, so a member reply
+that committed after the admin's page rendered went straight into the closed
+pile with nothing anywhere saying it had arrived. And all three mark-read paths
+cleared the flag for messages that arrived between the page's query and the
+write, so they were never rendered and never marked. Closing is not reading
+now, and every clear is scoped to the newest message actually on screen.
+
+**A list cut with nothing on the page to say so (C-058, C-081).** B-200 fixed
+this once on the admin side. The member's own /messages kept a bare `take: 60`,
+and the admin's OPEN query had no cap at all -- on the reasoning, written into
+the file, that open threads are the work queue and are never hidden. That does
+not survive what actually lands in the table: nothing auto-closes a thread and
+`openAdminNoticeThread` opens one per moderated post, comment and photograph,
+so the queue fills with rows nobody needs to act on and every render fetched
+all of them with their member and last message. Both are capped now, both with
+a count and a "Show N older".
+
+**Three smaller ones.** Sending a message twice sent it twice and paged the
+admins twice -- the composer guards on `sending` STATE, which binds on the next
+render, so Cmd+Enter key-repeat plus a click got past it and two tabs never saw
+it. Both write paths carry the server twin guard now. A member whose posts an
+admin removed in a burst had those admin-opened notice threads counted against
+their own new-thread budget, so they could not write to say what they thought
+about it. And `deriveSubject`/`previewOf` cut at UTF-16 code units, splitting
+emoji into replacement diamonds in stored subjects; they cut on graphemes now
+while keeping the same width budget, because counting graphemes instead would
+have silently doubled an emoji subject's length -- a different bug.

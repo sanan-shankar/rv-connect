@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
@@ -20,16 +21,33 @@ export const metadata: Metadata = {
  * else is optional. Notes from the admins and follow-ups on anything the
  * member reported land in the same list, so there is one place to look.
  */
-export default async function MessagesPage() {
+/**
+ * How many conversations the list shows before the escape (audit C-058).
+ *
+ * The cap used to be a bare `take: 60` with no count and nothing on the page,
+ * so a member's sixty-first conversation was permanently unreachable and the
+ * screen said nothing about it -- the same shape B-200 fixed on the admin side
+ * and this page kept. Reports, admin notices and every message a member sends
+ * all land here, so sixty is reached by anyone who uses the site for long.
+ */
+const THREAD_PAGE = 60;
+
+export default async function MessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   if (!session?.user?.id) return null;
+  const showAll = (await searchParams).all === "1";
 
   // Scoped to the signed-in member. There is no way to widen this from the
   // client: no id, filter, or flag reaches this query.
-  const threads = await prisma.adminThread.findMany({
+  const [threads, total] = await Promise.all([
+    prisma.adminThread.findMany({
     where: { memberId: session.user.id },
     orderBy: { lastMessageAt: "desc" },
-    take: 60,
+    ...(showAll ? {} : { take: THREAD_PAGE }),
     select: {
       id: true,
       subject: true,
@@ -44,7 +62,10 @@ export default async function MessagesPage() {
       },
       _count: { select: { messages: true } },
     },
-  });
+    }),
+    prisma.adminThread.count({ where: { memberId: session.user.id } }),
+  ]);
+  const hidden = total - threads.length;
 
   const rows = threads.map((t) => ({
     id: t.id,
@@ -81,9 +102,27 @@ export default async function MessagesPage() {
 
       {rows.length > 0 ? (
         <section aria-label="Your conversations">
-          <h2 className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Your conversations
-          </h2>
+          <div className="mb-3 flex items-baseline justify-between gap-4">
+            <h2 className="text-[11.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Your conversations
+            </h2>
+            {/* The escape, so no conversation is silently unreachable. */}
+            {hidden > 0 ? (
+              <Link
+                href="/messages?all=1"
+                className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
+              >
+                Show {hidden} older
+              </Link>
+            ) : showAll && total > THREAD_PAGE ? (
+              <Link
+                href="/messages"
+                className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
+              >
+                Show fewer
+              </Link>
+            ) : null}
+          </div>
           <ThreadList threads={rows} />
         </section>
       ) : (
