@@ -3245,3 +3245,49 @@ simultaneous first-writes produced zero violations. The comment claiming
 otherwise was the wrong half and now says what Postgres actually does. The
 P2002 catch stays as cheap insurance, no longer as the thing holding the
 toggle up.
+
+## 2026-08-25 (later) — the long tail, part three: the edge boundary
+
+Seven findings about `src/proxy.ts` and the two config files beside it. It runs
+before every request, so everything it gets wrong is invisible from inside the
+app.
+
+**The site had no crawl policy (C-203).** No robots.ts, no sitemap.ts, and
+neither filename excluded from the proxy matcher, so a crawler asking for
+/robots.txt was redirected to /login and read the sign-in page as the policy.
+There are now both, and both are past the matcher. Everything is disallowed
+except the seven pages a stranger is meant to find; the demo disallows all of
+itself, because two copies of the same site competing in search results is
+worse than one. The sitemap is hand-written on purpose: derived from the route
+tree it would be one refactor away from publishing the directory. Its gate
+checks every url it lists against `publicPaths`.
+
+**A cron that could never succeed (C-111, C-136, C-201).** One vercel.json
+ships both crons to both Vercel projects, and /api/demo/reset was missing from
+publicPaths -- so the nightly cookieless GET was 307'd to /login before the
+route's deliberate 200 no-op could answer. That no-op exists precisely so the
+run reports success instead of raising a failed-cron alert, and a permanently
+non-2xx nightly job is exactly what teaches somebody to stop reading cron logs,
+which is where a real tick failure would hide. The gate derives the cron list
+from vercel.json, so a fourth one cannot drift out again.
+
+**An API that answered in HTML (C-202).** Every gated path was redirected to
+/login, /api included -- and a `fetch` cannot act on that. The browser follows
+it, `res.ok` is true, `res.json()` throws on the login markup, and the member
+is shown a generic failure for what is really "sign in again". /api/* now gets
+a 401 in JSON. Pages still redirect, destination in tow. Verified live:
+/api/places/search went from a 307 to `401 {"error":"Not authenticated"}`.
+
+**Two small route facts.** A tokenless /catchups/join fell through to (main)'s
+/catchups/[catchupId] and gave a lost link a generic 404 or a login bounce, on
+a path the proxy deliberately opens; it has its own page now, saying what the
+[token] page says about a link it does not recognise. And the browser chrome
+colour was a static export, so once dark shipped, dark-theme members got
+warm-paper Safari chrome around a charcoal app -- the exact mismatch the
+constant exists to prevent, inverted. It reads the cookie now. Both verified
+in the browser, at 1440x900 and 390x844.
+
+**Two refuted by reading node_modules.** C-132 and C-184 both claimed
+`skipTrailingSlashRedirect` makes every trailing-slash URL 404. It suppresses
+the client-facing 308 and nothing else: `removeTrailingSlash` runs
+unconditionally before route matching.

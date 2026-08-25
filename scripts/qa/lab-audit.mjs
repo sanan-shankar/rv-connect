@@ -73,7 +73,10 @@ function routeMatcher(route) {
  *
  * /catchups/join/<token> is the shared Catch-up invite link. It cannot sit in
  * (main), because that layout demands a session and the whole point of the link
- * is that the person following it may have no account yet.
+ * is that the person following it may have no account yet. Its tokenless
+ * sibling /catchups/join belongs to the same surface: without it the two-segment
+ * path fell through to (main)'s /catchups/[catchupId] and gave a lost link a
+ * generic 404 or a login bounce (audit C-204).
  *
  * /hoopoe is the public mascot playground. It cannot sit in (main) for the
  * same reason: it is a link sent to people with no account, and the whole
@@ -83,7 +86,7 @@ function routeMatcher(route) {
  * Keep this list short. A route belongs here only if there is a reason it
  * cannot live in a route group; "I did not want to register it" is not one.
  */
-const PRODUCT_ROUTES = [/^\/catchups\/join\/\[[^/]+\]$/, /^\/hoopoe$/];
+const PRODUCT_ROUTES = [/^\/catchups\/join(\/\[[^/]+\])?$/, /^\/hoopoe$/];
 
 // ---- 1 & 2: walk disk, convert to routes, drop (main)/(auth)/root/lab ----
 
