@@ -27,7 +27,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
-export function ArchiveShelf({ rows }: { rows: HomeArchiveRow[]; groupName?: string }) {
+export function ArchiveShelf({ rows }: { rows: HomeArchiveRow[] }) {
   if (rows.length === 0) return null;
 
   return (

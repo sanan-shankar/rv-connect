@@ -57,7 +57,6 @@ function parseImageUrls(images: string | null | undefined): string[] {
   }
 }
 
-/** Best-effort cleanup of a post's stored image files, in parallel. */
 /**
  * Delete a post and its stored images, in the order that cannot leave a live
  * post with broken pictures (audit M17).

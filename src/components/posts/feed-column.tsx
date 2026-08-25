@@ -15,11 +15,8 @@ export function FeedColumn({
   scope = "all",
   composerScope,
   showControls = true,
-  placeholder,
   currentUser,
   userPlaces,
-  emptyTitle,
-  emptyHint,
   initialSearch,
   lastSeenAt,
 }: {
@@ -27,12 +24,9 @@ export function FeedColumn({
   scope?: FeedScope;
   composerScope?: ComposerScope;
   showControls?: boolean;
-  placeholder?: string;
   currentUser?: AvatarUser;
   /** The signed-in poster's own cities, for the composer's "Show to" audience control. */
   userPlaces?: string[];
-  emptyTitle?: string;
-  emptyHint?: string;
   /** Seeds the feed's search (e.g. `?q=` from the header search pill) even
    *  when the inline search/filter row (`showControls`) is hidden. */
   initialSearch?: string;
@@ -47,7 +41,6 @@ export function FeedColumn({
       <CreatePostForm
         groupId={groupId}
         scope={composerScope}
-        placeholder={placeholder}
         currentUser={currentUser}
         userPlaces={userPlaces}
         onPosted={() => setReloadKey((k) => k + 1)}
@@ -57,8 +50,6 @@ export function FeedColumn({
         scope={scope}
         showControls={showControls}
         reloadKey={reloadKey}
-        emptyTitle={emptyTitle}
-        emptyHint={emptyHint}
         initialSearch={initialSearch}
         lastSeenAt={lastSeenAt}
       />

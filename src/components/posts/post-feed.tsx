@@ -31,8 +31,6 @@ export function PostFeed({
   scope = "all",
   showControls = true,
   reloadKey = 0,
-  emptyTitle,
-  emptyHint,
   initialSearch,
   lastSeenAt,
 }: {
@@ -40,8 +38,6 @@ export function PostFeed({
   scope?: FeedScope;
   showControls?: boolean;
   reloadKey?: number;
-  emptyTitle?: string;
-  emptyHint?: string;
   /** Seeds the search query (e.g. from the header search pill's `?q=`) even
    *  when `showControls` hides the inline search box. */
   initialSearch?: string;
@@ -384,13 +380,12 @@ export function PostFeed({
           <p className="font-heading text-lg tracking-tight text-foreground">
             {search
               ? "No posts match your search."
-              : emptyTitle || "No stories yet. Be the first to share a memory."}
+              : "No stories yet. Be the first to share a memory."}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {search
               ? "Try different keywords or clear your search."
-              : emptyHint ||
-                "Write about your time in the valley, share an update, or post a photo."}
+              : "Write about your time in the valley, share an update, or post a photo."}
           </p>
         </div>
       ) : (

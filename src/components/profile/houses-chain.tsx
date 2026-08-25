@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
-import { academicSpanLabel, parseHouseSpans, type HouseSpan } from "@/lib/house-spans";
+import { academicSpanLabel, type HouseSpan } from "@/lib/house-spans";
 
 /**
  * The houses chain: each house a pill with its name and year range, joined by
@@ -753,9 +753,4 @@ export function HouseTrail({
       </div>
     </div>
   );
-}
-
-/** The shipped profile's entry point: parse the raw `houses` JSON, then draw. */
-export function HousesChain({ houses }: { houses: string | null | undefined }) {
-  return <HouseTrail spans={parseHouseSpans(houses)} />;
 }
