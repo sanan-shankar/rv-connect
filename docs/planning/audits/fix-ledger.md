@@ -127,3 +127,4 @@ refuted); one Medium is owner-only (C-135) and 121 distinct Lows remain for the 
 | C-094 | not-a-bug | mechanism true, consequence refuted: the queries run over a ~2,000-row table, are auth-gated, and a long LIKE needle fails fast per row |
 | C-100 | not-a-bug | same shape: rate-limited at 120/min, the cost is fixed by row count not pattern length, and the prefix arms use btree indexes |
 | C-170 | not-a-bug | duplicate of C-100 |
+| C-192 (index) | fixed <SHA6> | the item the previous session scoped and handed over: `@@index([userId])` on GroupMember, migration 2026-08-25-group-member-user-index.sql applied to `.env` AND `--env .env.demo`, and the NO_INDEX_NEEDED exemption removed so the derived sweep covers the column. Proved live: EXPLAIN now reports `Index Scan using "GroupMember_userId_idx"` where it was a sequential scan |

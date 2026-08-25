@@ -291,6 +291,10 @@ model GroupMember {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
+  // Postgres can only use a composite index when the LEADING column is
+  // constrained, and loadSavedPosts asks for one member's memberships by
+  // userId alone on every request -- the same shape as B-090 (audit C-192).
+  @@index([userId])
 }
 
 model Account {

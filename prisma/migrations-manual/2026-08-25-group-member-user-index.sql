@@ -1,0 +1,28 @@
+-- An index for the read that actually happens on GroupMember.
+--
+-- The table has one index: the composite unique (groupId, userId). Postgres can
+-- serve a lookup from a composite only when the query constrains its LEADING
+-- column, so `where: { userId }` alone cannot use it and falls back to a
+-- sequential scan.
+--
+-- That read is not rare. `loadSavedPosts` (src/app/(main)/feed/actions.ts) asks
+-- for this member's memberships by userId on EVERY request to the saved-posts
+-- surface, and post-visibility does the same shape. It is exactly B-090 again,
+-- which is why the derived sweep in src/lib/index-coverage.test.mjs flagged it
+-- and why the exemption there said plainly that it was not a settled decision.
+--
+-- Small today -- the table holds one row per member per batch group -- so the
+-- scan is cheap and nobody has noticed. At the 2,000-member ceiling this audit
+-- is sized against it is a full scan of a few thousand rows on a page load, for
+-- a lookup that should be a single index probe. Cheap to add now, and adding it
+-- lets the sweep cover the column instead of carrying an excuse for it.
+--
+-- CONCURRENTLY is deliberately NOT used: it cannot run inside a transaction
+-- block, run-sql.mjs wraps each file in one, and on a table this size the plain
+-- form's lock is measured in milliseconds.
+--
+-- Idempotent, per CLAUDE.md: never `prisma db push` against this database.
+-- Apply: node scripts/dev/run-sql.mjs prisma/migrations-manual/2026-08-25-group-member-user-index.sql
+--   and: node scripts/dev/run-sql.mjs --env .env.demo prisma/migrations-manual/2026-08-25-group-member-user-index.sql
+
+CREATE INDEX IF NOT EXISTS "GroupMember_userId_idx" ON "GroupMember" ("userId");
