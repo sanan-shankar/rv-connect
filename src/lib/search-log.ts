@@ -5,8 +5,12 @@ import { isSameSearch } from "@/lib/search-continuation";
  *  What people look for.
  *
  *  The owner asked for "the most common searches" and nothing recorded
- *  them: the header pill submits to /feed?q= and the directory filters
- *  in the browser, so every query anyone had ever typed was discarded.
+ *  them: every query anyone had ever typed was discarded.
+ *
+ *  This used to say the directory "filters in the browser", which was
+ *  never true -- its search round-trips to /directory?q= and renders
+ *  server-side -- and that sentence is why the one surface whose whole
+ *  job is finding people was the one scope with no writer (audit C-097).
  *
  *  The query is stored as typed, which is the whole point -- "what are
  *  people failing to find" cannot be answered by a count -- and it is

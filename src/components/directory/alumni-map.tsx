@@ -48,12 +48,27 @@ export type PinPerson = {
 };
 
 export type CityPin = {
+  /** The pin's name: the first city resolved into its grid cell. */
   city: string;
+  /**
+   * Every distinct city string in the cell, `city` included.
+   *
+   * A pin is a 0.1-degree cell, roughly 11km, and two genuinely different
+   * towns can share one -- Hyderabad and Secunderabad do. The COUNT already
+   * aggregated all of them; the escape link named only the first, so "See all
+   * N" opened a page showing a fraction of N (audit C-098).
+   */
+  cities: string[];
   lng: number;
   lat: number;
   count: number;
   people: PinPerson[];
 };
+
+/** The directory link that lists everybody a pin counted, not just its name. */
+function pinHref(pin: CityPin): string {
+  return `/directory?${pin.cities.map((c) => `city=${encodeURIComponent(c)}`).join("&")}`;
+}
 
 const W = 900;
 const H = 460;
@@ -439,7 +454,7 @@ export function AlumniMap({
                       title: pin.city,
                       count: pin.count,
                       people: pin.people,
-                      href: `/directory?city=${encodeURIComponent(pin.city)}`,
+                      href: pinHref(pin),
                     });
                 }}
                 onKeyDown={(e) => {
@@ -449,7 +464,7 @@ export function AlumniMap({
                       title: pin.city,
                       count: pin.count,
                       people: pin.people,
-                      href: `/directory?city=${encodeURIComponent(pin.city)}`,
+                      href: pinHref(pin),
                     });
                   }
                 }}
@@ -696,9 +711,15 @@ export function AlumniMap({
                 a sheet almost nobody opens. Past the cap the sheet hands over
                 to the directory itself, which is paginated, searchable and a
                 far better place to read two hundred names (bug audit B-092). */}
-            {!namesLocked && drill && drill.count != null && drill.people.length < drill.count && (
+            {/* `drill.href` is required, not defaulted to /directory (audit
+                C-098): the unmapped bucket has no destination that lists its
+                people, and the fallback sent them to the browse map -- which
+                shows none of them. A link that goes somewhere wrong is worse
+                than no link, so that bucket says the number in words instead
+                (below) and offers nothing to press. */}
+            {!namesLocked && drill?.href && drill.count != null && drill.people.length < drill.count && (
               <Link
-                href={drill.href ?? "/directory"}
+                href={drill.href}
                 onClick={() => setDrill(null)}
                 className="group mt-1 block rounded-[var(--radius-md)] px-2 py-3 text-[15px] font-medium text-canopy state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
