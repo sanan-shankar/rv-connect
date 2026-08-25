@@ -20,6 +20,27 @@ import { timingSafeEqualStrings } from "@/lib/timing-safe";
  * nightly, its Prisma write-guard would refuse most of these deletes anyway,
  * and "the demo ran retention" is a sentence with no meaning.
  */
+/**
+ * Longer than the default, because this route's worst case is not a request's
+ * worst case (audit C-079).
+ *
+ * Nothing declared a `maxDuration` anywhere in this project, so every function
+ * ran on the platform default -- and the default is sized for a page render,
+ * not for a sweep that walks ten tables and then purges whole accounts, each
+ * of which is its own 30-second transaction plus its R2 objects. A sweep cut
+ * off part-way is not a disaster (the pass is idempotent and every step is
+ * batched, so tomorrow finishes it), but it is a silent one: the invocation
+ * dies without reaching the `reportSwallowed` that every other failure here
+ * goes through, so a sweep that has been timing out for a month leaves the
+ * same no-symptom gap M54 exists to close.
+ *
+ * 300 seconds is the Hobby plan's ceiling. It costs nothing on a night with
+ * nothing to do -- the sweep returns in milliseconds -- and it is the
+ * difference between finishing and vanishing on the night an account purge
+ * finally comes due.
+ */
+export const maxDuration = 300;
+
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const authHeader = req.headers.get("authorization") ?? "";

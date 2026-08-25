@@ -82,7 +82,14 @@ async function promoteOrphanedGroups(db: Db, userId: string): Promise<number> {
 /**
  * Every stored-image URL the member's rows point at, read INSIDE the purge
  * transaction so nothing uploaded between the reading and the delete can slip
- * past. `delImage` ignores URLs that are not ours (an external song artwork, a
+ * past. That claim rests on the transaction's ISOLATION LEVEL, not on being
+ * inside a transaction at all -- under READ COMMITTED each statement takes a
+ * fresh snapshot and an upload committed mid-purge is invisible here and then
+ * cascaded away, leaving bytes no row names and no sweep can find. The purge
+ * runs at RepeatableRead for exactly this reason (audit C-076); see the
+ * `$transaction` options below.
+ *
+ * `delImage` ignores URLs that are not ours (an external song artwork, a
  * legacy host), so collecting generously is safe.
  *
  * `coverPhoto` is deliberately absent: it is a Collection photo REUSED as a
@@ -323,7 +330,21 @@ export async function purgeUserAccount(
       // maxWait matches the pool's own connectionTimeoutMillis (prisma.ts):
       // waiting longer than the pool will wait for a connection is dead
       // configuration, and waiting less would fail before the pool gives up.
-      { timeout: 30_000, maxWait: 5_000 }
+      {
+      timeout: 30_000,
+      maxWait: 5_000,
+      /* RepeatableRead, because the comment on `collectImageUrls` claims
+         something READ COMMITTED does not give (audit C-076): that nothing
+         uploaded between reading the urls and deleting the rows can slip past.
+         Under READ COMMITTED every statement takes a fresh snapshot, so a post
+         committed mid-transaction is invisible to the collect and then deleted
+         by the cascade -- its bytes referenced by no row and reachable by no
+         sweep, which is unrecoverable, because nothing can enumerate the
+         bucket. Under RepeatableRead the whole transaction reads one snapshot
+         and a conflicting concurrent write aborts it instead, which is a retry
+         rather than a leak. */
+      isolationLevel: "RepeatableRead",
+    }
     );
     urls = outcome.urls;
     groupsRehomed = outcome.rehomed;
@@ -378,7 +399,13 @@ export async function drainPendingImagePurges(
       deleted += 1;
     } else {
       failed += 1;
-      await prisma.pendingImagePurge.update({
+      await /* updateMany, not update (audit C-118). The success branch beside this one
+         already tolerates a concurrent drain having taken the row; this one did
+         not, and Prisma's `update` throws P2025 on a missing row -- so the
+         BOOKKEEPING for a failure could itself throw out of the sweep and stop
+         every remaining purge behind it. `updateMany` no-ops on zero matches,
+         which is the honest answer: somebody else already dealt with it. */
+      prisma.pendingImagePurge.updateMany({
         where: { id: row.id },
         data: { attempts: { increment: 1 }, lastError: "delete refused by storage" },
       });

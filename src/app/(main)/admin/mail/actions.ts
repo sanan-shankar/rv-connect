@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdminAction, type AdminActionResult } from "@/lib/admin";
-import { RETRY_RESET } from "@/lib/mail-policy";
+import { RETRY_RESET, startOfUtcDay } from "@/lib/mail-policy";
 
 /**
  * Put a dead message back in the queue.
@@ -76,14 +76,40 @@ export async function dismissMail(id: string): Promise<AdminActionResult> {
 
   const row = await prisma.outboundEmail.findUnique({
     where: { id },
-    select: { status: true },
+    select: { status: true, sentAt: true },
   });
   if (!row) return { error: "That message is no longer here." };
   if (row.status !== "failed") {
     return { error: "Only a message that gave up can be cleared." };
   }
 
-  await prisma.outboundEmail.delete({ where: { id } });
+  /* A row Resend ACCEPTED today cannot be deleted, however it ended up
+     (audit C-106).
+     `dailyBudget` counts off `sentAt` with no status filter, deliberately:
+     `sentAt` is written once on a real provider accept and nothing clears it,
+     while `status` moves afterwards -- the bounce webhook flips an accepted
+     row to "failed" without touching `sentAt`, which is the whole of the B-071
+     fix. Deleting the row removes the `sentAt` too, hands back a slot Resend
+     has already spent against the real quota, and walks the app straight back
+     into B-071's hard rejections. It clears itself tomorrow, when the day it
+     counts against is over. */
+  if (row.sentAt && row.sentAt >= startOfUtcDay()) {
+    return {
+      error:
+        "That one reached the provider today, so it still counts against today's quota. " +
+        "It can be cleared tomorrow.",
+    };
+  }
+
+  /* Conditional on the status it was read with, exactly as retryMail above is
+     (audit C-083). This was a bare `delete`, so a message another admin had
+     just requeued in the seconds between the read and the write was deleted
+     out from under them -- the one write in this file that was not guarded. */
+  const cleared = await prisma.outboundEmail.deleteMany({ where: { id, status: "failed" } });
+  if (cleared.count === 0) {
+    return { error: "That message moved on while you were looking at it. Try again." };
+  }
+
   revalidatePath("/admin", "layout");
   return { success: true };
 }

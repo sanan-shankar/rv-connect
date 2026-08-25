@@ -146,7 +146,20 @@ export async function runRetentionSweep(): Promise<SweepResult> {
           data: withImages.map((m) => ({ url: m.imageUrl as string, reason: "retention" })),
         });
       }
-      return (await tx.adminMessage.deleteMany({ where: due })).count;
+      const removed = (await tx.adminMessage.deleteMany({ where: due })).count;
+
+      /* And the SHELL the transcript hung on (audit C-062).
+         AdminMessage cascades from AdminThread, not the other way round, so
+         purging every message of an old conversation left the thread itself
+         behind for ever -- carrying `subject`, which is DERIVED FROM THE
+         MEMBER'S OWN FIRST MESSAGE. So the one line of what they wrote that
+         retention was meant to remove is the line that outlived it, and the
+         member's list showed a conversation that opens onto nothing. Deleted
+         in the same transaction, and only when the thread has no messages left
+         at all: a thread with one recent reply is a live conversation whose
+         older lines have simply aged out. */
+      const emptied = await tx.adminThread.deleteMany({ where: { messages: { none: {} } } });
+      return removed + emptied.count;
     }),
   );
   const reports = await step("reports", async () =>

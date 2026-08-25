@@ -29,8 +29,16 @@ name: backup
 
 on:
   schedule:
-    # 20:30 UTC == 02:00 IST, matching the existing catchups cron in
-    # vercel.json so all the quiet-hours work happens in one window.
+    # 20:30 UTC == 02:00 IST: the middle of the valley's night, which is when
+    # a backup should read a database.
+    #
+    # This used to claim it MATCHED the catchups cron in vercel.json "so all
+    # the quiet-hours work happens in one window". It does not, and the claim
+    # encoded a wrong belief worth naming: VERCEL CRONS RUN IN UTC. That cron
+    # is '0 2 * * *', which is 02:00 UTC = 07:30 IST -- five and a half hours
+    # after this one, in the valley's morning. Nothing is broken by that (a
+    # 07:30 IST Round transition is fine), but the next person changing either
+    # schedule should not start from a false premise (audit C-147).
     - cron: '30 20 * * *'
   workflow_dispatch:
 

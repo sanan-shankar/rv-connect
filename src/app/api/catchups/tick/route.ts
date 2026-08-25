@@ -21,6 +21,15 @@ import { timingSafeEqualStrings } from "@/lib/timing-safe";
  * server-to-server GET, which carries no session cookie, is not redirected to
  * /login before it can present that header.
  */
+/**
+ * Same reasoning as the retention sweep's (audit C-079): a nightly pass over
+ * every live Catch-up is not shaped like a page render, and a cut-off
+ * invocation dies without reaching the reporter that every in-band failure
+ * here goes through. Two minutes is far more than the pass has ever needed and
+ * far less than the plan's ceiling.
+ */
+export const maxDuration = 120;
+
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const authHeader = req.headers.get("authorization") ?? "";
