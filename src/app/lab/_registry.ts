@@ -318,6 +318,13 @@ export const REGISTRY: LabEntry[] = [
     note: "The selected two-plane PeaksMark, shown standalone and in its real lockup contexts (sidebar green, light surface, photo overlay). Current reference.",
   },
   {
+    href: "/lab/hoopoe-marks",
+    title: "If the bird were the logo",
+    group: "Brand",
+    status: "active",
+    note: "Ten identity directions built off the hoopoe instead of the ridge, with the product renamed Hoopoe: crest, profile head, face, feather, roundel, wing bars, monogram, extreme crop. Each as an app icon on a light and a dark ground down to 16px, plus its sidebar lockup.",
+  },
+  {
     href: "/lab/icon-directions",
     title: "The green has to be in the hills, not behind them",
     group: "Brand",
