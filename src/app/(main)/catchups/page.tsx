@@ -318,34 +318,46 @@ export default async function CatchupsPage() {
           <PageHeader
             title="Catch-ups"
             actions={
-              <Link href="/catchups/new" className="inline-flex">
-                <Button variant="primary">
-                  <Plus className="h-4 w-4" />
-                  Start a Catch-up
-                </Button>
-              </Link>
+              <>
+                {/* The admin's way into every Catch-up on the site, not just
+                    the ones they are in -- the shelves below are memberships,
+                    and an admin is usually in none of them, so this page is
+                    nearly empty for the owner and had no route to the whole
+                    list (owner, 2026-08-25). A bare circle, no label: the
+                    words live in aria-label and the tooltip, which is the
+                    right trade for a control one person on the site can see.
+
+                    `hidden sm:inline-flex`, and that is measured rather than
+                    felt. At a true 390 this header has 33px of slack between
+                    the title and the "Start a Catch-up" pill; the smallest
+                    circle in the app is 32px and the cluster's gap is 10, so
+                    42px into 33px wraps "Catch-ups" onto two lines where the
+                    committed baseline has it on one. Nothing fits beside the
+                    member's primary action on a phone, and taking a row of its
+                    own below the header pushed every card down -- so on mobile
+                    it is simply not here, where the admin sidebar's own
+                    Catch-ups entry is one tap from the hamburger anyway. */}
+                {isAdmin && (
+                  <Link href="/admin/catchups" className="hidden sm:inline-flex">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Every Catch-up on the site"
+                      title="Every Catch-up on the site"
+                    >
+                      <ListChecks className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
+                <Link href="/catchups/new" className="inline-flex">
+                  <Button variant="primary">
+                    <Plus className="h-4 w-4" />
+                    Start a Catch-up
+                  </Button>
+                </Link>
+              </>
             }
           />
-          {/* The admin's way into every Catch-up on the site, not just the
-              ones they are in -- the shelves below are memberships, and an
-              admin is usually in none of them, so this page is empty for the
-              owner and had no route to the whole list (owner, 2026-08-25).
-
-              On its OWN row rather than in the header. It started as a third
-              control up there and was measured at 390: the right cluster is
-              195px against a 151px title inside a 358px flex-nowrap header,
-              so it wrapped "Catch-ups" onto two lines. Four pixels is not
-              worth an icon nobody can read; down here there is full width and
-              the link can say what it is. */}
-          {isAdmin && (
-            <Link
-              href="/admin/catchups"
-              className="-mt-3 mb-6 inline-flex items-center gap-1 rounded-sm text-[12.5px] font-medium text-canopy underline-offset-2 transition-opacity hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy active:opacity-70"
-            >
-              <ListChecks className="h-3.5 w-3.5" />
-              Every Catch-up on the site
-            </Link>
-          )}
         </div>
       </div>
 
