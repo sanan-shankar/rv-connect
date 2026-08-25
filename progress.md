@@ -3749,3 +3749,47 @@ than the behaviour, because a gated decision is not mine to overturn. But it is
 worth a decision: a draft is private writing with no audience, so there is
 nothing in one to moderate. **If drafts should be private from admins too, it
 is one line to move in post-visibility-rule.ts and one test to change.**
+
+## 2026-08-25 (evening) — where the long tail stands
+
+Ninety-six Lows closed in fourteen commits, worked in FILE order rather than id
+order so each module was opened once. **Twenty-nine findings remain**, three of
+them already refuted; the handover in docs/planning/audits/fixer-prompt.md maps
+every one to its file and suggests four batches.
+
+What the run looked like from inside it. The Lows were not, mostly, small
+versions of the Mediums. They were **one rule written down twice**: a count
+built by one query beside a list built by another (the directory, five times
+over), a bound typed into the editor that members actually reach while the
+shared schema went unread (the profile pen), a comment asserting an invariant
+the code had stopped keeping (three separate timezone docstrings, `deleteDraft`,
+`collectImageUrls`, backup.yml). And **a guard that binds too late**: three
+`disabled={loading}` flags that a double tap gets past, two check-then-insert
+dedupes that READ COMMITTED lets both callers through, one autosave queue that
+counted its writes without ordering them.
+
+Three of those needed the database's help rather than more code — a partial
+unique on open post reports, a unique on the Collection's staged upload key,
+and an index on `GroupMember.userId` that the previous session scoped and
+handed over. All three applied to `.env` and `.env.demo`, all three proved
+against Postgres before being written down.
+
+**Two things are the owner's to decide**, and neither is a defect:
+
+- Sessions are an **absolute** thirty days, not the rolling one NextAuth
+  documents. Every member is signed out thirty days after signing in however
+  often they visit, and a launch cohort will hit it together. It is a
+  defensible posture, so it is written at the config rather than changed.
+- **Admins can read unpublished letter drafts**, and a test pins that. The
+  comment claiming otherwise was corrected. A draft has no audience, so there
+  is nothing in one to moderate — but overturning a gated decision is not a
+  fix session's call.
+
+**The trap that cost the most this time** was not the vacuous shape test (that
+one is now well enough known to catch on the first mutation pass, and it still
+caught two). It was **the convincing zero**: three separate mechanisms — a
+per-IP rate limit, a `page.fill` that lands before hydration, and a locator
+matching nothing — each produced a proof that looked exactly like the fix
+working. All three are written into the handover. The rule that survives them:
+assert on something that could only be true if the code under test ran, never
+on the absence of an outcome.

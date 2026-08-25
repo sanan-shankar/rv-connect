@@ -3,8 +3,14 @@
 One row per finding id. Status is one of `fixed <commit>`, `not-a-bug <reason>`,
 `deferred <reason>`, `owner <reason>`. Keep this current: it is the handover between sessions.
 
-**Status 2026-08-25: every finding above Low is closed.** 74 ids disposed of (72 fixed, 2
-refuted); one Medium is owner-only (C-135) and 121 distinct Lows remain for the final session.
+**Status 2026-08-25 (evening): 170 ids disposed of.** Everything above Low was closed
+earlier today (74 ids). The Low tier is now most of the way through: **29 findings remain**,
+of which 3 are already refuted on their merits and 5 are owner decisions. Everything else in
+the table below has a row.
+
+Two ids carry an **owner decision** rather than a fix: C-032 (the session is an absolute
+30 days, not rolling) and C-012 (admins can read unpublished drafts, pinned by a test).
+Both are explained in their rows and in progress.md.
 
 | id | status | note |
 |---|---|---|
@@ -160,7 +166,7 @@ refuted); one Medium is owner-only (C-135) and 121 distinct Lows remain for the 
 | C-106 | fixed 8ae5e12 | and it refuses outright for a row Resend accepted today, because deleting it removes the `sentAt` the budget counts and hands back a slot already spent against the real quota -- walking straight back into B-071. `startOfUtcDay` moved to mail-policy.ts so the budget and the refusal read one boundary |
 | C-078 | fixed 8ae5e12 | the export carries `catchupQuestions`: `CatchupPrompt.authorId` is a real member FK and the text is entirely theirs, and it was the one authored relation the file's own "what the person gave the site or wrote on it" promise did not keep. Gate derives the check from the schema |
 | C-147 | fixed 8ae5e12 | backup.yml's comment claimed it shared a quiet-hours window with the catchups cron; they are 5.5 hours apart, because VERCEL CRONS RUN IN UTC and `0 2 * * *` is 07:30 IST. Corrected, and the fact written into docs/OPERATIONS.md where the next schedule change will meet it |
-| C-077 | fixed a1b2 (C-023) | already closed: all three paths that remove a member (leaveCatchup, deleteCatchupCopy, the retention bin) call `promoteGroupSuccessor` first |
+| C-077 | fixed 377a123 | already closed: all three paths that remove a member (leaveCatchup, deleteCatchupCopy, the retention bin) call `promoteGroupSuccessor` first |
 | C-148 | not-a-bug | writeAudit's production silence is its documented best-effort contract, not an oversight |
 | C-150 | not-a-bug | refuted on JS semantics: `Promise.race` attaches a reaction to EVERY input, so the losing promise's later rejection is handled and never reaches Node's unhandled hook |
 | C-112 | owner | the demo has no rate limiting by deliberate design and allowlisted creates are unbounded, so a disk-fill making the nightly reset itself fail is a real shape -- but sizing it needs the demo project's actual storage headroom, which only the owner can see. Recorded rather than guessed at |
@@ -172,10 +178,10 @@ refuted); one Medium is owner-only (C-135) and 121 distinct Lows remain for the 
 | C-158 | fixed cfca813 | all three direct-upload fallbacks warn. This fallback is invisible BY DESIGN -- the upload still works through the proxy -- which is exactly how direct uploads stayed broken for weeks (TRAPS.md) |
 | C-159 | fixed cfca813 | the two pre-loop reads are inside the same total-resolution try, so the after() callback cannot reject and quietly break the docblock's promise; and a copy that fails after storing its objects queues them for purge instead of orphaning bytes nothing can enumerate |
 | C-068 | not-a-bug | refuted by the validator's own criterion: dev `.env` carries the full R2 credential set, so `useR2` is true locally and `keyForUrl` recognises the host |
-| C-011 | fixed <SHAC> | `safeTruncateIndex` in src/lib/rich-truncate.ts: the "Read more" cut lands on a space that is outside every mention and every formatting run, so the two halves -- rendered by SEPARATE renderRichText calls -- keep what the whole would have rendered. Tested by rendering both halves and comparing against the unsplit render |
-| C-180 | fixed <SHAC> | both Load-more handlers carry a synchronous re-entry ref AND an id-dedupe on append. `disabled={loadingMore}` binds on the next render, which a double tap gets past -- the same reasoning M35 records for the composer |
-| C-183 | fixed <SHAC> | `revokeBlobPreviews` on BOTH exits (a successful post, and an unmount that was not one). Only removeImage revoked, so every photograph actually posted stayed pinned in memory for the session -- long, on the immersive letters desk. Stored R2 urls are left alone |
-| C-014 | fixed <SHAC> | the letter crash-net key is scoped to the account at all three call sites. Signing out clears cookies, not localStorage, and the ":new" key is only cleared by a successful save -- so on a shared browser the next person got the previous member's unsaved letter restored under their own name |
-| C-008 | fixed <SHAC> | the letters index uses the shared `audienceWhere`, which spells the author exemption out on both arms. It hand-rolled the two fragments and omitted it, so an author who removed a city lost sight of their own letter while everyone still in that city could read it |
-| C-012 | fixed <SHAC> | the COMMENT was the wrong half. `deleteDraft` asserted "a draft is never visible to anyone else, admins included"; `decidePostVisibility` grants the admin exemption above its draft refusal and a test pins that ("an admin sees everything"), so admins CAN read drafts. Comment corrected and the decision written down at the rule itself. **Owner: if drafts should be private from admins too, it is one line to move and one test to change** |
+| C-011 | fixed 6421278 | `safeTruncateIndex` in src/lib/rich-truncate.ts: the "Read more" cut lands on a space that is outside every mention and every formatting run, so the two halves -- rendered by SEPARATE renderRichText calls -- keep what the whole would have rendered. Tested by rendering both halves and comparing against the unsplit render |
+| C-180 | fixed 6421278 | both Load-more handlers carry a synchronous re-entry ref AND an id-dedupe on append. `disabled={loadingMore}` binds on the next render, which a double tap gets past -- the same reasoning M35 records for the composer |
+| C-183 | fixed 6421278 | `revokeBlobPreviews` on BOTH exits (a successful post, and an unmount that was not one). Only removeImage revoked, so every photograph actually posted stayed pinned in memory for the session -- long, on the immersive letters desk. Stored R2 urls are left alone |
+| C-014 | fixed 6421278 | the letter crash-net key is scoped to the account at all three call sites. Signing out clears cookies, not localStorage, and the ":new" key is only cleared by a successful save -- so on a shared browser the next person got the previous member's unsaved letter restored under their own name |
+| C-008 | fixed 6421278 | the letters index uses the shared `audienceWhere`, which spells the author exemption out on both arms. It hand-rolled the two fragments and omitted it, so an author who removed a city lost sight of their own letter while everyone still in that city could read it |
+| C-012 | fixed 6421278 | the COMMENT was the wrong half. `deleteDraft` asserted "a draft is never visible to anyone else, admins included"; `decidePostVisibility` grants the admin exemption above its draft refusal and a test pins that ("an admin sees everything"), so admins CAN read drafts. Comment corrected and the decision written down at the rule itself. **Owner: if drafts should be private from admins too, it is one line to move and one test to change** |
 | C-199 | fixed 54e0f8a | already closed by C-002: the raw `isHidden` short-circuit is gone and canViewPost is the sole authority |
