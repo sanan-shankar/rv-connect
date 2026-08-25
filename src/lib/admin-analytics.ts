@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
 
 /* ------------------------------------------------------------------ *
  *  Everything /admin/analytics reads.
@@ -22,19 +21,6 @@ import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
  * ------------------------------------------------------------------ */
 
 export type Trend = { day: string; value: number }[];
-
-/** A single headline number, optionally with its own recent history. */
-export type Metric = {
-  key: string;
-  label: string;
-  value: number;
-  /** "count" renders bare, "money" as rupees, "percent" as a rate, "days" as an age. */
-  kind?: "count" | "money" | "percent" | "ratio";
-  hint?: string;
-  trend?: Trend;
-};
-
-export type Slice = { label: string; value: number; hint?: string };
 
 const day = 86_400_000;
 const ago = (n: number) => new Date(Date.now() - n * day);
@@ -85,7 +71,6 @@ export async function loadPeople() {
     joined30,
     byType,
     byBatch,
-    byHouse,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { emailVerified: { not: null } } }),
@@ -104,7 +89,6 @@ export async function loadPeople() {
       where: { batchYear: { not: null } },
       orderBy: { batchYear: "desc" },
     }),
-    prisma.user.groupBy({ by: ["batchType"], _count: { _all: true }, where: { batchType: { not: null } } }),
   ]);
 
   /* Decades, not individual years. Fifty-one people spread over forty years
@@ -131,7 +115,6 @@ export async function loadPeople() {
     byDecade: [...decades.entries()]
       .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.label.localeCompare(a.label)),
-    byHouse: byHouse.map((h) => ({ label: h.batchType ?? "unset", value: h._count._all })),
   };
 }
 
@@ -179,7 +162,7 @@ export async function loadGeography() {
 const PUBLISHED = { status: "published", isHidden: false } as const;
 
 export async function loadContent() {
-  const [posts, letters, drafts, comments, likes, bookmarks, photos, photoLoves, topAuthors] =
+  const [posts, letters, drafts, comments, likes, bookmarks, photos, topAuthors] =
     await Promise.all([
       prisma.post.count({ where: { kind: "post", ...PUBLISHED } }),
       prisma.post.count({ where: { kind: "letter", ...PUBLISHED } }),
@@ -188,7 +171,6 @@ export async function loadContent() {
       prisma.like.count(),
       prisma.bookmark.count(),
       prisma.photo.count(),
-      prisma.photoLove.count(),
       prisma.post.groupBy({
         by: ["authorId"],
         _count: { _all: true },
@@ -214,7 +196,6 @@ export async function loadContent() {
     likes,
     bookmarks,
     photos,
-    photoLoves,
     /* The number that says whether anything written gets READ, which is the
      * question the owner actually asked. A letter with no comments and no
      * hearts was published into silence. */
@@ -230,25 +211,11 @@ export async function loadContent() {
  * ---------------------------------------------------------------- */
 
 export async function loadCatchups() {
-  const [series, editions, prompts, entries, loves, byEdition] = await Promise.all([
-    prisma.catchup.count(),
-    prisma.catchupEdition.count(),
+  const [prompts, entries, loves] = await Promise.all([
     prisma.catchupPrompt.count(),
     prisma.catchupEntry.count(),
     prisma.catchupEntryLove.count(),
-    prisma.catchupEntry.groupBy({
-      by: ["editionId"],
-      _count: { _all: true },
-      orderBy: { _count: { editionId: "desc" } },
-      take: 8,
-    }),
   ]);
-
-  const editionRows = await prisma.catchupEdition.findMany({
-    where: { id: { in: byEdition.map((e) => e.editionId) } },
-    select: { id: true, number: true, status: true },
-  });
-  const label = new Map(editionRows.map((e) => [e.id, `Round ${e.number}`]));
 
   const answerers = await prisma.catchupEntry.findMany({
     distinct: ["authorId"],
@@ -256,65 +223,12 @@ export async function loadCatchups() {
   });
 
   return {
-    series,
-    editions,
-    prompts,
     entries,
     loves,
     people: answerers.length,
     /* The health number: a Round with ten questions and two answers is not
      * working, and neither total on its own would say so. */
     answersPerPrompt: prompts > 0 ? entries / prompts : 0,
-    byEdition: byEdition.map((e) => ({
-      label: label.get(e.editionId) ?? "unknown",
-      value: e._count._all,
-    })),
-  };
-}
-
-/* ---------------------------------------------------------------- *
- *  Support: the funnel the owner asked about first
- * ---------------------------------------------------------------- */
-
-export async function loadSupport() {
-  const LIVE = { livemode: true } as const;
-  const PAID = { ...LIVE, status: "paid" } as const;
-
-  const [started, paid, failed, agg, givers, byMethod, recent] = await Promise.all([
-    prisma.contribution.count({ where: LIVE }),
-    prisma.contribution.count({ where: PAID }),
-    prisma.contribution.count({ where: { ...LIVE, status: "failed" } }),
-    prisma.contribution.aggregate({ where: PAID, _sum: CONTRIBUTION_SUM, _avg: { amount: true } }),
-    prisma.contribution.findMany({
-      where: { ...PAID, userId: { not: null } },
-      distinct: ["userId"],
-      select: { userId: true },
-    }),
-    prisma.contribution.groupBy({
-      by: ["method"],
-      _count: { _all: true },
-      where: { ...PAID, method: { not: null } },
-      orderBy: { _count: { method: "desc" } },
-    }),
-    prisma.contribution.count({ where: { ...PAID, paidAt: { gte: ago(30) } } }),
-  ]);
-
-  const members = await prisma.user.count();
-
-  return {
-    started,
-    paid,
-    failed,
-    recent,
-    people: givers.length,
-    totalPaise: netPaise(agg._sum),
-    avgPaise: Math.round(agg._avg.amount ?? 0),
-    /* Of everyone who opened a payment, how many finished. The gap between
-     * these two is the most actionable number on the page. */
-    completion: started > 0 ? paid / started : 0,
-    /* Of everyone who COULD give, how many have. */
-    participation: members > 0 ? givers.length / members : 0,
-    byMethod: byMethod.map((m) => ({ label: m.method ?? "unknown", value: m._count._all })),
   };
 }
 
@@ -323,9 +237,8 @@ export async function loadSupport() {
  * ---------------------------------------------------------------- */
 
 export async function loadMail() {
-  const [sent, failed, queued, delivered, bounced, complained, byKind] = await Promise.all([
+  const [sent, queued, delivered, bounced, complained, byKind] = await Promise.all([
     prisma.outboundEmail.count({ where: { status: "sent" } }),
-    prisma.outboundEmail.count({ where: { status: "failed" } }),
     prisma.outboundEmail.count({ where: { status: { in: ["queued", "sending"] } } }),
     prisma.outboundEmail.count({ where: { deliveredAt: { not: null } } }),
     prisma.outboundEmail.count({ where: { bouncedAt: { not: null } } }),
@@ -335,7 +248,6 @@ export async function loadMail() {
 
   return {
     sent,
-    failed,
     queued,
     delivered,
     bounced,
@@ -489,7 +401,7 @@ export async function loadPresence() {
 export async function loadSearches() {
   const since = new Date(Date.now() - 90 * 86_400_000);
 
-  const [top, byScope, empty, recent, total] = await Promise.all([
+  const [top, byScope, empty, total] = await Promise.all([
     prisma.searchLog.groupBy({
       by: ["query"],
       _count: { _all: true },
@@ -512,12 +424,6 @@ export async function loadSearches() {
       orderBy: { _count: { query: "desc" } },
       take: 10,
     }),
-    prisma.searchLog.findMany({
-      where: { createdAt: { gte: since } },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      select: { query: true, scope: true, results: true, createdAt: true },
-    }),
     prisma.searchLog.count({ where: { createdAt: { gte: since } } }),
   ]);
 
@@ -526,7 +432,6 @@ export async function loadSearches() {
     top: top.map((r) => ({ label: r.query, value: r._count._all })),
     byScope: byScope.map((r) => ({ label: r.scope, value: r._count._all })),
     empty: empty.map((r) => ({ label: r.query, value: r._count._all })),
-    recent,
   };
 }
 
