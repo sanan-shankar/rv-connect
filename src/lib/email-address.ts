@@ -29,7 +29,7 @@ export function normalizeEmail(raw: string | null | undefined): string {
  * has always had; RFC 5321 puts the real ceiling at 254, so this refuses only
  * addresses that are already unusable.
  */
-export const EMAIL_MAX = 200;
+const EMAIL_MAX = 200;
 
 /**
  * A zod field that accepts what somebody typed and yields the canonical form.

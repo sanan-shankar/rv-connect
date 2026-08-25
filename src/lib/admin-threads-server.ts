@@ -6,10 +6,6 @@ import {
   deriveSubject,
   previewOf,
 } from "@/lib/admin-threads";
-// One definition of "did this app mint that URL", in a pure module so both the
-// message path and the post/Catch-up write paths share it (audit C2/M10).
-export { isUploadedImageUrl } from "@/lib/upload-shared";
-
 /**
  * The database half of member <-> admin conversations. Split from
  * admin-threads.ts (which is client-safe) so the composer and the admin queue

@@ -39,10 +39,6 @@ export function razorpayKeyId() {
   return credentials().keyId;
 }
 
-export function razorpayConfigured() {
-  return Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
-}
-
 /* Whether the configured keys move real money. Razorpay encodes the mode in
    the key id itself ("rzp_live_..." vs "rzp_test_..."), and nothing in an
    order or payment id does, so this prefix is the only signal available.

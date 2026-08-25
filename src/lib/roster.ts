@@ -30,7 +30,7 @@ import {
  * Never fills admission number, houses, or anything else from the sheets
  * (owner call: the roster admits people, it does not write their profile).
  */
-export async function tryRosterAutoVerify(userId: string): Promise<boolean> {
+async function tryRosterAutoVerify(userId: string): Promise<boolean> {
   if (IS_DEMO) return false;
 
   const user = await prisma.user.findUnique({

@@ -835,10 +835,6 @@ async function drainWithLease(holder: string): Promise<DrainReport> {
   return { sent, failed, backlog: waiting > 0 };
 }
 
-/** The daily ceiling, exported so the admin panel can show the budget rather
- *  than a bare count with no denominator. */
-export const MAIL_DAILY_CAP = DAILY_CAP;
-
 /** Queue health for the admin panel: what today has spent, what is still
  *  waiting on it, and what gave up. "Gave up" is the only one that needs a
  *  human, and it is almost always a mistyped address. */
