@@ -58,6 +58,15 @@ function volatileRegions(page: Page) {
      * built checks of its own, scripts/qa/hoopoe-idle-check.mjs and
      * hoopoe-landing-check.mjs. This suite watches the page it sits on. */
     page.locator(".hoopoe-mascot"),
+    /* The notification bell's unread DOT is live data: it appears the moment
+     * anybody comments, likes or joins anything, and it sits in the mobile
+     * header of every single route. Four mobile checks -- collection, support,
+     * birds, about -- went red on 2026-08-25 with that dot as the only
+     * differing pixels, on pages nothing had touched. That is the suite crying
+     * wolf about somebody else's activity, which is exactly what this list is
+     * for. The bell has its own behaviour covered by the notification tests;
+     * this suite watches the pages it sits on. */
+    page.getByRole("button", { name: /notifications/i }),
   ];
 }
 

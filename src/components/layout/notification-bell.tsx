@@ -337,6 +337,16 @@ export function NotificationBell({
             {unreadCount > 99 ? "99+" : unreadCount}
           </motion.span>
         )}
+        {/* The same spoken label the other variant carries. Without it this
+            button's accessible name is whatever the badge says -- literally
+            "1" -- or nothing at all when the count is zero, because `title`
+            only fills in when there is no other content. A screen reader
+            announced a bare number and no clue what pressing it does. Found
+            while masking the badge out of the visual suite, which could not
+            find the control by name either. */}
+        <span className="sr-only">
+          {unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
+        </span>
       </DropdownMenuTrigger>
       <NotificationPanel
         notifications={notifications}

@@ -3402,3 +3402,31 @@ DoS. Right about the mechanism, wrong about the cost -- the tables are small,
 the endpoints are gated and rate-limited, and a long LIKE needle fails FASTER
 per row, not slower. (The feed and directory terms are capped anyway now, by
 C-015 earlier today.)
+
+## 2026-08-25 (later) — the visual suite stops crying wolf
+
+Not a finding: this came out of verifying the directory work. `npm run visual`
+went from the documented 8 red to 12, and the four new ones were mobile
+collection, support, birds and about -- pages nothing had touched. The diff on
+each was a handful of pixels in one place: the notification bell's unread
+badge, which sits in the mobile header of every route and changes the moment
+anybody comments on anything. The suite was reporting somebody else's activity
+as a regression on four unrelated pages.
+
+Masking it turned up a real defect behind it. The header variant of the bell
+has no `sr-only` label -- only the sidebar variant does -- so its accessible
+name is whatever the badge says, literally "1", or nothing at all when the
+count is zero, since `title` only fills in where there is no other content. A
+screen reader announced a bare number with no clue what pressing it does. That
+is why `getByRole("button", { name: /notifications/i })` matched nothing and
+the first mask silently covered no pixels at all.
+
+So: the label is added (invisible, no layout change), the bell goes into
+`volatileRegions()`, and the four baselines whose only diff was that badge are
+rewritten. Back to exactly the documented 8, all of them the live-data drift
+still owed a decision by the owner.
+
+**The lesson**: a Playwright mask whose locator matches nothing does not fail.
+It passes, covers no pixels, and the test goes on failing for the reason you
+thought you had just masked. Check the -actual.png for the magenta block before
+believing a mask worked.
