@@ -255,6 +255,25 @@ Two related things ride along with the same decision:
 
 ---
 
+## Owner decisions carried from the second bug audit's fix ledger (closed 2026-08-25)
+
+The audit itself is archived at `docs/audit-fix/2026-08-22-bug-audit-2/`. Nothing below
+blocks anything; each is a choice the code cannot make for itself.
+
+- **C-032** — the session is an ABSOLUTE 30 days, not rolling: every member is signed out
+  30 days after signing in however often they visit, and a launch cohort hits it together.
+  Documented at the config in `src/lib/auth.ts`. Rolling refresh is a product call.
+- **C-012** — admins can read unpublished letter drafts, and a test pins it. One line in
+  `decidePostVisibility` and one test to change if drafts should be private from admins.
+- **C-138** — the theme is per DEVICE: a new device starts light and walks the dark
+  gauntlet again. Deliberate as it stands; one line at sign-in if it should follow a member.
+- **C-135** (Google Pay/UPI test payment), **C-165/C-166** (PostHog/Sentry free-tier
+  ceilings; levers named in `docs/OPERATIONS.md`), **C-186** (the demo project's cron env),
+  **C-112/C-167** (plan-ceiling questions: demo's anonymous writes vs its nightly reset;
+  type-ahead search vs the Upstash free command quota at 2,000 members).
+- Still owed: **CRON_SECRET**, and a decision on the visual suite's live-data drift
+  (8 of 23 shots red on data, not code, since before that audit ran).
+
 ## Settled, do not re-open
 
 Earlier feedback that was addressed, and in a few cases changed again by a later owner decision. Listed

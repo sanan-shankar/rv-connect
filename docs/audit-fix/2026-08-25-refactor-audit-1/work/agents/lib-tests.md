@@ -10,7 +10,7 @@ leftovers. Date: 2026-08-25. Files in territory: 77; read fully: 77.
 
 - Read fully: every file in `git ls-files src scripts | grep 'test\.mjs$'` (75 files),
   `scripts/qa/check.mjs`, `src/lib/test-fn-body.mjs`. Also read for context:
-  `.claude/skills/check/SKILL.md`, `docs/planning/audits/fix-ledger.md` (grep for test pins),
+  `.claude/skills/check/SKILL.md`, `docs/audit-fix/2026-08-22-bug-audit-2/fix-ledger.md` (grep for test pins),
   `progress.md` lines 4020-4240 (the C-188/C-189/C-190/C-195/C-196/C-197 session),
   `raw/jscpd-tests.txt`, `raw/knip.txt`.
 - Skimmed: none.

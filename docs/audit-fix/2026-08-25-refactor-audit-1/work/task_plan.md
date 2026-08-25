@@ -1,10 +1,10 @@
 # Pre-release simplification audit — task plan
 
 Started 2026-08-25 ~14:30 IST. Audit-only: no application code, config, schema or test
-changes. Everything this session writes lives under `docs/planning/audits/simplification/`
-plus the final `docs/planning/audits/simplification-report.md` and one `progress.md` entry.
+changes. Everything this session writes lives under `docs/audit-fix/2026-08-25-refactor-audit-1/work/`
+plus the final `docs/audit-fix/2026-08-25-refactor-audit-1/report.md` and one `progress.md` entry.
 
-Spec: `docs/planning/simplification-audit-prompt.md` (read it first on resume).
+Spec: `docs/audit-fix/prompts/refactor-audit-prompt.md` (read it first on resume).
 Owner's extra instructions this session (2026-08-25, verbatim intent):
 - The session may die abruptly (usage limit or otherwise). Progress must survive: every
   agent report is written to disk by the agent itself, this plan tracks what is done, and
@@ -75,7 +75,7 @@ cross-file questions that fall between territories.
 ## Decisions
 | When | Decision | Why |
 |---|---|---|
-| 14:30 | Working files under `docs/planning/audits/simplification/`, report at `docs/planning/audits/simplification-report.md` | The prompt names the report path; `audits/task_plan.md` already belongs to the bug audit and must not be clobbered |
+| 14:30 | Working files under `docs/audit-fix/2026-08-25-refactor-audit-1/work/`, report at `docs/audit-fix/2026-08-25-refactor-audit-1/report.md` | The prompt names the report path; `audits/task_plan.md` already belongs to the bug audit and must not be clobbered |
 | 14:30 | SLOC measured with `npx cloc` (code lines, comments and blanks reported separately) | `scc` on npm is an unrelated package; cloc is the same convention (non-blank, non-comment) |
 | 14:30 | Tools run via `npx --yes <pkg>`, no devDependency installs | package.json / lock are shared with another live session; npx leaves the tree untouched |
 | 14:30 | Finder agents inherit the session model | Same as the bug audit's finder fan-out; false positives cost more verification than a cheaper tier saves |

@@ -22,6 +22,9 @@ decorative. Motion: `motion` for micro-interactions, `@formkit/auto-animate` for
   fire: the visual suite, the CI gate, the nightly database backup, Sentry, Renovate.
 - `docs/ROADMAP.md` is the phased plan. `docs/planning/bugs.md` is the bug tracker,
   `docs/planning/FEATURES.md` the parked ideas. `progress.md` is the session history; log outcomes there.
+- `docs/audit-fix/` holds every formal audit and its fix campaign, dated. A fix session's
+  entire handover is that audit's `fix-prompt.md`: read it, execute, and update the same
+  file before ending so the next session can be started by @-ing it alone.
 - **`/lab` is the one index of every dev and preview room.** Nothing is browsable that is not listed
   in `src/app/lab/_registry.ts`. `/lab/v2` is the approved look; `/lab/logo` documents the final mark.
 
@@ -91,6 +94,14 @@ CTAs are Canopy `#235C49` pills. Only `transform` and `opacity` animate. Any new
 `loading.tsx` using the warm shimmer, not a grey pulse. Screenshot desktop and mobile, minimum two
 rounds. Run `/simplify`. Log the session in `progress.md` — written before you commit, and staged
 in the same commit as the work it describes.
+
+## "kowalski"
+
+When the owner says `kowalski` (any casing, on its own or inline), reply immediately with a
+compact progress report and nothing else: what is happening right now; percent through the
+current item list (n of m, name the current item); percent of effort remaining; percent of
+estimated wall-clock remaining; anything blocked or waiting on him. No preamble, no
+re-planning, and no tool calls beyond what counting requires.
 
 # Tooling
 

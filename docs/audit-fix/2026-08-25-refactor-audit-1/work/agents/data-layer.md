@@ -12,8 +12,8 @@ routes (feed loadPosts, directory page, profile page, catchups round page).
 ## Coverage
 
 - Read fully: `prisma/schema.prisma`; `src/lib/prisma.ts`; `src/lib/index-coverage.test.mjs`;
-  `src/lib/db-pool-rule.test.mjs`; `docs/planning/audits/db-indexes-live.json` (129 indexes);
-  `docs/planning/audits/db-sizes-live.json`; DDL of all 50 files in `prisma/migrations-manual/`
+  `src/lib/db-pool-rule.test.mjs`; `docs/audit-fix/2026-08-22-bug-audit-2/work/db-indexes-live.json` (129 indexes);
+  `docs/audit-fix/2026-08-22-bug-audit-2/work/db-sizes-live.json`; DDL of all 50 files in `prisma/migrations-manual/`
   (headers skimmed, every CREATE/ALTER/DROP/UPDATE/DELETE statement extracted and read);
   `src/lib/db-text.ts` + its test; `src/lib/prisma-errors.ts`; `src/lib/posts.ts`;
   `src/app/(main)/directory/page.tsx`; `src/app/(main)/profile/[id]/page.tsx` (data half);

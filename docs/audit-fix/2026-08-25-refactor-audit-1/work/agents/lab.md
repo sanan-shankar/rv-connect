@@ -34,8 +34,8 @@ the biggest file of each room family (see Coverage).
   findings below, because none of it is imported by anything outside its own room (verified
   by grep, see lab-01 evidence).
 - **Uncommitted edits seen**: none in my territory. At read time `git status --short` showed
-  only this audit's own untracked files (`docs/planning/audits/simplification-report.md`,
-  `docs/planning/audits/simplification/`). The WIP files named in my charter
+  only this audit's own untracked files (`docs/audit-fix/2026-08-25-refactor-audit-1/report.md`,
+  `docs/audit-fix/2026-08-25-refactor-audit-1/work/`). The WIP files named in my charter
   (`next.config.ts`, `src/lib/admin.ts`, etc.) had been committed by the other session before
   I started (HEAD `c74d99f`); every file I judged was HEAD's version.
 

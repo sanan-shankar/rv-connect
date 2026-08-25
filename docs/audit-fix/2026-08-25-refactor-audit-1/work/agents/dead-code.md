@@ -32,7 +32,7 @@ read fully.
   slices quoted below (lib-tests owns them); `scripts/` bodies (scripts-e2e-ci owns them);
   `jscpd` clones (not my charter).
 - Uncommitted edits seen (someone else's WIP): none at audit time beyond the audit's own
-  untracked `docs/planning/audits/simplification*` files. The WIP my charter warned about
+  untracked `docs/audit-fix/2026-08-25-refactor-audit-1/work*` files. The WIP my charter warned about
   (`next.config.ts`, `src/lib/admin.ts`, `scripts/qa/phase7-probe.mjs`,
   `src/components/tour/manual-tour-entry.test.mjs`, `src/app/(main)/forbidden.tsx`) was
   committed before I started (`c74d99f` "a non-admin who asks for /admin is told 'nice try'").
@@ -568,7 +568,7 @@ schema model + two columns (migration-gated), and ~55 exports made module-privat
 - **Confidence**: high on the counts, deferring on the action.
 
 ### dead-code-18 - Close the knip config gap so this audit stays cheap
-- **Where**: `docs/planning/audits/simplification/knip.json` (the audit's ad-hoc config);
+- **Where**: `docs/audit-fix/2026-08-25-refactor-audit-1/work/knip.json` (the audit's ad-hoc config);
   whatever knip config the repo adopts
 - **Phase**: architecture (tooling)
 - **Tier**: T2     **Class**: cheap     **Decides**: autonomous

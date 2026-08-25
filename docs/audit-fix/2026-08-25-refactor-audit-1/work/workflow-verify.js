@@ -4,7 +4,7 @@ export const meta = {
   phases: [{ title: 'Verify', detail: 'each verifier refutes a cluster of related findings, writes verify/<cluster>.md' }],
 }
 const ROOT = '/Users/sanan/Documents/rv-connect'
-const AUD = `${ROOT}/docs/planning/audits/simplification`
+const AUD = `${ROOT}/docs/audit-fix/2026-08-25-refactor-audit-1/work`
 const done = new Set((args && args.done) || [])
 const VERDICTS = {
   type: 'object',

@@ -4357,3 +4357,39 @@ the missing public policy links, the tour at launch, the database drops, moving 
 of imported skill prose out of the repo, PostHog-vs-Vercel-Analytics, and the §7 process
 mechanism — the scripts-ledger gate, the test survival rule, and the "close it out"
 checklist he asked for, worded and ready for sign-off.
+
+## 2026-08-26 — docs/audit-fix: every audit gets a dated home, and the fix campaign gets its handover
+
+All audit material now lives under `docs/audit-fix/`, one dated folder per audit: what the
+owner reads (reports, fix ledgers, fix prompts) at each folder's top level, the working
+evidence (plans, raw tool output, agent reports, verification verdicts) tucked under
+`work/`. Three folders: bug audit 1 (2026-08-21, closed; artifacts live in git history,
+the folder holds the pointer), bug audit 2 (2026-08-22, closed; report + fix-ledger kept,
+its two machine dumps — 994KB of JSON — deleted per the refactor audit's own finding, and
+the ledger's owner-decision leftovers carried into `docs/planning/bugs.md` so the only
+live content kept living in the live tracker), and refactor audit 1 (2026-08-25, report
+final, fixes not started). The reusable prompts moved to `docs/audit-fix/prompts/`, each
+now carrying the owner's standing rules in writing: crash-safe waves with on-disk
+resume, usage discipline (never stingy, never wasteful), the artifact convention, and
+scratch-file discipline.
+
+The fix campaign's workflow is now one file: the owner @s
+`docs/audit-fix/2026-08-25-refactor-audit-1/fix-prompt.md` and that is the entire
+handover — status board, owner-input map (which §4 decision gates which phase, asked for
+at phase start), execution rules, and a session log every fix session appends to before
+ending. Fixes run on Opus max; audits on Fable ultracode. This reorganisation itself
+executed the audit's "archive the closed bug audit" item, so the fix prompt marks it done.
+
+Also in this pass: `docs/planning/catchups-fixes-brief.md` — which the owner found fully
+executed and stale — is gone (the owner had already deleted it on disk; the commit records
+it), and `docs/spec/catchups.md`'s banner now states the rules directly instead of
+deferring to a deleted file. `docs/README.md` learned the new folder and had its spec
+list corrected (admin.md and person-row-audit.md were missing). CLAUDE.md gained two
+things: the `docs/audit-fix/` pointer, and the owner's "kowalski" rule — say the word,
+get an instant compact progress report (item n of m, percent effort and time remaining,
+blockers) with no preamble.
+
+Root directory, for the record since the owner asked: the audit's verdict stands — all 16
+tracked root files are tool-required (verified against each tool's own docs or code); the
+real root cleanups are in fix phase 1b (tsbuildinfo relocation, progress.md monthly
+archive, the personal folders he moves himself).
