@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { balancedBody } from "./test-fn-body.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The composer, the card and the letters desk.
@@ -33,10 +34,19 @@ const contacts = decomment(read("src/components/profile/contacts-editor.tsx"));
 const letterhead = decomment(read("src/components/profile/letterhead-profile.tsx"));
 const feedActions = decomment(read("src/app/(main)/feed/actions.ts"));
 
+/* The shared balanced-brace extractor, not a local `indexOf("\n  }")`.
+   That one stops at the first two-space-indented closing brace, which is fine
+   for a component's inner function and wrong for a top-level server action --
+   and the workaround for that (asserting against the whole tail of the file
+   below the declaration) is what made the B-048 pin below vacuous for months
+   (audit C-188). See src/lib/test-fn-body.mjs. */
 const fnBody = (src, name) => {
-  const i = src.indexOf(name);
-  assert.ok(i > -1, `${name} is gone`);
-  return src.slice(i, src.indexOf("\n  }", i) + 4);
+  const body = balancedBody(src, name);
+  assert.ok(body, `${name} is gone`);
+  // A four-line slice means the extractor lost the scope; every assertion
+  // after it would then pass against almost nothing.
+  assert.ok(body.length > 60, `${name}'s body did not extract; this test is vacuous`);
+  return body;
 };
 
 /* ---- B-041 ---------------------------------------------------------- */
@@ -123,13 +133,17 @@ test("the feed rail's letter teaser is scoped to who is looking", () => {
 /* ---- B-048 ---------------------------------------------------------- */
 
 test("a draft's audience survives being saved and reopened", () => {
+  /* Against editPost's OWN body. This used to test the whole tail of
+     feed/actions.ts below the declaration, where `cityScope` appears six more
+     times in loadPosts and loadSavedPosts -- so deleting editPost's entire
+     audience block left this green (audit C-188). The balanced body was
+     already being computed on the line above and then thrown away. */
   const fn = fnBody(feedActions, "export async function editPost");
   assert.ok(
-    /cityScope/.test(feedActions.slice(feedActions.indexOf("export async function editPost"))),
+    /cityScope/.test(fn),
     "editPost drops cityScope again, so choosing a city on a resumed draft is " +
       "silently ignored (B-048)"
   );
-  void fn;
   assert.ok(
     /initialCityScope/.test(composer),
     "the composer cannot be seeded with a draft's stored audience, so it always " +

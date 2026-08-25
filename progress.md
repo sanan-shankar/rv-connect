@@ -4028,3 +4028,115 @@ ways, and the first attempt at the proof was itself the bug in miniature: a
 the stub ignores signals. A stub that HONOURS the signal shows it exactly: the
 old code is still waiting at 8 seconds, the new one aborts at 3,019ms and
 returns a fallback word.
+
+## 2026-08-25 (evening) — the last stretch, part four: the gates that were not gating
+
+Six findings, and they are the run's most uncomfortable ones, because every
+one of them is a check that reported success while checking nothing. The run
+found forty-odd of these in the application; these six were in the machinery
+that was supposed to find them.
+
+**`npm run check` said "clean" for a tool that had crashed (C-190).** The lint
+gate parsed eslint's summary line, and a clean eslint prints none — so did a
+crashed one. The captured exit code was discarded. Same in the protocol audit.
+Proved by throwing at the top of `protocol-audit.mjs`: it used to print
+`ok Shape + colour protocol clean`, and now prints `warn ... tool crashed`
+followed by the stack.
+
+**And it would not have noticed the suite shrinking (C-195).** Test discovery
+is bound to one extension and two directories, and it fails open: rename a test
+to `.spec.mjs` and it silently stops running, with the gate reporting "N/N
+passing" for a smaller N. There is a floor now, and — the half that catches one
+rename rather than a wholesale disappearance — a detector for test-shaped files
+the runner would not execute. Proved: renaming `heart.test.mjs` used to give a
+green `74/74 passing`, and now gives `FAIL — 1 not run` naming the file. The
+"14 unit tests" in CLAUDE.md was stale by 61.
+
+**A pin asserting against the wrong half of a file (C-188).** composer-rule's
+B-048 guard tested `/cityScope/` against the whole TAIL of feed/actions.ts below
+`editPost` — and `cityScope` appears six more times further down in `loadPosts`.
+Deleting editPost's entire audience block left it green; I checked, by deleting
+all eleven occurrences in that body. The balanced-brace body was being computed
+on the line above and thrown away with a `void fn;`, because the local
+extractor truncated a top-level server action. That extractor now lives in
+`src/lib/test-fn-body.mjs` with the two ways it goes wrong written down, and
+both files use it.
+
+**Three ways to smuggle an ungated action past the sweep (C-189), and a
+fourth.** gate-coverage found action files by `git grep -l '"use server"'`. That
+misses a `'use server'` file (single quotes), a file whose directive follows a
+docblock — the likely shape in a codebase this comment-heavy — and, since git
+grep only sees TRACKED files, a new action file until somebody stages it, which
+is exactly the moment you would want it to speak up. It walks the filesystem
+now, with the strictness in one filter. The third vector was `exportedActions`
+seeing only `export async function`, so an arrow-function export was swept by
+nothing; rather than teach that regex every export form JavaScript has, the
+ASSUMPTION is pinned — an action file exports async functions and types, full
+stop. All three verified with a scratch action file written each way; each is
+caught now, and none was before.
+
+**A test validating an algorithm nobody runs (C-196).** `avatar.test.mjs`
+deliberately mirrors the hash in plain JS so a bug in `avatar.ts` cannot hide
+behind the same bug in its test — sound, and it had no tripwire, so if
+`avatar.ts` changed its salt or its shift window the mirror would go on
+validating the old algorithm for ever. A parity assertion over 2,000 seeds ties
+them together. Proved by changing `>>> 13` to `>>> 11` in avatar.ts: 1,955 of
+2,000 seeds disagree, and the suite says so instead of passing.
+
+**A negative pin that only knew two spellings (C-197).** The B-020 guard
+refused `where: { email }` and `where: { email: email }` — two anticipated
+shapes — so the bug could return the moment somebody renamed the variable, and
+its paired positive assertion only checked that the token `acctKey` appeared
+SOMEWHERE in auth.ts, which it does for rate limiting whether or not the lookup
+uses it. Replaced with a positive sweep: every `where: { ... email: X ... }` in
+`src`, with X traced back to where it was made, must reach the canonical form.
+Three legitimate ways to get there (normalised inline, parsed by a schema whose
+email field is resolved BY NAME through validators.ts, or read back out of the
+User row) and the third is a listed exemption with its reason, so it is a
+reviewed decision rather than a silent pass. Proved with exactly the regression
+the old pins missed: `where: { email: submitted }`.
+
+**The pattern across all six.** Every one fails OPEN. A missed file, a missed
+export, a truncated slice, a drifted mirror, a crashed tool and a shrunken
+suite all produce the same output as success. That is the property to check
+when writing any of these, and it is cheaper to check than to discover: revert
+the fix and watch the gate fail. Every gate in this run was checked that way,
+and roughly one in eight was vacuous until that check exposed it.
+
+## 2026-08-25 (evening) — the second pre-release audit is closed
+
+**All 203 ids are disposed of.** `docs/planning/audits/fix-ledger.md` has a row for
+every one — `fixed <sha>`, `not-a-bug <reason>` or `owner <reason>` — and it reconciles
+exactly against `verdicts-merged.json`, 203 against 203. Every `fixed` sha resolves.
+Nothing is left open.
+
+Four of those rows are new tonight and were the reason the handover's count said 199: the
+owner-decision items C-135, C-165, C-166 and C-186 had been carried in prose from session
+to session with no row of their own. Carried in prose is how a thing gets lost.
+
+**Tonight closed the last 29**, in four commits: the shell every page renders, the admin
+rooms, settings and onboarding, and the gates themselves. `npm run check` is green;
+`npm run visual` is red on exactly the eight it has been red on since before this run
+started (feed, directory, letters and catch-ups at both viewports), from live data drift
+rather than code, which is one of the decisions still owed.
+
+**What the Low tier turned out to be.** Not small versions of the Mediums. Overwhelmingly
+**one rule written down twice**, and then only half-maintained: a count built by one query
+beside a list built by another, a bound typed into the editor members actually reach while
+the shared schema went unread, three place writers each mirroring half of the same legacy
+pair, ten leaderboards keyed on a name that is not unique. And **a comment that had
+outlived its code** — nine of them, by my count, and in six cases the comment was the half
+that was wrong, which is a different kind of fix and a harder one to be honest about.
+
+**What I would tell the next person.** The single most valuable habit in this run was
+cheap: revert the fix and watch the gate fail. Roughly one in eight gates was vacuous
+until that check exposed it, tonight included — and the last batch of findings was six
+gates that had never been checked that way at all, every one of them reporting success
+while checking nothing. A test that has never been seen to fail is a rumour.
+
+The second most valuable was distrusting a zero. Five separate mechanisms produced a
+proof that looked exactly like the fix working: a per-IP rate limit refusing the second
+run, a `page.fill` landing before hydration, a Playwright mask whose locator matched
+nothing, the dev server's own compiler serialising a race, and a `fetch` stub that ignored
+the abort signal it was there to test. Assert on something that could only be true if the
+code under test ran — never on the absence of an outcome.
