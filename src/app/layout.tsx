@@ -41,16 +41,30 @@ export const metadata: Metadata = {
   },
 };
 
+/** The two `--background` values, one per theme. Keep in lockstep with
+ *  globals.css, where the light one is :root and the dark one is .dark. */
+export const THEME_COLORS = { light: "#E4E1D5", dark: "#1C2420" } as const;
+
 /* Without an explicit themeColor, iOS Safari paints its top/bottom chrome in
  * its own default surface, which sat as two alien warm-white slabs around the
  * app (owner, 2026-07-30: they "ruin the immersive nature vibe"). Matching the
  * page base makes the browser chrome part of the scene. viewport-fit=cover
  * lets content extend under the home indicator; the handful of fixed bottom
- * bars already pad with env(safe-area-inset-bottom). */
-export const viewport: Viewport = {
-  themeColor: "#E4E1D5", // == --background; keep in lockstep with globals.css
-  viewportFit: "cover",
-};
+ * bars already pad with env(safe-area-inset-bottom).
+ *
+ * GENERATED per request, not a static export (audit C-119). A constant can
+ * only name one colour, and it named the light one, so once dark shipped a
+ * dark-theme member got warm-paper Safari chrome around a charcoal app -- the
+ * exact mismatch this exists to prevent, inverted. Not a prefers-color-scheme
+ * media array either: the theme here is the rv-theme COOKIE, chosen in
+ * settings, and enableSystem is off, so the OS setting is the wrong question
+ * to ask. Same cookie the layout below reads. */
+export async function generateViewport(): Promise<Viewport> {
+  return {
+    themeColor: THEME_COLORS[(await getThemeCookie()) === "dark" ? "dark" : "light"],
+    viewportFit: "cover",
+  };
+}
 
 export default async function RootLayout({
   children,
