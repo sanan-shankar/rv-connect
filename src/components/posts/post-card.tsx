@@ -30,6 +30,7 @@ import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
+import { safeTruncateIndex } from "@/lib/rich-truncate";
 
 /* "Read more" reveals text beyond this many raw characters. Kept as a module
    constant (not a magic number inline) since it is read in two places below. */
@@ -127,12 +128,21 @@ export function PostCard({
   );
   const isLetter = post.kind === "letter";
   const isLongText = content.length > READ_MORE_TRUNCATE_LEN;
-  // Split (rather than swap) the text so "Read more" can ease the remainder open
-  // instead of snapping the whole paragraph to its full length.
-  const leadText = isLongText
-    ? content.slice(0, READ_MORE_TRUNCATE_LEN)
-    : content;
-  const restText = isLongText ? content.slice(READ_MORE_TRUNCATE_LEN) : "";
+  /* Split (rather than swap) the text so "Read more" can ease the remainder
+     open instead of snapping the whole paragraph to its full length.
+
+     At a SAFE index, not at exactly 300 (audit C-011). The two halves are
+     rendered separately, and `renderRichText` needs both delimiters of a run
+     in one string and matches a mention whole -- so a bold phrase, a mention
+     or an emoji straddling the boundary came apart into raw markers or a pair
+     of lone surrogates. `safeTruncateIndex` finds the last space at or below
+     the cap that is outside every mention and every formatting run. */
+  const cut = useMemo(
+    () => safeTruncateIndex(content, READ_MORE_TRUNCATE_LEN),
+    [content]
+  );
+  const leadText = isLongText ? content.slice(0, cut) : content;
+  const restText = isLongText ? content.slice(cut) : "";
 
   // Letter preview: plain-text excerpt + estimated read time.
   const letterPlain = content

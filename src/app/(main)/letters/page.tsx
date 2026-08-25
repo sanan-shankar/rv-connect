@@ -7,15 +7,14 @@ import { PageHeader } from "@/components/layout/page-header";
 import { DraftsStrip } from "@/components/letters/drafts-strip";
 import { Button } from "@/components/ui/button";
 import { IdentityRow } from "@/components/common/identity-row";
-import { getViewerCities, cityScopeWhere } from "@/lib/city-scope";
+import { getViewerCities } from "@/lib/city-scope";
 import { batchLine, formatDisplayDate, letterTitle, metaLine } from "@/lib/utils";
 import {
   AUTHOR_IN_GOOD_STANDING,
   PUBLISHED_ONLY,
   VISIBLE_COMMENT,
-  batchScopeWhere,
+  audienceWhere,
 } from "@/lib/posts";
-import { batchTargetKey } from "@/lib/post-visibility-rule";
 
 export const metadata: Metadata = {
   title: "Letters",
@@ -61,7 +60,6 @@ export default async function LettersPage({
   const cursor = before ? new Date(before) : null;
   const olderThan = cursor && !Number.isNaN(cursor.getTime()) ? cursor : null;
 
-  const userBatch = batchTargetKey(session.user.batchType, session.user.batchYear);
   const isAdmin = session.user.role === "admin";
   const viewerCities = isAdmin ? [] : await getViewerCities(session.user.id);
   // Reused below for the composer's "Show to" audience control (same list, no
@@ -76,8 +74,14 @@ export default async function LettersPage({
       ...PUBLISHED_ONLY,
       // A blocked member's letters leave the index with them (audit Low 78).
       ...AUTHOR_IN_GOOD_STANDING,
-      ...batchScopeWhere(userBatch),
-      ...(isAdmin ? {} : { AND: [cityScopeWhere(viewerCities)] }),
+      /* The SHARED audience builder, which spells out the author exemption
+         on both arms (audit C-008). This index hand-rolled the two fragments
+         and omitted it, so an author who published a letter scoped to their
+         own city and later removed that city from their profile lost sight of
+         their own letter -- while it stayed readable to everybody still in
+         that city. The feed has carried the exemption since M30; this page is
+         the surface the letter actually lives on. */
+      ...audienceWhere(session.user, viewerCities),
       ...(olderThan ? { createdAt: { lt: olderThan } } : {}),
     },
     include: {

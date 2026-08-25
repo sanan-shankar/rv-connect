@@ -176,7 +176,15 @@ export function decidePostVisibility(
   facts: VisibilityFacts
 ): PostVisibility {
   /* Admins see everything -- the same exemption loadPosts makes by skipping
-     the cityScope fragment entirely for an admin viewer. */
+     the cityScope fragment entirely for an admin viewer.
+
+     INCLUDING an unpublished draft. That is a deliberate, gated decision (see
+     "an admin sees everything" in post-visibility-rule.test.mjs), not an
+     oversight -- but it is worth knowing it is a decision, because a draft is
+     private writing that has never had an audience, and `deleteDraft` used to
+     assert the opposite of what happens here (audit C-012). The comment there
+     is now correct; if the owner would rather drafts were private from admins
+     too, this is the one line to move and that test is the one to change. */
   if (viewer.role === "admin") return { ok: true, post };
 
   /* Your own post is always yours, including a draft you are still editing.

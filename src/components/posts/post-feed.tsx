@@ -62,6 +62,8 @@ export function PostFeed({
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  /** The same flag, readable in the same tick. See handleLoadMore. */
+  const loadingMoreRef = useRef(false);
 
   const [searchInput, setSearchInput] = useState(initialSearch ?? "");
   const [search, setSearch] = useState(initialSearch ?? "");
@@ -229,6 +231,13 @@ export function PostFeed({
        later page continued the wrong query (audit Low 75). Dropping the stale
        page is the whole fix; the effect above has already loaded the new first
        page. Same shape the directory carries for M36. */
+    /* A SYNCHRONOUS re-entry guard, not `disabled={loadingMore}` alone (audit
+       C-180). `setLoadingMore(true)` binds on the next render, so a double tap
+       -- or Enter held on a focused button -- reaches this function twice with
+       the same cursor and appends the same page twice. The same reasoning M35
+       records for the composer's in-flight ref. */
+    if (loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
     const generation = listGeneration.current;
     setLoadingMore(true);
     try {
@@ -238,13 +247,22 @@ export function PostFeed({
         toast.error(data.error);
         return;
       }
-      setPosts((prev) => [...prev, ...data.posts]);
+      /* Deduped by id on append. The guard above closes the double tap; this
+         closes everything else that can hand back a row already on screen --
+         a cursor row deleted between pages, a retried request that did land.
+         Cheap, and the alternative is a duplicate key warning and a post the
+         member sees twice. */
+      setPosts((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        return [...prev, ...data.posts.filter((p) => !seen.has(p.id))];
+      });
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
     } finally {
       // finally, not a trailing statement: a rejected call used to leave
       // "Load more" disabled for the rest of the session (audit B-042).
       setLoadingMore(false);
+      loadingMoreRef.current = false;
     }
   }
 

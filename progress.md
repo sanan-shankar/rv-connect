@@ -3704,3 +3704,48 @@ enumerate the bucket. Both closed.
 
 C-068 refuted by its own test: the dev `.env` carries full R2 credentials, so
 the host-recognition branch it depends on is live locally.
+
+## 2026-08-25 (later) — the long tail, part eleven: posts and letters
+
+Seven findings; one was already closed (C-199, by C-002's work).
+
+**"Read more" tore the post in half (C-011).** A long post is split at exactly
+300 characters and the two halves are rendered by SEPARATE `renderRichText`
+calls -- and that function needs both delimiters of a run in one string and
+matches a mention whole. So anything straddling the boundary came apart: a bold
+phrase printed its asterisks, `@[Name](id)` printed as its own source, and an
+emoji split into two lone surrogates, one at the end of the lead and one at the
+start of the remainder. `safeTruncateIndex` finds the last space at or below
+the cap that is outside every mention and every formatting run. Its test
+renders both halves and compares against the unsplit render, which is the
+property that actually matters.
+
+**Two client guards that bind too late (C-180, C-183).** Both Load-more
+handlers relied on `disabled={loadingMore}`, which binds on the next render, so
+a double tap appended the same page twice -- the same reasoning M35 already
+records for the composer. They have a synchronous ref and an id-dedupe now. And
+the composer minted a `blob:` preview per photograph and only ever revoked on
+REMOVE, so every picture actually posted stayed pinned in memory for the rest
+of the session, which on the immersive letters desk is a long one.
+
+**A letter left on a shared browser (C-014).** The crash-net localStorage key
+carried no member id, sign-out clears cookies but not localStorage, and the
+":new" key is only cleared by a successful save. So the next person to open
+/letters/new on a family laptop had the previous member's unsaved letter
+restored silently into their composer, under their own name.
+
+**An author losing sight of their own letter (C-008).** The letters index
+hand-rolled the city and batch fragments and omitted the author exemption the
+shared `audienceWhere` carries on both arms. Remove the city you scoped a
+letter to, and it vanished from your own index while staying readable to
+everybody still in that city.
+
+**One where the comment was the wrong half (C-012), and one question for the
+owner.** `deleteDraft` justified being author-only with "a draft is never
+visible to anyone else, admins included". That is not true --
+`decidePostVisibility` grants admins their exemption above its draft refusal --
+and a test pins it ("an admin sees everything"). I corrected the comment rather
+than the behaviour, because a gated decision is not mine to overturn. But it is
+worth a decision: a draft is private writing with no audience, so there is
+nothing in one to moderate. **If drafts should be private from admins too, it
+is one line to move in post-visibility-rule.ts and one test to change.**
