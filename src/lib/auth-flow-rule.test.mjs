@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { SESSION_MAX_AGE } from "./session-revocation.ts";
 
 /* ------------------------------------------------------------------ *
  *  The password-reset and confirmation flows.
@@ -121,21 +122,44 @@ test("C-156: the batch-group swallow reports rather than logging to nowhere", ()
 
 /* ---- C-032: the session's real shape, written down -------------- */
 
-test("C-032: the absolute-session decision is stated where the config is", () => {
+test("C-032: the session is ninety ABSOLUTE days, from one shared constant", () => {
+  /* The owner's call on 2026-08-25: thirty days became ninety. What did NOT
+     change, and is the part worth pinning, is that it does not roll -- the
+     cookie's expiry is fixed at sign-in because the refresh NextAuth documents
+     rides on Set-Cookie headers this app's request path discards. A bigger
+     number is not a rolling session, and the next reader must not think it is. */
   const auth = read("src/lib/auth.ts");
   const block = auth.slice(auth.lastIndexOf("/*", auth.indexOf("session: {")), auth.indexOf("session: {"));
-  assert.match(block, /ABSOLUTE/, "nothing says the thirty days do not roll");
+  assert.match(block, /ABSOLUTE/, "nothing says the ninety days do not roll");
   assert.match(block, /credentialVersion/, "nor that revocation does not depend on it");
-  // The claim only holds while the config really sets no maxAge of its own.
+
+  // One constant, not two numbers that agree today. TWO places mint a session
+  // cookie -- auth.ts and /api/dev-login -- and dev-login used to carry its own
+  // hand-typed thirty days under a comment claiming it matched a maxAge that
+  // was never set.
   const cfg = code(auth).slice(code(auth).indexOf("session: {"));
-  assert.doesNotMatch(
-    cfg.slice(0, cfg.indexOf("}")),
-    /maxAge/,
-    "a maxAge appeared; the comment above it now describes something else"
+  const sessionBlock = cfg.slice(0, cfg.indexOf("}"));
+  assert.match(
+    sessionBlock,
+    /maxAge:\s*SESSION_MAX_AGE/,
+    "the session length is hand-typed or absent again; it must come from the " +
+      "shared SESSION_MAX_AGE so dev-login cannot drift from it"
+  );
+  const devLogin = code(read("src/app/api/dev-login/route.ts"));
+  assert.match(
+    devLogin,
+    /MAX_AGE = SESSION_MAX_AGE/,
+    "dev-login mints a cookie with its own lifetime again"
   );
   assert.doesNotMatch(
-    read("src/app/api/dev-login/route.ts"),
-    /Matches the `session\.maxAge`/,
-    "dev-login still claims to match a maxAge that is not set"
+    devLogin,
+    /MAX_AGE = \d+/,
+    "a hand-typed session length is back in dev-login"
   );
+});
+
+test("C-032: SESSION_MAX_AGE is the ninety days the comments promise", () => {
+  // The number itself, so the prose above and the constant cannot part ways.
+  assert.equal(SESSION_MAX_AGE, 90 * 24 * 60 * 60);
+  assert.equal(SESSION_MAX_AGE / 86400, 90, "SESSION_MAX_AGE is not a whole number of days");
 });

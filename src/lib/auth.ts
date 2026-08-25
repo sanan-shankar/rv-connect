@@ -13,7 +13,7 @@ import { writeAudit } from "@/lib/audit";
 import { prisma } from "./prisma";
 import { normalizeEmail } from "./email-address";
 import { ownProfileLink } from "./notification-links";
-import { sessionRevoked } from "./session-revocation";
+import { sessionRevoked, SESSION_MAX_AGE } from "./session-revocation";
 
 /* authorize() below can only say "yes" (a user) or "no" (null), and null
    always surfaces as "Invalid email or password." These two let the login
@@ -254,29 +254,36 @@ const nextAuth = NextAuth({
       },
     }),
   ],
-  /* An ABSOLUTE thirty days, not a rolling one, and deliberately left that way
-   * (audit C-032).
+  /* An ABSOLUTE ninety days, not a rolling one (audit C-032; ninety is the
+   * owner's call, 2026-08-25, replacing @auth/core's 30-day default).
    *
-   * No `maxAge` here, so @auth/core's own 30-day default applies. NextAuth
-   * documents that as a session that refreshes on activity -- but the refresh
-   * rides on Set-Cookie headers emitted by GET /api/auth/session, and this app
-   * never asks for it: `auth()` takes the RSC path, which reads the response
-   * BODY and drops those headers, and there is no middleware, no
-   * SessionProvider and no useSession anywhere in src. So the cookie's expiry
-   * is fixed at sign-in and never advances.
+   * ABSOLUTE is the part to understand. NextAuth documents `maxAge` as a
+   * session that refreshes on activity, but that refresh rides on Set-Cookie
+   * headers emitted by GET /api/auth/session, and this app never asks for it:
+   * `auth()` takes the RSC path, which reads the response BODY and drops those
+   * headers, and there is no middleware, no SessionProvider and no useSession
+   * anywhere in src. So the cookie's expiry is fixed at sign-in and does not
+   * advance no matter how often somebody visits.
    *
-   * What that means for a member: a forced re-login roughly thirty days after
-   * they signed in, however often they have used the site, and a launch cohort
-   * hitting it together. A recoverable re-login with no data loss, and an
-   * absolute session is a defensible posture in its own right, so whether to
-   * add rolling refresh is the owner's call rather than a defect to fix
-   * quietly. Written down here so the next reader does not assume it rolls.
+   * What that means for a member: one forced re-login roughly three months
+   * after they signed in, and a launch cohort hitting it together on the same
+   * day. Recoverable, with no data loss. Thirty days made that a quarterly
+   * nuisance for the most active members; ninety makes it rare enough to feel
+   * like ordinary housekeeping, while still being a real ceiling on a cookie
+   * somebody left on a borrowed laptop.
+   *
+   * If it should ever genuinely roll, the change is not a bigger number here:
+   * it is a middleware or a route that re-issues the cookie, because nothing
+   * in the current request path can.
    *
    * Revocation does NOT depend on any of this: `User.credentialVersion` is
    * stamped into the token and compared on every session read, so a password
    * reset, a block or a deletion request ends every live session at once. */
   session: {
     strategy: "jwt",
+    // Ninety days. `SESSION_MAX_AGE` is shared with the dev-login route so the
+    // tooling cookie cannot outlive or undercut a real one.
+    maxAge: SESSION_MAX_AGE,
   },
   pages: {
     signIn: "/login",
@@ -327,7 +334,8 @@ const nextAuth = NextAuth({
            ~86 `if (!session?.user?.id)` guards refuses with no per-action
            change needed. (The row-gone case used to skip this branch but
            still RETURN a session with an id set from the JWT, so a deleted
-           account kept browsing for 30 days -- audit M6.) */
+           account kept browsing until the token expired, now ninety days
+           -- audit M6.) */
         if (sessionRevoked(dbUser, token.credentialVersion)) {
           session.invalid = true;
           return session;

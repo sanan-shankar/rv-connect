@@ -38,12 +38,14 @@ import { timingSafeEqualStrings } from "@/lib/timing-safe";
 import { encode } from "@auth/core/jwt";
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/email-address";
+import { SESSION_MAX_AGE } from "@/lib/session-revocation";
 
-/* Matches what a real session gets: @auth/core's 30-day default, which
-   src/lib/auth.ts takes by setting no `maxAge` of its own (this line used to
-   say it matched a maxAge that was never there -- audit C-032). A tooling
-   session that outlived a real one would be its own small oddity. */
-const MAX_AGE = 30 * 24 * 60 * 60;
+/* Matches what a real session gets, by IMPORTING it rather than agreeing with
+   it. This was a hand-typed 30 days under a comment claiming it matched a
+   `maxAge` that auth.ts never set (audit C-032); auth.ts now sets one, and
+   both read the same constant, so a tooling session cannot outlive or
+   undercut a real one. */
+const MAX_AGE = SESSION_MAX_AGE;
 
 /* Long enough that guessing is hopeless even against a local server with no
    rate limit in front of it. `openssl rand -base64 32` clears it comfortably. */

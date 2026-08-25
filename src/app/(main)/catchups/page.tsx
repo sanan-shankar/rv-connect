@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { ListChecks, Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
@@ -284,6 +284,7 @@ async function loadIndexData(userId: string) {
 export default async function CatchupsPage() {
   const session = await auth();
   if (!session?.user) return null;
+  const isAdmin = session.user.role === "admin";
 
   let data: Awaited<ReturnType<typeof loadIndexData>> | null = null;
   try {
@@ -325,6 +326,26 @@ export default async function CatchupsPage() {
               </Link>
             }
           />
+          {/* The admin's way into every Catch-up on the site, not just the
+              ones they are in -- the shelves below are memberships, and an
+              admin is usually in none of them, so this page is empty for the
+              owner and had no route to the whole list (owner, 2026-08-25).
+
+              On its OWN row rather than in the header. It started as a third
+              control up there and was measured at 390: the right cluster is
+              195px against a 151px title inside a 358px flex-nowrap header,
+              so it wrapped "Catch-ups" onto two lines. Four pixels is not
+              worth an icon nobody can read; down here there is full width and
+              the link can say what it is. */}
+          {isAdmin && (
+            <Link
+              href="/admin/catchups"
+              className="-mt-3 mb-6 inline-flex items-center gap-1 rounded-sm text-[12.5px] font-medium text-canopy underline-offset-2 transition-opacity hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canopy active:opacity-70"
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              Every Catch-up on the site
+            </Link>
+          )}
         </div>
       </div>
 
