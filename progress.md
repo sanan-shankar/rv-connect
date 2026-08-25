@@ -4140,3 +4140,33 @@ run, a `page.fill` landing before hydration, a Playwright mask whose locator mat
 nothing, the dev server's own compiler serialising a race, and a `fetch` stub that ignored
 the abort signal it was there to test. Assert on something that could only be true if the
 code under test ran — never on the absence of an outcome.
+
+## 2026-08-25 (evening) — owner round: a longer session, and a door into every Catch-up
+
+**Sessions are ninety days now, not thirty** (owner's call on the C-032 finding). Still
+ABSOLUTE, and that is the part worth repeating: the cookie's expiry is fixed at sign-in and
+does not advance however often somebody visits, because the refresh NextAuth documents
+rides on Set-Cookie headers this app's request path discards. A bigger number is not a
+rolling session. If it should ever genuinely roll, the change is a middleware or a route
+that re-issues the cookie, not a larger constant.
+
+`SESSION_MAX_AGE` lives in `session-revocation.ts` because TWO places mint a session
+cookie — the real one and `/api/dev-login` for local tooling — and the second used to carry
+its own hand-typed thirty days under a comment claiming it matched a `maxAge` that auth.ts
+never set. Both read the one constant now, and the gate pins that rather than the number.
+
+Revocation is unaffected: `credentialVersion` is compared on every session read, so a
+password reset, a block or a deletion request still ends every live session at once.
+
+**An admin door into every Catch-up.** The Catch-ups page shows the viewer's own
+memberships, and the owner is in almost none of them, so his own Catch-ups page is nearly
+empty and there was no route from it to the whole list. `/admin/catchups` has listed every
+Catch-up on the site all along — stuck Rounds first, then everything else — and nothing
+pointed at it.
+
+It started as a third control in the page header and that was wrong, measured rather than
+felt: at 390px the right cluster is 195px against a 151px title inside a 358px
+`flex-nowrap` header, so the button pushed "Catch-ups" onto two lines where the committed
+baseline has it on one. Four pixels is not worth an icon nobody can read. It sits on its
+own row under the header now, admin-only, in Canopy, saying what it is — "Every Catch-up on
+the site". Screenshotted at both viewports; the title is back on one line.
