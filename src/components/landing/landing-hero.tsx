@@ -11,7 +11,7 @@ import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
 import { SPRINGS, EASE_IN_OUT_SCENE, AUTH_SLIDE_SECONDS } from "@/components/common/motion";
-import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, AUTH_FORM_VW, LOGIN_TRANSITION_FLAG } from "./hero-photo";
+import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR, AUTH_FORM_VW } from "./hero-photo";
 import { launchFlight, FLIGHT_FLAG, type FlightTarget } from "@/components/mascot/mascot-flight";
 
 /**
@@ -243,16 +243,6 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
           if (def === "exiting" && !pushed.current) {
             pushed.current = true;
             const target = exitTarget.current;
-            // Tell /login this arrival is the landing slide, so its sign-in form
-            // plays the lateral entry; /login reads and clears it on mount. A
-            // direct visit / reload never sees this flag and gets no entry
-            // animation. (/signup's entry is unconditional, so it needs no such
-            // flag.) Set immediately before the push so it is present at mount.
-            try {
-              if (target === "login") window.sessionStorage.setItem(LOGIN_TRANSITION_FLAG, "1");
-            } catch {
-              // Private-mode / storage-disabled: fall back to no entry animation.
-            }
             // scroll: false, and it is a flight-smoothness call, not a scroll
             // preference. On navigation the app router walks the new tree
             // deciding what to focus and scroll to, reading geometry mid-commit

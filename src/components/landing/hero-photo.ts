@@ -24,13 +24,3 @@ export const AUTH_PANEL_VW = 58.3333;
 
 /** Width the sign-in form fills, as a % of the viewport. Also the hero image's leftward slide distance. */
 export const AUTH_FORM_VW = 100 - AUTH_PANEL_VW; // 41.6667
-
-/**
- * sessionStorage key: the landing "Sign in" slide sets this right before it
- * pushes to /login, and /login reads-and-clears it once on mount. It is the
- * signal that lets the sign-in form's arrival slide play ONLY for a genuine
- * landing transition — a direct visit or a reload finds no flag and renders the
- * form at rest with no entry animation. Clearing on read also stops the slide
- * from replaying if you reload /login after arriving.
- */
-export const LOGIN_TRANSITION_FLAG = "rv:login-transition";
