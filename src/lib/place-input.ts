@@ -22,7 +22,7 @@ import { canonicalIdForTypedCity, canonicalPlaceId } from "./place-aliases.ts";
 /** How many places one member may list. */
 export const MAX_PLACES = 30;
 
-export const placeSchema = z.object({
+const placeSchema = z.object({
   // The gazetteer row this came from, when it came from the gazetteer at all;
   // a free-typed place has none. Verified against the table by the callers
   // before it is written, because an unknown id aborts the whole transaction

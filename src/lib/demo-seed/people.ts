@@ -50,7 +50,7 @@ export interface DemoPerson {
  *  a plausible mid-career alumna whose profile is filled in enough that the
  *  sidebar, her own profile page and the Catch-up all look lived in from the
  *  first second, without her being the loudest person in the room. */
-export const DEMO_VISITOR: DemoPerson = {
+const DEMO_VISITOR: DemoPerson = {
   slug: "visitor",
   name: "Meera Sundaram",
   batchYear: 2011,
@@ -66,7 +66,7 @@ export const DEMO_VISITOR: DemoPerson = {
   houses: ["Neem", "Neem", "Raavi", "Malli", "Malli", "Gulmohar", "Gulmohar", "Amaltash"],
 };
 
-export const DEMO_PEOPLE: DemoPerson[] = [
+const DEMO_PEOPLE: DemoPerson[] = [
   // ── The oldest batches: the directory needs real depth at the top ──
   {
     slug: "rukmini-iyer",

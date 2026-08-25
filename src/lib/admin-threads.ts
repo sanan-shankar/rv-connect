@@ -12,16 +12,11 @@
 
 import { graphemes } from "./utils.ts";
 
-/** Every kind a thread can be. Only the first three are member-choosable. */
-export const THREAD_KINDS = ["bug", "idea", "message", "notice", "report"] as const;
-export type ThreadKind = (typeof THREAD_KINDS)[number];
-
 /** What the composer offers as optional chips. Order matters: it is the UI order. */
 export const COMPOSER_KINDS = ["bug", "idea", "message"] as const;
-export type ComposerKind = (typeof COMPOSER_KINDS)[number];
 
 export const MAX_MESSAGE_LENGTH = 4000;
-export const MAX_SUBJECT_LENGTH = 120;
+const MAX_SUBJECT_LENGTH = 120;
 
 /** How many new threads one member may open per hour, and messages per hour. */
 export const MAX_NEW_THREADS_PER_HOUR = 5;

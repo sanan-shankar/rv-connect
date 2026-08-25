@@ -13,7 +13,6 @@ import { MAX_INPUT_PIXELS } from "./upload-shared.ts";
  * `sequentialRead` lets libvips stream rows instead of holding the whole
  * decoded image where the operation allows it, trimming the peak.
  */
-export { MAX_INPUT_PIXELS };
 
 export function sharpImage(input: Buffer): Sharp {
   return sharp(input, {

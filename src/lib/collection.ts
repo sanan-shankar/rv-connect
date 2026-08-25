@@ -1,7 +1,7 @@
 // The Valley Collection: faceted taxonomy (fixed enums, stored as strings).
 // Shared by the validator, the contribute form, and the filter rail.
 
-export const SUBJECTS = [
+const SUBJECTS = [
   { value: "birds", label: "Birds" },
   { value: "wildlife", label: "Wildlife" },
   { value: "landscape", label: "Landscape" },
@@ -18,7 +18,7 @@ export const SUBJECTS = [
   { value: "historical", label: "Historical" },
 ] as const;
 
-export const AREAS = [
+const AREAS = [
   { value: "junior-school", label: "Junior School" },
   { value: "senior-school", label: "Senior School" },
   { value: "whole-campus", label: "Whole Campus" },

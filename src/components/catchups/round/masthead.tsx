@@ -23,7 +23,7 @@ import type { CatchupPersonRef } from "@/lib/catchups-types";
 const MAX_SHOWN_CONTRIBUTORS = 14;
 
 /** The byline: who wrote in. Names them up to three, then counts. */
-export function contributorsCopy(contributors: CatchupPersonRef[]): string {
+function contributorsCopy(contributors: CatchupPersonRef[]): string {
   const n = contributors.length;
   // This byline only ever renders on a published Round, so "yet" would be wrong.
   if (n === 0) return "No one wrote in.";

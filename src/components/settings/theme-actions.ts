@@ -28,7 +28,7 @@ import { THEME_COOKIE, type Theme } from "@/lib/theme";
  * `httpOnly: false` precisely so client code can read it, and can therefore
  * write it) and leave only the database write here.
  */
-export async function setTheme(theme: Theme) {
+async function setTheme(theme: Theme) {
   // Server actions are network-callable endpoints, so the union type alone is
   // no guard; reject anything that is not exactly one of the two values
   // before it can reach the database or the cookie.

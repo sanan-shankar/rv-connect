@@ -19,7 +19,7 @@ import type { Trend } from "@/lib/admin-analytics";
 /** Indian grouping: 5,530 not 5.53k, and 1,20,000 not 120,000. */
 const nf = new Intl.NumberFormat("en-IN");
 
-export function formatValue(value: number, kind?: Stat["kind"]): string {
+function formatValue(value: number, kind?: Stat["kind"]): string {
   switch (kind) {
     case "money":
       /* Paise in, rupees out. The unit is stored as paise everywhere
@@ -51,7 +51,7 @@ const TONE = {
   bad: "text-destructive",
 } as const;
 
-export function StatTile({ stat }: { stat: Stat }) {
+function StatTile({ stat }: { stat: Stat }) {
   return (
     <div className="flex min-w-0 flex-col gap-1 rounded-[var(--radius-md)] border border-border bg-card px-3.5 py-3">
       <p className="truncate text-[11.5px] font-medium uppercase tracking-[0.055em] text-muted-foreground">
@@ -94,7 +94,7 @@ export function StatGrid({ stats }: { stats: Stat[] }) {
  * without the stroke thickening, which is why the stroke is set in the
  * parent's units rather than px.
  */
-export function Sparkline({ trend, tone }: { trend: Trend; tone?: Stat["tone"] }) {
+function Sparkline({ trend, tone }: { trend: Trend; tone?: Stat["tone"] }) {
   if (trend.length < 2) return null;
 
   const values = trend.map((t) => t.value);

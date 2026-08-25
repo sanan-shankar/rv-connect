@@ -81,7 +81,7 @@ const RULE_TILE = "linear-gradient(90deg, var(--color-canopy) 0 2px, transparent
  * height and cannot push anything. `origin-left` plus a scaleX spring means it
  * draws in from the left the way a pen would.
  */
-export function PenRule({ on, delay = 0 }: { on: boolean; delay?: number }) {
+function PenRule({ on, delay = 0 }: { on: boolean; delay?: number }) {
   return (
     <motion.span
       aria-hidden

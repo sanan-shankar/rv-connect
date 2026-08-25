@@ -24,4 +24,3 @@ export const PROFESSIONS = [
   "Other",
 ] as const;
 
-export type Profession = (typeof PROFESSIONS)[number];

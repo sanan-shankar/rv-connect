@@ -9,7 +9,7 @@ import {
 } from "@/lib/post-visibility-rule";
 
 export { POST_NOT_VISIBLE } from "@/lib/post-visibility-rule";
-export type { PostViewer, PostVisibility, DenialReason } from "@/lib/post-visibility-rule";
+export type { PostViewer, PostVisibility } from "@/lib/post-visibility-rule";
 
 /* ------------------------------------------------------------------ *
  *  May this viewer see this one post? (audit H3)

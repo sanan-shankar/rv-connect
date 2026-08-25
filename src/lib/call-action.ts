@@ -22,7 +22,7 @@
 /** What a member is told when the call itself never landed. */
 export const ACTION_FAILED = "That did not go through. Check your connection and try again.";
 
-export type ActionFailure = { error: string };
+type ActionFailure = { error: string };
 
 /**
  * The failure branch, shaped like one of the action's own branches.

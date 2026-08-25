@@ -41,7 +41,7 @@ import { academicSpanLabel, type HouseSpan } from "@/lib/house-spans";
 /* The chain's palette, exported because the PICKER uses it too. Picking a
    house and seeing it land in the chain should be the same object twice, and
    the only way to guarantee that is one list of tints, read from one place. */
-export const HOUSE_TINTS = [
+const HOUSE_TINTS = [
   "border-leaf/30 bg-leaf/[0.07] text-leaf",
   "border-cinnamon/30 bg-cinnamon/[0.07] text-cinnamon",
   "border-sky/35 bg-sky/[0.10] text-sky",

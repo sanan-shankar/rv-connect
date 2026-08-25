@@ -20,7 +20,7 @@ export const HERO_IMAGE_BLUR =
   "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAAAQAgCdASoQAAwAA8BgJbACdAD7h+qpmvwAAOJ6NrHEjkGHa6R99IIGjUuOvA0UN584KWKge7O7OVZUykSOw17bFDoKCP5QUUNLxndjSuA4zF3MTc89gAAA";
 
 /** Width of the auth photo panel, as a % of the viewport. Mirrors the `w-[58.3333%]` class. */
-export const AUTH_PANEL_VW = 58.3333;
+const AUTH_PANEL_VW = 58.3333;
 
 /** Width the sign-in form fills, as a % of the viewport. Also the hero image's leftward slide distance. */
 export const AUTH_FORM_VW = 100 - AUTH_PANEL_VW; // 41.6667

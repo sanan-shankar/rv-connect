@@ -33,7 +33,7 @@ export const HOUSES = [
   "Duranta",
 ] as const;
 
-export type HouseName = (typeof HOUSES)[number];
+type HouseName = (typeof HOUSES)[number];
 
 export interface HouseYearEntry {
   year: number;

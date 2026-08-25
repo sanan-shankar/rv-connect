@@ -20,7 +20,7 @@ export type PostViewer = {
   batchYear?: number | null;
 };
 
-export type DenialReason =
+type DenialReason =
   | "not-found"
   | "hidden"
   | "draft"

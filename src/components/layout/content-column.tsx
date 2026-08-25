@@ -49,7 +49,7 @@ const WIDE_ROUTES = [
  */
 const CENTERED_EXCEPTIONS = ["/catchups/new", "/collection/"];
 
-export function isWideRoute(pathname: string): boolean {
+function isWideRoute(pathname: string): boolean {
   if (CENTERED_EXCEPTIONS.some((r) => pathname === r || pathname.startsWith(r))) return false;
   return WIDE_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
