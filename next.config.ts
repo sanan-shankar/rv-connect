@@ -197,6 +197,15 @@ const nextConfig: NextConfig = {
   // but NOT @phosphor-icons/react (a 4500-line barrel), which is the big win here.
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react", "motion"],
+    // Turns on forbidden() and its forbidden.tsx boundary, which is how a
+    // non-admin is turned away from /admin (src/lib/admin.ts). Experimental
+    // only in the sense that the API may still be renamed; it is the one
+    // primitive that both TERMINATES the segment render -- so no admin page
+    // body is ever built for a member -- and lands on a boundary of its own,
+    // separate from not-found. That separation is the point: three admin
+    // pages call notFound() for a row that is genuinely gone, and reusing
+    // that boundary would show an admin "nice try" for a deleted thread.
+    authInterrupts: true,
     // Server Actions default to a 1MB request body, which silently rejected
     // almost every real Collection photo (contributePhoto in
     // src/app/(main)/collection/actions.ts is a Server Action). 25mb covers a

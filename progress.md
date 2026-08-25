@@ -4267,3 +4267,49 @@ redirects — so any member who types `/admin` reads as "on the admin panel" for
 minutes. And this week's real analytics carry eleven localhost rows from tooling. The stray
 Kartik row and his moved `lastSeenAt` are still there; removing them is a write to the live
 database and the owner has not asked for it.
+
+## 2026-08-25 (evening) — "nice try"
+
+The owner's call, after the Kartik row above: a non-admin who asks for /admin is told so, instead
+of being bounced to the feed without explanation. Two words, no other text, styled like /about's
+"indefinitely procrastinated" stub. And explicitly: **the analytics row may keep saying "the admin
+panel"** ("it's fine if it's logged as admin under the analytics"). That was the honest half of the
+problem anyway — the person really did ask for that URL. What was missing was that they never
+learned they had been refused, so the owner's panel was the only account of the event.
+
+`requireAdminPage()` now calls **`forbidden()`** instead of `redirect("/feed")`, with
+`experimental.authInterrupts: true` in next.config.ts to enable it. Three reasons it is that and
+not markup returned from the layout:
+
+- **It still throws.** The segment's render terminates in the guard, so no admin page body is ever
+  built for a member. Returning a message in place would leave `{children}` to Next's composition
+  rules, and a guard whose safety rests on those is a guard that breaks at some future upgrade.
+- **It gets its own boundary**, separate from not-found. This matters concretely: `/admin/messages/[id]`,
+  `/admin/people/[id]` and `/admin/catchups/[catchupId]` all call `notFound()` for a row that is
+  genuinely gone. Sharing one boundary would have shown the OWNER "nice try" for a deleted thread.
+  Verified: as admin, `/admin/people/<bogus>` renders the not-found UI and never the 403 body.
+- **The boundary sits at `(main)`, not the app root**, so the sidebar survives. Being turned away is
+  not a reason to strip somebody's navigation.
+
+Proved against the running server with a throwaway member (created, used, deleted; no real alumnus
+and no existing account touched). `/admin`, `/admin/analytics`, `/admin/catchups`, `/admin/people`
+and `/admin/audit` each answer **403** with "nice try" and none of the panel's content; the admin
+still gets 200 and the real page; signed out is still the proxy's 307 to /login. Screenshotted at
+1440x900 and 390x844.
+
+**Two findings that are NOT this change**, both proved rather than assumed:
+
+- **`notFound()` under `(main)` returns HTTP 200, everywhere.** Not an admin thing and not new:
+  `/letters/<bogus>`, `/collection/<bogus>` and `/profile/<bogus>` all render the not-found UI with
+  a 200. Only a route that matches nothing at all (`/nonexistent-route-xyz`) gets a real 404. The
+  `(main)` layout flushes the shell before the page resolves, so the status is already committed —
+  soft-404s, which search engines treat as indexable. Left alone; it is its own piece of work.
+- **The 403 logs one dev-only React warning** ("Encountered a script tag while rendering React
+  component") and lights Next's "1 Issue" badge. Chased to the end so nobody chases it again: it is
+  Next's, not ours. `forbidden()` is caught by a CLIENT error boundary, so React re-renders the tree
+  on the client and walks Next's own `self.__next_f.push(...)` streaming script tags. The warning
+  string exists only in React's `*.development.js` builds, so it cannot fire in production. Written
+  into the comment at the top of forbidden.tsx.
+
+`npm run visual` was NOT run: no baselined route can reach this boundary (the suite signs in as
+admin, who never sees it), and the run had already hung the owner's machine once this session.

@@ -79,8 +79,12 @@ console.log("\n-- H14: the audit view is admin-gated");
   const member = await mkUser("auditmember", { verified: true });
   const mc = await fetchSessionCookie(BASE, `auditmember${P}`);
   const asMember = await get("/admin/audit", `${mc.name}=${mc.value}`);
-  // The admin layout redirects a non-admin to /feed.
-  L.check("/admin/audit as a non-admin member is redirected", asMember.status === 307 || asMember.status === 302, `got ${asMember.status}`);
+  // The admin layout answers a non-admin with forbidden() -- a 403 reading
+  // "nice try" (owner, 2026-08-25). It used to be a 307 to /feed. What the
+  // check is for either way: a member does not get the page.
+  const memberHtml = await asMember.text();
+  L.check("/admin/audit as a non-admin member is refused", asMember.status === 403, `got ${asMember.status}`);
+  L.check("...and the refusal carries none of the audit view", !memberHtml.includes("Audit log"), "the page body leaked to a member");
   void member;
 
   const asAdmin = await get("/admin/audit", adminCookie);
