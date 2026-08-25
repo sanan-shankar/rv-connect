@@ -122,6 +122,10 @@ drops below its floor or if a test-shaped file exists that the runner would not 
     `/api/dev-login` (the old `/api/auth/admin-login` is deleted -- security audit C1-b, it
     needed no secret and existed in production). The cookie holds
     for every later call. `--isolated` gives a fresh profile, so redo it if the browser restarts.
+  - **If a test needs a profile that is not yours, it is Jerry Maguire** (`sanan.shankar@gmail.com`),
+    which exists for exactly that. Never sign in as a real alumnus: dev-login writes presence
+    telemetry against whoever it signs in as, and on 2026-08-25 a guard check run as a 1978 alumnus
+    put him on the admin panel in the owner's own analytics room.
   - First hit of a cold route outruns the 10s default. Pass `timeout: 45000`.
   - The **scripts** still own what must repeat without you: `npm run check` gates, sweeps across many
     routes (`verify:crawl`, `theme-shots`), the numbered PNGs the two-round compare reads, and the

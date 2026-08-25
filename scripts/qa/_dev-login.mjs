@@ -39,9 +39,17 @@ function requireSecret() {
 
 /**
  * Sign in from Node and return the session cookie as { name, value }.
- * `email` defaults to ADMIN_EMAIL; pass any member's address to drive the
- * tooling as that person, which is how the verified/unverified tiers of the
- * trust model get screenshotted.
+ * `email` defaults to ADMIN_EMAIL; pass another address to drive the tooling as
+ * that person, which is how the verified/unverified tiers of the trust model
+ * get screenshotted.
+ *
+ * That address is Jerry Maguire (sanan.shankar@gmail.com), the account kept for
+ * this, and NOT a real alumnus. Signing in as one is not read-only: the (main)
+ * layout records a Visit and stamps lastSeenAt against whoever the cookie says,
+ * into the one database production also uses. A guard check run as a 1978
+ * alumnus on 2026-08-25 left him reading "on the admin panel" in the owner's
+ * analytics room, which is a false accusation in the one place that names
+ * people.
  */
 export async function fetchSessionCookie(baseUrl, email = process.env.ADMIN_EMAIL) {
   const secret = requireSecret();

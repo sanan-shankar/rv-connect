@@ -4236,3 +4236,34 @@ circle and nothing moves; mobile is pixel-unchanged.
 is. It says "Asked anonymously, by Katyaini Gupta" now. Worth noting that this gate reported
 the violation at all — until this morning a crashed audit and a clean one were the same
 green line (C-190).
+
+## 2026-08-25 (evening) — a real alumnus on the admin panel, and why he was not
+
+The owner saw **Kartik Kalyanram, Batch of '78, "the admin panel"** in the analytics room's
+"On the site now", and he is the only admin. He is right that it should not say that, and
+right that it needed explaining rather than dismissing.
+
+**Nobody got in.** `role` on that row is `member`, the `AuditLog` holds zero actions by his
+account ever, and the two admin accounts are both the owner's. The Visit was written at
+14:04 IST with `browser`, `os`, `country` and `city` all null — Vercel stamps geography onto
+every real request and every real agent string parses to a browser, so four nulls means a
+script against **localhost**, and local dev shares one database with production. Six minutes
+later commit `6d5609e` landed saying, in its own log: "signed in as a real member,
+`/admin/catchups/<id>` answers 307 to /feed". That was the previous session proving the new
+reading room's guard, via `/api/dev-login`, **as Kartik**. The guard held. The footprint is
+what stayed.
+
+**The rule now, the owner's: if a test needs a profile, it is Jerry Maguire.** That account
+exists for exactly this and nothing else was ever supposed to be borrowed. Written where a
+session will actually hit it — the `chrome-devtools` sign-in step in CLAUDE.md, and the
+JSDoc on `fetchSessionCookie` in `scripts/qa/_dev-login.mjs`, whose old wording ("pass any
+member's address") is what invited this. Both say why: dev-login is not read-only, because
+the `(main)` layout writes a Visit and stamps `lastSeenAt` against whoever the cookie names.
+
+**Two things this exposed and did not fix**, both noted for the owner rather than acted on:
+the presence tracker records the URL a person *asked for*, not the page they *got*, because
+[layout.tsx:78](<src/app/(main)/layout.tsx>) writes the row before the nested admin gate
+redirects — so any member who types `/admin` reads as "on the admin panel" for fifteen
+minutes. And this week's real analytics carry eleven localhost rows from tooling. The stray
+Kartik row and his moved `lastSeenAt` are still there; removing them is a write to the live
+database and the owner has not asked for it.
