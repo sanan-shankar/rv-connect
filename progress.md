@@ -4210,3 +4210,29 @@ PostHog at roughly 4% of its 1M-event month — but the number scales with MEMBE
 the 10,000-SPAN allowance is already the closer of its two limits, not a distant one.
 Neither breaks the site at the cap; both go blind, which in launch month is the whole point
 of having them. The levers are one line each and the doc names them.
+
+## 2026-08-25 (evening) — the button, third time
+
+Two corrections to the entry above it, both the owner's, both right.
+
+**It is a bare circle now, with no label** ("just a circle button somewhere small"), and it
+is back in the top right of the header where he asked for it — **desktop only**. The
+labelled row under the header was the wrong answer for a reason he named immediately: it
+took a row of its own and pushed every card down the page. An admin affordance that moves
+the member's content is not unintrusive whatever it says.
+
+The measurement that decides this, at a TRUE 390 rather than a browser window that would
+not go below 500: the header has **33.27px** of slack between the title and the "Start a
+Catch-up" pill. The smallest circle in the app is 32px and the cluster's gap is 10, so 42px
+into 33px — and even a 24px circle does not fit, because the gap alone eats a third of what
+is left. Nothing goes beside that CTA on a phone. So on mobile the button is simply not
+rendered, and the admin sidebar's own Catch-ups entry is one tap from the hamburger. Both
+viewports screenshotted against the committed baselines: desktop gains one 36px ghost
+circle and nothing moves; mobile is pixel-unchanged.
+
+**And the protocol audit caught a hand-typed `·` in the reading room** — "Asked anonymously
+· Katyaini Gupta". It was right twice over: the rule exists so separators come from
+`metaLine`, and the line was reading as two facts stuck together rather than the one fact it
+is. It says "Asked anonymously, by Katyaini Gupta" now. Worth noting that this gate reported
+the violation at all — until this morning a crashed audit and a clean one were the same
+green line (C-190).

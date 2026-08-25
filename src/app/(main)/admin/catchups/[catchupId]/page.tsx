@@ -240,8 +240,12 @@ export default async function AdminCatchupReadingRoom({
                             `Asked by ${prompt.author.name}`
                           ) : (
                             <>
-                              Asked anonymously
-                              {" · "}
+                              {/* One sentence rather than "Asked anonymously"
+                                  and a name joined by a hand-typed dot, which
+                                  the protocol audit rightly refuses -- and
+                                  which read as two facts stuck together
+                                  instead of the one fact it is. */}
+                              Asked anonymously, by{" "}
                               <span className="font-medium text-foreground">
                                 {prompt.author.name}
                               </span>
