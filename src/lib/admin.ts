@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { forbidden } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -26,14 +26,30 @@ export interface AdminSession {
 }
 
 /**
- * Gate every /admin route. Redirects a non-admin to the feed rather than
- * showing a 403, because the panel's existence is not a secret worth a page
- * of its own and a member who lands here by a stale link wants the feed.
+ * Gate every /admin route. A non-admin gets a 403 reading "nice try"
+ * (src/app/(main)/forbidden.tsx), which is the owner's call and a change from
+ * the silent redirect to /feed this used to do.
+ *
+ * The redirect was chosen on the grounds that the panel's existence is not a
+ * secret worth a page of its own -- still true, which is why saying so plainly
+ * costs nothing. What it did cost was legibility: a member who typed /admin
+ * landed on the feed with no idea why, and the presence panel recorded the URL
+ * they ASKED for, so the owner read a real 1978 alumnus as "on the admin
+ * panel" and had to be told it was not a break-in (2026-08-25). The row still
+ * says that -- owner: "it's fine if it's logged as admin under the analytics"
+ * -- but now the person on the other end saw a refusal, so the two accounts of
+ * the same event agree.
+ *
+ * forbidden() rather than rendering a message in place, because it THROWS:
+ * the segment's render terminates here and no admin page body is ever built
+ * for a non-admin. Returning markup from the layout instead would leave the
+ * children to Next's composition rules, and a guard whose safety depends on
+ * those is a guard that will be wrong after some future upgrade.
  */
 export async function requireAdminPage(): Promise<AdminSession> {
   const session = await auth();
   if (!session?.user || session.user.role !== "admin") {
-    redirect("/feed");
+    forbidden();
   }
   return {
     id: session.user.id,

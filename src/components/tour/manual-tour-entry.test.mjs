@@ -41,7 +41,16 @@ test("Admin exposes the tour action only to the configured owner email", async (
 
   const guard = await readFile(adminGuardPath, "utf8");
   assert.match(guard, /session\.user\.role !== "admin"/);
-  assert.match(guard, /redirect\("\/feed"\)/);
+  // forbidden(), not redirect("/feed"): a non-admin is told "nice try" on a
+  // 403 rather than silently landing on the feed (owner, 2026-08-25). What
+  // this line is really pinning is that the refusal still THROWS, so the
+  // admin page body is never rendered for them.
+  assert.match(guard, /forbidden\(\)/);
+  assert.doesNotMatch(
+    guard,
+    /redirect\("\/feed"\)/,
+    "the admin gate is back to a silent redirect"
+  );
   assert.match(guard, /const ownerEmail = process\.env\.ADMIN_EMAIL;/);
   assert.match(guard, /return Boolean\(ownerEmail\) && email === ownerEmail;/);
 
