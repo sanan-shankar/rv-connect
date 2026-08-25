@@ -16,10 +16,7 @@
  *  launch callback, one handoff callback, one pending perch) is enough and
  *  keeps the coordination trivial to reason about. Nothing here touches the
  *  DOM or React; it is pure message passing so it can live outside any tree.
- *
- *  A launch can carry an optional `speed` multiplier (see {@link FlightLaunch})
- *  so a future caller can fly faster or slower; the default (`1`, or anything
- *  omitted/invalid) reproduces today's pace exactly.
+
  * ------------------------------------------------------------------ */
 
 export type FlightTarget = "login" | "signup";
@@ -38,25 +35,6 @@ export interface FlightLaunch {
   /** Centre of the clicked CTA, in client coordinates (measured at click). */
   from: { x: number; y: number };
   target: FlightTarget;
-  /**
-   * Playback-speed multiplier for the whole flight. `1` (default) is today's
-   * pace; `2` halves every duration (twice as fast), `0.5` doubles them
-   * (half speed). Optional and unused by any current launcher — plumbing
-   * for a future faster/slower control. Must be a finite number > 0; the
-   * flight layer normalizes anything else back to `1` via
-   * {@link normalizeFlightSpeed}. Only scales the flight layer's own
-   * translation/timing (take-off fade, cruise arc, hand-off fade, and the
-   * failsafe timers); the puppet's own wingbeat cadence in hoopoe.tsx is
-   * unaffected.
-   */
-  speed?: number;
-}
-
-/** Validate a caller-supplied {@link FlightLaunch.speed}, falling back to the
- *  default pace (`1`) for anything missing, non-finite, or non-positive so a
- *  bad value can never stall or invert a flight's timing. */
-export function normalizeFlightSpeed(speed: number | undefined): number {
-  return typeof speed === "number" && Number.isFinite(speed) && speed > 0 ? speed : 1;
 }
 
 /**

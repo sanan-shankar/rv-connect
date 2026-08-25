@@ -36,7 +36,6 @@ import {
   awaitPerch,
   getLatestPerch,
   signalHandoff,
-  normalizeFlightSpeed,
   type FlightLaunch,
   type FlightTarget,
   type PerchRect,
@@ -62,24 +61,11 @@ const BODY_CY = (size: number) => (size * 111) / 152; // viewBox y101 above orig
 
 // The destination pages' own hard-coded reveal fallback (see /login and
 // /signup's `fallback = setTimeout(reveal, 6000)`). Referenced only in this
-// comment, not imported — those pages don't depend on this module. At the
-// default speed (1, every current call site) the failsafe below is 5800ms
-// and the perch-timeout is 2500ms, both under that 6000ms, same shape as
-// before `speed` existed. All three moved together on 2026-08-04 when the
-// cruise slowed down; if any one of them changes again, check the other two.
-//
-// Both timers scale by the same 1/speed factor as every other duration in
-// this flight (via `ms()` below), so a slower-than-default flight gets a
-// proportionally longer safety net instead of a fixed-length one. An earlier
-// version capped the failsafe at a hard-coded 3600ms ceiling meant to keep it
-// under the destination's fallback for any speed; that silently defeated the
-// scaling for speed < 1 (Math.min(ms(3600), 3600) is just 3600 whenever
-// ms(3600) > 3600), so a slow flight's failsafe fired while the — correctly
-// slowed-down — cruise animation was still mid-air, aborting it early and
-// making the hoopoe vanish. No current caller passes speed !== 1, so this
-// only matters for a future slow-flight caller; if one appears and needs the
-// failsafe to also stay under the destination's fallback, that page's own
-// timer should learn about `speed` too (out of this file's scope).
+// comment, not imported — those pages don't depend on this module. The
+// failsafe below is 5800ms and the perch-timeout 2500ms, both under that
+// 6000ms so the flyer always hands off before a page reveals its own hoopoe.
+// All three moved together on 2026-08-04 when the cruise slowed down; if any
+// one of them changes again, check the other two.
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 // C2-smooth ease (gentle takeoff + landing), same family flyCore uses.
@@ -277,12 +263,6 @@ export function MascotFlightLayer() {
        the air stops on its next frame (audit Low 13). */
     const myGen = ++flightGen.current;
 
-    // Speed multiplier: 1 (or anything missing/invalid) reproduces today's
-    // pace exactly. 2x speed halves every duration below; `ms()` is the one
-    // place that conversion happens so every timing stays proportional.
-    const speed = normalizeFlightSpeed(flight.speed);
-    const ms = (baseMs: number) => baseMs / speed;
-
     // Hard ceiling: never leave a flight (or a hidden destination hoopoe)
     // stranded if something stalls. Force the handoff + teardown after this.
     //
@@ -300,12 +280,7 @@ export function MascotFlightLayer() {
     // alongside the slower cruise; the destination pages' own fallback-reveal
     // timers went 4000 -> 6000 in the same commit and must stay ABOVE this, so
     // the flyer always hands off before a page reveals its own hoopoe.
-    //
-    // Scaled by speed like every other duration below, uncapped, so a slower
-    // flight's safety net stays proportionally longer than the (also slower)
-    // real animation — see the comment above for why an earlier hard-coded
-    // ceiling here was a bug, not a feature.
-    const failsafeMs = ms(5800);
+    const failsafeMs = 5800;
     const failsafe = setTimeout(() => {
       // A later flight owns the layer now, and has its own failsafe. Tearing
       // down here would delete ITS bird mid-air (audit Low 13).
@@ -327,7 +302,7 @@ export function MascotFlightLayer() {
       // controller), so fire-and-forget: glide takes the wings over smoothly.
       setTransform(A.x, A.y, dir * 3, 0.74, 0);
       void api.takeOff();
-      await tween(ms(240), (t) => {
+      await tween(240, (t) => {
         setTransform(A.x, A.y, dir * 3 * (1 - t), 0.74 + 0.26 * t, Math.min(1, t * 2));
       });
       if (abortRef.current || flightGen.current !== myGen) return;
@@ -336,12 +311,10 @@ export function MascotFlightLayer() {
       // flap-synced undulation + a bank, retargeting smoothly onto the perch.
       api.glide(dir);
       // Kick the perch waiter; it resolves as soon as the destination reports.
-      // 2500 < 3900, so dividing both sides by the same positive `speed`
-      // preserves that inequality at every speed — perchTimeoutMs is
-      // always < failsafeMs with no extra capping needed, leaving the
-      // graceful hover fallback room to run before the hard abort fires.
+      // 2500 < 5800 keeps perchTimeoutMs under failsafeMs, leaving the graceful
+      // hover fallback room to run before the hard abort fires.
       let perchReady = getLatestPerch() != null;
-      const perchTimeoutMs = ms(2500);
+      const perchTimeoutMs = 2500;
       void awaitPerch(perchTimeoutMs).then(() => {
         perchReady = true;
       });
@@ -359,7 +332,7 @@ export function MascotFlightLayer() {
       // near enough half the speed and 1.7x the height, so there is an arc to
       // follow and time to follow it. The floors matter as much as the caps: a
       // short flight must not become a twitch.
-      const flyMs = ms(clamp(1150 + dist * 0.9, 1150, 2050));
+      const flyMs = clamp(1150 + dist * 0.9, 1150, 2050);
       const basePeak = clamp(95 + dist * 0.24, 95, 280);
       // The body's undulation is meant to be the wingbeat showing through the
       // flight path, so it is DERIVED from the cruise length against the
@@ -497,7 +470,7 @@ export function MascotFlightLayer() {
       const finalPerch = getLatestPerch() ?? prov;
       const fs = finalPerch.width / size || 1;
       const from = { x: cur.x, y: cur.y, rot: cur.rot, sc };
-      await tween(ms(FLARE_MS), (t) => {
+      await tween(FLARE_MS, (t) => {
         const e = easeOutCubic(t);
         setTransform(
           from.x + (finalPerch.left - from.x) * e,
@@ -522,7 +495,7 @@ export function MascotFlightLayer() {
       const moved = getLatestPerch();
       if (moved && Math.hypot(moved.left - restX, moved.top - restY) > 1) {
         const from = { x: restX, y: restY };
-        await tween(ms(SETTLE_MS), (t) => {
+        await tween(SETTLE_MS, (t) => {
           const e = smoother(t);
           setTransform(from.x + (moved.left - from.x) * e, from.y + (moved.top - from.y) * e, 0, fs, 1);
         });
@@ -582,13 +555,13 @@ export function MascotFlightLayer() {
             el.style.opacity = "0";
           });
         // two rAFs, not a ms-timer: the overlap is frame-granular by nature
-        // (one painted frame with both birds), so it should not scale by speed
+        // (one painted frame with both birds)
         await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
       } else {
-        await tween(ms(150), (t) => {
+        await tween(150, (t) => {
           setTransform(restX, restY, 0, fs, 1 - t);
         });
-        await sleep(ms(20));
+        await sleep(20);
       }
     } finally {
       clearTimeout(failsafe);
