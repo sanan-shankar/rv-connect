@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { after } from "next/server";
 import { auth } from "@/lib/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { prisma } from "@/lib/prisma";
@@ -6,9 +7,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { DirectoryClient } from "@/components/directory/directory-client";
 import { cityCoords, hasOwnPin, normalizeCity } from "@/lib/city-coords";
 import { resolvePlacesFromGazetteer } from "@/lib/geocode";
-import { buildDirectoryWhere, directoryOrderBy } from "./where";
+import { buildDirectoryWhere, directoryOrderBy, parseDirectoryYears } from "./where";
 import type { CityPin, PinPerson } from "@/components/directory/alumni-map";
 import { valleyYear } from "@/lib/utils";
+import { logSearch } from "@/lib/search-log";
 
 export const metadata: Metadata = {
   title: "Directory",
@@ -170,6 +172,12 @@ function buildPins(
       const existing = pinMap.get(key);
       if (existing) {
         existing.count += 1;
+        /* Every distinct city the cell holds, not just the one that named it
+           (audit C-098). Two towns can share an 11km grid square, and the
+           escape link has to reach everybody the pin counted. Unbounded in
+           principle, bounded in practice by how many named places fit in one
+           cell -- two or three at most. */
+        if (!existing.cities.includes(city)) existing.cities.push(city);
         // The COUNT is every member; the LIST is the first handful. Everything
         // in `people` is serialized into the RSC payload of every directory
         // load and every filter change, and a member with three cities was
@@ -180,7 +188,7 @@ function buildPins(
         // far better than a two-hundred-row sheet.
         if (existing.people.length < PIN_PEOPLE_CAP) existing.people.push(person);
       } else {
-        pinMap.set(key, { city, lng: coords[0], lat: coords[1], count: 1, people: [person] });
+        pinMap.set(key, { city, cities: [city], lng: coords[0], lat: coords[1], count: 1, people: [person] });
       }
     }
     if (!placedSomewhere) {
@@ -198,7 +206,9 @@ export default async function DirectoryPage({
   searchParams: Promise<{
     q?: string;
     year?: string;
-    city?: string;
+    // Several, when the escape link comes from a map pin whose grid cell
+    // holds more than one town (audit C-098). Every other caller sends one.
+    city?: string | string[];
     profession?: string;
     house?: string;
     type?: string;
@@ -219,10 +229,6 @@ export default async function DirectoryPage({
   const session = await auth();
   const namesLocked = !IS_DEMO && !session?.user?.emailConfirmed;
 
-  const showingYear = params.year === "faculty" ? "faculty" : params.year ? Number(params.year) : null;
-  const yearFrom = params.yearFrom ? Number(params.yearFrom) : null;
-  const yearTo = params.yearTo ? Number(params.yearTo) : null;
-
   // The directory `where` (case-insensitive search + any-of-N-cities match) is
   // built by a shared helper so the SSR first page and the Load more server
   // action filter identically.
@@ -238,6 +244,12 @@ export default async function DirectoryPage({
     yearTo: params.yearTo,
   };
   const where = buildDirectoryWhere(filters);
+  /* The SAME parser the where uses, not a second reading with bare Number()
+     (audit C-099). `?year=1800` is truthy to Number, so this page called
+     itself filtered, rendered a filter token and headed the grid "Batch of
+     '00" -- while parseBatchYear rejected it, the where added no batchYear
+     clause, and the entire membership was listed under that heading. */
+  const { showingYear, yearFrom, yearTo } = parseDirectoryYears(filters);
 
   const hasFilter = !!(
     params.q ||
@@ -291,7 +303,11 @@ export default async function DirectoryPage({
       by: ["batchYear"],
       where: { isBlocked: false, deletionRequestedAt: null, accountType: { notIn: ["teacher", "ex_teacher"] } },
       _count: { id: true },
-      orderBy: { batchYear: "desc" },
+      // nulls last here too, so every batch-desc sort in this app reads as one
+      // decision (audit C-092). The null group is filtered out downstream
+      // either way; what matters is that no batchYear desc is left as an
+      // exception somebody has to remember.
+      orderBy: { batchYear: { sort: "desc", nulls: "last" } },
     }),
     prisma.user.count({
       where: { isBlocked: false, deletionRequestedAt: null, accountType: { in: ["teacher", "ex_teacher"] } },
@@ -318,7 +334,13 @@ export default async function DirectoryPage({
     prisma.user.findMany({
       where: pinWhere,
       select: PIN_SELECT,
-      orderBy: [{ batchYear: "desc" }, { name: "asc" }],
+      /* `nulls: "last"`, the same as every batch sort in directoryOrderBy
+         (audit M38). This sibling query never got that fix, and Postgres puts
+         NULLs FIRST on a DESC column -- so a pin's visible twelve people were
+         filled with rows carrying no batch year at all, teachers and
+         half-finished profiles ahead of everyone else, while real alumni fell
+         behind "See all N" (audit C-092). */
+      orderBy: [{ batchYear: { sort: "desc", nulls: "last" } }, { name: "asc" }],
     }),
     // City facet options: live distinct `UserPlace.city` values (frequency,
     // then A-Z), NOT `distinct User.currentCity` -- a person now has an
@@ -332,6 +354,18 @@ export default async function DirectoryPage({
       orderBy: [{ _count: { city: "desc" } }, { city: "asc" }],
     }),
   ]);
+
+  /* What people look for HERE, which was the one scope with no writer even
+     though it is the surface whose entire job is finding somebody (audit
+     C-097). Logged after the count is known, so "what are people failing to
+     find" is answerable rather than just "what did they type".
+
+     Inside after(), like the feed's: a bare `void` races the response, and
+     Vercel can tear the instance down the moment that response streams. */
+  if (params.q) {
+    const q = params.q;
+    after(() => logSearch({ scope: "directory", query: q, userId: session?.user?.id, results: resultCount }));
+  }
 
   const hasMore = pageRows.length > PAGE_SIZE;
   const users = hasMore ? pageRows.slice(0, PAGE_SIZE) : pageRows;
@@ -376,15 +410,25 @@ export default async function DirectoryPage({
         cities={cityGroups.map((c) => c.city)}
         minBatchYear={batchYearRange._min.batchYear ?? valleyYear() - 40}
         maxBatchYear={batchYearRange._max.batchYear ?? valleyYear()}
+        /* The filters that were actually APPLIED, not the raw params (audit
+           C-099). A year the parser rejects adds no clause to the where, so
+           passing the raw string through rendered a "Batch of '00" chip and a
+           heading over the entire membership -- a filter the member could see
+           and was not getting. What the chip says and what the query did are
+           now the same value. */
         initialFilters={{
           q: params.q || "",
-          year: params.year || "",
-          city: params.city || "",
+          year: showingYear === "faculty" ? "faculty" : showingYear != null ? String(showingYear) : "",
+          /* The client's chip shows ONE city, and a multi-city value only ever
+             arrives from a map pin's escape link (audit C-098). Showing the
+             first is honest -- it is the pin's own name -- and any change the
+             member makes to the chip replaces the whole filter anyway. */
+          city: (Array.isArray(params.city) ? params.city[0] : params.city) || "",
           profession: params.profession || "",
           house: params.house || "",
           type: params.type || "",
-          yearFrom: params.yearFrom || "",
-          yearTo: params.yearTo || "",
+          yearFrom: yearFrom != null ? String(yearFrom) : "",
+          yearTo: yearTo != null ? String(yearTo) : "",
           sort: params.sort || "",
         }}
         hasFilter={hasFilter}

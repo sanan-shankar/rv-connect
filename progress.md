@@ -3356,3 +3356,49 @@ address and the action returned early. React does not overwrite a value already
 in the field when it hydrates, so the field looks right the whole time. The
 tell is the confirmation screen, which echoes the address out of React state --
 assert on that, and wait for React props on the form before typing.
+
+## 2026-08-25 (later) — the long tail, part five: the directory
+
+Nine findings, six real, and five of the six are the same shape: a number
+produced by one query beside a list produced by another, with a rule in one
+half and not the other. On the one page whose entire job is telling people
+apart, that is worse than it sounds.
+
+- **A tile that lied about its own contents (C-095).** The batch tile counts
+  exclude faculty; the filter behind the tile did not. `accountType` and
+  `batchYear` are written independently by the admin editor, so flipping an
+  alumnus to ex_teacher keeps whatever year the row had. The tile said N and
+  opening it listed N+k. Proved live: batch 2023 now says 37 and lists 37.
+- **Two filters, one of them ignored (C-093).** `where.accountType` was
+  assigned twice, and the second won: year=faculty + type=alumni always
+  resolved to plain alumni, while both tokens sat on screen and the grid was
+  headed "Faculty". It is one fold now, so a contradiction returns nothing --
+  honest, and legible because both tokens are there to explain it.
+- **A heading over the whole membership (C-099).** The page read the year with
+  bare `Number()` while the query used `parseBatchYear`. `?year=1800` is truthy
+  to Number, so the page called itself filtered and headed 63 people "Batch of
+  '00" -- a filter you could see and were not getting. One exported parser now
+  serves both. The first screenshot caught that the fix was half-done: the chip
+  is rendered by the client from `initialFilters`, so that had to carry the
+  APPLIED filters too, not the raw params.
+- **Pins that led with the wrong people (C-092).** Postgres orders NULLs first
+  on a DESC column. The M38 fix put `nulls: "last"` on `directoryOrderBy` and
+  its sibling query never got it, so a pin's visible twelve filled with rows
+  carrying no batch year at all. Every batchYear desc sort now declares it, and
+  the gate sweeps for them rather than pinning the one that was wrong.
+- **An escape link that reached a fraction of what it counted (C-098).** A pin
+  is an 11km grid cell and two towns can share one -- Hyderabad and
+  Secunderabad do. The count aggregated both; the link named whichever resolved
+  first. A pin carries its whole cell now. The unmapped bucket's "See all"
+  is gone rather than falling back to /directory, which lists none of them.
+- **The search nobody was recording (C-097).** `SearchScope` declared
+  "directory" and the analytics grouped by it, but nothing ever wrote one --
+  because a comment said the directory filters in the browser, which was never
+  true. Its gate derives the scope list from the union, so a declared scope
+  with no writer fails.
+
+Three refuted: C-094, C-100 and C-170 all claim an uncapped search term is a
+DoS. Right about the mechanism, wrong about the cost -- the tables are small,
+the endpoints are gated and rate-limited, and a long LIKE needle fails FASTER
+per row, not slower. (The feed and directory terms are capped anyway now, by
+C-015 earlier today.)
