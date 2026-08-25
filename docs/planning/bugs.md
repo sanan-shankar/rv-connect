@@ -253,6 +253,22 @@ Two related things ride along with the same decision:
 - Size: S for the fixed-ratio version, M for `next/image` plus the quota question.
 - Where: `src/components/posts/post-card.tsx:395-425`, and the same shape on the letter page.
 
+### 19. A Catch-up photo caption shows its formatting markers on the photo wall
+The same field renders two ways in the same round. `catchups/round/answer-card.tsx:105` passes
+`entry.body` through `renderRichText` — the composer formats live, so the reader honours the
+markers. `catchups/round/question-section.tsx:42-44` prints the identical `entry.body` raw inside a
+`whitespace-pre-wrap` paragraph, so a caption written with formatting shows `*like this*` literally
+on the photo wall and formatted on the card. Surfaced in passing by the 2026-08-25 refactor audit
+(report §3, bug lead (a)); it is a bug, not a simplification, so it is filed here rather than fixed
+in that campaign.
+- Size: tiny — the same `dangerouslySetInnerHTML={{ __html: renderRichText(...) }}` shape, but
+  check the grid cell's line-clamping still behaves once the paragraph holds markup.
+- Where: `src/components/catchups/round/question-section.tsx:41-45`.
+
+*(The same audit raised a second lead — that `round/masthead.tsx:50` might format a publish date
+without a timezone and shift it a day across midnight IST. Checked on 2026-08-26: it does pass
+`timeZone: VALLEY_TIME_ZONE`. No bug, nothing to do.)*
+
 ---
 
 ## Owner decisions carried from the second bug audit's fix ledger (closed 2026-08-25)
