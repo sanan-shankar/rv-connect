@@ -21,6 +21,7 @@ import { IS_DEMO } from "./demo";
  * ------------------------------------------------------------------ */
 
 import { RATE_LIMITED } from "./rate-limit-message";
+import { reportSwallowed } from "@/lib/report-error";
 
 /**
  * Every limit in the app, with the argument for its number. All windows
@@ -149,6 +150,31 @@ function limiterFor(name: LimitName): Ratelimit | null {
  * Count this event against the limit and say whether it may proceed.
  * The default call for write actions: one line after the member gate.
  */
+/**
+ * A limiter backend that stopped answering, said out loud where somebody looks.
+ *
+ * Failing OPEN is the deliberate choice here (see the header): an Upstash
+ * outage must not lock every member out of signing in. But the evidence was a
+ * console line on a serverless function, which nobody reads -- so a sustained
+ * outage or a mistyped credential silently turned off EVERY rate limit in the
+ * app, including the ones standing in front of sign-in and password reset, and
+ * the only symptom would be the abuse they exist to prevent (audit C-154).
+ *
+ * Throttled, because a failing backend fails on every request: one report a
+ * minute per limiter is enough to notice, and a thousand is just the outage
+ * again in a different pane.
+ */
+const REPORT_EVERY_MS = 60_000;
+const lastReported = new Map<string, number>();
+
+function reportLimiterFailure(name: string, step: string, err: unknown): void {
+  const key = `${name}:${step}`;
+  const now = Date.now();
+  if ((lastReported.get(key) ?? 0) + REPORT_EVERY_MS > now) return;
+  lastReported.set(key, now);
+  reportSwallowed("rate-limit", err, { limiter: name, step, failedOpen: step !== "consume" });
+}
+
 export async function rateLimit(
   name: LimitName,
   key: string,
@@ -160,7 +186,7 @@ export async function rateLimit(
     const { success } = await limiter.limit(key);
     return success ? { ok: true } : { ok: false, error: RATE_LIMITED };
   } catch (err) {
-    console.error(`[rate-limit] ${name} check failed open`, err);
+    reportLimiterFailure(name, "check", err);
     return { ok: true };
   }
 }
@@ -179,7 +205,7 @@ export async function hasBudget(name: LimitName, key: string): Promise<boolean> 
     const { remaining } = await limiter.getRemaining(key);
     return remaining > 0;
   } catch (err) {
-    console.error(`[rate-limit] ${name} read failed open`, err);
+    reportLimiterFailure(name, "read", err);
     return true;
   }
 }
@@ -193,7 +219,7 @@ export async function consume(name: LimitName, key: string): Promise<void> {
   try {
     await limiter.limit(key);
   } catch (err) {
-    console.error(`[rate-limit] ${name} consume failed`, err);
+    reportLimiterFailure(name, "consume", err);
   }
 }
 

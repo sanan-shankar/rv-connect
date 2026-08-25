@@ -3596,3 +3596,67 @@ about it. And `deriveSubject`/`previewOf` cut at UTF-16 code units, splitting
 emoji into replacement diamonds in stored subjects; they cut on graphemes now
 while keeping the same width budget, because counting graphemes instead would
 have silently doubled an emoji subject's length -- a different bug.
+
+## 2026-08-25 (later) — the long tail, part nine: the machinery nobody watches
+
+Eighteen findings across the mail queue, the nightly sweep, the account purge
+and the rate limiters. They share a shape: these paths run with no human on
+them, so a failure has no symptom until somebody asks where their email went.
+
+**Three ways the queue could lie.** The fold path -- what a member pressing
+"resend" hits -- returned above `scheduleDrain()`, so the one route most likely
+to be used to poke a stuck queue was the only one that never poked it. A dev
+machine with `EMAIL_DEV_SEND=1` and no API key printed the link to its terminal
+and then marked the row `sent`, which is the one lie this table cannot recover
+from, because nothing ever looks at a sent row again. And a row deferred by
+RESEND's own quota -- a different ceiling from this app's budget, invisible in
+its arithmetic -- fell through to a banner reading "A link has been sent to
+your email", for up to twenty-four hours, about a message that had not been
+sent. All three closed; "imminent" now has to be within ten minutes to be
+called that.
+
+**Silence, in four places that matter.** Every drain swallow point logged to a
+serverless console nobody reads; they report now. `takeDrainLease` read ANY
+error as "somebody holds the lease", so a database that had stopped answering
+looked exactly like a busy queue and the drain quietly stopped. And the three
+rate limiters fail open by deliberate design -- an Upstash outage must not lock
+everyone out of signing in -- but with console-only evidence, that same outage
+silently turned off every limit in the app, including the ones in front of
+sign-in and password reset, with the abuse they prevent as the only symptom.
+Throttled to one report a minute per limiter, because a failing backend fails
+on every request.
+
+**A leak that could not be recovered from (C-076).** `collectImageUrls` says it
+reads inside the purge transaction so nothing uploaded in between can slip
+past. That rests on the isolation level, and the transaction set none -- so
+under READ COMMITTED a post committed mid-purge was invisible to the collect
+and then cascaded away, leaving bytes no row names. Nothing in this system can
+enumerate the bucket, so those bytes are unreachable for ever. RepeatableRead
+now, which turns a leak into a retry.
+
+**A transcript deleted, its cover left behind (C-062).** AdminMessage cascades
+FROM AdminThread, not toward it, so the 730-day sweep emptied conversations and
+left the shells -- each carrying `subject`, which is DERIVED FROM THE MEMBER'S
+OWN FIRST MESSAGE. The one line retention existed to remove was the line that
+outlived it. Proved in a rolled-back transaction against the real database: the
+aged-out thread goes, a thread with one recent reply stays.
+
+**And the rest.** No route in this project declared a `maxDuration`, so a sweep
+that walks ten tables and purges whole accounts ran on a default sized for a
+page render -- and a cut-off invocation dies without reaching the reporter.
+`dismissMail` was the one write in its file with no status guard, and it could
+delete a row Resend accepted today, handing back a slot already spent against
+the real quota (B-071, again). The data export omitted the questions a member
+ASKED, which is often the most personal thing in a Round. And backup.yml
+claimed it shared a quiet-hours window with the catchups cron: they are five
+and a half hours apart, because **Vercel crons run in UTC** and `0 2 * * *` is
+07:30 IST. That fact is now in docs/OPERATIONS.md, where the next schedule
+change will meet it.
+
+**Two handed to the owner**, because they are questions about plan ceilings
+rather than about this code: whether the demo's unbounded anonymous writes can
+fill its disk faster than the nightly reset can clear it (C-112), and whether
+type-ahead search exhausts the Upstash free command quota at 2,000 members
+(C-167). Both are recorded rather than guessed at. C-167 is materially less
+dangerous than it was: a quota exhaustion now reports instead of silently
+switching every rate limit off.

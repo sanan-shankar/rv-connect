@@ -286,3 +286,17 @@ export function localDrainRecipient(env: {
   if (env.NODE_ENV === "production") return null;
   return env.ADMIN_EMAIL?.trim().toLowerCase() ?? "";
 }
+
+/**
+ * The start of the current UTC day.
+ *
+ * UTC, not the valley's day: this is the boundary RESEND's own daily quota
+ * resets on, and the budget has to agree with the provider's counter rather
+ * than with the calendar anybody here reads. Lives in this pure module because
+ * two places need it -- the budget that spends the day, and the admin action
+ * that must refuse to delete a row already counted against it (audit C-106).
+ */
+export function startOfUtcDay(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}

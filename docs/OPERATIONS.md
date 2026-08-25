@@ -95,6 +95,13 @@ One `curl` to `https://rishivalley.space/api/retention/sweep` carrying `CRON_SEC
 R2 images (audits H9/M35). It lives in Actions rather than a Vercel cron because the
 Hobby plan allows two crons and both are spent (the Catch-up tick, the demo reset).
 
+**Vercel crons run in UTC. GitHub Actions crons run in UTC.** Neither reads IST, and
+`vercel.json`'s `0 2 * * *` is 02:00 UTC, which is **07:30 IST** -- the valley's
+morning, not its night. The two GitHub schedules are written in UTC to land at night
+here (`30 20 * * *` = 02:00 IST, `0 21 * * *` = 02:30 IST); the Vercel ones are not.
+A comment in backup.yml claimed the two shared one quiet-hours window for months, and
+they are five and a half hours apart (audit C-147). Convert before you compare.
+
 **Needs the `CRON_SECRET` repository secret** — the same value set on the Vercel
 project. Without it the job fails loudly with a 401, which is the correct symptom, and
 nothing is swept until it is set. Every sweep writes a `retention.sweep` line to

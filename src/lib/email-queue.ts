@@ -14,6 +14,7 @@ import {
   SKIP_NO_USER,
   SKIP_TOKEN_RATE_LIMIT,
   retryDelayMs,
+  startOfUtcDay,
   type MailKind,
 } from "./mail-policy";
 import {
@@ -24,6 +25,8 @@ import {
   type BuiltEmail,
 } from "./email-templates";
 import { TOKEN_TTL_MINUTES, mintToken } from "./auth-tokens";
+import { reportSwallowed } from "@/lib/report-error";
+import { isUniqueViolation } from "@/lib/prisma-errors";
 
 /* ------------------------------------------------------------------ *
  *  The outbound mail queue.
@@ -97,11 +100,6 @@ const BATCH = 8;
 const STALE_CLAIM_MS = 2 * 60_000;
 
 
-function startOfUtcDay(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
-
 /**
  * True when THIS process is allowed to move mail out of the queue.
  *
@@ -128,6 +126,20 @@ function queueIsSendable(): boolean {
     return true;
   }
   if (process.env.EMAIL_DEV_SEND !== "1") return false;
+  /* And a KEY, fail-closed exactly like the production branch above (audit
+     C-105). Without one, `sendMail` falls through to its "print the link to
+     the terminal" branch and returns ok -- so the drain marked the row `sent`
+     with a `sentAt` off a console.log. The queue's whole invariant is that
+     "sent" means a provider accepted it; a row that lies about that is
+     unrecoverable, because nothing ever looks at it again. */
+  if (!process.env.RESEND_API_KEY) {
+    console.error(
+      "[email] EMAIL_DEV_SEND=1 but RESEND_API_KEY is unset; refusing to drain. " +
+        "Sending would print the link to this terminal and then mark the row " +
+        "sent, which is a lie the queue cannot recover from.",
+    );
+    return false;
+  }
   /* Outside production the drain is narrowed to the owner's own address
      (`localDrainRecipient`, audit M53), and that narrowing is the only thing
      standing between a developer's page view and every real member's queued
@@ -355,7 +367,7 @@ async function claimAndSend(row: QueueRow): Promise<SendOutcome> {
       // would send it a second time; leaving the row in "sending" means the
       // stale-claim sweep decides, two minutes from now, with the same
       // information and no risk of us doing it twice in one breath.
-      console.error(`[email] sent but could not record row=${row.id}:`, err);
+      reportSwallowed("email", err, { step: "record-sent", rowId: row.id });
       return "sent";
     }
     // A throw from render(): not the provider, so it counts as an attempt.
@@ -455,7 +467,16 @@ export async function enqueueMail(input: {
       },
       select: { id: true },
     });
-    if (waiting) return { queued: true, id: waiting.id };
+    if (waiting) {
+      /* Nudged on the way out, exactly as the create path below is (audit
+         C-103). This return sat ABOVE `scheduleDrain()`, so the fold -- which
+         is what a member pressing "resend" hits -- was the one path that never
+         woke the queue. Somebody whose confirmation was stuck could press the
+         button as often as they liked and nothing moved, which is the precise
+         failure the nudge was added for (owner, 2026-08-12). */
+      scheduleDrain();
+      return { queued: true, id: waiting.id };
+    }
   }
 
   if (input.userId) {
@@ -514,7 +535,7 @@ function scheduleSend(row: Parameters<typeof claimAndSend>[0]): void {
     try {
       await claimAndSend(row);
     } catch (err) {
-      console.error("[email] targeted send failed", err);
+      reportSwallowed("email", err, { step: "targeted-send", rowId: row.id });
     }
   };
   try {
@@ -529,7 +550,7 @@ function scheduleDrain(): void {
     try {
       await drainMailQueue();
     } catch (err) {
-      console.error("[email] drain failed", err);
+      reportSwallowed("email", err, { step: "drain" });
     }
   };
   try {
@@ -648,8 +669,16 @@ async function takeDrainLease(): Promise<string | null> {
   try {
     await prisma.queueLease.create({ data: { name: DRAIN_LEASE, holder, expiresAt } });
     return holder;
-  } catch {
-    // Unique violation: another pass created it in the same instant.
+  } catch (err) {
+    /* A unique violation means another pass created it in the same instant,
+       and returning null is right. ANYTHING ELSE -- a pool timeout, a dropped
+       connection -- was being read as "somebody holds the lease" too, so a
+       database that had stopped answering looked exactly like a busy queue and
+       the drain quietly stopped for as long as it lasted, with no witness
+       (audit C-153). */
+    if (!isUniqueViolation(err)) {
+      reportSwallowed("email", err, { step: "take-drain-lease" });
+    }
     return null;
   }
 }
@@ -889,6 +918,16 @@ export type VerificationMailState =
  * is pending. Every later read takes the "sent" fast path.
  */
 /**
+ * How far off a send may be and still be called "imminent".
+ *
+ * The banner's imminent copy asserts a completed send, so the word has to mean
+ * what it says. A transient retry books a few minutes; a provider quota books
+ * the next UTC midnight. Ten minutes sits well clear of the first and nowhere
+ * near the second (audit C-107).
+ */
+const IMMINENT_WINDOW_MS = 10 * 60 * 1000;
+
+/**
  * Where a member's confirmation email has got to, and -- when it is due -- the
  * push that sends it.
  *
@@ -972,10 +1011,24 @@ export async function verificationMailState(
 
   const fresh = await prisma.outboundEmail.findUnique({
     where: { id: row.id },
-    select: { status: true, sentAt: true },
+    select: { status: true, sentAt: true, nextAttemptAt: true },
   });
   if (fresh?.status === "sent") return { state: "sent", at: fresh.sentAt ?? new Date() };
   if (fresh?.status === "failed") return { state: "failed" };
+
+  /* "Imminent" has to actually be imminent (audit C-107).
+     A row can be queued with `nextAttemptAt` set to the next UTC midnight --
+     the PROVIDER's own quota said no, which is a different ceiling from this
+     app's daily budget and is not visible in the arithmetic above. `due` is
+     then false, the send is skipped, and this fell through to "imminent",
+     whose copy reads "A link has been sent to your email". For up to
+     twenty-four hours, about a message that had not been sent, on a banner
+     whose queued state is the one that offers a time and a way to ask again.
+     Anything further off than a transient retry says WHEN instead. */
+  const waitUntil = fresh?.nextAttemptAt ?? row.nextAttemptAt;
+  if (waitUntil && waitUntil.getTime() - Date.now() > IMMINENT_WINDOW_MS) {
+    return { state: "queued", sendingAt: waitUntil };
+  }
 
   // Mid-flight in another process, or our own attempt hit a transient error
   // and requeued for the next pass. Either way it is minutes, not tomorrow.
