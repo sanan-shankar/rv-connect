@@ -59,7 +59,6 @@ export function useHoopoe(): UseHoopoe {
       celebrate: p("celebrate"),
       blinkOnce: p("blinkOnce"),
       gaze: v("gaze"),
-      bindPassword: ((getRevealed: () => boolean) => ref.current?.bindPassword(getRevealed) ?? (() => {})) as HoopoeApi["bindPassword"],
       coverEyes: v("coverEyes"),
       peek: v("peek"),
       sleep: p("sleep"),

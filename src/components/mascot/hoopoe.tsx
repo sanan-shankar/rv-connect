@@ -999,12 +999,6 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     A(PARTS.leftWing, { rotate: 0, x: 0, y: 0 }, SPRINGS.bounce as never);
     A(PARTS.rightWing, { rotate: 0, x: 0, y: 0 }, SPRINGS.bounce as never);
   }
-  function bindPassword(getRevealed: () => boolean) {
-    if (getRevealed()) peek();
-    else coverEyes();
-    return () => {};
-  }
-
   // ----- sleep / wake (deep-idle rest; suspends the ambient loop for as long as it holds) -----
   const asleepRef = useRef(false);
   async function sleepRaw() {
@@ -1141,10 +1135,6 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
       await sleep(st.wait);
       return;
     }
-    if ("parallel" in st) {
-      await Promise.all(st.parallel.map(runStep));
-      return;
-    }
   }
 
   // Build the api once: every verb closes over stable refs / motion values / the stable `animate`,
@@ -1153,7 +1143,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
     () => ({
       walk, hop, flyTo, land, takeOff, glide, legsDown, perch, turn, point, wave, nod, shake, crest, crestFlick,
       preen, peck, flyIn,
-      express, celebrate, blinkOnce, gaze: gazeTo, bindPassword,
+      express, celebrate, blinkOnce, gaze: gazeTo,
       coverEyes, peek, sleep: sleepVerb, wake: wakeVerb, sequence, react, stop, cancel, rest, isBusy,
     }),
     // verbs are stable by construction (see note above); intentionally build once
