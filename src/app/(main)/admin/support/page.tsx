@@ -4,7 +4,12 @@ import Link from "next/link";
 import { AlertTriangle, CalendarDays, CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
-import { CONTRIBUTION_SUM, netPaise } from "@/lib/contribution-state";
+import {
+  CONTRIBUTION_SUM,
+  REVERSED_STATUSES,
+  isReversed,
+  netPaise,
+} from "@/lib/contribution-state";
 import {
   ADMIN_MEASURE,
   AdminCapped,
@@ -88,9 +93,17 @@ export default async function AdminSupportPage() {
        which counted a developer's test orders as real attempts AND was
        silently capped at whatever fell inside the 100-row window below, so it
        stopped growing without ever saying it had (audit Low 8). A tile that
-       reads "12" when the true number is 60 is worse than no tile. */
+       reads "12" when the true number is 60 is worse than no tile.
+
+       The excluded set is REVERSED_STATUSES, not a hand-typed pair. It said
+       ["paid", "refunded"] and left `disputed` out, so a chargeback -- money
+       that DID move, and that the webhook really does write -- was counted in
+       a warn-toned "Did not go through" tile while the ledger below rendered
+       the same row under "Given back" (audit C-089). Two measurements under
+       one label, which is the exact thing the comment at the reversed group
+       was written to prevent. One list now decides both. */
     prisma.contribution.count({
-      where: { livemode: true, status: { notIn: ["paid", "refunded"] } },
+      where: { livemode: true, status: { notIn: ["paid", ...REVERSED_STATUSES] } },
     }),
     prisma.contribution.findMany({
       select: {
@@ -116,10 +129,8 @@ export default async function AdminSupportPage() {
      read as a payer who never got through, when in fact they did and we gave
      it back. Rendered only when there is one, so the page grows a section the
      day it first has something to say and not before. */
-  const reversed = rows.filter((r) => r.status === "refunded" || r.status === "disputed");
-  const notPaid = rows.filter(
-    (r) => r.status !== "paid" && r.status !== "refunded" && r.status !== "disputed"
-  );
+  const reversed = rows.filter((r) => isReversed(r.status));
+  const notPaid = rows.filter((r) => r.status !== "paid" && !isReversed(r.status));
 
   /* The funnel and the payment methods live HERE rather than in the analytics
      room (owner, 2026-08-19: "that could be under that section of admin not

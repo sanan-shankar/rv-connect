@@ -3870,3 +3870,77 @@ kind this run keeps producing. The first request to a route in dev compiles it
 and every other request waits on that compile, which serialised the two and
 destroyed the race being probed. Warm the route first, then race. With that,
 the old code gives two threads every time and the new code gives one.
+
+## 2026-08-25 (evening) — the last stretch, part two: the rooms only the owner sees
+
+Eight findings, two of them refuted on their merits. What binds this batch is
+that none of them can crash: every one is a number that quietly disagreed with
+the list printed under it, which is the worst way for an admin room to be
+wrong, because nothing on the page can show it.
+
+**Ten leaderboards keyed on what people are called (C-080).** Every superlative
+in the analytics room grouped by `u."name"`, and User.name has no unique
+constraint. Two members with one name collapsed into a single bar carrying the
+sum of both their counts, under one of their identities; at two thousand alumni
+that is not a hypothesis. Proved inside a rolled-back transaction: two "Probe
+Twin" accounts with three hearts and one become a single bar of four under the
+old query and two bars of three and one under the new.
+
+Grouping by id then makes a NEW thing visible instead of hiding it — two bars
+reading the same name — so a name that repeats within one list, and only then,
+carries its batch as a hint, which is how the directory already tells two people
+apart. There are no duplicate names in the live database today, so the room
+looks exactly as it did; screenshotted desktop and mobile to confirm that.
+
+**The growth curve counted UTC's months (C-143).** `date_trunc('month',
+"createdAt")` on a naive UTC column cuts the month at 05:30 IST on the 1st, so
+somebody who joined at ten in the evening on the last day of a month was
+counted in the month before. The same file already does the double conversion
+in four other places, one of them twenty-two lines above the offender with a
+comment explaining why. The gate is a sweep over every `date_trunc`/`to_char`
+in `src` that reads a column, counted rather than detected, because that is the
+exact failure: one file with six of the thing and four of them right.
+
+**Two measurements under one label (C-089).** The "Did not go through" tile
+excluded `["paid", "refunded"]` and so counted `disputed` — a chargeback, money
+that DID move and that the webhook really does write — in a warn-toned tile for
+failed payments, while the ledger below rendered the same row under "Given
+back". Both now read `REVERSED_STATUSES`, so a sixth contribution status cannot
+be added without the tile learning about it.
+
+**Half a fix from the first audit (C-088).** Low 116's hygiene work — clear the
+failure reason, record the method — landed only in the webhook's captured
+branch. The browser callback is the one that usually WINS that race: the payer
+retries inside the same modal, the tab survives, the callback fires and the
+webhook then matches nothing because the row is already paid. So a successful
+gift kept the red error line from the attempt before it, and it landed in "Most
+used" as "unknown". The callback clears the reason now; the method it cannot
+know at all (a checkout callback carries an order id, a payment id and a
+signature and nothing else), so the webhook backfills it — narrowly, on a row
+still `paid` and still without a method, so it can never resurrect a refunded
+gift the way C-084's negation did.
+
+**A derived credential left to drift (C-041).** `adminUpdatePerson` wrote
+`batchYear` and never re-derived `batchType`, which is derived from the pair.
+Correct somebody's batch year across the ICSE/ISC boundary and the stored board
+stayed as it was, so `batchTargetKey` built "ISC-2012" where the truth was
+"ICSE-2012" and a batch-targeted post went to the wrong set of people. Nothing
+visible gave it away: the byline formats from `batchYear` alone. The member's
+own editor had done this correctly all along. It now also re-checks the office
+roster on the same edit, which is the other thing that editor does at that
+moment.
+
+**One comment describing an abolished model (C-049).** `chooseBird`'s header
+said "re-picking is allowed indefinitely ... nothing to meter and no state to
+corrupt by clicking twice". The code under it implements the opposite, with the
+owner's own date on it: one pick per contribution, spent on use, regranted only
+by a paid contribution newer than the last spend. It meters, and clicking twice
+does corrupt state — the first click spends the grant and the second is refused.
+The gate is deliberate; the comment was wrong.
+
+**Two refuted (C-082, C-090).** The audit log's scope is stated at
+`audit/page.tsx` and enumerated as a closed union: who changed standing or
+destroyed data. Ordinary edits and content moderation are outside it by design,
+not by omission. And whether a refund should revoke the bird already picked
+with that money is a product decision about a cosmetic perk, not a defect —
+the finder said as much. Both are rows in the ledger, not changes.

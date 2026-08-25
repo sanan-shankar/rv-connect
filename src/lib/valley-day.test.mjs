@@ -125,3 +125,65 @@ test("'tomorrow' is a calendar day away, not twenty-four hours", async () => {
     1
   );
 });
+
+/* ---- C-143: SQL buckets the valley's calendar too ------------------- */
+
+test("every SQL date bucket converts to the valley's zone before truncating", () => {
+  /* Prisma DateTime is `timestamp(3) without time zone` holding UTC wall
+     time, so `date_trunc('month', "createdAt")` cuts the month at 05:30 IST on
+     the 1st: somebody joining at ten in the evening on the last day of a month
+     was counted in the month before, and the growth curve and joinedMonth were
+     the two places in this file that never got the conversion the rest of it
+     already had (audit C-143).
+
+     A SWEEP, not two assertions. The whole failure was one file doing this
+     correctly in four places and naively in two, so what is pinned is that no
+     naive one exists -- and the sites are COUNTED, because a per-file check
+     passes on a file that has two and fixed one. */
+  const walk = (dir, out = []) => {
+    for (const name of readdirSync(dir)) {
+      if (name === "generated" || name === "node_modules") continue;
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full, out);
+      else if (/\.ts$/.test(name)) out.push(full);
+    }
+    return out;
+  };
+
+  /** The argument list of a call, read with a paren counter rather than a
+      regex -- `date_trunc('month', (x AT TIME ZONE 'UTC') AT TIME ZONE 'IST')`
+      has nested parens and a regex stops at the first `)`. */
+  const callArgs = (src, at) => {
+    let depth = 0;
+    for (let i = at; i < src.length; i++) {
+      if (src[i] === "(") depth++;
+      else if (src[i] === ")" && --depth === 0) return src.slice(at, i + 1);
+    }
+    return src.slice(at);
+  };
+
+  const naive = [];
+  let sites = 0;
+  for (const file of walk(resolve(ROOT, "src"))) {
+    const src = readFileSync(file, "utf8");
+    // Comments describe the bug; only real calls count.
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    for (const m of code.matchAll(/\b(date_trunc|to_char)\(/g)) {
+      const args = callArgs(code, m.index + m[0].length - 1);
+      // Only calls over a real column; to_char over a computed number is not a
+      // date bucket at all.
+      if (!/"[A-Za-z]+"/.test(args)) continue;
+      sites++;
+      if (!/AT TIME ZONE 'Asia\/Kolkata'/.test(args)) {
+        naive.push(`${file.slice(ROOT.length + 1)}: ${args.slice(0, 100)}`);
+      }
+    }
+  }
+
+  assert.ok(sites >= 6, `only found ${sites} SQL date buckets; this sweep has stopped matching`);
+  assert.deepEqual(
+    naive,
+    [],
+    "SQL date buckets that cut on UTC's calendar instead of the valley's:\n" + naive.join("\n")
+  );
+});
