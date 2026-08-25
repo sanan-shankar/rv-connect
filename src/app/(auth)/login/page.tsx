@@ -1,6 +1,8 @@
 import { turnstileSiteKey } from "@/lib/turnstile";
 import LoginClient from "./login-client";
 
+export const metadata = { title: "Sign in" };
+
 /**
  * A server wrapper for one job: the Turnstile site key lives in plain env
  * (not NEXT_PUBLIC_*, so it never bakes into the client bundle) and the
