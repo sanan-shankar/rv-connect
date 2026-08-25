@@ -80,8 +80,20 @@ export default async function ThreadPage({
     .reverse();
 
 
+  /* Marked read only THROUGH what was rendered (audit C-061).
+     An admin reply committing between the message query above and this write
+     had its just-set `memberUnread` cleared without ever appearing on the page,
+     so the member saw no dot and never learned it had arrived. `lastMessageAt`
+     is the thread's own clock; if it has moved past the newest message on
+     screen, the flag stays and the next visit shows it. */
+  const seenThrough = shown.at(-1)?.createdAt;
   await prisma.adminThread.updateMany({
-    where: { id: thread.id, memberId: session.user.id, memberUnread: true },
+    where: {
+      id: thread.id,
+      memberId: session.user.id,
+      memberUnread: true,
+      ...(seenThrough ? { lastMessageAt: { lte: seenThrough } } : {}),
+    },
     data: { memberUnread: false },
   });
 

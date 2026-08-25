@@ -10,6 +10,8 @@
  * it). Everything that touches the database lives in admin-threads-server.ts.
  */
 
+import { graphemes } from "./utils.ts";
+
 /** Every kind a thread can be. Only the first three are member-choosable. */
 export const THREAD_KINDS = ["bug", "idea", "message", "notice", "report"] as const;
 export type ThreadKind = (typeof THREAD_KINDS)[number];
@@ -57,14 +59,43 @@ export function threadTitle(thread: { kind: string; subject: string | null }): s
  * one. Cuts at the first sentence end when there is one nearby, otherwise at a
  * word boundary, so a row in the list never ends mid-word.
  */
+/**
+ * At most `n` UTF-16 code units of `text`, cut only where a reader would
+ * accept a cut.
+ *
+ * `String.prototype.slice` indexes CODE UNITS, and every emoji is a two-unit
+ * surrogate pair (a ZWJ family is several joined pairs), so a cut at an odd
+ * boundary relative to those pairs leaves a LONE surrogate -- which renders as
+ * a U+FFFD replacement diamond in a stored subject and in the notification
+ * line an admin reads (audit C-059).
+ *
+ * The budget stays in code units rather than in graphemes on purpose: `n` is
+ * how WIDE these strings are allowed to be, and counting graphemes instead
+ * would silently double the length of an emoji-heavy subject. So this takes
+ * whole graphemes while they fit and stops before the one that would not --
+ * the result is never longer than `n` and never ends mid-character.
+ */
+function cutTo(text: string, n: number): string {
+  if (text.length <= n) return text;
+  let out = "";
+  for (const g of graphemes(text)) {
+    if (out.length + g.length > n) break;
+    out += g;
+  }
+  return out;
+}
+
 export function deriveSubject(body: string): string {
   const flat = body.replace(/\s+/g, " ").trim();
-  if (flat.length <= 64) return flat.slice(0, MAX_SUBJECT_LENGTH);
+  if (flat.length <= 64) return cutTo(flat, MAX_SUBJECT_LENGTH);
 
+  /* The sentence search stays on the raw string: it looks for an ASCII `.!?`
+     followed by a space, neither of which can fall inside a surrogate pair, so
+     the index it returns is always a safe boundary. */
   const sentenceEnd = flat.slice(0, 90).search(/[.!?]\s/);
   if (sentenceEnd > 24) return flat.slice(0, sentenceEnd + 1);
 
-  const cut = flat.slice(0, 64);
+  const cut = cutTo(flat, 64);
   const lastSpace = cut.lastIndexOf(" ");
   return (lastSpace > 32 ? cut.slice(0, lastSpace) : cut) + "...";
 }
@@ -72,5 +103,6 @@ export function deriveSubject(body: string): string {
 /** A one-line preview for notification copy and the admin queue. */
 export function previewOf(body: string, max = 90): string {
   const flat = body.replace(/\s+/g, " ").trim();
-  return flat.length > max ? flat.slice(0, max - 1).trimEnd() + "..." : flat;
+  const cut = cutTo(flat, max - 1);
+  return cut.length < flat.length ? cut.trimEnd() + "..." : flat;
 }

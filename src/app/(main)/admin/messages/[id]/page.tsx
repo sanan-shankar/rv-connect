@@ -89,9 +89,12 @@ export default async function AdminThreadPage({
     .reverse();
 
 
-  // Reading it IS seeing it. The action re-checks the admin role itself.
+  /* Reading it IS seeing it -- but only through what was actually rendered
+     (audit C-061). A member reply committing between the query above and this
+     write had its flag cleared without appearing on the page. The action
+     re-checks the admin role itself. */
   if (thread.adminUnread) {
-    await markThreadSeenByAdmin(thread.id);
+    await markThreadSeenByAdmin(thread.id, shown.at(-1)?.createdAt);
   }
 
   return (

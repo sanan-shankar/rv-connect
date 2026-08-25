@@ -31,6 +31,22 @@ export const metadata: Metadata = {
  */
 const SORTED_PAGE = 40;
 
+/**
+ * And the OPEN one is capped too (audit C-081).
+ *
+ * The paragraph above explains why the sorted list is bounded and then leaves
+ * the open list unbounded, on the reasoning that "open threads are the work
+ * queue and are never hidden". That reasoning does not survive contact with
+ * what actually lands in this table: nothing auto-closes a thread, and
+ * `openAdminNoticeThread` opens one per moderated post, comment and photograph
+ * without ever setting a status -- so the work queue accumulates rows nobody
+ * ever needs to act on, and every render fetched all of them with their member
+ * and their last message. Capped at twice the sorted page, because this IS the
+ * queue and it should be the longer of the two, with the same escape the
+ * sorted section already has rather than a silent cut.
+ */
+const OPEN_PAGE = 80;
+
 export default async function AdminMessagesPage({
   searchParams,
 }: {
@@ -38,6 +54,7 @@ export default async function AdminMessagesPage({
 }) {
   const sp = await searchParams;
   const showAllSorted = sp.sorted === "all";
+  const showAllOpen = sp.open === "all";
   // The role, re-established on this page and not borrowed from the layout.
   // Soft navigation re-renders only the segments that changed, so a shared
   // layout is not re-evaluated on every move -- and this page reads member
@@ -71,10 +88,11 @@ export default async function AdminMessagesPage({
       },
   } as const;
 
-  const [openThreads, sortedThreads, sortedTotal] = await Promise.all([
+  const [openThreads, sortedThreads, sortedTotal, openTotal] = await Promise.all([
     prisma.adminThread.findMany({
       where: { status: { not: "closed" } },
       orderBy: [{ adminUnread: "desc" }, { lastMessageAt: "desc" }],
+      ...(showAllOpen ? {} : { take: OPEN_PAGE }),
       select: threadSelect,
     }),
     prisma.adminThread.findMany({
@@ -84,6 +102,7 @@ export default async function AdminMessagesPage({
       select: threadSelect,
     }),
     prisma.adminThread.count({ where: { status: "closed" } }),
+    prisma.adminThread.count({ where: { status: { not: "closed" } } }),
   ]);
 
   const toRow = (t: (typeof openThreads)[number]): ThreadRow => ({
@@ -102,12 +121,33 @@ export default async function AdminMessagesPage({
   const live = openThreads.map(toRow);
   const sorted = sortedThreads.map(toRow);
   const sortedHidden = sortedTotal - sorted.length;
+  const openHidden = openTotal - live.length;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Messages" />
 
-      <AdminSection label="Open" count={live.length}>
+      <AdminSection
+        label="Open"
+        count={openTotal}
+        action={
+          openHidden > 0 ? (
+            <Link
+              href="/admin/messages?open=all"
+              className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
+            >
+              Show {openHidden} older
+            </Link>
+          ) : showAllOpen && openTotal > OPEN_PAGE ? (
+            <Link
+              href="/admin/messages"
+              className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
+            >
+              Show fewer
+            </Link>
+          ) : undefined
+        }
+      >
         {live.length === 0 ? (
           <AdminEmpty>Nobody is waiting. Everything has been sorted.</AdminEmpty>
         ) : (

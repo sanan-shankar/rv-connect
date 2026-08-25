@@ -27,7 +27,14 @@ export { isUploadedImageUrl } from "@/lib/upload-shared";
 export async function isThreadRateLimited(memberId: string): Promise<boolean> {
   const since = new Date(Date.now() - 60 * 60 * 1000);
   const count = await prisma.adminThread.count({
-    where: { memberId, createdAt: { gte: since } },
+    /* Threads the MEMBER started, not every thread with their name on it
+       (audit C-057). `kind: "notice"` rows are opened BY an admin, about the
+       member, one per moderated post, comment or photograph -- so a member
+       whose things an admin took down in a burst spent someone else's actions
+       out of their own budget, and then could not write to say what they
+       thought about it. Reports stay counted, per H5: those are the member's
+       own act. */
+    where: { memberId, kind: { not: "notice" }, createdAt: { gte: since } },
   });
   return count >= MAX_NEW_THREADS_PER_HOUR;
 }

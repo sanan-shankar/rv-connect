@@ -13,6 +13,7 @@ import {
 } from "@/lib/admin-threads-server";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
 import { adminThreadLink } from "@/lib/notification-links";
+import { DOUBLE_SUBMIT_MS } from "@/lib/double-submit";
 
 /**
  * Every mutation for member <-> admin conversations.
@@ -85,6 +86,26 @@ export async function startThread(input: {
     return { error: "That's a lot of messages at once. Give it an hour and send the rest." };
   }
 
+  /* The server half of the double-submit guard (audit C-128).
+     A message is free text, so no unique index can dedupe it, and the
+     composer's `sending` STATE guard binds on the next render -- which
+     Cmd+Enter key-repeat plus a Send click gets past, and which two tabs never
+     saw. The same person opening the same conversation with the same words
+     seconds apart is a duplicate submission, and every one of them pages the
+     admins again. Same window and same reasoning as the feed's. */
+  const twin = await prisma.adminThread.findFirst({
+    where: {
+      memberId: session.user.id,
+      createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
+      messages: { some: { authorId: session.user.id, fromAdmin: false, body } },
+    },
+    select: { id: true },
+  });
+  if (twin) {
+    revalidatePath("/messages");
+    return { threadId: twin.id };
+  }
+
   const thread = await prisma.adminThread.create({
     data: {
       memberId: session.user.id,
@@ -134,6 +155,20 @@ export async function replyToThread(
   if (await isMessageRateLimited(session.user.id)) {
     return { error: "That's a lot of messages at once. Give it an hour and send the rest." };
   }
+
+  // Same guard as startThread above (audit C-128): a repeated send inside one
+  // conversation posts the line twice and notifies the admins twice.
+  const twinReply = await prisma.adminMessage.findFirst({
+    where: {
+      threadId,
+      authorId: session.user.id,
+      fromAdmin: false,
+      body,
+      createdAt: { gte: new Date(Date.now() - DOUBLE_SUBMIT_MS) },
+    },
+    select: { id: true },
+  });
+  if (twinReply) return { threadId };
 
   await prisma.$transaction([
     prisma.adminMessage.create({
@@ -232,9 +267,16 @@ export async function setThreadStatus(
   });
   if (!thread) return { error: "We couldn't find that conversation" };
 
+  /* Status only. Closing is not READING (audit C-053).
+     This cleared `adminUnread` unconditionally, so a member reply that
+     committed after the admin's page rendered -- which sets adminUnread and
+     reopens the thread -- was wiped by the next "Sorted", and the message went
+     into the closed pile with nothing anywhere saying it had arrived. Same
+     reasoning the reply path already carries for B-201: opening a thread is
+     what marks it read, and `markThreadSeenByAdmin` owns that flag. */
   await prisma.adminThread.update({
     where: { id: threadId },
-    data: { status, adminUnread: false },
+    data: { status },
   });
 
   revalidatePath("/admin");
@@ -243,13 +285,27 @@ export async function setThreadStatus(
 }
 
 /** Clears the admin's "new" marker without replying (used when a queue row is opened). */
-export async function markThreadSeenByAdmin(threadId: string): Promise<ActionResult> {
+export async function markThreadSeenByAdmin(
+  threadId: string,
+  /** The newest message the caller had rendered, if it knows. */
+  seenThrough?: Date
+): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== "admin") {
     return { error: "Not authorized" };
   }
+  /* Only when nothing has arrived since the page was built (audit C-061).
+     `seenThrough` is the newest message the admin actually had on screen. A
+     reply committing between that query and this write used to have its
+     just-set flag cleared without ever being rendered, so the thread looked
+     read and the message was invisible until somebody opened it again by
+     chance. Callers that pass nothing keep the old unconditional clear. */
   await prisma.adminThread.updateMany({
-    where: { id: threadId, adminUnread: true },
+    where: {
+      id: threadId,
+      adminUnread: true,
+      ...(seenThrough ? { lastMessageAt: { lte: seenThrough } } : {}),
+    },
     data: { adminUnread: false },
   });
   return { threadId };

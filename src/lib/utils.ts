@@ -123,7 +123,7 @@ const GRAPHEME_SEGMENTER = new Intl.Segmenter(undefined, { granularity: "graphem
  * which `[...text]` (codepoint-wise) does not. Baseline "widely available":
  * Chrome/Edge 87, Safari 17, Firefox 125, and every Node this app runs on --
  * so there is no fallback path to maintain. */
-function graphemes(text: string): string[] {
+export function graphemes(text: string): string[] {
   return Array.from(GRAPHEME_SEGMENTER.segment(text), (s) => s.segment)
 }
 
