@@ -3524,3 +3524,40 @@ the server refuses anything over 500 with a flat "Please provide a valid
 reason". Somebody who did exactly what the field invited got a refusal naming
 nothing to fix. The box's cap is derived from the longest reason now, so adding
 a longer one cannot re-open the gap.
+
+## 2026-08-25 (later) — the long tail, part seven: the pen
+
+Five findings on the inline profile editor, and four of them are one sentence:
+`updateProfileField` is the ONLY live editor of these columns, and every bound
+in it was typed out locally rather than taken from the schema every other
+writer uses. So the loose numbers were the ones that shipped and the shared
+ones were unreachable -- jobTitle and workplace at 120 against the schema's
+100, admission numbers to 100000 against 10000, and a flat year ceiling of 2100
+against `yearField`'s per-parse valleyYear()+ahead, which exists precisely so
+the ceiling tracks the clock. The letterhead's own name box carried
+`maxLength={80}`, re-creating on the client the exact lockout Low 84 fixed on
+the server: a member whose name signup had accepted could not finish typing it.
+
+The schema decides now and this file keeps the sentence, because Zod's "Too
+big: expected string to have <=100 characters" is not how anything else here
+talks to a member. Verified live that the pen still saves, and that every bound
+refuses exactly what the schema refuses.
+
+**Five 500s that should have been refusals (C-174).** A `"use server"` export
+is a network-callable POST and its parameter types are erased, so a crafted
+call sending a number where a string is declared reached `.trim()` and threw --
+a digest in the logs instead of a sentence on screen. Guarded at all five
+sites: the pen's value, BOTH report paths' reason, the deletion re-auth
+password (a `formData.get` that can return a File), and the two
+`Math.trunc(loaded)` paginators, where a non-finite offset reaches Prisma.
+
+**Autosaves that raced each other (C-045).** `useAutoSave` counted in-flight
+writes but never ordered them, and the places picker commits on every change
+into a wipe-and-recreate transaction. Two edits a moment apart each deleted
+what they could see and then inserted; the `@@unique([userId, position])` --
+which exists for exactly this -- aborted the loser. Nothing was corrupted, but
+the loser showed "check your connection" over a save that was fine, and which
+list survived came down to timing. The queue is chained now. A failed places
+save also refreshes: a refused wipe-and-recreate leaves the OLD list on file
+while the screen shows the new one, which is the one state where keeping the
+local copy tells a lie.

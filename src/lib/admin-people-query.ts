@@ -92,7 +92,10 @@ export async function loadPeoplePage(
         select: ROW_SELECT,
         orderBy: [...orderBy],
         take: PEOPLE_PAGE_SIZE + 1,
-        skip: Math.max(0, Math.trunc(loaded)),
+        /* Number.isFinite first: `loaded` is a network-supplied number whose
+           type is erased, and Math.trunc(NaN) is NaN, which Prisma rejects
+           with a 500 rather than a refusal (audit C-174). */
+        skip: Number.isFinite(loaded) ? Math.max(0, Math.trunc(loaded)) : 0,
       });
     }
   }

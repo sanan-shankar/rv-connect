@@ -109,7 +109,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn, formatPhoneDisplay } from "@/lib/utils";
+import { FULL_NAME_MAX, cn, formatPhoneDisplay } from "@/lib/utils";
 import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
 import { isImageFile } from "@/lib/upload-shared";
@@ -439,7 +439,12 @@ export function LetterheadProfile({
       const result = await updateUserPlaces(
         next.map((p) => ({ placeId: p.placeId, label: p.label, city: p.city, lat: p.lat, lng: p.lng }))
       );
-      if (!result.error) router.refresh();
+      /* Refreshed either way (audit C-045). `updateUserPlaces` is a
+         wipe-and-recreate, so a refusal means the OLD list is what is on file
+         while the screen is showing the new one -- the one state where leaving
+         the local copy up tells a lie. A failed save reconverges with the
+         database rather than sitting on a list nobody has. */
+      router.refresh();
       return result;
     });
   }
@@ -937,7 +942,13 @@ export function LetterheadProfile({
                           ariaLabel="Your name"
                           singleLine
                           snug
-                          maxLength={80}
+                          /* FULL_NAME_MAX, not a hand-typed 80. Signup accepts
+                             a hundred characters, so a member with a longer
+                             name than this could not finish typing the name
+                             they already had -- the same lockout Low 84 fixed
+                             on the server and this input re-created (audit
+                             C-172). */
+                          maxLength={FULL_NAME_MAX}
                           className="min-w-0"
                         />
                         <span className="shrink-0">

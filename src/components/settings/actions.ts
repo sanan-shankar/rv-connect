@@ -301,7 +301,11 @@ export async function requestAccountDeletion(formData: FormData) {
   if (IS_DEMO) return { error: "This is a demo account, so it stays put." };
 
   const userId = session.user.id;
-  const password = (formData.get("password") as string) || "";
+  /* `formData.get` returns `File | string | null`, and the cast is erased: a
+     crafted multipart body sends a File, every string method below throws, and
+     the member gets a 500 digest where a refusal belongs (audit C-174). */
+  const passwordRaw = formData.get("password");
+  const password = typeof passwordRaw === "string" ? passwordRaw : "";
 
   const me = await prisma.user.findUnique({
     where: { id: userId },
