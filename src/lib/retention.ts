@@ -4,6 +4,7 @@ import { purgeUserAccount, drainPendingImagePurges, DELETION_GRACE_DAYS } from "
 import { RECENTLY_DELETED_DAYS } from "./catchup-shelf";
 import { promoteGroupSuccessor } from "./group-succession";
 import { reportSwallowed } from "./report-error";
+import { valleyDayKey } from "./utils";
 
 /**
  * The retention sweep (audit M34, GDPR Art. 5(1)(e)): personal data stops
@@ -319,7 +320,10 @@ export async function runRetentionSweep(): Promise<SweepResult> {
         targetType: "user",
         targetId: row.id,
         detail:
-          `${row.name} <${row.email}> — requested ${row.deletionRequestedAt?.toISOString().slice(0, 10)}, ` +
+          // The valley's day, matching what the member was emailed when they
+          // asked (audit C-146). In UTC the two named different days for any
+          // request made between midnight and 05:30 IST.
+          `${row.name} <${row.email}> — requested ${row.deletionRequestedAt ? valleyDayKey(row.deletionRequestedAt) : "unknown"}, ` +
           `${purged.imagesDeleted} stored image(s) removed` +
           (purged.imagesFailed > 0 ? `, ${purged.imagesFailed} still queued` : "") +
           (purged.groupsRehomed > 0 ? `, ${purged.groupsRehomed} group(s) handed on` : ""),

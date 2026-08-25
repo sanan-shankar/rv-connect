@@ -210,3 +210,121 @@ test("C-078: every member-authored model has an export section", () => {
     );
   }
 });
+
+/* ---- C-146: the operator and the member name the same day ---------- */
+
+test("C-146: an audit-log date is a valley day, like the email beside it", () => {
+  /* The deletion request writes an audit line and posts the member a
+     confirmation naming the purge date. The line used
+     `toISOString().slice(0, 10)` -- a UTC day -- while the email formats in
+     the valley's zone with a comment above it explaining exactly why it must.
+     For any request made between midnight and 05:30 IST the two named
+     different days, and an admin cross-checking them had nothing to say which
+     was right. */
+  const files = {
+    "src/components/settings/actions.ts": code(read("src/components/settings/actions.ts")),
+    "src/lib/retention.ts": code(read("src/lib/retention.ts")),
+  };
+  const offenders = [];
+  let details = 0;
+  for (const [name, src] of Object.entries(files)) {
+    for (const m of src.matchAll(/detail:[\s\S]{0,400}?,\n/g)) {
+      details++;
+      if (/toISOString\(\)\.slice\(0, ?10\)/.test(m[0])) offenders.push(`${name}: ${m[0].slice(0, 90)}`);
+    }
+  }
+  assert.ok(details >= 2, `only found ${details} audit details; this sweep has stopped matching`);
+  assert.deepEqual(
+    offenders,
+    [],
+    "an audit-log detail names a UTC day again while the member is told a valley one:\n" +
+      offenders.join("\n")
+  );
+  assert.ok(
+    /valleyDayKey\(/.test(files["src/components/settings/actions.ts"]) &&
+      /valleyDayKey\(/.test(files["src/lib/retention.ts"]),
+    "an audit date stopped going through valleyDayKey"
+  );
+});
+
+/* ---- C-116: the gauntlet's outside call has a deadline ------------- */
+
+test("C-116: the NYT fetch cannot hang the /dark-mode render", () => {
+  /* The catch below it only ever caught a REJECTION, and the failure this file
+     exists to survive is an endpoint that accepts the connection and never
+     replies -- which does not reject, so the fallback was unreachable in the
+     one case it was written for and the first visitor after each cache expiry
+     got a 504. */
+  const WORDLE = code(read("src/lib/wordle.ts"));
+  assert.ok(
+    /AbortSignal\.timeout\(/.test(WORDLE),
+    "getWordleAnswer's fetch has no deadline again (C-116)"
+  );
+  const call = WORDLE.slice(WORDLE.indexOf("fetch("), WORDLE.indexOf("if (res.ok)"));
+  assert.ok(call.length > 40, "the fetch call did not slice; this test is vacuous");
+  assert.ok(/signal:/.test(call), "the deadline is declared but not passed to the fetch");
+  assert.ok(/FALLBACK_WORDS/.test(WORDLE), "the offline fallback is gone");
+});
+
+/* ---- C-046: every writer of verifyState stamps verifyStateAt -------- */
+
+test("C-046: nothing writes verifyState without stamping verifyStateAt", () => {
+  /* The schema says so at the column: verifyStateAt is the only honest
+     ordering the admin worklist has, and it defaults to now() at row creation
+     and is never touched again. The roster import script set verifyState and
+     left the stamp, so an entire import batch sorted by its members' SIGNUP
+     times and never appeared in "recently verified".
+
+     Swept across the app AND the scripts, because the one that got it wrong
+     was a script, which no typechecker was going to catch. */
+  const sources = [
+    ["src/components/auth/verification-actions.ts", null],
+    ["src/components/profile/admin-actions.ts", null],
+    ["src/lib/roster.ts", null],
+    ["scripts/dev/import-roster.mjs", null],
+  ];
+  let writes = 0;
+  const offenders = [];
+  for (const [name] of sources) {
+    const src = code(read(name));
+    /* Prisma writers say `verifyState: "..."` and raw SQL says
+       `"verifyState" = '...'`, and BOTH forms appear in a where/WHERE clause
+       too, where they are a read and owe nothing. Told apart by which
+       introducer is nearer -- `data:`/`SET` means a write, `where:`/`WHERE`
+       means a read. A lookback window cannot do this: an updateMany's data
+       block sits a few dozen characters after its own where block. */
+    for (const m of src.matchAll(/(verifyState: "|"verifyState" = ')/g)) {
+      const before = src.slice(0, m.index);
+      const writeAt = Math.max(before.lastIndexOf("data:"), before.lastIndexOf("SET "));
+      const readAt = Math.max(before.lastIndexOf("where:"), before.lastIndexOf("WHERE "));
+      if (writeAt < readAt) continue;
+      writes++;
+      const window = src.slice(m.index, m.index + 500);
+      if (!/verifyStateAt/.test(window)) offenders.push(`${name}: ${window.slice(0, 80)}`);
+    }
+  }
+  assert.ok(writes >= 4, `only found ${writes} verifyState writes; this sweep has stopped matching`);
+  assert.deepEqual(
+    offenders,
+    [],
+    "verifyState written without verifyStateAt, against the schema's own rule:\n" +
+      offenders.join("\n")
+  );
+});
+
+/* ---- C-155: a broken query is not an answer ------------------------ */
+
+test("C-155: pick-bird does not read a failed query as 'not a supporter'", () => {
+  /* Both reads carried a .catch() into a value that changed the redirect, so a
+     pool timeout at the busy moment payments cluster bounced somebody who HAD
+     paid to the page whose one call to action is to pay again -- with nothing
+     shown to say anything had gone wrong. */
+  const PAGE = code(read("src/app/(main)/pick-bird/page.tsx"));
+  assert.ok(PAGE.length > 400, "the pick-bird page did not read; this test is vacuous");
+  assert.ok(
+    !/\.catch\(/.test(PAGE),
+    "pick-bird swallows a query failure again (C-155); a broken read must reach " +
+      "the error boundary, not become a redirect to /support"
+  );
+  assert.ok(/redirect\("\/support"\)/.test(PAGE), "the supporter gate itself is gone");
+});

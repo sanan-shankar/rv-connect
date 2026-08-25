@@ -27,20 +27,28 @@ export default async function PickBirdPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  /* Nothing is caught here, deliberately (audit C-155).
+     Both reads used to carry a `.catch(() => 0)` / `.catch(() => null)`, which
+     conflated two entirely different answers: "this member has given nothing",
+     which is a real result the `?? 0` inside netPaise already handles, and
+     "the database did not answer", which is not a result at all. A pool
+     checkout timeout at the busy moment payments cluster therefore read as
+     `not a supporter` and bounced somebody who HAD paid to the page whose one
+     call to action is to pay again -- with nothing shown to say anything had
+     gone wrong. A thrown error reaches the route's error boundary, which says
+     so and offers a retry; that is the honest surface for a transient
+     failure, and reloading fixes it. */
   const [myPaidPaise, me] = await Promise.all([
     prisma.contribution
       .aggregate({
         _sum: CONTRIBUTION_SUM,
         where: { userId: session.user.id, status: "paid", livemode: razorpayLivemode() },
       })
-      .then((r) => netPaise(r._sum))
-      .catch(() => 0),
-    prisma.user
-      .findUnique({
-        where: { id: session.user.id },
-        select: { birdOverride: true, birdPickedAt: true },
-      })
-      .catch(() => null),
+      .then((r) => netPaise(r._sum)),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { birdOverride: true, birdPickedAt: true },
+    }),
   ]);
 
   // Admins are let through without paying so the owner can walk the exact
@@ -53,17 +61,18 @@ export default async function PickBirdPage() {
   if (!isAdmin) {
     if (myPaidPaise < PERK_MIN_PAISE) redirect("/support");
     if (me?.birdPickedAt) {
-      const fresh = await prisma.contribution
-        .findFirst({
-          where: {
-            userId: session.user.id,
-            status: "paid",
-            livemode: razorpayLivemode(),
-            paidAt: { gt: me.birdPickedAt },
-          },
-          select: { id: true },
-        })
-        .catch(() => null);
+      // Uncaught, for the same reason as the two reads above: a failed query
+      // must not be read as "no newer contribution" and spend somebody's
+      // second pick by sending them back to /support.
+      const fresh = await prisma.contribution.findFirst({
+        where: {
+          userId: session.user.id,
+          status: "paid",
+          livemode: razorpayLivemode(),
+          paidAt: { gt: me.birdPickedAt },
+        },
+        select: { id: true },
+      });
       if (!fresh) redirect("/support");
     }
   }

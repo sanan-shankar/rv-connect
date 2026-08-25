@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { MAX_PLACES, formatPlaceLabel, parsePlaces, resolvePlaces } from "./place-input.ts";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  MAX_PLACES,
+  formatPlaceLabel,
+  legacyCityColumns,
+  parsePlaces,
+  resolvePlaces,
+} from "./place-input.ts";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const ok = { placeId: null, label: "Bangalore", city: "Bangalore", lat: 12.97, lng: 77.59 };
 
@@ -141,4 +152,64 @@ test("a placeId the gazetteer does not know degrades to free text, not a foreign
 test("a non-Indian label keeps its country, an Indian one does not repeat it", () => {
   assert.equal(formatPlaceLabel(GAZETTEER.get(5128581)), "New York City, New York, United States");
   assert.equal(formatPlaceLabel(GAZETTEER.get(NEW_DELHI)), "New Delhi, Delhi");
+});
+
+/* ---- C-101: the legacy city columns are mirrored, both of them ------- */
+
+test("clearing every place clears BOTH legacy city columns", () => {
+  /* The profile falls back to [currentCity, secondaryCity] while a member's
+     places list is empty. The writers mirrored only the first, so a member who
+     still carried a pre-migration secondaryCity and then deleted every place
+     got currentCity nulled and the stale second city resurrected on their own
+     page -- a place they had just removed, back again. */
+  assert.deepEqual(legacyCityColumns([]), { currentCity: null, secondaryCity: null });
+  assert.deepEqual(legacyCityColumns([{ label: "Mumbai" }]), {
+    currentCity: "Mumbai",
+    secondaryCity: null,
+  });
+  assert.deepEqual(legacyCityColumns([{ label: "Mumbai" }, { label: "Bengaluru" }]), {
+    currentCity: "Mumbai",
+    secondaryCity: "Bengaluru",
+  });
+  // A third place has nowhere to go in the legacy pair, and must not displace
+  // either of the two that do.
+  assert.deepEqual(
+    legacyCityColumns([{ label: "Mumbai" }, { label: "Bengaluru" }, { label: "Chennai" }]),
+    { currentCity: "Mumbai", secondaryCity: "Bengaluru" }
+  );
+});
+
+test("every place writer mirrors the legacy columns from the one helper", () => {
+  /* THREE writers, and the whole bug was that they each mirrored half of it.
+     Counted, not detected: a check that "some file calls legacyCityColumns"
+     passes on a codebase where two of the three still hand-roll it. */
+  const walk = (dir, out = []) => {
+    for (const name of readdirSync(dir)) {
+      if (name === "generated" || name === "node_modules" || name === "lab") continue;
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full, out);
+      else if (/\.tsx?$/.test(name)) out.push(full);
+    }
+    return out;
+  };
+  const callers = [];
+  const handRolled = [];
+  const HELPER = resolve(ROOT, "src/lib/place-input.ts");
+  for (const file of walk(resolve(ROOT, "src"))) {
+    // The helper itself is where the rule is allowed to be written out.
+    if (file === HELPER) continue;
+    const src = readFileSync(file, "utf8");
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    if (/legacyCityColumns\(/.test(code)) callers.push(file);
+    // The shape it replaced. Anything writing currentCity off a places list
+    // by hand is a fourth copy of the rule.
+    if (/currentCity:\s*(cleaned|cleanedPlaces|places)\[0\]/.test(code)) handRolled.push(file);
+  }
+  assert.deepEqual(handRolled, [], "a place writer mirrors currentCity by hand again (C-101)");
+  assert.ok(
+    callers.length >= 3,
+    `only ${callers.length} place writers call legacyCityColumns; there are three ` +
+      "(settings, admin, onboarding) and each one that stops calling it leaves a " +
+      "stale secondaryCity behind"
+  );
 });

@@ -1,8 +1,8 @@
 import { isUploadedImageUrl } from "@/lib/upload-shared";
 import { keyForUrl } from "@/lib/storage";
-import { decideOwnedUploads, MAX_IMAGES } from "@/lib/upload-ownership-rule";
+import { decideOwnedUploads, MAX_IMAGES, MAX_IMAGE_URL } from "@/lib/upload-ownership-rule";
 
-export { MAX_IMAGES };
+export { MAX_IMAGES, MAX_IMAGE_URL };
 
 /**
  * The write-time half of the C2 fix (the read-time key scheme is in
@@ -17,7 +17,10 @@ export { MAX_IMAGES };
  *   1. `isUploadedImageUrl` — a URL this app minted, not an arbitrary external
  *      one, which would be a tracking pixel served to every reader (M10) and,
  *      for the Collection/avatar roots, the lever that made C2 catastrophic.
- *   2. The object key sits under the caller's OWN `uploads/<their id>/` prefix.
+ *   2. The URL is no longer than MAX_IMAGE_URL. Nothing else on the path
+ *      bounded its LENGTH, so megabytes of junk in a legitimately-prefixed
+ *      URL reached the column every feed reader downloads (audit C-169).
+ *   3. The object key sits under the caller's OWN `uploads/<their id>/` prefix.
  *      The server wrote that id into the key at upload time and no request can
  *      forge it, so member A cannot reference member B's image (or a heritage
  *      Collection photo) and then delete the carrying row to destroy it.
@@ -33,6 +36,7 @@ export function ownedUploadUrls(urls: unknown, userId: string): OwnershipResult 
   const candidates = urls.map((url) => ({
     minted: typeof url === "string" && isUploadedImageUrl(url),
     key: typeof url === "string" ? keyForUrl(url) : null,
+    length: typeof url === "string" ? url.length : 0,
   }));
   const verdict = decideOwnedUploads(candidates, userId);
   if (!verdict.ok) return verdict;

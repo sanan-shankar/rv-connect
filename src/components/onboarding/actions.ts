@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { titleCase } from "@/lib/normalize";
-import { placesSchema, resolvePlaces } from "@/lib/place-input";
+import { legacyCityColumns, placesSchema, resolvePlaces } from "@/lib/place-input";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 import { normalizeHouse } from "@/lib/houses";
 import type { HouseYearEntry } from "@/lib/houses";
@@ -74,7 +74,6 @@ export async function saveOnboardingRegister(input: RegisterStepInput) {
      its canonical row (Delhi -> New Delhi, see place-aliases.ts), and drops
      the duplicate that collapse can leave behind. */
   const cleanedPlaces = await resolvePlaces(places, titleCase, lookupGazetteerPlaces);
-  const primaryLabel = cleanedPlaces[0]?.label ?? null;
 
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
@@ -84,8 +83,10 @@ export async function saveOnboardingRegister(input: RegisterStepInput) {
         workplace,
         jobTitle,
         subjects,
-        // Legacy single-column city, kept in sync with the first place.
-        currentCity: primaryLabel,
+        // The legacy city columns, from the one place all three writers read
+        // (audit C-101). This step mirrored only the first, like the other
+        // two, so a stale pre-migration secondaryCity survived every save.
+        ...legacyCityColumns(cleanedPlaces),
       },
     });
 

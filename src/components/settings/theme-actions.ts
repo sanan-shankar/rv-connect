@@ -52,8 +52,12 @@ export async function setTheme(theme: Theme) {
     httpOnly: false,
     sameSite: "lax",
     path: "/",
-    // One year: a theme choice should outlive a session but a forgotten
-    // device should eventually drift back to the DB truth on next sign-in.
+    /* One year, because this cookie IS the theme on this device -- there is
+       no drift back to a database truth on the next sign-in, whatever this
+       comment used to say (audit C-138). Nothing reads `User.theme` back into
+       a cookie anywhere, so when this expires the device starts light again
+       and the gauntlet is walked afresh. See src/lib/theme.ts for why that is
+       the design and not an oversight. */
     maxAge: 60 * 60 * 24 * 365,
   });
 
