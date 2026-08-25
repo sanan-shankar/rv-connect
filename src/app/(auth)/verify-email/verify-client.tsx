@@ -7,6 +7,7 @@ import { AuthHeading, AuthPanel } from "@/components/auth/auth-panel";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { resendVerification, type ConfirmOutcome } from "@/components/auth/email-actions";
+import { callAction } from "@/lib/call-action";
 
 /* ------------------------------------------------------------------ *
  *  The confirmation link's landing page.
@@ -107,7 +108,9 @@ export function VerifyEmailClient({
     if (busy) return;
     setBusy(true);
     setResendError("");
-    const result = await resendVerification();
+    // Through callAction (audit C-034): a rejected dispatch skipped the
+    // setBusy(false) below and left Resend disabled for ever.
+    const result = await callAction(() => resendVerification());
     if (result.ok) setResent(result.sentTo ?? "your address");
     else setResendError(result.error ?? "That did not work. Try again in a minute.");
     setBusy(false);

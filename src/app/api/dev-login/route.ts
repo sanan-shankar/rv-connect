@@ -39,8 +39,10 @@ import { encode } from "@auth/core/jwt";
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/email-address";
 
-/* Matches the `session.maxAge` in src/lib/auth.ts. A tooling session that
-   outlived a real one would be its own small oddity. */
+/* Matches what a real session gets: @auth/core's 30-day default, which
+   src/lib/auth.ts takes by setting no `maxAge` of its own (this line used to
+   say it matched a maxAge that was never there -- audit C-032). A tooling
+   session that outlived a real one would be its own small oddity. */
 const MAX_AGE = 30 * 24 * 60 * 60;
 
 /* Long enough that guessing is hopeless even against a local server with no

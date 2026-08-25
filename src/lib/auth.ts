@@ -254,6 +254,27 @@ const nextAuth = NextAuth({
       },
     }),
   ],
+  /* An ABSOLUTE thirty days, not a rolling one, and deliberately left that way
+   * (audit C-032).
+   *
+   * No `maxAge` here, so @auth/core's own 30-day default applies. NextAuth
+   * documents that as a session that refreshes on activity -- but the refresh
+   * rides on Set-Cookie headers emitted by GET /api/auth/session, and this app
+   * never asks for it: `auth()` takes the RSC path, which reads the response
+   * BODY and drops those headers, and there is no middleware, no
+   * SessionProvider and no useSession anywhere in src. So the cookie's expiry
+   * is fixed at sign-in and never advances.
+   *
+   * What that means for a member: a forced re-login roughly thirty days after
+   * they signed in, however often they have used the site, and a launch cohort
+   * hitting it together. A recoverable re-login with no data loss, and an
+   * absolute session is a defensible posture in its own right, so whether to
+   * add rolling refresh is the owner's call rather than a defect to fix
+   * quietly. Written down here so the next reader does not assume it rolls.
+   *
+   * Revocation does NOT depend on any of this: `User.credentialVersion` is
+   * stamped into the token and compared on every session read, so a password
+   * reset, a block or a deletion request ends every live session at once. */
   session: {
     strategy: "jwt",
   },

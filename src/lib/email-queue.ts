@@ -808,9 +808,11 @@ export async function mailHealth(): Promise<{
  * When the daily budget refills, i.e. the earliest a message deferred by the
  * cap could go out. Resend's window is UTC, so this is the next UTC midnight.
  *
- * Returned as a Date and formatted in the BROWSER's timezone by whoever shows
- * it. "It will go out tomorrow" is the kind of vague reassurance that reads as
- * a brush-off; a real clock time is a promise somebody can check.
+ * Returned as a Date. Whoever shows it formats it in the VALLEY's timezone and
+ * says so -- see `sendTimeLabel` -- which this line used to claim was the
+ * browser's (audit C-037). "It will go out tomorrow" is the kind of vague
+ * reassurance that reads as a brush-off; a real clock time, with the zone on
+ * it, is a promise somebody can check.
  */
 export function nextBudgetResetAt(daysForward = 1): Date {
   const now = new Date();

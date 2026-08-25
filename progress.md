@@ -3291,3 +3291,68 @@ in the browser, at 1440x900 and 390x844.
 `skipTrailingSlashRedirect` makes every trailing-slash URL 404. It suppresses
 the client-facing 308 and nothing else: `removeTrailingSlash` runs
 unconditionally before route matching.
+
+## 2026-08-25 (later) — the long tail, part four: the doors
+
+Eleven findings on the paths somebody reaches when they cannot sign in. There
+is no second door behind these, which is why a Low here is worth more than its
+label.
+
+**A blocked member could complete a password reset (C-033).** Nothing in the
+reset flow read `isBlocked`: the mail went out, the link worked, the password
+was written, and the screen said "we are signing you in now" -- and then
+`authorize()`, the only gate that checks it, refused with "Invalid email or
+password", which bounced them back to /login where the new password was refused
+again. An endless loop that told them nothing true. The reset now queues no
+mail for a blocked row while answering exactly as it answers everything else,
+so the identical `{ ok: true }` that stops this being a membership oracle is
+preserved. Proved end to end against the running server: same account, same
+form, one mail queued unblocked and none blocked.
+
+**A committed password change could still look like a failure (C-035).** Four
+post-commit writes were plain awaits with no catch, under a comment claiming
+the mail was "never awaited for success". A pool timeout in any of them threw
+out of the server action, so the member watched "Saving..." for ever with no
+way to know the password had in fact changed -- and the token was already
+burned, so trying again said the link was used. They sit in a try now, with
+`reportSwallowed` as the witness.
+
+**Three auth forms could strand on a disabled button (C-034).** reset,
+forgot-password and resend-confirmation all awaited a server action bare, so a
+rejected dispatch skipped every line after it, including the one that
+re-enables the button. They go through `callAction` like everything else.
+
+**A valley clock printed as if it were yours (C-037 and its three
+duplicates).** Three separate docstrings claimed the send time was formatted in
+the reader's timezone; the code pins it to Asia/Kolkata. The comments invited a
+later session to "restore" browser-local formatting and re-break a day
+comparison that had already been fixed. Corrected, and the member-facing time
+now says IST -- a member in London was reading a valley wall time as their own
+and would have checked an empty inbox at the wrong hour.
+
+**One written down rather than changed (C-032).** The session is an ABSOLUTE
+thirty days, not the rolling one NextAuth documents: the refresh rides on
+Set-Cookie headers from GET /api/auth/session, and `auth()` takes the RSC path,
+which reads the body and drops them. There is no middleware, no SessionProvider
+and no useSession anywhere. So every member is signed out thirty days after
+signing in, however often they visit, and a launch cohort hits it together.
+That is a defensible posture and a recoverable re-login, so it is the owner's
+call rather than something to change quietly -- **owner decision needed.** It
+is now stated beside the config, with the note that revocation does not depend
+on it.
+
+**Two refuted.** C-038 (a password-null account being stranded) is latent: no
+production path mints one. C-036 (a mail scanner auto-confirming an address) is
+a documented decision that grants an attacker nothing they could not get by
+confirming their own address.
+
+**A probe lesson worth carrying.** Proving C-033 in a browser failed three
+times in a row, always looking like the fix worked. Two separate reasons, both
+of which produce a convincing zero: the reset limiter is per-IP, so the second
+submission was refused BEFORE the isBlocked branch (fixed with a distinct
+`x-forwarded-for` per run); and `page.fill` before hydration sets the DOM value
+of a CONTROLLED input without React ever seeing it, so the form posted an empty
+address and the action returned early. React does not overwrite a value already
+in the field when it hydrates, so the field looks right the whole time. The
+tell is the confirmation screen, which echoes the address out of React state --
+assert on that, and wait for React props on the form before typing.

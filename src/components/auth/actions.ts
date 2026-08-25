@@ -13,6 +13,7 @@ import { passwordProblem } from "@/lib/password-rule";
 import { yearClashMessage } from "@/lib/batch-year";
 import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
+import { reportSwallowed } from "@/lib/report-error";
 
 export async function registerUser(formData: FormData) {
   // The trivia gate is enforced server-side: a valid signed pass cookie must be
@@ -171,15 +172,29 @@ export async function registerUser(formData: FormData) {
     throw err;
   }
 
-  // Every alumnus is auto-added to their batch group ("Batch of {year}"), which
-  // is created on demand by the first person from that batch to join. No manual
-  // joining. Teachers have no batch and skip this. A failure here must not sink
-  // an otherwise-successful registration, so it is best-effort.
+  /* Every alumnus is auto-added to their batch group ("Batch of {year}"),
+     created on demand by the first person from that batch to join. No manual
+     joining; teachers have no batch and skip it. A failure here must not sink
+     an otherwise-successful registration, so it is best-effort.
+
+     REPORTED, not just logged (audit C-156). It used to be a bare
+     console.error, and there is no self-heal anywhere: nothing re-checks "an
+     alumnus with a batchYear and no batch-group row", so a pool timeout during
+     a launch-day burst left that member out of their batch permanently, with
+     no witness but a Vercel log line.
+
+     What that costs, honestly, is nothing a member can see TODAY. Batch
+     targeting does not go through this row: `batchScopeWhere` matches
+     Post.targetBatches against the viewer's own batch key, and group posts are
+     refused at creation (zero rows carry a groupId). So a self-heal would be
+     repairing something nothing reads. The report is the right size of fix: if
+     the batch group ever becomes load-bearing again, the failures are already
+     visible rather than needing to be discovered. */
   if (isAlum && batchYear != null) {
     try {
       await joinBatchGroup(user.id, batchYear);
     } catch (err) {
-      console.error("Batch group auto-join failed", err);
+      reportSwallowed("signup", err, { userId: user.id, batchYear, step: "joinBatchGroup" });
     }
   }
 

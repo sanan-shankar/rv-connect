@@ -12,6 +12,7 @@ import { BOT_CHECK_BLOCKED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { SPRINGS } from "@/components/common/motion";
 import { requestPasswordReset } from "@/components/auth/email-actions";
+import { callAction } from "@/lib/call-action";
 import { TurnstileWidget, type TurnstileHandle } from "@/components/auth/turnstile-widget";
 
 /* ------------------------------------------------------------------ *
@@ -87,7 +88,9 @@ export function ForgotPasswordClient({
       return;
     }
     if (turnstileToken) formData.set("turnstileToken", turnstileToken);
-    const result = await requestPasswordReset(formData);
+    // Through callAction (audit C-034): a rejected dispatch left this form
+    // stuck on a disabled "Sending..." with no way back but a reload.
+    const result = await callAction(() => requestPasswordReset(formData));
 
     /* The refusals here are about the CALLER (bot check, too many requests
        from this connection), never about the address, so showing them leaks
