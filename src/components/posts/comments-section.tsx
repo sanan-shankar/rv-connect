@@ -24,6 +24,7 @@ import {
 } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { appendUnseen } from "@/lib/append-page";
 import { settledHeart } from "@/lib/heart";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { motion } from "motion/react";
@@ -137,10 +138,7 @@ export function CommentsSection({
   /** Merge a page into the thread, deduping against rows already present
    *  (the reader's own fresh comment may reappear in a later page). */
   const mergeComments = useCallback((incoming: CommentData[]) => {
-    setComments((prev) => {
-      const seen = new Set(prev.map((c) => c.id));
-      return [...prev, ...incoming.filter((c) => !seen.has(c.id))];
-    });
+    setComments((prev) => appendUnseen(prev, incoming));
   }, []);
 
   useEffect(() => {

@@ -84,9 +84,13 @@ test("C-180: both Load-more handlers guard synchronously and dedupe by id", () =
     assert.match(src, /if \(loadingMoreRef\.current\) return;/, `${file} relies on a state flag alone`);
     assert.match(src, /loadingMoreRef\.current = true;/, `${file} never sets its guard`);
     assert.match(src, /loadingMoreRef\.current = false;/, `${file} never releases its guard`);
+    // Either spelling of the dedupe. What is pinned is that the page is
+    // deduped before it is appended, not which code does it: the hand-rolled
+    // Set moved into `appendUnseen` (audit C-071), which append-page.test.mjs
+    // owns and which every paged list now shares.
     assert.match(
       src,
-      /const seen = new Set\(prev\.map\(\(p\) => p\.id\)\);/,
+      /const seen = new Set\(prev\.map\(\(p\) => p\.id\)\);|appendUnseen\(prev, data\.posts\)/,
       `${file} appends a page without deduping it`
     );
     assert.doesNotMatch(

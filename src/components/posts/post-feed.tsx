@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { appendUnseen } from "@/lib/append-page";
 
 type SortBy = "recent" | "liked" | "commented";
 type TimeFilter = "all" | "today" | "week" | "month" | "year";
@@ -238,11 +239,9 @@ export function PostFeed({
          closes everything else that can hand back a row already on screen --
          a cursor row deleted between pages, a retried request that did land.
          Cheap, and the alternative is a duplicate key warning and a post the
-         member sees twice. */
-      setPosts((prev) => {
-        const seen = new Set(prev.map((p) => p.id));
-        return [...prev, ...data.posts.filter((p) => !seen.has(p.id))];
-      });
+         member sees twice. `appendUnseen` (audit C-071) is where that rule
+         lives, including which copy of a repeated row to keep. */
+      setPosts((prev) => appendUnseen(prev, data.posts));
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
     } finally {

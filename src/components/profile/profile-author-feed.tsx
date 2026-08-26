@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
+import { appendUnseen } from "@/lib/append-page";
 import { PostCard, type PostData } from "@/components/posts/post-card";
 import { loadPosts } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,8 @@ export function ProfileAuthorFeed({
   async function handleLoadMore() {
     // Synchronous guard and an id-dedupe, the same pair PostFeed carries and
     // for the same reason (audit C-180): `disabled={loadingMore}` binds on the
-    // next render, so a double tap appends the same page twice.
+    // next render, so a double tap appends the same page twice. The dedupe
+    // half is now `appendUnseen`, shared with the feed and the Collection.
     if (loadingMoreRef.current) return;
     loadingMoreRef.current = true;
     setLoadingMore(true);
@@ -90,10 +92,7 @@ export function ProfileAuthorFeed({
         toast.error(data.error);
         return;
       }
-      setPosts((prev) => {
-        const seen = new Set(prev.map((p) => p.id));
-        return [...prev, ...data.posts.filter((p) => !seen.has(p.id))];
-      });
+      setPosts((prev) => appendUnseen(prev, data.posts));
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
     } finally {
