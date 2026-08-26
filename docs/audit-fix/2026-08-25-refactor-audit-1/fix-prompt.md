@@ -51,7 +51,14 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       JavaScript, now 364 KB. Its second is not JS either: /collection's first
       photographs used to arrive 2.9 s after first paint on a throttled connection and
       now arrive with it. Part 1 is session 7, part 2 session 8.
-- [ ] Phase 6 — schema & architecture (owner-gated throughout)
+- [~] Phase 6 — schema & architecture — **UNGATED 2026-08-27: the owner has approved
+      every drop**, including the seven objects that turned out to hold data. Not yet
+      executed. Pre-flight done and committed: `work/phase6-census.md` (what is in each
+      object) and a snapshot of all 232 doomed rows at
+      `.backups/2026-08-27-phase6-pre-drop-snapshot.json` (gitignored, real member data,
+      keep until he says otherwise). **READ THE CENSUS BEFORE TOUCHING ANYTHING** — its
+      middle section records a diff method that would have dropped every Catch-up in the
+      app, and the rule that replaces it.
 - [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
       audit's row in `../README.md` to Closed, archive per report §7.4.
 
@@ -1212,11 +1219,34 @@ than folded into unrelated work.
 port 3100; kill it when done. `.scratch/` (gitignored) held the measurement scripts and
 was emptied at close.
 
-**Next session**: **phase 6, and it cannot start without the owner.** It needs his §4 #4
-answer — every database drop, including the Visit trio and the orphan reverted-Catchup
-tables — plus §4 #16 (Collection taxonomy SELECT verdict) and the avatarColor column.
-Ask for those three in plain language at session start. Everything autonomous in phases
-1–5 is done.
+**Next session**: **phase 6, now unblocked.** The owner approved every drop on
+2026-08-27, in these words: "these are all useless you can drop". Read
+`work/phase6-census.md` first — all of it, including the correction — then execute in
+this order and no other.
+
+**The corrected drop set** (13 objects; the two Catch-up tables an earlier draft listed
+are LIVE and are not in it):
+
+| Drop | Holds | Order |
+|---|---|---|
+| `Account`, `Session`, `VerificationToken` | 0 rows each | remove `@auth/prisma-adapter` from `auth.ts:4,58` + package.json FIRST, ship, then DDL |
+| `GroupInvite` (+ its 3 indexes) | 2 rows | schema + `seed.ts:119` + `cascade-rule.test.mjs:111`, then DDL |
+| `User.openTo`, `Photo.blurhash`, `Photo.originalUrl` | 0 non-NULL | code, then DDL |
+| `Post.tag` | 5 posts (`campus-memory`) | code, then DDL |
+| `Group.visibility` (+ `Group_visibility_createdAt_idx`) | 13 rows, 9 public / 4 private | 3 writer lines first (auth/actions.ts:252, catchups/actions.ts:516, seed.ts:349) |
+| `Visit.timezone/lat/lng` | 194 of 614 rows | stop writing first, then DDL |
+| `User.avatarColor` | 1 row | the retirement sweep (shell-primitives-04) first |
+
+Every statement `IF EXISTS`, one dated file in `prisma/migrations-manual/`, applied with
+`run-sql.mjs` to **BOTH** databases — the demo has NOT been censused yet and must be
+before its migration. Code before schema before DDL, always; Prisma never touches a table
+with no model, so the gap between shipping the code and running the DROP is free safety
+margin.
+
+**The auth-adapter row is the one to be slowest on.** Its footprint is three lines, which
+makes it look trivial; it is the sign-in path of the whole site. Full auth battery, and
+an independent review before the DDL — the owner asked for irreversible things to be
+reviewed independently more than once, and this is the one he meant.
 
 Then the **close-out**: re-measure §1b's table into report §1b, flip the row in
 `../README.md` to Closed, archive per §7.4. Do NOT flip it closed before phase 6 is
