@@ -15,7 +15,6 @@ import { ShareButton } from "@/components/common/share-button";
 
 export function LetterEngagement({
   postId,
-  groupId,
   initialLiked,
   initialLikeCount,
   initialBookmarked,
@@ -23,7 +22,6 @@ export function LetterEngagement({
   viewerIsAdmin = false,
 }: {
   postId: string;
-  groupId: string | null;
   initialLiked: boolean;
   initialLikeCount: number;
   initialBookmarked: boolean;
@@ -90,11 +88,11 @@ export function LetterEngagement({
 
   async function handleModerationConfirm(note: string) {
     const result = await adminRemovePost(postId, note || undefined);
-    if (!result.error) router.push(groupId ? `/groups/${groupId}` : "/letters");
+    if (!result.error) router.push("/letters");
     return result;
   }
 
-  const shareHref = groupId ? `/groups/${groupId}` : `/letters/${postId}`;
+  const shareHref = `/letters/${postId}`;
 
   return (
     <div className="mt-10 border-t border-border pt-4">
