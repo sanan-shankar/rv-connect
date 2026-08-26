@@ -4,28 +4,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage, overdueEditionWhere } from "@/lib/admin";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
-import { Chip, type ChipTone } from "@/components/admin/admin-chip";
+import { Chip } from "@/components/admin/admin-chip";
+import { ROUND_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
 import { formatDisplayDate, metaLine } from "@/lib/utils";
 import { advanceDueCatchups } from "@/lib/catchups";
 
 export const metadata: Metadata = {
   title: "Catch-ups",
-};
-
-/* The Catch-up's own state, as opposed to its current Round's. Raw, these
-   render as lowercase "paused" and "ended", which is the column talking. */
-const SERIES_STATUS: Record<string, string> = {
-  paused: "Paused",
-  ended: "Ended",
-};
-
-/* The five states a Round moves through, in the words a person would use. */
-const STATUS: Record<string, { label: string; tone: ChipTone }> = {
-  draft: { label: "Not opened yet", tone: "idle" },
-  collecting: { label: "Taking questions", tone: "info" },
-  answering: { label: "Taking answers", tone: "info" },
-  preparing: { label: "Being put together", tone: "warn" },
-  published: { label: "Sent out", tone: "good" },
 };
 
 /**
@@ -104,7 +89,7 @@ export default async function AdminCatchupsPage() {
 
   function card(c: (typeof catchups)[number]) {
     const round = c.editions[0];
-    const status = round ? (STATUS[round.status] ?? STATUS.draft) : null;
+    const status = round ? (ROUND_STATUS[round.status] ?? ROUND_STATUS.draft) : null;
     const isStuck = round ? overdueIds.has(round.id) : false;
 
     // The date this Round is actually waiting on, which depends on where it
@@ -146,7 +131,10 @@ export default async function AdminCatchupsPage() {
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-1">
             {c.status !== "active" && (
-              <Chip label={SERIES_STATUS[c.status] ?? c.status} tone="idle" />
+              <Chip
+                label={SERIES_STATUS[c.status]?.label ?? c.status}
+                tone={SERIES_STATUS[c.status]?.tone ?? "idle"}
+              />
             )}
             {status && <Chip label={status.label} tone={isStuck ? "bad" : status.tone} />}
           </div>
