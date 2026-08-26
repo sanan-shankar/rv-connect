@@ -6,13 +6,12 @@
  *  times, and then the Easter egg delivers" (the board's original
  *  draft said five clicks; three is the approved number here).
  *
- *  Wraps the sidebar's PeaksMark logo (LogoFact) without reaching
- *  inside it: a capture-phase click counter on an outer `relative`
- *  div. Capture-phase means it only ever OBSERVES the click, same as
- *  every ordinary click on the logo today — LogoFact's own hover-reveal
- *  fact card and its `<Link href="/feed">` navigation are completely
- *  untouched, single clicks (and even the first two of an accidental
- *  triple) behave exactly as before.
+ *  Wraps the sidebar's PeaksMark logo (Brand) without reaching inside
+ *  it: a capture-phase click counter on an outer `relative` div.
+ *  Capture-phase means it only ever OBSERVES the click, same as every
+ *  ordinary click on the logo today — Brand's `<Link href="/feed">`
+ *  navigation is completely untouched, single clicks (and even the
+ *  first two of an accidental triple) behave exactly as before.
  *
  *  Three clicks inside a short window (a real rapid triple-click, not
  *  three clicks spread across a whole visit) pop a small hoopoe up from
