@@ -16,8 +16,8 @@ import { FadeRise } from "@/components/common/motion";
 import { QuestionSection } from "@/components/catchups/round/question-section";
 import type { RoundEntry } from "@/components/catchups/round/answer-card";
 import type { CatchupPromptView } from "@/lib/catchups-types";
+import { formatDisplayDateLong } from "@/lib/utils";
 import type { HomeEditionView } from "./types";
-import { VALLEY_TIME_ZONE } from "@/lib/utils";
 
 /** The published Round, loaded inline by this screen's page.tsx. Declared
  *  here (not in `home/types.ts`) because this console is its only consumer. */
@@ -28,15 +28,8 @@ export type PublishedIssue = {
 
 const TILE = "card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]";
 
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("en-IN", {
-    timeZone: VALLEY_TIME_ZONE,
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+const formatDate = (iso: string | null): string | null =>
+  iso ? formatDisplayDateLong(iso) : null;
 
 export function ConsolePublished({
   edition,

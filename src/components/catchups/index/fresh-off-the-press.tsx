@@ -18,12 +18,17 @@ export type FreshRoundItem = {
   teaser: string | null;
 };
 
+/* The one local formatter left, and the exception is the YEAR, not the voice:
+   this rail lists the last few Rounds, all of them recent, and a year on every
+   line is noise in a column that narrow. The locale matches the shared pair --
+   it was en-US, so the same date read "Aug 5" here and "5 Aug 2026" three
+   surfaces away. */
 function formatDate(d: Date | string | null): string {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("en-US", {
+  return new Date(d).toLocaleDateString("en-GB", {
     timeZone: VALLEY_TIME_ZONE,
-    month: "short",
     day: "numeric",
+    month: "short",
   });
 }
 

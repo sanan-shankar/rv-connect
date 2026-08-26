@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { VALLEY_TIME_ZONE } from "@/lib/utils";
+import { formatDisplayDateLong } from "@/lib/utils";
 
 export function RoundFooterTease({
   catchupId,
@@ -22,15 +22,7 @@ export function RoundFooterTease({
   /** False for a paused/ended Catchup, where there is no next Round. */
   showNextOpens: boolean;
 }) {
-  const nextLabel =
-    showNextOpens && nextOpensAt
-      ? new Date(nextOpensAt).toLocaleDateString("en-GB", {
-          timeZone: VALLEY_TIME_ZONE,
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
-      : null;
+  const nextLabel = showNextOpens && nextOpensAt ? formatDisplayDateLong(nextOpensAt) : null;
 
   return (
     <footer className="mt-[var(--space-xl)] border-t border-border pt-[var(--space-l)] text-center">

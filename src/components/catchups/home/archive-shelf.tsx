@@ -15,17 +15,9 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { FadeRise } from "@/components/common/motion";
 import type { HomeArchiveRow } from "./types";
-import { VALLEY_TIME_ZONE } from "@/lib/utils";
+import { formatDisplayDate } from "@/lib/utils";
 
-function formatDate(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-IN", {
-    timeZone: VALLEY_TIME_ZONE,
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const formatDate = (iso: string | null): string => (iso ? formatDisplayDate(iso) : "");
 
 export function ArchiveShelf({ rows }: { rows: HomeArchiveRow[] }) {
   if (rows.length === 0) return null;
