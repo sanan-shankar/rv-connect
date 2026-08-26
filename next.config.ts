@@ -284,6 +284,14 @@ const nextConfig: NextConfig = {
     // anybody, without a session -- so it is the exact hosts and nothing more.
     // See imageHosts above for what a wildcard here was paying for.
     remotePatterns: imageHosts.map((hostname) => ({ protocol: "https" as const, hostname })),
+    /* 1456 is the only addition to Next's defaults, and it exists for one
+     * reason: a full-width feed card is 728 CSS px, so a retina screen wants
+     * exactly 1456. Without this rung the nearest permitted width below it is
+     * 1080, and a photograph rendered at 1.48x rather than 2x reads as soft on
+     * a Mac -- on a site whose members post landscapes. The optimizer refuses
+     * any width not on this list, so the ladder in src/lib/image-cdn.ts and
+     * this array have to agree. */
+    deviceSizes: [640, 750, 828, 1080, 1200, 1456, 1920, 2048, 3840],
   },
 };
 
