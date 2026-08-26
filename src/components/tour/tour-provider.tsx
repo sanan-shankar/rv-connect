@@ -19,14 +19,34 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { hasSeenOnboarding } from "@/lib/onboarding-local";
 import { shouldAutoOfferTour } from "@/lib/tour-auto-offer";
 import { hasSettledTour, markTourCompleted, markTourDismissed } from "@/lib/tour-local";
 import { awaitSpotlight, clearSpotlight } from "./tour-anchors";
 import { TOUR_STOPS } from "./tour-steps";
-import { TourOffer } from "./tour-offer";
-import { TourPanel, type TourPanelApi } from "./tour-panel";
-import { TourSpotlight } from "./tour-spotlight";
+import type { TourPanelApi } from "./tour-panel";
+
+/* The three pieces of tour UI load on demand, the way mascot-flight-layer.tsx
+   loads the hoopoe rig. TourProvider mounts on EVERY (main) page, but the tour
+   only ever runs on the demo deployment (autoOffer={IS_DEMO}) or from the
+   owner's admin button -- so for every real member these 442 lines, and the
+   1,522-line Hoopoe rig they statically pull in behind them, sat in the shared
+   authed chunk to render nothing.
+
+   The provider itself stays static: `useTour()` has to keep working
+   synchronously wherever it is called. Only what renders at `phase !== "idle"`
+   is deferred, which is behind a click or a first-feed arrival, where one
+   network fetch is invisible. */
+const TourOffer = dynamic(() => import("./tour-offer").then((m) => m.TourOffer), {
+  ssr: false,
+});
+const TourPanel = dynamic(() => import("./tour-panel").then((m) => m.TourPanel), {
+  ssr: false,
+});
+const TourSpotlight = dynamic(() => import("./tour-spotlight").then((m) => m.TourSpotlight), {
+  ssr: false,
+});
 
 type Phase = "idle" | "offering" | "running";
 
@@ -236,7 +256,14 @@ export function TourProvider({ userId, children, autoOffer = false }: TourProvid
   return (
     <TourContext.Provider value={{ start }}>
       {children}
-      <TourSpotlight active={phase === "running"} spotlightKey={spotlightKey} />
+      {/* Gated on the phase rather than mounted-always-and-null-inside: a
+          dynamic() component fetches its chunk the moment it mounts, so
+          leaving this mounted at idle would defer nothing. TourSpotlight
+          already returned null when inactive, and its effect cleanup is the
+          same work unmounting does. */}
+      {phase === "running" && (
+        <TourSpotlight active spotlightKey={spotlightKey} />
+      )}
       {phase === "offering" && <TourOffer onStart={start} onMaybeLater={maybeLater} />}
       {phase === "running" && (
         <TourPanel
