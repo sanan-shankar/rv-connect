@@ -79,8 +79,11 @@ test("a failing autosave says so instead of sitting on 'Saving...'", () => {
 });
 
 test("a letter with nowhere else to live is kept on the device", () => {
+  /* Either the raw API or the shared kit that wraps it (src/lib/local-storage
+     .ts). What is pinned is that the draft reaches the device at all -- the
+     spelling moved once already and a name-only grep went red for it. */
   assert.ok(
-    /localStorage/.test(composer),
+    /localStorage|safeSet\(/.test(composer),
     "there is no crash net: a fresh letter has no row until the first explicit " +
       "save, so navigating away loses the whole thing (B-043)"
   );

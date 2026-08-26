@@ -12,27 +12,11 @@
  *  regardless of this flag (see tour-provider.tsx's `start()`).
  * ------------------------------------------------------------------ */
 
+import { safeGet, safeSet } from "./local-storage";
+
 const STATE_PREFIX = "rv:tour:";
 
 type TourLocalState = "completed" | "dismissed";
-
-function safeGet(key: string): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null; // private mode / quota — never let the tour throw over this
-  }
-}
-
-function safeSet(key: string, value: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // storage disabled — worst case the offer replays once; never crash the page
-  }
-}
 
 /** The stored state for this user, or null if the tour has never been settled. */
 function readTourState(userId: string): TourLocalState | null {

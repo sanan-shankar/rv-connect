@@ -24,6 +24,7 @@ import {
 import { PollCreator } from "./poll-creator";
 import { MentionDropdown } from "./mention-dropdown";
 import { useTourAnchor } from "@/components/tour/tour-anchors";
+import { safeGet, safeSet, safeRemove } from "@/lib/local-storage";
 
 /* ------------------------------------------------------------------ *
  *  Rich text <-> markdown bridge. The editor is a contentEditable
@@ -108,23 +109,15 @@ function revokeBlobPreviews(urls: string[]): void {
 const localDraftKey = (userId: string | null | undefined, postId?: string) =>
   `rv:letter-draft:${userId ?? "anon"}:${postId ?? "new"}`;
 
+/* Private mode or a full quota loses the draft silently, which is the right
+   trade: the editor still has the text on screen and this was only ever the
+   belt. See src/lib/local-storage.ts. */
 function stashLocalDraft(key: string, content: string, title: string) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify({ content, title, at: Date.now() }));
-  } catch {
-    // Private mode, or the quota is full. The editor still has the text on
-    // screen; this was only ever the belt.
-  }
+  safeSet(key, JSON.stringify({ content, title, at: Date.now() }));
 }
 
 function dropLocalDraft(key: string) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(key);
-  } catch {
-    // as above
-  }
+  safeRemove(key);
 }
 
 /** Everything a save would send, in one comparable string. */
@@ -379,7 +372,9 @@ export function CreatePostForm({
     restoredRef.current = true;
     let saved: { content?: string; title?: string } | null = null;
     try {
-      const raw = window.localStorage.getItem(draftKey);
+      // The try is still needed: safeGet cannot throw, but a draft written by
+      // an older shape (or half-written) makes JSON.parse throw.
+      const raw = safeGet(draftKey);
       saved = raw ? JSON.parse(raw) : null;
     } catch {
       saved = null;
