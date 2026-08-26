@@ -83,17 +83,12 @@ import { SPRINGS, EASE_OUT_SMOOTH, FadeRise } from "@/components/common/motion";
 import { birdFor, speciesForMember } from "@/lib/avatar";
 import { resolveBirdOverride, speciesNameFor } from "@/components/common/bird-avatar-v2";
 import { SegmentedPills } from "@/components/common/segmented-pills";
-import {
-  updateUserPlaces,
-  requestAccountDeletion,
-  updateAvatar,
-  removeAvatar,
-} from "@/components/settings/actions";
+import { updateUserPlaces, requestAccountDeletion } from "@/components/settings/actions";
 import { Input } from "@/components/ui/input";
 import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
+import { useAvatarUpload } from "@/components/settings/avatar-upload";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { Camera, X } from "lucide-react";
-import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import {
   updateProfileField,
@@ -112,7 +107,6 @@ import {
 import { FULL_NAME_MAX, cn, formatPhoneDisplay } from "@/lib/utils";
 import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
-import { isImageFile } from "@/lib/upload-shared";
 
 /* ------------------------------------------------------------------ *
  *  Everything the sheet needs in order to be typed into.
@@ -357,51 +351,17 @@ export function LetterheadProfile({
      gone, and this is the only place left that is yours to change, so the
      upload comes here rather than nowhere. Same crop dialog, same two
      actions, same 15MB gate. */
-  const [photoBusy, setPhotoBusy] = useState(false);
-  const [cropFile, setCropFile] = useState<File | null>(null);
-  const [attachOpen, setAttachOpen] = useState(false);
-
-  async function uploadAvatarBlob(payload: Blob | File) {
-    setPhotoBusy(true);
-    const fd = new FormData();
-    fd.set(
-      "file",
-      payload instanceof File ? payload : new File([payload], "avatar.webp", { type: "image/webp" })
-    );
-    try {
-      const result = await callAction(() => updateAvatar(fd));
-      if (result.error) return toast.error(result.error);
-      toast.success("Photo updated");
-      router.refresh();
-    } finally {
-      // finally, not a trailing statement: a rejected upload used to leave
-      // the avatar control disabled for the rest of the session (audit B-042).
-      setPhotoBusy(false);
-    }
-  }
-
-  /* Picking a photo opens the crop dialog rather than uploading blind: the
-     old path shipped the ORIGINAL bytes to a hard-coded centre crop, so an
-     off-centre face was silently beheaded and a 6MB phone photo could die on
-     Vercel's ~4.5MB serverless body cap. */
-  function handlePhotoPick(f: File | null) {
-    if (!f) return;
-    if (!isImageFile(f)) return toast.error("Please choose an image");
-    if (f.size > 15 * 1024 * 1024) return toast.error("Photo must be under 15MB");
-    setCropFile(f);
-  }
-
-  async function handlePhotoRemove() {
-    setPhotoBusy(true);
-    try {
-      const result = await callAction(() => removeAvatar());
-      if (result.error) return toast.error(result.error);
-      toast.success("Photo removed");
-      router.refresh();
-    } finally {
-      setPhotoBusy(false);
-    }
-  }
+  const {
+    busy: photoBusy,
+    cropFile,
+    setCropFile,
+    attachOpen,
+    setAttachOpen,
+    pick: handlePhotoPick,
+    send: uploadAvatarBlob,
+    sendUndecodable: uploadUndecodableAvatar,
+    remove: handlePhotoRemove,
+  } = useAvatarUpload({ onSaved: () => router.refresh(), savedMessage: "Photo updated" });
   const { state: saveState, message: saveMessage, run } = useAutoSave();
 
   /* The value last written, per field, so a blur that changed nothing does
@@ -1426,11 +1386,8 @@ export function LetterheadProfile({
         }}
         onCancel={() => setCropFile(null)}
         onDecodeError={(f) => {
-          // The browser could not decode this file (HEIC etc.). Send the
-          // original to the server, whose sharp pipeline either handles it or
-          // answers with the friendly "export as JPG" message.
           setCropFile(null);
-          void uploadAvatarBlob(f);
+          void uploadUndecodableAvatar(f);
         }}
       />
 
