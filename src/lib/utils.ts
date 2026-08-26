@@ -532,6 +532,21 @@ export function plainExcerpt(content: string, maxLen = 160): string {
 }
 
 /**
+ * How long a body takes to read, in whole minutes, never less than one.
+ *
+ * 200 words a minute is the conventional prose figure, and the number is only
+ * ever shown as "4 min read", so the rounding matters more than the constant:
+ * a two-line note reads "1 min", not "0 min". Four surfaces printed this
+ * expression inline -- the feed's letter card, the letters index, a letter
+ * itself and the feed rail's Letters module -- which is four places to change
+ * if the figure ever does.
+ */
+export function readMinutes(content: string): number {
+  const words = content.trim().split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.round(words / 200))
+}
+
+/**
  * Build the matcher for one inline emphasis delimiter.
  *
  * The rules are deliberately conservative, the way WhatsApp's are, because

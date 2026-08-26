@@ -374,6 +374,64 @@ agree while the two `decomment` variants do NOT (the weak `[^:]` spelling eats a
 a string that the strong one keeps), so converting weak→strong changes what survives
 decommenting and every such file needs its assertions re-run, not just typechecked.
 
+
+### 2026-08-26 — session 4 (phase 3) — IN PROGRESS
+
+**Done so far** (every item pre-flighted at HEAD per rule 4):
+test kit created + 39 preamble copies converted → `68d4ad6` · weak `decomment` retired from
+12 files → `5caaa92` · walk ×7 and hasLoneSurrogate ×3 onto the kit, plus the hygiene trio →
+`fa4863b` · spelling-pin cohort trimmed, tour-provider.test.mjs deleted, landing-auth-ui
+renamed to layout/sidebar-support-icon → `12d1fd5` · knip.jsonc + OPERATIONS §8 → `fe51a6c` ·
+escapeLike one-home → `20af678`.
+
+That closes plan row 1 (lib-tests-01..07 = duplication-03 = dead-code-18 +
+landing-mascot-avatars-10), except its explicitly-optional half — see below.
+
+**Where the audit was thinner than the tree** (rule 4 outcomes):
+- **The weak/strong `decomment` split was worse than "they can disagree".** Measured across
+  592 source files: the two disagree on 7, and every disagreement is the weak variant cutting
+  a LIVE line in half — `validators.ts` loses `/^https:\/\//i.test(v)`, `next-path.ts` loses
+  the `startsWith("//")` open-redirect guard. No assertion happened to sit on one of those
+  lines, so nothing was vacuous; profile-editor-rule reads validators.ts through the weak
+  variant and slices elsewhere by luck. Recorded because the next pin written there would
+  have been silently dead.
+- **Centralising helpers created two NEW vacuity points, both caught by mutation, both
+  closed.** Gutting the shared `walk` to return `[]` left notification-links and
+  image-purge-rule green: every assertion in them reads "no file does X". Both now count what
+  they swept first. `hasLoneSurrogate` was the same shape — six negative assertions across
+  three files and nothing proving the detector fires — so text-shape gained the positive case.
+  **This is the cost of a shared kit and it must be re-checked by anyone extending it.**
+- lib-tests-05 says to move THREE escapeLike tests to db-text. Only two moved; the third
+  ("an ordinary term passes through untouched") is a duplicate of db-text's own first test,
+  which asserts the same property over four inputs. Dropped, not moved.
+- lib-tests-06's suggested knip config does not load: **knip 6 rejects unknown keys**, so a
+  `$comment` in plain JSON is a hard error. It is `knip.jsonc`. Also widened past the
+  finding's globs — `scripts/**/*.mjs` alone leaves the `.mts`/`.ts` scripts reported dead.
+  Result: 131 unused files → **5**, and all 5 are the landing showcase (§4 #1, owner's call).
+- lib-tests-07's avatar.test.mjs sub-claim about `node --test` vs `node` does not exist, as
+  `v-scripts-tooling.md` already corrected. Only the stale "no test runner is wired into this
+  project" sentence was fixed. Its image-purge half was already done in `5caaa92`.
+
+**Deliberately NOT done** (the report marks it optional, and it is not free):
+lib-tests-01's "phase 2" — migrating the 12 hand-rolled slice-to-next-`export` extractors to
+a shared `section()`. The kit does not export one. Each of the 12 has its own convention and
+about half carry a hand-written anti-vacuity assert; a shared extractor would have to
+reproduce every one of them or quietly weaken it, which is the opposite of the point. If a
+later session wants it, do it one file at a time with the mutation check above, not as a sweep.
+
+**Verification so far**: `npm run check` ✓ green before every commit (TS, ESLint, protocol,
+lab registry 42, unit — 75/75 then 74/74 after tour-provider.test.mjs went). Every commit was
+gated on a byte-for-byte diff of all 75 files' test output (names and counts), not just a
+green run: 695 → 705 → 706 tests, no name ever lost. Mutation-tested rather than asserted:
+`read` gutted reddens 31 files, `decomment` gutted reddens 20, `walk` gutted reddens 5 (after
+the two counters), the tour-mobile loopback guard renamed reddens its test.
+
+**Peer traffic**: `rv-connect-da` is live in this tree doing brand/logo work under
+`src/app/lab/`, `src/app/icon.*`, `public/images/icons/` and `scripts/dev/generate-icons.mjs`,
+and has been told not to commit yet — so those files sit modified in the tree and are NOT
+mine. Lanes agreed by message. It also reported that history was rewritten under its commits
+earlier (0d1841f → 4e1def2, contents identical); that was not this session.
+
 Template:
 ```
 ### <date> — session N (phase X)

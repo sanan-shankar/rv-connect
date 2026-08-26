@@ -8,7 +8,7 @@ import { DraftsStrip } from "@/components/letters/drafts-strip";
 import { Button } from "@/components/ui/button";
 import { IdentityRow } from "@/components/common/identity-row";
 import { getViewerCities } from "@/lib/city-scope";
-import { batchLine, formatDisplayDate, letterTitle, metaLine } from "@/lib/utils";
+import { batchLine, formatDisplayDate, letterTitle, metaLine, plainExcerpt, readMinutes } from "@/lib/utils";
 import {
   AUTHOR_IN_GOOD_STANDING,
   PUBLISHED_ONLY,
@@ -31,18 +31,6 @@ export const metadata: Metadata = {
  * would repeat or skip a letter the moment a new one lands above it.
  */
 const LETTERS_PER_PAGE = 20;
-
-function readTime(content: string) {
-  return Math.max(1, Math.round(content.trim().split(/\s+/).filter(Boolean).length / 200));
-}
-
-function excerpt(content: string) {
-  const plain = content
-    .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
-  return plain.length > 240 ? plain.slice(0, 240).trimEnd() + "..." : plain;
-}
 
 export default async function LettersPage({
   searchParams,
@@ -182,7 +170,7 @@ export default async function LettersPage({
                 <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
                   <Feather className="h-3.5 w-3.5" />
                   Letter
-                  <span className="text-muted-foreground/70">· {readTime(l.content)} min read</span>
+                  <span className="text-muted-foreground/70">· {readMinutes(l.content)} min read</span>
                   {l.cityScope && (
                     <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-sky/10 px-2 py-0.5 text-[10px] normal-case tracking-normal text-sky">
                       <MapPin className="h-2.5 w-2.5" />
@@ -194,7 +182,7 @@ export default async function LettersPage({
                   {letterTitle(l.title, l.content, 80)}
                 </h2>
                 <p className="mt-2 line-clamp-2 text-[14.5px] leading-relaxed text-muted-foreground">
-                  {excerpt(l.content)}
+                  {plainExcerpt(l.content, 240)}
                 </p>
                 <div className="mt-3.5 flex items-center gap-2.5">
                   <IdentityRow

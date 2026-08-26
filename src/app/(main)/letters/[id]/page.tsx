@@ -11,7 +11,7 @@ import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { LetterImages } from "@/components/letters/letter-images";
 import { canViewPost } from "@/lib/post-visibility";
 import { VISIBLE_COMMENT } from "@/lib/posts";
-import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, renderRichText, VALLEY_TIME_ZONE } from "@/lib/utils";
+import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, readMinutes, renderRichText, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { recordView } from "@/lib/content-view";
 
 export async function generateMetadata({
@@ -109,8 +109,7 @@ export default async function LetterPage({
   after(() => recordView(session.user.id, "letter", letter.id));
 
   const images = parseJsonArray(letter.images);
-  const words = letter.content.trim().split(/\s+/).filter(Boolean).length;
-  const readMinutes = Math.max(1, Math.round(words / 200));
+  const minutes = readMinutes(letter.content);
 
   return (
     // A reading measure (line length), not a page width: the column itself is
@@ -153,7 +152,7 @@ export default async function LetterPage({
       <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
         <Feather className="h-3.5 w-3.5" />
         Letter
-        <span className="text-muted-foreground/70">· {readMinutes} min read</span>
+        <span className="text-muted-foreground/70">· {minutes} min read</span>
       </div>
 
       <LetterTitle title={letterTitle(letter.title, letter.content)} />
