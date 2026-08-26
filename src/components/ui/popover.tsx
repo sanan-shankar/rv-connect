@@ -3,6 +3,7 @@
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover"
 
 import { cn } from "@/lib/utils"
+import { MENU_PANEL_CLASS } from "@/components/ui/menu-material"
 
 /**
  * Thin shadcn-style wrapper around Base UI's Popover primitive, following the
@@ -27,7 +28,7 @@ function PopoverPortal({ ...props }: PopoverPrimitive.Portal.Props) {
 
 function PopoverPositioner({
   className,
-  sideOffset = 8,
+  sideOffset = 6,
   align = "start",
   ...props
 }: PopoverPrimitive.Positioner.Props) {
@@ -47,11 +48,14 @@ function PopoverContent({ className, ...props }: PopoverPrimitive.Popup.Props) {
     <PopoverPrimitive.Popup
       data-slot="popover-content"
       className={cn(
-        // --radius-md (12px) is the protocol's floating-panel radius: the old
-        // rounded-2xl computed to 27.2px here, rounder than the 16px card the
-        // panel floats over, which inverts the radius ladder. The hairline
-        // border + layered ink shadow are the shared menu-material treatment.
-        "relative w-72 origin-(--transform-origin) rounded-[var(--radius-md)] border border-border bg-popover p-4 text-popover-foreground shadow-[0_18px_38px_-16px_rgba(35,36,30,0.28)] outline-none duration-150 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+        // The surface IS the menu material -- same radius, hairline, ink
+        // shadow and the one origin animation every other popup uses. This
+        // used to restate all of it by hand and animate with tw-animate-css's
+        // slide-in/zoom family instead, which made the popover the single
+        // exception to "no slide-downs on one page and pops on another".
+        // Only the sizing and padding are the popup's own.
+        MENU_PANEL_CLASS,
+        "relative w-72 p-4",
         className
       )}
       {...props}
