@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { directUploadAvailable, presignImagePut, ownerPrefix } from "@/lib/storage";
 import { MAX_UPLOAD_BYTES, storedImageFormat } from "@/lib/upload-shared";
-import { requireVerifiedMember } from "@/lib/member-gate";
-import { rateLimit } from "@/lib/rate-limit";
-import { originAllowed } from "@/lib/origin-rule";
+import { vetUploadRequest } from "@/lib/api-gate";
 
 /**
  * Step one of the direct-to-R2 upload path. Vercel caps serverless request
@@ -26,31 +23,11 @@ import { originAllowed } from "@/lib/origin-rule";
  */
 
 export async function POST(request: Request) {
-  // A cross-site page must not be able to spend this cookie (audit M33).
-  if (!originAllowed(request.headers.get("origin"), request.headers.get("host"))) {
-    return NextResponse.json({ error: "Cross-site call refused" }, { status: 403 });
-  }
-
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // The most important of the three upload gates. What this route hands back
-  // is a signed URL that writes DIRECTLY into the bucket with no further pass
-  // through our code, so it is the last point at which we get a say. An
-  // unconfirmed account must never be issued one.
-  const gate = await requireVerifiedMember();
-  if (!gate.ok) {
-    return NextResponse.json({ error: gate.error }, { status: 403 });
-  }
-
-  // One hourly uploads allowance per account, shared across every route
-  // bytes can travel through (audit M2).
-  const limited = await rateLimit("uploads", session.user.id);
-  if (!limited.ok) {
-    return NextResponse.json({ error: limited.error }, { status: 429 });
-  }
+  // The most important of the three doors. What this route hands back is a
+  // signed URL that writes DIRECTLY into the bucket with no further pass
+  // through our code, so it is the last point at which we get a say.
+  const vet = await vetUploadRequest(request);
+  if (!vet.ok) return vet.response;
 
   let body: { kind?: string; contentType?: string; bytes?: number; filename?: string };
   try {
@@ -96,8 +73,8 @@ export async function POST(request: Request) {
   const id = createId();
   const target =
     kind === "post"
-      ? { subdir: ownerPrefix("staging", session.user.id), filename: `${id}.${format.ext}` }
-      : { subdir: ownerPrefix("collection", session.user.id), filename: `${id}-o.${format.ext}` };
+      ? { subdir: ownerPrefix("staging", vet.userId), filename: `${id}.${format.ext}` }
+      : { subdir: ownerPrefix("collection", vet.userId), filename: `${id}-o.${format.ext}` };
 
   const { key, signedUrl, publicUrl } = await presignImagePut(
     target.subdir,

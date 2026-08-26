@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { ROOT, read } from "./test-kit.mjs";
+import { ROOT, read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The edge boundary, and the four things that never reached the other
@@ -41,6 +41,24 @@ test("C-111/C-136: every cron in vercel.json can get past the login redirect", (
       reachable,
       `the ${path} cron is not in proxy.ts publicPaths, so every nightly run is ` +
         `307'd to /login before the route can answer`
+    );
+  }
+});
+
+test("every cron in vercel.json checks the secret through the one helper", () => {
+  /* The reason this is derived rather than listed: the three cron routes each
+     wrote out the same fail-closed, constant-time comparison, and the newest
+     copy carried the comment "matching the two sibling cron routes" -- a
+     sameness a comment cannot enforce. requireCronSecret is where it lives
+     now, and a fourth scheduled route that forgets it fails here. */
+  const crons = JSON.parse(read("vercel.json")).crons ?? [];
+  for (const { path } of crons) {
+    const file = `src/app${path}/route.ts`;
+    assert.ok(existsSync(resolve(ROOT, file)), `${path} has no route file at ${file}`);
+    assert.match(
+      decomment(read(file)),
+      /requireCronSecret\(/,
+      `${path} does not call requireCronSecret, so its door is its own again`
     );
   }
 });

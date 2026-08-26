@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
-import { auth } from "@/lib/auth";
-import { requireVerifiedEmail } from "@/lib/email-verification";
+import { vetLookupRequest } from "@/lib/api-gate";
 import { prisma } from "@/lib/prisma";
 import { insensitive, escapeLike } from "@/lib/db-text";
-import { rateLimit } from "@/lib/rate-limit";
 import { logSearch } from "@/lib/search-log";
 import { FULL_NAME_MAX } from "@/lib/utils";
 
@@ -11,25 +9,10 @@ import { FULL_NAME_MAX } from "@/lib/utils";
 const MAX_SEARCH_TERMS = 6;
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Names by query is the directory's Stage 1 capability wearing an API
-  // shape (trust model; the harvesting half of audit M1), so it holds the
-  // same line: no confirmed email, no names.
-  const gate = await requireVerifiedEmail();
-  if (!gate.ok) {
-    return NextResponse.json({ error: gate.error }, { status: 403 });
-  }
-
-  // The read-heavy lookup endpoints share one throttle so a script cannot
-  // hammer them the way every write path is already capped.
-  const limited = await rateLimit("search", session.user.id);
-  if (!limited.ok) {
-    return NextResponse.json({ error: limited.error }, { status: 429 });
-  }
+  // Names by query is the directory's Stage 1 capability wearing an API shape
+  // (the harvesting half of audit M1), so it holds the same line.
+  const vet = await vetLookupRequest();
+  if (!vet.ok) return vet.response;
 
   /* Capped at the length of the longest name this app will store. A query
      cannot usefully be longer than the thing it is searching for, and a query
@@ -109,7 +92,7 @@ export async function GET(req: NextRequest) {
     logSearch({
       scope: "people",
       query: q,
-      userId: session.user.id,
+      userId: vet.userId,
       results: users.length,
     })
   );

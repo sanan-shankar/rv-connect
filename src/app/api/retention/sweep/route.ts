@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { IS_DEMO } from "@/lib/demo";
 import { runRetentionSweep } from "@/lib/retention";
-import { timingSafeEqualStrings } from "@/lib/timing-safe";
+import { requireCronSecret } from "@/lib/api-gate";
 
 /**
  * The nightly retention sweep (audit M34), and with it the grace-period
@@ -42,11 +42,8 @@ import { timingSafeEqualStrings } from "@/lib/timing-safe";
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const authHeader = req.headers.get("authorization") ?? "";
-  if (!secret || !timingSafeEqualStrings(authHeader, `Bearer ${secret}`)) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  const refusal = requireCronSecret(req);
+  if (refusal) return refusal;
 
   if (IS_DEMO) {
     return NextResponse.json({ skipped: "demo" });
