@@ -117,11 +117,11 @@ export default async function LetterPage({
     // the shell's. Centered inside it so the text sits under its own title.
     <article className="mx-auto max-w-[680px]">
       <Link
-        href={letter.groupId ? `/groups/${letter.groupId}` : "/letters"}
+        href="/letters"
         className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <ArrowLeft className="h-4 w-4" />
-        {letter.groupId ? "Back to group" : "All letters"}
+        All letters
       </Link>
 
       {/* An admin and the author are the only two people this rule lets past a
@@ -211,7 +211,6 @@ export default async function LetterPage({
       {!isDraft && (
         <LetterEngagement
           postId={letter.id}
-          groupId={letter.groupId}
           initialLiked={letter.likes.length > 0}
           initialLikeCount={letter._count.likes}
           initialBookmarked={letter.bookmarks.length > 0}
