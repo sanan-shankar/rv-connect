@@ -53,10 +53,9 @@ const REPORT_SELECT = {
  * times. That is the one fact a moderation queue exists to surface.
  */
 export default async function AdminReportsPage() {
-  // The role, re-established on this page and not borrowed from the layout.
-  // Soft navigation re-renders only the segments that changed, so a shared
-  // layout is not re-evaluated on every move -- and this page reads member
-  // data. One line, and the demotion window closes (bug audit B-024).
+  // Re-checked per page, not only in the layout: soft navigation skips
+  // layouts, which leaves a demoted admin still reading (B-024, argued in
+  // lib/admin.ts).
   await requireAdminPage();
   /* Both lists are bounded. The waiting queue used to have no `take` at all,
      so a flood of reports would have loaded every one of them into a single

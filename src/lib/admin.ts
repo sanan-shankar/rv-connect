@@ -10,8 +10,18 @@ import type { Prisma } from "@/generated/prisma/client";
  *  The guard used to live in the one admin page. It lives here now because
  *  there are eleven routes, and a guard that has to be remembered per route
  *  is a guard that will eventually be forgotten on one. `requireAdminPage()`
- *  is called once, in the admin LAYOUT, so a new section is protected the
- *  moment it exists.
+ *  is called in the admin LAYOUT, so a new section is protected the moment
+ *  it exists.
+ *
+ *  AND IN EVERY PAGE AS WELL, which is not belt-and-braces (bug audit
+ *  B-024). Soft navigation re-renders only the segments that CHANGED: move
+ *  from /admin/people to /admin/mail and the shared layout is not
+ *  re-evaluated, so a member demoted mid-session keeps reading admin pages
+ *  until something forces a full load. One `await requireAdminPage()` at the
+ *  top of each page closes that window, and `gate-coverage.test.mjs` fails
+ *  the build if a page under /admin is missing it. Each page carries a
+ *  one-line comment pointing here rather than the whole argument twelve
+ *  times over.
  *
  *  Every mutation still re-checks the role for itself (requireAdmin() in
  *  src/components/profile/admin-actions.ts). A layout guard is navigation,
