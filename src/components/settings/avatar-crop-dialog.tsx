@@ -27,7 +27,7 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, useMotionValue } from "motion/react";
+import { m, useMotionValue } from "motion/react";
 import { Minus, Plus } from "lucide-react";
 import {
   Dialog,
@@ -301,7 +301,7 @@ export function AvatarCropDialog({
                  rest; the elastic overhang is transient and springs back.
                  max-w-none beats the preflight img { max-width: 100% }, which
                  would otherwise cap the pan range. */
-              <motion.img
+              <m.img
                 src={image.url}
                 alt=""
                 draggable={false}

@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 
 const KONAMI = [
@@ -68,7 +68,7 @@ export function KonamiEggs() {
       className="pointer-events-none fixed inset-0 z-[120] overflow-hidden"
     >
       {LEAVES.map((i) => (
-        <motion.span
+        <m.span
           key={`${flush}-leaf-${i}`}
           className="absolute top-0"
           style={{ left: `${6 + i * 13}%` }}
@@ -100,10 +100,10 @@ export function KonamiEggs() {
               strokeWidth="0.8"
             />
           </svg>
-        </motion.span>
+        </m.span>
       ))}
       {FLUSH_BIRDS.map((id, i) => (
-        <motion.span
+        <m.span
           key={`${flush}-${id}`}
           className="absolute left-0 top-[18%]"
           initial={{ x: -80, y: 12 + i * 17, opacity: 0 }}
@@ -119,7 +119,7 @@ export function KonamiEggs() {
           }}
         >
           <BirdAvatar user={{ id, name: "Flush" }} size={30} />
-        </motion.span>
+        </m.span>
       ))}
     </div>
   );

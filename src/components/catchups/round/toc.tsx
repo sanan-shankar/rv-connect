@@ -22,7 +22,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { NAV_MARKER_SPRING } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 
@@ -86,7 +86,7 @@ export function RoundTocRail({ items }: { items: TocItem[] }) {
         In this Round
       </p>
       <div className="relative pl-4">
-        <motion.span
+        <m.span
           aria-hidden
           className="absolute left-0 top-0 w-[2px] rounded-full bg-leaf"
           style={{ height: marker.h }}

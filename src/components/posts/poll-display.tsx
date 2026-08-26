@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { votePoll } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ interface PollDisplayProps {
 const ROW_STAGGER = 0.075;
 
 /* A short count-up to the final percentage, paced to land with its bar. The number
-   and the bar share the same delay and a close duration so they read as one motion.
+   and the bar share the same delay and a close duration so they read as one m.
    The animation re-runs whenever the target changes (a vote, or a switched pick). */
 function CountUp({ value, delay }: { value: number; delay: number }) {
   // Start at zero so the figure sweeps up the first time results appear, in step
@@ -169,7 +169,7 @@ export function PollDisplay({
             {/* Fill bar: a full-width block scaled in on the X axis from a left origin.
                 Only transform animates, never width or any layout property. The picked
                 option gets a slightly stronger leaf tint. */}
-            <motion.div
+            <m.div
               className={`absolute inset-y-0 left-0 w-full origin-left ${
                 isSelected ? "bg-leaf/25" : "bg-leaf/15"
               }`}
@@ -181,14 +181,14 @@ export function PollDisplay({
             <div className="relative flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                 {isSelected && (
-                  <motion.span
+                  <m.span
                     className="inline-grid h-4 w-4 place-items-center rounded-full bg-canopy text-white"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ ...SPRINGS.snappy, delay: delay + 0.1 }}
                   >
                     <Check className="h-2.5 w-2.5" strokeWidth={3} />
-                  </motion.span>
+                  </m.span>
                 )}
                 {option.text}
               </span>

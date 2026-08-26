@@ -10,7 +10,7 @@
  * ------------------------------------------------------------------ */
 
 import { Check } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import type { AnswerPromptData } from "./types";
@@ -26,7 +26,7 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90" aria-hidden>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={strokeWidth} />
-        <motion.circle
+        <m.circle
           cx={size / 2}
           cy={size / 2}
           r={r}

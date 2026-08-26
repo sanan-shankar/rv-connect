@@ -20,7 +20,7 @@
  * a circle resting at the start: progress that has begun, never a dial knob. */
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { IndianRupee } from "lucide-react";
 import { SPRINGS, useMotionGovernor } from "@/components/common/motion";
 
@@ -119,7 +119,7 @@ export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
       </div>
 
       <div className="mt-[var(--space-m)] flex h-5 w-full gap-1 overflow-hidden rounded-full bg-mist p-1">
-        <motion.div
+        <m.div
           className="flex h-full w-full origin-left gap-1"
           initial={{ scaleX: 0 }}
           animate={shown ? { scaleX: 1 } : { scaleX: 0 }}
@@ -132,7 +132,7 @@ export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
               className="h-full rounded-full"
             />
           ))}
-        </motion.div>
+        </m.div>
       </div>
 
       <div className="mt-[var(--space-m)] flex flex-wrap gap-[var(--space-xs)]">
@@ -173,7 +173,7 @@ export function CostsCard({ recoveredPaise }: { recoveredPaise: number }) {
               transform scale would squash the zero-state circle into an
               ellipse, and width itself may not animate (transform/opacity
               only), so the on-view reveal is an opacity fade instead. */}
-          <motion.div
+          <m.div
             className="h-full rounded-full bg-canopy"
             style={{ width: `max(${fundPct}%, ${FUND_FILL_H}px)` }}
             initial={{ opacity: 0 }}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 
 /**
@@ -55,7 +55,7 @@ export function BookmarkButton({
   }
 
   return (
-    <motion.button
+    <m.button
       type="button"
       onClick={handleClick}
       aria-pressed={saved}
@@ -70,7 +70,7 @@ export function BookmarkButton({
         saved ? "text-cinnamon" : "hover:text-foreground"
       } ${className}`}
     >
-      <motion.span
+      <m.span
         className="relative inline-grid place-items-center will-change-transform"
         animate={animate ? { scaleY: [1, 1.08, 0.99, 1] } : { scaleY: 1 }}
         transition={
@@ -97,7 +97,7 @@ export function BookmarkButton({
               centre exactly on the ribbon's top edge (y=4, height 104 -> y=-48). scaleY 0 -> 1
               then grows the colour downward from the top; unsave retracts it straight back up.
               (The old rect was centred at y=28, which is why it "appeared from the middle".) */}
-          <motion.rect
+          <m.rect
             clipPath={`url(#bm-${id})`}
             x="3"
             y="-48"
@@ -127,7 +127,7 @@ export function BookmarkButton({
             strokeLinecap="round"
           />
         </svg>
-      </motion.span>
-    </motion.button>
+      </m.span>
+    </m.button>
   );
 }

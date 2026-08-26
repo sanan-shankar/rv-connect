@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { ArrowLeft } from "lucide-react";
 import { SPRINGS } from "@/components/common/motion";
 import { FIELD_SHELL, FloatField } from "@/components/common/float-field";
@@ -45,14 +45,14 @@ export function AuthFirstFrame({ target }: { target: FlightTarget }) {
         Back
       </span>
 
-      <motion.div
+      <m.div
         className="my-auto w-full max-w-[400px] self-center text-center"
         initial={{ opacity: 0, x: 48 }}
         animate={{ opacity: 1, x: 0 }}
         transition={SPRINGS.gentle}
       >
         {target === "signup" ? <SignupBody /> : <LoginBody />}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

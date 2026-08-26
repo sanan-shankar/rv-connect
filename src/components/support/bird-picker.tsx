@@ -26,7 +26,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
@@ -83,7 +83,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
           const hovered = over === slug;
           return (
             <li key={slug}>
-              <motion.button
+              <m.button
                 type="button"
                 aria-pressed={isSelected}
                 aria-label={isCurrent ? `${name} (your current bird)` : name}
@@ -132,7 +132,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                 >
                   {name}
                 </span>
-              </motion.button>
+              </m.button>
             </li>
           );
         })}
@@ -143,7 +143,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
           has been written while this is visible. */}
       <AnimatePresence initial={false}>
         {choice && (
-          <motion.div
+          <m.div
             key="confirm"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -151,7 +151,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
             transition={{ duration: 0.26, ease: EASE_OUT_SMOOTH }}
             className="glass card-elevated sticky bottom-[var(--space-m)] z-10 mt-[var(--space-l)] flex flex-wrap items-center gap-[var(--space-m)] rounded-[var(--radius-lg)] border border-border p-[var(--space-m)]"
           >
-            <motion.span
+            <m.span
               key={choice.slug}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -164,7 +164,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                 px={56}
                 speciesOverride={choice.index}
               />
-            </motion.span>
+            </m.span>
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-semibold text-foreground">The {choice.name}</p>
               <p className="text-sm leading-relaxed text-muted-foreground">
@@ -197,7 +197,7 @@ export function BirdPicker({ currentSlug }: { currentSlug: string | null }) {
                 Make it my bird
               </button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

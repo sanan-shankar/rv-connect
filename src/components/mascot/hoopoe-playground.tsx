@@ -21,7 +21,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { Eye, EyeOff, Moon, Sun } from "lucide-react";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
@@ -237,7 +237,7 @@ function Playground() {
             <Hoopoe ref={birdRef} size={birdSize} />
 
             {mark && (
-              <motion.span
+              <m.span
                 key={mark.id}
                 aria-hidden
                 className="pointer-events-none absolute size-3 rounded-full bg-cinnamon"

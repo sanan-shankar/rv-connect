@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { MascotFlightLayer } from "@/components/mascot/mascot-flight-layer";
 import { PostHogProvider } from "@/components/analytics/posthog-provider";
+import { MotionFeatures } from "@/components/common/motion-features";
 import { getThemeCookie } from "@/lib/theme";
 import "./globals.css";
 
@@ -89,6 +90,7 @@ export default async function RootLayout({
         {/* Wraps everything, signed-out pages included: the landing page is
             the front door and its funnel is the one that matters most. */}
         <PostHogProvider>
+        <MotionFeatures>
         <ThemeProvider
           attribute="class"
           defaultTheme={theme}
@@ -102,6 +104,7 @@ export default async function RootLayout({
           <MascotFlightLayer />
           <Toaster position="bottom-right" />
         </ThemeProvider>
+        </MotionFeatures>
         </PostHogProvider>
       </body>
     </html>

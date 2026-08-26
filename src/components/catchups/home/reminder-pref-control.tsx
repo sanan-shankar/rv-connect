@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { Bell } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { EASE_SEGMENT_GLIDE, FadeRise, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
@@ -84,7 +84,7 @@ export function ReminderPrefControl({
                 )}
               >
                 {selected && (
-                  <motion.span
+                  <m.span
                     layoutId="reminderPrefThumb"
                     className="absolute inset-0 z-0 rounded-full border border-canopy bg-canopy/10"
                     // Not SegmentedPills: this thumb is the canopy-tint OUTLINE

@@ -32,7 +32,7 @@
  * ------------------------------------------------------------------ */
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 
 /* The drawn box. Fixed px rather than a viewport unit: a real hair is a
    real-world object about 4cm long, so it must NOT scale with the window.
@@ -76,7 +76,7 @@ export function StrayHair() {
   return (
     <AnimatePresence>
       {!swatted ? (
-        <motion.div
+        <m.div
           aria-hidden
           /* pointer-events-none on the WRAPPER is load-bearing: the box is
              190x44 and sits over real content, so if the box itself were
@@ -134,7 +134,7 @@ export function StrayHair() {
               onClick={() => setSwatted(true)}
             />
           </svg>
-        </motion.div>
+        </m.div>
       ) : null}
     </AnimatePresence>
   );

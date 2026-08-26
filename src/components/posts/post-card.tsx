@@ -28,7 +28,7 @@ import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, renderRichText, batchLine, letterTitle, plainExcerpt, readMinutes } from "@/lib/utils";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { safeTruncateIndex } from "@/lib/rich-truncate";
 
@@ -335,7 +335,7 @@ export function PostCard({
                 }}
               />
               {isLongText && (
-                <motion.div
+                <m.div
                   initial={false}
                   animate={{ height: expanded ? "auto" : 0, opacity: expanded ? 1 : 0 }}
                   transition={{
@@ -348,7 +348,7 @@ export function PostCard({
                     className="whitespace-pre-wrap text-[15px] leading-[1.7] text-foreground"
                     dangerouslySetInnerHTML={{ __html: renderRichText(restText) }}
                   />
-                </motion.div>
+                </m.div>
               )}
               {isLongText && !expanded && (
                 <button
@@ -431,7 +431,7 @@ export function PostCard({
         >
           <LoveButton liked={liked} count={likeCount} onToggle={handleLike} label="Like this post" />
 
-          <motion.button
+          <m.button
             onClick={() => setShowComments(!showComments)}
             aria-expanded={showComments}
             aria-controls={`comments-${post.id}`}
@@ -442,7 +442,7 @@ export function PostCard({
           >
             <ChatCircle size={18} weight="regular" />
             <span>{commentCount}</span>
-          </motion.button>
+          </m.button>
 
           <BookmarkButton
             saved={bookmarked}

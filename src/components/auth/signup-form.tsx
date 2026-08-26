@@ -6,7 +6,7 @@ import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import {
@@ -122,7 +122,7 @@ function InfoTip({
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div
+          <m.div
             ref={tipRef}
             id={tipId}
             role="tooltip"
@@ -137,7 +137,7 @@ function InfoTip({
             )}
           >
             {children}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </span>
@@ -500,17 +500,17 @@ export function SignupForm({
           Teacher removes that one cell and Joined/Left glide from a third of
           the row to half of it.
 
-          z-10: every row here is a motion.div, and a transformed sibling forms
+          z-10: every row here is a m.div, and a transformed sibling forms
           its own stacking context, so later rows painted OVER the InfoTip
           bubbles no matter their z-index (owner: "the i to explain batches
           goes behind the UI"). Lifting the whole years row wins against the
           z-auto siblings below it. */}
-      <motion.div
+      <m.div
         layout
         transition={rowTransition}
         className={cn("relative z-10 grid gap-3", isAlum ? "grid-cols-3" : "grid-cols-2")}
       >
-        <motion.div layout transition={rowTransition}>
+        <m.div layout transition={rowTransition}>
           <YearInput
             id="yearJoined"
             name="yearJoined"
@@ -520,8 +520,8 @@ export function SignupForm({
             onValueChange={setYearJoined}
             required
           />
-        </motion.div>
-        <motion.div layout transition={rowTransition}>
+        </m.div>
+        <m.div layout transition={rowTransition}>
           <YearInput
             id="yearLeft"
             name="yearLeft"
@@ -545,10 +545,10 @@ export function SignupForm({
               ) : undefined
             }
           />
-        </motion.div>
+        </m.div>
         <AnimatePresence mode="popLayout" initial={false}>
           {isAlum && (
-            <motion.div
+            <m.div
               key="batch"
               layout
               initial={{ opacity: 0 }}
@@ -572,12 +572,12 @@ export function SignupForm({
                   </InfoTip>
                 }
               />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </m.div>
 
-      <motion.div layout transition={rowTransition} className="grid grid-cols-2 gap-3">
+      <m.div layout transition={rowTransition} className="grid grid-cols-2 gap-3">
         <FloatField
           id="firstName"
           name="firstName"
@@ -597,9 +597,9 @@ export function SignupForm({
           minLength={1}
           onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 12))}
         />
-      </motion.div>
+      </m.div>
 
-      <motion.div layout transition={rowTransition}>
+      <m.div layout transition={rowTransition}>
         <FloatField
           id="email"
           name="email"
@@ -609,9 +609,9 @@ export function SignupForm({
           required
           onChange={(e) => hoopoe.gaze(gazeFor(e.target.value.length, 26))}
         />
-      </motion.div>
+      </m.div>
 
-      <motion.div layout transition={rowTransition}>
+      <m.div layout transition={rowTransition}>
         <PasswordField
           id="password"
           name="password"
@@ -624,22 +624,22 @@ export function SignupForm({
           }}
           onRevealChange={setShowPw}
         />
-      </motion.div>
+      </m.div>
 
       {/* Optional, never verified; the value the server reads. */}
       <input type="hidden" name="phone" value={phoneValue} />
-      <motion.div layout transition={rowTransition}>
+      <m.div layout transition={rowTransition}>
         <PhoneField
           countryCode={countryCode}
           onCountryCode={setCountryCode}
           digits={phoneDigits}
           onDigits={setPhoneDigits}
         />
-      </motion.div>
+      </m.div>
 
       <AnimatePresence mode="popLayout" initial={false}>
         {error && (
-          <motion.p
+          <m.p
             key="error"
             layout
             initial={{ opacity: 0 }}
@@ -649,7 +649,7 @@ export function SignupForm({
             className="text-sm text-destructive"
           >
             {error}
-          </motion.p>
+          </m.p>
         )}
       </AnimatePresence>
 
@@ -662,7 +662,7 @@ export function SignupForm({
           `required` is the browser's nudge; the server refuses without it
           either way (see registerUser). A native checkbox: accent-color paints
           it canopy in every browser without inventing a control. */}
-      <motion.div layout transition={rowTransition}>
+      <m.div layout transition={rowTransition}>
         <label className="flex cursor-pointer items-start gap-2.5 px-1 text-[13.5px] leading-snug text-muted-foreground">
           <input
             type="checkbox"
@@ -686,16 +686,16 @@ export function SignupForm({
             .
           </span>
         </label>
-      </motion.div>
+      </m.div>
 
       {/* 12 from the list + 4 here = 16 before the CTA, the same breath the
           trivia step gives its Check button, and one step up from the 12px
           field rhythm (the action is related to the fields, not one of them). */}
-      <motion.div layout transition={rowTransition} className="pt-1">
+      <m.div layout transition={rowTransition} className="pt-1">
         <Button type="submit" variant="primary" size="lg" className="w-full" disabled={loading}>
           {loading ? "Joining..." : "Join"}
         </Button>
-      </motion.div>
+      </m.div>
     </form>
   );
 }

@@ -4,7 +4,7 @@ import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useFlightArrival } from "@/components/mascot/use-flight-arrival";
@@ -135,7 +135,7 @@ export function AuthPanel({
           {back.label}
         </Link>
 
-        <motion.div
+        <m.div
           // 400px, the shared auth column: /login and /signup moved there
           // with the calm-form redesign, and these three ride along.
           className="my-auto w-full max-w-[400px] self-center text-center"
@@ -152,7 +152,7 @@ export function AuthPanel({
             <Hoopoe ref={hoopoeRef} size={hoopoeSize} onReady={handleReady} />
           </div>
           {children}
-        </motion.div>
+        </m.div>
       </div>
     </div>
   );

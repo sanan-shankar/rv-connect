@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { IndianRupee, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -317,7 +317,7 @@ export function SupportContribute({ admissionNumber }: { admissionNumber: number
             input beside four chips reads as a fifth, contradictory ask. */}
         <AnimatePresence initial={false}>
           {isOther && (
-            <motion.div
+            <m.div
               key="custom"
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -362,7 +362,7 @@ export function SupportContribute({ admissionNumber }: { admissionNumber: number
                   Please enter a whole amount of {inr(MIN_RUPEES)} or more.
                 </p>
               )}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 

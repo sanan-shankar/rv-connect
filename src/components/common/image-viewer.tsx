@@ -28,7 +28,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlignLeft, ArrowUpRight, ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { cn, metaLine } from "@/lib/utils";
@@ -234,7 +234,7 @@ export function ImageViewer({
   return (
     <AnimatePresence>
       {open && current && (
-      <motion.div
+      <m.div
         key="viewer"
         role="dialog"
         aria-modal="true"
@@ -298,7 +298,7 @@ export function ImageViewer({
           className="relative flex-1 outline-none"
           onClick={(e) => e.stopPropagation()}
         >
-          <motion.div
+          <m.div
             className="absolute inset-0"
             drag={count > 1 ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
@@ -314,7 +314,7 @@ export function ImageViewer({
             }}
           >
             <AnimatePresence mode="sync" initial={false}>
-              <motion.div
+              <m.div
                 key={index}
                 variants={FRAME_VARIANTS}
                 initial="enter"
@@ -331,9 +331,9 @@ export function ImageViewer({
                   className="max-h-full max-w-full select-none rounded-[var(--radius-sm)] object-contain"
                   style={{ boxShadow: "0 24px 80px -24px rgba(0,0,0,0.8)" }}
                 />
-              </motion.div>
+              </m.div>
             </AnimatePresence>
-          </motion.div>
+          </m.div>
 
           {/* Desktop step arrows; mobile navigates by dragging the photo. */}
           {index > 0 && (
@@ -406,7 +406,7 @@ export function ImageViewer({
         {/* THE FOLD: the bottom of the screen turns up into the caption. */}
         <AnimatePresence>
           {captionOpen && hasCaption && (
-            <motion.div
+            <m.div
               key="caption"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
@@ -432,10 +432,10 @@ export function ImageViewer({
                   </p>
                 )}
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </m.div>
       )}
     </AnimatePresence>
   );

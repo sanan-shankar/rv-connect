@@ -32,7 +32,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
@@ -100,7 +100,7 @@ export function LogoEasterEgg({ children }: { children: ReactNode }) {
     <div className="relative" onClickCapture={handleClickCapture}>
       {children}
       {playing && (
-        <motion.div
+        <m.div
           aria-hidden
           className="pointer-events-none absolute -left-1 top-0 z-40"
           initial={{ opacity: 0, y: 10, scale: 0.5 }}
@@ -125,7 +125,7 @@ export function LogoEasterEgg({ children }: { children: ReactNode }) {
               readyTimerRef.current = setTimeout(() => void playEgg(api), 0);
             }}
           />
-        </motion.div>
+        </m.div>
       )}
     </div>
   );

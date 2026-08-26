@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -214,7 +214,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
           Back
         </Link>
 
-        <motion.div
+        <m.div
           ref={entranceRef}
           // 400px, matching /signup, so the two auth pages are one column.
           className="my-auto w-full max-w-[400px] self-center text-center"
@@ -257,7 +257,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
               arriving glide their neighbours instead of snapping - the same
               choreography as the signup form. */}
           <form onSubmit={handleSubmit} className="relative mt-5 space-y-3 text-left">
-            <motion.div layout transition={rowTransition}>
+            <m.div layout transition={rowTransition}>
               <FloatField
                 id="email"
                 type="email"
@@ -272,7 +272,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                 required
                 ref={emailFocusRef}
               />
-            </motion.div>
+            </m.div>
             {/* The password field is unconditional. It used to be hidden
                 whenever the typed address matched NEXT_PUBLIC_ADMIN_EMAIL,
                 because the admin signed in through a password-less bypass
@@ -290,7 +290,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                 flew in (owner, 2026-08-26). Same shape as the email row above
                 now: `layout` for the reflow when the error line arrives,
                 nothing else. */}
-            <motion.div layout transition={rowTransition}>
+            <m.div layout transition={rowTransition}>
               <PasswordField
                 id="password"
                 label="Password"
@@ -331,10 +331,10 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                   Forgot it?
                 </Link>
               </div>
-            </motion.div>
+            </m.div>
             <AnimatePresence mode="popLayout" initial={false}>
               {error && (
-                <motion.p
+                <m.p
                   key="error"
                   layout
                   initial={{ opacity: 0 }}
@@ -344,7 +344,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                   className="text-sm text-destructive"
                 >
                   {error}
-                </motion.p>
+                </m.p>
               )}
             </AnimatePresence>
             {/* Invisible until Cloudflare wants an interaction; see
@@ -352,11 +352,11 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                 one does appear, reads as part of the form, not an afterthought
                 below the CTA. */}
             <TurnstileWidget ref={turnstileRef} siteKey={turnstileSiteKey} />
-            <motion.div layout transition={rowTransition} className="pt-1">
+            <m.div layout transition={rowTransition} className="pt-1">
               <Button type="submit" variant="primary" size="lg" className="w-full" disabled={loading}>
                 {loading ? "Signing in..." : "Sign in"}
               </Button>
-            </motion.div>
+            </m.div>
           </form>
 
           <p className="mt-6 text-sm text-muted-foreground">
@@ -368,7 +368,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
               Join
             </Link>
           </p>
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Warms the flight rig off-screen in case a visitor lands here directly

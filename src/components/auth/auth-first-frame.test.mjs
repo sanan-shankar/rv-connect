@@ -110,7 +110,13 @@ test("no row in the auth columns fades itself in at mount", () => {
   for (const field of ["<FloatField", "<PasswordField"]) {
     const at = LOGIN.indexOf(field);
     assert.ok(at > 0, `login-client.tsx no longer renders ${field}`);
-    const row = LOGIN.slice(LOGIN.lastIndexOf("<motion.div", at), at);
+    /* `<m.div`, not `<motion.div`: the app moved to LazyMotion + `m` so the
+       132 KB feature runtime loads off the critical path. Asserted rather
+       than assumed, because lastIndexOf returns -1 when the opener is not
+       found and slice(-1, at) would hand back the wrong text and pass. */
+    const open = LOGIN.lastIndexOf("<m.div", at);
+    assert.ok(open > 0, "login-client.tsx no longer opens its rows with <m.div");
+    const row = LOGIN.slice(open, at);
     assert.ok(
       !row.includes("initial="),
       `the row around ${field} mounts with its own entrance, which blinks once the column stops covering it`

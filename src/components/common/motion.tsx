@@ -10,7 +10,7 @@
  *  do NOT gate any of this on the OS prefers-reduced-motion setting.
  * ------------------------------------------------------------------ */
 
-import { motion, type MotionProps } from "motion/react";
+import { m, type MotionProps } from "motion/react";
 import { useEffect, useState, type ReactNode, type CSSProperties } from "react";
 
 /* one spring set to rule them all (matches the v2 / lab feel) */
@@ -121,7 +121,7 @@ export function FadeRise({
   style?: CSSProperties;
 }) {
   return (
-    <motion.div
+    <m.div
       className={className}
       style={style}
       initial={{ opacity: 0, y }}
@@ -129,7 +129,7 @@ export function FadeRise({
       transition={{ ...SPRINGS.gentle, delay }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -151,7 +151,7 @@ export function SpringPress({
   onClick?: () => void;
   as?: "button" | "div" | "a" | "span";
 } & MotionProps) {
-  const Comp = (motion as unknown as Record<string, typeof motion.button>)[as] ?? motion.button;
+  const Comp = (m as unknown as Record<string, typeof m.button>)[as] ?? m.button;
   return (
     <Comp
       className={className}

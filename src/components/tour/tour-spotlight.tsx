@@ -20,7 +20,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { getSpotlightEl } from "./tour-anchors";
 
@@ -96,7 +96,7 @@ export function TourSpotlight({ active, spotlightKey }: { active: boolean; spotl
 
   return (
     <AnimatePresence>
-      <motion.div
+      <m.div
         key={spotlightKey ?? "none"}
         aria-hidden
         className="pointer-events-none fixed inset-0 z-[60]"
@@ -122,7 +122,7 @@ export function TourSpotlight({ active, spotlightKey }: { active: boolean; spotl
         ) : (
           <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--color-ink) 55%, transparent)" }} />
         )}
-      </motion.div>
+      </m.div>
     </AnimatePresence>
   );
 }

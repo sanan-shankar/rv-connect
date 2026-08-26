@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Heart } from "@phosphor-icons/react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { SPRINGS, EASE_POP } from "@/components/common/motion";
 
 // Tiny flecks that drift up when a heart is liked, in the valley palette. Timing/scale ported from
@@ -79,7 +79,7 @@ export function LoveButton({
   }
 
   return (
-    <motion.button
+    <m.button
       type="button"
       onClick={handleClick}
       aria-pressed={liked}
@@ -101,7 +101,7 @@ export function LoveButton({
         {/* Heart is ALWAYS red, painted on the first frame. transition:none stops it
             tweening through the dark inherited colour, so it can never flash black.
             Only transform animates: a smooth multi-keyframe pop (tween, never a spring). */}
-        <motion.span
+        <m.span
           className="inline-flex will-change-transform"
           animate={animate ? { scale: [1, 0.86, 1.28, 0.97, 1] } : { scale: 1 }}
           transition={
@@ -116,11 +116,11 @@ export function LoveButton({
             color="#E03A33"
             style={{ opacity: liked ? 1 : 0.45, transition: "none" }}
           />
-        </motion.span>
+        </m.span>
         {animate && (
           <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2">
             {LEAF_FLECKS.map((f, i) => (
-              <motion.span
+              <m.span
                 key={i}
                 className="absolute block rounded-full"
                 style={{ width: 7, height: 7, marginLeft: -3.5, marginTop: -3.5, background: f.c }}
@@ -139,6 +139,6 @@ export function LoveButton({
         )}
       </span>
       {showCount && <span>{count}</span>}
-    </motion.button>
+    </m.button>
   );
 }
