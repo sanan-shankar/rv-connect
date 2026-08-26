@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import posthog from "posthog-js";
+import { whenPostHog } from "./posthog-client";
 
 /* Attaches events to a member so a funnel can follow one person across a
  * session and across devices. Rendered from the (main) layout, which already
@@ -29,20 +29,18 @@ export function PostHogIdentify({
   isOwner: boolean;
 }) {
   useEffect(() => {
-    if (!posthog.__loaded) {
-      /* Was a bare `return`, and that silence hid audit M42 for the whole life
-         of the analytics room: init used to run in the PROVIDER's effect, React
-         runs a child's effects first, so on every full page load this fired
-         before init and gave up without a word. Init now happens at module
-         scope (see posthog-provider.tsx), so reaching this branch means that
-         ordering has been broken again -- which is worth a line in the console
-         rather than another year of anonymous sessions. */
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[posthog] identify skipped: init has not run yet");
-      }
-      return;
-    }
-    posthog.identify(userId, { accountType, batchYear, isOwner });
+    /* This used to read `posthog.__loaded` and bail if init had not run,
+     * which is how audit M42 stayed invisible for the life of the analytics
+     * room: init ran in the provider's effect, React runs a child's effects
+     * first, so this fired early and gave up -- and its deps never changed,
+     * so it never tried again. Every full page load into a signed-in route
+     * landed in PostHog anonymous.
+     *
+     * There is no check to make now. posthog-js loads on an idle callback
+     * well after this effect runs, and `whenPostHog` resolves only once
+     * init() has returned, so identify cannot arrive early: the race is gone
+     * rather than guarded. See posthog-client.ts. */
+    whenPostHog((ph) => ph.identify(userId, { accountType, batchYear, isOwner }));
     return () => {
       /* No reset() on unmount: the layout unmounts on navigation and resetting
        * there would break every cross-page funnel. Sign-out is the only place
