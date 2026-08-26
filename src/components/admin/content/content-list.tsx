@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ExternalLink, EyeOff, MoreHorizontal, Search, Trash2, X } from "lucide-react";
 import { useAdminAct } from "@/components/admin/use-admin-act";
-import { Input } from "@/components/ui/input";
+import { AdminFilterBar, useAdminFilterParams } from "@/components/admin/admin-filter-bar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,14 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  FacetSelect,
-  FilterButton,
-  FilterPopover,
-  FilterSheet,
-  SentenceLine,
-  type SentenceToken,
-} from "@/components/common/filters";
+import { FacetSelect, type SentenceToken } from "@/components/common/filters";
 import { Chip } from "@/components/admin/admin-chip";
 import { AdminEmpty } from "@/components/admin/admin-chrome";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
@@ -53,48 +46,25 @@ export function ContentList({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const filters = useAdminFilterParams("/admin/content");
+  const { setParam } = filters;
   const { busy, act } = useAdminAct();
   const [removing, setRemoving] = useState<ContentItem | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
 
-  const q = searchParams.get("q") ?? "";
   const type = searchParams.get("type") ?? "";
   const hidden = searchParams.get("hidden") === "1";
-  const [draftQ, setDraftQ] = useState(q);
-
-  const setParam = useCallback(
-    (key: string, value: string) => {
-      const next = new URLSearchParams(searchParams.toString());
-      if (value) next.set(key, value);
-      else next.delete(key);
-      router.replace(next.toString() ? `/admin/content?${next}` : "/admin/content", {
-        scroll: false,
-      });
-    },
-    [router, searchParams]
-  );
 
   const tokens: SentenceToken[] = useMemo(() => {
     const out: SentenceToken[] = [];
     if (type) out.push({ key: "type", label: typeLabel(type), onClear: () => setParam("type", "") });
     if (author)
       out.push({ key: "author", label: author.name, onClear: () => setParam("author", "") });
-    if (q)
-      out.push({
-        key: "q",
-        label: `"${q}"`,
-        onClear: () => {
-          setDraftQ("");
-          setParam("q", "");
-        },
-      });
     if (hidden)
       out.push({ key: "hidden", label: "Including removed", onClear: () => setParam("hidden", "") });
     return out;
-  }, [type, author, q, hidden, setParam]);
+  }, [type, author, hidden, setParam]);
 
-  const hasFilter = tokens.length > 0;
+  const hasFilter = tokens.length > 0 || Boolean(filters.q);
 
   async function removeItem(item: ContentItem, note: string) {
     switch (item.kind) {
@@ -137,87 +107,32 @@ export function ContentList({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-0 flex-1 sm:max-w-xs">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              strokeWidth={2}
-              aria-hidden
-            />
-            <Input
-              value={draftQ}
-              onChange={(e) => setDraftQ(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && setParam("q", draftQ.trim())}
-              onBlur={() => draftQ.trim() !== q && setParam("q", draftQ.trim())}
-              placeholder="Search the words"
-              aria-label="Search content"
-              className="pl-9"
-            />
-          </div>
-          {/* Same filter material as People and the Directory: one button, one
-              panel, a popover on a desktop and the kit's bottom sheet on a
-              phone. Both render the SAME facets, so the two breakpoints
-              cannot drift, and "+N more" on the sentence below has somewhere
-              real to lead. */}
-          <div className="hidden lg:block">
-            <FilterPopover
-              open={panelOpen}
-              onOpenChange={setPanelOpen}
-              trigger={
-                <FilterButton count={activeCount} onClick={() => setPanelOpen((v) => !v)} />
-              }
+      <AdminFilterBar
+        filters={filters}
+        searchPlaceholder="Search the words"
+        searchAriaLabel="Search content"
+        facets={facets}
+        tokens={tokens}
+        activeCount={activeCount}
+        count={items.length}
+        singular="thing"
+        plural="things"
+        maxTokens={3}
+        sheetShowLabel={`Show ${items.length} ${items.length === 1 ? "thing" : "things"}`}
+        banner={
+          /* The queue is a filter, so the panel says how long it is here
+             rather than keeping a permanent section for it. */
+          pendingPhotos > 0 && type !== "pending" ? (
+            <button
+              type="button"
+              onClick={() => setParam("type", "pending")}
+              className="state-layer flex w-fit items-center gap-2 rounded-full border border-cinnamon/30 bg-cinnamon/[0.07] px-3 py-1.5 text-[12.5px] font-medium text-cinnamon focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              {facets(true, true)}
-            </FilterPopover>
-          </div>
-          <FilterButton
-            count={activeCount}
-            onClick={() => setSheetOpen(true)}
-            className="lg:hidden"
-          />
-        </div>
-
-        {/* The queue is a filter, so the panel says how long it is here rather
-            than keeping a permanent section for it. */}
-        {pendingPhotos > 0 && type !== "pending" && (
-          <button
-            type="button"
-            onClick={() => setParam("type", "pending")}
-            className="state-layer flex w-fit items-center gap-2 rounded-full border border-cinnamon/30 bg-cinnamon/[0.07] px-3 py-1.5 text-[12.5px] font-medium text-cinnamon focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            {pendingPhotos} {pendingPhotos === 1 ? "photo is" : "photos are"} waiting for you
-          </button>
-        )}
-
-        <SentenceLine
-          count={items.length}
-          singular={hasFilter ? "match" : "thing"}
-          plural={hasFilter ? "matches" : "things"}
-          tokens={tokens}
-          onClearAll={() => {
-            setDraftQ("");
-            router.replace("/admin/content", { scroll: false });
-          }}
-          onOpenPanel={() =>
-            window.innerWidth >= 1024 ? setPanelOpen(true) : setSheetOpen(true)
-          }
-          max={3}
-        />
-      </div>
-
-      <FilterSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        onClearAll={() => {
-          setDraftQ("");
-          router.replace("/admin/content", { scroll: false });
-        }}
-        hasActive={hasFilter}
-        showLabel={`Show ${items.length} ${items.length === 1 ? "thing" : "things"}`}
-      >
-        {facets(true)}
-      </FilterSheet>
+              {pendingPhotos} {pendingPhotos === 1 ? "photo is" : "photos are"} waiting for you
+            </button>
+          ) : null
+        }
+      />
 
       {items.length === 0 ? (
         <AdminEmpty>
