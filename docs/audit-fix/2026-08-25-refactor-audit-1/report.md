@@ -353,6 +353,18 @@ without your word.
     was deleted — new members can never appear under any profession. *Recommendation:
     remove the filter for launch; rebuild it the day a real profession question exists.*
     (directory-profile-05)
+    > **ANSWERED — owner, 2026-08-26.** Profession filtering **stays as a goal**; do not
+    > treat this as "the feature is unwanted". His plan: at ~150 members, run every
+    > `workplace` + `jobTitle` pair through an LLM, derive the buckets, and write each
+    > member a **backend tag**. Recorded in `docs/planning/FEATURES.md` §2.
+    > What that does NOT change: today's facet is `where.workplace = <exact value>` against
+    > free text, and re-measured on the live database on 2026-08-26 it matches **0 of 63
+    > members** (28 have a workplace; none is one of the 18 vocabulary values). The tag
+    > needs its own column, so none of the current arm is reusable.
+    > **Still the owner's call for phase 2**, now narrowed to: (a) hide the facet until the
+    > tag exists — one-line change, deletes nothing; (b) delete it and rebuild from scratch
+    > later; (c) ship it visible and matching nobody. *Recommendation: (a).* It stops
+    > misleading people at launch without spending the rebuild twice.
 11. **The sidebar logo's switched-off "Did you know" feature** ships 128 lines + facts on
     every page. On, or delete (the lab room keeps it). *Recommendation: delete.*
     (shell-primitives-06)
