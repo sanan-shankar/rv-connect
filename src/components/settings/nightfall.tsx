@@ -19,7 +19,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 import { EASE_IN_OUT_SCENE, EASE_OUT_SMOOTH } from "@/components/common/motion";
 
@@ -67,7 +67,7 @@ export function Nightfall({
   }, []);
 
   return (
-    <motion.div
+    <m.div
       className="fixed inset-0 z-[80]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: 0.5, ease: EASE_OUT_SMOOTH } }}
@@ -84,7 +84,7 @@ export function Nightfall({
             "linear-gradient(to bottom, #131A17 0%, #1C2420 52%, #2E2A22 84%, #4A3826 100%)",
         }}
       />
-      <motion.div
+      <m.div
         className="absolute inset-0"
         style={{
           background: "linear-gradient(to bottom, #F2E9D8 0%, #E7DBC4 55%, #DFC9A8 100%)",
@@ -94,7 +94,7 @@ export function Nightfall({
       />
 
       {/* The sun, sinking behind the peaks. */}
-      <motion.div
+      <m.div
         aria-hidden
         className="absolute left-1/2 top-[30%] h-24 w-24 -translate-x-1/2 rounded-full"
         style={{
@@ -119,7 +119,7 @@ export function Nightfall({
 
       {/* Stars, arriving in a stagger once the sky is dark enough. */}
       {STARS.map((s, i) => (
-        <motion.span
+        <m.span
           key={i}
           aria-hidden
           className="absolute rounded-full bg-[#E8EDE6]"
@@ -132,7 +132,7 @@ export function Nightfall({
       {/* Two fireflies drifting up from the treeline: the valley's night
           shift clocking in. Transform + opacity only. */}
       {[0, 1].map((i) => (
-        <motion.span
+        <m.span
           key={`fly-${i}`}
           aria-hidden
           className="absolute bottom-[22vh] h-1.5 w-1.5 rounded-full bg-[#D8E6A8]"
@@ -148,13 +148,13 @@ export function Nightfall({
       ))}
 
       {/* The line. Held just long enough to read twice. */}
-      <motion.p
+      <m.p
         className="absolute inset-x-0 top-[38%] text-center font-heading text-[22px] tracking-[-0.01em] text-[#E8EDE6]"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0, transition: { delay: 2.6, duration: 0.7, ease: EASE_OUT_SMOOTH } }}
       >
         The valley, after dark.
-      </motion.p>
-    </motion.div>
+      </m.p>
+    </m.div>
   );
 }

@@ -43,7 +43,7 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
@@ -83,7 +83,7 @@ const RULE_TILE = "linear-gradient(90deg, var(--color-canopy) 0 2px, transparent
  */
 function PenRule({ on, delay = 0 }: { on: boolean; delay?: number }) {
   return (
-    <motion.span
+    <m.span
       aria-hidden
       className="pointer-events-none absolute inset-x-0 -bottom-1 h-[2px] origin-left"
       style={{
@@ -434,7 +434,7 @@ export function SaveMark({ state, message }: { state: SaveState; message?: strin
     >
       <AnimatePresence mode="wait" initial={false}>
         {state !== "idle" && (
-          <motion.span
+          <m.span
             key={state}
             initial={{ opacity: 0, y: 3 }}
             animate={{ opacity: 1, y: 0 }}
@@ -448,7 +448,7 @@ export function SaveMark({ state, message }: { state: SaveState; message?: strin
             {state === "saving" && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
             {state === "saved" && <Check className="h-3.5 w-3.5 text-leaf" aria-hidden />}
             {state === "saving" ? "Saving" : state === "saved" ? "Saved" : (message ?? "Not saved")}
-          </motion.span>
+          </m.span>
         )}
       </AnimatePresence>
     </span>

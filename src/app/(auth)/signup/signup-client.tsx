@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { TriviaGate } from "@/components/auth/trivia-gate";
 import { SignupForm } from "@/components/auth/signup-form";
 import { Hoopoe } from "@/components/mascot/hoopoe";
@@ -116,7 +116,7 @@ export default function SignupClient({
           Back
         </Link>
 
-        <motion.div
+        <m.div
           ref={entranceRef}
           // Anchoring is per step. The short trivia step centres (`my-auto`);
           // one fixed anchor for both left it hanging high over a void, the
@@ -162,7 +162,7 @@ export default function SignupClient({
 
           <AnimatePresence mode="wait" initial={false}>
             {step === "trivia" ? (
-              <motion.div
+              <m.div
                 key="trivia"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -175,9 +175,9 @@ export default function SignupClient({
                   First, a quick check
                 </h1>
                 <TriviaGate hoopoe={hoopoe} onPass={() => setStep("register")} />
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div
+              <m.div
                 key="register"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -203,10 +203,10 @@ export default function SignupClient({
                     )
                   }
                 />
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Warms the flight rig off-screen in case a visitor lands here directly

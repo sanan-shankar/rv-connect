@@ -12,7 +12,7 @@ import { useState } from "react";
 import { PauseCircle, PlayCircle, Settings2, XOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import {
   Dialog,
   DialogContent,
@@ -130,7 +130,7 @@ export function KeeperSettingsDialog({
                   )}
                 >
                   {selected && (
-                    <motion.span
+                    <m.span
                       layoutId="catchupCadenceThumb"
                       className="absolute inset-0 z-0 rounded-full border border-canopy bg-canopy/10"
                       // Not SegmentedPills: same canopy-tint OUTLINE treatment as

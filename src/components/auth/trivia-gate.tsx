@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { SPRINGS } from "@/components/common/motion";
@@ -157,7 +157,7 @@ export function TriviaGate({
           is not decoration: overflow-hidden is what stops the
           taller question from spilling over the answer field mid-grow, and
           without the padding it would crop the swap button's focus ring. */}
-      <motion.div
+      <m.div
         className="mt-4 mb-3 overflow-hidden"
         animate={{ height: questionHeight }}
         transition={SPRINGS.snappy}
@@ -171,7 +171,7 @@ export function TriviaGate({
                 nothing slower. popLayout lifts the leaving text out of flow so
                 the incoming line does not wait for it. */}
             <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span
+              <m.span
                 key={question?.id ?? "loading"}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -207,11 +207,11 @@ export function TriviaGate({
                     </button>
                   </>
                 )}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
           </p>
         </div>
-      </motion.div>
+      </m.div>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* The same calm material as the register step's FloatFields (56px
             mist, no hairline), built as a plain input on the shared shell

@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
 import { academicSpanLabel, type HouseSpan } from "@/lib/house-spans";
@@ -431,7 +431,7 @@ export function HouseTrail({
         };
     if (item.kind === "pending") {
       return (
-        <motion.button
+        <m.button
           key="p-pending"
           {...shared}
           type="button"
@@ -446,12 +446,12 @@ export function HouseTrail({
           )}
         >
           <Pill item={item} />
-        </motion.button>
+        </m.button>
       );
     }
     if (onSpanClick) {
       return (
-        <motion.button
+        <m.button
           key={`p-${idx}`}
           {...shared}
           type="button"
@@ -466,13 +466,13 @@ export function HouseTrail({
           )}
         >
           <Pill item={item} />
-        </motion.button>
+        </m.button>
       );
     }
     return (
-      <motion.span key={`p-${idx}`} {...shared} className={cn(PILL_CLASS, tintFor(item))}>
+      <m.span key={`p-${idx}`} {...shared} className={cn(PILL_CLASS, tintFor(item))}>
         <Pill item={item} />
-      </motion.span>
+      </m.span>
     );
   }
 
@@ -739,7 +739,7 @@ export function HouseTrail({
           aria-hidden
         >
           {turns.map((turn, i) => (
-            <motion.g
+            <m.g
               key={turn.key}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -747,7 +747,7 @@ export function HouseTrail({
             >
               <path d={turn.d} {...STROKE} />
               <path d={turn.head} {...STROKE} strokeLinejoin="round" />
-            </motion.g>
+            </m.g>
           ))}
         </svg>
       </div>

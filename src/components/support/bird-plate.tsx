@@ -23,7 +23,7 @@
  * that only revealed a name on a press-and-hold). */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { BirdGlyphV2 } from "@/components/common/bird-avatar-v2";
 import { EASE_OUT_SMOOTH, SPRINGS } from "@/components/common/motion";
 import { PLATE } from "./plate-data";
@@ -60,7 +60,7 @@ export function BirdPlate() {
         className="mt-[var(--space-m)] grid grid-cols-4 gap-x-[var(--space-xs)] gap-y-[var(--space-s)] sm:grid-cols-6 sm:gap-x-[var(--space-s)] sm:gap-y-[var(--space-m)]"
       >
         {PLATE.map(({ name, index, seed }, i) => (
-          <motion.li
+          <m.li
             key={index}
             // On mount, not on scroll-into-view (owner: both rows appear
             // straight away). The stagger stays: twelve arrivals 30ms apart
@@ -87,13 +87,13 @@ export function BirdPlate() {
             >
               <BirdGlyphV2 seed={seed} px={96} speciesOverride={index} />
             </span>
-          </motion.li>
+          </m.li>
         ))}
       </ul>
 
       <p className="mt-[var(--space-m)] h-5 text-sm leading-5">
         {over !== null && (
-          <motion.span
+          <m.span
             key={PLATE[over].name}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -101,7 +101,7 @@ export function BirdPlate() {
             className="font-medium text-foreground"
           >
             {PLATE[over].name}
-          </motion.span>
+          </m.span>
         )}
       </p>
     </div>

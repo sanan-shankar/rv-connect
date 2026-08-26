@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { FloatField } from "@/components/common/float-field";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
@@ -126,7 +126,7 @@ export function ForgotPasswordClient({
     >
       <AnimatePresence mode="wait" initial={false}>
         {sentTo === null ? (
-          <motion.div
+          <m.div
             key="ask"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -183,9 +183,9 @@ export function ForgotPasswordClient({
                 Sign in
               </Link>
             </p>
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div
+          <m.div
             key="sent"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -224,7 +224,7 @@ export function ForgotPasswordClient({
             >
               Use a different address
             </button>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </AuthPanel>

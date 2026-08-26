@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2, Check } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
@@ -604,7 +604,7 @@ export function CreatePostForm({
   // Measure the editor's natural height and animate the box to it. A
   // ResizeObserver keeps the box exactly the content's size, so adding an image
   // or a poll grows it cleanly (no fixed height, no clipping) while the
-  // expand/collapse spring stays a single deliberate downward/upward motion.
+  // expand/collapse spring stays a single deliberate downward/upward m.
   useEffect(() => {
     if (!expanded) {
       setColHeight(COLLAPSED_H);
@@ -1098,7 +1098,7 @@ export function CreatePostForm({
       {/* Staged reveal: everything below the editor rises in as ONE block, on a
           beat's delay after the field fades in, instead of snapping into place
           while the tile is still expanding. */}
-      <motion.div
+      <m.div
         className="mt-2 space-y-2.5"
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0, transition: { ...SPRINGS.settle, delay: 0.16 } }}
@@ -1109,7 +1109,7 @@ export function CreatePostForm({
             layout reflows once instead of the row height itself animating). */}
         <AnimatePresence>
           {!isLetter && content.length > LETTER_NUDGE_LEN && (
-            <motion.p
+            <m.p
               key="letter-nudge"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1125,7 +1125,7 @@ export function CreatePostForm({
                 Letter
               </Link>
               .
-            </motion.p>
+            </m.p>
           )}
         </AnimatePresence>
 
@@ -1262,18 +1262,18 @@ export function CreatePostForm({
                     "aria-expanded": more,
                   } as object)}
                 >
-                  <motion.span
+                  <m.span
                     className="inline-grid place-items-center"
                     animate={{ rotate: more ? 45 : 0 }}
                     transition={SPRINGS.snappy}
                   >
                     <Plus className="h-[18px] w-[18px]" />
-                  </motion.span>
+                  </m.span>
                 </SpringPress>
 
                 <AnimatePresence>
                   {more && (
-                    <motion.div
+                    <m.div
                       role="menu"
                       /* Opens from the plus's LEFT edge, because the plus now sits
                          at the START of the row. Anchored right (as it used to be)
@@ -1365,7 +1365,7 @@ export function CreatePostForm({
                           </div>
                         </div>
                       )}
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
               </div>
@@ -1476,7 +1476,7 @@ export function CreatePostForm({
                 now"). The two are far enough apart on the page that matching
                 them reads as one language rather than a competition, and a
                 shrunken primary action was the more visible cost. */}
-            <motion.button
+            <m.button
               type="button"
               // `uploading` belongs here as much as `submitting` does. Without
               // it, a member on a slow connection could attach photos, type,
@@ -1507,10 +1507,10 @@ export function CreatePostForm({
                   : isLetter
                     ? "Publish letter"
                     : "Post"}
-            </motion.button>
+            </m.button>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </>
   );
 
@@ -1535,14 +1535,14 @@ export function CreatePostForm({
           {currentUser && !immersive && (
             <BirdAvatar user={currentUser} size="sm" className="mt-0.5 hidden shrink-0 sm:inline-grid" />
           )}
-          <motion.div
+          <m.div
             className="min-w-0 flex-1"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.18 }}
           >
             {editorBody}
-          </motion.div>
+          </m.div>
         </div>
       </div>
       </>
@@ -1568,7 +1568,7 @@ export function CreatePostForm({
        a 300ms spring. */
     <>
     {emailGate.dialog}
-    <motion.div
+    <m.div
       ref={rootRef}
       data-composer
       initial={false}
@@ -1586,7 +1586,7 @@ export function CreatePostForm({
           // room, and the icon is half of what this control now is.
           <BirdAvatar user={currentUser} size="sm" className="mt-0.5 shrink-0" />
         )}
-        <motion.div
+        <m.div
           className="relative min-w-0 flex-1"
           initial={false}
           animate={{ height: colHeight }}
@@ -1616,7 +1616,7 @@ export function CreatePostForm({
               mid-hover the pill briefly matched its own container).
               rounded-full stays: the composer's inline post box is the app's
               one sanctioned pill-shaped input. */}
-          <motion.button
+          <m.button
             ref={tourAnchorRef}
             type="button"
             data-tour={isFeedComposer ? "feed-composer" : undefined}
@@ -1629,11 +1629,11 @@ export function CreatePostForm({
             className="state-layer flex h-11 w-full min-w-0 items-center rounded-full bg-card px-4 text-left text-[14px] text-muted-foreground hover:text-foreground active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inset"
           >
             <span className="truncate">{collapsedPlaceholder}</span>
-          </motion.button>
+          </m.button>
 
           <AnimatePresence>
             {expanded && (
-              <motion.div
+              <m.div
                 key="editor"
                 ref={editorRef}
                 className="absolute inset-x-0 top-0"
@@ -1642,12 +1642,12 @@ export function CreatePostForm({
                 exit={{ opacity: 0, transition: SPRINGS.gentle }}
               >
                 {editorBody}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </m.div>
       </div>
-    </motion.div>
+    </m.div>
     </>
   );
 }

@@ -23,7 +23,7 @@
  * ------------------------------------------------------------------ */
 
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import {
   Facebook,
   Globe,
@@ -206,7 +206,7 @@ export function ContactsEditor({
           {rows.map((row, i) => {
             const Icon = ICON[row.kind];
             return (
-              <motion.div
+              <m.div
                 key={row.id}
                 layout="position"
                 initial={{ opacity: 0, y: -4 }}
@@ -272,7 +272,7 @@ export function ContactsEditor({
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
-              </motion.div>
+              </m.div>
             );
           })}
         </AnimatePresence>

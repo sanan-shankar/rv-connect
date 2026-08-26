@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, type Variants } from "motion/react";
+import { AnimatePresence, m, type Variants } from "motion/react";
 import { ChevronDown } from "lucide-react";
 import { Wordmark } from "@/components/layout/peaks-mark";
 import { Hoopoe } from "@/components/mascot/hoopoe";
@@ -46,7 +46,7 @@ type Phase = "loading" | "shown" | "exiting";
 // Next's Link, animatable, so each CTA can run its own fade (the Sign in
 // pill's backdrop blur needs to be the animating element itself - see the
 // middleVariants note). Created once at module level, never inside render.
-const MotionLink = motion.create(Link);
+const MotionLink = m.create(Link);
 
 const REVEAL_STAGGER = 0.07;
 
@@ -242,7 +242,7 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
   }
 
   return (
-    <motion.section
+    <m.section
       className="relative flex min-h-dvh flex-col overflow-hidden"
       initial="loading"
       animate={phase}
@@ -265,7 +265,7 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
       )}
 
       {/* Photo layer: fades/rises in on load, slides left on the sign-in exit. */}
-      <motion.div
+      <m.div
         className="absolute inset-0 z-0"
         variants={imageVariants}
         style={{ transformOrigin: "50% 50%" }}
@@ -302,7 +302,7 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
         />
 
         {/* Landing-only washes (present now; fade out as the headline leaves). */}
-        <motion.div className="absolute inset-0" variants={washLandingVariants}>
+        <m.div className="absolute inset-0" variants={washLandingVariants}>
           {/* Hover-reactive wash for readability */}
           <div
             className="absolute inset-0 transition-colors duration-700 ease-in-out"
@@ -326,36 +326,36 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
                 "linear-gradient(180deg, transparent 54%, rgba(20,30,22,0.36))",
             }}
           />
-        </motion.div>
+        </m.div>
 
         {/* /login-matching corner gradient: hidden until the exit, then it is what
             carries into the /login photo panel (same geometry, same opacity). */}
-        <motion.div
+        <m.div
           aria-hidden
           className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent"
           variants={washLoginVariants}
         />
-      </motion.div>
+      </m.div>
 
       {/* Brand, top-left. One fixed lockup size everywhere (peaks-mark.tsx), and
           it sits at the same screen position + size on /login, so it stays put
           across the sign-in handoff rather than moving. */}
-      <motion.div
+      <m.div
         className="relative z-10 px-8 pt-7 lg:px-16"
         style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
         variants={brandVariants}
       >
         <Wordmark markClassName="text-white" textClassName="block text-white" />
-      </motion.div>
+      </m.div>
 
       {/* Headline + actions (the middle block that slides out on the exit) */}
-      <motion.div className="relative z-10 flex flex-1 items-center" variants={middleVariants}>
+      <m.div className="relative z-10 flex flex-1 items-center" variants={middleVariants}>
         {/* Lifted by exactly the x-height of the 'e' in "Welcome" (owner,
             2026-08-04), measured off the real font rather than estimated:
             33px against the 60px h1, and the h1 changes size twice on the way
             down, so the lift tracks it (0.55 of the heading's font size, which
             is Libre Baskerville's x-height ratio). Lives on this inner block,
-            NOT the motion.div above it, because Framer writes `transform`
+            NOT the m.div above it, because Framer writes `transform`
             inline during the sign-in exit and would overwrite a utility class
             here. */}
         <div className="w-full -translate-y-[20px] px-8 sm:-translate-y-[26px] lg:-translate-y-[33px] lg:px-16">
@@ -365,14 +365,14 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
                   block's fade); the CTAs below fade individually so the
                   Sign in pill's frost rides its own opacity - see the
                   middleVariants note. */}
-              <motion.div variants={middleFadeVariants}>
+              <m.div variants={middleFadeVariants}>
                 <h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-white drop-shadow-lg sm:text-5xl lg:text-6xl lg:whitespace-nowrap">
                   Welcome back to the valley.
                 </h1>
                 <p className="mt-4 max-w-[42ch] text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg lg:max-w-none lg:whitespace-nowrap">
                   A space for the Rishi Valley community to stay connected.
                 </p>
-              </motion.div>
+              </m.div>
               {/* Same 16px step as the subtitle above (owner, 2026-08-04: the
                   three blocks "should be equally spaced ... the gap between
                   the first two is fine"). Equal MARGINS also come out as equal
@@ -407,27 +407,27 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
             </div>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Scroll cue. Suppressed while the showcase below the hero is held back
           (see SHOW_SHOWCASE in src/app/page.tsx): pointing down at a page that
           does not scroll is worse than pointing at nothing. The pb-7 goes with
           it, so the hero's own bottom edge is the page's. */}
       {showScrollCue && (
-        <motion.div
+        <m.div
           className="relative z-10 flex flex-col items-center gap-3 pb-7 text-white/80"
           variants={nudgeVariants}
         >
           <span className="text-[11px] font-medium uppercase tracking-[0.18em]">See what&apos;s inside</span>
           <ChevronDown className="h-5 w-5 animate-bounce" aria-hidden />
-        </motion.div>
+        </m.div>
       )}
 
       {/* Slow-load company: a hopping Hoopoe on the warm beige, only if the photo
           is taking a while. Fades away as the hero reveals. */}
       <AnimatePresence>
         {showLoader && (
-          <motion.div
+          <m.div
             key="hero-loader"
             className="pointer-events-none absolute inset-x-0 bottom-[26%] z-20 flex justify-center"
             initial={{ opacity: 0 }}
@@ -435,7 +435,7 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
             exit={{ opacity: 0, transition: { duration: LOADER_EXIT_MS / 1000 } }}
           >
             <HeroLoader />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -443,7 +443,7 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
           FIRST real flight (launched by "Sign in" / "Join the community" below)
           never has to. See hoopoe-warmup.tsx for the full why. */}
       <HoopoeWarmup />
-    </motion.section>
+    </m.section>
   );
 }
 

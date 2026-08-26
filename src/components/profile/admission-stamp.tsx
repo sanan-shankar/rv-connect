@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { cn } from "@/lib/utils";
 import { SPRINGS } from "@/components/common/motion";
 
@@ -24,7 +24,7 @@ export function AdmissionStamp({
   className?: string;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, scale: 1.5, rotate: -16 }}
       animate={{ opacity: 1, scale: 1, rotate: -7 }}
       transition={{ ...SPRINGS.snappy, delay: 0.3 }}
@@ -45,6 +45,6 @@ export function AdmissionStamp({
           {number}
         </p>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SPRINGS } from "@/components/common/motion";
@@ -87,7 +87,7 @@ export function TourPanel({
       role="dialog"
       aria-label="Product tour"
     >
-      <motion.div
+      <m.div
         ref={cardRef}
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -140,7 +140,7 @@ export function TourPanel({
           {/* Body: cross-fades between stops, scrolls internally if tall. */}
           <div className="min-h-0 flex-1 overflow-y-auto px-[var(--space-l)] pb-[var(--space-m)]">
             <AnimatePresence mode="wait" initial={false}>
-              <motion.div
+              <m.div
                 key={contentKey}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -169,7 +169,7 @@ export function TourPanel({
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </m.div>
             </AnimatePresence>
           </div>
 
@@ -199,7 +199,7 @@ export function TourPanel({
             )}
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

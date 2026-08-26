@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
-import { useScroll, useTransform, motion, useReducedMotion } from "motion/react";
+import { useScroll, useTransform, m, useReducedMotion } from "motion/react";
 import { Search } from "lucide-react";
 import { PeaksMark } from "@/components/layout/peaks-mark";
 
@@ -82,7 +82,7 @@ export function ShowcaseShot({
           PerchingBirds reads getBoundingClientRect() including the scroll-linked
           parallax transform below — the birds' perch line then tracks the frame's
           true on-screen top edge, not a static layout box. */}
-      <motion.div
+      <m.div
         data-shot
         style={reduce || !mounted ? undefined : { y }}
         className="card-elevated relative overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-card"
@@ -113,7 +113,7 @@ export function ShowcaseShot({
             className="h-auto w-full"
           />
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

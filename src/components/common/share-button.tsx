@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ShareFat, Check } from "@phosphor-icons/react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { toast } from "sonner";
 import { SPRINGS } from "@/components/common/motion";
 
@@ -39,7 +39,7 @@ export function ShareButton({
   }
 
   return (
-    <motion.button
+    <m.button
       type="button"
       onClick={handleShare}
       aria-label={label}
@@ -53,21 +53,21 @@ export function ShareButton({
     >
       <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
         {/* Clean crossfade to a check, no spring overshoot (that read as a forced wiggle). */}
-        <motion.span
+        <m.span
           className="absolute inline-flex"
           animate={{ opacity: shared ? 0 : 1, scale: shared ? 0.7 : 1 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
         >
           <ShareFat size={18} weight="regular" />
-        </motion.span>
-        <motion.span
+        </m.span>
+        <m.span
           className="absolute inline-flex text-leaf"
           animate={{ opacity: shared ? 1 : 0, scale: shared ? 1 : 0.7 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
         >
           <Check size={18} weight="bold" />
-        </motion.span>
+        </m.span>
       </span>
-    </motion.button>
+    </m.button>
   );
 }

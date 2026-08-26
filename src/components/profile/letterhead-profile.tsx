@@ -47,7 +47,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Check, Pencil } from "lucide-react";
-import { motion, AnimatePresence, useAnimationControls } from "motion/react";
+import { m, AnimatePresence, useAnimationControls } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { Button } from "@/components/ui/button";
@@ -715,13 +715,13 @@ export function LetterheadProfile({
 
           <AnimatePresence>
             {stamp > 0 && admissionNumber && (
-              <motion.div
+              <m.div
                 key={stamp}
                 exit={{ opacity: 0, transition: { duration: 0.55, ease: "easeOut" } }}
                 className="pointer-events-none absolute left-1/2 top-[44px] z-20 -translate-x-1/2"
               >
                 <AdmissionStamp number={admissionNumber} />
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
@@ -761,7 +761,7 @@ export function LetterheadProfile({
                           >
                             <Camera className="h-6 w-6" strokeWidth={1.6} />
                           </span>
-                          <motion.button
+                          <m.button
                             type="button"
                             onClick={handlePhotoRemove}
                             disabled={photoBusy}
@@ -772,7 +772,7 @@ export function LetterheadProfile({
                             className="absolute -right-1 -top-1 z-20 grid h-6 w-6 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm outline-none transition-colors duration-150 hover:text-heart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           >
                             <X className="h-3 w-3" />
-                          </motion.button>
+                          </m.button>
                         </>
                       )}
                       <span
@@ -969,7 +969,7 @@ export function LetterheadProfile({
                      because the alternative is the line popping in a frame. */
                   <AnimatePresence initial={false}>
                     {(live || Boolean(form.jobTitle.trim() || form.workplace.trim())) && (
-                      <motion.div
+                      <m.div
                         key="occupation"
                         /* marginBottom is ANIMATED, not a class, and that is
                            the whole of the fix below the comment: a static
@@ -995,7 +995,7 @@ export function LetterheadProfile({
                             the text it draws under, which is the whole point
                             everywhere else it is used. Everywhere else, that
                             works. Here it does not: this `<p>` is the ONLY
-                            in-flow content this motion.div's `height: auto`
+                            in-flow content this m.div's `height: auto`
                             measures, so at rest the row was exactly tall
                             enough for the TEXT and the rule below both
                             PenValues was clipped by the `overflow-hidden`
@@ -1006,10 +1006,10 @@ export function LetterheadProfile({
                             The 6px reserve has to live on the CHILD (pb-6,
                             below) because a box's own margin never counts
                             toward its own auto-height, only a child's does --
-                            padding on the motion.div itself would not have
+                            padding on the m.div itself would not have
                             grown what "auto" measures at all. The matching
                             -6px that cancels it back out for the page
-                            therefore has to live on the motion.div instead:
+                            therefore has to live on the m.div instead:
                             put on the same `<p>`, a negative child margin
                             gets folded into that same auto-height
                             measurement and cancels itself before it ever
@@ -1075,7 +1075,7 @@ export function LetterheadProfile({
                             maxLength={120}
                           />
                         </p>
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
                 ) : (
@@ -1204,7 +1204,7 @@ export function LetterheadProfile({
                          just snaps suddenly"). Animating a height is normally
                          off the table here; it is on it for exactly this,
                          because the alternative is the jump. */
-                      <motion.div
+                      <m.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
@@ -1214,7 +1214,7 @@ export function LetterheadProfile({
                         <p className="pt-[var(--space-s)] text-[12px] text-muted-foreground">
                           Tap a house to change it.
                         </p>
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
                 </section>
@@ -1267,7 +1267,7 @@ export function LetterheadProfile({
             the height from the first frame and there is only ever one move. */}
         <AnimatePresence mode="popLayout" initial={false}>
           {live ? (
-            <motion.div
+            <m.div
               key="reaching"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1347,9 +1347,9 @@ export function LetterheadProfile({
                   Delete account
                 </button>
               </div>
-            </motion.div>
+            </m.div>
           ) : (
-            <motion.div
+            <m.div
               key="writing"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1366,7 +1366,7 @@ export function LetterheadProfile({
                 savedCount={savedCount}
                 photosNode={photosNode}
               />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>
@@ -1608,18 +1608,18 @@ function PerchedBird({
             so the perch line holds and nothing below it moves. A dashed edge
             because it is a slot waiting to be filled; a camera because that
             is the one glyph nobody has to be taught. */}
-        <motion.span
+        <m.span
           animate={controls}
           initial={false}
           className="relative block"
           style={{ opacity: live ? 0 : 1, pointerEvents: live ? "none" : undefined }}
         >
           <BirdAvatar user={user} size={80} />
-        </motion.span>
+        </m.span>
 
         <AnimatePresence initial={false}>
           {live && (
-            <motion.span
+            <m.span
               aria-hidden
               initial={{ opacity: 0, scale: 0.72 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1635,7 +1635,7 @@ function PerchedBird({
               <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-dashed border-canopy/40 bg-card/85 text-canopy transition-colors duration-150 group-hover/slot:border-canopy/70 group-hover/slot:bg-card">
                 <Camera className="h-6 w-6" strokeWidth={1.6} />
               </span>
-            </motion.span>
+            </m.span>
           )}
         </AnimatePresence>
 
@@ -1653,7 +1653,7 @@ function PerchedBird({
             {[0, 1, 2].map((n) => {
               const s = 13 + n * 9;
               return (
-                <motion.span
+                <m.span
                   key={n}
                   initial={{ opacity: 0.9, scale: 0.35, rotate: -45 }}
                   animate={{ opacity: 0, scale: 1.2, rotate: -45 }}
@@ -1682,7 +1682,7 @@ function PerchedBird({
         >
           <AnimatePresence>
             {showName && (
-              <motion.span
+              <m.span
                 className="flex w-max items-center gap-2 whitespace-nowrap font-heading text-[13.5px] italic leading-none tracking-[0.01em] text-foreground/75"
                 initial={{ opacity: 0, x: 6 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1729,7 +1729,7 @@ function PerchedBird({
                     strokeLinejoin="round"
                   />
                 </svg>
-              </motion.span>
+              </m.span>
             )}
           </AnimatePresence>
         </span>

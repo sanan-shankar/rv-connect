@@ -27,7 +27,7 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { NAV_MARKER_SPRING, SPRINGS } from "@/components/common/motion";
 import { IdentityRow } from "@/components/common/identity-row";
 import { batchLine } from "@/lib/utils";
@@ -208,7 +208,7 @@ function NavRow({
   /** Admin rows only. Rendered when > 0; a standing `0` is noise, not news. */
   count?: number;
 }) {
-  const Row = staggered ? motion.div : "div";
+  const Row = staggered ? m.div : "div";
   return (
     <Link
       href={href}
@@ -232,7 +232,7 @@ function NavRow({
               outside it as a clean ~3px left edge.
               Because the account rows pass the SAME markerId, this pair also
               glides all the way down out of the nav and onto them. */}
-          <motion.span
+          <m.span
             layoutId={`${markerId}-pill`}
             className="absolute inset-0 z-0 rounded-xl bg-sidebar-active"
             {...(staggered
@@ -240,7 +240,7 @@ function NavRow({
               : { initial: false as const })}
             transition={NAV_MARKER_SPRING}
           />
-          <motion.span
+          <m.span
             layoutId={`${markerId}-bar`}
             className="absolute left-[-8px] top-1.5 bottom-1.5 z-[1] w-[3px] rounded-sm bg-cinnamon"
             {...(staggered
@@ -254,7 +254,7 @@ function NavRow({
         className="relative z-[2] flex min-w-0 flex-1 items-center gap-3"
         {...(staggered ? { variants: ACCOUNT_ROW } : {})}
       >
-        <motion.span
+        <m.span
           className="flex shrink-0"
           {...(staggered ? { variants: ACCOUNT_INK } : {})}
         >
@@ -263,13 +263,13 @@ function NavRow({
           ) : (
             <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
           )}
-        </motion.span>
-        <motion.span
+        </m.span>
+        <m.span
           className="truncate"
           {...(staggered ? { variants: ACCOUNT_INK } : {})}
         >
           {label}
-        </motion.span>
+        </m.span>
         {count !== undefined && count > 0 && (
           /* Tabular so a queue ticking 9 -> 10 does not shove the label, and
              right-aligned so the nine rows share one column of figures you
@@ -461,7 +461,7 @@ function AccountSection({
     <div className="flex flex-col gap-1.5">
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div
+          <m.div
             key="account-rows"
             className="flex flex-col gap-0.5"
             variants={ACCOUNT_LIST}
@@ -487,7 +487,7 @@ function AccountSection({
                 visibly does nothing reads as a broken app, which is the one
                 impression this deployment exists to avoid. */}
             {!demo && (
-            <motion.button
+            <m.button
               type="button"
               onClick={() => signOut({ callbackUrl: "/" })}
               variants={ACCOUNT_INK}
@@ -495,9 +495,9 @@ function AccountSection({
             >
               <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
               Sign out
-            </motion.button>
+            </m.button>
             )}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
       <UserMenu user={user} open={open} onToggle={() => setOpen((v) => !v)} />

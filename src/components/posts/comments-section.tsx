@@ -27,7 +27,7 @@ import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
 import { useHeartToggle } from "./use-engagement";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
 
 interface CommentAuthor {
@@ -341,7 +341,7 @@ export function CommentsSection({
           No comments yet. Be the first.
         </p>
       ) : (
-        <motion.ul
+        <m.ul
           ref={listRef}
           className="flex flex-col gap-4"
           initial={{ opacity: 0 }}
@@ -399,7 +399,7 @@ export function CommentsSection({
               </li>
             );
           })}
-        </motion.ul>
+        </m.ul>
       )}
 
       {/* The infinite-scroll sentinel. Rendered only while there is more to
@@ -421,7 +421,7 @@ export function CommentsSection({
       {/* Composer. Always mounted at the bottom, so it appears together with the thread. */}
       <form onSubmit={handleSubmit}>
         {replyTo && (
-          <motion.div
+          <m.div
             className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
             initial={{ opacity: 0, y: 6, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -446,7 +446,7 @@ export function CommentsSection({
             >
               <X className="h-3 w-3" />
             </button>
-          </motion.div>
+          </m.div>
         )}
         <div className="flex items-center gap-2">
           {/* Inset focus ring (inline, so the panel's overflow-hidden during the open/close
@@ -512,7 +512,7 @@ export function CommentsSection({
   // as a single unit; close collapses everything (rows, divider, input) on one clean tween,
   // with no second step and no divider left behind.
   return (
-    <motion.div
+    <m.div
       id={`comments-${postId}`}
       initial={{ height: 0, opacity: 0 }}
       animate={{ height: contentHeight, opacity: 1 }}
@@ -533,7 +533,7 @@ export function CommentsSection({
       style={{ overflow: "hidden" }}
     >
       {body}
-    </motion.div>
+    </m.div>
   );
 }
 

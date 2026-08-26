@@ -30,7 +30,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Info, X } from "lucide-react";
 import { EASE_SPRING, SPRINGS } from "@/components/common/motion";
 import { markOnboardingSeen } from "@/lib/onboarding-local";
@@ -85,7 +85,7 @@ export function DemoBar({ userId }: { userId: string }) {
     >
       <AnimatePresence initial={false} mode="popLayout">
         {expanded ? (
-          <motion.div
+          <m.div
             key="note"
             initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -142,9 +142,9 @@ export function DemoBar({ userId }: { userId: string }) {
                 <X className="size-3.5" />
               </button>
             </div>
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.button
+          <m.button
             key="pill"
             type="button"
             onClick={() => setExpanded(true)}
@@ -156,7 +156,7 @@ export function DemoBar({ userId }: { userId: string }) {
           >
             <span aria-hidden className="size-1.5 rounded-full bg-leaf" />
             You are in a demo
-          </motion.button>
+          </m.button>
         )}
       </AnimatePresence>
     </div>

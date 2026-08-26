@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { AuthHeading, AuthPanel } from "@/components/auth/auth-panel";
 import { PasswordField } from "@/components/auth/password-field";
@@ -163,7 +163,7 @@ export function ResetPasswordClient({
     >
       <AnimatePresence mode="wait" initial={false}>
         {!linkIsGood ? (
-          <motion.div
+          <m.div
             key="dead"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -187,9 +187,9 @@ export function ResetPasswordClient({
             >
               Send me a new link
             </Button>
-          </motion.div>
+          </m.div>
         ) : done ? (
-          <motion.div
+          <m.div
             key="done"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -198,9 +198,9 @@ export function ResetPasswordClient({
             <AuthHeading title="That's done">
               Your new password is saved and we are signing you in now.
             </AuthHeading>
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div
+          <m.div
             key="form"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -251,7 +251,7 @@ export function ResetPasswordClient({
                 </Button>
               </div>
             </form>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </AuthPanel>

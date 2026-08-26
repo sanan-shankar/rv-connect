@@ -28,7 +28,7 @@ import {
   useRef,
 } from "react";
 import {
-  motion,
+  m,
   useAnimate,
   useMotionValue,
   useSpring,
@@ -736,7 +736,7 @@ function useController(ctx: Ctx): { api: HoopoeApi; damper: ReturnType<typeof ma
   // travel) warps the puppet to just outside its own rendered box on the given edge,
   // already posed for flight, then runs the identical cruise-and-land arc `flyTo`
   // uses onto `target` (defaults to the rig's own rest anchor). Requires the SVG's
-  // own overflow:visible (already set on the root <motion.svg>) and enough clearance
+  // own overflow:visible (already set on the root <m.svg>) and enough clearance
   // in the mounting page for the off-canvas start point not to get clipped.
   function offCanvasStart(edge: FlyInEdge): { x: number; y: number } {
     const svg = scopeEl();
@@ -1346,7 +1346,7 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
   const H = 152;
 
   return (
-    <motion.svg
+    <m.svg
       ref={scope}
       width={size}
       height={(size * H) / W}
@@ -1395,7 +1395,7 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
           <ellipse cx={60} cy={84} rx={19} ry={6} fill={C.bodySh} opacity={0.22} />
 
           {/* head + face (gaze rotates the outer group; actions rotate the inner head) */}
-          <motion.g data-part="headGaze" style={{ rotate: headRotMv }}>
+          <m.g data-part="headGaze" style={{ rotate: headRotMv }}>
             <g data-part="head">
               {/* crest */}
               <g data-part="crest">
@@ -1409,31 +1409,31 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
               {/* bill: ONE clean slender decurved beak, centered. Length scales via billLength.
                   Upper mandible fixed; the tip (billLower) hinges open for surprise. The whole bill
                   swings/shifts with the gaze (billGaze) so it tracks the eyes when turning. */}
-              <motion.g data-part="billGaze" style={{ x: billTX, rotate: billRot }}>
+              <m.g data-part="billGaze" style={{ x: billTX, rotate: billRot }}>
                 <path d={billUpper} fill={C.bill} />
                 <ellipse cx={60} cy={63.5} rx={1.7} ry={1.1} fill={C.billHi} opacity={0.7} />
                 <g data-part="billLower">
                   <path d={billLowerD} fill={C.bill} />
                 </g>
-              </motion.g>
+              </m.g>
 
               {/* brows (hidden at rest; fade in for emotional poses) */}
               <Brow side={-1} cx={eyeLx} y={browY} />
               <Brow side={1} cx={eyeRx} y={browY} />
 
               {/* eyes: gaze translate (motion) > blink/sparkle scale (idle) > shape layers (opacity) */}
-              <motion.g data-part="eyeGazeL" style={{ x: eyeTX, y: eyeTY }}>
+              <m.g data-part="eyeGazeL" style={{ x: eyeTX, y: eyeTY }}>
                 <g data-part="eyeBlinkL">
                   <EyeShapes cx={eyeLx} cy={eyeCy} s={eyeScale} />
                 </g>
-              </motion.g>
-              <motion.g data-part="eyeGazeR" style={{ x: eyeTX, y: eyeTY }}>
+              </m.g>
+              <m.g data-part="eyeGazeR" style={{ x: eyeTX, y: eyeTY }}>
                 <g data-part="eyeBlinkR">
                   <EyeShapes cx={eyeRx} cy={eyeCy} s={eyeScale} />
                 </g>
-              </motion.g>
+              </m.g>
             </g>
-          </motion.g>
+          </m.g>
         </g>
 
         {/* wings (in front, so cover-eyes works) */}
@@ -1454,7 +1454,7 @@ export const Hoopoe = forwardRef<HoopoeApi, HoopoeProps>(function Hoopoe(
           </g>
         ))}
       </g>
-    </motion.svg>
+    </m.svg>
   );
 });
 

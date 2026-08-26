@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { ImagePlus, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
-import { motion, AnimatePresence } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
@@ -154,7 +154,7 @@ export function MessageComposer({
 
         <AnimatePresence initial={false}>
           {imageUrl && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
@@ -179,7 +179,7 @@ export function MessageComposer({
               >
                 <X className="size-3.5" strokeWidth={2.2} />
               </button>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -189,7 +189,7 @@ export function MessageComposer({
               {COMPOSER_KINDS.map((k) => {
                 const active = kind === k;
                 return (
-                  <motion.button
+                  <m.button
                     key={k}
                     type="button"
                     onClick={() => setKind(active ? null : k)}
@@ -208,7 +208,7 @@ export function MessageComposer({
                     }`}
                   >
                     {kindLabel(k)}
-                  </motion.button>
+                  </m.button>
                 );
               })}
             </div>
@@ -223,7 +223,7 @@ export function MessageComposer({
             multiple={false}
             title="Add a screenshot"
           />
-          <motion.button
+          <m.button
             type="button"
             onClick={() => setAttachOpen(true)}
             disabled={busy}
@@ -233,7 +233,7 @@ export function MessageComposer({
           >
             <ImagePlus className="size-3.5" strokeWidth={1.9} />
             {uploading ? "Adding..." : imageUrl ? "Swap screenshot" : "Screenshot"}
-          </motion.button>
+          </m.button>
 
           <div className="ml-auto flex items-center gap-2.5">
             {remaining < 400 && (

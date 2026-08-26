@@ -11,7 +11,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { SPRINGS } from "@/components/common/motion";
 import { Hoopoe } from "@/components/mascot/hoopoe";
@@ -53,7 +53,7 @@ export function TourOffer({ onStart, onMaybeLater }: { onStart: () => void; onMa
       role="dialog"
       aria-label="Take a tour?"
     >
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRINGS.gentle}
@@ -103,7 +103,7 @@ export function TourOffer({ onStart, onMaybeLater }: { onStart: () => void; onMa
             Show me around
           </Button>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

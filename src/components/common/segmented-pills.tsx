@@ -37,7 +37,7 @@
  * ------------------------------------------------------------------ */
 
 import type { CSSProperties } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { EASE_SEGMENT_GLIDE, SEGMENT_GLIDE_SECONDS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 
@@ -127,7 +127,7 @@ export function SegmentedPills<T extends string>({
             )}
           >
             {active && (
-              <motion.span
+              <m.span
                 layoutId={`${layoutId}-thumb`}
                 aria-hidden
                 initial={{ opacity: 0 }}

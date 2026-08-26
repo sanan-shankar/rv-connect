@@ -35,7 +35,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/onboarding-local";
@@ -200,7 +200,7 @@ export function OnboardingFlow({
       )}
 
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div
+        <m.div
           key={step}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -219,7 +219,7 @@ export function OnboardingFlow({
             <PhotoStep user={user} onNext={goNext} onBack={goBack} onSkip={goNext} />
           )}
           {step === "done" && <DoneStep name={user.name} next={next} />}
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       {/* Only mounted once the wizard actually reaches Done, so the

@@ -16,7 +16,7 @@ import {
   Flag,
   HandHeart,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
   DropdownMenu,
@@ -278,7 +278,7 @@ export function NotificationBell({
         }
         title="Notifications"
       >
-        <motion.span
+        <m.span
           /* Remounting is what restarts the shake, so the header bell -- the
              one that can be on screen when a notification arrives -- is keyed
              on it. The rail bell never was. */
@@ -294,28 +294,28 @@ export function NotificationBell({
               transform on the icon itself, independent of the parent span's
               animated rotate / scale. */}
           <Bell size={isHeader ? 18 : 19} strokeWidth={1.9} style={{ transform: "translateY(-0.5px)" }} />
-        </motion.span>
+        </m.span>
         {unreadCount > 0 &&
           /* A dot on the header's paper circle, a counted pill on the rail:
              the header bell sits beside a New-post button and a search pill,
              where a number would be a third thing competing for the same
              corner; the rail band has nothing else in it. */
           (isHeader ? (
-            <motion.span
+            <m.span
               className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full border-2 border-card bg-cinnamon"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: [0, 1.3, 1], opacity: 1 }}
               transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}
             />
           ) : (
-            <motion.span
+            <m.span
               className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-cinnamon px-1 text-[10px] font-bold text-white"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: [0, 1.3, 1], opacity: 1 }}
               transition={{ duration: 0.42, ease: EASE_POP, times: [0, 0.6, 1] }}
             >
               {unreadCount > 99 ? "99+" : unreadCount}
-            </motion.span>
+            </m.span>
           ))}
         {/* Without this the button's accessible name is whatever the badge says
             -- literally "1" -- or nothing at all when the count is zero,

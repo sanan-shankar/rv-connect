@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -54,7 +54,7 @@ const OPEN_WIDTH = 320; // px cap (20rem); `maxWidth: 68vw` below clamps on narr
 // the original 16/10 pair -- a small, deliberate move in each direction, not
 // a full golden-ratio step (that would overshoot and read as obviously
 // off-center). Note: the gap is applied as a static `marginRight` on the
-// icon (below), not as flex `gap` on the motion.form -- Motion does not
+// icon (below), not as flex `gap` on the m.form -- Motion does not
 // animate the CSS `gap`/`column-gap` properties (confirmed: they freeze at
 // their initial value no matter the target), so a real gap has to live on
 // the icon itself.
@@ -96,7 +96,7 @@ export function SearchPill() {
           bar. Width and padding are driven as plain numeric style values
           under one spring per direction, so the pill reflows smoothly
           instead of scaling. */}
-      <motion.form
+      <m.form
         animate={{
           width: open ? OPEN_WIDTH : CLOSED_WIDTH,
           paddingLeft: open ? OPEN_PADDING_LEFT : 0,
@@ -119,7 +119,7 @@ export function SearchPill() {
             quickly on collapse so it never trails the contracting bar. */}
         <AnimatePresence>
           {open && (
-            <motion.span
+            <m.span
               key="ring"
               aria-hidden
               initial={{ opacity: 0 }}
@@ -164,7 +164,7 @@ export function SearchPill() {
             and never reads as a stretch closing around live text. */}
         <AnimatePresence initial={false}>
           {open && (
-            <motion.input
+            <m.input
               key="input"
               ref={inputRef}
               initial={{ opacity: 0 }}
@@ -196,7 +196,7 @@ export function SearchPill() {
             bg-card underneath and clips to the shared rounded-full. */}
         <AnimatePresence>
           {!open && (
-            <motion.button
+            <m.button
               key="open"
               type="button"
               initial={{ opacity: 0 }}
@@ -210,7 +210,7 @@ export function SearchPill() {
             />
           )}
         </AnimatePresence>
-      </motion.form>
+      </m.form>
     </div>
   );
 }

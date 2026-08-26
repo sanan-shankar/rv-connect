@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,7 +124,7 @@ export function DarkGauntlet({ word }: { word: string }) {
     <div className="mx-auto flex min-h-[70vh] max-w-[560px] flex-col justify-center py-8">
       <AnimatePresence mode="wait">
         {step === "intro" && (
-          <motion.div key="intro" {...stepMotion} className="space-y-5 text-center">
+          <m.div key="intro" {...stepMotion} className="space-y-5 text-center">
             <StepKicker>Appearance</StepKicker>
             <h1 className="font-heading text-[32px] leading-tight tracking-[-0.02em] text-foreground">
               Dark mode
@@ -142,7 +142,7 @@ export function DarkGauntlet({ word }: { word: string }) {
                 Begin
               </Button>
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {step === "sure" && (
@@ -207,7 +207,7 @@ export function DarkGauntlet({ word }: { word: string }) {
         )}
 
         {step === "word" && (
-          <motion.div key="word" {...stepMotion} className="space-y-5 text-center">
+          <m.div key="word" {...stepMotion} className="space-y-5 text-center">
             <StepKicker>Question 5 of 5</StepKicker>
             <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
               What is today&apos;s Wordle answer?
@@ -239,7 +239,7 @@ export function DarkGauntlet({ word }: { word: string }) {
               </Button>
             </form>
             <BailLink onClick={() => bail(4)} />
-          </motion.div>
+          </m.div>
         )}
 
         {step === "trial" && (
@@ -252,7 +252,7 @@ export function DarkGauntlet({ word }: { word: string }) {
         )}
 
         {step === "toggle" && (
-          <motion.div key="toggle" {...stepMotion} className="space-y-6 text-center">
+          <m.div key="toggle" {...stepMotion} className="space-y-6 text-center">
             <StepKicker>You have earned this</StepKicker>
             <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
               Here is your toggle.
@@ -272,20 +272,20 @@ export function DarkGauntlet({ word }: { word: string }) {
               // a 1-rung move the eye could not find on this dim page.
               className="group relative mx-auto block h-12 w-[92px] rounded-full border border-border bg-secondary state-layer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <motion.span
+              <m.span
                 className="absolute left-1 top-1 grid h-10 w-10 place-items-center rounded-full bg-canopy text-white shadow-[0_1px_2px_rgba(30,28,22,0.2)]"
                 whileTap={{ scale: 0.94 }}
                 transition={SPRINGS.snappy}
               >
                 ☾
-              </motion.span>
+              </m.span>
             </button>
             <BailLink onClick={() => bail(4)} label="Actually, never mind" />
-          </motion.div>
+          </m.div>
         )}
 
         {step === "regrets" && (
-          <motion.div key="regrets" {...stepMotion} className="space-y-5 text-center">
+          <m.div key="regrets" {...stepMotion} className="space-y-5 text-center">
             <StepKicker>One last thing</StepKicker>
             <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
               This is the valley after dark.
@@ -302,11 +302,11 @@ export function DarkGauntlet({ word }: { word: string }) {
                 No regrets
               </Button>
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {step === "relief" && (
-          <motion.div key="relief" {...stepMotion} className="space-y-5 text-center">
+          <m.div key="relief" {...stepMotion} className="space-y-5 text-center">
             <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
               {reliefLine}
             </h2>
@@ -319,7 +319,7 @@ export function DarkGauntlet({ word }: { word: string }) {
                 Back to settings
               </Link>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -386,7 +386,7 @@ function GauntletStep({
   const left = swap ? { label: yes, onClick: onYes } : { label: no, onClick: onNo };
   const right = swap ? { label: no, onClick: onNo } : { label: yes, onClick: onYes };
   return (
-    <motion.div {...motionProps} className="space-y-5 text-center">
+    <m.div {...motionProps} className="space-y-5 text-center">
       <StepKicker>{kicker}</StepKicker>
       <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
         {title}
@@ -404,7 +404,7 @@ function GauntletStep({
           {right.label}
         </Button>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -456,7 +456,7 @@ function HoopoeTrial({
   }
 
   return (
-    <motion.div {...motionProps} className="space-y-5 text-center">
+    <m.div {...motionProps} className="space-y-5 text-center">
       <StepKicker>The final trial</StepKicker>
       <h2 className="font-heading text-[26px] leading-tight tracking-[-0.02em] text-foreground">
         Hold the button for five seconds while the hoopoe considers your decision.
@@ -471,7 +471,7 @@ function HoopoeTrial({
         {/* The five second fill: scales 0 to 1 behind the button. Resets by
             snapping to 0 (a failed trial should feel like a reset, not a
             rewind). */}
-        <motion.span
+        <m.span
           aria-hidden
           className="absolute inset-0 rounded-full bg-canopy/20"
           initial={false}
@@ -499,6 +499,6 @@ function HoopoeTrial({
         </button>
       </div>
       <BailLink onClick={onBail} label="I cannot take the pressure" />
-    </motion.div>
+    </m.div>
   );
 }

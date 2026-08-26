@@ -13,7 +13,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
@@ -219,7 +219,7 @@ export function AnswerExperience({
         <div className="min-w-0">
           <AnimatePresence mode="wait" custom={direction}>
             {current ? (
-              <motion.div
+              <m.div
                 key={current.id}
                 custom={direction}
                 initial={{ opacity: 0, x: direction > 0 ? 28 : -28 }}
@@ -238,16 +238,16 @@ export function AnswerExperience({
                   onBack={() => goTo(index - 1, -1)}
                   onAdvance={advance}
                 />
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div
+              <m.div
                 key="completion"
                 initial={{ opacity: 0, x: 28 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, ease: EASE_SPRING }}
               >
                 <CompletionCard catchupId={catchupId} groupName={groupName} answeredCount={answeredIds.size} />
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>

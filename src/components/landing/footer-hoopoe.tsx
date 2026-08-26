@@ -71,7 +71,7 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { rand, type HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useMotionGovernor, SPRINGS } from "@/components/common/motion";
@@ -302,15 +302,15 @@ export function FooterHoopoe() {
             (which stays static) and from the bob/tilt layer below (which
             keeps its own independent motion), so the three transforms never
             fight each other. */}
-        <motion.div animate={{ x: xOffset }} transition={SPRINGS.gentle}>
-          <motion.div
+        <m.div animate={{ x: xOffset }} transition={SPRINGS.gentle}>
+          <m.div
             style={{ transformOrigin: "bottom center" }}
             animate={reducedMotion ? { y: 0, rotate: 0 } : { y: bobUp ? -4 : 0, rotate: bobUp ? -2.5 : 2.5 }}
             transition={SPRINGS.settle}
           >
             <Hoopoe size={RIG_SIZE} onReady={handleReady} />
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </div>
     </div>
   );

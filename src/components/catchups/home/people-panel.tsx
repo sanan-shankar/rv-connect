@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -210,7 +210,7 @@ function PersonPill({
 }) {
   const label = person.isKeeper ? `${person.name} (Keeper)` : person.name;
   return (
-    <motion.span
+    <m.span
       title={you ? `${label} - you` : label}
       // Presence, not achievement: a name only ever eases back, never out of
       // the list, so nobody is removed from the roster for being slow.
@@ -242,7 +242,7 @@ function PersonPill({
           <Sprout className="h-3.5 w-3.5" aria-hidden />
         </span>
       )}
-    </motion.span>
+    </m.span>
   );
 }
 
