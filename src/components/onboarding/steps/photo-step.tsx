@@ -1,18 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { shrinkForUpload } from "@/lib/image-downscale";
 import { ArrowLeft, ArrowRight, ImagePlus, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { speciesNameFor, resolveBirdOverride } from "@/components/common/bird-avatar-v2";
 import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
-import { updateAvatar } from "@/components/settings/actions";
+import { useAvatarUpload } from "@/components/settings/avatar-upload";
 import type { OnboardingUser } from "../onboarding-flow";
-import { isImageFile } from "@/lib/upload-shared";
 
 /**
  * Step 4: Photo. Reuses the exact settings upload action (Sharp/WebP, R2)
@@ -41,70 +37,10 @@ export function PhotoStep({
   onSkip: () => void;
 }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(user.photoUrl);
-  const [busy, setBusy] = useState(false);
-  const [attachOpen, setAttachOpen] = useState(false);
-  /** The picked file, waiting to be framed. The dialog is open while it is set. */
-  const [cropFile, setCropFile] = useState<File | null>(null);
+  const { busy, cropFile, setCropFile, attachOpen, setAttachOpen, pick, send, sendUndecodable } =
+    useAvatarUpload({ onSaved: setPhotoUrl });
   const speciesName = speciesNameFor(user.id, resolveBirdOverride(user.id, user.birdOverride));
 
-  async function upload(payload: Blob | File) {
-    setBusy(true);
-    try {
-      const fd = new FormData();
-      fd.set(
-        "file",
-        payload instanceof File ? payload : new File([payload], "avatar.webp", { type: "image/webp" })
-      );
-      const result = await callAction(() => updateAvatar(fd));
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      setPhotoUrl(result.photoUrl ?? null);
-      toast.success("Photo saved");
-    } finally {
-      // finally, not a trailing statement: a rejected upload used to leave
-      // this control stuck spinning for the rest of onboarding (audit B-042).
-      setBusy(false);
-    }
-  }
-
-  function handlePick(file: File | null) {
-    if (!file) return;
-    if (!isImageFile(file)) {
-      toast.error("Please choose an image");
-      return;
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error("Photo must be under 15MB");
-      return;
-    }
-    // Frame it first, exactly as the profile does. The dialog hands back a
-    // 512x512 WebP, which is both the crop and the shrink.
-    setCropFile(file);
-  }
-
-  async function uploadUnframed(file: File) {
-    /* The browser could not decode it (HEIC, mostly), so there is nothing to
-       frame. Shrunk in the BROWSER before it goes anywhere: a normal phone
-       photo is 5 to 12MB and Vercel rejects a request body over about 4.5MB at
-       the platform, before the Server Action runs -- so the very first thing a
-       new member does failed with a stuck spinner and no message at all (bug
-       audit B-030). The server's sharp pipeline either handles the format or
-       answers with the friendly "export as JPG" message. */
-    setBusy(true);
-    let ready;
-    try {
-      ready = await shrinkForUpload([file]);
-    } finally {
-      setBusy(false);
-    }
-    if (!ready.ok) {
-      toast.error(ready.error);
-      return;
-    }
-    await upload(ready.files[0]);
-  }
 
   return (
     <div className="space-y-[var(--space-l)]">
@@ -122,7 +58,7 @@ export function PhotoStep({
         <AttachImageDialog
           open={attachOpen}
           onOpenChange={setAttachOpen}
-          onFiles={(files) => handlePick(files[0] ?? null)}
+          onFiles={(files) => pick(files[0] ?? null)}
           multiple={false}
           title="Add a photo"
         />
@@ -130,12 +66,12 @@ export function PhotoStep({
           file={cropFile}
           onConfirm={async (blob) => {
             setCropFile(null);
-            await upload(blob);
+            await send(blob);
           }}
           onCancel={() => setCropFile(null)}
           onDecodeError={(f) => {
             setCropFile(null);
-            void uploadUnframed(f);
+            void sendUndecodable(f);
           }}
         />
         <BirdAvatar

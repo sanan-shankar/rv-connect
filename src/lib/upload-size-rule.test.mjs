@@ -28,7 +28,14 @@ const SENDERS = [
   "src/components/messages/message-composer.tsx",
   "src/components/collection/contribute-dialog.tsx",
   "src/components/posts/create-post-form.tsx",
+  /* The profile letterhead was missing from this list and from the guard:
+     the same HEIC off the same phone shrank during onboarding and died at
+     the platform cap from the profile. Both go through useAvatarUpload now. */
+  "src/components/profile/letterhead-profile.tsx",
 ];
+
+/** The shared avatar hook counts as shrinking, because it does -- pinned below. */
+const SHRINKS = /shrinkForUpload|downscaleImage|useAvatarUpload/;
 
 test("the limit is under what the platform will actually carry", () => {
   const PLATFORM_CAP = 4.5 * 1024 * 1024;
@@ -40,12 +47,23 @@ for (const file of SENDERS) {
   test(`${file} shrinks before it sends`, () => {
     const src = decomment(read(file));
     assert.ok(
-      /shrinkForUpload|downscaleImage/.test(src),
+      SHRINKS.test(src),
       `${file} posts a picked file straight to our own server; anything over ` +
         `~4.5MB dies at Vercel's edge with no message the member can act on (B-030)`
     );
   });
 }
+
+test("the shared avatar hook is not an empty promise", () => {
+  /* Two of the SENDERS above satisfy that assertion by delegating, so this is
+     what stops the delegation from being the whole answer: gut the hook and
+     the list above would still pass. */
+  assert.match(
+    decomment(read("src/components/settings/avatar-upload.ts")),
+    /shrinkForUpload\(/,
+    "useAvatarUpload no longer shrinks, so the two callers trusting it send raw bytes"
+  );
+});
 
 test("next.config.ts is not relied on to raise the platform cap", () => {
   const src = read("next.config.ts");
