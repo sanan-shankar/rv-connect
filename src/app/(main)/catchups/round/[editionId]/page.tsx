@@ -29,6 +29,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import {
   advanceEdition,
   isEffectiveKeeper,
+  catchupSurfaceTitle,
   isMissingCatchupTable,
   roundLabel,
   type AdvanceEditionInput,
@@ -46,22 +47,6 @@ import { RoundFooterTease } from "@/components/catchups/round/footer-tease";
 import { PublishNowButton } from "@/components/catchups/round/publish-now-button";
 import { NotYetPublished } from "@/components/catchups/round/not-yet-published";
 import { recordView } from "@/lib/content-view";
-
-/**
- * This reader's heading: "{Group name} catch-up", singular, because it is one
- * Catch-up being read (owner review 2026-07-25). A Keeper's custom title wins
- * when they have set one. Deliberately not `catchupTitle()`, which is the
- * plural "{group} Catch-ups" label the index and the archive use for the
- * series; the Catch-up home and the answering screen both name it this way,
- * and the reader must not disagree with them.
- *
- * TODO: this is now the third copy of the same one-liner (see `homeTitle` in
- * ../../[catchupId]/page.tsx and ../../[catchupId]/answer/page.tsx). It wants
- * to be one exported helper in src/lib/catchups.ts, next to `catchupTitle`.
- */
-function roundTitle(title: string | null | undefined, groupName: string): string {
-  return title?.trim() || `${groupName} catch-up`;
-}
 
 const LIGHT_EDITION_SELECT = {
   id: true,
@@ -146,7 +131,7 @@ export async function generateMetadata({
     if (!membership) return { title: "Catch-ups" };
 
     return {
-      title: `${roundLabel(edition.number)} - ${roundTitle(edition.catchup.title, edition.catchup.group.name)}`,
+      title: `${roundLabel(edition.number)} - ${catchupSurfaceTitle(edition.catchup.title, edition.catchup.group.name)}`,
     };
   } catch {
     return { title: "Catch-ups" };
@@ -192,7 +177,7 @@ export default async function RoundPage({
   after(() => recordView(session?.user?.id, "round", edition.id));
 
   const status = edition.status as EditionStatus;
-  const title = roundTitle(edition.catchup.title, edition.catchup.group.name);
+  const title = catchupSurfaceTitle(edition.catchup.title, edition.catchup.group.name);
   const keeper = isEffectiveKeeper({
     viewerId: session.user.id,
     createdById: edition.catchup.createdById,

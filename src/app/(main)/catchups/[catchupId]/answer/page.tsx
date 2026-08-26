@@ -12,6 +12,7 @@ import { parseJsonArray } from "@/lib/utils";
 import {
   advanceEdition,
   askerVisible,
+  catchupSurfaceTitle,
   isMissingCatchupTable,
   answersCloseSentence,
   type AdvanceEditionInput,
@@ -48,16 +49,6 @@ function redirectMessageFor(status: EditionStatus, groupName: string): string {
     default:
       return "Answering is not open for this Round right now.";
   }
-}
-
-/**
- * The back link names the one Catch-up being answered, so it is singular:
- * "{Group name} catch-up" (owner review 2026-07-25, same rule and wording as
- * `homeTitle` on the Catch-up home). Deliberately not `catchupTitle()`, which
- * is the plural "{group} Catch-ups" label the index and archive use.
- */
-function surfaceTitle(title: string | null | undefined, groupName: string): string {
-  return title?.trim() || `${groupName} catch-up`;
 }
 
 function closesLabel(at: Date | null): string {
@@ -275,7 +266,7 @@ export default async function CatchupAnswerPage({
           className="mb-3 inline-flex items-center gap-1.5 rounded-sm text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          {surfaceTitle(catchup.title, catchup.group.name)}
+          {catchupSurfaceTitle(catchup.title, catchup.group.name)}
         </Link>
 
         <PageHeader title={`Round ${edition.number}`} subtitle={closesLabel(edition.answersCloseAt)} />
