@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read, decomment } from "./test-kit.mjs";
+import { read, decomment, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Regression pins for the Catch-up lifecycle findings (bug audit
@@ -67,12 +67,36 @@ test("B-061: every hand-driven write into a live Round refuses a frozen Catch-up
     const rest = src.slice(start);
     const end = rest.indexOf("export async function", 1);
     const body = end === -1 ? rest : rest.slice(0, end);
+    // Two spellings, one guarantee. The five Keeper controls now reach the
+    // freeze through `loadKeeperEdition`, which the two member submissions do
+    // not use (their status check has to run before the frozen one), so they
+    // still call `refuseIfFrozen` themselves.
     assert.match(
       body,
-      /refuseIfFrozen\(/,
+      /refuseIfFrozen\(|loadKeeperEdition\(/,
       `${name} writes into a Round without refusing a paused or ended Catch-up`
     );
+    // Delegating is not enough: `loadKeeperEdition` only runs the freeze when
+    // it is GIVEN a pausedHint, so a call without one looks gated and is not.
+    // That is the exact hole this test exists to catch, so it is checked
+    // rather than assumed.
+    if (!/refuseIfFrozen\(/.test(body)) {
+      assert.match(
+        body,
+        /pausedHint:/,
+        `${name} calls loadKeeperEdition without a pausedHint, so nothing refuses a frozen Catch-up`
+      );
+    }
   }
+
+  // And the helper they delegate to must itself do the refusing.
+  const helper = balancedBody(src, "async function loadKeeperEdition");
+  assert.ok(helper, "loadKeeperEdition has been renamed or removed");
+  assert.match(
+    helper,
+    /refuseIfFrozen\(/,
+    "loadKeeperEdition no longer refuses a frozen Catch-up, so five Keeper controls lost their gate at once"
+  );
 
   const page = decomment(read("src/app/(main)/catchups/[catchupId]/answer/page.tsx"));
   assert.match(
