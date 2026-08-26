@@ -5,7 +5,7 @@
  * date ride along so the viewer can say who posted what it is showing. */
 
 import { useState } from "react";
-import { photoSrc, photoSrcSet } from "@/lib/image-cdn";
+import { photoSrc, photoSrcSet, PHOTO_SIZES_FULL } from "@/lib/image-cdn";
 import { ImageViewer } from "@/components/common/image-viewer";
 import type { AvatarUser } from "@/components/common/bird-avatar";
 
@@ -36,7 +36,7 @@ export function LetterImages({
             <img
               src={photoSrc(img)}
               srcSet={photoSrcSet(img)}
-              sizes="(max-width: 640px) 100vw, 728px"
+              sizes={PHOTO_SIZES_FULL}
               alt=""
               loading="lazy"
               className="w-full object-cover"

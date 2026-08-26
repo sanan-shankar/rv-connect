@@ -14,7 +14,7 @@ import { callAction } from "@/lib/call-action";
 import { useHeartToggle, useBookmarkToggle } from "./use-engagement";
 import { IdentityRow } from "@/components/common/identity-row";
 import { ImageViewer } from "@/components/common/image-viewer";
-import { photoSrc, photoSrcSet } from "@/lib/image-cdn";
+import { photoSrc, photoSrcSet, PHOTO_SIZES_FULL, PHOTO_SIZES_HALF } from "@/lib/image-cdn";
 import { MetaDots } from "@/components/common/meta-dots";
 import { PersonName } from "@/components/common/person-name";
 import { VerifiedMark } from "@/components/common/verified-mark";
@@ -406,8 +406,8 @@ export function PostCard({
                          at full width, which is exactly what the first pass did. */
                       sizes={
                         images.length === 1 || (images.length === 3 && i === 0)
-                          ? "(max-width: 640px) 100vw, 728px"
-                          : "(max-width: 640px) 50vw, 359px"
+                          ? PHOTO_SIZES_FULL
+                          : PHOTO_SIZES_HALF
                       }
                       alt=""
                       loading="lazy"
