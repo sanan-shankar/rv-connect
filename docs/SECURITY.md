@@ -125,7 +125,7 @@ reach needs a deliberate allowlist decision.
   allowlist (sole entry: the deepmerge-ts advisory via @prisma/config, build-time only, accepted
   2026-08-20; clears when Prisma bumps it) — and `audit-status --fail-on-open=critical,high`, so a
   new advisory or a re-opened finding stops the merge by name.
-- Behavioural probes, `scripts/qa/phase{4..10}-probe.mjs`: each proves its phase against the
+- Behavioural probes, `scripts/qa/phase{3..10}-probe.mjs`: each proves its phase against the
   running server (and the real R2 bucket where relevant), refusals AND positive controls. Run the
   relevant one after touching its area. phase8/phase10 need the dev server started with
   `CRON_SECRET` in its environment (the probes default to `dev-cron-secret-for-local-probes-only`;

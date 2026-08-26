@@ -107,6 +107,30 @@ project. Without it the job fails loudly with a 401, which is the correct sympto
 nothing is swept until it is set. Every sweep writes a `retention.sweep` line to
 /admin/audit, so "is this actually running" is answerable from inside the app.
 
+### `snapshot.yml` — the only thing that remembers last year
+**Fires:** nightly at 00:10 UTC (05:40 IST), and on demand via **Actions → snapshot → Run
+workflow**, which takes an optional `day` to backfill.
+
+Sentry's free plan drops errors after 30 days, Vercel Analytics keeps 30, PostHog keeps a
+year. None of them can say in 2028 what this site looked like in 2026, and none of it is
+recoverable once dropped. `scripts/ops/snapshot.mjs` writes the day's numbers into our own
+database, which is what every chart in `/admin/analytics` reads. **A day it does not run is
+a day permanently missing from those charts.**
+
+It runs ten minutes *after* the UTC day rolls over and records the day that just ended. The
+old 21:00 UTC schedule asked PostHog about "today" three hours before the day was over, so
+02:30–05:30 IST — real usage for an Indian community — was never counted, on every day,
+forever (audit Lows 51, 103). It also landed on the same minute as retention.yml (Low 102).
+
+Every vendor key is optional: a source with no key is skipped and everything else is still
+recorded, so a vendor being down never costs us the database numbers, which are the exact
+ones. A backfill records PostHog alone, because the other sources are point-in-time counts
+with no history and labelling today's counts as an older day's would be a lie (Low 104).
+
+The same job then runs `scripts/ops/prune.mjs --days 30`. Notifications are the one table
+here that grows without bound — ~0.8KB each, and 2,000 members at 500 apiece is ~800MB
+against a 500MB free tier.
+
 ### Minute budget
 Private repos get **2,000 free minutes a month** and the account spending limit is **$0 by
 default**, so exhausting them stops runs rather than producing a bill. Expected usage is
