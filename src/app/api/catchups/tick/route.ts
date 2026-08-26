@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { advanceDueCatchups } from "@/lib/catchups";
-import { timingSafeEqualStrings } from "@/lib/timing-safe";
+import { requireCronSecret } from "@/lib/api-gate";
 
 /**
  * The nightly Catch-up advance (audit M27). `vercel.json` has scheduled this
@@ -31,11 +31,8 @@ import { timingSafeEqualStrings } from "@/lib/timing-safe";
 export const maxDuration = 120;
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const authHeader = req.headers.get("authorization") ?? "";
-  if (!secret || !timingSafeEqualStrings(authHeader, `Bearer ${secret}`)) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  const refusal = requireCronSecret(req);
+  if (refusal) return refusal;
 
   await advanceDueCatchups();
   return NextResponse.json({ ok: true });

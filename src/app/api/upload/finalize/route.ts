@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import {
   getImageBuffer,
@@ -9,7 +8,7 @@ import {
   keyBelongsTo,
   ownerPrefix,
 } from "@/lib/storage";
-import { countImageFrames, sharpImage } from "@/lib/image";
+import { countImageFrames, toDisplayWebp } from "@/lib/image";
 import { purgeImageKey, purgeImageUrls } from "@/lib/image-purge";
 import {
   MAX_UPLOAD_BYTES,
@@ -17,9 +16,7 @@ import {
   sniffImageType,
   stillPictureNotice,
 } from "@/lib/upload-shared";
-import { requireVerifiedMember } from "@/lib/member-gate";
-import { rateLimit } from "@/lib/rate-limit";
-import { originAllowed } from "@/lib/origin-rule";
+import { vetUploadRequest } from "@/lib/api-gate";
 
 /**
  * Step two of the direct-to-R2 POST-image path: the browser has PUT the
@@ -41,32 +38,13 @@ const STAGING_KEY = /^staging\/[a-z0-9]+\/\d{4}\/\d{2}\/[a-z0-9]+\.(jpg|jpeg|png
 
 
 export async function POST(request: Request) {
-  // A cross-site page must not be able to spend this cookie (audit M33).
-  if (!originAllowed(request.headers.get("origin"), request.headers.get("host"))) {
-    return NextResponse.json({ error: "Cross-site call refused" }, { status: 403 });
-  }
-
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Presign already refuses an unconfirmed account, so nothing it could name
-  // here should exist. Gated anyway: this route reads an object out of the
-  // bucket and writes a new one back, and it names the source by key from the
+  // Presign already refuses an unconfirmed account, so nothing this route
+  // could name should exist. Gated anyway: it reads an object out of the
+  // bucket and writes a new one back, naming the source by key from the
   // request body, so it is its own write path rather than a continuation of
   // the last one.
-  const gate = await requireVerifiedMember();
-  if (!gate.ok) {
-    return NextResponse.json({ error: gate.error }, { status: 403 });
-  }
-
-  // One hourly uploads allowance per account, shared across every route
-  // bytes can travel through (audit M2).
-  const limited = await rateLimit("uploads", session.user.id);
-  if (!limited.ok) {
-    return NextResponse.json({ error: limited.error }, { status: 429 });
-  }
+  const vet = await vetUploadRequest(request);
+  if (!vet.ok) return vet.response;
 
   let body: { keys?: string[] };
   try {
@@ -82,7 +60,7 @@ export async function POST(request: Request) {
   if (keys.length > MAX_FILES) {
     return NextResponse.json({ error: `Maximum ${MAX_FILES} images allowed` }, { status: 400 });
   }
-  const own = (k: string) => STAGING_KEY.test(k) && keyBelongsTo(k, session.user.id, "staging");
+  const own = (k: string) => STAGING_KEY.test(k) && keyBelongsTo(k, vet.userId, "staging");
   if (!keys.every(own)) {
     // The keys that DID check out are the caller's own staged objects and
     // nothing will name them again; only the ones we cannot vouch for are left
@@ -137,12 +115,8 @@ export async function POST(request: Request) {
       // never a reason to fail an upload that otherwise worked.
       if ((await countImageFrames(original)) > 1) notices.push(stillPictureNotice());
 
-      const webp = await sharpImage(original)
-        .rotate()
-        .resize(1920, 1920, { fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
-      const url = await putImage(webp, ownerPrefix("uploads", session.user.id), `${createId()}.webp`);
+      const webp = await toDisplayWebp(original);
+      const url = await putImage(webp, ownerPrefix("uploads", vet.userId), `${createId()}.webp`);
       urls.push(url);
     } catch (error) {
       console.error("Finalize processing error:", error);

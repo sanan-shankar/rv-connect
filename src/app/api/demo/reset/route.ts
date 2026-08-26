@@ -27,7 +27,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { IS_DEMO } from "@/lib/demo";
 import { seedDemo } from "@/lib/demo-seed/seed";
-import { timingSafeEqualStrings } from "@/lib/timing-safe";
+import { requireCronSecret } from "@/lib/api-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -90,17 +90,12 @@ export async function GET(req: NextRequest) {
   // failed-cron alert every morning for a job that was never meant for it.
   if (!IS_DEMO) return NextResponse.json({ ok: true, skipped: "not the demo deployment" });
 
-  // Fail CLOSED and compare constant-time, matching the two sibling cron
-  // routes (api/catchups/tick, api/retention/sweep). The old `if (secret && ...)`
-  // form went public whenever CRON_SECRET was unset, and a plain `!==` on the
-  // header is a timing oracle. The blast radius here is only the disposable
-  // demo database, but this door should not be the one that teaches the
-  // wrong pattern to whoever copies a cron route next.
-  const secret = process.env.CRON_SECRET;
-  const authHeader = req.headers.get("authorization") ?? "";
-  if (!secret || !timingSafeEqualStrings(authHeader, `Bearer ${secret}`)) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  // The same door as the two sibling cron routes, and now literally the same
+  // one. The blast radius here is only the disposable demo database, but this
+  // is not the door that should teach the wrong pattern to whoever copies a
+  // cron route next.
+  const refusal = requireCronSecret(req);
+  if (refusal) return refusal;
 
   try {
     const result = await runReset();

@@ -1,30 +1,14 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { requireVerifiedEmail } from "@/lib/email-verification";
-import { rateLimit } from "@/lib/rate-limit";
+import { vetLookupRequest } from "@/lib/api-gate";
 import { prisma } from "@/lib/prisma";
 import { parseBatchYearList } from "@/lib/batch-year";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export async function GET(request: Request) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   // Whole batches of names at a time: the exact bulk-harvest shape audit M1
-  // describes, so it sits behind the directory's Stage 1 line too.
-  const gate = await requireVerifiedEmail();
-  if (!gate.ok) {
-    return NextResponse.json({ error: gate.error }, { status: 403 });
-  }
-
-  // Same shared throttle as the other lookup endpoints (each request can
-  // return up to 5000 rows, so scripted polling is pure DB load).
-  const limited = await rateLimit("search", session.user.id);
-  if (!limited.ok) {
-    return NextResponse.json({ error: limited.error }, { status: 429 });
-  }
+  // describes, and each request can return up to 5000 rows.
+  const vet = await vetLookupRequest();
+  if (!vet.ok) return vet.response;
 
   const { searchParams } = new URL(request.url);
   // Cap the number of batch years in one query: there are ~108 possible years,

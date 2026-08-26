@@ -47,6 +47,27 @@ export function sharpImage(input: Buffer): Sharp {
  * 400MB of decoded RGBA per pass and many seconds of encode, for detail no
  * screen will ever show (audit M16).
  */
+/**
+ * The display copy of an uploaded photograph: uprighted, boxed to 1920, WebP
+ * at 80.
+ *
+ * Both processing routes ran this recipe out longhand, and the second one's
+ * comment said "same recipe as the classic /api/upload proxy route" -- which
+ * is a promise a comment cannot keep. Here it is kept by construction, so a
+ * change to the box or the quality reaches the feed and the direct path
+ * together.
+ *
+ * `.rotate()` with no argument applies the EXIF orientation and then drops
+ * the tag, which is what stops a phone photo arriving on its side.
+ */
+export async function toDisplayWebp(input: Buffer): Promise<Buffer> {
+  return sharpImage(input)
+    .rotate()
+    .resize(1920, 1920, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .toBuffer();
+}
+
 export const MAX_STORED_PIXELS = 40_000_000;
 
 /**

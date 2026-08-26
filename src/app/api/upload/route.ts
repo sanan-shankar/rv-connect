@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { putImage, ownerPrefix } from "@/lib/storage";
-import { countImageFrames, sharpImage } from "@/lib/image";
+import { countImageFrames, toDisplayWebp } from "@/lib/image";
 import { purgeImageUrls } from "@/lib/image-purge";
 import {
   MAX_UPLOAD_BYTES,
@@ -12,40 +11,15 @@ import {
 
   isImageFile,
   stillPictureNotice,} from "@/lib/upload-shared";
-import { requireVerifiedMember } from "@/lib/member-gate";
-import { rateLimit } from "@/lib/rate-limit";
-import { originAllowed } from "@/lib/origin-rule";
+import { vetUploadRequest } from "@/lib/api-gate";
 
 const MAX_FILES = 3;
 
 export async function POST(request: Request) {
-  // A cross-site page must not be able to spend this cookie (audit M33).
-  // Server actions get this check from Next itself; API routes do not.
-  if (!originAllowed(request.headers.get("origin"), request.headers.get("host"))) {
-    return NextResponse.json({ error: "Cross-site call refused" }, { status: 403 });
-  }
-
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Storage costs money and a bucket full of somebody else's images is not
-  // undoable, so writing bytes waits for a confirmed address. Checked at the
-  // ROUTE, not only in the actions that call it: this endpoint accepts a
-  // multipart body from any signed-in session and would otherwise be reachable
-  // straight from a console regardless of what the composer allows.
-  const gate = await requireVerifiedMember();
-  if (!gate.ok) {
-    return NextResponse.json({ error: gate.error }, { status: 403 });
-  }
-
-  // One hourly uploads allowance per account, shared across every route
-  // bytes can travel through (audit M2).
-  const limited = await rateLimit("uploads", session.user.id);
-  if (!limited.ok) {
-    return NextResponse.json({ error: limited.error }, { status: 429 });
-  }
+  // This one takes a multipart body from any signed-in session, so the gates
+  // belong at the ROUTE and not only in the actions that call it.
+  const vet = await vetUploadRequest(request);
+  if (!vet.ok) return vet.response;
 
   let formData: FormData;
   try {
@@ -145,16 +119,9 @@ export async function POST(request: Request) {
       // Process with sharp: resize + convert to WebP. The object key is scoped
       // to the uploader (`uploads/<their id>/...`) so ownership is provable at
       // the point a post later references this URL (audit C2).
-      const webpBuffer = await sharpImage(buffer)
-        .rotate()
-        .resize(1920, 1920, {
-          fit: "inside",
-          withoutEnlargement: true,
-        })
-        .webp({ quality: 80 })
-        .toBuffer();
+      const webpBuffer = await toDisplayWebp(buffer);
 
-      const url = await putImage(webpBuffer, ownerPrefix("uploads", session.user.id), `${id}.webp`);
+      const url = await putImage(webpBuffer, ownerPrefix("uploads", vet.userId), `${id}.webp`);
       urls.push(url);
     } catch (error) {
       console.error("Upload processing error:", error);

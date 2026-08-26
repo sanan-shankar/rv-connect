@@ -128,6 +128,29 @@ test("C-066: a type that IS given and cannot be decoded is still refused", () =>
   assert.equal(storedImageFormat(undefined, undefined), null);
 });
 
+test("every route that takes image bytes goes through the one door", async () => {
+  /* Derived from the directory, not a list: the three upload routes each wrote
+     out originAllowed -> auth -> requireVerifiedMember -> rateLimit("uploads")
+     by hand, and nothing anywhere failed if a fourth route arrived with three
+     of the four. This repo has already paid for that shape once, when M15 was
+     fixed on one upload path and missed on three (C-073). */
+  const { walk, read, decomment, ROOT } = await import("./test-kit.mjs");
+  const { resolve, relative } = await import("node:path");
+  const routes = walk(resolve(ROOT, "src/app/api/upload"), {
+    match: (name) => name === "route.ts",
+  }).map((full) => relative(ROOT, full));
+
+  assert.ok(routes.length >= 3, `only found ${routes.length} upload routes; the walk broke`);
+  for (const file of routes) {
+    assert.match(
+      decomment(read(file)),
+      /vetUploadRequest\(/,
+      `${file} does not call vetUploadRequest, so its origin, auth, confirmed-address ` +
+        `and rate-limit checks are its own again`
+    );
+  }
+});
+
 test("C-066: the type the PUT is signed with is the type the client sends", async () => {
   // A signature over image/jpeg and a PUT sent as blank is a 403 at R2, so
   // these two halves have to stay joined.
