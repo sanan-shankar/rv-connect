@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
@@ -16,7 +16,8 @@ import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
 import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
-import { reportPerch, onHandoff, FLIGHT_FLAG, PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
+import { PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
+import { useFlightArrival } from "@/components/mascot/use-flight-arrival";
 import { nextPathFromLocation } from "@/lib/next-path";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { TurnstileWidget, type TurnstileHandle } from "@/components/auth/turnstile-widget";
@@ -37,115 +38,27 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
   // spring when a sibling appears or leaves.
   const rowTransition = { layout: SPRINGS.snappy };
 
-  // One-shot flag: the landing "Sign in" transition sets this session flag
-  // right before it pushes here, purely so the handoff machinery below can
-  // tell a genuine hero transition apart from every other arrival. Decide it
-  // before first paint via a lazy initializer so there is no flash: on the
-  // transition (a soft client navigation) the flag is present; on a direct
-  // visit / reload (a full SSR load) server and client both see no flag. The
-  // sign-in form's lateral slide-in itself now plays for BOTH cases (see the
-  // motion.div below) so ordinary arrivals get the same pleasant entrance
-  // /signup has always had, instead of just popping in.
-  //
-  // Whether the ONE hoopoe is flying in from the landing CTA (button-to-perch
-  // flight). When true, this page keeps its own hoopoe hidden and at rest until
-  // the flyer lands and hands off, so only one bird is ever on screen. Read
-  // pure (no clear) for the same Strict-Mode reason as above; consumed in the
-  // handoff effect so a reload does not re-hide the bird.
-  const [arrivedViaFlight] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.sessionStorage.getItem(FLIGHT_FLAG) === "login";
-    } catch {
-      return false;
-    }
-  });
-
-  // Mobile has no Sign-in button to launch a cross-page flight from (the photo
-  // panel and its CTA only exist at lg+), so on a narrow viewport the owner
-  // wants the SAME "one bird" feeling delivered a different way: the page
-  // loads bare, then ~500ms later the hoopoe flies in from off-screen and
-  // perches exactly where the static mascot would otherwise sit. Decided once
-  // at mount via the identical `min-width: 1024px` gate the landing hero's
-  // desktop-only flight uses, so this never fires on a viewport wide enough to
-  // have gotten the button-to-perch flight instead. The `arrivedViaFlight`
-  // check is belt-and-suspenders against the (practically-impossible but
-  // guarded-for) case of a desktop flight landing on a since-narrowed
-  // viewport: that arrival already has its own reveal path above and must
-  // never also trigger this one, or two hoopoes could end up in the air.
-  const [mobileFlyIn] = useState(() => {
-    if (typeof window === "undefined") return false;
-    if (arrivedViaFlight) return false;
-    try {
-      return !window.matchMedia("(min-width: 1024px)").matches;
-    } catch {
-      return false;
-    }
-  });
-  // Guards the scheduled fly-in so it can only ever fire once.
-  const mobileFlyInFired = useRef(false);
-
   // The hoopoe covers its eyes (wings up) while the password is hidden, and peeks
   // when you reveal it; while peeking it follows what you type. One mascot, driven
   // by its controller.
   const { ref: hoopoeRef, ...hoopoe } = useHoopoe();
   const showPwRef = useRef(showPw);
   showPwRef.current = showPw;
+  // Flips when the greeting has settled, not when it starts: the reveal-toggle
+  // effect below waits on it so an early tap cannot fight the intro.
   const introDone = useRef(false);
   // Tracks the runIntro settle timer so a fast navigation (browser back, logo
   // click) can cancel it on unmount instead of letting it fire mascot verbs
   // against an already-unmounted rig.
   const introTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // The tight box around the hoopoe SVG. Its client rect is the flyer's exact
-  // landing target, so the perched flyer and this hoopoe end up pixel-aligned.
-  const hoopoeBoxRef = useRef<HTMLDivElement>(null);
-  // The form entrance element (the motion.div that slides x 48 -> 0). The
-  // perch report below reads its live transform to un-shift rects measured
-  // mid-entrance.
-  const entranceRef = useRef<HTMLDivElement>(null);
-  const hoopoeApiRef = useRef<HoopoeApi | null>(null);
-  // Hidden until the flyer hands off when arriving via a flight; shown from the
-  // start on a direct visit (there is no flyer to wait for). Deliberately does
-  // NOT also fold in the mobile case here: a mismatched inline `style`
-  // attribute between the server render (which can never know the viewport)
-  // and the client's first hydration pass is a class of hydration error React
-  // does not patch up (it leaves the server value in place until some
-  // unrelated update touches the node). The mobile fly-in instead hides the
-  // bird with the SSR-safe `max-lg:opacity-0` CLASS below — className swaps
-  // hydrate fine, and a media-scoped class is inert at lg+ so the server can
-  // render it unconditionally.
-  const [hoopoeShown, setHoopoeShown] = useState(!arrivedViaFlight);
-
-  // Focus after paint, never during the commit: the `autoFocus` attribute this
-  // replaces forced a synchronous layout inside React's commit, which stalled
-  // the hoopoe's rAF-driven flight for a couple of frames right as this page's
-  // content slid in. See use-deferred-autofocus.ts for the measurements.
-  const emailFocusRef = useDeferredAutofocus<HTMLInputElement>();
-
-  // Mobile fly-in, part 1: the pre-flight veil. Rendered on the bird's OUTER
-  // box (the inner box carries an inline opacity, which would beat any class)
-  // as `max-lg:opacity-0`, so on a phone the seated bird is invisible from the
-  // very first painted frame — including the SSR paint, which the previous
-  // hide-after-hydration approach could not cover on a slow device. Lifted
-  // before paint for every non-fly-in arrival so a later narrow-resize can
-  // never hide a legitimately visible bird; the fly-in effect below lifts it
-  // for the mobile path once the bird is posed off-screen.
-  const [preFlightVeil, setPreFlightVeil] = useState(true);
-  useLayoutEffect(() => {
-    if (!mobileFlyIn) setPreFlightVeil(false);
-  }, [mobileFlyIn]);
-
-  // React to reveal toggles after the intro settles.
-  useEffect(() => {
-    if (!introDone.current) return;
-    if (showPw) hoopoe.peek();
-    else hoopoe.coverEyes();
-  }, [showPw, hoopoe]);
 
   // The password peek-a-boo intro: peek in with a double-blink greeting, then
   // tuck the wings over the (hidden) password. On a flight arrival this runs at
   // handoff (the flyer having just landed) instead of at mount.
   function runIntro(api: HoopoeApi) {
+    // Self-guarding, because useFlightArrival calls this from every arrival
+    // path and the failsafe can bring two of them together.
+    if (introDone.current) return;
     api.peek();
     // Blink first, THEN smile (owner, 2026-08-04: "a sweet smile after hitting
     // sign in, before going back to normal and closing eyes"). The order is the
@@ -172,10 +85,25 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
     }, 1700);
   }
 
-  function onHoopoeReady(api: HoopoeApi) {
-    hoopoeApiRef.current = api;
-    if (!arrivedViaFlight && !mobileFlyIn) runIntro(api);
-  }
+  // How the bird gets here: the landing "Sign in" flight on a desktop, or a
+  // descent from off-screen on a phone, plus everything that keeps this page's
+  // own hoopoe hidden and pixel-aligned until the flyer hands off. /signup and
+  // the three email pages run the same hook; the beat above is what differs.
+  const { hoopoeBoxRef, entranceRef, hoopoeShown, preFlightVeil, onHoopoeReady, reportPerchRect } =
+    useFlightArrival({ flightKey: "login", runIntro });
+
+  // Focus after paint, never during the commit: the `autoFocus` attribute this
+  // replaces forced a synchronous layout inside React's commit, which stalled
+  // the hoopoe's rAF-driven flight for a couple of frames right as this page's
+  // content slid in. See use-deferred-autofocus.ts for the measurements.
+  const emailFocusRef = useDeferredAutofocus<HTMLInputElement>();
+
+  // React to reveal toggles after the intro settles.
+  useEffect(() => {
+    if (!introDone.current) return;
+    if (showPw) hoopoe.peek();
+    else hoopoe.coverEyes();
+  }, [showPw, hoopoe]);
 
   // Belt-and-suspenders: cancel any pending intro timer on unmount so a fast
   // navigation away from /login (browser back, logo click) can never fire
@@ -185,152 +113,6 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
       if (introTimeoutRef.current) clearTimeout(introTimeoutRef.current);
     };
   }, []);
-
-  // Where this hoopoe will rest, reported to the flight bus. The form entrance
-  // above the bird animates x 48 -> 0 on a spring, so a rect measured while it
-  // is still sliding sits shifted by whatever translation remains; subtracting
-  // the entrance element's live transform yields the SETTLED rect. That makes
-  // the mount-time report below exactly as accurate as the settle-time one —
-  // and the mount-time report is the fix for the owner's "lands lower and then
-  // corrects" jank: the old single report only fired AFTER the entrance
-  // spring finished, ~2s in, when the flyer's cruise had already ended on a
-  // provisional guess ~25px low.
-  const reportPerchRect = useCallback(() => {
-    if (!arrivedViaFlight) return;
-    const el = hoopoeBoxRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    let dx = 0;
-    let dy = 0;
-    const host = entranceRef.current;
-    if (host) {
-      const t = getComputedStyle(host).transform;
-      if (t && t !== "none") {
-        const m = new DOMMatrix(t);
-        dx = m.e;
-        dy = m.f;
-      }
-    }
-    reportPerch({ left: r.left - dx, top: r.top - dy, width: r.width, height: r.height });
-  }, [arrivedViaFlight]);
-
-  // Report the perch EARLY — before this page's first paint, while the flyer
-  // is still mid-cruise — and keep it fresh (ResizeObserver + resize + scroll,
-  // the tour-spotlight measuring pattern) until the handoff makes it moot. The
-  // flight bus explicitly supports repeated reports and the flyer retargets
-  // smoothly every frame, so the bird is never aiming at a stale rect.
-  // `perchWatchStop` lets the handoff reveal below drop the listeners the
-  // moment they stop mattering.
-  const perchWatchStop = useRef<(() => void) | null>(null);
-  // THE MOUNT-TIME REPORT IS THE ResizeObserver'S OWN INITIAL DELIVERY, and
-  // that is a flight-smoothness decision, not an accident (2026-08-11).
-  //
-  // reportPerchRect reads getBoundingClientRect and getComputedStyle. This
-  // effect used to also CALL it directly, first as a layout effect and then as
-  // a passive one, and in both schedulings it ran before the just-mounted
-  // page's first layout, so the read forced a full synchronous layout of a
-  // dirty tree — traced at ~85ms, billed to whichever code touches geometry
-  // first (this callback, or `autoFocus`, or the router's scroll walk; fixing
-  // one just moved the bill to the next). The flight layer drives the bird's
-  // cruise from requestAnimationFrame, so those milliseconds came out of the
-  // flight as skipped frames: the owner's "it jerks slightly when the sign in
-  // content comes in".
-  //
-  // A ResizeObserver is the one scheduling the platform guarantees to be
-  // clean: its callbacks run in the rendering phase AFTER layout, and
-  // observe() always produces an initial delivery. So the observer alone
-  // reports the perch in the first rendered frame, off a freshly computed
-  // layout, forcing nothing — the explicit call added no earliness worth one
-  // whole forced layout. The flyer retargets smoothly every frame across a
-  // ~2s cruise, so frame-one is early by a mile anyway.
-  useEffect(() => {
-    if (!arrivedViaFlight) return;
-    const el = hoopoeBoxRef.current;
-    const ro = new ResizeObserver(reportPerchRect);
-    if (el) ro.observe(el);
-    window.addEventListener("resize", reportPerchRect);
-    window.addEventListener("scroll", reportPerchRect, { passive: true, capture: true });
-    const stop = () => {
-      ro.disconnect();
-      window.removeEventListener("resize", reportPerchRect);
-      window.removeEventListener("scroll", reportPerchRect, true);
-      perchWatchStop.current = null;
-    };
-    perchWatchStop.current = stop;
-    return stop;
-  }, [arrivedViaFlight, reportPerchRect]);
-
-  // Flight handoff: reveal + start the intro when the flyer lands. A fallback
-  // timer guarantees the bird is never stranded hidden if the flight stalls;
-  // it is set longer than the flyer's own failsafe so the two never both show.
-  useEffect(() => {
-    if (!arrivedViaFlight) return;
-    try {
-      window.sessionStorage.removeItem(FLIGHT_FLAG);
-    } catch {
-      // storage disabled: nothing to clear
-    }
-    // One-shot: on the failsafe path the flyer's forced handoff AND the
-    // fallback timer below can both land here inside the intro's settle
-    // window, and running the intro twice queued a double greeting.
-    let revealed = false;
-    const reveal = () => {
-      if (revealed) return;
-      revealed = true;
-      perchWatchStop.current?.();
-      setHoopoeShown(true);
-      const api = hoopoeApiRef.current;
-      if (api && !introDone.current) runIntro(api);
-    };
-    const unsub = onHandoff(reveal);
-    // Must stay ABOVE the flight layer's own failsafe (5800ms at the default
-    // speed, mascot-flight-layer.tsx), so the flyer always hands off before
-    // this fires and the two birds are never both on screen. Raised 4000 ->
-    // 6000 on 2026-08-04 with the slower cruise; the same three numbers live
-    // in that file's header comment.
-    const fallback = setTimeout(reveal, 6000);
-    return () => {
-      unsub();
-      clearTimeout(fallback);
-    };
-  }, [arrivedViaFlight]);
-
-  // Mobile fly-in, part 2: ~500ms after the page settles, the hoopoe flies
-  // itself in from above the viewport onto its own rest anchor (no target =
-  // wherever it is mounted), landing exactly where the static mascot would
-  // otherwise sit. `flyIn` is a same-mount primitive (no cross-page bus
-  // involved), so no `reportPerch`/`onHandoff` wiring is needed here; it only
-  // ever fires when `arrivedViaFlight` is false, so it can never race the
-  // flight-bus reveal above.
-  useEffect(() => {
-    if (!mobileFlyIn) return;
-    const timer = setTimeout(() => {
-      if (mobileFlyInFired.current) return;
-      const api = hoopoeApiRef.current;
-      if (!api) {
-        // The rig never reported ready (it mounts statically, so this is
-        // near-impossible): show the seated bird rather than none at all.
-        setPreFlightVeil(false);
-        return;
-      }
-      mobileFlyInFired.current = true;
-      // "sky", not "top": the top edge spawns relative to the rig's own box,
-      // which sits mid-viewport here, so the bird used to pop in already on
-      // screen. The sky edge starts it fully above the VIEWPORT (see
-      // offCanvasStart in hoopoe.tsx) for a genuine descent from off-screen.
-      void api.flyIn("sky").then(() => {
-        if (!introDone.current) runIntro(api);
-      });
-      // Lift the veil two frames later: motion renders the fly-in's duration-0
-      // pose warps on its NEXT animation frame, so revealing in the same tick
-      // could paint one frame of the seated bird at the perch before the warp
-      // moves it off-screen. Instant reveal, no fade — the bird is above the
-      // viewport by then, so a fade could only ever be seen as a mid-air
-      // ghost during the descent.
-      requestAnimationFrame(() => requestAnimationFrame(() => setPreFlightVeil(false)));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [mobileFlyIn]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
