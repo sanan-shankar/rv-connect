@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/admin";
 import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
-import { Chip, type ChipTone } from "@/components/admin/admin-chip";
+import { Chip } from "@/components/admin/admin-chip";
+import { ROUND_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { formatDisplayDate, metaLine, renderRichText } from "@/lib/utils";
 import { IDENTITY_SELECT } from "@/lib/people-select";
@@ -49,22 +50,6 @@ export const metadata: Metadata = {
  * the exception is visible to whoever is reading rather than silent. If that
  * is ever regretted, it is the `askedBy` block below and nothing else.
  */
-
-/** The Catch-up's own state, as opposed to a Round's. */
-const SERIES_STATUS: Record<string, { label: string; tone: ChipTone }> = {
-  active: { label: "Running", tone: "good" },
-  paused: { label: "Paused", tone: "warn" },
-  ended: { label: "Ended", tone: "idle" },
-};
-
-/** The five states a Round moves through, in the words a person would use. */
-const STATUS: Record<string, { label: string; tone: ChipTone }> = {
-  draft: { label: "Not opened yet", tone: "idle" },
-  collecting: { label: "Taking questions", tone: "info" },
-  answering: { label: "Taking answers", tone: "info" },
-  preparing: { label: "Being put together", tone: "warn" },
-  published: { label: "Sent out", tone: "good" },
-};
 
 export default async function AdminCatchupReadingRoom({
   params,
@@ -179,7 +164,7 @@ export default async function AdminCatchupReadingRoom({
         <AdminEmpty>This Catch-up has no Rounds yet.</AdminEmpty>
       ) : (
         catchup.editions.map((round) => {
-          const status = STATUS[round.status] ?? STATUS.draft;
+          const status = ROUND_STATUS[round.status] ?? ROUND_STATUS.draft;
           // The date this Round is actually waiting on, which depends on where
           // it has got to. Showing all three would say almost nothing.
           const due =
