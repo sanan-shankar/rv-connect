@@ -1,21 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { BadgeCheck, Ban, MailX, Search, Shield, ShieldQuestion } from "lucide-react";
+import { BadgeCheck, Ban, MailX, Shield, ShieldQuestion } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  FacetSelect,
-  FilterButton,
-  FilterPopover,
-  FilterSheet,
-  SentenceLine,
-  type SentenceToken,
-} from "@/components/common/filters";
+import { FacetSelect, type SentenceToken } from "@/components/common/filters";
+import { AdminFilterBar, useAdminFilterParams } from "@/components/admin/admin-filter-bar";
 import { AdminPersonRow } from "@/components/admin/admin-person-row";
 import { Chip } from "@/components/admin/admin-chip";
 import { ADMIN_GRID_3, AdminEmpty } from "@/components/admin/admin-chrome";
@@ -61,48 +54,22 @@ export function PeopleList({
   const [loading, setLoading] = useState(false);
   /** Rows whose Verify press is still in the air; see verify() below. */
   const [verifying, setVerifying] = useState<ReadonlySet<string>>(new Set());
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [, startTransition] = useTransition();
   const [listRef] = useAutoAnimate<HTMLDivElement>();
 
-  const q = searchParams.get("q") ?? "";
+  const filters = useAdminFilterParams("/admin/people");
+  const { setParam } = filters;
   const state = searchParams.get("state") ?? "";
   const kind = searchParams.get("kind") ?? "";
-  const [draftQ, setDraftQ] = useState(q);
-
-  /* The server owns the filtering, so a change is a navigation. Everything
-     that reads from `searchParams` therefore stays in one place: the URL is
-     the state, which also makes any filtered view linkable. */
-  const setParam = useCallback(
-    (key: string, value: string) => {
-      const next = new URLSearchParams(searchParams.toString());
-      if (value) next.set(key, value);
-      else next.delete(key);
-      startTransition(() => {
-        router.replace(next.toString() ? `/admin/people?${next}` : "/admin/people", {
-          scroll: false,
-        });
-      });
-    },
-    [router, searchParams]
-  );
-
-  const clearAll = useCallback(() => {
-    setDraftQ("");
-    startTransition(() => router.replace("/admin/people", { scroll: false }));
-  }, [router]);
 
   const tokens: SentenceToken[] = useMemo(() => {
     const out: SentenceToken[] = [];
     if (state) out.push({ key: "state", label: stateLabel(state), onClear: () => setParam("state", "") });
     if (kind) out.push({ key: "kind", label: kindLabel(kind), onClear: () => setParam("kind", "") });
-    if (q) out.push({ key: "q", label: `"${q}"`, onClear: () => { setDraftQ(""); setParam("q", ""); } });
     return out;
-  }, [state, kind, q, setParam]);
+  }, [state, kind, setParam]);
 
   const activeCount = (state ? 1 : 0) + (kind ? 1 : 0);
-  const hasFilter = activeCount > 0 || Boolean(q);
+  const hasFilter = activeCount > 0 || Boolean(filters.q);
 
   async function showMore() {
     if (!cursor || loading) return;
@@ -177,66 +144,19 @@ export function PeopleList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <div className="relative min-w-0 flex-1 sm:max-w-xs">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              strokeWidth={2}
-              aria-hidden
-            />
-            <Input
-              value={draftQ}
-              onChange={(e) => setDraftQ(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && setParam("q", draftQ.trim())}
-              onBlur={() => draftQ.trim() !== q && setParam("q", draftQ.trim())}
-              placeholder="Search a name or an email"
-              aria-label="Search people"
-              className="pl-9"
-            />
-          </div>
-          <div className="hidden lg:block">
-            <FilterPopover
-              open={panelOpen}
-              onOpenChange={setPanelOpen}
-              trigger={
-                <FilterButton count={activeCount} onClick={() => setPanelOpen((v) => !v)} />
-              }
-            >
-              {facets(true, true)}
-            </FilterPopover>
-          </div>
-          <FilterButton
-            count={activeCount}
-            onClick={() => setSheetOpen(true)}
-            className="lg:hidden"
-          />
-        </div>
-
-        {/* The count row absorbs the active filters, so adding one costs no
-            extra row. Same control the Directory and the Collection use. */}
-        <SentenceLine
-          count={total}
-          singular={hasFilter ? "match" : "person"}
-          plural={hasFilter ? "matches" : "people"}
-          tokens={tokens}
-          onClearAll={clearAll}
-          onOpenPanel={() =>
-            window.innerWidth >= 1024 ? setPanelOpen(true) : setSheetOpen(true)
-          }
-          max={2}
-        />
-      </div>
-
-      <FilterSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        onClearAll={clearAll}
-        hasActive={hasFilter}
-        showLabel={`Show ${total} ${total === 1 ? "person" : "people"}`}
-      >
-        {facets(true)}
-      </FilterSheet>
+      <AdminFilterBar
+        filters={filters}
+        searchPlaceholder="Search a name or an email"
+        searchAriaLabel="Search people"
+        facets={facets}
+        tokens={tokens}
+        activeCount={activeCount}
+        count={total}
+        singular="person"
+        plural="people"
+        maxTokens={2}
+        sheetShowLabel={`Show ${total} ${total === 1 ? "person" : "people"}`}
+      />
 
       {rows.length === 0 ? (
         <AdminEmpty>
