@@ -12,8 +12,13 @@
  * connection string. Prints row output as JSON (capped) so it is safe to pipe
  * into logs.
  *
- * `--env <file>` points it at a DIFFERENT env file, which exists for exactly
- * one reason: the demo deployment has its own Supabase project, and until
+ * `--env <file>` points it at a DIFFERENT env file, and when that file names
+ * the demo, the connection is checked for the demo project's ref before a
+ * statement runs (the guard scripts/demo/run-sql.mjs used to hold; that script
+ * is gone, superseded by this flag).
+ *
+ * The flag exists for exactly one reason: the demo deployment has its own
+ * Supabase project, and until
  * 2026-08-21 there was no way to apply a manual migration to it. The result
  * was silent schema drift -- `User.showEmail` shipped to the main database in
  * commit eedbb3e and never reached the demo's, where every query selecting it
@@ -36,6 +41,17 @@ const env = readEnv([envFile]);
 const url = env.DIRECT_URL || env.DATABASE_URL;
 if (!url) {
   console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);
+  process.exit(1);
+}
+
+/* Ported from scripts/demo/run-sql.mjs, which this replaced. Asking for the
+   demo env file and getting production would be the worst outcome this script
+   has, and a stray DIRECT_URL in the shell is all it would take -- so when the
+   caller names .env.demo, the connection has to carry the demo project's ref
+   or nothing runs. It is a check on the DESTINATION, not on the request. */
+const DEMO_REF = "cbvlzptghkuxhygyaezq";
+if (envFile.includes("demo") && !url.includes(DEMO_REF)) {
+  console.error(`refusing: ${envFile} was asked for, but the connection host does not carry the demo ref ${DEMO_REF}`);
   process.exit(1);
 }
 

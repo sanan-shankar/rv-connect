@@ -37,7 +37,11 @@ const expectedOnPage = new Map([[`/profile/${OWN.id}`, OWN.name], [`/profile/${O
 // still listed is a route somebody deleted without telling the crawler.
 // /donate is deliberately included: it survives only as a redirect to /support
 // for old links, so a 200 here is the redirect working.
-const routes = ['/feed','/directory','/letters','/catchups','/collection','/about','/support','/donate','/admin','/messages','/dark-mode',`/profile/${OWN.id}`,`/profile/${OTHER.id}`,'/','/login','/signup','/lab'];
+// Cross-check against `ls src/app/(main)` when adding: /birds, /pick-bird and
+// /welcome had each shipped without being added here. NOT every directory in
+// there is a route -- `notifications` holds only actions.ts and `notice` only
+// a [id] segment, so neither has a page to crawl.
+const routes = ['/feed','/directory','/letters','/catchups','/collection','/about','/support','/donate','/admin','/messages','/dark-mode','/birds','/pick-bird','/welcome',`/profile/${OWN.id}`,`/profile/${OTHER.id}`,'/','/login','/signup','/lab'];
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
