@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { balancedBody } from "./test-fn-body.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Gate coverage: every exported server action either checks who is
@@ -73,39 +74,18 @@ function allActions(src) {
   return names;
 }
 
-// fnBody, the audit-status version verbatim: balance the parameter parens,
-// skip a `: ReturnType<{...}>` annotation (whose braces are NOT the body —
-// the naive indexOf("{") version reported loadDirectoryPage as ungated
-// because it landed inside `Promise<{ users: ... }>`), then take the
-// balanced body.
-function fnBody(text, name) {
-  const m = text.match(new RegExp(`(?:export\\s+)?async\\s+function\\s+${name}\\b`));
-  if (!m) return null;
-  let i = text.indexOf("(", m.index);
-  if (i < 0) return null;
-  for (let depth = 0; i < text.length; i++) {
-    if (text[i] === "(") depth++;
-    else if (text[i] === ")") { depth--; if (depth === 0) { i++; break; } }
-  }
-  while (i < text.length && /\s/.test(text[i])) i++;
-  if (text[i] === ":") {
-    let angle = 0;
-    for (i++; i < text.length; i++) {
-      const c = text[i];
-      if (c === "<") angle++;
-      else if (c === ">") angle--;
-      else if (c === "{" && angle === 0) break;
-    }
-  }
-  i = text.indexOf("{", i);
-  if (i < 0) return null;
-  let depth = 0;
-  for (let j = i; j < text.length; j++) {
-    if (text[j] === "{") depth++;
-    else if (text[j] === "}") { depth--; if (depth === 0) return text.slice(i, j + 1); }
-  }
-  return text.slice(i);
-}
+/* fnBody delegates to the shared extractor rather than carrying its own copy
+   (audit lib-tests-02): same walk — balance the parameter parens, step over a
+   `: Promise<{...}>` return annotation whose braces are NOT the body, then
+   balance the body — living in ONE place instead of two that have to be fixed
+   twice. The failure modes it defends against are documented at its header.
+
+   The `export` is optional here ON PURPOSE. The delegation pass below has to
+   find gates that live in unexported helpers, so this must match a bare
+   `async function` too; requiring `export` would silently orphan every
+   inherited gate. */
+const fnBody = (text, name) =>
+  balancedBody(text, new RegExp(String.raw`(?:export\s+)?async\s+function\s+${name}\b`));
 
 /* Walked off the FILESYSTEM, not asked of git.
    This used to be `git grep -l '"use server"'`, which failed open three ways
