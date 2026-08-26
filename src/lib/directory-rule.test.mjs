@@ -23,6 +23,8 @@ const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/
 const WHERE = code(read("src/app/(main)/directory/where.ts"));
 const PAGE = code(read("src/app/(main)/directory/page.tsx"));
 const MAP = code(read("src/components/directory/alumni-map.tsx"));
+const CLIENT = read("src/components/directory/directory-client.tsx");
+const SCHEMA = read("prisma/schema.prisma").replace(/^\s*\/\/.*$/gm, "");
 
 /* ---- C-093: accountType is decided once ------------------------- */
 
@@ -206,4 +208,53 @@ test("C-098: buildDirectoryWhere accepts the several cities the link sends", () 
   assert.match(branch, /Array\.isArray\(filters\.city\)/, "the city branch cannot read a list");
   assert.match(branch, /flatMap/, "the variants of each city are not folded together");
   assert.match(branch, /new Set\(/, "the targets are not de-duplicated across cities");
+});
+
+/* ---- the Profession facet: hidden now, owed later --------------- */
+
+test("the Profession facet stays hidden until a profession tag exists", () => {
+  /* Owner, 2026-08-26: profession filtering IS wanted long term. The plan is
+     to run every workplace + jobTitle pair through an LLM at ~150 members,
+     derive the buckets, and write each member a backend tag
+     (docs/planning/FEATURES.md section 2).
+
+     Until that column exists the facet is hidden, because the control filtered
+     `User.workplace` by exact equality against an 18-value list that the
+     deleted onboarding Industry select used to write. Measured on the live
+     database that day: 0 of 63 members matched, while 28 had a workplace --
+     the column now holds a free-text ORGANISATION and the role lives in
+     jobTitle, so no single column is filterable.
+
+     This test is the reminder. The day a profession column lands in the
+     schema, it FAILS and tells you to put the control back. */
+  const tagShipped = /profession/i.test(SCHEMA);
+  const facetRendered = /label="Profession"/.test(CLIENT);
+
+  if (tagShipped) {
+    assert.ok(
+      facetRendered,
+      "A profession field now exists in schema.prisma, so the tag has shipped -- " +
+        "put the Profession facet back in renderPrimaryFacets (directory-client.tsx), " +
+        "restore its arm in activeFacetCount, and point where.ts at the TAG rather than " +
+        "at `where.workplace = <exact value>`, which was never reusable for it."
+    );
+  } else {
+    assert.ok(
+      !facetRendered,
+      "The Profession facet is being rendered again, but nothing writes a profession: " +
+        "it filters workplace by exact equality and matches nobody. Either ship the tag " +
+        "column first, or leave the control hidden. See docs/planning/FEATURES.md section 2."
+    );
+  }
+});
+
+test("the profession filter arm survives for bookmarked links", () => {
+  /* Two reasons this stays even with the control hidden. A member with an old
+     ?profession= bookmark must still get a coherent (empty) page with a chip
+     they can clear, rather than a silently ignored parameter. And C-098's test
+     above slices WHERE using `indexOf("if (filters.profession)")` as its END
+     boundary -- delete this arm and that slice runs to end-of-file and stops
+     testing what it claims to. If the arm is ever removed, repoint that
+     boundary in the same commit. */
+  assert.match(WHERE, /if \(filters\.profession\)/, "the profession arm is gone; C-098's slice boundary above now points at nothing");
 });

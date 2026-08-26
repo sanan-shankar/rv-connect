@@ -17,11 +17,7 @@ import {
   SentenceLine,
   type SentenceToken,
 } from "@/components/common/filters";
-import {
-  PROFESSION_OPTIONS,
-  HOUSE_OPTIONS,
-  TYPE_OPTIONS,
-} from "@/lib/directory-facets";
+import { HOUSE_OPTIONS, TYPE_OPTIONS } from "@/lib/directory-facets";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { ProfileCard } from "./profile-card";
@@ -253,6 +249,18 @@ export function DirectoryClient({
      "12 results, City: Chennai" reads like a database row rather than a
      line of English. Order is the order someone would say them. */
   const sentenceTokens: SentenceToken[] = [];
+  /* The Profession CONTROL is deliberately not rendered (owner, 2026-08-26).
+     It filtered `User.workplace` by exact equality against an 18-value list
+     that the deleted onboarding Industry select used to write; measured on the
+     live database that day, it matched 0 of 63 members while 28 had a
+     workplace, because workplace now holds a free-text ORGANISATION and the
+     role lives in jobTitle. The facet returns when the LLM-derived profession
+     tag ships (docs/planning/FEATURES.md section 2), which needs its own
+     column -- the equality arm below is not reusable for it.
+     `directory-rule.test.mjs` fails the day that column appears, so this
+     cannot be forgotten.
+     This chip stays on purpose: it is the only way to clear a bookmarked
+     ?profession= now that no control can. */
   if (initialFilters.profession) {
     sentenceTokens.push({
       key: "profession",
@@ -302,7 +310,6 @@ export function DirectoryClient({
      Batches tile), so counting them here would blame the button for state it
      does not own. */
   const activeFacetCount =
-    (initialFilters.profession ? 1 : 0) +
     (initialFilters.city ? 1 : 0) +
     (initialFilters.yearFrom || initialFilters.yearTo ? 1 : 0) +
     (initialFilters.house ? 1 : 0) +
@@ -321,21 +328,13 @@ export function DirectoryClient({
   // Shared between the desktop rail and the mobile FilterSheet (which stacks
   // every facet full-width) so neither rewrites the same six facet configs.
   // Primary = the facets that stay visible on the desktop toolbar row
-  // (Profession, City, Batch); secondary stays behind "More filters".
+  // (City, Batch); secondary stays behind "More filters".
   function renderPrimaryFacets(fullWidth: boolean, compact = false) {
     // h-9 in the desktop popover, h-10 (the full touch target) in the mobile
     // sheet. twMerge lets the later height win over PILL_BASE's h-10.
     const className = fullWidth ? (compact ? "w-full h-9" : "w-full") : undefined;
     return (
       <>
-        <FacetSelect
-          label="Profession"
-          value={initialFilters.profession}
-          onChange={(v) => updateFilters("profession", v)}
-          options={PROFESSION_OPTIONS}
-          anyLabel="Any profession"
-          className={className}
-        />
         <FacetSearchSelect
           label="City"
           value={initialFilters.city}
