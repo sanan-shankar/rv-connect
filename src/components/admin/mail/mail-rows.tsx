@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { callAction } from "@/lib/call-action";
+import { useAdminAct } from "@/components/admin/use-admin-act";
 import { Button } from "@/components/ui/button";
 import { Chip, type ChipTone } from "@/components/admin/admin-chip";
 import { formatTimeAgo, metaLine } from "@/lib/utils";
@@ -68,25 +65,7 @@ export function MailRows({
   /** Retry and clear, on the failed list only. Nothing else is actionable. */
   showActions?: boolean;
 }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState<string | null>(null);
-
-  async function act(id: string, fn: (id: string) => Promise<{ error?: string }>, done: string) {
-    setBusy(id);
-    try {
-      const result = await callAction(() => fn(id));
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success(done);
-      router.refresh();
-    } finally {
-      // finally, not a trailing statement: a rejected call used to leave
-      // this row's buttons disabled for the rest of the session (audit B-042).
-      setBusy(null);
-    }
-  }
+  const { busy, act } = useAdminAct();
 
   return (
     <div className="flex flex-col gap-2">
@@ -135,7 +114,7 @@ export function MailRows({
                 variant="outline"
                 disabled={busy === r.id}
                 onClick={() =>
-                  act(r.id, retryMail, "Back in the queue. It goes out on the next page load.")
+                  act(r.id, () => retryMail(r.id), "Back in the queue. It goes out on the next page load.")
                 }
               >
                 Try again
@@ -144,7 +123,7 @@ export function MailRows({
                 size="xs"
                 variant="ghost"
                 disabled={busy === r.id}
-                onClick={() => act(r.id, dismissMail, "Cleared")}
+                onClick={() => act(r.id, () => dismissMail(r.id), "Cleared")}
               >
                 Clear
               </Button>
