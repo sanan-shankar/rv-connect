@@ -2,8 +2,8 @@
 /* ------------------------------------------------------------------ *
  *  Nightly metric snapshot.
  *
- *  WHY: Sentry's free plan drops errors after 30 days, Vercel Analytics
- *  keeps 30, PostHog keeps a year. None of them will say in 2028 what the
+ *  WHY: Sentry’s free plan drops errors after 30 days and PostHog keeps
+ *  a year. Neither of them will say in 2028 what the
  *  site looked like in 2026, and none of it can be recovered once gone.
  *  This writes one row per metric per day into OUR database, so the admin
  *  room reads only Postgres -- fast, no API keys at page load, no vendor

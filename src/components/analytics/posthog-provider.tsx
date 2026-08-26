@@ -6,8 +6,10 @@ import { PostHogProvider as Provider } from "posthog-js/react";
 /* ------------------------------------------------------------------ *
  *  PostHog - what members actually do.
  *
- *  Vercel Analytics answers "34% India, 22% iOS" and nothing else. This
- *  answers the questions the owner actually asked: how many people open
+ *  A pageview counter answers "34% India, 22% iOS" and nothing else --
+ *  Vercel Analytics sat in the root layout doing exactly that until it was
+ *  removed on 2026-08-26, rather than run two analytics tools for one job.
+ *  This answers the questions the owner actually asked: how many people open
  *  /support and never contribute, which routes lead to which, what gets
  *  typed into directory search, whether the map or the batch list gets
  *  used. Those are funnels, paths and property breakdowns, and no
