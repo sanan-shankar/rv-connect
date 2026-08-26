@@ -173,11 +173,6 @@ async function runAction<T>(fn: () => Promise<T>): Promise<T | { error: string }
   }
 }
 
-function isUniqueConstraintError(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  return (err as { code?: unknown }).code === "P2002";
-}
-
 async function loadMembership(groupId: string, userId: string) {
   return prisma.groupMember.findUnique({
     where: { groupId_userId: { groupId, userId } },
@@ -1622,7 +1617,7 @@ async function upsertCatchupPref(
       update: data,
     });
   } catch (err) {
-    if (!isUniqueConstraintError(err)) throw err;
+    if (!isUniqueViolation(err)) throw err;
     await prisma.catchupPref.updateMany({ where: { catchupId, userId }, data });
   }
 }

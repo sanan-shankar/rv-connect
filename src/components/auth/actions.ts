@@ -14,6 +14,7 @@ import { yearClashMessage } from "@/lib/batch-year";
 import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
 import { reportSwallowed } from "@/lib/report-error";
+import { isUniqueViolation } from "@/lib/prisma-errors";
 
 export async function registerUser(formData: FormData) {
   // The trivia gate is enforced server-side: a valid signed pass cookie must be
@@ -166,7 +167,7 @@ export async function registerUser(formData: FormData) {
       },
     });
   } catch (err) {
-    if ((err as { code?: string })?.code === "P2002") {
+    if (isUniqueViolation(err)) {
       return { error: "An account with this email already exists. Try signing in instead." };
     }
     throw err;
@@ -256,7 +257,7 @@ async function joinBatchGroup(userId: string, batchYear: number) {
         select: { id: true },
       });
     } catch (err) {
-      if ((err as { code?: string })?.code !== "P2002") throw err;
+      if (!isUniqueViolation(err)) throw err;
       // Somebody else from this batch created it between our read and our
       // write. Their row is the batch's group; join that one.
       group = await find();

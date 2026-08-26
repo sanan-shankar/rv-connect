@@ -161,8 +161,12 @@ test("a batch has exactly one group, and the database is what says so", () => {
   const signup = readFileSync(resolve(ROOT, "src/components/auth/actions.ts"), "utf8");
   const i = signup.indexOf("async function joinBatchGroup");
   const fn = signup.slice(i, signup.indexOf("\n}", i));
+  /* Either spelling counts: the shared predicate, or the raw code it wraps.
+     What is being pinned is that the race is ANSWERED, not which helper does
+     it -- and matching only `P2002` broke the moment the hand-rolled check
+     became `isUniqueViolation`. */
   assert.ok(
-    /P2002/.test(fn),
+    /isUniqueViolation\(|P2002/.test(fn),
     "joinBatchGroup does not answer the unique violation, so the loser of the " +
       "race throws out of registerUser instead of joining the group that won"
   );
