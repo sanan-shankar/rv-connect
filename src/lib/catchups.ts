@@ -19,6 +19,7 @@
 
 import { randomUUID } from "node:crypto";
 import { valleyDaysBetween } from "./utils.ts";
+import { isMissingTable } from "./prisma-errors.ts";
 import type {
   Cadence,
   CatchupNotifyKind,
@@ -927,15 +928,7 @@ export async function resolveSpotify(
  * with this so a missing table degrades to "no Catch-up data" instead of a 500.
  */
 export function isMissingCatchupTable(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  const e = err as { code?: unknown; message?: unknown };
-  const code = typeof e.code === "string" ? e.code : "";
-  if (code === "P2021") return true; // Prisma: the table does not exist
-  if (code === "42P01") return true; // Postgres undefined_table (raw, via the pg adapter)
-  const msg = typeof e.message === "string" ? e.message : "";
-  // Defensive fallback, scoped to our tables so an unrelated error is never masked.
-  if (/Catchup/.test(msg) && /does not exist/i.test(msg)) return true;
-  return false;
+  return isMissingTable(err, /Catchup/);
 }
 
 // ─── Impure drivers ──────────────────────────────────────────────────────────

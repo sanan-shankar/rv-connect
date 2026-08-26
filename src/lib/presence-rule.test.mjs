@@ -59,7 +59,9 @@ test("a lost create is swallowed, and nothing else is", () => {
   // development -- a guard that hides its own breakage is worse than none.
   const src = decomment(read("src/lib/last-seen.ts"));
   const body = src.slice(src.indexOf("async function recordVisit"));
-  assert.match(body, /P2002/, "the unique-violation case is no longer recognised");
+  // Either spelling: the shared predicate, or the raw code it wraps. What is
+  // pinned is that the case is recognised, not which helper recognises it.
+  assert.match(body, /isUniqueViolation\(|P2002/, "the unique-violation case is no longer recognised");
   assert.match(body, /throw err/, "every failure is swallowed now, including the ones worth knowing about");
 });
 

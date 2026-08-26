@@ -16,6 +16,7 @@
  * ------------------------------------------------------------------ */
 
 import { prisma } from "@/lib/prisma";
+import { isMissingTable } from "@/lib/prisma-errors";
 
 export type ArchiveOverrides = Record<string, boolean>;
 
@@ -24,19 +25,11 @@ export type ArchiveOverrides = Record<string, boolean>;
  * The table is created by prisma/migrations-manual/2026-07-30-lab-archive.sql,
  * run by hand later (prisma db push is blocked by the legacy Catchup* tables,
  * bugs.md #11), so pre-migration reads MUST degrade to the registry defaults
- * rather than crash /lab. Same shape as isMissingCatchupTable in
- * src/lib/catchups.ts.
+ * rather than crash /lab. The shape is shared with isMissingCatchupTable
+ * through isMissingTable; only the table name differs.
  */
 export function isMissingLabTable(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  const e = err as { code?: unknown; message?: unknown };
-  const code = typeof e.code === "string" ? e.code : "";
-  if (code === "P2021") return true; // Prisma: the table does not exist
-  if (code === "42P01") return true; // Postgres undefined_table (raw, via the pg adapter)
-  const msg = typeof e.message === "string" ? e.message : "";
-  // Defensive fallback, scoped to our table so an unrelated error is never masked.
-  if (/LabRoomState/.test(msg) && /does not exist/i.test(msg)) return true;
-  return false;
+  return isMissingTable(err, /LabRoomState/);
 }
 
 /**

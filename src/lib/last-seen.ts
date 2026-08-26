@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { isUniqueViolation } from "@/lib/prisma-errors";
 
 /* ------------------------------------------------------------------ *
  *  Presence: who is here, where, on what, and for how long.
@@ -120,7 +121,7 @@ async function recordVisit(
        this browser raced into the create together. Either way there is
        nothing to record and nothing to report -- the row that won is the
        right one. Anything else is re-thrown to the caller's own guard. */
-    if (!(err && typeof err === "object" && "code" in err && err.code === "P2002")) throw err;
+    if (!isUniqueViolation(err)) throw err;
   }
 }
 
