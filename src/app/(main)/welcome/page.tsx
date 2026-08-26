@@ -10,12 +10,11 @@ export const metadata: Metadata = {
   title: "Welcome",
 };
 
-// Route name: /welcome, not /onboarding. A small, unrelated "complete your
-// profile" page already lives at (auth)/onboarding (dead code today — it is
-// not linked from anywhere post-registration hands off to this route
-// instead — but its URL cannot be reused without deleting someone else's
-// file, which is out of scope here). /welcome is this task's own suggested
-// fallback name for exactly this situation.
+// Route name: /welcome, not /onboarding. It was named around an unrelated
+// "complete your profile" page that used to sit at (auth)/onboarding, whose
+// URL could not be reused at the time; that file has since been deleted, so
+// the collision this name avoided no longer exists. The name stays because
+// it is the linked destination post-registration hands off to.
 const STEP_IDS: OnboardingStepId[] = ["welcome", "register", "houses", "photo", "done"];
 
 export default async function WelcomePage({

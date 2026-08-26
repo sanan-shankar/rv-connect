@@ -2,8 +2,9 @@
 
 /* ------------------------------------------------------------------ *
  *  Shared plumbing for the small resident hoopoe moments (empty search
- *  results, empty saved posts, empty group, loading companion, and
- *  friends). These are ambient companions living inside an already-drawn
+ *  results, empty saved posts, and friends; the empty-group and
+ *  loading-companion moments it also used to serve have been deleted).
+ *  These are ambient companions living inside an already-drawn
  *  empty state, not a standalone feature: the bird is decorative and
  *  secondary, the empty state's own copy is what actually communicates
  *  "there is nothing here". Every moment component wraps its <Hoopoe> in

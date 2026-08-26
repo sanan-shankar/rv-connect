@@ -195,7 +195,7 @@ export const REGISTRY: LabEntry[] = [
     title: "Four ways to ask",
     group: "Delight",
     status: "active",
-    note: "Four full rebuilds of the Support page (Plate, Aviary, Days, Stamps); append ?v=<key> to deep-link. Aviary renders the PARKED solid-plus-birds design via the shared SupportWood; one boolean in wood-mount.tsx puts it back on /support.",
+    note: "Four full rebuilds of the Support page (Plate, Aviary, Days, Stamps); append ?v=<key> to deep-link. Aviary renders the PARKED solid-plus-birds design via the shared SupportWood (src/components/support/wood.tsx), which is lab-only: nothing on /support mounts it.",
   },
   {
     href: "/lab/everything",

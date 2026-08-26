@@ -17,8 +17,12 @@
  * then sticks to the bottom of the viewport with the bird, its name, and
  * what confirming means, so it stays reachable however far down the grid
  * the choice was made. Only "Make it my bird" writes. The member's current
- * bird wears a canopy check, and re-picking is allowed forever: the perk is
- * standing, so there is nothing to meter. */
+ * bird wears a canopy check. Re-picking is NOT free: it is ONE PICK PER
+ * CONTRIBUTION (owner, 2026-08-18). The pick is spent on use (`birdPickedAt`)
+ * and regranted only by a paid contribution newer than the last spend, so a
+ * second click is refused. This paragraph used to claim the opposite; the
+ * rule it described was abolished (audit C-049). support/actions.ts's
+ * `chooseBird` is where the live rule is written out. */
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";

@@ -45,7 +45,7 @@ export async function getNotifications(opts?: {
   const page = hasMore ? rows.slice(0, take) : rows;
 
   // The prune, piggy-backed on a first-page open the same way the mail queue
-  // drains on page load (no cron on this project). Two cheap queries: find
+  // drains on page load; no scheduled job does either. Two cheap queries: find
   // the KEEP-th newest row, delete everything older. Skipped on later pages
   // so scrolling can never delete rows out from under its own cursor.
   if (!opts?.cursor) {
