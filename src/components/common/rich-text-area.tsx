@@ -19,7 +19,8 @@
  * ------------------------------------------------------------------ */
 
 import { useCallback, useRef } from "react";
-import { cn, renderRichText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { renderRichText } from "@/lib/rich-text";
 import {
   applyFormatShortcut,
   insertPlainTextPaste,

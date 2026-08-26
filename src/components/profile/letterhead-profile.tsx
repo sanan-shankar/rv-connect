@@ -97,7 +97,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FULL_NAME_MAX, cn, formatPhoneDisplay } from "@/lib/utils";
+import { FULL_NAME_MAX, cn } from "@/lib/utils";
+import { formatPhoneDisplay } from "@/lib/phone";
 import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
 
