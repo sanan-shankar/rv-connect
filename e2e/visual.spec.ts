@@ -20,15 +20,18 @@ type Route = {
   why: string;
   /** Signed-out surfaces skip the stored admin cookie. */
   anonymous?: boolean;
+  /** See LIVE ROUTES below. "band" masks the content under the page header;
+   *  "map" masks only the world map and its headcount. */
+  live?: "band" | "map";
 };
 
 const ROUTES: Route[] = [
   { path: "/", name: "landing", why: "the front door; the only page a stranger sees", anonymous: true },
   { path: "/login", name: "login", why: "auth chrome + the hoopoe eye-cover easter egg", anonymous: true },
-  { path: "/feed", name: "feed", why: "the spine: ContentColumn width, PostCard, composer" },
-  { path: "/directory", name: "directory", why: "the map is the distinctive draw and the most fragile layout" },
-  { path: "/letters", name: "letters", why: "the reading surface and its serif type scale" },
-  { path: "/catchups", name: "catchups", why: "rebuilt surface, most recent churn" },
+  { path: "/feed", name: "feed", why: "the spine: ContentColumn width and offset", live: "band" },
+  { path: "/directory", name: "directory", why: "the map is the distinctive draw and the most fragile layout", live: "map" },
+  { path: "/letters", name: "letters", why: "the reading surface: the narrow measure the serif needs", live: "band" },
+  { path: "/catchups", name: "catchups", why: "rebuilt surface, most recent churn", live: "band" },
   { path: "/collection", name: "collection", why: "photo grid; catches image-sizing regressions" },
   { path: "/support", name: "support", why: "the tree backdrop + CostBar, retuned three times" },
   { path: "/birds", name: "birds", why: "50 avatar glyphs; catches a broken plumage path fast" },
@@ -68,6 +71,110 @@ function volatileRegions(page: Page) {
      * this suite watches the pages it sits on. */
     page.getByRole("button", { name: /notifications/i }),
   ];
+}
+
+/* ---- LIVE ROUTES ------------------------------------------------- *
+ *
+ * Four routes photograph a database that real people are changing. A new
+ * post, a new signup, one saved draft, and the page below it moves --
+ * so feed, directory, letters and catchups were red on every run from
+ * 2026-08-25 onward, on both viewports, for reasons no commit caused.
+ * Session 1 of the refactor campaign inherited all eight failures and
+ * could not tell them apart from a real regression, which is the whole
+ * cost: a suite that is red every morning gets read as noise, and then
+ * the ninth failure -- the real one -- is read as noise too.
+ *
+ * They are NOT rebaselined against today's posts, because a baseline
+ * made from those is stale by tomorrow's. Each is masked as narrowly as
+ * its own drift allows, which is two different amounts:
+ *
+ * "band" -- feed, letters, catchups. Inserting one post or saving one
+ * draft moves everything below it, so no per-element mask helps: the
+ * page is shot at viewport height and the content under the page header
+ * is covered. What still fails a bad commit: the sidebar, the mobile
+ * header, the page background, and the header band itself -- the serif
+ * title, the Canopy pill, the spacing -- which is where a token change
+ * shows up first. Plus spine(), which pins the content column's exact x
+ * and width as numbers with a readable message.
+ *
+ * "map" -- directory, which drifts far more narrowly: the headcount, and
+ * cluster circles that grow as people sign up. Its layout is the most
+ * fragile in the app and the reason it is in this suite, so only the map
+ * drawing and the headcount are masked. The search field, the filter
+ * pills, the Map/Batches toggle and the map's own container box are all
+ * still compared, full page.
+ *
+ * What is given up either way: how one post, letter or Catch-up card
+ * renders. This suite could never hold that steady against a database
+ * real people are writing to.
+ *
+ * The other seven routes are unchanged: full page, nothing masked but
+ * the volatile bits below. /collection is deliberately NOT in this list
+ * -- photos arrive rarely enough that its picture still means something,
+ * and it is the one that catches image-sizing regressions.
+ *
+ * If full coverage of these four is ever wanted back, the fix is seeded
+ * content, not a bigger mask: point the suite at a database it owns.
+ * ------------------------------------------------------------------ */
+
+/* Mark the live band so it can be masked by selector. The page header --
+   title plus its actions -- is the first thing inside <main> and starts
+   at main's own top; member content is the next band down. So: descend
+   through the wrappers that begin at the top, and mark the first run of
+   elements that begins clear of the header. No product code carries a
+   test attribute for this; the marking happens on the page, at run time,
+   and dies with the context. */
+async function markLiveBand(page: Page) {
+  const marked = await page.evaluate(() => {
+    const main = document.querySelector("main");
+    if (!main) return 0;
+    const top = main.getBoundingClientRect().top;
+    let n = 0;
+    const visit = (el: Element) => {
+      for (const child of Array.from(el.children)) {
+        const r = child.getBoundingClientRect();
+        if (r.height === 0) continue;
+        if (r.top - top >= 50) {
+          child.setAttribute("data-visual-live", "");
+          n += 1;
+        } else visit(child);
+      }
+    };
+    visit(main);
+    return n;
+  });
+  /* Nothing marked means the shape of the page changed under the rule and
+     the mask is now silently covering nothing -- the failure mode that
+     makes a masked suite worthless. Fail loudly instead. */
+  expect(marked, "no live content band found to mask").toBeGreaterThan(0);
+}
+
+/** What each live route masks, beyond the volatile bits every route masks. */
+function liveRegions(page: Page, route: Route) {
+  if (route.live === "band") return [page.locator("[data-visual-live]")];
+  if (route.live === "map")
+    return [
+      /* The map drawing itself. `touch-none select-none` is functional --
+         it stops a drag selecting the continents -- so it is a steadier
+         hook than any layout class. */
+      page.locator("main svg.touch-none"),
+      /* "63 people", which changes with every signup. */
+      page.getByText(/^\d[\d,]*\s+(people|person)$/),
+    ];
+  return [];
+}
+
+/** The spine: content sits in one column, the same width on every route. */
+async function spine(page: Page, name: string) {
+  const box = await page.locator("main").boundingBox();
+  expect(box, `${name}: no <main> to measure`).not.toBeNull();
+  const viewport = page.viewportSize()!;
+  const sidebar = viewport.width >= 1180 ? 248 : 0;
+  expect(Math.round(box!.x), `${name}: content column starts at the wrong x`).toBe(sidebar);
+  expect(
+    Math.round(box!.width),
+    `${name}: content column is the wrong width`,
+  ).toBe(viewport.width - sidebar);
 }
 
 /* networkidle never arrives on a page that polls or holds a stream open,
@@ -113,9 +220,15 @@ for (const route of ROUTES) {
     await page.goto(route.path, { waitUntil: "domcontentloaded" });
     await settle(page);
 
+    if (route.live) await spine(page, route.name);
+    if (route.live === "band") await markLiveBand(page);
+
     await expect(page).toHaveScreenshot(`${route.name}.png`, {
-      fullPage: true,
-      mask: volatileRegions(page),
+      /* A "band" route is shot at viewport height: full-page would change
+         size the moment somebody posts, and a size mismatch fails before
+         any mask is even consulted. */
+      fullPage: route.live !== "band",
+      mask: [...volatileRegions(page), ...liveRegions(page, route)],
     });
   });
 }
