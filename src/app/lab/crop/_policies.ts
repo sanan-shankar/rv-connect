@@ -53,6 +53,22 @@ export const TODAY_MAX_H = 384;
 export const MIN_RATIO = 0.8;
 export const MAX_RATIO = 1.91;
 
+/**
+ * The floor is the real lever, and this is the thing the first pass of this
+ * room got wrong by leaving it fixed.
+ *
+ * Instagram's 4:5 floor is tuned to Instagram's column, which is about 470px
+ * on a desktop, so a 4:5 card there is 587px tall. OUR column is 728px, and
+ * the same 4:5 floor comes out at 910px, which is more than a laptop
+ * screenful. Copying the ratio without copying the column copies the wrong
+ * thing. So the floor is a control, not a constant.
+ */
+export const FLOORS = [
+  { v: 0.8, label: "4:5", note: "Instagram's floor. Generous to portraits." },
+  { v: 1, label: "1:1", note: "No card is ever taller than it is wide." },
+  { v: 1.25, label: "5:4", note: "Everything leans landscape. Shortest feed." },
+] as const;
+
 /** Policy "snap": the only four shapes a card may take. */
 export const SNAP_RATIOS = [16 / 9, 3 / 2, 1, 4 / 5];
 
@@ -81,13 +97,20 @@ function keptAt(r: number, box: number): number {
 
 /** The nearest allowed shape, measured in ratio rather than in difference,
  *  so 2:1 and 1:2 are treated as equally far from square. */
-function nearestSnap(r: number): number {
-  return SNAP_RATIOS.reduce((best, a) =>
+function nearestSnap(r: number, floor: number): number {
+  const allowed = SNAP_RATIOS.filter((a) => a >= floor);
+  const pool = allowed.length ? allowed : [Math.max(...SNAP_RATIOS)];
+  return pool.reduce((best, a) =>
     Math.abs(Math.log(r / a)) < Math.abs(Math.log(r / best)) ? a : best
   );
 }
 
-export function frameFor(policy: PolicyKey, photo: Specimen, width: number): Frame {
+export function frameFor(
+  policy: PolicyKey,
+  photo: Specimen,
+  width: number,
+  floor: number = MIN_RATIO
+): Frame {
   const r = photo.w / photo.h;
   const trueHeight = width / r;
 
@@ -113,7 +136,7 @@ export function frameFor(policy: PolicyKey, photo: Specimen, width: number): Fra
        extremes are trimmed, and a trimmed portrait keeps its top, because
        that is where heads are. */
     case "bounds": {
-      const box = clamp(r, MIN_RATIO, MAX_RATIO);
+      const box = clamp(r, floor, MAX_RATIO);
       return {
         height: width / box,
         fit: "cover",
@@ -127,7 +150,7 @@ export function frameFor(policy: PolicyKey, photo: Specimen, width: number): Fra
        so the trim is always small and the feed only ever has four
        rhythms in it. */
     case "snap": {
-      const box = nearestSnap(r);
+      const box = nearestSnap(r, floor);
       return {
         height: width / box,
         fit: "cover",
@@ -151,7 +174,7 @@ export function frameFor(policy: PolicyKey, photo: Specimen, width: number): Fra
     /* The same box as "bounds", but the visible window is pulled towards
        whatever sharp decided the subject was. */
     case "focal": {
-      const box = clamp(r, MIN_RATIO, MAX_RATIO);
+      const box = clamp(r, floor, MAX_RATIO);
       return {
         height: width / box,
         fit: "cover",
@@ -173,6 +196,11 @@ export const POLICIES: { key: PolicyKey; name: string; line: string }[] = [
 ];
 
 /** The whole feed's height under one policy: what scrolling actually costs. */
-export function stackHeight(policy: PolicyKey, photos: Specimen[], width: number): number {
-  return photos.reduce((sum, p) => sum + frameFor(policy, p, width).height, 0);
+export function stackHeight(
+  policy: PolicyKey,
+  photos: Specimen[],
+  width: number,
+  floor?: number
+): number {
+  return photos.reduce((sum, p) => sum + frameFor(policy, p, width, floor).height, 0);
 }

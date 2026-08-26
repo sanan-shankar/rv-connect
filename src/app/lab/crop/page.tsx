@@ -21,6 +21,7 @@ import { DelightShell, DemoCard, Seg } from "../_kit";
 import { SPECIMENS } from "./_specimens";
 import { justifiedRows } from "./_justified";
 import {
+  FLOORS,
   POLICIES,
   WIDTHS,
   frameFor,
@@ -37,12 +38,14 @@ function Frame({
   photo,
   policy,
   width,
+  floor,
 }: {
   photo: Specimen;
   policy: PolicyKey;
   width: number;
+  floor: number;
 }) {
-  const f = frameFor(policy, photo, width);
+  const f = frameFor(policy, photo, width, floor);
   return (
     <div className="cr-frame" style={{ width, height: f.height }}>
       {f.blurBehind && (
@@ -72,11 +75,11 @@ function Kept({ kept }: { kept: number }) {
 /* ------------------------------------------------------------------ *
  *  Mode one: one photograph, all six policies, stacked at true size.
  * ------------------------------------------------------------------ */
-function SixWays({ photo, width }: { photo: Specimen; width: number }) {
+function SixWays({ photo, width, floor }: { photo: Specimen; width: number; floor: number }) {
   return (
     <div className="cr-stack">
       {POLICIES.map((p) => {
-        const f = frameFor(p.key, photo, width);
+        const f = frameFor(p.key, photo, width, floor);
         return (
           <div key={p.key} className="cr-row">
             <div className="cr-row-head" style={{ width }}>
@@ -89,7 +92,7 @@ function SixWays({ photo, width }: { photo: Specimen; width: number }) {
                 <Kept kept={f.kept} />
               </div>
             </div>
-            <Frame photo={photo} policy={p.key} width={width} />
+            <Frame photo={photo} policy={p.key} width={width} floor={floor} />
           </div>
         );
       })}
@@ -102,9 +105,9 @@ function SixWays({ photo, width }: { photo: Specimen; width: number }) {
  *  This is the mode that answers "definitely don't want some huge ass
  *  pictures to keep scrolling past".
  * ------------------------------------------------------------------ */
-function ScrollIt({ policy, width }: { policy: PolicyKey; width: number }) {
+function ScrollIt({ policy, width, floor }: { policy: PolicyKey; width: number; floor: number }) {
   const [screens, setScreens] = useState<number | null>(null);
-  const total = stackHeight(policy, SPECIMENS, width);
+  const total = stackHeight(policy, SPECIMENS, width, floor);
 
   useEffect(() => {
     setScreens(total / window.innerHeight);
@@ -125,7 +128,7 @@ function ScrollIt({ policy, width }: { policy: PolicyKey; width: number }) {
               <span className="cr-when">2 days ago</span>
             </header>
             <p className="cr-body">{photo.note}</p>
-            <Frame photo={photo} policy={policy} width={width} />
+            <Frame photo={photo} policy={policy} width={width} floor={floor} />
             <footer>
               <span>12 loves</span>
               <span>3 replies</span>
@@ -220,6 +223,13 @@ export default function CropRoom() {
   const [photoKey, setPhotoKey] = useState(SPECIMENS[0].key);
   const [policy, setPolicy] = useState<PolicyKey>("bounds");
   const [count, setCount] = useState<"2" | "3" | "4" | "6">("3");
+  const [floor, setFloor] = useState<number>(FLOORS[0].v);
+  /* Brief #39, "rules for how wide the feed can be". A ratio floor cannot
+     save a wide screen on its own: at a 1216px column even a square photo is
+     1216px tall. Capping the PHOTO rather than the card is the other lever,
+     and the two together are what actually decide whether the feed is a
+     chore. Kept separate so each can be judged on its own. */
+  const [cap, setCap] = useState<number>(0);
   const stageRef = useRef<HTMLDivElement>(null);
 
   /* Every control is in the URL, so a particular comparison can be linked,
@@ -240,9 +250,14 @@ export default function CropRoom() {
     if (po && POLICIES.some((p) => p.key === po)) setPolicy(po as PolicyKey);
     const c = q.get("n");
     if (c === "2" || c === "3" || c === "4" || c === "6") setCount(c);
+    const fl = Number(q.get("floor"));
+    if (FLOORS.some((f) => f.v === fl)) setFloor(fl);
+    const cp = Number(q.get("cap"));
+    if (cp === 0 || cp === 720 || cp === 900) setCap(cp);
   }, []);
 
-  const width = WIDTHS[widthKey].px;
+  const column = WIDTHS[widthKey].px;
+  const width = cap ? Math.min(column, cap) : column;
   const photo = SPECIMENS.find((s) => s.key === photoKey) ?? SPECIMENS[0];
   const many = SPECIMENS.slice(0, Number(count));
 
@@ -270,6 +285,37 @@ export default function CropRoom() {
             />
           </label>
           <p className="cr-ctl-note">{WIDTHS[widthKey].note}</p>
+
+          <label className="cr-ctl">
+            <span>Portrait floor</span>
+            <Seg
+              options={FLOORS.map((f) => ({ v: String(f.v), label: f.label }))}
+              value={String(floor)}
+              onChange={(v) => setFloor(Number(v))}
+            />
+          </label>
+          <p className="cr-ctl-note">
+            {FLOORS.find((f) => f.v === floor)?.note} A tall photo comes out{" "}
+            {Math.round(width / floor)}px high in this column.
+          </p>
+
+          <label className="cr-ctl">
+            <span>Photo width</span>
+            <Seg
+              options={[
+                { v: "0", label: "Full column" },
+                { v: "900", label: "Cap at 900px" },
+                { v: "720", label: "Cap at 720px" },
+              ]}
+              value={String(cap)}
+              onChange={(v) => setCap(Number(v))}
+            />
+          </label>
+          <p className="cr-ctl-note">
+            {cap
+              ? `The card stays ${column}px wide; the photograph inside it stops at ${width}px.`
+              : "The photograph grows with the card, all the way to 1216px."}
+          </p>
 
           <label className="cr-ctl">
             <span>Looking at</span>
@@ -308,7 +354,7 @@ export default function CropRoom() {
           </div>
           <p className="cr-caption">{photo.note}</p>
           <div className="cr-stage" ref={stageRef}>
-            <SixWays photo={photo} width={width} />
+            <SixWays photo={photo} width={width} floor={floor} />
           </div>
           </div>
         </DemoCard>
@@ -334,7 +380,7 @@ export default function CropRoom() {
             ))}
           </div>
           <div className="cr-stage">
-            <ScrollIt policy={policy} width={width} />
+            <ScrollIt policy={policy} width={width} floor={floor} />
           </div>
           </div>
         </DemoCard>
