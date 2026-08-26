@@ -26,7 +26,7 @@ import { escapeLike, insensitive } from "@/lib/db-text";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { clearPostNotifications } from "@/lib/post-notifications";
-import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
+import { parseJsonArray, valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { isLetterDraft } from "@/lib/draft-rule";
@@ -35,19 +35,6 @@ import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
 /** The author fields a rendered comment needs: the shared byline shape, plus
  *  the `avatarColor` the comment row's own type still declares. */
 const COMMENT_AUTHOR_SELECT = { ...AUTHOR_CARD_SELECT, avatarColor: true } as const;
-
-/** The url list out of a post's `images` column. Bad JSON reads as no images,
- *  never as a throw: a post with a corrupt column should still delete, and
- *  should still post. */
-function parseImageUrls(images: string | null | undefined): string[] {
-  if (!images) return [];
-  try {
-    const parsed = JSON.parse(images);
-    return Array.isArray(parsed) ? parsed.filter((u) => typeof u === "string") : [];
-  } catch {
-    return [];
-  }
-}
 
 /**
  * Delete a post and its stored images, in the order that cannot leave a live
@@ -74,7 +61,7 @@ async function deletePostWithImages(
      about a feed post carry different links. */
   kind: string | null
 ): Promise<void> {
-  const urls = parseImageUrls(images);
+  const urls = parseJsonArray(images);
   const orphaned = await prisma.$transaction(async (tx) => {
     /* Only bytes that no surviving row names (audit C-018).
      *
@@ -95,7 +82,7 @@ async function deletePostWithImages(
             select: { images: true },
           })
         : [];
-    const kept = new Set(stillUsed.flatMap((row) => parseImageUrls(row.images)));
+    const kept = new Set(stillUsed.flatMap((row) => parseJsonArray(row.images)));
     const orphaned = urls.filter((url) => !kept.has(url));
     if (orphaned.length > 0) {
       await tx.pendingImagePurge.createMany({
@@ -192,7 +179,7 @@ export async function createPost(formData: FormData) {
   // through and later deleted key-by-key, so an unvalidated array let any
   // member wipe every object whose URL they could scrape. `imagesJson` is what
   // gets stored; nothing else reaches the column.
-  const ownership = ownedUploadUrls(parseImageUrls(parsed.data.images), session.user.id);
+  const ownership = ownedUploadUrls(parseJsonArray(parsed.data.images), session.user.id);
   if (!ownership.ok) return { error: ownership.error };
   const imagesJson = ownership.urls.length ? JSON.stringify(ownership.urls) : null;
 
@@ -576,7 +563,7 @@ export async function editPost(postId: string, formData: FormData) {
       // NEWLY-added URLs are gated, and a bad one is now an ERROR rather than a
       // silent no-op, so adding a second photo to an old draft cannot fail
       // invisibly (write-path review, Phase 5).
-      const current = new Set(parseImageUrls(post.images));
+      const current = new Set(parseJsonArray(post.images));
       const added = (Array.isArray(arr) ? arr : []).filter(
         (u) => typeof u === "string" && !current.has(u)
       );
