@@ -27,6 +27,7 @@ import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { clearPostNotifications } from "@/lib/post-notifications";
 import { parseJsonArray, valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
+import type { Prisma } from "@/generated/prisma/client";
 import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { isLetterDraft } from "@/lib/draft-rule";
@@ -1068,6 +1069,67 @@ function getTimeFilterDate(
 
 const PAGE_SIZE = 20;
 
+/**
+ * Everything a post card needs, for whichever member is looking.
+ *
+ * `loadPosts` and `loadSavedPosts` wrote this out separately, and separately
+ * again for the payload below. They had already begun to disagree in ways that
+ * looked deliberate but were not -- one summed poll votes into `sum`, the other
+ * into `s` -- which is the drift audit C-004 closed one level up. The client
+ * types both against a single `PostData`, so the two must agree; now they
+ * cannot fail to.
+ */
+function postInclude(userId: string) {
+  return {
+    author: { select: AUTHOR_CARD_SELECT },
+    _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
+    likes: { where: { userId }, select: { id: true } },
+    bookmarks: { where: { userId }, select: { id: true } },
+    pollOptions: {
+      orderBy: { position: "asc" as const },
+      include: { _count: { select: { votes: true } } },
+    },
+    pollVotes: { where: { userId }, select: { pollOptionId: true } },
+  };
+}
+
+type PostRow = Prisma.PostGetPayload<{ include: ReturnType<typeof postInclude> }>;
+
+/** One row as the client's `PostData`. */
+function serializePost(p: PostRow, viewer: { userId: string; isAdmin: boolean }) {
+  return {
+    id: p.id,
+    kind: p.kind,
+    title: p.title,
+    content: p.content,
+    images: p.images,
+    cityScope: p.cityScope,
+    createdAt: p.createdAt.toISOString(),
+    author: p.author,
+    commentCount: p._count.comments,
+    likeCount: p._count.likes,
+    liked: p.likes.length > 0,
+    /* Saved used to hardcode this true. It did not need to: its query already
+       joins the viewer's own bookmark rows, so every post it returns has one
+       by construction, and this reads the same value from the same data. */
+    bookmarked: p.bookmarks.length > 0,
+    isOwn: p.authorId === viewer.userId,
+    viewerIsAdmin: viewer.isAdmin,
+    poll:
+      p.pollOptions.length > 0
+        ? {
+            options: p.pollOptions.map((o) => ({
+              id: o.id,
+              text: o.text,
+              voteCount: o._count.votes,
+            })),
+            totalVotes: p.pollOptions.reduce((sum, o) => sum + o._count.votes, 0),
+            userVotedOptionId: p.pollVotes[0]?.pollOptionId ?? null,
+          }
+        : null,
+  };
+}
+
 export async function loadPosts(opts?: {
   cursor?: string | null; // opaque: a post id (keyset) or "offset:N"
   authorId?: string; // set => only this author's posts (profile Posts tab)
@@ -1144,19 +1206,7 @@ export async function loadPosts(opts?: {
     OR: audience.OR,
   };
 
-  const include = {
-    author: {
-      select: AUTHOR_CARD_SELECT,
-    },
-    _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
-    likes: { where: { userId: session.user.id }, select: { id: true } },
-    bookmarks: { where: { userId: session.user.id }, select: { id: true } },
-    pollOptions: {
-      orderBy: { position: "asc" as const },
-      include: { _count: { select: { votes: true } } },
-    },
-    pollVotes: { where: { userId: session.user.id }, select: { pollOptionId: true } },
-  };
+  const include = postInclude(session.user.id);
 
   let rows;
   let nextCursor: string | null = null;
@@ -1218,34 +1268,7 @@ export async function loadPosts(opts?: {
   }
 
   return {
-    posts: rows.map((p) => ({
-      id: p.id,
-      kind: p.kind,
-      title: p.title,
-      content: p.content,
-      images: p.images,
-      cityScope: p.cityScope,
-      createdAt: p.createdAt.toISOString(),
-      author: p.author,
-      commentCount: p._count.comments,
-      likeCount: p._count.likes,
-      liked: p.likes.length > 0,
-      bookmarked: p.bookmarks.length > 0,
-      isOwn: p.authorId === session.user.id,
-      viewerIsAdmin: isAdmin,
-      poll:
-        p.pollOptions.length > 0
-          ? {
-              options: p.pollOptions.map((o) => ({
-                id: o.id,
-                text: o.text,
-                voteCount: o._count.votes,
-              })),
-              totalVotes: p.pollOptions.reduce((sum, o) => sum + o._count.votes, 0),
-              userVotedOptionId: p.pollVotes[0]?.pollOptionId ?? null,
-            }
-          : null,
-    })),
+    posts: rows.map((p) => serializePost(p, { userId: session.user.id, isAdmin })),
     hasMore: nextCursor !== null,
     nextCursor,
   };
@@ -1294,23 +1317,7 @@ export async function loadSavedPosts() {
        This was a bare `take: 120` and the 121st saved post simply did not
        exist: no link, no count, no indication (audit Low 76). */
     take: SAVED_POSTS_LIMIT + 1,
-    include: {
-      post: {
-        include: {
-          author: {
-            select: AUTHOR_CARD_SELECT,
-          },
-          _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
-          likes: { where: { userId }, select: { id: true } },
-          bookmarks: { where: { userId }, select: { id: true } },
-          pollOptions: {
-            orderBy: { position: "asc" as const },
-            include: { _count: { select: { votes: true } } },
-          },
-          pollVotes: { where: { userId }, select: { pollOptionId: true } },
-        },
-      },
-    },
+    include: { post: { include: postInclude(userId) } },
   });
 
   const capped = rows.length > SAVED_POSTS_LIMIT;
@@ -1320,34 +1327,7 @@ export async function loadSavedPosts() {
     /* True when there are older saved posts this page did not load, so the
        shelf can say so rather than end silently (audit Low 76). */
     capped,
-    posts: page.map(({ post: p }) => ({
-      id: p.id,
-      kind: p.kind,
-      title: p.title,
-      content: p.content,
-      images: p.images,
-      cityScope: p.cityScope,
-      createdAt: p.createdAt.toISOString(),
-      author: p.author,
-      commentCount: p._count.comments,
-      likeCount: p._count.likes,
-      liked: p.likes.length > 0,
-      bookmarked: true,
-      isOwn: p.authorId === userId,
-      viewerIsAdmin: isAdmin,
-      poll:
-        p.pollOptions.length > 0
-          ? {
-              options: p.pollOptions.map((o) => ({
-                id: o.id,
-                text: o.text,
-                voteCount: o._count.votes,
-              })),
-              totalVotes: p.pollOptions.reduce((s, o) => s + o._count.votes, 0),
-              userVotedOptionId: p.pollVotes[0]?.pollOptionId ?? null,
-            }
-          : null,
-    })),
+    posts: page.map(({ post: p }) => serializePost(p, { userId, isAdmin })),
   };
 }
 
