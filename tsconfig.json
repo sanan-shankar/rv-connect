@@ -21,6 +21,10 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    /* Without this, tsc drops a 1.2MB tsconfig.tsbuildinfo beside tsconfig.json,
+       i.e. in the repo root the owner reads. node_modules/.cache is the
+       conventional tool-cache home and is already ignored wholesale. */
+    "tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo",
     "plugins": [
       {
         "name": "next"
