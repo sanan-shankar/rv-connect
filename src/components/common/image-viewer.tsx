@@ -213,6 +213,22 @@ export function ImageViewer({
     chromeHidden ? "pointer-events-none opacity-0" : "opacity-100"
   );
 
+  /* Avatar, name, date: the same three whether or not the byline below is a
+     link, and it used to be written out under both branches. */
+  const byline = current?.author && (
+    <>
+      <BirdAvatar user={current.author} size={30} />
+      <span className="min-w-0 leading-tight">
+        <span className="block truncate text-[13px] font-semibold text-white">
+          {current.author.name}
+        </span>
+        {current.date && (
+          <span className="block text-[11.5px] text-white/65">{current.date}</span>
+        )}
+      </span>
+    </>
+  );
+
   /* AnimatePresence stays mounted across open/close so the closing fade
      actually plays; only the dialog inside it comes and goes. */
   return (
@@ -364,28 +380,10 @@ export function ImageViewer({
                 href={`/profile/${current.author.id}`}
                 className="flex min-w-0 items-center gap-2.5 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
               >
-                <BirdAvatar user={current.author} size={30} />
-                <span className="min-w-0 leading-tight">
-                  <span className="block truncate text-[13px] font-semibold text-white">
-                    {current.author.name}
-                  </span>
-                  {current.date && (
-                    <span className="block text-[11.5px] text-white/65">{current.date}</span>
-                  )}
-                </span>
+                {byline}
               </Link>
             ) : (
-              <span className="flex min-w-0 items-center gap-2.5">
-                <BirdAvatar user={current.author} size={30} />
-                <span className="min-w-0 leading-tight">
-                  <span className="block truncate text-[13px] font-semibold text-white">
-                    {current.author.name}
-                  </span>
-                  {current.date && (
-                    <span className="block text-[11.5px] text-white/65">{current.date}</span>
-                  )}
-                </span>
-              </span>
+              <span className="flex min-w-0 items-center gap-2.5">{byline}</span>
             ))}
           {hasCaption && (
             <button
