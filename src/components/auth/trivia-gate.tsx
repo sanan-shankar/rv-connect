@@ -12,6 +12,7 @@ import { callAction } from "@/lib/call-action";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { useDeferredAutofocus } from "@/components/common/use-deferred-autofocus";
 import { getTriviaQuestion, checkTrivia } from "./trivia-actions";
+import { gazeFor } from "@/components/mascot/use-hoopoe";
 
 export function TriviaGate({
   hoopoe,
@@ -191,7 +192,7 @@ export function TriviaGate({
           onChange={(e) => {
             setAnswer(e.target.value);
             // the bird watches what you type, sweeping its gaze across the field
-            hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 18) * 2 - 1)));
+            hoopoe.gaze(gazeFor(e.target.value.length, 18));
           }}
           onFocus={() => {
             if (programmaticFocus.current) {

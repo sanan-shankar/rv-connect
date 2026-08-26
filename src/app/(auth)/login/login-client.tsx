@@ -23,6 +23,8 @@ import { TurnstileWidget, type TurnstileHandle } from "@/components/auth/turnsti
 import { RATE_LIMITED } from "@/lib/rate-limit-message";
 import { BOT_CHECK_BLOCKED, BOT_CHECK_FAILED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 import { SIGN_IN_UNAVAILABLE } from "@/lib/sign-in-unavailable-message";
+import { MIN_PASSWORD } from "@/lib/password-rule";
+import { gazeFor } from "@/components/mascot/use-hoopoe";
 
 export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: string | null }) {
   const [email, setEmail] = useState("");
@@ -510,7 +512,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                 onChange={(e) => {
                   setEmail(e.target.value);
                   // follow the email as it's typed too, so the bird feels alive across the form
-                  hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 22) * 2 - 1)));
+                  hoopoe.gaze(gazeFor(e.target.value.length, 22));
                 }}
                 required
                 ref={emailFocusRef}
@@ -538,10 +540,10 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
                   setPassword(e.target.value);
                   // the bird follows what you type whether peeking or covered (head tracks
                   // behind the wings when its eyes are hidden)
-                  hoopoe.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
+                  hoopoe.gaze(gazeFor(e.target.value.length, 16));
                 }}
                 required
-                minLength={8}
+                minLength={MIN_PASSWORD}
                 trailing={
                   <button
                     type="button"

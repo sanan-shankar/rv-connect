@@ -16,6 +16,19 @@ import type { HoopoeApi } from "./hoopoe-kit";
 
 export type UseHoopoe = { ref: RefObject<HoopoeApi | null> } & HoopoeApi;
 
+/**
+ * How far the hoopoe should look along a field that is filling up, clamped to
+ * the [-1, 1] the controller accepts.
+ *
+ * `over` is the length at which the gaze reaches the far end -- roughly how
+ * long an answer that field expects, so an email (22) sweeps more slowly than
+ * a password (16). Seven forms wrote this expression out; the signup form
+ * already had it as a helper and the other six did not, which is why some of
+ * them clamp against a number nobody chose.
+ */
+export const gazeFor = (len: number, over: number) =>
+  Math.max(-1, Math.min(1, (len / over) * 2 - 1));
+
 export function useHoopoe(): UseHoopoe {
   const ref = useRef<HoopoeApi | null>(null);
 

@@ -19,6 +19,18 @@
  * Pure — no imports — so node runs its tests directly (password-rule.test.mjs).
  */
 
+/**
+ * The one password floor. Seven places carried their own 8 -- two named
+ * constants and five bare literals across the schema, the sign-up form, the
+ * login field, the reset client and two server actions -- and
+ * email-actions.ts's comment already worried about it out loud: "Matches the
+ * signup rule... Raising it here alone would lock people out."
+ *
+ * Eight is NIST's floor for a policy that leans on length rather than
+ * composition rules, which is what the checks below are.
+ */
+export const MIN_PASSWORD = 8;
+
 const COMMON = new Set([
   // The perennial top of every breach corpus, 8+ chars.
   "password", "password1", "password123", "passw0rd", "p@ssw0rd", "p@ssword",
@@ -40,7 +52,9 @@ const COMMON = new Set([
  * the rule stands alone.
  */
 export function passwordProblem(password: string, email?: string): string | null {
-  if (password.length < 8) return "Password must be at least 8 characters.";
+  if (password.length < MIN_PASSWORD) {
+    return `Password must be at least ${MIN_PASSWORD} characters.`;
+  }
 
   const flat = password.toLowerCase();
   if (COMMON.has(flat)) {

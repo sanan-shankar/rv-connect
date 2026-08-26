@@ -29,6 +29,7 @@ import { PARTS, type Expression, type Step } from "@/components/mascot/hoopoe-ki
 import { FadeRise } from "@/components/common/motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { gazeFor } from "@/components/mascot/use-hoopoe";
 
 /* The ten emotional chords, named the way a visitor would name them
    rather than the way the type does ("surprise" and "love" are the two
@@ -370,7 +371,7 @@ function PeekABoo() {
      along behind the wings, which is the detail that sells it. */
   function onType(e: React.ChangeEvent<HTMLInputElement>) {
     setValue(e.target.value);
-    h.gaze(Math.max(-1, Math.min(1, (e.target.value.length / 16) * 2 - 1)));
+    h.gaze(gazeFor(e.target.value.length, 16));
   }
 
   return (

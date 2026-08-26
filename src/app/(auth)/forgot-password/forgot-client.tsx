@@ -14,6 +14,7 @@ import { SPRINGS } from "@/components/common/motion";
 import { requestPasswordReset } from "@/components/auth/email-actions";
 import { callAction } from "@/lib/call-action";
 import { TurnstileWidget, type TurnstileHandle } from "@/components/auth/turnstile-widget";
+import { gazeFor } from "@/components/mascot/use-hoopoe";
 
 /* ------------------------------------------------------------------ *
  *  "I forgot my password", step one.
@@ -150,7 +151,7 @@ export function ForgotPasswordClient({
                   // gesture the sign-in form uses, so the two pages feel like
                   // one continuous animal rather than two mascots.
                   hoopoe.gaze(
-                    Math.max(-1, Math.min(1, (e.target.value.length / 22) * 2 - 1)),
+                    gazeFor(e.target.value.length, 22),
                   );
                 }}
                 required
