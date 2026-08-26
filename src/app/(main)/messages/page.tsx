@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { MessageComposer } from "@/components/messages/message-composer";
 import { ThreadList } from "@/components/messages/thread-list";
-import { MessagesEmptyHoopoe } from "@/components/messages/messages-empty-hoopoe";
+import { MessagesEmptyHoopoe } from "@/components/mascot/moments/messages-empty-hoopoe";
 
 export const metadata: Metadata = {
   title: "Messages",

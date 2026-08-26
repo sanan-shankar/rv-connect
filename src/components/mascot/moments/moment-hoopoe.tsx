@@ -15,6 +15,9 @@
  * ------------------------------------------------------------------ */
 
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { Hoopoe } from "@/components/mascot/hoopoe";
+import { useHoopoe } from "@/components/mascot/use-hoopoe";
+import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
 
 /**
@@ -74,4 +77,46 @@ export function useMomentAutoplay(
     io.observe(el);
     return () => io.disconnect();
   }, [ref, delay]);
+}
+
+/**
+ * The stage every moment is played on: one hoopoe, aria-hidden, that stands
+ * down if another bird already holds the screen and otherwise plays its
+ * sequence once the moment scrolls into view.
+ *
+ * All three moments wrote this out identically -- the controller, the stage
+ * ref, the solo guard, the autoplay wiring and the same `aria-hidden` div --
+ * so a moment was ~45 lines of which about eight were the actual
+ * choreography. Now it is the choreography plus a banner.
+ *
+ * `play` is handed the controller with its queue ALREADY CANCELLED, because
+ * all three began that way and it is not a thing to leave to each new moment
+ * to remember: a moment that starts mid-verb from whatever the bird was doing
+ * before is the bug this prevents.
+ */
+export function MomentStage({
+  size,
+  className = "",
+  play,
+}: {
+  size: number;
+  className?: string;
+  play: (h: HoopoeApi) => void;
+}) {
+  const { ref, ...h } = useHoopoe();
+  const stageRef = useRef<HTMLDivElement>(null);
+  const solo = useSoloHoopoe();
+
+  useMomentAutoplay(stageRef, () => {
+    h.cancel();
+    play(h);
+  });
+
+  if (!solo) return null;
+
+  return (
+    <div ref={stageRef} aria-hidden className={className}>
+      <Hoopoe ref={ref} size={size} />
+    </div>
+  );
 }
