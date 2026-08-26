@@ -23,10 +23,10 @@ import { ArrowRight, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
-import { BirdAvatar } from "@/components/common/bird-avatar";
 import { FadeRise } from "@/components/common/motion";
 import { closeAndPrepare, nudgeGroup } from "@/app/(main)/catchups/actions";
 import type { CatchupHomeData, HomeEditionView } from "./types";
+import { QuestionRow } from "./question-row";
 
 /** Same tile shape as the rest of the Catch-up home: one token, all four sides. */
 const TILE = "card-elevated rounded-[var(--radius)] border border-border bg-card p-[var(--space-m)]";
@@ -75,34 +75,7 @@ export function ConsoleAnswering({
           </p>
           <div className="mt-[var(--space-s)] space-y-[var(--space-xs)]">
             {edition.prompts.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-start gap-2.5 rounded-[var(--radius-md)] border border-border/70 bg-background/40 p-[var(--space-s)]"
-              >
-                {p.author ? (
-                  <Link
-                    href={`/profile/${p.author.id}`}
-                    aria-label={p.author.name}
-                    className="shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80 active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    <BirdAvatar user={p.author} size={28} />
-                  </Link>
-                ) : (
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
-                    ?
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <p className="text-sm leading-snug text-foreground">{p.text}</p>
-                  <p className="mt-1 text-[11px] font-medium text-muted-foreground">
-                    {p.isOwn
-                      ? "asked by you"
-                      : p.author
-                        ? `asked by ${p.author.name}`
-                        : "asked anonymously"}
-                  </p>
-                </div>
-              </div>
+              <QuestionRow key={p.id} prompt={p} />
             ))}
           </div>
         </div>
