@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { titleCase } from "@/lib/normalize";
 import {
@@ -56,10 +55,8 @@ export async function loadMorePeople(
    *  cursor row that has left the result set (audit Low 12). */
   loaded = 0
 ): Promise<PeoplePage | { error: string }> {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
+  const denied = await requireAdminAction();
+  if (denied) return denied;
   return loadPeoplePage(readPeopleFilters(params), cursor, loaded);
 }
 
