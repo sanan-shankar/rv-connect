@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ImagePlus, X, BarChart3, Feather, Plus, MapPin, Loader2, Check } from "lucide-react";
 import { m, AnimatePresence } from "motion/react";
@@ -11,7 +12,6 @@ import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { createPost, editPost, publishDraft } from "@/app/(main)/feed/actions";
 import { BirdAvatar, type AvatarUser } from "@/components/common/bird-avatar";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
-import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { downscaleImage } from "@/lib/image-downscale";
 import { directUploadPut } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
@@ -23,10 +23,27 @@ import {
   computeMentionRange,
   serializeEditableToMarkdown,
 } from "@/lib/rich-text-editing";
-import { PollCreator } from "./poll-creator";
-import { MentionDropdown } from "./mention-dropdown";
 import { useTourAnchor } from "@/components/tour/tour-anchors";
 import { safeGet, safeSet, safeRemove } from "@/lib/local-storage";
+
+/* ------------------------------------------------------------------ *
+ *  The composer itself stays static -- its collapsed pill is the first
+ *  thing on /feed and deferring it would delay the page's own content.
+ *  These three are different: none of them can appear until you press
+ *  something. The poll builder waits on "Add a poll", the mention list
+ *  on typing "@", the photo dialog on the image button.
+ * ------------------------------------------------------------------ */
+const PollCreator = dynamic(() => import("./poll-creator").then((m) => m.PollCreator), {
+  ssr: false,
+});
+const MentionDropdown = dynamic(
+  () => import("./mention-dropdown").then((m) => m.MentionDropdown),
+  { ssr: false }
+);
+const AttachImageDialog = dynamic(
+  () => import("@/components/common/attach-image-dialog").then((m) => m.AttachImageDialog),
+  { ssr: false }
+);
 
 /* ------------------------------------------------------------------ *
  *  Rich text <-> markdown bridge. The editor is a contentEditable
@@ -234,6 +251,11 @@ export function CreatePostForm({
   const [expanded, setExpanded] = useState(defaultLetter);
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  /* True from the first press of the photo button onward. The dialog has to
+     stay mounted once it has been opened so its close animation has something
+     to play out of; it must not mount BEFORE that, or the deferred chunk is
+     fetched by a composer nobody has attached anything to. */
+  const [attachMounted, setAttachMounted] = useState(false);
   const [more, setMore] = useState(false); // overflow ("+") menu: poll + letter live here
   // City-scoped audience: null = "Everyone" (the default); otherwise one of the
   // poster's own cities. (It used to be withheld from a group post, whose own
@@ -618,6 +640,17 @@ export function CreatePostForm({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
+  }, [expanded]);
+
+  /* Once the composer is open, all three deferred pieces are one press away,
+     so they are fetched now rather than on the press itself -- off the feed's
+     critical path, but long before anyone can ask for them. A collapsed pill,
+     which is what /feed loads with, still fetches none of them. */
+  useEffect(() => {
+    if (!expanded) return;
+    void import("./poll-creator");
+    void import("./mention-dropdown");
+    void import("@/components/common/attach-image-dialog");
   }, [expanded]);
 
   // Outside-click + Escape. Empty + outside click (or Escape with nothing open)
@@ -1209,20 +1242,25 @@ export function CreatePostForm({
               the glyph ink up under the text box's left edge rather than the
               icon button's invisible bounding box. */}
           <div className="-ml-[9px] flex shrink-0 items-center gap-1">
-            <AttachImageDialog
-              open={attachOpen}
-              onOpenChange={setAttachOpen}
-              onFiles={handleImageFiles}
-              multiple
-              title="Add photos"
-            />
+            {attachMounted && (
+              <AttachImageDialog
+                open={attachOpen}
+                onOpenChange={setAttachOpen}
+                onFiles={handleImageFiles}
+                multiple
+                title="Add photos"
+              />
+            )}
 
             {/* Icon only: the word "Photo" is gone, so the label lives in
                 aria-label/title (and carries the live upload progress, which
                 used to be the button's text). */}
             <SpringPress
               className={iconControl}
-              onClick={() => setAttachOpen(true)}
+              onClick={() => {
+                setAttachMounted(true);
+                setAttachOpen(true);
+              }}
               {...({
                 type: "button",
                 disabled: images.length >= 3 || uploading,

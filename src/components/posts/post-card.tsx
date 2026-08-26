@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight, ShieldAlert, MapPin } from "lucide-react";
 import { ChatCircle, Feather } from "@phosphor-icons/react";
@@ -13,7 +14,6 @@ import {
 import { callAction } from "@/lib/call-action";
 import { useHeartToggle, useBookmarkToggle } from "./use-engagement";
 import { IdentityRow } from "@/components/common/identity-row";
-import { ImageViewer } from "@/components/common/image-viewer";
 import { photoSrc, photoSrcSet, PHOTO_SIZES_FULL, PHOTO_SIZES_HALF } from "@/lib/image-cdn";
 import { MetaDots } from "@/components/common/meta-dots";
 import { PersonName } from "@/components/common/person-name";
@@ -21,11 +21,8 @@ import { VerifiedMark } from "@/components/common/verified-mark";
 import { LoveButton } from "@/components/common/love-button";
 import { BookmarkButton } from "@/components/common/bookmark-button";
 import { ShareButton } from "@/components/common/share-button";
-import { CommentsSection } from "./comments-section";
 import { ReportDialog } from "./report-dialog";
-import { EditPostDialog } from "./edit-post-dialog";
 import { PollDisplay } from "./poll-display";
-import { ModerationDialog } from "@/components/admin/moderation-dialog";
 import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, batchLine, letterTitle, plainExcerpt, readMinutes } from "@/lib/utils";
 import { renderRichText } from "@/lib/rich-text";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
@@ -33,6 +30,43 @@ import { toast } from "sonner";
 import { m, AnimatePresence } from "motion/react";
 import { SPRINGS, EASE_OUT_SMOOTH } from "@/components/common/motion";
 import { safeTruncateIndex } from "@/lib/rich-truncate";
+
+/* ------------------------------------------------------------------ *
+ *  Four pieces of this card only exist after somebody asks for them,
+ *  and until now every one of them shipped inside the feed's first load
+ *  to render nothing: the comment thread (718 lines), the full-screen
+ *  viewer (444, and the app's only `drag` user), the edit dialog and the
+ *  admin moderation dialog. Each already had its render gate; only the
+ *  import changes.
+ *
+ *  ReportDialog is NOT here on purpose. It is mounted unconditionally so
+ *  its own AnimatePresence can play the CLOSE animation (see the comment
+ *  at its call site), which means a dynamic import of it would load on
+ *  render and save nothing. At 137 lines it is not worth restructuring
+ *  that for.
+ *
+ *  Both of the two that sit behind a visible control preload on hover
+ *  and focus, so on any normal pointer the chunk is already in memory
+ *  before the click lands and the deferral is invisible.
+ * ------------------------------------------------------------------ */
+const CommentsSection = dynamic(
+  () => import("./comments-section").then((m) => m.CommentsSection),
+  { ssr: false }
+);
+const ImageViewer = dynamic(
+  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
+  { ssr: false }
+);
+const EditPostDialog = dynamic(
+  () => import("./edit-post-dialog").then((m) => m.EditPostDialog),
+  { ssr: false }
+);
+const ModerationDialog = dynamic(
+  () => import("@/components/admin/moderation-dialog").then((m) => m.ModerationDialog),
+  { ssr: false }
+);
+const preloadComments = () => void import("./comments-section");
+const preloadViewer = () => void import("@/components/common/image-viewer");
 
 /* "Read more" reveals text beyond this many raw characters. Kept as a module
    constant (not a magic number inline) since it is read in two places below. */
@@ -101,6 +135,11 @@ export function PostCard({
   const [showModeration, setShowModeration] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [viewerAt, setViewerAt] = useState<number | null>(null);
+  /* Latched rather than derived from `viewerAt`: the viewer must STAY mounted
+     after it closes, so its own exit animation has something to play out of,
+     but it must not mount before the first open or the deferred chunk would be
+     fetched by every card on the page. True once, then true forever. */
+  const [viewerMounted, setViewerMounted] = useState(false);
   // What the member last saved from the edit dialog, when they have.
   //
   // Every surface that renders a PostCard -- the feed, a group feed, the
@@ -388,7 +427,12 @@ export function PostCard({
                   <button
                     key={i}
                     type="button"
-                    onClick={() => setViewerAt(i)}
+                    onClick={() => {
+                      setViewerMounted(true);
+                      setViewerAt(i);
+                    }}
+                    onPointerEnter={preloadViewer}
+                    onFocus={preloadViewer}
                     aria-label={`View photo ${i + 1} of ${images.length} full screen`}
                     className={`block w-full overflow-hidden rounded-[var(--radius-md)] border border-border transition-opacity duration-150 hover:opacity-95 active:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
                       images.length === 3 && i === 0 ? "col-span-2" : ""
@@ -448,6 +492,8 @@ export function PostCard({
 
           <m.button
             onClick={() => setShowComments(!showComments)}
+            onPointerEnter={preloadComments}
+            onFocus={preloadComments}
             aria-expanded={showComments}
             aria-controls={`comments-${post.id}`}
             aria-label={showComments ? "Hide comments" : "Show comments"}
@@ -486,7 +532,7 @@ export function PostCard({
         </AnimatePresence>
       </article>
 
-      {images.length > 0 && (
+      {images.length > 0 && viewerMounted && (
         <ImageViewer
           images={viewerImages}
           initialIndex={viewerAt ?? 0}

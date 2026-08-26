@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import { Heart, MagnifyingGlass } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -15,10 +16,23 @@ import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
 import { WHEN_OPTIONS, COLLECTION_SORT_OPTIONS } from "@/lib/collection-facets";
 import { loadPhotos, type PhotoData } from "@/app/(main)/collection/actions";
-import { ContributeDialog } from "./contribute-dialog";
-import { ImageViewer } from "@/components/common/image-viewer";
 import { formatDisplayDate } from "@/lib/utils";
 import { useTourAnchor } from "@/components/tour/tour-anchors";
+
+/* ------------------------------------------------------------------ *
+ *  Both open on a press and neither has any presence on the page until
+ *  then, so /collection stops shipping them in its first load. Each is
+ *  latched rather than gated straight off its open flag: once opened
+ *  they stay mounted, which is what their close animations need.
+ * ------------------------------------------------------------------ */
+const ImageViewer = dynamic(
+  () => import("@/components/common/image-viewer").then((m) => m.ImageViewer),
+  { ssr: false }
+);
+const ContributeDialog = dynamic(
+  () => import("./contribute-dialog").then((m) => m.ContributeDialog),
+  { ssr: false }
+);
 
 type SortBy = "newest" | "oldest" | "loved" | "wander";
 
@@ -94,6 +108,10 @@ export function CollectionClient({
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  /* True from the first open onward, never back to false: see the note above
+     the two dynamic imports. */
+  const [dialogMounted, setDialogMounted] = useState(false);
+  const [viewerMounted, setViewerMounted] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   // Which strip the full-screen viewer is browsing (the pending strip and the
   // approved grid are separate sets), and where in it.
@@ -313,7 +331,10 @@ export function CollectionClient({
             data-tour="collection-contribute"
             variant="primary"
             className="hidden rounded-full lg:inline-flex"
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              setDialogMounted(true);
+              setDialogOpen(true);
+            }}
           >
             <Plus className="h-4 w-4" />
             Contribute
@@ -345,7 +366,10 @@ export function CollectionClient({
               variant="primary"
               size="icon"
               className="shrink-0 rounded-full"
-              onClick={() => setDialogOpen(true)}
+              onClick={() => {
+              setDialogMounted(true);
+              setDialogOpen(true);
+            }}
               aria-label="Contribute a photo"
             >
               <Plus className="h-4 w-4" />
@@ -391,7 +415,10 @@ export function CollectionClient({
             data-tour="collection-contribute"
             variant="primary"
             className="mt-5 rounded-full"
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              setDialogMounted(true);
+              setDialogOpen(true);
+            }}
           >
             <Plus className="h-4 w-4" />
             Contribute a photo
@@ -424,23 +451,31 @@ export function CollectionClient({
               </h2>
               <div className="[column-gap:0.75rem] columns-2 sm:columns-3 lg:columns-4">
                 {pending.map((p, i) => (
-                  <Tile key={p.id} photo={p} onOpen={() => setViewer({ list: "pending", index: i })} />
+                  <Tile key={p.id} photo={p} onOpen={() => {
+                    setViewerMounted(true);
+                    setViewer({ list: "pending", index: i });
+                  }} />
                 ))}
               </div>
             </div>
           )}
           <div className="[column-gap:0.75rem] columns-2 sm:columns-3 lg:columns-4">
             {photos.map((p, i) => (
-              <Tile key={p.id} photo={p} onOpen={() => setViewer({ list: "main", index: i })} />
+              <Tile key={p.id} photo={p} onOpen={() => {
+                setViewerMounted(true);
+                setViewer({ list: "main", index: i });
+              }} />
             ))}
           </div>
 
-          <ImageViewer
-            images={viewerImages}
-            initialIndex={viewer?.index ?? 0}
-            open={viewer !== null}
-            onClose={() => setViewer(null)}
-          />
+          {viewerMounted && (
+            <ImageViewer
+              images={viewerImages}
+              initialIndex={viewer?.index ?? 0}
+              open={viewer !== null}
+              onClose={() => setViewer(null)}
+            />
+          )}
           {hasMore && (
             <div className="flex justify-center pt-4">
               <Button
@@ -456,7 +491,7 @@ export function CollectionClient({
         </>
       )}
 
-      <ContributeDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      {dialogMounted && <ContributeDialog open={dialogOpen} onOpenChange={setDialogOpen} />}
     </div>
   );
 }
