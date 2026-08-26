@@ -7,16 +7,12 @@ import { Search, ArrowLeft } from "lucide-react";
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  FacetSelect,
-  FacetSearchSelect,
-  RangeFacetPill,
-  FilterSheet,
-  FilterButton,
-  FilterPopover,
-  SentenceLine,
-  type SentenceToken,
-} from "@/components/common/filters";
+import { FacetSearchSelect } from "@/components/common/filters/facet-search-select";
+import { FacetSelect } from "@/components/common/filters/facet-select";
+import { FilterButton, FilterPopover } from "@/components/common/filters/filter-popover";
+import { FilterSheet } from "@/components/common/filters/filter-sheet";
+import { RangeFacetPill } from "@/components/common/filters/range-facet-pill";
+import { SentenceLine, type SentenceToken } from "@/components/common/filters/sentence-line";
 import { HOUSE_OPTIONS, TYPE_OPTIONS } from "@/lib/directory-facets";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
