@@ -1,5 +1,76 @@
 # Progress Log
 
+## Session 2026-08-26 (fifth) — phase 4 part 1: the same thing, written once
+
+The fifth fix session of the 2026-08-25 refactor audit. Fifteen of phase 4's twenty-one rows,
+in 25 commits. `npm run check` green before every one; `npm run visual` **23/23** (six runs);
+`npm run verify:crawl` 17/17 (twice); `hoopoe-landing-check` all four arrivals passing.
+
+**What a member could see.** Four things, all deliberate.
+
+Eleven hovers that never actually animated now do. `transition-property` takes real CSS
+property names, and `colors` is not one — it is a Tailwind shorthand that exists only as the
+whole utility `transition-colors`, so `transition-[colors,transform]` emitted
+`transition-property: colors, transform` and the colour half matched nothing. The transform
+eased; the colour snapped; nothing anywhere reported it. Directory cards, message threads and
+their image links, the composer's remove button, the landing CTA, the Collection's dialog and
+filter row, the flag control and an onboarding skip were all doing this. Each now names the
+properties its own hover changes, and the protocol audit refuses the broken form so it cannot
+return. A thread row ramps through twelve border colours where it used to jump.
+
+The loading feed shimmers warm instead of pulsing grey. `ui/skeleton.tsx` was stock shadcn —
+`animate-pulse bg-muted`, the thing CLAUDE.md bans by name — with two importers left while the
+other 201 skeletons in the app used the warm utility. The component is gone.
+
+The answering screen's "not available" card takes the Catch-up home's geometry: 48px of
+padding down to about 26, the measure from 768px to 672. It had missed the owner's own
+2026-07-25 correction because it was a second copy of the card. And the answering console's
+question labels take the collecting console's wording ("You (anonymous)" rather than "asked by
+you"), because only one of the two vocabularies tells you whether the question you asked is
+showing your name.
+
+**The riskiest piece** was the hoopoe's flight. /login and /signup each carried the whole
+arrival machinery — the session flag, the perch report with its DOMMatrix un-shift, the
+ResizeObserver watch, the handoff reveal, the mobile fly-in — comment for comment identical,
+and auth-panel.tsx held a third copy of the fly-in half. It is one hook now. The proof is
+`hoopoe-landing-check`, which drives all four arrivals and measures them: final flyer position
+0.00px from the destination rect, two overlap frames, no correction jump. The AuthPanel pages
+were sampled frame by frame separately — 43 veiled frames with no flash, first visible frame
+139px above the viewport, a 407px descent.
+
+**Where the audit was wrong.** Six places, all recorded in the campaign's handover. catchups-12
+was already done in full by an earlier phase. duplication-19 names four `useWideViewport` call
+sites and only two are that hook — one moved into the flight machinery this session, and one is
+a bare `.matches` read inside a click handler. feed-posts-06's "likely a fourth copy" is two
+more, so all five hearts in the app now share one optimistic toggle rather than three of five.
+
+**One row deliberately not done.** Both findings propose a shared pager for the feed, a
+profile's Posts tab and the Collection. They are not variants of one thing: the Collection pages
+by offset and carries a total, the other two page by cursor; two re-arm the skeleton on a filter
+change and one deliberately does not; two carry the double-tap ref-guard and one does not. A
+hook over them needs four options, which is what both findings say not to invent — and both
+carry an explicit escape for exactly this. What was genuinely one rule, `appendUnseen`, is now
+shared by all four lists and pinned.
+
+**Five test pins went red**, each because it asserted a literal that a shared helper replaced.
+Every one was rewritten to check the behaviour rather than the spelling, and — the part that
+matters — **every one was then mutation-tested**. Three of the five would have gone on passing
+against a helper that had quietly lost the guard the pin exists for. B-061 is now stricter than
+it was: it also fails a Keeper action that reaches the freeze without asking for it.
+
+**Filed, not fixed**: the /login password peek-a-boo does not cover the bird's eyes. Not at the
+end of the intro, not on the reveal toggle. /signup's register step tucks the wings correctly
+with the same two verbs, so the mascot is fine and /login is not. Proved not to be a regression
+from this campaign by probing the same page at `e7efc97`, before any of these files were
+touched: the identical wings-down bird. It is bug 20 in `docs/planning/bugs.md`, with a note
+that no gate can see it — /login's hoopoe sits inside a masked volatile region, so a green
+visual run says nothing about the bird.
+
+**Two gotchas worth keeping.** Deleting a tracked file makes `npm run check` *crash* rather than
+fail, in the protocol audit, until the deletion is staged: it reads `git ls-files`, not the
+working tree. And `verify-shot.mjs` swallows a failed screenshot in a bare `try {} catch {}` and
+still prints its output path, so it will report success on a file it never wrote.
+
 ## Session 2026-08-26 (fourth) — phase 3: one spelling for the things written many times
 
 The fourth fix session of the 2026-08-25 refactor audit. All 14 phase-3 rows executed in 21
