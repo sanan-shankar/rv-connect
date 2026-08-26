@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { rateLimit } from "@/lib/rate-limit";
+import { escapeLike, SEARCH_TERM_MAX } from "@/lib/db-text";
 import { logSearch } from "@/lib/search-log";
 import { canonicalPlaceId } from "@/lib/place-aliases";
 import { formatPlaceLabel } from "@/lib/place-input";
@@ -50,12 +51,6 @@ type PlaceRow = {
   lng: number;
 };
 
-// Escape LIKE/ILIKE metacharacters in user input so a typed "%" or "_" is
-// matched literally instead of acting as a wildcard.
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
-}
-
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
@@ -75,10 +70,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json<PlaceSearchResult[]>([]);
   }
 
-  const escaped = escapeLike(raw);
+  /* The shared escapeLike, not a local copy of its replace: this route runs
+     `ILIKE '%q%'` against the 234k-row Place table's UNINDEXED altNames column
+     for any query of four characters or more, which is exactly the shape audit
+     C-015 closed everywhere else. The clamp that comes with the shared one is
+     the fix -- a 20KB `q` here is hundreds of millions of comparisons holding a
+     pool connection, and the rate limit above caps how MANY requests arrive,
+     never what one of them costs. A hundred characters is longer than any real
+     place name, so nobody typing one will ever meet it. */
+  const term = raw.slice(0, SEARCH_TERM_MAX);
+  const escaped = escapeLike(term);
   const prefixPattern = `${escaped}%`;
   const containsPattern = `%${escaped}%`;
-  const lowerQuery = raw.toLowerCase();
+  // Bounded too, so the ORDER BY equality comparisons carry the same cap.
+  const lowerQuery = term.toLowerCase();
 
   const altNamesClause =
     raw.length >= 4
