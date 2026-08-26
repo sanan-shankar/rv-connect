@@ -173,6 +173,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      /* The world atlas (public/geo/*.json) is immutable reference data --
+       * coastlines, fetched by the directory map instead of being compiled
+       * into its JavaScript. It carries no build hash, so without this it
+       * would revalidate on every navigation; with it, it is fetched once
+       * ever. That is the trade: to change one of these files you must RENAME
+       * it, because a same-named replacement will never be re-fetched by a
+       * browser that already has it. alumni-map.tsx says so at the callsite. */
+      {
+        source: "/geo/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
       /* Development only, and the reason is Safari (2026-08-24). Node closes an
        * idle keep-alive connection after six seconds and tells no one -- measured
        * on this server, not assumed. Safari then sends its next navigation into
