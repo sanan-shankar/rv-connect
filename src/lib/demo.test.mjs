@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { read } from "./test-kit.mjs";
 
 import { demoWriteAllowed, DEMO_CLOSED_PATHS, DEMO_USER_ID } from "./demo.ts";
 
@@ -223,8 +221,7 @@ test("the closed-path list in proxy.ts matches the one in demo.ts", () => {
   // proxy.ts is bundled for the edge runtime and cannot import demo.ts, so
   // it keeps its own copy. This is the thing that stops the two drifting:
   // close a route in one place and forget the other, and this fails.
-  const here = dirname(fileURLToPath(import.meta.url));
-  const proxySrc = readFileSync(resolve(here, "../proxy.ts"), "utf8");
+  const proxySrc = read("src/proxy.ts");
 
   const block = proxySrc.match(/const DEMO_CLOSED_PATHS = \[([\s\S]*?)\];/);
   assert.ok(block, "DEMO_CLOSED_PATHS not found in proxy.ts");
@@ -252,10 +249,8 @@ test("the closed-path list in proxy.ts matches the one in demo.ts", () => {
  *  fails here until somebody decides whether the demo may have it.
  * ------------------------------------------------------------------ */
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-
 test("every column the contact editor writes is one the demo may write", () => {
-  const src = readFileSync(resolve(HERE, "../components/profile/profile-actions.ts"), "utf8");
+  const src = read("src/components/profile/profile-actions.ts");
   const fn = src.slice(src.indexOf("export async function updateContactMethods"));
   const update = fn.slice(fn.indexOf("prisma.user.update"));
   const dataBlock = update.slice(update.indexOf("data: {"), update.indexOf("\n  });"));
@@ -281,7 +276,7 @@ test("the demo says why it will not remove a photo, rather than failing", () => 
     false,
     "photoUrl became writable in the demo; it is an upload output"
   );
-  const actions = readFileSync(resolve(HERE, "../components/settings/actions.ts"), "utf8");
+  const actions = read("src/components/settings/actions.ts");
   const fn = actions.slice(actions.indexOf("export async function removeAvatar"));
   const body = fn.slice(0, fn.indexOf("\n}\n"));
   assert.match(body, /IS_DEMO/, "removeAvatar has no demo sentence, so it fails as a connection error");
@@ -301,7 +296,7 @@ test("the demo's flagship flow can actually finish", () => {
 
      The models are DERIVED from the transaction rather than listed here, so a
      write added to it later cannot quietly re-open the same hole. */
-  const src = readFileSync(resolve(HERE, "../app/(main)/catchups/actions.ts"), "utf8");
+  const src = read("src/app/(main)/catchups/actions.ts");
   const fn = src.slice(src.indexOf("export async function createCatchupWithPeople"));
   const tx = fn.slice(fn.indexOf("prisma.$transaction"), fn.indexOf("\n  });"));
   const written = new Set(

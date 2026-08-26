@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { ROOT, read } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The edge boundary, and the four things that never reached the other
@@ -14,10 +14,6 @@ import { dirname, resolve } from "node:path";
  *  DEMO_CLOSED_PATHS block -- and each one is DERIVED from the other
  *  file it has to agree with, never a second copy of the same list.
  * ------------------------------------------------------------------ */
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(HERE, "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 
 const PROXY = read("src/proxy.ts");
 

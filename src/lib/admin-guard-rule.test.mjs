@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The admin surface cannot be locked shut from inside it.
@@ -17,11 +15,6 @@ import { fileURLToPath } from "node:url";
  *  own check was a read-then-write outside any transaction, so two
  *  simultaneous demotions could still reach zero (audit M26).
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 const blockDelete = decomment(read("src/components/profile/admin-actions.ts"));
 const people = decomment(read("src/app/(main)/admin/people/actions.ts"));

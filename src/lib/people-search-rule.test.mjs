@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { ROOT, read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Who the people-search endpoint is allowed to hide.
@@ -20,11 +18,6 @@ import { fileURLToPath } from "node:url";
  *  stays there, and that the default stays inclusive: a caller that forgets
  *  the flag must get MORE people, never a silently narrowed list.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 /**
  * Surfaces that search people WITHOUT asking for alumni only, and why each is

@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { ROOT, read, decomment } from "./test-kit.mjs";
 
 import {
   CONTRIBUTION_STATUSES,
@@ -16,11 +14,6 @@ import {
   netPaise,
   unfoldDispute,
 } from "./contribution-state.ts";
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 /* Audits C-084 and C-085. Both confirmers admitted the move to "paid" from
  * anything that was not already "paid", so a re-delivered payment.captured

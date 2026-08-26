@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative, resolve } from "node:path";
 import { balancedBody } from "./test-fn-body.mjs";
+import { ROOT, read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Gate coverage: every exported server action either checks who is
@@ -22,11 +22,6 @@ import { balancedBody } from "./test-fn-body.mjs";
  *  ignored still matches). Correctness lives in the phase probes; this
  *  catches the action where nobody thought about auth at all.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 /** The ways this codebase asks "who are you / may you". */
 const GATE = /await\s+auth\s*\(|requireVerifiedMember|requireVerifiedEmail|requireAdminActor|requireAdminAction|requireAdmin\s*\(/;

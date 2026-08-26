@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve, join } from "node:path";
+import { ROOT } from "./test-kit.mjs";
 import {
   MAX_PLACES,
   formatPlaceLabel,
@@ -10,8 +10,6 @@ import {
   parsePlaces,
   resolvePlaces,
 } from "./place-input.ts";
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const ok = { placeId: null, label: "Bangalore", city: "Bangalore", lat: 12.97, lng: 77.59 };
 

@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { balancedBody } from "./test-fn-body.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The composer, the card and the letters desk.
@@ -19,11 +17,6 @@ import { balancedBody } from "./test-fn-body.mjs";
  *   B-048  a draft's audience was invisible and unchangeable
  *   B-049  removing a contact row saved the PRE-removal list
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 const card = decomment(read("src/components/posts/post-card.tsx"));
 const composer = decomment(read("src/components/posts/create-post-form.tsx"));

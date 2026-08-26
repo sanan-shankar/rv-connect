@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Regression pins for the Catch-up lifecycle findings (bug audit
@@ -15,11 +13,6 @@ import { fileURLToPath } from "node:url";
  *  Written this way rather than as an integration test because the only
  *  database here is the live production one.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 test("B-061: the clock stops for a Catch-up that is not active", () => {
   const src = decomment(read("src/lib/catchups.ts"));

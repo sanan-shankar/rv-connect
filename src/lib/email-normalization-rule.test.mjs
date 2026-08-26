@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative, resolve } from "node:path";
 
 import { normalizeEmail, emailField } from "./email-address.ts";
+import { ROOT, read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  One canonical form of an email address, everywhere.
@@ -18,11 +18,6 @@ import { normalizeEmail, emailField } from "./email-address.ts";
  *  signing in with different capitalisation is wrongly refused; and one
  *  mailbox can register twice.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 const field = emailField();
 

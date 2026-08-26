@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { cityFilterTargets } from "./city-coords.ts";
+import { read } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  A city chip finds the people whose city it was read from.
@@ -22,9 +19,6 @@ import { cityFilterTargets } from "./city-coords.ts";
  *  The property, not the literal: whatever the caller asked for must be
  *  among the values the query compares against.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 
 test("the exact value the member picked is always one of the targets", () => {
   for (const city of ["Zürich", "Northfield, Minnesota", "São Paulo", "Bengaluru", "Delhi"]) {

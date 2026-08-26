@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { REVERSED_STATUSES } from "./contribution-state.ts";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The admin rooms, where a number nobody can check is the whole risk.
@@ -18,11 +16,6 @@ import { REVERSED_STATUSES } from "./contribution-state.ts";
  *  database and the actions import Prisma, so neither can be called
  *  from the unit gate (`node <file>.test.mjs`, no resolver).
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 const ANALYTICS = decomment(read("src/lib/admin-analytics.ts"));
 const SUPPORT_PAGE = decomment(read("src/app/(main)/admin/support/page.tsx"));

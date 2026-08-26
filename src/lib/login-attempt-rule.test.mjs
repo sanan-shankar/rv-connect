@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { read } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The two places a sign-in failure is READ.
@@ -14,8 +12,6 @@ import { dirname, resolve } from "node:path";
  *  a query and a lookup that had quietly stopped covering their input.
  * ------------------------------------------------------------------ */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 const ANALYTICS = strip(read("src/lib/admin-analytics.ts"));
