@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
-import { balancedBody } from "./test-fn-body.mjs";
-import { ROOT, read, decomment } from "./test-kit.mjs";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { ROOT, read, decomment, walk, SKIP_DIRS, balancedBody } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Gate coverage: every exported server action either checks who is
@@ -98,15 +97,9 @@ const fnBody = (text, name) =>
    one strict place. */
 /* Not named `useServerFiles`: ESLint's rules-of-hooks reads a `use` prefix as
    a React hook and refuses it at the top level. */
-function serverActionFiles(dir, acc = []) {
-  for (const entry of readdirSync(dir)) {
-    if (entry === "node_modules" || entry === ".next" || entry === "generated") continue;
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      serverActionFiles(full, acc);
-      continue;
-    }
-    if (!entry.endsWith(".ts")) continue;
+function serverActionFiles(dir) {
+  const acc = [];
+  for (const full of walk(dir, { skip: [...SKIP_DIRS, ".next"], match: /\.ts$/ })) {
     /* The directive must be the first STATEMENT, not the first line: leading
        comments are stripped before the test. A grep hit inside a comment (two
        lib files explicitly document that they are NOT use-server modules,
@@ -273,15 +266,9 @@ test("every /admin page checks the role itself", () => {
   // Walked, not `git ls-files`: a new admin page is untracked until somebody
   // stages it, and that is exactly when this should already be shouting
   // (same reasoning as the use-server walk above, audit C-189).
-  const walk = (dir, acc = []) => {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) walk(full, acc);
-      else if (entry === "page.tsx") acc.push(relative(ROOT, full));
-    }
-    return acc;
-  };
-  const files = walk(resolve(ROOT, "src/app/(main)/admin"));
+  const files = walk(resolve(ROOT, "src/app/(main)/admin"), {
+    match: (name) => name === "page.tsx",
+  }).map((full) => relative(ROOT, full));
   assert.ok(files.length >= 10, `found only ${files.length} admin pages; the glob has drifted`);
   for (const file of files) {
     assert.ok(

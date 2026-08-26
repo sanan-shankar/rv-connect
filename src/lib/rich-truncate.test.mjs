@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { safeTruncateIndex } from "./rich-truncate.ts";
 import { renderRichText } from "./utils.ts";
-import { read, decomment } from "./test-kit.mjs";
+import { read, decomment, hasLoneSurrogate } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  "Read more", and the four things it used to break.
@@ -40,19 +40,14 @@ test("C-011: a mention spanning the cut still renders as a mention", () => {
 });
 
 test("C-011: an emoji is never split into lone surrogates", () => {
-  const lone = (s) =>
-    [...s].some((ch) => {
-      const c = ch.codePointAt(0);
-      return c >= 0xd800 && c <= 0xdfff;
-    });
   for (const text of [
     `${filler(299)}\u{1F600}${filler(60)}`,
     `${filler(298)}\u{1F468}‍\u{1F469}‍\u{1F467}${filler(60)}`,
     `${"\u{1F600}".repeat(400)}`,
   ]) {
     const i = safeTruncateIndex(text, MAX);
-    assert.ok(!lone(text.slice(0, i)), "the lead ends on half a character");
-    assert.ok(!lone(text.slice(i)), "the remainder starts on half a character");
+    assert.ok(!hasLoneSurrogate(text.slice(0, i)), "the lead ends on half a character");
+    assert.ok(!hasLoneSurrogate(text.slice(i)), "the remainder starts on half a character");
   }
 });
 

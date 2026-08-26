@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { resolve, join } from "node:path";
-import { ROOT, decomment } from "./test-kit.mjs";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { ROOT, decomment, walk, SKIP_DIRS } from "./test-kit.mjs";
 
 import {
   formatDisplayDate,
@@ -76,31 +76,21 @@ test("no date is rendered without a time zone in a server-rendered file", () => 
   // shared frame is the valley's day, and the disagreement between them is
   // what produced hydration flashes. Every call must name a zone.
   const offenders = [];
-  const walk = (dir) => {
-    for (const name of readdirSync(dir)) {
-      // `lab` is the dev/preview wing: it renders fixtures and documents past
-      // findings, so a date there is not shown to a member.
-      if (name === "generated" || name === "node_modules" || name === "lab") continue;
-      const full = join(dir, name);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!/\.(ts|tsx)$/.test(name)) continue;
-      const src = readFileSync(full, "utf8");
+  // `lab` is the dev/preview wing: it renders fixtures and documents past
+  // findings, so a date there is not shown to a member.
+  for (const full of walk(resolve(ROOT, "src"), { skip: [...SKIP_DIRS, "lab"] })) {
+    const src = readFileSync(full, "utf8");
       // Match a toLocale*String call and look at the option object that follows
       // it, if any, for a timeZone key before the call's closing brace.
       // Only the two date-specific calls: bare `toLocaleString` is almost
       // always a NUMBER being grouped ("1,240 people"), which has no time zone
       // to get wrong.
-      for (const m of src.matchAll(/toLocale(?:Date|Time)String\(([^;]*?)\)\s*[;,)\n]/g)) {
-        if (!/timeZone/.test(m[1])) {
-          offenders.push(`${full.slice(ROOT.length + 1)}: ${m[0].trim().slice(0, 90)}`);
-        }
+    for (const m of src.matchAll(/toLocale(?:Date|Time)String\(([^;]*?)\)\s*[;,)\n]/g)) {
+      if (!/timeZone/.test(m[1])) {
+        offenders.push(`${relative(ROOT, full)}: ${m[0].trim().slice(0, 90)}`);
       }
     }
-  };
-  walk(resolve(ROOT, "src"));
+  }
   assert.deepEqual(offenders, [], `dates rendered with no time zone:\n${offenders.join("\n")}`);
 });
 
@@ -138,16 +128,6 @@ test("every SQL date bucket converts to the valley's zone before truncating", ()
      correctly in four places and naively in two, so what is pinned is that no
      naive one exists -- and the sites are COUNTED, because a per-file check
      passes on a file that has two and fixed one. */
-  const walk = (dir, out = []) => {
-    for (const name of readdirSync(dir)) {
-      if (name === "generated" || name === "node_modules") continue;
-      const full = join(dir, name);
-      if (statSync(full).isDirectory()) walk(full, out);
-      else if (/\.ts$/.test(name)) out.push(full);
-    }
-    return out;
-  };
-
   /** The argument list of a call, read with a paren counter rather than a
       regex -- `date_trunc('month', (x AT TIME ZONE 'UTC') AT TIME ZONE 'IST')`
       has nested parens and a regex stops at the first `)`. */
@@ -162,10 +142,9 @@ test("every SQL date bucket converts to the valley's zone before truncating", ()
 
   const naive = [];
   let sites = 0;
-  for (const file of walk(resolve(ROOT, "src"))) {
-    const src = readFileSync(file, "utf8");
+  for (const file of walk(resolve(ROOT, "src"), { match: /\.ts$/ })) {
     // Comments describe the bug; only real calls count.
-    const code = decomment(src);
+    const code = decomment(readFileSync(file, "utf8"));
     for (const m of code.matchAll(/\b(date_trunc|to_char)\(/g)) {
       const args = callArgs(code, m.index + m[0].length - 1);
       // Only calls over a real column; to_char over a computed number is not a
@@ -173,7 +152,7 @@ test("every SQL date bucket converts to the valley's zone before truncating", ()
       if (!/"[A-Za-z]+"/.test(args)) continue;
       sites++;
       if (!/AT TIME ZONE 'Asia\/Kolkata'/.test(args)) {
-        naive.push(`${file.slice(ROOT.length + 1)}: ${args.slice(0, 100)}`);
+        naive.push(`${relative(ROOT, file)}: ${args.slice(0, 100)}`);
       }
     }
   }
