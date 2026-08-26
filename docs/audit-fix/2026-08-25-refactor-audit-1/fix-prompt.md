@@ -31,8 +31,10 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       tour lazy-load). The owner answered five §4 decisions at session start; see session 3.
       One row (#10 Profession) had already been executed by the phase-1a session as a
       one-off while the owner's answer was live — not redone.
-- [ ] Phase 3 — dedupe at lib level — **one row already landed**: lib-tests-02
-      (gate-coverage adopts balancedBody) → `9cee0d5`. Do not redo it.
+- [x] Phase 3 — dedupe at lib level — **done 2026-08-26**, 21 commits. All 14 rows executed
+      (lib-tests-02 had already landed as `9cee0d5`). Two pieces deliberately deferred with
+      reasons: shell-primitives-09's utils.ts module split belongs to phase 5's measurement,
+      and lib-tests-01's optional `section()` migration is not safe as a sweep. See session 4.
 - [ ] Phase 4 — dedupe at component/route level (may be two sessions)
 - [ ] Phase 5 — bundle & build (+ before/after measurements vs report §1a)
 - [ ] Phase 6 — schema & architecture (owner-gated throughout)
@@ -375,62 +377,133 @@ a string that the strong one keeps), so converting weak→strong changes what su
 decommenting and every such file needs its assertions re-run, not just typechecked.
 
 
-### 2026-08-26 — session 4 (phase 3) — IN PROGRESS
+### 2026-08-26 — session 4 (phase 3)
 
-**Done so far** (every item pre-flighted at HEAD per rule 4):
-test kit created + 39 preamble copies converted → `68d4ad6` · weak `decomment` retired from
-12 files → `5caaa92` · walk ×7 and hasLoneSurrogate ×3 onto the kit, plus the hygiene trio →
-`fa4863b` · spelling-pin cohort trimmed, tour-provider.test.mjs deleted, landing-auth-ui
-renamed to layout/sidebar-support-icon → `12d1fd5` · knip.jsonc + OPERATIONS §8 → `fe51a6c` ·
-escapeLike one-home → `20af678`.
+**All 14 phase-3 rows executed, 21 commits**, except one half of one row, deferred with a
+reason (below). Every item pre-flighted at HEAD per rule 4.
 
-That closes plan row 1 (lib-tests-01..07 = duplication-03 = dead-code-18 +
-landing-mascot-avatars-10), except its explicitly-optional half — see below.
+**Done** (in order):
+test kit + 39 preamble copies → `68d4ad6` · weak `decomment` retired → `5caaa92` · walk ×7 +
+hasLoneSurrogate ×3 + hygiene trio → `fa4863b` · spelling-pin cohort trimmed, tour-provider
+test deleted, landing-auth-ui → layout/sidebar-support-icon → `12d1fd5` · knip.jsonc +
+OPERATIONS §8 → `fe51a6c` · escapeLike one-home → `20af678` · readMinutes + plainExcerpt →
+`5cf90cc` · links schema + displayEmail normalisation → `64f8297` · prisma-errors adoption +
+isMissingTable → `f950d6e` · localStorage kit → `7b1ba04` · fnv1a shared → `352ebe4` · one
+date voice → `c7f3c73` · IDENTITY/AUTHOR_CARD selects + directory PERSON_SELECT → `ab82f30` ·
+profile omits the password hash → `cb7dcc5` · MIN_PASSWORD + gazeFor → `2630812` · composer
+adopts rich-text-editing → `04133c1` · parseImageUrls → parseJsonArray → `fd47d70` · loadPosts
+/loadSavedPosts share include+serializer → `96dc9d6` · requireVerifiedMember composes Stage 1
+→ `89315d9` · claimToken → `d3b1b79` · splitCountryCode → `ffb3ae8`.
 
-**Where the audit was thinner than the tree** (rule 4 outcomes):
-- **The weak/strong `decomment` split was worse than "they can disagree".** Measured across
-  592 source files: the two disagree on 7, and every disagreement is the weak variant cutting
-  a LIVE line in half — `validators.ts` loses `/^https:\/\//i.test(v)`, `next-path.ts` loses
-  the `startsWith("//")` open-redirect guard. No assertion happened to sit on one of those
-  lines, so nothing was vacuous; profile-editor-rule reads validators.ts through the weak
-  variant and slices elsewhere by luck. Recorded because the next pin written there would
-  have been silently dead.
-- **Centralising helpers created two NEW vacuity points, both caught by mutation, both
-  closed.** Gutting the shared `walk` to return `[]` left notification-links and
-  image-purge-rule green: every assertion in them reads "no file does X". Both now count what
-  they swept first. `hasLoneSurrogate` was the same shape — six negative assertions across
-  three files and nothing proving the detector fires — so text-shape gained the positive case.
-  **This is the cost of a shared kit and it must be re-checked by anyone extending it.**
-- lib-tests-05 says to move THREE escapeLike tests to db-text. Only two moved; the third
-  ("an ordinary term passes through untouched") is a duplicate of db-text's own first test,
-  which asserts the same property over four inputs. Dropped, not moved.
-- lib-tests-06's suggested knip config does not load: **knip 6 rejects unknown keys**, so a
-  `$comment` in plain JSON is a hard error. It is `knip.jsonc`. Also widened past the
-  finding's globs — `scripts/**/*.mjs` alone leaves the `.mts`/`.ts` scripts reported dead.
-  Result: 131 unused files → **5**, and all 5 are the landing showcase (§4 #1, owner's call).
-- lib-tests-07's avatar.test.mjs sub-claim about `node --test` vs `node` does not exist, as
-  `v-scripts-tooling.md` already corrected. Only the stale "no test runner is wired into this
-  project" sentence was fixed. Its image-purge half was already done in `5caaa92`.
+**Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
+- **The weak/strong `decomment` split was worse than "they can disagree".** Measured over 592
+  source files: they disagree on 7, and every disagreement is the weak variant cutting a LIVE
+  line in half — `validators.ts` loses `/^https:\/\//i.test(v)`, `next-path.ts` loses the
+  `startsWith("//")` open-redirect guard. No assertion happened to sit on one, so nothing was
+  vacuous; profile-editor-rule reads validators.ts through the weak variant and slices
+  elsewhere by luck. The next pin written there would have been silently dead.
+- **Sharing helpers created two NEW vacuity points. Both were caught by mutation and closed.**
+  Gutting the shared `walk` to return `[]` left notification-links and image-purge-rule
+  GREEN — every assertion in them reads "no file does X". Both now count what they swept.
+  `hasLoneSurrogate` was the same shape (six negative assertions, three files, nothing proving
+  the detector fires), so text-shape gained the positive case. **Anyone extending the kit must
+  re-run that mutation.** Gutting `read` reddens 31 files, `decomment` 20, `walk` 5.
+- lib-tests-05 says move THREE escapeLike tests to db-text; only two moved. The third ("an
+  ordinary term passes through untouched") duplicates db-text's own first test, which asserts
+  the same property over four inputs. Dropped, not moved.
+- lib-tests-06's suggested knip config **does not load**: knip 6 rejects unknown keys, so a
+  `$comment` in plain JSON is a hard error. It is `knip.jsonc`. Its globs also needed widening
+  — `scripts/**/*.mjs` alone leaves the `.mts`/`.ts` scripts reported dead. 131 unused files →
+  **5**, and all 5 are the landing showcase (§4 #1, still the owner's).
+- **feed-posts-08's "this is visible today" is false.** None of the eight letters holds a
+  markdown image, so the `!alt` excerpt bug is reachable only by hand-typed markdown. The
+  dedupe is still right. Also plainExcerpt already appends the callers' "..." via
+  truncateGraphemes, so no ellipsis work was needed.
+- **auth-edge-05's displayEmail drift is worse than described.** The bare `z.email()` did not
+  merely save capitals un-lowercased (it does); it **rejected outright** a pasted address with
+  a leading or trailing space, with "Please enter a valid email" — the half a member would hit.
+- **duplication-15's "fourth nearby" is not theme.ts**, which never touches localStorage
+  (next-themes does). It is `create-post-form.tsx`, which needed `safeRemove` too.
+- **duplication-06: the shapes are three clusters, not two**, and `avatarColor` is dead weight
+  — BirdAvatar's banner says it "is accepted on the type ... but is intentionally ignored". It
+  is kept OUT of AUTHOR_CARD_SELECT; four sites add it for their own types. The constants live
+  in a new `src/lib/people-select.ts`, NOT posts.ts as the audit says: that file's banner is
+  "Shared Post query fragments" and most readers here have nothing to do with posts.
+  39 hand-typed `birdOverride: true` selects → 12.
+- **feed-posts-03 needs no `{ bookmarked: true }` override.** loadSavedPosts' query already
+  joins the viewer's own bookmark rows, so `p.bookmarks.length > 0` is the same value.
+  Verified on the live Saved tab: the card reads "Remove bookmark".
+- **catchups-07: four of the five formatter swaps change no pixel** (en-IN and en-GB render
+  both forms identically — checked before editing). Only the index rail moved, "Aug 16" →
+  "16 Aug", and it keeps a local formatter because dropping the YEAR is a real choice for a
+  column that narrow.
+- **The audit's bug lead (b) — masthead's missing `timeZone` — is refuted**; all six catchups
+  formatters pass VALLEY_TIME_ZONE. Session 1 already closed it in bugs.md; recorded so nobody
+  re-opens it.
+- `catchups.ts` and `avatar.ts` are **import-clean on purpose** — their tests import them under
+  bare `node`, which has no `@/` alias and no extensionless resolution. Both new imports had to
+  be relative and extension-qualified. This bit twice; expect it again.
 
-**Deliberately NOT done** (the report marks it optional, and it is not free):
-lib-tests-01's "phase 2" — migrating the 12 hand-rolled slice-to-next-`export` extractors to
-a shared `section()`. The kit does not export one. Each of the 12 has its own convention and
-about half carry a hand-written anti-vacuity assert; a shared extractor would have to
-reproduce every one of them or quietly weaken it, which is the opposite of the point. If a
-later session wants it, do it one file at a time with the mutation check above, not as a sweep.
+**Test pins that went red and why** (each edit rode its own commit):
+five pins asserted a literal that a shared helper replaced — `P2002` inside two function
+bodies, `/localStorage/` in the composer, `birdOverride`-shaped selects — and all now accept
+either spelling, because what they pin is that the behaviour happens, not which helper does
+it. `feed-write-rule`'s C-003 counter drops **4 → 3** with the vanished site named in the
+file; lowering that number is the dangerous edit there. The B-020 email sweep caught
+`claimToken` correctly (it cannot see that `sentToEmail` came off the User row); its allowlist
+entry moved with the code and claimToken's docblock now states the promise it rests on —
+re-proved the sweep still bites by feeding it a raw address.
 
-**Verification so far**: `npm run check` ✓ green before every commit (TS, ESLint, protocol,
-lab registry 42, unit — 75/75 then 74/74 after tour-provider.test.mjs went). Every commit was
-gated on a byte-for-byte diff of all 75 files' test output (names and counts), not just a
-green run: 695 → 705 → 706 tests, no name ever lost. Mutation-tested rather than asserted:
-`read` gutted reddens 31 files, `decomment` gutted reddens 20, `walk` gutted reddens 5 (after
-the two counters), the tour-mobile loopback guard renamed reddens its test.
+**Deliberately NOT done, with reasons:**
+1. **shell-primitives-09** (move the rich-text renderer and the phone kit out of utils.ts into
+   their own modules). Architecture-class, and its actual payoff is bundle-shaped: utils.ts
+   builds an `Intl.Segmenter`, a 30-entry Set and five RegExp at import time, so every client
+   chunk importing only `cn` evaluates them. That is a number **phase 5 measures**, and moving
+   ~240 lines across ~15 importers now would spend the churn with nothing to show. Do it in
+   phase 5, with the before/after. shell-primitives-11 (the phone clone) IS done.
+2. **lib-tests-01's optional "phase 2"** — migrating the 12 hand-rolled slice-to-next-`export`
+   extractors to a shared `section()`. The kit does not export one. Each of the 12 has its own
+   convention and about half carry a hand-written anti-vacuity assert; a shared extractor must
+   reproduce every one or quietly weaken it. If wanted, one file at a time with the mutation
+   check above — never as a sweep.
+3. `src/app/lab/hoopoe/page.tsx` keeps its own gaze clamp, and one `walk` copy survives in
+   `email-normalization-rule.test.mjs` (the audit never listed it). Both are one-line jobs for
+   whoever is next in those files.
 
-**Peer traffic**: `rv-connect-da` is live in this tree doing brand/logo work under
+**Verification**: `npm run check` ✓ green before every commit (TS, ESLint, protocol, lab
+registry 42→43, unit 75→74 files). `npm run visual` ✓ 23/23, run four times across the
+session. `npm run verify:crawl` ✓ 17/17, three times.
+Proved rather than asserted, wherever a claim was load-bearing: the 75 test files emit
+byte-identical output before and after the kit (same 705 names); five mutation tests of the
+shared helpers; 28 session×IS_DEMO combinations through both the old and composed write gate,
+zero differences; 34 phone inputs byte-identical; the letters index, a letter, the feed, the
+directory, /lab, a Catch-up home and a published Round read on screen; the composer's Cmd+B
+and plain-paste driven in a real browser; a draft written to localStorage and restored on
+reload; /lab applying all 20 archive overrides (proving the wrapper did not fail open).
+
+**A mistake worth knowing about**: `5cf90cc` (the readMinutes commit) also contains an
+in-progress version of THIS section, because a `git add $(git diff --name-only)` swept it in.
+Rule 3 says stage by name and I did not, twice. The end state is correct — this entry replaces
+it — but a revert of `5cf90cc` would take a stale handover entry with it.
+
+**Awaiting owner** (unchanged from session 3, plus nothing new):
+1. **The public landing still links to no Privacy / Terms / Guidelines** (security audit H12).
+2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
+3. ~357 MB of unused Puppeteer Chrome in `~/.cache/puppeteer` is still his to delete.
+
+**Peer traffic**: `rv-connect-da` worked in this tree all session on brand/logo under
 `src/app/lab/`, `src/app/icon.*`, `public/images/icons/` and `scripts/dev/generate-icons.mjs`,
-and has been told not to commit yet — so those files sit modified in the tree and are NOT
-mine. Lanes agreed by message. It also reported that history was rewritten under its commits
-earlier (0d1841f → 4e1def2, contents identical); that was not this session.
+told not to commit yet — so those sit modified/untracked and are NOT mine. It cleared me to
+touch `src/app/lab/_archive-state.ts` and its warning changed how I checked that item (green
+gates would not have caught a wrapper failing open). It also reported history being rewritten
+under its own commits earlier in the day; that was not this session.
+
+**State left**: clean — every file I touched is committed. The lab registry reads 43 because
+a peer added a room mid-session.
+
+**Next session**: phase 4 (dedupe at component/route level, may be two sessions). Nothing in
+phase 3 blocks it. Read the two deferrals above first: shell-primitives-09 belongs to phase 5,
+not phase 4.
 
 Template:
 ```

@@ -1,5 +1,53 @@
 # Progress Log
 
+## Session 2026-08-26 (fourth) — phase 3: one spelling for the things written many times
+
+The fourth fix session of the 2026-08-25 refactor audit. All 14 phase-3 rows executed in 21
+commits. `npm run check` green before every one; `npm run visual` **23/23** (four runs);
+`npm run verify:crawl` 17/17 (three runs).
+
+**What a member could see**: one thing, deliberately. Catch-ups had six date formatters in
+three locale tags — en-US, en-IN, en-GB — for a community whose every timestamp is IST, so
+the same published date read "Aug 5" on the index rail and "5 Aug 2026" on the archive shelf.
+Five now share one pair of formatters. Four of the five swaps change no pixel (en-IN and
+en-GB render both forms identically, checked before editing). The fifth does: the "Fresh off
+the press" rail read "Aug 16" and now reads "16 Aug".
+
+Two latent bugs closed with it. The feed card and the letters index built their excerpts with
+a markdown stripper that lacked the image rule, so a letter opening with a photo would have
+excerpted as "!banyan at dusk ..." — the audit said this was visible today and it is not, none
+of the eight letters holds a markdown image, so it needed hand-typed markdown to reach. And
+the contact editor validated `displayEmail` with a bare `z.email()` while the profile editor
+used the shared `emailField()`: capitals saved un-lowercased, and a pasted address with a
+leading or trailing space was **refused outright**, which is the half a member would hit.
+
+**The largest piece** was the test suite. 39 files re-typed the same ROOT/read preamble,
+`decomment` shipped in two spellings, seven `walk`s and three surrogate detectors were
+hand-rolled. All of it is `src/lib/test-kit.mjs` now. The weak `decomment` turned out to be
+worse than "the two can disagree": across 592 source files they disagree on seven, and every
+disagreement is the weak variant cutting a live line in half — `validators.ts` losing its
+https check, `next-path.ts` losing the `startsWith("//")` open-redirect guard. Nothing was
+vacuous today only by luck of where the assertions sliced.
+
+Sharing helpers created two new vacuity points and both were caught by mutation rather than
+by reading: gutting the shared `walk` to return nothing left notification-links and
+image-purge-rule **green**, because every assertion in them reads "no file does X". Both now
+count what they swept first. Same shape for `hasLoneSurrogate` — six negative assertions
+across three files and nothing proving the detector fires — so text-shape gained the positive
+case. That is the standing cost of a shared kit and it is written into the handover.
+
+**Also**: `knip` went from 131 unused files to 5, which is the difference between a report
+nobody reads and one where every line is a question (all five are the landing showcase,
+still the owner's call); the profile page stopped fetching the bcrypt hash on every view;
+the write gate's Stage 2 is now built on Stage 1 rather than copying it, proved equivalent
+over all 28 session×IS_DEMO combinations; and the token burn, written twice under two copies
+of the same explanation, is one `claimToken`.
+
+**Deferred with reasons, not skipped**: moving the rich-text renderer and phone kit out of
+utils.ts belongs to phase 5, where the bundle number that justifies it gets measured; and
+lib-tests-01's optional shared `section()` is not safe as a sweep, because half the twelve
+extractors carry their own anti-vacuity assert.
+
 ## Session 2026-08-26 (later still) — phase 2: the switched-off things stop shipping
 
 The third fix session of the 2026-08-25 refactor audit. All 8 phase-2 rows executed in 11
