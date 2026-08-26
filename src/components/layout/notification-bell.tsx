@@ -10,7 +10,6 @@ import {
   BookOpen,
   Heart,
   MessageCircle,
-  Users,
   ShieldCheck,
   ShieldAlert,
   Mail,
@@ -69,8 +68,6 @@ const NOTIFICATION_ICON_META: Record<string, { icon: typeof Bell; heart?: boolea
   like: { icon: Heart, heart: true, label: "Liked" },
   comment: { icon: MessageCircle, label: "Comment" },
   reply: { icon: MessageCircle, label: "Reply" },
-  // Groups.
-  group_invite: { icon: Users, label: "Group" },
   // Admin/moderation notices.
   admin: { icon: ShieldCheck, label: "Rishi Valley" },
   // A note attached to a removed post/letter/comment/photo. Opens the
