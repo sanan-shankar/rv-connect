@@ -47,6 +47,19 @@ const SORTED_PAGE = 40;
  */
 const OPEN_PAGE = 80;
 
+/* Show older / Show fewer, four times over two sections. The className was
+   written out at each one, which is three chances for one of them to drift. */
+function MoreLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
+    >
+      {children}
+    </Link>
+  );
+}
+
 export default async function AdminMessagesPage({
   searchParams,
 }: {
@@ -132,19 +145,9 @@ export default async function AdminMessagesPage({
         count={openTotal}
         action={
           openHidden > 0 ? (
-            <Link
-              href="/admin/messages?open=all"
-              className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
-            >
-              Show {openHidden} older
-            </Link>
+            <MoreLink href="/admin/messages?open=all">Show {openHidden} older</MoreLink>
           ) : showAllOpen && openTotal > OPEN_PAGE ? (
-            <Link
-              href="/admin/messages"
-              className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
-            >
-              Show fewer
-            </Link>
+            <MoreLink href="/admin/messages">Show fewer</MoreLink>
           ) : undefined
         }
       >
@@ -165,19 +168,9 @@ export default async function AdminMessagesPage({
           count={sortedTotal}
           action={
             sortedHidden > 0 ? (
-              <Link
-                href="/admin/messages?sorted=all"
-                className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
-              >
-                Show {sortedHidden} older
-              </Link>
+              <MoreLink href="/admin/messages?sorted=all">Show {sortedHidden} older</MoreLink>
             ) : showAllSorted && sortedTotal > SORTED_PAGE ? (
-              <Link
-                href="/admin/messages"
-                className="rounded-sm text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:opacity-80"
-              >
-                Show fewer
-              </Link>
+              <MoreLink href="/admin/messages">Show fewer</MoreLink>
             ) : undefined
           }
         >

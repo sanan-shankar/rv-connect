@@ -2,7 +2,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
- *  The room's six views.
+ *  The room's views, defined once in VIEWS below — count them there, not
+ *  in this sentence, which said six while there were nine.
  *
  *  WHY tabs rather than one long page (owner, 2026-08-19: "I'm not sure
  *  the current layout is scalable... things are slowly getting cluttered

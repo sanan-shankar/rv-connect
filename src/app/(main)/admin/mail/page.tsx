@@ -16,7 +16,6 @@ const ROW_SELECT = {
   to: true,
   kind: true,
   status: true,
-  priority: true,
   attempts: true,
   lastError: true,
   createdAt: true,

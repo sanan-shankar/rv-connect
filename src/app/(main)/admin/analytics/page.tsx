@@ -49,7 +49,8 @@ export const dynamic = "force-dynamic";
 /* ------------------------------------------------------------------ *
  *  The analytics room.
  *
- *  SEVEN VIEWS, not one page. The single-page version was getting
+ *  VIEWS, NOT ONE PAGE (this used to name a count, and the count was
+ *  wrong; tabs.tsx's VIEWS is the list). The single-page version was getting
  *  cluttered (owner, 2026-08-19), and the problem was structural rather
  *  than cosmetic: every new metric made the scroll longer, panels of
  *  different natural heights left ragged gaps, and ~40 queries ran on
