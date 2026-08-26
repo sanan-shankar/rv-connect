@@ -198,6 +198,23 @@ type EditionContext = {
   };
 };
 
+/** The Round's own columns, read twice by `loadFreshEdition` below: once
+ *  before `advanceEdition` and once after, because the point of the second
+ *  read is that the row has changed. What must not differ between the two is
+ *  which columns they ask for, so they ask once. (The first read also nests
+ *  the Catch-up and its group; that half is genuinely only wanted once.) */
+const EDITION_COLUMNS = {
+  id: true,
+  catchupId: true,
+  number: true,
+  status: true,
+  questionsCloseAt: true,
+  answersCloseAt: true,
+  publishAt: true,
+  publishedAt: true,
+  remindersSent: true,
+} as const;
+
 /**
  * Load a Round plus its Catch-up/group context, bringing its status current
  * against the clock first (the lazy-advance touchpoint, spec 2.4). Every
@@ -210,15 +227,7 @@ async function loadFreshEdition(editionId: string): Promise<EditionContext | nul
   const base = await prisma.catchupEdition.findUnique({
     where: { id: editionId },
     select: {
-      id: true,
-      catchupId: true,
-      number: true,
-      status: true,
-      questionsCloseAt: true,
-      answersCloseAt: true,
-      publishAt: true,
-      publishedAt: true,
-      remindersSent: true,
+      ...EDITION_COLUMNS,
       catchup: {
         select: {
           createdById: true,
@@ -235,17 +244,7 @@ async function loadFreshEdition(editionId: string): Promise<EditionContext | nul
 
   const fresh = await prisma.catchupEdition.findUnique({
     where: { id: editionId },
-    select: {
-      id: true,
-      catchupId: true,
-      number: true,
-      status: true,
-      questionsCloseAt: true,
-      answersCloseAt: true,
-      publishAt: true,
-      publishedAt: true,
-      remindersSent: true,
-    },
+    select: EDITION_COLUMNS,
   });
   if (!fresh) return null;
 
@@ -825,13 +824,11 @@ export async function submitPrompt(input: {
        are excluded, exactly as the reorder branch excludes them, so they cannot
        push live questions out of sequence.) */
     const created = await prisma.$transaction(async (tx) => {
-      const [{ _max, _count }] = [
-        await tx.catchupPrompt.aggregate({
-          where: { editionId, accepted: true },
-          _max: { position: true },
-          _count: true,
-        }),
-      ];
+      const { _max, _count } = await tx.catchupPrompt.aggregate({
+        where: { editionId, accepted: true },
+        _max: { position: true },
+        _count: true,
+      });
       if (_count >= MAX_ACCEPTED_PROMPTS_PER_EDITION) return null;
 
       const row = await tx.catchupPrompt.create({
