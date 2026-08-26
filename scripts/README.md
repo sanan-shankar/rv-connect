@@ -109,5 +109,5 @@ Both run from `.github/workflows/snapshot.yml`, not by hand. See `docs/OPERATION
 
 | Script | Does |
 |---|---|
-| `snapshot.mjs` | Writes a nightly metric snapshot, because Sentry keeps 30 days, Vercel Analytics 30 and PostHog a year, and none of them will say in 2028 what this site looked like in 2026. |
+| `snapshot.mjs` | Writes a nightly metric snapshot, because Sentry keeps 30 days and PostHog a year, and neither of them will say in 2028 what this site looked like in 2026. |
 | `prune.mjs` | Nightly pruning of the tables that grow without bound, notifications first. |

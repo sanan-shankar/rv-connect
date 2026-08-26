@@ -132,8 +132,7 @@ nothing is swept until it is set. Every sweep writes a `retention.sweep` line to
 **Fires:** nightly at 00:10 UTC (05:40 IST), and on demand via **Actions → snapshot → Run
 workflow**, which takes an optional `day` to backfill.
 
-Sentry's free plan drops errors after 30 days, Vercel Analytics keeps 30, PostHog keeps a
-year. None of them can say in 2028 what this site looked like in 2026, and none of it is
+Sentry’s free plan drops errors after 30 days and PostHog keeps a year. None of them can say in 2028 what this site looked like in 2026, and none of it is
 recoverable once dropped. `scripts/ops/snapshot.mjs` writes the day's numbers into our own
 database, which is what every chart in `/admin/analytics` reads. **A day it does not run is
 a day permanently missing from those charts.**

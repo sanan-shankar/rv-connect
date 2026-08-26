@@ -77,7 +77,6 @@ const csp: Record<string, string[]> = {
     "'unsafe-eval'", // see the note above: an analytics dep needs it, and it is free of extra risk given 'unsafe-inline'
     "https://challenges.cloudflare.com",
     "https://checkout.razorpay.com",
-    "https://va.vercel-scripts.com", // Vercel Web Analytics loader
   ],
   "style-src": ["'self'", "'unsafe-inline'"],
   "img-src": [
@@ -120,7 +119,6 @@ const csp: Record<string, string[]> = {
     "https://api.razorpay.com",
     "https://lumberjack.razorpay.com",
     "https://*.posthog.com",
-    "https://va.vercel-scripts.com", // Vercel Analytics beacon
   ],
   "frame-src": [
     "https://challenges.cloudflare.com",

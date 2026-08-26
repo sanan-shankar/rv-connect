@@ -130,7 +130,7 @@ export default function PrivacyPage() {
             ["Cloudflare", "Stores and serves images"],
             ["Resend", "Sends the site's emails (United States)"],
             ["Razorpay", "Processes contributions (India); card details never reach us"],
-            ["PostHog and Vercel Analytics", "First-party usage analytics"],
+            ["PostHog", "First-party usage analytics"],
             ["Sentry", "Error reporting, so breakages get noticed and fixed"],
           ]}
         />

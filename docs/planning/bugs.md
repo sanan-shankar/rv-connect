@@ -134,12 +134,6 @@ back to the legacy host even with the proxy-level redirect in place. `proxy.ts` 
 is a dashboard env var only the owner can check/update.
 - Size: owner action, check the Vercel project settings.
 
-### 16. Vercel Analytics needs a production deploy to start collecting
-`@vercel/analytics/next` is installed and wired into `src/app/layout.tsx` (round 6, `7d3a9ab`), but
-the `<Analytics />` component only reports in a deployed Vercel environment; nothing will show in the
-Vercel dashboard until the round-6 branch is deployed to production.
-- Size: none, informational (owner deploys).
-
 ### 17. The hoopoe misbehaves at browser zoom — ROOT CAUSE FOUND: it is Safari
 
 **2026-08-11, solved by the owner's screenshots.** The variable every probe missed was the

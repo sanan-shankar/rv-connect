@@ -502,8 +502,8 @@ What it will draw on, recorded now so the stub is useful:
 - Catch-up participation from `CatchupEntry` against membership
 - giving from `Contribution`
 - deliverability from `OutboundEmail`
-- page views from `@vercel/analytics`, already wired into the root layout (`bugs.md` #16: it only
-  reports from a deployed Vercel environment)
+- page views from PostHog, which is the only analytics tool here: `@vercel/analytics` was
+  removed on 2026-08-26 rather than run a second one for the same number
 
 **One schema gap to raise before that build, not after:** `lastSeenAt` on `User` was planned in the
 roadmap's Phase 5 delta list and never added. "Who is actually still using this" is therefore the
