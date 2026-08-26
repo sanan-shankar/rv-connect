@@ -11,7 +11,7 @@
 
 import Link from "next/link";
 import { Hoopoe } from "@/components/mascot/hoopoe";
-import { useSoloHoopoe } from "@/components/mascot/moments/moment-hoopoe";
+import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";
 import { Button } from "@/components/ui/button";
 import { FadeRise } from "@/components/common/motion";
 import { cn } from "@/lib/utils";

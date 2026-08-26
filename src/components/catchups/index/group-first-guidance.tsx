@@ -18,7 +18,7 @@ import Link from "next/link";
 import { Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Hoopoe } from "@/components/mascot/hoopoe";
-import { useSoloHoopoe } from "@/components/mascot/moments/moment-hoopoe";
+import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";
 
 export function GroupFirstGuidance({
   primaryHref = "/catchups/new",
