@@ -86,8 +86,15 @@ export default function SignupClient({
   // own hoopoe hidden and pixel-aligned until the flyer hands off. /login and
   // the three email pages run the same hook; the greeting above is what
   // differs.
-  const { hoopoeBoxRef, entranceRef, hoopoeShown, preFlightVeil, onHoopoeReady, reportPerchRect } =
-    useFlightArrival({ flightKey: "signup", runIntro });
+  const {
+    hoopoeBoxRef,
+    entranceRef,
+    hoopoeShown,
+    preFlightVeil,
+    onHoopoeReady,
+    reportPerchRect,
+    entrancePlayedOnLanding,
+  } = useFlightArrival({ flightKey: "signup", runIntro });
 
   return (
     // Not a grid: the photo half is viewport-fixed (below), so it must never take part
@@ -126,7 +133,12 @@ export default function SignupClient({
             "w-full max-w-[400px] self-center text-center",
             step === "trivia" ? "my-auto" : "mt-[8vh] mb-auto"
           )}
-          initial={{ opacity: 0, x: 48 }}
+          // `initial={false}` mounts straight into the animate pose: the slide
+          // already happened on the landing (auth-first-frame.tsx). The perch
+          // is still reported — that comes from useFlightArrival's
+          // ResizeObserver on the first rendered frame, not from this
+          // callback, which is only a top-up.
+          initial={entrancePlayedOnLanding ? false : { opacity: 0, x: 48 }}
           animate={{ opacity: 1, x: 0 }}
           transition={SPRINGS.gentle}
           onAnimationComplete={reportPerchRect}

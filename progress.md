@@ -43,6 +43,46 @@ the worst of them.
 the bird grid and the cost bar caught mid-render, which passes on re-run and has
 nothing to do with signup.
 
+### Later the same session — the auth column arrives with the cream
+
+The owner watched the landing-to-signup transition and named the order he did not
+want: the slide starts, the cream right-hand background comes in and the hoopoe
+flies out, and then, mid flight, the content turns up on cream that has already
+finished arriving. He wanted the cream to arrive with the content already on it.
+
+The landing owns those 0.9 seconds. /signup does not exist until the push at the
+end of them, so there was no version of this that did not either move the
+navigation earlier or draw the destination early. He picked the second, for
+seamlessness, and it is what shipped: `auth-first-frame.tsx` draws the
+destination's opening frame on the landing, parked behind the photo layer and
+uncovered by the slide, running the entrance the real page would have run. The
+landing names that destination in `AUTH_PREVIEW_FLAG`, and the real page reads it
+through `useFlightArrival` and mounts settled instead of sliding the same column
+in a second time. Measured: the frame exists 139ms after the click, the column has
+settled by 536ms, the push lands at ~1.4s and every element is within 0 pixels of
+where the drawing had it. Both destinations, not just /signup — the owner asked
+for /login to be on the same architecture, and it is.
+
+The stand-in is a real duplication, so it is pinned: `auth-first-frame.test.mjs`
+fails if any string or measured class in it drifts from signup-client.tsx,
+login-client.tsx or trivia-gate.tsx. It has already earned that twice — once on
+the entrance pose, and once on /login's Sign in button, which the stand-in had
+drawn disabled when the real page mounts it live, a colour pop at the swap.
+
+The owner's second report, that the hoopoe lands in the wrong spot when the
+question runs to more than one line, turned out to be older than any of this. The
+flyer aims at the last perch the destination reported, and the destination watched
+the hoopoe's own box — a fixed 112px square that never resizes. Every reflow that
+matters moves the COLUMN instead: the trivia question arriving a beat after mount
+and wrapping, a late font, an error line. Because the column is vertically
+centred, a taller question lifts the box without changing its size at all, so the
+observer never fired and the bird went on aiming at the rect the box had while the
+question still read "...". Now the observer watches the column too. Measured on a
+two-line question: the perch rose 14px, settled at 1538ms, and the flyer landed on
+it at 3473ms with a delta of 0,0.
+
+`npm run check` green, 76/76. `npm run visual` 23/23.
+
 ## Session 2026-08-26 (fifth) — phase 4 part 1: the same thing, written once
 
 The fifth fix session of the 2026-08-25 refactor audit. Fifteen of phase 4's twenty-one rows,

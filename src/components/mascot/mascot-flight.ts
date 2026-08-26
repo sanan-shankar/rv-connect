@@ -58,6 +58,17 @@ export const PERCH_LIFT_PX = 2;
  */
 export const FLIGHT_FLAG = "rv:mascot-flight";
 
+/**
+ * The landing's other one-shot flag, the same shape and set in the same
+ * breath: it holds the target whose OPENING FRAME the landing drew during
+ * the photo slide (auth-first-frame.tsx), so the destination knows its
+ * entrance has already been played and mounts settled instead of sliding
+ * the same column in a second time. It lives here rather than beside the
+ * frame because useFlightArrival is what reads it, and this is the module
+ * that already carries the landing-to-auth-page handshake.
+ */
+export const AUTH_PREVIEW_FLAG = "rv:auth-preview";
+
 type LaunchCb = (launch: FlightLaunch) => void;
 type HandoffCb = () => void;
 

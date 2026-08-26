@@ -31,7 +31,13 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { HoopoeApi } from "./hoopoe-kit";
-import { reportPerch, onHandoff, FLIGHT_FLAG, type FlightTarget } from "./mascot-flight";
+import {
+  reportPerch,
+  onHandoff,
+  FLIGHT_FLAG,
+  AUTH_PREVIEW_FLAG,
+  type FlightTarget,
+} from "./mascot-flight";
 
 export function useFlightArrival({
   flightKey,
@@ -78,6 +84,30 @@ export function useFlightArrival({
       return false;
     }
   });
+
+  // Did the landing already play this page's entrance for it? It draws the
+  // column's opening frame during the photo slide (auth-first-frame.tsx) and
+  // names the destination in this flag, so sliding the same column in again
+  // on mount would be the second time a visitor watched it arrive. Read
+  // before first paint for the same reason the flight flag is, and cleared
+  // below so a later direct visit in the same tab still gets its entrance.
+  const [entrancePlayedOnLanding] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (!flightKey) return false;
+    try {
+      return window.sessionStorage.getItem(AUTH_PREVIEW_FLAG) === flightKey;
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (!entrancePlayedOnLanding) return;
+    try {
+      window.sessionStorage.removeItem(AUTH_PREVIEW_FLAG);
+    } catch {
+      // storage disabled: the flag could not have been set either.
+    }
+  }, [entrancePlayedOnLanding]);
 
   // Mobile has no CTA to launch a cross-page flight from (the photo panel and
   // its CTA only exist at lg+), so on a narrow viewport the owner wants the
@@ -206,6 +236,18 @@ export function useFlightArrival({
     const el = hoopoeBoxRef.current;
     const ro = new ResizeObserver(reportPerchRect);
     if (el) ro.observe(el);
+    // AND the column the box sits in, which is the one that actually moves.
+    // The box is a fixed 112px square: it never resizes, so on its own it
+    // reported once at mount and never again. Everything that shifts the
+    // perch shifts the COLUMN instead — /signup's trivia question arriving a
+    // beat after mount and wrapping to two or three lines, a late font, an
+    // error line — and because the column is vertically centred, a taller
+    // question lifts the box without changing it at all. The bird went on
+    // aiming at the rect the box had when the question still read "...", and
+    // landed that far below where the perch had moved to (owner, 2026-08-26).
+    // Observing the column closes that: it resizes, this fires, and the flyer
+    // eases onto the new rect mid-cruise the way it already does for a resize.
+    if (entranceRef.current) ro.observe(entranceRef.current);
     window.addEventListener("resize", reportPerchRect);
     window.addEventListener("scroll", reportPerchRect, { passive: true, capture: true });
     const stop = () => {
@@ -296,6 +338,8 @@ export function useFlightArrival({
     entranceRef,
     /** False only while a flyer is still inbound; drives the box's opacity. */
     hoopoeShown,
+    /** True when the landing already slid this column in; mount settled. */
+    entrancePlayedOnLanding,
     /** True while a phone must not paint the seated bird; use as a class. */
     preFlightVeil,
     /** Hand to `<Hoopoe onReady>`. */
