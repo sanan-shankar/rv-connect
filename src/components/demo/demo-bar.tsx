@@ -68,6 +68,7 @@ export function DemoBar({ userId }: { userId: string }) {
       // A hard reload rather than router.refresh(): the reset rewrites every
       // table the page is built from, and a full navigation is the only way
       // to be certain nothing stale survives in a client cache.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the hard reload IS the point; see above.
       window.location.href = "/feed";
     } catch {
       setResetting(false);

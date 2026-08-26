@@ -146,7 +146,10 @@ export function ResetPasswordClient({
     });
 
     setTimeout(() => {
+      /* Hard navigations on purpose: a session cookie was just minted, and a
+         client-side push would carry the pre-sign-in RSC cache into it. */
       if (signedIn?.ok) window.location.href = nextPathFromLocation();
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       else window.location.href = "/login";
     }, 1400);
   }
