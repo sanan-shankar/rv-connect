@@ -18,38 +18,20 @@
  * Usage: node scripts/qa/phase3-probe.mjs
  * Needs: dev server on :3000, DEV_LOGIN_SECRET in .env.
  */
-import { readFileSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createHash, randomBytes } from "node:crypto";
-import pg from "pg";
 import bcrypt from "bcryptjs";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
+import { bootstrap, openDb } from "./_probe-kit.mjs";
 import { EMAIL_UNVERIFIED } from "../../src/lib/email-gate-message.ts";
 import { MEMBER_UNVERIFIED } from "../../src/lib/member-gate-message.ts";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-process.chdir(repoRoot);
-
-const BASE = "http://localhost:3000";
-process.env.PUPPETEER_EXECUTABLE_PATH ||=
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const { BASE } = bootstrap(import.meta.url, { chrome: true });
 
 /* ---------------------------------------------------------------- env + db */
 
-for (const line of readFileSync(resolve(repoRoot, ".env"), "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-  if (!m) continue;
-  let v = m[2];
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
-    v = v.slice(1, -1);
-  if (!(m[1] in process.env)) process.env[m[1]] = v;
-}
 
-const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
-await db.connect();
-const q = (text, params) => db.query(text, params).then((r) => r.rows);
+const { db, q } = await openDb();
 
 /* ------------------------------------------------------------- the ledger */
 

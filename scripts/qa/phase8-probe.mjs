@@ -26,28 +26,14 @@
  *        (any value; pass the same one to this probe, or use the dev default
  *        below), DEV_LOGIN_SECRET + ADMIN_EMAIL + R2 creds in .env.
  */
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import pg from "pg";
 import bcrypt from "bcryptjs";
 import { createId } from "@paralleldrive/cuid2";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { makeLedger, credLogin } from "./_probe-kit.mjs";
+import { bootstrap, openDb, makeLedger, credLogin } from "./_probe-kit.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-process.chdir(repoRoot);
-const BASE = "http://localhost:3000";
-process.env.PUPPETEER_EXECUTABLE_PATH ||= "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const { BASE } = bootstrap(import.meta.url, { chrome: true });
 
-for (const line of readFileSync(resolve(repoRoot, ".env"), "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-  if (!m) continue;
-  let v = m[2];
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-  if (!(m[1] in process.env)) process.env[m[1]] = v;
-}
 
 /* The dev value the session's own server restart uses when .env carries no
    CRON_SECRET. Guards nothing real; production has its own in Vercel. */
@@ -59,9 +45,7 @@ const CRON = process.env.CRON_SECRET || "dev-cron-secret-for-local-probes-only";
 const storage = await import("../../src/lib/storage.ts");
 const { default: sharp } = await import("sharp");
 
-const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
-await db.connect();
-const q = (t, p) => db.query(t, p).then((r) => r.rows);
+const { db, q } = await openDb();
 const L = makeLedger();
 
 const P = "@probe8.invalid";
