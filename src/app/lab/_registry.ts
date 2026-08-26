@@ -159,6 +159,13 @@ export const REGISTRY: LabEntry[] = [
     note: "Drives the real Hoopoe rig and controller through every expression, gaze, cover/peek and crest fold so the whole cast can be judged in one place.",
   },
   {
+    href: "/lab/crop",
+    title: "Six ways to hold a photograph",
+    group: "Delight",
+    status: "active",
+    note: "A decision room. Six crop rules against six awkward photographs at the three column widths the app really uses, plus justified rows against today's grid. Throwaway: delete it, public/lab/crop/ and this row once the rule is picked.",
+  },
+  {
     href: "/lab/viewer",
     title: "The image viewer",
     group: "Delight",
