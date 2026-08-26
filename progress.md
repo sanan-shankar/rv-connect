@@ -1,5 +1,45 @@
 # Progress Log
 
+## 2026-08-26 — apple logo replication, committed on the owner's word
+
+Not this session's work. The icon and edge-light files had been sitting modified
+and untracked for about two days, belonging to no live session; two peers had
+each left them alone and one had asked about them. The owner said commit them,
+so this is that, reviewed rather than rubber-stamped.
+
+What is in it. The app icon now has TWO sources instead of one, and the reason is
+written into `generate-icons.mjs`: `src/app/icon.svg` stays the quiet three-hill
+mark, because a browser tab is 16px of chrome beside a page title, and
+`favicon.ico` is the only thing cut from it; `public/images/brand/app-icon.svg`
+is the hoopoe peeking over the bottom edge with its crest fanned, and every
+home-screen and dock PNG is cut from that, because those are looked at rather
+than glanced past. The maskable variant scales about the bottom centre, not the
+canvas centre, so shrinking it cannot lift the head off the edge it is peeking
+over.
+
+`docs/spec/apple-edge-light.md` is the measurement write-up: what macOS 26 and
+iOS 26 draw INSIDE an icon (not the glassy outer rim everybody documents),
+measured off the owner's own home screen, plus the three reconstructions that
+were wrong and why the numbers endorsed the second one anyway. Its lesson is
+worth more than its result: a numeric fit is only as good as the thing it
+measures, and a picture is not optional. `/lab/glass-edges` puts the candidates
+next to each other, and `scripts/dev/apple-edge/` is the harness.
+
+What this session added to it, rather than found: ledger lines in
+`scripts/README.md` for the six harness scripts (the new scripts-ledger gate
+fails a tracked script with no line), a `.gitignore` rule for their comparison
+strips (234KB of regenerable PNG), and the spec's line in `docs/README.md`.
+
+One thing for the owner's eye, flagged rather than changed: the recolour of
+`icon.svg` dropped its `prefers-color-scheme` block along with the old comments,
+so the SVG favicon no longer swaps its tile to the dark rail in dark mode. That
+may well be deliberate — Apple's icons do not adapt either — but it was not
+written down anywhere, so it is written down here.
+
+`npm run check` green, 77/77. `npm run visual` 21/23; both failures are another
+session's in-flight Vercel-Analytics removal rewriting the /privacy processor
+table, not this.
+
 ## Session 2026-08-26 (seventh) — refactor audit phase 4, part 2: the admin wing and the doors
 
 Fourteen commits, the six rows phase 4 had left, and the phase is closed. The full

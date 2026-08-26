@@ -1,9 +1,17 @@
 /**
  * Generates every raster app icon from the one canonical mark.
  *
- * The mark itself lives in src/app/icon.svg (the peaks in blue, cream and
- * cinnamon on Pine), which is all a browser tab ever needs. Home-screen and
- * dock installs need PNGs, and they need them in two different shapes:
+ * TWO sources, because the tab and the home screen want different things:
+ *
+ *   - src/app/icon.svg is the three green hills. A browser tab is 16px of
+ *     chrome next to a page title; it wants the quiet mark. favicon.ico is
+ *     cut from this.
+ *   - public/images/brand/app-icon.svg is the hoopoe peeking over the bottom
+ *     edge. A home-screen or dock icon is looked AT rather than glanced past,
+ *     so it gets the character. Every PNG below is cut from this.
+ *
+ * Home-screen and dock installs need PNGs, and they need them in two
+ * different shapes:
  *
  *   - "any" icons keep the rx=96 rounded square, because Android's launcher
  *     and desktop installers paint them unmasked, corners and all.
@@ -21,14 +29,23 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
 
-const source = readFileSync("src/app/icon.svg", "utf8");
+/** the browser tab's mark; favicon.ico is the only thing cut from it */
+const tabSource = readFileSync("src/app/icon.svg", "utf8");
+/** the home screen's mark; every PNG is cut from it */
+const source = readFileSync("public/images/brand/app-icon.svg", "utf8");
 
 /** The rounded corner is ours; the platform masks these itself. */
 const fullBleed = source.replace(' rx="96"', "");
 
-/** Wrap the art group in a 0.8 scale about the 512 canvas centre. */
+/* Wrap the art group in a 0.8 scale, about the BOTTOM CENTRE rather than the
+   canvas centre. The bird is peeking over the bottom edge, so shrinking it
+   about the middle would lift the head clear of that edge and leave a band of
+   tile under a floating face -- the one thing the composition cannot afford.
+   Scaling toward (256, 512) keeps the head against the bottom and pulls the
+   crest down into the adaptive launcher's safe circle, which is what the
+   maskable icon is for. */
 const maskable = fullBleed
-  .replace("<g transform=", '<g transform="translate(256 256) scale(0.8) translate(-256 -256)"><g transform=')
+  .replace("<g transform=", '<g transform="translate(256 512) scale(0.8) translate(-256 -512)"><g transform=')
   .replace("</svg>", "</g></svg>");
 
 const targets = [
@@ -69,8 +86,9 @@ for (const { svg, size, out } of targets) {
   console.log(`${out}  ${size}x${size}`);
 }
 
-/* favicon.ico, which is what a browser reaches for when it will not take the
-   SVG: bookmark bars, older Windows builds, anything scraping a link preview.
+/* favicon.ico, cut from the TAB source (the green hills), not from the bird.
+   It is what a browser reaches for when it will not take the SVG: bookmark
+   bars, older Windows builds, anything scraping a link preview.
    It held the June mark until now because it was made by hand once and then
    never regenerated, so the tab and the home screen quietly disagreed.
 
@@ -83,7 +101,7 @@ const icoSizes = [16, 32, 48];
 const icoPngs = [];
 for (const size of icoSizes) {
   icoPngs.push(
-    await sharp(Buffer.from(source), { density: 384 })
+    await sharp(Buffer.from(tabSource), { density: 384 })
       .resize(size, size)
       .png({ compressionLevel: 9 })
       .toBuffer(),

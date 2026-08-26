@@ -66,6 +66,7 @@ export function Feather({
   tip = true,
   flat,
   sep,
+  pathFilter,
 }: {
   angle: number;
   px?: number;
@@ -76,6 +77,8 @@ export function Feather({
   i?: number;
   band?: boolean;
   tip?: boolean;
+  /** id of an SVG filter to hang on EACH path, for the edge-light study */
+  pathFilter?: string;
   /** one colour for everything: the rail and any monochrome lockup */
   flat?: string;
   /** a hairline of the GROUND colour along each feather, which is the only
@@ -97,17 +100,20 @@ export function Feather({
         fill={quill}
         stroke={sep}
         strokeWidth={sep ? 1.1 : undefined}
+        filter={pathFilter && `url(#${pathFilter})`}
       />
       {band && !flat ? (
         <path
           d={`M${px - 3 * w} ${capBot} Q${px} ${capBot - 0.6} ${px + 3 * w} ${capBot} L${px + 2.6 * w} ${bandBot} Q${px} ${bandBot - 0.6} ${px - 2.6 * w} ${bandBot} Z`}
           fill={H.crestBand}
+          filter={pathFilter && `url(#${pathFilter})`}
         />
       ) : null}
       {tip && !flat ? (
         <path
           d={`M${px - 3.4 * w} ${capBot} Q${px} ${t - 0.048 * L} ${px + 3.4 * w} ${capBot} Q${px} ${capBot - 1.4 * w} ${px - 3.4 * w} ${capBot} Z`}
           fill={H.crestTip}
+          filter={pathFilter && `url(#${pathFilter})`}
         />
       ) : null}
     </g>
@@ -132,6 +138,7 @@ export function Crest({
   flat,
   sep,
   base = false,
+  pathFilter,
 }: {
   n?: number;
   spread?: number;
@@ -145,6 +152,7 @@ export function Crest({
   tip?: boolean;
   flat?: string;
   sep?: string;
+  pathFilter?: string;
   /** a disc at the pivot, filling the small notch where the feathers converge.
       Off by default: it also flattens the inner ends of the fan, and the fan
       reads better with the notch than without it. Only the marks with no head
@@ -167,6 +175,7 @@ export function Crest({
         tip={tip}
         flat={flat}
         sep={sep}
+        pathFilter={pathFilter}
       />,
     );
   }
@@ -191,15 +200,24 @@ export function Eye({
   cy,
   s = 1,
   flat,
+  pathFilter,
 }: {
   cx: number;
   cy: number;
   s?: number;
   flat?: string;
+  pathFilter?: string;
 }) {
   return (
     <>
-      <ellipse cx={cx} cy={cy} rx={6.9 * s} ry={8.1 * s} fill={flat ?? H.eye} />
+      <ellipse
+        cx={cx}
+        cy={cy}
+        rx={6.9 * s}
+        ry={8.1 * s}
+        fill={flat ?? H.eye}
+        filter={pathFilter && `url(#${pathFilter})`}
+      />
       {flat ? null : (
         <>
           <circle cx={cx - 2.2 * s} cy={cy - 2.9 * s} r={2.5 * s} fill={H.catchlight} />
@@ -216,11 +234,13 @@ export function Bill({
   top = 62.5,
   len = 1,
   flat,
+  pathFilter,
 }: {
   cx?: number;
   top?: number;
   len?: number;
   flat?: string;
+  pathFilter?: string;
 }) {
   const hinge = top + 11.5 * len;
   const tip = top + 18 * len;
@@ -231,6 +251,7 @@ export function Bill({
       <path
         d={`M${cx - 1.8} ${top} Q${cx - 2.5} ${midC} ${cx - 1.1} ${hinge} L${cx + 1.1} ${hinge} Q${cx + 2.5} ${midC} ${cx + 1.8} ${top} Q${cx} ${top - 1.3} ${cx - 1.8} ${top} Z`}
         fill={flat ?? H.bill}
+        filter={pathFilter && `url(#${pathFilter})`}
       />
       <path
         d={`M${cx - 1.1} ${hinge} Q${cx - 0.7} ${lowC} ${cx} ${tip} Q${cx + 0.7} ${lowC} ${cx + 1.1} ${hinge} Z`}
@@ -252,6 +273,7 @@ export function Face({
   eyeY = 61,
   billL = 1,
   flat,
+  pathFilter,
 }: {
   headS?: number;
   eyeS?: number;
@@ -259,13 +281,21 @@ export function Face({
   eyeY?: number;
   billL?: number;
   flat?: string;
+  pathFilter?: string;
 }) {
   return (
     <>
-      <ellipse cx={60} cy={56} rx={30 * headS} ry={27 * headS} fill={flat ?? H.head} />
-      <Bill cx={60} top={62.5} len={billL} flat={flat ? G.canopy : undefined} />
-      <Eye cx={60 - eyeDX} cy={eyeY} s={eyeS} flat={flat ? G.canopy : undefined} />
-      <Eye cx={60 + eyeDX} cy={eyeY} s={eyeS} flat={flat ? G.canopy : undefined} />
+      <ellipse
+        cx={60}
+        cy={56}
+        rx={30 * headS}
+        ry={27 * headS}
+        fill={flat ?? H.head}
+        filter={pathFilter && `url(#${pathFilter})`}
+      />
+      <Bill cx={60} top={62.5} len={billL} flat={flat ? G.canopy : undefined} pathFilter={pathFilter} />
+      <Eye cx={60 - eyeDX} cy={eyeY} s={eyeS} flat={flat ? G.canopy : undefined} pathFilter={pathFilter} />
+      <Eye cx={60 + eyeDX} cy={eyeY} s={eyeS} flat={flat ? G.canopy : undefined} pathFilter={pathFilter} />
     </>
   );
 }
