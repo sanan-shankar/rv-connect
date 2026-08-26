@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-
+import { read, decomment } from "./test-kit.mjs";
 import { droppedImages } from "./draft-images.ts";
 
 /* ------------------------------------------------------------------ *
@@ -17,12 +16,6 @@ import { droppedImages } from "./draft-images.ts";
  *  source rather than the behaviour, because what is being asserted IS
  *  structural: that no exit was forgotten.
  * ------------------------------------------------------------------ */
-
-const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
-
-/** Source with its comments removed. Prose about a `return { error }` is
- *  not a `return { error }`, and this file counts exits. */
-const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 /** A named function's body, brace-matched. Anchored on the `function`
  *  keyword, never on the bare name: a file that imports a symbol and
@@ -49,8 +42,8 @@ function bodyOf(src, name) {
 
 /* ---- C-063: the staged direct-upload original ------------------- */
 
-const collection = read("../app/(main)/collection/actions.ts");
-const direct = code(bodyOf(collection, "contributePhotoDirect"));
+const collection = read("src/app/(main)/collection/actions.ts");
+const direct = decomment(bodyOf(collection, "contributePhotoDirect"));
 
 test("the extraction really is contributePhotoDirect's whole body", () => {
   // If this fails the assertions below are testing a fragment, and their
@@ -96,7 +89,7 @@ test("C-063: the one refusal ABOVE the guard is the unvouched key itself", () =>
 
 /* ---- the fallback the cleanup itself leans on ------------------- */
 
-const purge = code(read("./image-purge.ts"));
+const purge = decomment(read("src/lib/image-purge.ts"));
 
 test("a refused delete is queued for the nightly drain, not logged and lost", () => {
   const queue = bodyOf(purge, "queue");
@@ -108,8 +101,8 @@ test("a refused delete is queued for the nightly drain, not logged and lost", ()
 
 /* ---- C-064: bytes stored before a request gave up ---------------- */
 
-const proxyUpload = code(read("../app/api/upload/route.ts"));
-const finalize = code(read("../app/api/upload/finalize/route.ts"));
+const proxyUpload = decomment(read("src/app/api/upload/route.ts"));
+const finalize = decomment(read("src/app/api/upload/finalize/route.ts"));
 
 for (const [name, src] of [
   ["/api/upload", proxyUpload],
@@ -142,7 +135,7 @@ test("C-064: finalize also releases the originals it never got to", () => {
 });
 
 test("C-064: no Collection photo row is written outside the guard that cleans up", () => {
-  const raw = code(read("../app/(main)/collection/actions.ts"));
+  const raw = decomment(read("src/app/(main)/collection/actions.ts"));
   const guarded = bodyOf(raw, "createPhotoRow");
   assert.ok(guarded.includes("prisma.photo.create"));
   assert.ok(guarded.includes("purgeImageUrls"));
@@ -154,14 +147,14 @@ test("C-064: no Collection photo row is written outside the guard that cleans up
 });
 
 test("C-064: a half-stored pair is not left half-stored", () => {
-  const raw = code(read("../app/(main)/collection/actions.ts"));
+  const raw = decomment(read("src/app/(main)/collection/actions.ts"));
   assert.equal([...raw.matchAll(/await putAllOrNone\(/g)].length, 2);
   assert.equal([...raw.matchAll(/await Promise\.all\(\[\s*putImage/g)].length, 0);
 });
 
 /* ---- C-064: a photo taken off a draft ---------------------------- */
 
-const feed = code(read("../app/(main)/feed/actions.ts"));
+const feed = decomment(read("src/app/(main)/feed/actions.ts"));
 
 test("C-064: an image dropped from a draft is queued in the same write", () => {
   const edit = bodyOf(feed, "editPost");
@@ -191,7 +184,7 @@ test("C-064: reordering or re-adding a photo drops nothing", () => {
 
 /* ---- C-069/C-152: a delete that fails leaves a worklist behind --- */
 
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -218,15 +211,15 @@ test("C-069: nothing calls delImage directly except the two places allowed to", 
     "lib/account-purge.ts", // the drain itself, which reads the boolean
   ]);
   const callers = walk(SRC)
-    .filter(([, src]) => /(?<![A-Za-z])delImage\(/.test(code(src)))
+    .filter(([, src]) => /(?<![A-Za-z])delImage\(/.test(decomment(src)))
     .map(([f]) => f)
     .filter((f) => !allowed.has(f));
   assert.deepEqual(callers, []);
 });
 
 test("C-050: the avatar swap is one decision, not a read and a later write", () => {
-  const settings = code(read("../components/settings/actions.ts"));
-  const swap = code(read("./avatar-swap.ts"));
+  const settings = decomment(read("src/components/settings/actions.ts"));
+  const swap = decomment(read("src/lib/avatar-swap.ts"));
   // Compare-and-swap: the update only lands if the row still holds what was
   // read, so two concurrent uploads supersede different URLs.
   const body = bodyOf(swap, "swapPhotoUrl");
@@ -250,11 +243,11 @@ test("C-129: a staged upload can be contributed exactly once", () => {
      created a row -- with the per-account ceiling checked before either
      insert. Application code cannot close that under READ COMMITTED, so the
      database does. */
-  const schema = read("../../prisma/schema.prisma");
+  const schema = read("prisma/schema.prisma");
   assert.match(schema, /sourceKey\s+String\?\s+@unique/, "Photo.sourceKey is not unique");
-  const sql = read("../../prisma/migrations-manual/2026-08-25-photo-source-key.sql");
+  const sql = read("prisma/migrations-manual/2026-08-25-photo-source-key.sql");
   assert.match(sql, /CREATE UNIQUE INDEX IF NOT EXISTS "Photo_sourceKey_key"/);
-  const actions = read("../app/(main)/collection/actions.ts");
+  const actions = read("src/app/(main)/collection/actions.ts");
   assert.match(actions, /sourceKey: input\.key,/, "the direct path does not record the key it claims");
   assert.match(
     actions,
@@ -264,8 +257,8 @@ test("C-129: a staged upload can be contributed exactly once", () => {
 });
 
 test("C-074/C-130: concurrent moderation is answered, not thrown at", () => {
-  const src = read("../app/(main)/collection/actions.ts");
-  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  const src = read("src/app/(main)/collection/actions.ts");
+  const code = decomment(src);
   // Both admin writes on a possibly-stale row.
   assert.match(code, /const approved = await prisma\.photo\.updateMany\(/, "approvePhoto still throws P2025");
   assert.match(code, /approved\.count === 0/, "approvePhoto ignores having matched nothing");
@@ -274,8 +267,8 @@ test("C-074/C-130: concurrent moderation is answered, not thrown at", () => {
 });
 
 test("C-159: the Collection intake keeps its resolve-always promise", () => {
-  const src = read("./collection-intake.ts");
-  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  const src = read("src/lib/collection-intake.ts");
+  const code = decomment(src);
   // No await outside a try before the loop.
   const head = code.slice(0, code.indexOf("toCopy.map"));
   const awaits = [...head.matchAll(/await /g)];
@@ -294,13 +287,13 @@ test("C-159: the Collection intake keeps its resolve-always promise", () => {
 });
 
 test("C-157/C-158: a fetch that failed is not mistaken for one that worked", () => {
-  const viewer = read("../components/common/image-viewer.tsx");
+  const viewer = read("src/components/common/image-viewer.tsx");
   assert.match(
     viewer,
     /if \(!res\.ok\) throw new Error\(String\(res\.status\)\);/,
     "an error body is still saved to disk under the photograph's name"
   );
-  const upload = read("./upload-client.ts");
+  const upload = read("src/lib/upload-client.ts");
   // Backtick OR quote, and the string may wrap to the next line.
   const warns = [...upload.matchAll(/console\.warn\(\s*[`"]\[upload\]/g)];
   assert.equal(warns.length, 3, `${warns.length} of the 3 silent fallbacks say anything`);

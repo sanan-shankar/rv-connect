@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { ROOT } from "./test-kit.mjs";
+import { ROOT, decomment } from "./test-kit.mjs";
 import {
   MAX_PLACES,
   formatPlaceLabel,
@@ -197,7 +197,7 @@ test("every place writer mirrors the legacy columns from the one helper", () => 
     // The helper itself is where the rule is allowed to be written out.
     if (file === HELPER) continue;
     const src = readFileSync(file, "utf8");
-    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    const code = decomment(src);
     if (/legacyCityColumns\(/.test(code)) callers.push(file);
     // The shape it replaced. Anything writing currentCity off a places list
     // by hand is a fourth copy of the rule.

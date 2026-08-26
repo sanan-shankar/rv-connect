@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { ROOT } from "./test-kit.mjs";
+import { ROOT, decomment } from "./test-kit.mjs";
 
 import {
   formatDisplayDate,
@@ -165,7 +165,7 @@ test("every SQL date bucket converts to the valley's zone before truncating", ()
   for (const file of walk(resolve(ROOT, "src"))) {
     const src = readFileSync(file, "utf8");
     // Comments describe the bug; only real calls count.
-    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    const code = decomment(src);
     for (const m of code.matchAll(/\b(date_trunc|to_char)\(/g)) {
       const args = callArgs(code, m.index + m[0].length - 1);
       // Only calls over a real column; to_char over a computed number is not a

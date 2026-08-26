@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { deriveSubject, previewOf } from "./admin-threads.ts";
 import { DOUBLE_SUBMIT_MS } from "./double-submit.ts";
-import { read } from "./test-kit.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Member <-> admin conversations.
@@ -15,10 +15,9 @@ import { read } from "./test-kit.mjs";
  *  to say so, which is B-200 arriving twice more.
  * ------------------------------------------------------------------ */
 
-const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
-const ACTIONS = code(read("src/app/(main)/messages/actions.ts"));
-const NOTICE = code(read("src/app/(main)/notice/[id]/page.tsx"));
+const ACTIONS = decomment(read("src/app/(main)/messages/actions.ts"));
+const NOTICE = decomment(read("src/app/(main)/notice/[id]/page.tsx"));
 
 /* ---- C-059: a cut never lands inside a character ---------------- */
 
@@ -113,17 +112,17 @@ test("C-061: every mark-read is scoped to what was rendered", () => {
     ["src/app/(main)/admin/messages/[id]/page.tsx", /markThreadSeenByAdmin\(thread\.id, shown\.at\(-1\)\?\.createdAt\)/],
   ];
   for (const [file, pattern] of sites) {
-    assert.match(code(read(file)), pattern, `${file} clears an unread flag for a message it never showed`);
+    assert.match(decomment(read(file)), pattern, `${file} clears an unread flag for a message it never showed`);
   }
   // The member page must derive its bound from the rendered window, not the row.
-  const page = code(read("src/app/(main)/messages/[id]/page.tsx"));
+  const page = decomment(read("src/app/(main)/messages/[id]/page.tsx"));
   assert.match(page, /const seenThrough = shown\.at\(-1\)\?\.createdAt;/);
 });
 
 /* ---- C-057: somebody else's actions do not spend your budget ---- */
 
 test("C-057: admin-opened notices are outside the member's new-thread budget", () => {
-  const src = code(read("src/lib/admin-threads-server.ts"));
+  const src = decomment(read("src/lib/admin-threads-server.ts"));
   const from = src.indexOf("export async function isThreadRateLimited");
   const body = src.slice(from, src.indexOf("export async function", from + 10));
   assert.match(
@@ -133,7 +132,7 @@ test("C-057: admin-opened notices are outside the member's new-thread budget", (
   );
   // The rows being excluded really are admin-opened.
   assert.match(
-    code(read("src/lib/admin-threads-server.ts")),
+    decomment(read("src/lib/admin-threads-server.ts")),
     /kind: "notice"/,
     "openAdminNoticeThread no longer writes the kind this exclusion names"
   );
@@ -147,7 +146,7 @@ test("C-058/C-081: every capped thread list carries a count and an escape", () =
     ["src/app/(main)/admin/messages/page.tsx", "OPEN_PAGE", "/admin/messages?open=all"],
   ];
   for (const [file, cap, escape] of lists) {
-    const src = code(read(file));
+    const src = decomment(read(file));
     assert.match(src, new RegExp(`const ${cap} = \\d+;`), `${file} has no named cap`);
     assert.match(src, new RegExp(`take: ${cap}`), `${file}'s cap is not applied`);
     assert.match(src, /prisma\.adminThread\.count\(/, `${file} shows a cut list with no total`);
@@ -155,7 +154,7 @@ test("C-058/C-081: every capped thread list carries a count and an escape", () =
     assert.match(src, /Show \{[a-zA-Z]+\} older/, `${file} says nothing about what it is hiding`);
   }
   // The admin open list was the unbounded one; make sure it is not again.
-  const admin = code(read("src/app/(main)/admin/messages/page.tsx"));
+  const admin = decomment(read("src/app/(main)/admin/messages/page.tsx"));
   const openQuery = admin.slice(admin.indexOf('where: { status: { not: "closed" } }'));
   assert.match(openQuery.slice(0, 300), /take: OPEN_PAGE/, "the open queue is unbounded again");
 });

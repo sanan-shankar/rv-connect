@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { safeTruncateIndex } from "./rich-truncate.ts";
 import { renderRichText } from "./utils.ts";
-import { read } from "./test-kit.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  "Read more", and the four things it used to break.
@@ -85,7 +85,7 @@ test("C-180: both Load-more handlers guard synchronously and dedupe by id", () =
     "src/components/posts/post-feed.tsx",
     "src/components/profile/profile-author-feed.tsx",
   ]) {
-    const src = read(file).replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    const src = decomment(read(file));
     assert.match(src, /if \(loadingMoreRef\.current\) return;/, `${file} relies on a state flag alone`);
     assert.match(src, /loadingMoreRef\.current = true;/, `${file} never sets its guard`);
     assert.match(src, /loadingMoreRef\.current = false;/, `${file} never releases its guard`);

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-
+import { read, decomment } from "./test-kit.mjs";
 import { isPostTwin } from "./double-submit.ts";
 import { escapeLike, SEARCH_TERM_MAX } from "./db-text.ts";
 
@@ -17,13 +16,7 @@ import { escapeLike, SEARCH_TERM_MAX } from "./db-text.ts";
  *  against nothing.
  * ------------------------------------------------------------------ */
 
-const HERE = new URL(".", import.meta.url);
-const read = (p) => readFileSync(new URL(p, HERE), "utf8");
-
-/** Source with its comments stripped. Prose about a rule is not the rule. */
-const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
-
-const FEED = code(read("../app/(main)/feed/actions.ts"));
+const FEED = decomment(read("src/app/(main)/feed/actions.ts"));
 
 /* ---- C-009: a twin is the same POST, not the same words ---------- */
 
@@ -119,20 +112,20 @@ test("C-015: the feed search goes through escapeLike", () => {
 });
 
 test("C-015: the directory search goes through escapeLike", () => {
-  assert.match(code(read("../app/(main)/directory/where.ts")), /escapeLike\(filters\.q\)/);
+  assert.match(decomment(read("src/app/(main)/directory/where.ts")), /escapeLike\(filters\.q\)/);
 });
 
 /* ---- C-003: the card's count and the thread ask one question ----- */
 
 test("C-003: no _count.comments filter is hand-rolled", () => {
   const files = [
-    "../app/(main)/feed/actions.ts",
-    "../app/(main)/letters/page.tsx",
-    "../app/(main)/letters/[id]/page.tsx",
+    "src/app/(main)/feed/actions.ts",
+    "src/app/(main)/letters/page.tsx",
+    "src/app/(main)/letters/[id]/page.tsx",
   ];
   let seen = 0;
   for (const f of files) {
-    const src = code(read(f));
+    const src = decomment(read(f));
     for (const m of src.matchAll(/comments:\s*\{\s*where:\s*([^}]*?)\s*\}/g)) {
       seen++;
       assert.equal(
@@ -148,7 +141,7 @@ test("C-003: no _count.comments filter is hand-rolled", () => {
 });
 
 test("C-003: VISIBLE_COMMENT is the fragment the thread query uses too", () => {
-  const posts = code(read("./posts.ts"));
+  const posts = decomment(read("src/lib/posts.ts"));
   assert.match(posts, /export const VISIBLE_COMMENT = \{[\s\S]*?AUTHOR_IN_GOOD_STANDING/);
   assert.match(FEED, /where:\s*\{[\s\S]{0,200}\.\.\.VISIBLE_COMMENT/);
 });
@@ -168,7 +161,7 @@ test("C-016: createComment notifies the comment that was replied TO", () => {
 });
 
 test("C-016: the composer targets the tapped reply", () => {
-  const src = code(read("../components/posts/comments-section.tsx"));
+  const src = decomment(read("src/components/posts/comments-section.tsx"));
   assert.match(src, /id: reply\.id,\s*\n\s*name: reply\.author!\.name,/);
 });
 

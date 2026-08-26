@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { startOfUtcDay } from "./mail-policy.ts";
-import { read } from "./test-kit.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The machinery nobody watches: the mail queue, the nightly sweep,
@@ -14,9 +14,8 @@ import { read } from "./test-kit.mjs";
  *  that each one either cannot fail silently, or cannot fail at all.
  * ------------------------------------------------------------------ */
 
-const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
-const QUEUE = code(read("src/lib/email-queue.ts"));
+const QUEUE = decomment(read("src/lib/email-queue.ts"));
 
 /* ---- C-103: every enqueue path wakes the drain ------------------ */
 
@@ -99,7 +98,7 @@ test("C-153: the drain lease reads only a unique violation as 'somebody has it'"
 });
 
 test("C-154: a limiter that fails open says so where somebody looks", () => {
-  const src = code(read("src/lib/rate-limit.ts"));
+  const src = decomment(read("src/lib/rate-limit.ts"));
   assert.match(src, /function reportLimiterFailure\(/, "there is no reporter");
   const calls = [...src.matchAll(/reportLimiterFailure\(name, "(check|read|consume)"/g)];
   assert.equal(calls.length, 3, `${calls.length} of the 3 fail-open catches report`);
@@ -110,7 +109,7 @@ test("C-154: a limiter that fails open says so where somebody looks", () => {
 /* ---- C-076/C-118: the purge cannot leak or explode -------------- */
 
 test("C-076: the purge transaction runs at the isolation its comment relies on", () => {
-  const src = code(read("src/lib/account-purge.ts"));
+  const src = decomment(read("src/lib/account-purge.ts"));
   assert.match(
     src,
     /isolationLevel: "RepeatableRead"/,
@@ -119,7 +118,7 @@ test("C-076: the purge transaction runs at the isolation its comment relies on",
 });
 
 test("C-118: the purge drain's failure branch cannot throw", () => {
-  const src = code(read("src/lib/account-purge.ts"));
+  const src = decomment(read("src/lib/account-purge.ts"));
   assert.match(
     src,
     /prisma\.pendingImagePurge\.updateMany\(\{\s*where: \{ id: row\.id \}/,
@@ -130,7 +129,7 @@ test("C-118: the purge drain's failure branch cannot throw", () => {
 /* ---- C-062: retention removes the shell with the transcript ----- */
 
 test("C-062: an emptied thread goes with its messages", () => {
-  const src = code(read("src/lib/retention.ts"));
+  const src = decomment(read("src/lib/retention.ts"));
   const from = src.indexOf('step("adminMessages"');
   const body = src.slice(from, src.indexOf("\n  );", from));
   assert.match(
@@ -147,7 +146,7 @@ test("C-062: an emptied thread goes with its messages", () => {
 test("C-079: both cron routes declare a maxDuration", () => {
   for (const route of ["src/app/api/retention/sweep/route.ts", "src/app/api/catchups/tick/route.ts"]) {
     assert.match(
-      code(read(route)),
+      decomment(read(route)),
       /export const maxDuration = \d+;/,
       `${route} runs on the platform default, so a long pass is cut off without reaching its reporter`
     );
@@ -157,7 +156,7 @@ test("C-079: both cron routes declare a maxDuration", () => {
 /* ---- C-106/C-083: the day's budget survives a dismissal --------- */
 
 test("C-106: dismissMail refuses to delete a row already counted against today", () => {
-  const src = code(read("src/app/(main)/admin/mail/actions.ts"));
+  const src = decomment(read("src/app/(main)/admin/mail/actions.ts"));
   const from = src.indexOf("export async function dismissMail");
   const body = src.slice(from);
   assert.match(
@@ -188,7 +187,7 @@ test("C-078: every member-authored model has an export section", () => {
      missing for months while the file's header promised "what the person gave
      the site or wrote on it". */
   const schema = read("prisma/schema.prisma");
-  const exportSrc = code(read("src/app/api/account/export/route.ts"));
+  const exportSrc = decomment(read("src/app/api/account/export/route.ts"));
   const authored = [
     ["CatchupPrompt", "catchupPrompt"],
     ["CatchupEntry", "catchupEntry"],
@@ -218,8 +217,8 @@ test("C-146: an audit-log date is a valley day, like the email beside it", () =>
      different days, and an admin cross-checking them had nothing to say which
      was right. */
   const files = {
-    "src/components/settings/actions.ts": code(read("src/components/settings/actions.ts")),
-    "src/lib/retention.ts": code(read("src/lib/retention.ts")),
+    "src/components/settings/actions.ts": decomment(read("src/components/settings/actions.ts")),
+    "src/lib/retention.ts": decomment(read("src/lib/retention.ts")),
   };
   const offenders = [];
   let details = 0;
@@ -251,7 +250,7 @@ test("C-116: the NYT fetch cannot hang the /dark-mode render", () => {
      replies -- which does not reject, so the fallback was unreachable in the
      one case it was written for and the first visitor after each cache expiry
      got a 504. */
-  const WORDLE = code(read("src/lib/wordle.ts"));
+  const WORDLE = decomment(read("src/lib/wordle.ts"));
   assert.ok(
     /AbortSignal\.timeout\(/.test(WORDLE),
     "getWordleAnswer's fetch has no deadline again (C-116)"
@@ -282,7 +281,7 @@ test("C-046: nothing writes verifyState without stamping verifyStateAt", () => {
   let writes = 0;
   const offenders = [];
   for (const [name] of sources) {
-    const src = code(read(name));
+    const src = decomment(read(name));
     /* Prisma writers say `verifyState: "..."` and raw SQL says
        `"verifyState" = '...'`, and BOTH forms appear in a where/WHERE clause
        too, where they are a read and owe nothing. Told apart by which
@@ -315,7 +314,7 @@ test("C-155: pick-bird does not read a failed query as 'not a supporter'", () =>
      pool timeout at the busy moment payments cluster bounced somebody who HAD
      paid to the page whose one call to action is to pay again -- with nothing
      shown to say anything had gone wrong. */
-  const PAGE = code(read("src/app/(main)/pick-bird/page.tsx"));
+  const PAGE = decomment(read("src/app/(main)/pick-bird/page.tsx"));
   assert.ok(PAGE.length > 400, "the pick-bird page did not read; this test is vacuous");
   assert.ok(
     !/\.catch\(/.test(PAGE),

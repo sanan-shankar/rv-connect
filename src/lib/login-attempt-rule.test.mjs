@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read } from "./test-kit.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The two places a sign-in failure is READ.
@@ -12,11 +12,10 @@ import { read } from "./test-kit.mjs";
  *  a query and a lookup that had quietly stopped covering their input.
  * ------------------------------------------------------------------ */
 
-const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
-const ANALYTICS = strip(read("src/lib/admin-analytics.ts"));
-const PAGE = strip(read("src/app/(main)/admin/analytics/page.tsx"));
-const PURGE = strip(read("src/lib/account-purge.ts"));
+const ANALYTICS = decomment(read("src/lib/admin-analytics.ts"));
+const PAGE = decomment(read("src/app/(main)/admin/analytics/page.tsx"));
+const PURGE = decomment(read("src/lib/account-purge.ts"));
 
 /** The one tagged template that builds the "still locked out" list. */
 function lockedOutQuery() {
@@ -78,7 +77,7 @@ test("every sign-in reason has a label, enforced by the type not by hope", () =>
     /const REASON: Record<LoginReason, string> = \{/,
     "REASON is keyed on string again, so a new reason ships to the owner as a raw slug"
   );
-  const REASONS = strip(read("src/lib/login-attempt.ts"));
+  const REASONS = decomment(read("src/lib/login-attempt.ts"));
   const vocabulary = [...REASONS.matchAll(/\| "([a-z-]+)"/g)].map((m) => m[1]);
   assert.ok(vocabulary.length >= 6, `scraped only ${vocabulary.length} reasons from LoginReason`);
   const map = PAGE.slice(PAGE.indexOf("const REASON:"), PAGE.indexOf("};", PAGE.indexOf("const REASON:")));
