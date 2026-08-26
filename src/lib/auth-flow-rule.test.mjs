@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
 import { SESSION_MAX_AGE } from "./session-revocation.ts";
+import { read } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The password-reset and confirmation flows.
@@ -15,8 +13,6 @@ import { SESSION_MAX_AGE } from "./session-revocation.ts";
  *  it then passes against nothing.
  * ------------------------------------------------------------------ */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 const EMAIL_ACTIONS = code(read("src/components/auth/email-actions.ts"));

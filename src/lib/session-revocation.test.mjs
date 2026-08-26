@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { sessionRevoked } from "./session-revocation.ts";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Session revocation, written down as attacks.
@@ -20,11 +18,6 @@ import { sessionRevoked } from "./session-revocation.ts";
  *  wiring -- that the callback still calls it, and that the query still
  *  fetches every column the rule reads.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 const live = (over = {}) => ({ isBlocked: false, credentialVersion: 0, ...over });
 

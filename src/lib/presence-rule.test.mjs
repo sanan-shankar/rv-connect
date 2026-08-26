@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Presence telemetry: whose row it is, and how much of it there may be.
@@ -26,11 +24,6 @@ import { fileURLToPath } from "node:url";
  *  old shape touched 1, the create then loses to the primary key, and an
  *  ordinary member's two page views still land as one row with views 2.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 test("a visit is only ever written against the member it belongs to", () => {
   const src = decomment(read("src/lib/last-seen.ts"));

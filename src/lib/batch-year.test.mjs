@@ -1,8 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { read } from "./test-kit.mjs";
 import {
   FIRST_BATCH_YEAR,
   LAST_BATCH_YEAR,
@@ -10,9 +8,6 @@ import {
   parseBatchYearList,
   yearClashMessage,
 } from "./batch-year.ts";
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 
 test("a plain year in range reads as itself", () => {
   assert.equal(parseBatchYear("1990"), 1990);

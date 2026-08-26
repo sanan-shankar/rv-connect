@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
 
 import { deriveSubject, previewOf } from "./admin-threads.ts";
 import { DOUBLE_SUBMIT_MS } from "./double-submit.ts";
+import { read } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Member <-> admin conversations.
@@ -17,8 +15,6 @@ import { DOUBLE_SUBMIT_MS } from "./double-submit.ts";
  *  to say so, which is B-200 arriving twice more.
  * ------------------------------------------------------------------ */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 const ACTIONS = code(read("src/app/(main)/messages/actions.ts"));

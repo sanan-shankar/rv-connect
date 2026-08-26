@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { ROOT, read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  A notification leads somewhere.
@@ -23,11 +21,6 @@ import { fileURLToPath } from "node:url";
  *  on every `npm run check` and in CI: the mechanisms cannot be deleted
  *  quietly, and no new way to take a post down can forget the bell.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 /* ---------------------------------------------- C-052: the fragment scroll */
 

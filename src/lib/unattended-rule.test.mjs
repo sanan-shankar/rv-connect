@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
 
 import { startOfUtcDay } from "./mail-policy.ts";
+import { read } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The machinery nobody watches: the mail queue, the nightly sweep,
@@ -16,8 +14,6 @@ import { startOfUtcDay } from "./mail-policy.ts";
  *  that each one either cannot fail silently, or cannot fail at all.
  * ------------------------------------------------------------------ */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 const QUEUE = code(read("src/lib/email-queue.ts"));

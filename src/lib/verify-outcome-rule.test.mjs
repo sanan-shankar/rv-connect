@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  "Already confirmed" has to be true when we say it.
@@ -23,11 +21,6 @@ import { fileURLToPath } from "node:url";
  *  trap at its source. Reset links ARE still burned: there the burn is a
  *  security property, not a convenience.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 const tokens = decomment(read("src/lib/auth-tokens.ts"));
 const actions = decomment(read("src/components/auth/email-actions.ts"));

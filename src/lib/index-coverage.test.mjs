@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { ROOT } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Every hot foreign key is indexed on the child side.
@@ -28,7 +28,6 @@ import { fileURLToPath } from "node:url";
  *  caught on the day it is written rather than at two thousand members.
  * ------------------------------------------------------------------ */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const schema = readFileSync(resolve(ROOT, "prisma/schema.prisma"), "utf8");
 
 /** The body of one `model X { ... }` block. */

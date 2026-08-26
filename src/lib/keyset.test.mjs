@@ -2,14 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 import { decodeKeyset, encodeKeyset, keysetWhere } from "./keyset.ts";
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+import { ROOT, decomment } from "./test-kit.mjs";
 
 /* Audits C-005 / C-124 / C-162 / C-171. Prisma's `cursor: { id }` names a ROW,
  * and answers nothing at all when that row has left the filtered set -- proved

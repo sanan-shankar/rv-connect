@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
 
 import { safeTruncateIndex } from "./rich-truncate.ts";
 import { renderRichText } from "./utils.ts";
+import { read } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  "Read more", and the four things it used to break.
@@ -16,9 +14,6 @@ import { renderRichText } from "./utils.ts";
  *  not where the cut lands -- it is that cutting there changes nothing
  *  about what either half renders as.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 
 /** The card's own rule: render the two halves and stick them together. */
 const asCard = (text, max) => {

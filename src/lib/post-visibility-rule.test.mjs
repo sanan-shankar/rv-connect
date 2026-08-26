@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { ROOT, decomment } from "./test-kit.mjs";
 
 import {
   MAX_BATCH_TARGETS,
@@ -329,10 +329,6 @@ test("a caller that never fetched the author's standing is not told everything i
  * A behavioural test of decidePostVisibility cannot see that. This can: no
  * caller may refuse on a fact the rule already weighs. */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
-
 const RULE_FACTS = ["isHidden", "groupId", "cityScope", "targetBatches"];
 
 test("no page refuses a post ahead of the rule", () => {
@@ -367,7 +363,6 @@ test("no page refuses a post ahead of the rule", () => {
     }
   }
 });
-
 
 /* ------------------------------------------------------------------ *
  *  A count and the list beside it answer the same question.

@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { read } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The directory: five ways a count and its list disagreed.
@@ -16,8 +14,6 @@ import { dirname, resolve } from "node:path";
  *  and the unit gate runs `node <file>.test.mjs` with no resolver.
  * ------------------------------------------------------------------ */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 const WHERE = code(read("src/app/(main)/directory/where.ts"));

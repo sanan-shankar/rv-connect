@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { ROOT, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The connection pool has to stay bounded and impatient.
@@ -20,9 +20,6 @@ import { fileURLToPath } from "node:url";
  *  somebody simplifies the config back to a bare connection string.
  * ------------------------------------------------------------------ */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 const src = decomment(readFileSync(resolve(ROOT, "src/lib/prisma.ts"), "utf8"));
 
 test("the pg pool caps connections per instance", () => {

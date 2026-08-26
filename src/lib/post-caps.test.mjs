@@ -1,13 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { POST_CONTENT_MAX, POST_TOO_LONG, postContentMax } from "./post-caps.ts";
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
+import { read } from "./test-kit.mjs";
 
 /* The two ends of a post's life have to agree on how long it may be. They did
  * not: creation accepted 20,000 characters for any kind while editing refused

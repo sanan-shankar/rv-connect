@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { ROOT } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  Deleting one member must never destroy anybody else's writing.
@@ -30,7 +30,6 @@ import { fileURLToPath } from "node:url";
  *  member's deletion may destroy it.
  * ------------------------------------------------------------------ */
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const schema = readFileSync(resolve(ROOT, "prisma/schema.prisma"), "utf8");
 
 /**

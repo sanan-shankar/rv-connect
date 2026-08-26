@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The shapes that made the mail queue lose mail.
@@ -12,11 +10,6 @@ import { fileURLToPath } from "node:url";
  *  need a database and a provider outage to exercise for real -- so what is
  *  pinned here is the shape, in the security-regressions.test.mjs style.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const read = (p) => readFileSync(resolve(ROOT, p), "utf8");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 const queue = decomment(read("src/lib/email-queue.ts"));
 const mail = decomment(read("src/lib/email.ts"));

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve, join } from "node:path";
+import { ROOT } from "./test-kit.mjs";
 
 import {
   formatDisplayDate,
@@ -21,8 +21,6 @@ import {
  *  calendars disagree, and a server rendering in UTC printed yesterday.
  *  These run with no TZ set, exactly as `npm run check` and Vercel do.
  * ------------------------------------------------------------------ */
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 test("formatDisplayDate: a letter written at 00:30 IST shows that day, not the one before", () => {
   // 00:30 IST on 15 June 2026 is 19:00 UTC on 14 June.

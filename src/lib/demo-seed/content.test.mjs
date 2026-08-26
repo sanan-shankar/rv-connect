@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { ROOT } from "../test-kit.mjs";
 
 import { ALL_DEMO_PEOPLE } from "./people.ts";
 import {
@@ -175,7 +175,7 @@ test("every Collection photo's recorded size matches the file on disk", async ()
   // the grid came out ragged, with tiles at sizes that did not match their
   // pictures. Measuring beats trusting.
   const sharp = (await import("sharp")).default;
-  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../public/images/collection");
+  const root = resolve(ROOT, "public/images/collection");
 
   const wrong = [];
   for (const ph of DEMO_PHOTOS) {

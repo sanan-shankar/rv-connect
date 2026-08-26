@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve, join } from "node:path";
 
 import { adminThreadLink, postNotificationLink, postNoun } from "./notification-links.ts";
-
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+import { ROOT } from "./test-kit.mjs";
 
 test("a letter's notification goes to the letter, where its comments are", () => {
   assert.equal(postNotificationLink({ id: "abc", kind: "letter" }), "/letters/abc");

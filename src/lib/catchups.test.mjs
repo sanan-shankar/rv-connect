@@ -54,6 +54,7 @@ import {
   shiftPausedInstant,
 } from "./catchups.ts";
 import { PROMPT_CATEGORIES } from "./catchups-types.ts";
+import { decomment } from "./test-kit.mjs";
 
 // A fixed clock so every case is deterministic.
 const NOW = new Date("2026-03-01T12:00:00.000Z");
@@ -718,8 +719,6 @@ test("an anonymous question whose asker deleted their account stays anonymous", 
  * that hands an `asker` to a view must get the answer from the one helper. */
 
 const CATCHUP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const decomment = (src) =>
-  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 /* Files that DECIDE an asker, not files that merely declare the field: a
    ternary or a guard on the right of `asker:`. A type declaration reads
