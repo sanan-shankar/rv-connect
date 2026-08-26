@@ -8,6 +8,13 @@ were one-off probes written to answer a single question during a single session
 and never run again. They were deleted. The ones below survived because each has
 a reason stated here.
 
+**The rule is now enforced.** `qa/scripts-ledger.test.mjs` runs inside
+`npm run check` and fails if a tracked script has no line here, or if a line
+names a script that is gone. Written down was not enough: by 2026-08-26 this
+file described 32 of the folder's 50 scripts, and the eighteen it had lost
+included every phase probe and the whole of `ops/`, which a nightly workflow
+runs.
+
 Most QA scripts need the dev server running (`npm run dev`) and sign in as the
 admin via `/api/dev-login`, so `ADMIN_EMAIL` and `DEV_LOGIN_SECRET` must both
 be set in `.env`. That route answers 404 unless NODE_ENV is not production and
@@ -18,13 +25,13 @@ Screenshots land in `temporary screenshots/`.
 
 | Command | Does |
 |---|---|
-| `npm run check` | **The one gate.** Runs TypeScript, ESLint, `protocol-audit`, `lab-audit` and all 14 `*.test.mjs` in parallel, ~17s, no dev server needed. Prints a pass/warn/FAIL table. Add a gate name (`types`, `lint`, `protocol`, `lab`, `tests`) to run just one. Run it before every commit. |
-| `npm run screenshot <url> [label]` | Screenshot any public page. Add `--mobile` for 390x844. The workhorse. |
-| `npm run screenshot:auth <url>` | Same, but signed in as admin first. Use for anything behind login. |
-| `npm run verify:shot` | Screenshot plus a console/pageerror check, so a clean-looking page with a red console still fails. |
-| `npm run verify:crawl` | Walks every live route signed in, reporting HTTP status and console errors. **Its route list is hand-maintained: update it when you add or delete a page.** |
-| `npm run dev:centroid` | Measures optical centring for the bird avatars. Cited by `docs/spec/avatars.md`. |
-| `npm run dev:shot-clip` | Screenshots a horizontal band of a page (`<url> <out> <y> <height>`), for when a full-page shot is mostly whitespace. |
+| `npm run check` (`qa/check.mjs`) | **The one gate.** Runs TypeScript, ESLint, `protocol-audit`, `lab-audit` and every `*.test.mjs` in parallel (a floor of 60 files, not a fixed count -- a number written in prose rots), around 25s, no dev server needed. Prints a pass/warn/FAIL table. Add a gate name (`types`, `lint`, `protocol`, `lab`, `tests`) to run just one. Run it before every commit. |
+| `npm run screenshot <url> [label]` (`qa/screenshot.mjs`) | Screenshot any public page. Add `--mobile` for 390x844. The workhorse. |
+| `npm run screenshot:auth <url>` (`qa/screenshot-auth.mjs`) | Same, but signed in as admin first. Use for anything behind login. |
+| `npm run verify:shot` (`qa/verify-shot.mjs`) | Screenshot plus a console/pageerror check, so a clean-looking page with a red console still fails. |
+| `npm run verify:crawl` (`qa/crawl.mjs`) | Walks every live route signed in, reporting HTTP status and console errors. **Its route list is hand-maintained: update it when you add or delete a page.** |
+| `npm run dev:centroid` (`dev/centroid.mjs`) | Measures optical centring for the bird avatars. Cited by `docs/spec/avatars.md`. |
+| `npm run dev:shot-clip` (`dev/shot-clip.mjs`) | Screenshots a horizontal band of a page (`<url> <out> <y> <height>`), for when a full-page shot is mostly whitespace. |
 
 ## The demo build (`demo/`)
 
@@ -48,6 +55,11 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 | `city-alias-scan.ts` | Step 1 of de-duplicating city names (Bombay vs Mumbai). Read-only; prints candidates for review. |
 | `merge-cities.ts` | Step 2: applies a confirmed merge. Needed again whenever members add new spellings. |
 | `shot-svg.mjs` | Renders a static SVG to PNG. For illustration work without a dev server. |
+| `import-roster.mjs` | Consolidates the office roster CSV into the `RosterEntry` table, which is what the trust model matches a signup against. Dry by default; `--apply` writes. |
+| `set-password.mjs` | **Break glass.** Sets a password directly on one account from this laptop. It exists because deleting the password-less admin bypass (security audit C1) left no other way back in if the last admin is locked out. |
+| `email-mark.mjs` | Rasterises the app mark for use in emails. |
+| `generate-icons.mjs` | Generates every raster app icon from the one canonical mark. |
+| `_env.mjs` | Helper: reads `.env` for the scripts in this folder. Seven of them had their own copy of the parser. |
 
 ## QA and gates (`qa/`)
 
@@ -65,8 +77,37 @@ Full runbook in `docs/spec/demo.md`. These four are that pipeline.
 | `_dir-room-shots.mjs` | Section-by-section capture of `/lab/directory`. |
 | `local-base-url.mjs` | Helper: finds which port the dev server is on. Has a test. |
 | `tour-mobile-verify.mjs` | Checks the first-run walkthrough on mobile. Has a test. |
+| `hoopoe-idle-check.mjs` | Regression guard for the idle animation that used to restart whenever the tab was hidden and shown again (fixed 2026-08-11). |
+| `audit-status.mjs` | Where the security audit stands, proved from the code rather than from a document that can go stale. |
+| `npm-audit-gate.mjs` | The CI dependency gate (audit H16): `npm audit` with a documented per-advisory allowlist rather than a blanket pass/fail. Has a test. |
+| `_dev-login.mjs` | Helper: one sign-in for every QA script, replacing nine hand-copied blocks (audit R6). The secret goes from Node, never into page JavaScript. |
+| `_probe-kit.mjs` | Helper: the ledger, the sign-in, the bootstrap and the database opener the phase probes share. |
 
-## Standalone
+## The security probes (`qa/phase*-probe.mjs`)
+
+Each one proves a phase of the security audit against a RUNNING server, because
+the class of bug that matters here typechecks perfectly: Phase 2's probe found a
+lockout that every static gate had passed. They create their own disposable
+`@probe.invalid` accounts and delete them again. `docs/SECURITY.md` is what they
+verify. Needs the dev server and `DEV_LOGIN_SECRET`.
+
+| Script | Proves |
+|---|---|
+| `phase3-probe.mjs` | The two-gate trust model at each tier (H21, the harvesting half of M1). |
+| `phase4-probe.mjs` | Sign-in rate limiting, the human pass, and the session cookie's shape. |
+| `phase5-probe.mjs` | Upload ownership and what the storage layer will and will not serve. |
+| `phase6-probe.mjs` | Security headers, that auth still works after a library bump, `/lab` gating, the cron secret (H7, C3, M19, M27, H18). |
+| `phase7-probe.mjs` | Moderation and the audit log (the admin half). |
+| `phase8-probe.mjs` | Deletion with its grace period, retention, the data export, the policy documents (H8, H9, H12, M34, M35). |
+| `phase9-probe.mjs` | The dependency gate and the other checks that are themselves tooling (H16). |
+| `phase10-probe.mjs` | Cross-site origin refusal, the real signup form's password rules, and that a page load makes no `/ingest` 404s (M33, M8, L9). |
+| `phase4-prod-check.mjs` | The Phase 4 proof again against a local PRODUCTION build, where NextAuth behaves differently. |
+
+## Nightly operations (`ops/`)
+
+Both run from `.github/workflows/snapshot.yml`, not by hand. See `docs/OPERATIONS.md`.
 
 | Script | Does |
 |---|---|
+| `snapshot.mjs` | Writes a nightly metric snapshot, because Sentry keeps 30 days, Vercel Analytics 30 and PostHog a year, and none of them will say in 2028 what this site looked like in 2026. |
+| `prune.mjs` | Nightly pruning of the tables that grow without bound, notifications first. |
