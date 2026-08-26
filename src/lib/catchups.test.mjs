@@ -37,7 +37,8 @@ import {
   valleyDaysLeft,
   addDays,
   roundLabel,
-  catchupTitle,
+  catchupDisplayName,
+  catchupSurfaceTitle,
   isEffectiveKeeper,
   editionCountdownLabel,
   describeEditionStatus,
@@ -531,11 +532,17 @@ test("isEffectiveKeeper: creator OR group admin, nobody else", () => {
   assert.equal(isEffectiveKeeper({ viewerId: null, createdById: "u1", groupRole: "admin" }), false);
 });
 
-test("roundLabel + catchupTitle fallbacks", () => {
+test("roundLabel + the two title fallbacks", () => {
   assert.equal(roundLabel(4), "Round 4");
-  assert.equal(catchupTitle(null, "Batch of 09"), "Batch of 09 Catch-ups");
-  assert.equal(catchupTitle("  ", "Batch of 09"), "Batch of 09 Catch-ups");
-  assert.equal(catchupTitle("Monsoon Notes", "Batch of 09"), "Monsoon Notes");
+  // A Keeper's own title wins on every surface, whitespace does not count as
+  // one, and the two differ only in what stands in when there is none: the
+  // home says the group's name bare, everywhere else appends the word.
+  assert.equal(catchupDisplayName(null, "Batch of 09"), "Batch of 09");
+  assert.equal(catchupDisplayName("  ", "Batch of 09"), "Batch of 09");
+  assert.equal(catchupDisplayName("Monsoon Notes", "Batch of 09"), "Monsoon Notes");
+  assert.equal(catchupSurfaceTitle(null, "Batch of 09"), "Batch of 09 catch-up");
+  assert.equal(catchupSurfaceTitle("  ", "Batch of 09"), "Batch of 09 catch-up");
+  assert.equal(catchupSurfaceTitle("Monsoon Notes", "Batch of 09"), "Monsoon Notes");
 });
 
 test("describeEditionStatus: readable per-status copy", () => {

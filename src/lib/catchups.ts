@@ -339,9 +339,29 @@ export function roundLabel(n: number): string {
   return `Round ${n}`;
 }
 
-/** Catchup.title, or the "{group} Catch-ups" fallback. */
-export function catchupTitle(title: string | null | undefined, groupName: string): string {
-  return title?.trim() || `${groupName} Catch-ups`;
+/**
+ * The two ways a Catch-up names itself. A Keeper's own title always wins; the
+ * difference is only in what stands in when there is not one.
+ *
+ * These were three copies in three page files, and the round reader's TODO had
+ * been asking for this since it wrote the third: "it wants to be one exported
+ * helper in src/lib/catchups.ts". They replace `catchupTitle`, a fourth
+ * spelling with a third fallback ("{group} Catch-ups", plural) whose docblock
+ * claimed the index and archive used it -- they print the group name bare, and
+ * knip had it down as unused.
+ */
+
+/** The heading on the Catch-up's own home: no "catch-up" appended, because the
+ *  page around it has already said so. */
+export function catchupDisplayName(title: string | null | undefined, groupName: string): string {
+  return title?.trim() || groupName;
+}
+
+/** How every OTHER surface names it -- a back link, a reader's masthead, a page
+ *  title -- where the word has to be there for the name to mean anything.
+ *  Singular: it is one Catch-up (owner review 2026-07-25). */
+export function catchupSurfaceTitle(title: string | null | undefined, groupName: string): string {
+  return title?.trim() || `${groupName} catch-up`;
 }
 
 /**

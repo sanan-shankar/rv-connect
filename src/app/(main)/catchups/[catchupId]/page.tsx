@@ -23,6 +23,7 @@ import {
   editionCountdownLabel,
   isEffectiveKeeper,
   isMissingCatchupTable,
+  catchupDisplayName,
   type AdvanceEditionInput,
 } from "@/lib/catchups";
 import type {
@@ -44,15 +45,6 @@ import { loadPublishedRoundView } from "@/lib/catchups-round-view";
  *  instead of a 500 (migration handoff rule 3b).
  * ------------------------------------------------------------------ */
 
-/**
- * This screen names the Catch-up without adding "catch-up" to the visible
- * heading. A Keeper's custom title wins; otherwise the group name stands on
- * its own.
- */
-function homeTitle(title: string | null | undefined, groupName: string): string {
-  return title?.trim() || groupName;
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -65,7 +57,7 @@ export async function generateMetadata({
       select: { title: true, group: { select: { name: true } } },
     });
     if (!catchup) return { title: "Catch-ups" };
-    return { title: homeTitle(catchup.title, catchup.group.name) };
+    return { title: catchupDisplayName(catchup.title, catchup.group.name) };
   } catch {
     return { title: "Catch-ups" };
   }
@@ -365,7 +357,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
     inviteToken: catchup.inviteToken,
     groupId: catchup.groupId,
     groupName: catchup.group.name,
-    title: homeTitle(catchup.title, catchup.group.name),
+    title: catchupDisplayName(catchup.title, catchup.group.name),
     cadence: catchup.cadence as Cadence,
     catchupStatus: catchup.status as CatchupStatus,
     members,
