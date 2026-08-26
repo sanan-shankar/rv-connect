@@ -23,7 +23,9 @@ export interface MailRow {
   personName: string | null;
 }
 
-const TONE: Record<string, ChipTone> = {
+/* Exported because person-detail's mail card chips the same four states and
+   had grown its own copy of this map. One vocabulary, one set of colours. */
+export const MAIL_STATUS_TONE: Record<string, ChipTone> = {
   sent: "good",
   queued: "warn",
   sending: "warn",
@@ -107,7 +109,7 @@ export function MailRows({
               )}
               <Chip label={mailKindLabel(r.kind)} tone="info" />
               {r.status !== "sent" && (
-                <Chip label={mailStatusLabel(r.status)} tone={TONE[r.status] ?? "idle"} />
+                <Chip label={mailStatusLabel(r.status)} tone={MAIL_STATUS_TONE[r.status] ?? "idle"} />
               )}
             </p>
             <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
