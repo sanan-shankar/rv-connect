@@ -192,7 +192,7 @@ export function OnboardingFlow({
             onClick={finishLater}
             // Bare text, so no state layer (a tint behind two words reads as a
             // stray chip). It was missing the press answer, hence the opacity.
-            className="shrink-0 rounded-sm text-[13px] font-medium text-muted-foreground transition-[colors,opacity] duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="shrink-0 rounded-sm text-[13px] font-medium text-muted-foreground transition-[color,opacity] duration-150 hover:text-foreground active:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             Finish later
           </button>

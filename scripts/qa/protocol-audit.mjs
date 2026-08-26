@@ -154,6 +154,18 @@ const DRAB_ALLOW = new Map([
   ["src/components/catchups/home/reminder-pref-control.tsx", "segmented-control selected thumb"],
 ]);
 
+/* `transition-property` takes real CSS property names, and `colors` is not
+   one -- it is a Tailwind SHORTHAND that only exists as the whole utility
+   `transition-colors`. Inside the arbitrary-value bracket it is passed through
+   verbatim, so `transition-[colors,transform]` emits
+   `transition-property: colors, transform`: the transform eases and the colour
+   SNAPS, silently, with no error anywhere. Eleven shipped surfaces animated
+   nothing this way. Spell the properties the element's own hover actually
+   changes -- `color`, `background-color`, `border-color` -- or, where the
+   hover is `state-layer` (a background-IMAGE, which cannot transition at all),
+   just `transition-transform`. */
+const FAKE_PROP_RE = /transition-\[[^\]]*\bcolors\b/;
+
 for (const f of srcFiles()) {
   const raw = readFileSync(f, "utf8").split("\n");
   codeLines(f).forEach((code, i) => {
@@ -162,6 +174,11 @@ for (const f of srcFiles()) {
     }
     if (DRAB_RE.test(code) && !DRAB_ALLOW.has(f)) {
       violations.push(`${f}:${i + 1}  drab green-on-green pairing: ${raw[i].trim().slice(0, 90)}`);
+    }
+    if (FAKE_PROP_RE.test(code)) {
+      violations.push(
+        `${f}:${i + 1}  transition-property: colors matches no CSS property, so this transition does nothing: ${raw[i].trim().slice(0, 90)}`
+      );
     }
   });
 }

@@ -614,7 +614,7 @@ export function DirectoryClient({
             <button
               key={year}
               onClick={() => updateFilters("year", String(year))}
-              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[colors,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[border-color,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span className="font-heading text-lg font-bold tracking-tight text-foreground group-hover:text-primary">
                 &apos;{String(year).slice(-2)}
@@ -627,7 +627,7 @@ export function DirectoryClient({
           {facultyCount > 0 && (
             <button
               onClick={() => updateFilters("year", "faculty")}
-              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[colors,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="card-elevated group flex flex-col items-center rounded-[var(--radius)] border border-border bg-card p-4 pt-3.5 transition-[border-color,transform] duration-200 hover:border-canopy/40 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span className="font-heading text-base font-bold tracking-tight text-foreground group-hover:text-primary">
                 Faculty
