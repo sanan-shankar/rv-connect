@@ -181,23 +181,38 @@ test("every place writer mirrors the legacy columns from the one helper", () => 
   /* THREE writers, and the whole bug was that they each mirrored half of it.
      Counted, not detected: a check that "some file calls legacyCityColumns"
      passes on a codebase where two of the three still hand-roll it. */
-  const callers = [];
+  const writers = [];
+  const unmirrored = [];
   const handRolled = [];
   const HELPER = resolve(ROOT, "src/lib/place-input.ts");
-  for (const file of walk(resolve(ROOT, "src"), { skip: [...SKIP_DIRS, "lab"] })) {
+  for (const file of walk(resolve(ROOT, "src"), { skip: [...SKIP_DIRS, "lab", "demo-seed"] })) {
     // The helper itself is where the rule is allowed to be written out.
     if (file === HELPER) continue;
     const code = decomment(readFileSync(file, "utf8"));
-    if (/legacyCityColumns\(/.test(code)) callers.push(file);
+    /* Found by what a file DOES, not by name: anything that puts UserPlace rows
+       on an account is a place writer, and a fourth one appearing has to answer
+       here too. (The demo seed is skipped: it rebuilds the whole fixture from
+       scratch rather than editing one member's places.) */
+    const writes = /userPlace\.create(Many)?\(/.test(code);
+    const delegates = /replaceUserPlaces\(/.test(code);
+    if (!writes && !delegates) continue;
+    writers.push(file);
+    // Either it mirrors the legacy columns itself, or it goes through the
+    // shared transaction that does.
+    if (!/legacyCityColumns\(/.test(code) && !delegates) unmirrored.push(file);
     // The shape it replaced. Anything writing currentCity off a places list
     // by hand is a fourth copy of the rule.
     if (/currentCity:\s*(cleaned|cleanedPlaces|places)\[0\]/.test(code)) handRolled.push(file);
   }
   assert.deepEqual(handRolled, [], "a place writer mirrors currentCity by hand again (C-101)");
-  assert.ok(
-    callers.length >= 3,
-    `only ${callers.length} place writers call legacyCityColumns; there are three ` +
-      "(settings, admin, onboarding) and each one that stops calling it leaves a " +
-      "stale secondaryCity behind"
+  assert.deepEqual(
+    unmirrored.map((f) => f.slice(ROOT.length + 1)),
+    [],
+    "a place writer neither mirrors the legacy columns nor goes through replaceUserPlaces, so it leaves a stale secondaryCity behind"
   );
+  assert.ok(writers.length >= 3, `only ${writers.length} place writers found; the sweep has stopped seeing them`);
+  // ...and the shared transaction two of them delegate to must itself mirror,
+  // or those two would pass on a helper that had quietly stopped.
+  const shared = decomment(readFileSync(resolve(ROOT, "src/lib/place-write.ts"), "utf8"));
+  assert.match(shared, /legacyCityColumns\(/, "replaceUserPlaces no longer mirrors the legacy columns");
 });
