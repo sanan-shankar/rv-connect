@@ -5,7 +5,7 @@ description: Run every gate this repo already has (TypeScript, ESLint, the shape
 
 # check
 
-One command. Runs all five gates in parallel, ~17s from cold.
+One command. Runs all five gates in parallel, around 25s from cold.
 
 ```bash
 npm run check
@@ -50,7 +50,9 @@ every design rule to `warn`, never `error`, on purpose: per DESIGN-SYSTEM these
   entry without a reason is itself a violation).
 - **Lab registry** — a room exists on disk without a row in
   `src/app/lab/_registry.ts`, or vice versa. Add the row in the same change.
-- **Unit tests** — the 14 standalone `*.test.mjs` scripts. Each throws on
+- **Unit tests** — every standalone `*.test.mjs` the walk finds, and it fails if
+  it finds fewer than the floor in `check.mjs` (`MIN_TEST_FILES`). A floor, not a
+  count: this line used to say 14 while the suite was 75. Each throws on
   failure; the run prints the failing file's output.
 
 ## What it deliberately does not do

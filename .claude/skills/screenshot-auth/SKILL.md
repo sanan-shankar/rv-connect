@@ -56,17 +56,17 @@ node scripts/qa/screenshot.mjs http://localhost:3000/login login
 7. **Skip screenshot iteration for animated elements** — animations produce different frames each capture
 
 ## Authenticated Routes
-- `/feed` — Main social feed
-- `/groups` — Group listing
-- `/groups/[id]` — Individual group
-- `/directory` — Alumni directory
-- `/profile/[id]` — User profile
-- `/settings` — User settings
-- `/admin` — Admin panel (admin only)
-- `/about` — About page
-- `/donate` — Donate page
+
+**Do not keep a list here.** `scripts/qa/crawl.mjs`'s `routes` array is the
+maintained one, and it is checked every time somebody runs `npm run verify:crawl`;
+this list was not, so it went on naming `/groups`, `/groups/[id]` and `/settings`
+for weeks after those routes were deleted. An agent following it screenshots 404s.
+
+Read the array, or just run `npm run verify:crawl`, which visits every one of them
+signed in and prints the status. `/donate` is in there deliberately: it survives
+only as a redirect to `/support`.
 
 ## Public Routes (use regular `scripts/qa/screenshot.mjs`)
 - `/` — Landing page
 - `/login` — Login page
-- `/verify` — Magic link verify
+- `/signup` — Signup page
