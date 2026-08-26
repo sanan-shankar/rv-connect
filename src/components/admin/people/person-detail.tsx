@@ -17,7 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { callAction } from "@/lib/call-action";
+import { useAdminAct } from "@/components/admin/use-admin-act";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,28 +128,16 @@ export function PersonDetail({
   isSelf: boolean;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const { busy: acting, act } = useAdminAct();
   const [dialog, setDialog] = useState<"delete" | "merge" | "block" | null>(null);
   const [mergeInto, setMergeInto] = useState("");
 
-  async function run(fn: () => Promise<{ error?: string } | void>, done: string) {
-    setBusy(true);
-    try {
-      const result = await callAction(fn);
-      if (result && "error" in result && result.error) {
-        toast.error(result.error);
-        return false;
-      }
-      toast.success(done);
-      router.refresh();
-      return true;
-    } finally {
-      // finally, not a trailing statement: a rejected call used to leave
-      // every button that shares this handler disabled for the rest of the
-      // session (audit B-042).
-      setBusy(false);
-    }
-  }
+  /* One key: this card's dialogs share a single set of controls, so there is
+     nothing to tell apart. `run` keeps its name and its boolean answer, which
+     is what closes a confirm dialog only when the thing it confirmed happened. */
+  const busy = acting !== null;
+  const run = (fn: () => Promise<{ error?: string } | void>, done: string) =>
+    act("person", fn, done);
 
   const verified = person.verifyState === "verified";
   const confirmed = Boolean(person.emailConfirmedAt);
@@ -477,14 +465,14 @@ export function PersonDetail({
  * ---------------------------------------------------------------- */
 
 function DetailsCard({ person }: { person: DetailPerson }) {
-  const router = useRouter();
   const [name, setName] = useState(person.name);
   const [accountType, setAccountType] = useState(person.accountType ?? "alumnus");
   const [batchYear, setBatchYear] = useState(person.batchYear?.toString() ?? "");
   const [bird, setBird] = useState(person.birdOverride ?? "");
   const [jobTitle, setJobTitle] = useState(person.jobTitle ?? "");
   const [workplace, setWorkplace] = useState(person.workplace ?? "");
-  const [saving, setSaving] = useState(false);
+  const { busy: acting, act } = useAdminAct();
+  const saving = acting !== null;
 
   const dirty =
     name !== person.name ||
@@ -494,10 +482,10 @@ function DetailsCard({ person }: { person: DetailPerson }) {
     jobTitle !== (person.jobTitle ?? "") ||
     workplace !== (person.workplace ?? "");
 
-  async function save() {
-    setSaving(true);
-    try {
-      const result = await callAction(() =>
+  const save = () =>
+    act(
+      "details",
+      () =>
         adminUpdatePerson(person.id, {
           name,
           accountType,
@@ -505,20 +493,9 @@ function DetailsCard({ person }: { person: DetailPerson }) {
           birdOverride: bird,
           jobTitle,
           workplace,
-        })
-      );
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Saved");
-      router.refresh();
-    } finally {
-      // finally, not a trailing statement: a rejected save used to leave
-      // "Save details" disabled for the rest of the session (audit B-042).
-      setSaving(false);
-    }
-  }
+        }),
+      "Saved"
+    );
 
   return (
     <AdminSection label="Their details">
@@ -607,26 +584,13 @@ function DetailsCard({ person }: { person: DetailPerson }) {
 }
 
 function PlacesCard({ person }: { person: DetailPerson }) {
-  const router = useRouter();
   const [places, setPlaces] = useState<PlaceSelection[]>(person.places);
-  const [saving, setSaving] = useState(false);
+  const { busy: acting, act } = useAdminAct();
+  const saving = acting !== null;
 
   const dirty = JSON.stringify(places) !== JSON.stringify(person.places);
 
-  async function save() {
-    setSaving(true);
-    try {
-      const result = await callAction(() => adminUpdatePlaces(person.id, places));
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Saved");
-      router.refresh();
-    } finally {
-      setSaving(false);
-    }
-  }
+  const save = () => act("places", () => adminUpdatePlaces(person.id, places), "Saved");
 
   return (
     <AdminSection label="Where they are">
@@ -656,25 +620,12 @@ function PlacesCard({ person }: { person: DetailPerson }) {
 }
 
 function NoteCard({ person }: { person: DetailPerson }) {
-  const router = useRouter();
   const [note, setNote] = useState(person.adminNote ?? "");
-  const [saving, setSaving] = useState(false);
+  const { busy: acting, act } = useAdminAct();
+  const saving = acting !== null;
   const dirty = note !== (person.adminNote ?? "");
 
-  async function save() {
-    setSaving(true);
-    try {
-      const result = await callAction(() => adminUpdateNote(person.id, note.trim()));
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Note saved");
-      router.refresh();
-    } finally {
-      setSaving(false);
-    }
-  }
+  const save = () => act("note", () => adminUpdateNote(person.id, note.trim()), "Note saved");
 
   return (
     <AdminSection label="Your note">
@@ -705,7 +656,7 @@ function MailCard({
   mail: DetailMail[];
   onDone: () => void;
 }) {
-  const [busy, setBusy] = useState<string | null>(null);
+  const { busy, act } = useAdminAct({ onDone });
 
   if (mail.length === 0) {
     return (
@@ -717,23 +668,8 @@ function MailCard({
     );
   }
 
-  async function retry(id: string) {
-    setBusy(id);
-    try {
-      const result = await callAction(() => retryMail(id));
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Back in the queue. It goes out on the next page load.");
-      onDone();
-    } finally {
-      // finally, not a trailing statement: a rejected call used to leave
-      // this row's retry control disabled for the rest of the session
-      // (audit B-042).
-      setBusy(null);
-    }
-  }
+  const retry = (id: string) =>
+    act(id, () => retryMail(id), "Back in the queue. It goes out on the next page load.");
 
   return (
     <AdminSection label="Mail we sent them" action={

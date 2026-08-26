@@ -4,8 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ExternalLink, EyeOff, MoreHorizontal, Search, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
-import { callAction } from "@/lib/call-action";
+import { useAdminAct } from "@/components/admin/use-admin-act";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +53,7 @@ export function ContentList({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [busy, setBusy] = useState<string | null>(null);
+  const { busy, act } = useAdminAct();
   const [removing, setRemoving] = useState<ContentItem | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -96,27 +95,6 @@ export function ContentList({
   }, [type, author, q, hidden, setParam]);
 
   const hasFilter = tokens.length > 0;
-
-  async function act(
-    id: string,
-    fn: () => Promise<{ error?: string } | void>,
-    done: string
-  ) {
-    setBusy(id);
-    try {
-      const result = await callAction(fn);
-      if (result && "error" in result && result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success(done);
-      router.refresh();
-    } finally {
-      // finally, not a trailing statement: a rejected call used to leave
-      // this row's controls disabled for the rest of the session (audit B-042).
-      setBusy(null);
-    }
-  }
 
   async function removeItem(item: ContentItem, note: string) {
     switch (item.kind) {

@@ -4,8 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EyeOff, Flag, Inbox, Trash2, XCircle } from "lucide-react";
-import { toast } from "sonner";
-import { callAction } from "@/lib/call-action";
+import { useAdminAct } from "@/components/admin/use-admin-act";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/admin/admin-chip";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
@@ -46,34 +45,8 @@ export function ReportList({
   settled?: boolean;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<string | null>(null);
+  const { busy, act } = useAdminAct({ refreshOnError: true });
   const [removing, setRemoving] = useState<ReportRow | null>(null);
-
-  async function act(
-    id: string,
-    fn: () => Promise<{ error?: string } | void>,
-    done: string
-  ) {
-    setBusy(id);
-    try {
-      const result = await callAction(fn);
-      if (result && "error" in result && result.error) {
-        toast.error(result.error);
-        // Refresh on the way out too. The commonest refusal here is "another
-        // admin has already settled this" (audit M01), and the row on screen is
-        // then the stale thing that produced the mistake -- leaving it there
-        // invites the same click again.
-        router.refresh();
-        return;
-      }
-      toast.success(done);
-      router.refresh();
-    } finally {
-      // finally, not a trailing statement: a rejected call used to leave
-      // this row's buttons disabled for the rest of the session (audit B-042).
-      setBusy(null);
-    }
-  }
 
   return (
     <>

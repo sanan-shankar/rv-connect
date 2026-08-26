@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, RotateCcw, UserRound } from "lucide-react";
-import { toast } from "sonner";
-import { callAction } from "@/lib/call-action";
+import { useAdminAct } from "@/components/admin/use-admin-act";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/admin/admin-chip";
 import { AdminPersonRow, type AdminPerson } from "@/components/admin/admin-person-row";
@@ -31,24 +28,16 @@ export interface AdminThreadDetail {
 }
 
 export function ThreadView({ thread }: { thread: AdminThreadDetail }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const { busy: acting, act } = useAdminAct();
+  const busy = acting !== null;
   const firstName = thread.member.name.split(" ")[0];
 
-  async function setStatus(status: "open" | "closed") {
-    setBusy(true);
-    try {
-      const result = await callAction(() => setThreadStatus(thread.id, status));
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success(status === "closed" ? "Marked as sorted." : "Reopened.");
-      router.refresh();
-    } finally {
-      setBusy(false);
-    }
-  }
+  const setStatus = (status: "open" | "closed") =>
+    act(
+      "status",
+      () => setThreadStatus(thread.id, status),
+      status === "closed" ? "Marked as sorted." : "Reopened."
+    );
 
   return (
     /* A reading measure, not the full 1192px. A conversation is prose, and
