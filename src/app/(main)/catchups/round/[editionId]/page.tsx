@@ -28,7 +28,6 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   advanceEdition,
-  askerVisible,
   isEffectiveKeeper,
   isMissingCatchupTable,
   roundLabel,
@@ -36,12 +35,9 @@ import {
 } from "@/lib/catchups";
 import type {
   CatchupPersonRef,
-  CatchupPromptView,
   EditionStatus,
-  PromptCategory,
-  PromptSource,
 } from "@/lib/catchups-types";
-import { batchLine, parseJsonArray } from "@/lib/utils";
+import { loadPublishedRoundView } from "@/lib/catchups-round-view";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { RoundMasthead } from "@/components/catchups/round/masthead";
 import { RoundTocRail, RoundTocChips, type TocItem } from "@/components/catchups/round/toc";
@@ -49,9 +45,7 @@ import { QuestionSection } from "@/components/catchups/round/question-section";
 import { RoundFooterTease } from "@/components/catchups/round/footer-tease";
 import { PublishNowButton } from "@/components/catchups/round/publish-now-button";
 import { NotYetPublished } from "@/components/catchups/round/not-yet-published";
-import type { RoundEntry } from "@/components/catchups/round/answer-card";
 import { recordView } from "@/lib/content-view";
-import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /**
  * This reader's heading: "{Group name} catch-up", singular, because it is one
@@ -236,119 +230,13 @@ export default async function RoundPage({
     );
   }
 
-  // Published: now, and only now, load every prompt/entry/love.
-  const round = await prisma.catchupEdition.findUnique({
-    where: { id: edition.id },
-    select: {
-      number: true,
-      publishedAt: true,
-      prompts: {
-        where: { accepted: true },
-        /* A createdAt tie-break, so two questions that end up sharing a
-           position (a pair submitted in the same instant) still render in a
-           stable, sensible order rather than shuffling between renders
-           (audit Lows 27/34/57). */
-        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
-        select: {
-          id: true,
-          text: true,
-          category: true,
-          source: true,
-          showAsker: true,
-          accepted: true,
-          position: true,
-          author: { select: IDENTITY_SELECT },
-          entries: {
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              promptId: true,
-              body: true,
-              images: true,
-              songUrl: true,
-              songTitle: true,
-              songArt: true,
-              createdAt: true,
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  photoUrl: true,
-                  birdOverride: true,
-                  accountType: true,
-                  batchType: true,
-                  batchYear: true,
-                },
-              },
-              _count: { select: { loves: true } },
-              loves: { where: { userId: session.user.id }, select: { id: true } },
-            },
-          },
-        },
-      },
-    },
-  });
+  // Published: now, and only now, load every prompt/entry/love. Shared with
+  // the Catch-up home, which reads the same Round inline — including the
+  // anonymity rule and the song rule, which the two pages used to keep in
+  // step by hand and had already stopped agreeing on.
+  const round = await loadPublishedRoundView(edition.id, session.user.id);
   if (!round) notFound();
-
-  function toPersonRef(u: {
-    id: string;
-    name: string;
-    photoUrl: string | null;
-    birdOverride?: string | null;
-  }): CatchupPersonRef {
-    return { id: u.id, name: u.name, photoUrl: u.photoUrl, birdOverride: u.birdOverride };
-  }
-
-  const sections: Array<{ prompt: CatchupPromptView; entries: RoundEntry[] }> = round.prompts.map((p) => {
-    /* Not `p.showAsker || keeper`, which is what this said until 2026-08-21:
-       a Keeper saw the name behind every anonymous question, in the Round the
-       whole group reads, with no cue that it had been asked anonymously
-       (audit M10). The rule now lives in one function shared with the home
-       page, which had always got it right. */
-    const showsAsker = askerVisible(
-      { showAsker: p.showAsker, authorId: p.author?.id ?? null },
-      session?.user?.id ?? null
-    );
-    const prompt: CatchupPromptView = {
-      id: p.id,
-      text: p.text,
-      category: p.category as PromptCategory | null,
-      source: p.source as PromptSource,
-      showAsker: p.showAsker,
-      accepted: p.accepted,
-      position: p.position,
-      // Null once the asker has deleted their account: the question and every
-      // answer under it survive them, unattributed.
-      asker: showsAsker && p.author ? toPersonRef(p.author) : null,
-    };
-    const entries: RoundEntry[] = p.entries.map((e) => {
-      // The songUrl/songTitle/songArt trio is Spotify-shaped: `songTitle` is
-      // only ever written by the oembed resolver, so it carries rows from the
-      // old per-question "paste a Spotify link" field. A song is worth
-      // printing as soon as we have a name for it, hence the fall back to the
-      // raw URL when resolution failed soft. `url: ""` is the signal to
-      // SpotifyCard to render an unlinked row.
-      //
-      // The NEW `songs` prompt kind does not write here at all: it saves the
-      // typed song name in `body` (see the TODO in answer/song-attachment.tsx
-      // naming the `CatchupEntry.songs Json?` column that would lift it to
-      // five). AnswerCard reads `kind` and prints that body as a song row.
-      const songTitle = e.songTitle?.trim() || e.songUrl?.trim() || null;
-      return {
-        id: e.id,
-        promptId: e.promptId,
-        author: toPersonRef(e.author),
-        authorMeta: batchLine(e.author),
-        body: e.body,
-        images: parseJsonArray(e.images),
-        song: songTitle ? { url: e.songUrl ?? "", title: songTitle, art: e.songArt } : null,
-        loveCount: e._count.loves,
-        lovedByViewer: e.loves.length > 0,
-        createdAt: e.createdAt,
-      };
-    });
-    return { prompt, entries };
-  });
+  const { sections } = round;
 
   const contributorMap = new Map<string, CatchupPersonRef>();
   for (const section of sections) {

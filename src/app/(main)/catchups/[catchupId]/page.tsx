@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { AlmostReady } from "@/components/catchups/almost-ready";
 import { CatchupHomeShell } from "@/components/catchups/home/catchup-home-shell";
 import type { PublishedIssue } from "@/components/catchups/home/console-published";
-import type { RoundEntry } from "@/components/catchups/round/answer-card";
 import type {
   CatchupHomeData,
   CatchupHomeResult,
@@ -28,16 +27,12 @@ import {
 } from "@/lib/catchups";
 import type {
   Cadence,
-  CatchupPersonRef,
-  CatchupPromptView,
   CatchupStatus,
   EditionStatus,
-  PromptCategory,
-  PromptSource,
   ReminderMode,
 } from "@/lib/catchups-types";
-import { batchLine, parseJsonArray } from "@/lib/utils";
 import { IDENTITY_SELECT } from "@/lib/people-select";
+import { loadPublishedRoundView } from "@/lib/catchups-round-view";
 
 /* ------------------------------------------------------------------ *
  *  The Catch-up home (spec 3.3): the command surface for the live
@@ -78,117 +73,23 @@ export async function generateMetadata({
 
 /**
  * The published Round, in full, for reading inline on this page (one surface,
- * owner review 2026-07-25). Only ever called once the caller has confirmed the
- * fresh status is `published`: answer bodies are never pulled into a render of
- * a Round that has not revealed yet, Keeper included (spec 2.5, threat
- * T-catchups-04). Mirrors the heavy query in `round/[editionId]/page.tsx`.
+ * owner review 2026-07-25). The query and every mapping rule in it are shared
+ * with the permalink reader (`lib/catchups-round-view.ts`), which is what
+ * stops the two surfaces disagreeing about a song or an anonymous asker.
+ *
+ * Only ever called once the caller has confirmed the fresh status is
+ * `published`: answer bodies are never pulled into a render of a Round that
+ * has not revealed yet, Keeper included (spec 2.5, threat T-catchups-04).
  */
 async function loadPublishedIssue(
   editionId: string,
   viewerId: string
 ): Promise<PublishedIssue | null> {
-  const round = await prisma.catchupEdition.findUnique({
-    where: { id: editionId },
-    select: {
-      publishedAt: true,
-      prompts: {
-        where: { accepted: true },
-        /* A createdAt tie-break, so two questions that end up sharing a
-           position (a pair submitted in the same instant) still render in a
-           stable, sensible order rather than shuffling between renders
-           (audit Lows 27/34/57). */
-        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
-        select: {
-          id: true,
-          text: true,
-          category: true,
-          source: true,
-          showAsker: true,
-          accepted: true,
-          position: true,
-          author: { select: IDENTITY_SELECT },
-          entries: {
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              promptId: true,
-              body: true,
-              images: true,
-              songUrl: true,
-              songTitle: true,
-              songArt: true,
-              createdAt: true,
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  photoUrl: true,
-                  birdOverride: true,
-                  accountType: true,
-                  batchType: true,
-                  batchYear: true,
-                },
-              },
-              _count: { select: { loves: true } },
-              loves: { where: { userId: viewerId }, select: { id: true } },
-            },
-          },
-        },
-      },
-    },
-  });
-  if (!round) return null;
-
-  const toPersonRef = (u: {
-    id: string;
-    name: string;
-    photoUrl: string | null;
-    birdOverride?: string | null;
-  }): CatchupPersonRef => ({
-    id: u.id,
-    name: u.name,
-    photoUrl: u.photoUrl,
-    birdOverride: u.birdOverride,
-  });
-
-  const sections = round.prompts.map((p) => {
-    /* The shared helper, like loadHome above and the standalone Round page.
-       This line used to be its own rule -- `p.showAsker || isKeeper` -- which
-       shadowed the import and put a Keeper exception back into exactly the
-       surface M10 removed it from, so the same Round named its anonymous
-       askers on the home page and hid them on the Round page (audit C-019). */
-    const revealAsker = askerVisible({ showAsker: p.showAsker, authorId: p.author?.id ?? null }, viewerId);
-    const prompt: CatchupPromptView = {
-      id: p.id,
-      text: p.text,
-      category: p.category as PromptCategory | null,
-      source: p.source as PromptSource,
-      showAsker: p.showAsker,
-      accepted: p.accepted,
-      position: p.position,
-      // A null author is a member who has since left. Their question stays
-      // in the Round (it is what everyone else answered); the byline goes.
-      asker: revealAsker && p.author ? toPersonRef(p.author) : null,
-    };
-    const entries: RoundEntry[] = p.entries.map((e) => ({
-      id: e.id,
-      promptId: e.promptId,
-      author: toPersonRef(e.author),
-      authorMeta: batchLine(e.author),
-      body: e.body,
-      images: parseJsonArray(e.images),
-      song: e.songUrl ? { url: e.songUrl, title: e.songTitle ?? e.songUrl, art: e.songArt } : null,
-      loveCount: e._count.loves,
-      lovedByViewer: e.loves.length > 0,
-      createdAt: e.createdAt,
-    }));
-    return { prompt, entries };
-  });
-
-  return {
-    publishedAt: round.publishedAt?.toISOString() ?? null,
-    sections,
-  };
+  const view = await loadPublishedRoundView(editionId, viewerId);
+  if (!view) return null;
+  // The console wants an ISO string; the permalink wants the Date. One line
+  // here is cheaper than the loader returning both.
+  return { publishedAt: view.publishedAt?.toISOString() ?? null, sections: view.sections };
 }
 
 async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHomeResult> {
