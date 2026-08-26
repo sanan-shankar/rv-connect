@@ -42,7 +42,6 @@ export interface PostData {
   title?: string | null;
   content: string;
   images: string | null;
-  groupId?: string | null;
   /** Null = everyone; otherwise the city short-name this post is limited to. */
   cityScope?: string | null;
   createdAt: string;

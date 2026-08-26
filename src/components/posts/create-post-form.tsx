@@ -52,7 +52,7 @@ import { useTourAnchor } from "@/components/tour/tour-anchors";
    composer, the catch-up answer card, the edit dialog -- shares one story. */
 
 /** Where the composer is posting. Drives the placeholder and the available affordances. */
-export type ComposerScope = "post" | "group" | "letter";
+export type ComposerScope = "post" | "letter";
 
 // Height of the resting pill (h-11). The expand animation grows the box DOWN from
 // exactly this height, and collapse contracts back to it, so nothing ever shrinks
@@ -70,7 +70,6 @@ const SCOPE_PLACEHOLDER: Record<ComposerScope, string> = {
   // the valley. Two things offered instead of three reads as an invitation
   // rather than a menu.
   post: "Share a memory or a note with the community...",
-  group: "Share something with this group",
   letter: "Write your letter to the valley. Take your time.",
 };
 
@@ -133,8 +132,6 @@ const draftSnapshot = (content: string, title: string, images: string[], city: s
   JSON.stringify([content.trim(), title.trim(), images, city ?? ""]);
 
 export function CreatePostForm({
-  groupId,
-  scope,
   placeholder,
   defaultLetter = false,
   currentUser,
@@ -150,8 +147,6 @@ export function CreatePostForm({
   onDraftSaved,
   onAutosaveState,
 }: {
-  groupId?: string;
-  scope?: ComposerScope;
   placeholder?: string;
   defaultLetter?: boolean;
   currentUser?: AvatarUser;
@@ -181,13 +176,13 @@ export function CreatePostForm({
   /** Quiet autosave status for the desk chrome ("Saving..." / "Saved"). */
   onAutosaveState?: (s: "saving" | "saved" | "failed") => void;
 } = {}) {
-  // Resolve scope: explicit prop wins, else infer from defaultLetter / groupId.
-  const resolvedScope: ComposerScope =
-    scope ?? (defaultLetter ? "letter" : groupId ? "group" : "post");
+  // A letter or a post; there is no third composer any more (Groups was
+  // retired 2026-07-25 and nothing ever passed the explicit `scope` prop).
+  const resolvedScope: ComposerScope = defaultLetter ? "letter" : "post";
   const collapsedPlaceholder = placeholder ?? SCOPE_PLACEHOLDER[resolvedScope];
   // Tour spotlight target (walkthrough spec sec 2): only the feed's own
   // top-level composer, never a group's or a letter's.
-  const isFeedComposer = resolvedScope === "post" && !groupId;
+  const isFeedComposer = resolvedScope === "post";
   const tourAnchorRef = useTourAnchor<HTMLButtonElement>("feed-composer", isFeedComposer);
   // An unconfirmed address is refused by createPost/editPost/publishDraft on
   // the server. This turns that refusal into a dialog with the fix in it,
@@ -246,10 +241,10 @@ export function CreatePostForm({
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [more, setMore] = useState(false); // overflow ("+") menu: poll + letter live here
   // City-scoped audience: null = "Everyone" (the default); otherwise one of the
-  // poster's own cities. Never offered for a group post -- the group's own
-  // membership already scopes who reads it.
+  // poster's own cities. (It used to be withheld from a group post, whose own
+  // membership already scoped who read it; there are no group posts now.)
   const [audienceCity, setAudienceCity] = useState<string | null>(initialCityScope ?? null);
-  const audienceOptions = resolvedScope === "group" ? [] : userPlaces ?? [];
+  const audienceOptions = userPlaces ?? [];
   // Explicit, measured height for the one clean downward growth / contraction.
   const [colHeight, setColHeight] = useState<number>(COLLAPSED_H);
   // True only once the grow animation has fully settled; gates overflow so the
@@ -899,7 +894,6 @@ export function CreatePostForm({
       formData.set("content", content);
       formData.set("kind", kind);
       if (isLetter && title.trim()) formData.set("title", title.trim());
-      if (groupId) formData.set("groupId", groupId);
       // Set unconditionally when resuming a draft: an absent field cannot express
       // "actually, Everyone", so a member who cleared the audience on a saved
       // draft could never clear it (bug audit B-048). createPost still treats an
@@ -1000,9 +994,7 @@ export function CreatePostForm({
             ? "Draft saved"
             : isLetter
               ? "Your letter is published"
-              : groupId
-                ? "Posted to the group"
-                : "Post shared!",
+              : "Post shared!",
           // Said once, here, rather than as a line of help under the tick: a
           // contribution waits for a moderator, and someone who ticks the box and
           // then cannot find their photograph in the Collection deserves to know
