@@ -1,5 +1,51 @@
 # Progress Log
 
+## 2026-08-26 — phase 5 part 2: the pen, the press and the first photograph
+
+Four commits close the refactor audit's phase 5. The full handover is
+`docs/audit-fix/2026-08-25-refactor-audit-1/fix-prompt.md`, session 8.
+
+**What got lighter, and how it was proved.** Every number here was read off a real
+browser against a production server, not off a build manifest, because the manifest
+cannot tell a chunk that loads immediately from one that loads on a click. A
+stranger viewing a classmate's profile was downloading the GeoNames city picker, the
+house picker, the contact-row editor and both photo dialogs in order to render none of
+them: 1,730 KB of JavaScript for a sheet of text, now 1,634. The feed and the Collection
+were shipping the comment thread, the full-screen viewer, the edit and moderation
+dialogs, the poll builder and the mention list to pages where nobody had clicked
+anything yet; all of them now arrive on the press. /privacy and /login were downloading
+the rich-text renderer's five regular expressions and a 30-entry table of international
+calling codes, and building all of them, because everything in `utils.ts` rides along
+with `cn`; both moved to modules of their own.
+
+**The change a member will actually notice is not about bytes.** The Collection's grid
+fetched its first page after the page had already loaded, so a cold visit sat on
+skeletons for 778 ms locally and **2.9 seconds on a slow connection** before one
+photograph appeared. That query now runs on the server with the three the page already
+ran, and the photographs arrive with the paint.
+
+**Where measurement changed the answer.** Deferring the house chain on your own profile
+was wrong and only a rAF sampler said so — it is the one editor visible at rest, and
+`ssr: false` popped it in two frames late, so it keeps its server render while the other
+four do not. The audit's estimate for the profile split was 80–150 KB; the honest number
+is 73. And the audit named /directory alongside /collection for the first-page fix, but
+/directory has server-rendered its first page all along.
+
+**A method worth keeping.** Byte totals tell you that something moved. Fetching the
+chunks the browser actually downloaded and grepping them for a string only one module
+contains tells you *what* moved — and it is what caught the browser image downscaler
+still riding onto every profile view behind a hook, after the five obvious things had
+already gone.
+
+Also in this pass: /collection's visual baseline held one photograph and the live
+database now has two, which had the route red on both viewports for no commit's reason.
+Looked at and re-recorded on its own, which is what `visual.spec.ts`'s own note says to
+do when a photo arrives.
+
+Phase 6 is next and cannot start without the owner: it is DDL on the live database and
+needs his answers on the drops.
+
+
 ## 2026-08-26 — phase 5 part 1: the bundle diet, and the thing that was never the bundle
 
 Eight commits against the refactor audit's phase 5. Five rows executed, three
