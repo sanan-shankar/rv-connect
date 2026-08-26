@@ -35,7 +35,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqualStrings } from "@/lib/timing-safe";
-import { encode } from "@auth/core/jwt";
+import { encode } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/email-address";
 import { SESSION_MAX_AGE } from "@/lib/session-revocation";

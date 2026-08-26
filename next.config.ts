@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import withBundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
 
 /* Everything below that pushes a browser towards https is gated on this. In
@@ -281,22 +280,21 @@ const nextConfig: NextConfig = {
 };
 
 /* `npm run analyze` opens a treemap of what is actually in the client bundle.
- * Dev-only and opt-in: without ANALYZE=true this wrapper is a no-op, so it
- * costs members nothing and does not touch a normal build.
+ * It runs Next's own `experimental-analyze`, not @next/bundle-analyzer: that
+ * wrapper is webpack-only and every build here is Turbopack, so it printed
+ * "not compatible with Turbopack builds, no report will be generated" and
+ * produced nothing, for as long as it was installed (2026-08-26).
  *
  * Worth having because this project already holds the principle -- "parked
  * code should not ride in bundles it is not used by" (progress.md, on moving
  * wood.tsx out of the app shell) -- and had no way to check it beyond
  * reasoning about imports. optimizePackageImports above is a bet about
  * @phosphor-icons/react tree-shaking that nothing has ever confirmed. */
-const analyzed = withBundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-})(nextConfig);
 
 /* Sentry wraps last so it sees the final config. Every option here is set
  * against a default we did not want -- see src/instrumentation.ts for the
  * server-only decision this enforces at build time. */
-export default withSentryConfig(analyzed, {
+export default withSentryConfig(nextConfig, {
   org: "sanan-l0",
   project: "javascript-nextjs",
 
