@@ -1,5 +1,42 @@
 # Progress Log
 
+## Session 2026-08-26 (later still) — phase 2: the switched-off things stop shipping
+
+The third fix session of the 2026-08-25 refactor audit. All 8 phase-2 rows executed in 11
+commits, plus two the owner decided at session start. `npm run check` green before every one;
+`npm run visual` **23/23**, the eight content-drift failures sessions 1 and 2 both saw now
+masked by another session's `900546f`; `npm run verify:crawl` 17/17.
+
+**Owner's calls**: the landing showcase is decoupled now with ship-vs-retire still open; the
+tour stays demo-only and is lazy-loaded rather than armed for members; the About page keeps
+its joke; the logo's "Did you know" facts are deleted; /donate redirects.
+
+**What changed that a member could see**: /donate now answers at the proxy, so an old link
+resolves before the login wall instead of after it. The sidebar logo no longer holds a
+hidden fact card (the rail is pixel-identical; the demo survives at /lab/eggs). A letter's
+back link and share link go to Letters rather than to a retired group URL that only
+redirected away. Four loading skeletons stopped causing the layout jump they exist to
+prevent — /dark-mode was drawing a settings form that has not existed for some time. And the
+demo's tour no longer stalls 2.5 seconds on its Catch-ups stop, which it had done since the
+Catch-ups rebuild took the anchor with it.
+
+**The largest piece** was the Groups residue: loadPosts' membership gate, five revalidatePath
+calls forking on a dead path, deletePost's group-admin branch, and a GroupMember query that
+ran on every single Saved open to build an OR whose group arm could never match. The prop
+chain went with it, and it reached further than the audit had mapped — through the composer's
+group scope and placeholder and post-card's type. What deliberately stayed: createPost's
+refusal of a groupId, and decidePostVisibility's group branch, which is live defence for the
+private container under every Catch-up, not residue.
+
+**Twelve comments were lying**, including five files that each said "there is no cron on this
+project" when there are two Vercel crons and three scheduled workflows. None of them drains
+the mail queue, which is the true thing they now say.
+
+**Still owed to the owner**: the public landing links to no Privacy, Terms or Guidelines —
+they live in the footer, which is inside the showcase and therefore still off. The audit
+called that the one thing to fix immediately regardless of the showcase's fate, but it is new
+UI on the public page, so it waits for him.
+
 ## Session 2026-08-26 (later) — phase 1b: 6.5MB out of the tree, and two gates that were lying
 
 The second fix session of the 2026-08-25 refactor audit. All 16 phase-1b rows executed in 18
