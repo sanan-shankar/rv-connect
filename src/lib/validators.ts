@@ -4,6 +4,7 @@ import { emailField } from "./email-address";
 import { POST_CONTENT_MAX, POST_TOO_LONG, postContentMax } from "./post-caps";
 import { FULL_NAME_MAX, fullNameFits, valleyYear } from "./utils";
 import { MAX_BATCH_TARGETS, parseBatchTargets } from "./post-visibility-rule";
+import { MIN_PASSWORD } from "./password-rule";
 
 /**
  * A school year, bounded below by the year Rishi Valley opened and above by
@@ -94,7 +95,10 @@ export const signupSchema = z
     firstName: z.string().trim().min(1, "First name is required").max(50),
     lastName: z.string().trim().min(1, "Surname is required").max(50),
     email: emailField(),
-    password: z.string().min(8, "Password must be at least 8 characters").max(128),
+    password: z
+      .string()
+      .min(MIN_PASSWORD, `Password must be at least ${MIN_PASSWORD} characters`)
+      .max(128),
     phone: z.string().trim().max(24).optional(),
     accountType: z.enum(["alumnus", "teacher", "ex_teacher"]).default("alumnus"),
     yearJoined: yearField({ tooLate: "That year hasn't happened yet" }).optional(),

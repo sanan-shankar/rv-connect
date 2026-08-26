@@ -16,6 +16,7 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { mintHumanPass } from "@/lib/human-pass";
 import { normalizeEmail } from "@/lib/email-address";
 import { reportSwallowed } from "@/lib/report-error";
+import { MIN_PASSWORD } from "@/lib/password-rule";
 
 /* ------------------------------------------------------------------ *
  *  Everything the two email flows do on the server.
@@ -29,7 +30,6 @@ import { reportSwallowed } from "@/lib/report-error";
  *  was acceptable when the account was made stays acceptable on the way back
  *  in. Raising it here alone would lock people out of resetting to something
  *  they had already been allowed to choose. */
-const MIN_PASSWORD = 8;
 
 /* ---------------------------------------------------------------- *
  *  Confirm your email

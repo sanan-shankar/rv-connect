@@ -24,10 +24,8 @@ import { cn } from "@/lib/utils";
 import { BOT_CHECK_BLOCKED, TICK_HUMAN_BOX } from "@/lib/bot-check-message";
 import { registerUser } from "./actions";
 import { TurnstileWidget, type TurnstileHandle } from "./turnstile-widget";
-
-// keep the gaze sweep bounded to [-1, 1] as the field fills
-const gazeFor = (len: number, over: number) =>
-  Math.max(-1, Math.min(1, (len / over) * 2 - 1));
+import { MIN_PASSWORD } from "@/lib/password-rule";
+import { gazeFor } from "@/components/mascot/use-hoopoe";
 
 // Devices with a real mouse get the info bubble on hover; touch devices (no
 // fine hover) get it on tap instead. Checked once on mount, not reactively,
@@ -366,7 +364,7 @@ export function SignupForm({
 
     const password = formData.get("password") as string;
 
-    if (password.length < 8) {
+    if (password.length < MIN_PASSWORD) {
       setError("Password must be at least 8 characters.");
       hoopoe.react("error");
       setLoading(false);
@@ -621,7 +619,7 @@ export function SignupForm({
         focusHint="8+ characters"
         autoComplete="new-password"
         required
-        minLength={8}
+        minLength={MIN_PASSWORD}
         onChange={(e) => {
           // the bird follows what you type whether peeking or covered
           // (its head tracks behind the wings when its eyes are hidden)

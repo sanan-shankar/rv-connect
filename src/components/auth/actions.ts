@@ -9,7 +9,7 @@ import { sendVerificationEmail } from "@/lib/verification-mail";
 import { verifyHumanFromForm } from "@/lib/turnstile";
 import { BOT_CHECK_FAILED } from "@/lib/bot-check-message";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
-import { passwordProblem } from "@/lib/password-rule";
+import { MIN_PASSWORD, passwordProblem } from "@/lib/password-rule";
 import { yearClashMessage } from "@/lib/batch-year";
 import { mintHumanPass } from "@/lib/human-pass";
 import { hasPassedTrivia } from "./trivia-actions";
@@ -34,7 +34,7 @@ export async function registerUser(formData: FormData) {
 
   const password = formData.get("password") as string;
 
-  if (!password || password.length < 8) {
+  if (!password || password.length < MIN_PASSWORD) {
     return { error: "Password must be at least 8 characters." };
   }
 

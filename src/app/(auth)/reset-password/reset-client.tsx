@@ -13,6 +13,8 @@ import { SPRINGS } from "@/components/common/motion";
 import { resetPassword, type ResetLinkState } from "@/components/auth/email-actions";
 import { callAction } from "@/lib/call-action";
 import { nextPathFromLocation } from "@/lib/next-path";
+import { MIN_PASSWORD } from "@/lib/password-rule";
+import { gazeFor } from "@/components/mascot/use-hoopoe";
 
 /* ------------------------------------------------------------------ *
  *  Choosing the new password.
@@ -55,7 +57,6 @@ const DEAD_LINK: Record<string, { title: string; body: string }> = {
   },
 };
 
-const MIN_PASSWORD = 8;
 
 export function ResetPasswordClient({
   token,
@@ -222,7 +223,7 @@ export function ResetPasswordClient({
                 value={password}
                 onChange={(v) => {
                   setPassword(v);
-                  hoopoe.gaze(Math.max(-1, Math.min(1, (v.length / 16) * 2 - 1)));
+                  hoopoe.gaze(gazeFor(v.length, 16));
                 }}
                 onRevealChange={onReveal}
                 autoFocus
@@ -233,7 +234,7 @@ export function ResetPasswordClient({
                 value={confirm}
                 onChange={(v) => {
                   setConfirm(v);
-                  hoopoe.gaze(Math.max(-1, Math.min(1, (v.length / 16) * 2 - 1)));
+                  hoopoe.gaze(gazeFor(v.length, 16));
                 }}
                 onRevealChange={onReveal}
               />
