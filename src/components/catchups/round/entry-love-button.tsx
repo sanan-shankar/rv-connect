@@ -3,17 +3,15 @@
 /* ------------------------------------------------------------------ *
  *  <EntryLoveButton> - the one red heart, wired to `toggleEntryLove`.
  *
- *  Same optimistic-update-then-reconcile shape as LetterEngagement's
- *  `handleLike` (src/components/letters/letter-engagement.tsx): flip the
- *  local state immediately, call the server action, and roll back with a
- *  toast if it reports an error. Renders the shared `LoveButton` only - the
- *  heart itself is never forked (spec 3.6 / DESIGN-SYSTEM sec 7).
+ *  The optimistic flip, the double-tap guard and the adopt-the-answer rule
+ *  all come from `useHeartToggle`, shared with the feed card, the letter
+ *  page, a comment row and the Collection photo. Renders the shared
+ *  `LoveButton` only - the heart itself is never forked (spec 3.6 /
+ *  DESIGN-SYSTEM sec 7).
  * ------------------------------------------------------------------ */
 
-import { useRef, useState } from "react";
-import { toast } from "sonner";
-import { callAction } from "@/lib/call-action";
-import { settledHeart } from "@/lib/heart";
+import { useState } from "react";
+import { useHeartToggle } from "@/components/posts/use-engagement";
 import { LoveButton } from "@/components/common/love-button";
 import { toggleEntryLove } from "@/app/(main)/catchups/actions";
 
@@ -29,31 +27,13 @@ export function EntryLoveButton({
   const [liked, setLiked] = useState(initialLoved);
   const [count, setCount] = useState(initialCount);
 
-  // One heart in flight at a time; see the matching note in post-card.tsx
-  // (audit C-010/C-178).
-  const busy = useRef(false);
+  const fire = useHeartToggle(() => toggleEntryLove(entryId));
 
-  async function handleToggle() {
-    if (busy.current) return;
-    const before = { liked, count };
-    setLiked(!before.liked);
-    setCount(before.liked ? before.count - 1 : before.count + 1);
-    busy.current = true;
-    try {
-      const result = await callAction(() => toggleEntryLove(entryId));
-      if (result && "error" in result && result.error) {
-        setLiked(before.liked);
-        setCount(before.count);
-        toast.error(result.error);
-        return;
-      }
-      // What the row says, not what the tap assumed (audit C-133).
-      const settled = settledHeart(before, "loved" in result ? result.loved : undefined);
-      setLiked(settled.liked);
-      setCount(settled.count);
-    } finally {
-      busy.current = false;
-    }
+  function handleToggle() {
+    void fire({ liked, count }, ({ liked: next, count: c }) => {
+      setLiked(next);
+      setCount(c);
+    });
   }
 
   return (

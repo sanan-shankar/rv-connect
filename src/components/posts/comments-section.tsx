@@ -25,7 +25,7 @@ import {
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";
-import { settledHeart } from "@/lib/heart";
+import { useHeartToggle } from "./use-engagement";
 import { useEmailGate } from "@/components/auth/verify-email-dialog";
 import { motion } from "motion/react";
 import { SPRINGS, SpringPress } from "@/components/common/motion";
@@ -582,31 +582,14 @@ function CommentItem({
 }) {
   const author = comment.author!;
 
-  /* One like in flight at a time; the same ref the feed card carries. The
-     server is idempotent, so a double-tap cannot throw -- but two calls race
-     to decide the row, and the heart used to settle wherever the slower one
-     landed (audit C-010/C-178). */
-  const likeBusy = useRef(false);
+  const fireLike = useHeartToggle(() => toggleCommentLike(comment.id));
 
-  async function handleLike() {
-    if (likeBusy.current) return;
-    const before = { liked: comment.liked, count: comment.likeCount };
-    onLikeToggle(comment.id, !before.liked, before.liked ? before.count - 1 : before.count + 1);
-
-    likeBusy.current = true;
-    try {
-      const result = await callAction(() => toggleCommentLike(comment.id));
-      if (result.error) {
-        onLikeToggle(comment.id, before.liked, before.count);
-        toast.error(result.error);
-        return;
-      }
-      // What the row says, not what the tap assumed (audit C-133).
-      const settled = settledHeart(before, result.liked);
-      onLikeToggle(comment.id, settled.liked, settled.count);
-    } finally {
-      likeBusy.current = false;
-    }
+  function handleLike() {
+    // The row belongs to the thread above, so the commit writes there rather
+    // than to local state; the choreography is the feed card's, shared.
+    void fireLike({ liked: comment.liked, count: comment.likeCount }, ({ liked, count }) =>
+      onLikeToggle(comment.id, liked, count)
+    );
   }
 
   return (

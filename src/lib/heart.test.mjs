@@ -46,13 +46,26 @@ const HEARTS = {
 for (const [label, file] of Object.entries(HEARTS)) {
   test(`C-010/C-133: the ${label} heart guards its taps and adopts the answer`, () => {
     const src = readFileSync(new URL(file, import.meta.url), "utf8");
-    assert.match(src, /settledHeart\(/, `${label} ignores what the server said`);
-    // One toggle in flight at a time: a ref that the handler returns on.
-    assert.match(src, /Busy\.current|busy\.current/, `${label} has no in-flight guard`);
-    assert.match(
-      src,
-      /if \((?:\w*[Bb]usy)\.current\) return;/,
-      `${label} keeps a busy flag but does not act on it`
-    );
+    // All five reach both rules through `useHeartToggle` now. They each used
+    // to spell out the busy ref and the settledHeart call, which is how a
+    // sixth heart could be added with neither.
+    assert.match(src, /useHeartToggle\(/, `${label} does not use the shared toggle`);
   });
 }
+
+test("C-010/C-133: the shared toggle is what actually guards and adopts", () => {
+  // The five assertions above now all lean on this one file, so it is checked
+  // directly rather than trusted: without these lines they would pass while
+  // every heart in the app quietly lost both fixes at once.
+  const hook = readFileSync(
+    new URL("../components/posts/use-engagement.ts", import.meta.url),
+    "utf8"
+  );
+  assert.match(hook, /settledHeart\(before, result\.liked \?\? result\.loved\)/, "the hook ignores what the server said");
+  // One toggle in flight at a time: a ref the handler returns on, read and
+  // set in the same tick a second tap would arrive in.
+  assert.match(hook, /const busy = useRef\(false\);/, "the hook has no in-flight guard");
+  assert.match(hook, /if \(busy\.current\) return undefined;/, "the hook keeps a busy flag but does not act on it");
+  assert.match(hook, /busy\.current = true;/, "the hook never sets its guard");
+  assert.match(hook, /} finally \{\s*busy\.current = false;/, "the guard is not released in a finally, so one rejection wedges it shut");
+});

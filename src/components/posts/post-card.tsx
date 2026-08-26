@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Flag, Pencil, ArrowRight, ShieldAlert, MapPin } from "lucide-react";
 import { ChatCircle, Feather } from "@phosphor-icons/react";
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { callAction } from "@/lib/call-action";
-import { settledHeart } from "@/lib/heart";
+import { useHeartToggle, useBookmarkToggle } from "./use-engagement";
 import { IdentityRow } from "@/components/common/identity-row";
 import { ImageViewer } from "@/components/common/image-viewer";
 import { MetaDots } from "@/components/common/meta-dots";
@@ -155,31 +155,20 @@ export function PostCard({
    * this guards the handler, and re-rendering the card to record that a request
    * is in the air would be a render nobody asked for.
    */
-  const likeBusy = useRef(false);
-  const bookmarkBusy = useRef(false);
+  const fireLike = useHeartToggle(() => toggleLike(post.id));
+  const fireBookmark = useBookmarkToggle(() => toggleBookmark(post.id));
 
-  async function handleLike() {
-    if (likeBusy.current) return;
-    const before = { liked, count: likeCount };
-    setLiked(!liked);
-    setLikeCount(liked ? likeCount - 1 : likeCount + 1);
-    if (demo) return;
-    likeBusy.current = true;
-    try {
-      const result = await callAction(() => toggleLike(post.id));
-      if (result.error) {
-        setLiked(before.liked);
-        setLikeCount(before.count);
-        toast.error(result.error);
-        return;
-      }
-      // What the ROW says, not what the tap assumed (audit C-133).
-      const settled = settledHeart(before, result.liked);
-      setLiked(settled.liked);
-      setLikeCount(settled.count);
-    } finally {
-      likeBusy.current = false;
-    }
+  function handleLike() {
+    // The demo flips the heart and writes nothing: a heart that refuses to
+    // move reads as broken rather than as a demo.
+    void fireLike(
+      { liked, count: likeCount },
+      ({ liked: next, count }) => {
+        setLiked(next);
+        setLikeCount(count);
+      },
+      { skipAction: demo }
+    );
   }
 
   async function handleDelete() {
@@ -201,28 +190,14 @@ export function PostCard({
     return result;
   }
 
-  async function handleBookmark() {
-    if (bookmarkBusy.current) return;
-    const next = !bookmarked;
-    setBookmarked(next);
-    if (demo) {
-      onBookmarkChange?.(next);
-      return;
-    }
-    bookmarkBusy.current = true;
-    try {
-      const result = await callAction(() => toggleBookmark(post.id));
-      if (result.error) {
-        setBookmarked(!next);
-        toast.error(result.error);
-        return;
-      }
-      const settled = result.bookmarked ?? next;
-      setBookmarked(settled);
-      onBookmarkChange?.(settled);
-    } finally {
-      bookmarkBusy.current = false;
-    }
+  function handleBookmark() {
+    // The neighbour is told what STUCK, not what was guessed: the Saved tab
+    // drops a card when its bookmark goes, and dropping it on the optimistic
+    // flip would take it off screen before the write was known to have
+    // happened. In the demo nothing is written, so the flip is what stuck.
+    void fireBookmark(bookmarked, setBookmarked, { skipAction: demo }).then((settled) => {
+      if (settled !== undefined) onBookmarkChange?.(settled);
+    });
   }
 
   // The Groups feature was removed and no route renders a group post, so the
