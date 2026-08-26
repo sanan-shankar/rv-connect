@@ -305,8 +305,14 @@ test("C-029: two questions sharing a position still render in one stable order",
     /a\.position - b\.position \|\| a\.createdAt\.getTime\(\) - b\.createdAt\.getTime\(\)/,
     "the home console is back to a bare position sort"
   );
-  // The same total order the query already asks the database for.
-  assert.match(home, /orderBy: \[\{ position: "asc" \}, \{ createdAt: "asc" \}\]/);
+  // The same total order the query already asks the database for. That query
+  // now lives in the loader both Round readers share, so the pin follows it
+  // there -- one query for two surfaces, rather than one per page to keep in
+  // step. What is pinned is unchanged: the database is asked for the order the
+  // console then sorts by, so the filter+sort above cannot invent a different
+  // one.
+  const loader = decomment(read("src/lib/catchups-round-view.ts"));
+  assert.match(loader, /orderBy: \[\{ position: "asc" \}, \{ createdAt: "asc" \}\]/);
 
   // ...and the comment above the cap check no longer claims a serialization a
   // plain transaction does not provide.
