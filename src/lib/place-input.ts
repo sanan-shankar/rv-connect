@@ -134,11 +134,16 @@ export function parsePlaces(
  * Keyed on the canonical id where there is one and the lowercased city where
  * there is not, first mention wins, so the order the member chose survives.
  */
+/** A place after resolution: what the member typed, with its label and city
+ *  title-cased and its gazetteer row applied where one was found. This is
+ *  what the two writers store. */
+export type ResolvedPlace = PlaceInput & { label: string; city: string };
+
 export async function resolvePlaces(
   places: PlaceInput[],
   titleCase: (s: string) => string,
   lookupPlaces: (ids: number[]) => Promise<Map<number, GazetteerPlace>>
-): Promise<Array<PlaceInput & { label: string; city: string }>> {
+): Promise<ResolvedPlace[]> {
   const cleaned = places
     .map((p) => ({ ...p, label: titleCase(p.label), city: titleCase(p.city) }))
     .filter((p) => p.label.length > 0);

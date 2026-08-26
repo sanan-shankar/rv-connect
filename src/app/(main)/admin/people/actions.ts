@@ -15,7 +15,8 @@ import { loadPeoplePage } from "@/lib/admin-people-query";
 import { writeAudit } from "@/lib/audit";
 import { purgeImageUrls } from "@/lib/image-purge";
 import { batchTypeFromLeaving, valleyYear } from "@/lib/utils";
-import { legacyCityColumns, parsePlaces, resolvePlaces } from "@/lib/place-input";
+import { parsePlaces, resolvePlaces } from "@/lib/place-input";
+import { replaceUserPlaces } from "@/lib/place-write";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 import { SPECIES_SLUGS } from "@/components/common/bird-avatar-v2";
 import { tryRosterAutoVerifyQuietly } from "@/lib/roster";
@@ -220,29 +221,7 @@ export async function adminUpdatePlaces(
   if (!parsed.ok) return { error: parsed.error };
   const cleaned = await resolvePlaces(parsed.places, titleCase, lookupGazetteerPlaces);
 
-  await prisma.$transaction([
-    prisma.userPlace.deleteMany({ where: { userId } }),
-    ...cleaned.map((p, i) =>
-      prisma.userPlace.create({
-        data: {
-          userId,
-          placeId: p.placeId ?? null,
-          label: p.label,
-          city: p.city,
-          lat: p.lat,
-          lng: p.lng,
-          position: i,
-        },
-      })
-    ),
-    prisma.user.update({
-      where: { id: userId },
-      // Both legacy columns, from one place. Mirroring only the first left a
-      // pre-migration secondaryCity behind for the profile's fallback to
-      // resurrect the moment the member cleared their places (audit C-101).
-      data: legacyCityColumns(cleaned),
-    }),
-  ]);
+  await replaceUserPlaces(userId, cleaned);
 
   revalidateAdmin(userId);
   revalidatePath("/directory");

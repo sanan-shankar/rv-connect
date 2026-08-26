@@ -17,7 +17,8 @@ import { valleyDayKey, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { titleCase } from "@/lib/normalize";
 import { writeAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
-import { legacyCityColumns, parsePlaces, resolvePlaces } from "@/lib/place-input";
+import { parsePlaces, resolvePlaces } from "@/lib/place-input";
+import { replaceUserPlaces } from "@/lib/place-write";
 import { lookupGazetteerPlaces } from "@/lib/place-lookup";
 
 const MAX_AVATAR_INPUT = 15 * 1024 * 1024; // 15MB input; output is tightly compressed
@@ -42,29 +43,7 @@ export async function updateUserPlaces(
   const cleaned = await resolvePlaces(parsed.places, titleCase, lookupGazetteerPlaces);
 
   const userId = session.user.id;
-  await prisma.$transaction([
-    prisma.userPlace.deleteMany({ where: { userId } }),
-    ...cleaned.map((p, i) =>
-      prisma.userPlace.create({
-        data: {
-          userId,
-          placeId: p.placeId ?? null,
-          label: p.label,
-          city: p.city,
-          lat: p.lat,
-          lng: p.lng,
-          position: i,
-        },
-      })
-    ),
-    prisma.user.update({
-      where: { id: userId },
-      // Both legacy columns, from one place. Mirroring only the first left a
-      // pre-migration secondaryCity behind for the profile's fallback to
-      // resurrect the moment the member cleared their places (audit C-101).
-      data: legacyCityColumns(cleaned),
-    }),
-  ]);
+  await replaceUserPlaces(userId, cleaned);
 
   revalidatePath(`/profile/${userId}`);
   return { success: true };
