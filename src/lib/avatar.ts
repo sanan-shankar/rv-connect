@@ -17,6 +17,8 @@
  * charCodeAt, with no Math.random, Date, or locale.
  */
 
+import { fnv1a } from "./fnv1a.ts";
+
 export const AVATAR_PALETTE = [
   "#1F8A4C", // leaf green
   "#3F7CA6", // office blue (the vivid pop)
@@ -134,16 +136,6 @@ export function speciesForMember(seed: string, overrideIndex?: number | null): n
   const pinned = SPECIES_PINS[seed];
   if (pinned !== undefined) return pinned;
   return hashSpeciesFor(seed);
-}
-
-/** FNV-1a 32-bit hash. Stable across runtimes, good spread for short strings like ids. */
-export function fnv1a(input: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
 }
 
 export interface BirdChoice {
