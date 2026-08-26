@@ -10,33 +10,16 @@
  * Usage: node scripts/qa/phase7-probe.mjs
  * Needs: dev server on :3000, DEV_LOGIN_SECRET + ADMIN_EMAIL in .env.
  */
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { randomBytes } from "node:crypto";
-import pg from "pg";
 import bcrypt from "bcryptjs";
 import { createId } from "@paralleldrive/cuid2";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { makeLedger } from "./_probe-kit.mjs";
+import { bootstrap, openDb, makeLedger } from "./_probe-kit.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-process.chdir(repoRoot);
-const BASE = "http://localhost:3000";
-process.env.PUPPETEER_EXECUTABLE_PATH ||= "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const { BASE } = bootstrap(import.meta.url, { chrome: true });
 
-for (const line of readFileSync(resolve(repoRoot, ".env"), "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-  if (!m) continue;
-  let v = m[2];
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-  if (!(m[1] in process.env)) process.env[m[1]] = v;
-}
 
-const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
-await db.connect();
-const q = (t, p) => db.query(t, p).then((r) => r.rows);
+const { db, q } = await openDb();
 const L = makeLedger();
 
 const P = "@probe.invalid";

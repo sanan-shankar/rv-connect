@@ -38,6 +38,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import pg from "pg";
+import { loadEnv } from "./_env.mjs";
 import {
   normalizeRosterName,
   stripRosterInitials,
@@ -51,14 +52,7 @@ process.chdir(repoRoot);
 const APPLY = process.argv.includes("--apply");
 const MATCH_EXISTING = process.argv.includes("--match-existing");
 
-for (const line of readFileSync(resolve(repoRoot, ".env"), "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-  if (!m) continue;
-  let v = m[2];
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
-    v = v.slice(1, -1);
-  if (!(m[1] in process.env)) process.env[m[1]] = v;
-}
+loadEnv();
 
 const DIR = "sanan's stuff/rough databases";
 const ROSTER_CSV = `${DIR}/roster.csv`;

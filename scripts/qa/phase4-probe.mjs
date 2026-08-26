@@ -33,34 +33,23 @@
  * Usage: node scripts/qa/phase4-probe.mjs
  * Needs: dev server on :3000, DEV_LOGIN_SECRET + AUTH_SECRET in .env.
  */
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createHmac, randomBytes } from "node:crypto";
-import pg from "pg";
 import bcrypt from "bcryptjs";
 import puppeteer from "puppeteer";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { loadEnv, makeLedger, credLogin as kitCredLogin } from "./_probe-kit.mjs";
+import { bootstrap, openDb, makeLedger, credLogin as kitCredLogin } from "./_probe-kit.mjs";
 import { signHumanPass } from "../../src/lib/human-pass-rule.ts";
 import { RATE_LIMITED } from "../../src/lib/rate-limit-message.ts";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-process.chdir(repoRoot);
-
-const BASE = "http://localhost:3000";
-process.env.PUPPETEER_EXECUTABLE_PATH ||=
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const { BASE } = bootstrap(import.meta.url, { chrome: true });
 
 /* ---------------------------------------------------------------- env + db */
 
-loadEnv(repoRoot);
 const DEV_SECRET = process.env.DEV_LOGIN_SECRET;
 const AUTH_SECRET = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 if (!DEV_SECRET || !AUTH_SECRET) throw new Error("DEV_LOGIN_SECRET / AUTH_SECRET missing from .env");
 
-const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
-await db.connect();
-const q = (text, params) => db.query(text, params).then((r) => r.rows);
+const { db, q } = await openDb();
 
 /* ------------------------------------------------------------- the ledger */
 

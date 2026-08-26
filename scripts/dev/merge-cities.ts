@@ -12,26 +12,9 @@
  *
  * Usage: npx tsx scripts/dev/merge-cities.ts
  */
-import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { loadEnv } from "./_env.mjs";
 
-function loadEnvFile(): Record<string, string> {
-  const vars: Record<string, string> = {};
-  for (const file of [".env", ".env"]) {
-    const p = resolve(process.cwd(), file);
-    if (!existsSync(p)) continue;
-    for (const line of readFileSync(p, "utf8").split("\n")) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (!m) continue;
-      let v = m[2];
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-      if (!(m[1] in vars)) vars[m[1]] = v;
-    }
-  }
-  return vars;
-}
-const loadedEnv = loadEnvFile();
-for (const [k, v] of Object.entries(loadedEnv)) if (!(k in process.env)) process.env[k] = v;
+loadEnv();
 if (!process.env.DATABASE_URL) { console.error("No DATABASE_URL"); process.exit(1); }
 
 // ─── Confirmed merge: Bangalore -> Bengaluru ────────────────────────────────

@@ -28,27 +28,13 @@
  * and leaving a person rather than an environment variable in charge of who
  * administers the community.
  */
-import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 import pg from "pg";
+import { readEnv } from "./_env.mjs";
 import bcrypt from "bcryptjs";
 
 /* Same loader the sibling run-sql.mjs uses: read .env by hand rather than
    pulling in dotenv, and never print the connection string. */
-function loadEnv() {
-  const vars = {};
-  const p = resolve(process.cwd(), ".env");
-  if (!existsSync(p)) return vars;
-  for (const line of readFileSync(p, "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (!m) continue;
-    let v = m[2].trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-    if (!(m[1] in vars)) vars[m[1]] = v;
-  }
-  return vars;
-}
 
 function askHidden(question) {
   return new Promise((res) => {
@@ -74,7 +60,7 @@ if (!email) {
   process.exit(1);
 }
 
-const env = loadEnv();
+const env = readEnv();
 const url = env.DIRECT_URL || env.DATABASE_URL;
 if (!url) {
   console.error("No DIRECT_URL or DATABASE_URL in .env");

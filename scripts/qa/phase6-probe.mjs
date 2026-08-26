@@ -11,31 +11,15 @@
  * Usage: node scripts/qa/phase6-probe.mjs
  * Needs: dev server on :3000, DEV_LOGIN_SECRET in .env.
  */
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { randomBytes } from "node:crypto";
-import pg from "pg";
 import bcrypt from "bcryptjs";
 import { createId } from "@paralleldrive/cuid2";
 import { fetchSessionCookie } from "./_dev-login.mjs";
-import { credLogin, makeLedger } from "./_probe-kit.mjs";
+import { bootstrap, openDb, credLogin, makeLedger } from "./_probe-kit.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-process.chdir(repoRoot);
-const BASE = "http://localhost:3000";
+const { BASE } = bootstrap(import.meta.url);
 
-for (const line of readFileSync(resolve(repoRoot, ".env"), "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-  if (!m) continue;
-  let v = m[2];
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-  if (!(m[1] in process.env)) process.env[m[1]] = v;
-}
 
-const db = new pg.Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
-await db.connect();
-const q = (t, p) => db.query(t, p).then((r) => r.rows);
+const { db, q } = await openDb();
 const L = makeLedger();
 
 const P = "@probe.invalid";

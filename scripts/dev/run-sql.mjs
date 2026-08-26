@@ -20,25 +20,10 @@
  * then failed (found by a write-path review). A second database with no way
  * to migrate it is a second database that will be wrong.
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import pg from "pg";
-
-function loadEnv(files) {
-  const vars = {};
-  for (const file of files) {
-    const p = resolve(process.cwd(), file);
-    if (!existsSync(p)) continue;
-    for (const line of readFileSync(p, "utf8").split("\n")) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (!m) continue;
-      let v = m[2];
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-      if (!(m[1] in vars)) vars[m[1]] = v;
-    }
-  }
-  return vars;
-}
+import { readEnv } from "./_env.mjs";
 
 const argv = process.argv.slice(2);
 let envFile = ".env";
@@ -47,7 +32,7 @@ if (argv[0] === "--env") {
   argv.splice(0, 2);
 }
 
-const env = loadEnv([envFile]);
+const env = readEnv([envFile]);
 const url = env.DIRECT_URL || env.DATABASE_URL;
 if (!url) {
   console.error(`No DIRECT_URL or DATABASE_URL found in ${envFile}`);

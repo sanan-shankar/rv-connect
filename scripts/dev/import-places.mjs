@@ -25,6 +25,7 @@ import { resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { execFileSync } from "node:child_process";
 import pg from "pg";
+import { readEnv } from "./_env.mjs";
 
 const CITIES_ZIP_URL = "https://download.geonames.org/export/dump/cities500.zip";
 const ADMIN1_URL = "https://download.geonames.org/export/dump/admin1CodesASCII.txt";
@@ -35,22 +36,6 @@ const ADMIN1_PATH = resolve(TMP_DIR, "admin1CodesASCII.txt");
 const ALT_NAMES_MAX = 400;
 const BATCH_SIZE = 1000;
 const PLACE_COLUMNS = ["id", "name", "asciiName", "altNames", "lat", "lng", "country", "admin1", "population"];
-
-function loadEnv() {
-  const vars = {};
-  for (const file of [".env", ".env"]) {
-    const p = resolve(process.cwd(), file);
-    if (!existsSync(p)) continue;
-    for (const line of readFileSync(p, "utf8").split("\n")) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (!m) continue;
-      let v = m[2];
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-      if (!(m[1] in vars)) vars[m[1]] = v;
-    }
-  }
-  return vars;
-}
 
 async function downloadFile(url, dest) {
   console.log(`Downloading ${url} ...`);
@@ -142,7 +127,7 @@ async function main() {
   const lines = readFileSync(CITIES_TXT_PATH, "utf8").split("\n");
   console.log(`Read ${lines.length} lines from cities500.txt.`);
 
-  const env = loadEnv();
+  const env = readEnv();
   const url = env.DIRECT_URL || env.DATABASE_URL;
   if (!url) {
     console.error("No DIRECT_URL or DATABASE_URL found in .env");

@@ -4,13 +4,53 @@
  * quietly diverging across QA scripts, and phase4-probe/phase4-prod-check
  * were about to repeat that with three fresh copies of their own.
  */
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
+import pg from "pg";
 
 /** Load .env exactly like the rest of scripts/qa does (dotenv never
  *  overrides variables already set in the environment). */
 export function loadEnv(repoRoot) {
   config({ path: resolve(repoRoot, ".env"), quiet: true });
+}
+
+/* The bundled Puppeteer Chrome does not run on this machine; every browser
+   script falls back to the installed one (CLAUDE.md gotcha 2). */
+const MAC_CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+
+/**
+ * The eight lines every probe opened with: find the repo root, work from it,
+ * read .env, and point Puppeteer at a Chrome that exists.
+ *
+ * Four of the probes hand-rolled an eight-line `.env` parser here, beside a
+ * kit that already exported `loadEnv` -- the shape this file's banner exists
+ * to stop. Additive on purpose: a probe that needs something else keeps doing
+ * it itself rather than growing an option here.
+ */
+export function bootstrap(importMetaUrl, { base = "http://localhost:3000", chrome = false } = {}) {
+  const repoRoot = resolve(dirname(fileURLToPath(importMetaUrl)), "../..");
+  process.chdir(repoRoot);
+  loadEnv(repoRoot);
+  if (chrome) process.env.PUPPETEER_EXECUTABLE_PATH ||= MAC_CHROME;
+  return { repoRoot, BASE: base };
+}
+
+/**
+ * A connected client on the session pooler, plus the row helper every probe
+ * defines as `q`.
+ *
+ * DIRECT_URL first, like the Prisma CLI: probes read and write real tables and
+ * the transaction pooler is the wrong end for that. Deliberately no default
+ * pointing anywhere else -- scripts/demo/* keeps its own opener precisely so
+ * a convenience here can never seed the wrong database.
+ */
+export async function openDb() {
+  const db = new pg.Client({
+    connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
+  });
+  await db.connect();
+  return { db, q: (text, params) => db.query(text, params).then((r) => r.rows) };
 }
 
 /** The pass/fail ledger every probe prints. exit() with the right code. */
