@@ -265,11 +265,14 @@ test("C-013: the details box cannot compose a string the server refuses", () => 
   const src = read("src/components/posts/report-dialog.tsx");
   assert.match(src, /const DETAILS_MAX =\s*\n?\s*REASON_MAX - Math\.max\(/, "the details cap is not derived from the reasons");
   assert.match(src, /maxLength=\{DETAILS_MAX\}/, "the box still advertises a length the server will refuse");
-  // The server's cap is what DETAILS_MAX is derived against; if it moves, this fails.
+  /* The server's cap is what DETAILS_MAX is derived against; if it moves, this
+     fails. There used to be one per report path and this required at least two
+     and checked they agreed. Both paths now share `vetReport`, so there is one
+     cap and it cannot disagree with itself -- what is left to check is that it
+     is still 500, and that both paths still reach it (the second half is
+     profile-editor-rule.test.mjs's C-174). */
   const server = read("src/components/posts/report-action.ts");
   const caps = [...server.matchAll(/trimmed\.length > (\d+)/g)].map((m) => Number(m[1]));
-  assert.ok(caps.length >= 2, `only found ${caps.length} server caps; the pair has drifted`);
-  for (const cap of caps) {
-    assert.equal(cap, 500, `a report path refuses at ${cap}, but the dialog derives its box from 500`);
-  }
+  assert.equal(caps.length, 1, `expected one shared server cap, found ${caps.length}`);
+  assert.equal(caps[0], 500, `the report path refuses at ${caps[0]}, but the dialog derives its box from 500`);
 });

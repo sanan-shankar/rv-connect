@@ -85,13 +85,23 @@ test("C-174: every erased-type argument is checked before it is used", () => {
   for (const [file, pattern, what] of sites) {
     assert.match(decomment(read(file)), pattern, `${what} is used without checking what arrived`);
   }
-  // Both report paths, not just the first: they are a matched pair.
+  // Both report paths, not just the first: they are a matched pair. They used
+  // to carry the guard twice and this counted to two; they now share
+  // `vetReport`, so what is checked is that BOTH still go through it and that
+  // it is the thing holding the guard. Counting a literal would have gone on
+  // passing if one path had quietly stopped calling the helper.
   const reports = decomment(read("src/components/posts/report-action.ts"));
-  assert.equal(
-    [...reports.matchAll(/typeof reason !== "string"/g)].length,
-    2,
-    "only one of the two report paths guards its reason"
+  const vet = reports.slice(
+    reports.indexOf("async function vetReport"),
+    reports.indexOf("export async function reportPost")
   );
+  assert.match(vet, /typeof reason !== "string"/, "the shared report preamble no longer checks its reason");
+  for (const name of ["reportPost", "reportUser"]) {
+    const from = reports.indexOf(`export async function ${name}`);
+    const next = reports.indexOf("export async function", from + 10);
+    const body = next === -1 ? reports.slice(from) : reports.slice(from, next);
+    assert.match(body, /await vetReport\(/, `${name} no longer goes through the shared report preamble`);
+  }
 });
 
 /* ---- C-045: autosaves land in the order they were made ---------- */

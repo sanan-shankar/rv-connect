@@ -73,35 +73,65 @@ async function openReportThread({
   return thread;
 }
 
-export async function reportPost(postId: string, reason: string) {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
-  if (IS_DEMO) return { error: "Reporting summons a real moderator, so the demo leaves it switched off." };
-
+/**
+ * The gates both report paths open with, and the reason they carry.
+ *
+ * The file already argued for keeping the two paths the same shape: "half
+ * fixing one of a matched pair is how this codebase has drifted before". A
+ * shared preamble is that argument taken seriously -- the pairing becomes
+ * structural instead of visual, and the two pins that used to COUNT these
+ * checks (profile-editor-rule's two `typeof reason` guards, C-013's two 500s)
+ * now check the one place they live.
+ *
+ * `auth()` and the demo refusal deliberately stay at each call site: reportUser
+ * has to refuse a self-report between them and these gates, and moving that
+ * would let a self-report spend a rate-limit token on its way to being
+ * refused. Keeping `await auth()` in the exported bodies is also what
+ * gate-coverage.test.mjs looks for.
+ */
+async function vetReport(
+  userId: string,
+  reason: string
+): Promise<{ ok: true; trimmed: string } | { ok: false; error: string }> {
   // A report summons a moderator and creates work with a member's name in it,
   // which is exactly the lever an abusive signup wants (trust model, Stage 2).
+  // Doubly so for reportUser: it used to strip the reported member's verified
+  // badge, so an unvetted account could take standing AWAY from a vetted one
+  // (audit H5).
   const gate = await requireVerifiedMember();
-  if (!gate.ok) return { error: gate.error };
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   // Report flooding is paging a human on demand, so it is metered (audit M2).
-  const limited = await rateLimit("reports", session.user.id);
-  if (!limited.ok) return { error: limited.error };
+  const limited = await rateLimit("reports", userId);
+  if (!limited.ok) return { ok: false, error: limited.error };
 
   // A report opens an AdminThread, so it also answers to the same new-thread
   // budget a member's own messages do (audit H5): reporting must not be a way
   // to fan out threads faster than messaging is allowed to.
-  if (await isThreadRateLimited(session.user.id)) {
-    return { error: "That's a lot of reports at once. Give it an hour and send the rest." };
+  if (await isThreadRateLimited(userId)) {
+    return { ok: false, error: "That's a lot of reports at once. Give it an hour and send the rest." };
   }
 
   /* `reason` is typed a string and that type is erased at runtime: a crafted
      call past the verified-member and rate-limit gates could send a number,
      and `(5).trim()` threw a 500 digest instead of a refusal (audit C-174). */
-  if (typeof reason !== "string") return { error: "Please provide a valid reason" };
+  if (typeof reason !== "string") return { ok: false, error: "Please provide a valid reason" };
   const trimmed = reason.trim();
   if (!trimmed || trimmed.length > 500) {
-    return { error: "Please provide a valid reason" };
+    return { ok: false, error: "Please provide a valid reason" };
   }
+
+  return { ok: true, trimmed };
+}
+
+export async function reportPost(postId: string, reason: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  if (IS_DEMO) return { error: "Reporting summons a real moderator, so the demo leaves it switched off." };
+
+  const vetted = await vetReport(session.user.id, reason);
+  if (!vetted.ok) return { error: vetted.error };
+  const { trimmed } = vetted;
 
   /* You cannot report a post you were never allowed to see (audit H3, this
      one found by bug-report-2 C-194). This action reads the author's name off
@@ -223,29 +253,9 @@ export async function reportUser(reportedUserId: string, reason: string) {
   if (IS_DEMO) return { error: "Reporting summons a real moderator, so the demo leaves it switched off." };
   if (reportedUserId === session.user.id) return { error: "You can't flag yourself" };
 
-  // Same tier as reportPost, and doubly so here: this action used to strip
-  // the reported member's verified badge, so an unvetted account could take
-  // standing AWAY from a vetted one (audit H5).
-  const gate = await requireVerifiedMember();
-  if (!gate.ok) return { error: gate.error };
-
-  // Same meter as reportPost, same reason (audit M2).
-  const limited = await rateLimit("reports", session.user.id);
-  if (!limited.ok) return { error: limited.error };
-
-  // Also the new-thread budget, same as reportPost (audit H5).
-  if (await isThreadRateLimited(session.user.id)) {
-    return { error: "That's a lot of reports at once. Give it an hour and send the rest." };
-  }
-
-  /* `reason` is typed a string and that type is erased at runtime: a crafted
-     call past the verified-member and rate-limit gates could send a number,
-     and `(5).trim()` threw a 500 digest instead of a refusal (audit C-174). */
-  if (typeof reason !== "string") return { error: "Please provide a valid reason" };
-  const trimmed = reason.trim();
-  if (!trimmed || trimmed.length > 500) {
-    return { error: "Please provide a valid reason" };
-  }
+  const vetted = await vetReport(session.user.id, reason);
+  if (!vetted.ok) return { error: vetted.error };
+  const { trimmed } = vetted;
 
   const reported = await prisma.user.findUnique({
     where: { id: reportedUserId },
