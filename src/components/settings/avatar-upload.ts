@@ -4,7 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { isImageFile } from "@/lib/upload-shared";
-import { shrinkForUpload } from "@/lib/image-downscale";
 import { removeAvatar, updateAvatar } from "@/components/settings/actions";
 
 /* ------------------------------------------------------------------ *
@@ -95,6 +94,13 @@ export function useAvatarUpload({
     setBusy(true);
     let ready;
     try {
+      /* Imported here rather than at the top of the file. Both callers of this
+         hook mount it unconditionally -- the profile letterhead runs it on a
+         STRANGER's sheet, where no photograph can ever be picked -- so a static
+         import put the browser's canvas downscaler into the download of every
+         profile view in the app. This is the one line that needs it, and it is
+         behind a file picker and an undecodable format. */
+      const { shrinkForUpload } = await import("@/lib/image-downscale");
       ready = await shrinkForUpload([file]);
     } finally {
       setBusy(false);

@@ -44,6 +44,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { Check, Pencil } from "lucide-react";
@@ -51,7 +52,7 @@ import { m, AnimatePresence, useAnimationControls } from "motion/react";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { VerifiedMark } from "@/components/common/verified-mark";
 import { Button } from "@/components/ui/button";
-import { LocationPicker, type PlaceSelection } from "@/components/common/location-picker";
+import type { PlaceSelection } from "@/components/common/location-picker";
 import {
   Popover,
   PopoverContent,
@@ -62,13 +63,7 @@ import {
 import { GetInTouch, type ContactMethod } from "@/components/profile/get-in-touch";
 import { AdmissionStamp } from "@/components/profile/admission-stamp";
 import { HouseTrail } from "@/components/profile/houses-chain";
-import { HouseChainEditor } from "@/components/profile/house-chain-editor";
-import {
-  ContactsEditor,
-  buildRows,
-  rowsToPayload,
-  type ContactRow,
-} from "@/components/profile/contacts-editor";
+import { buildRows, rowsToPayload, type ContactRow } from "@/lib/contact-rows";
 import {
   PenBlock,
   PenSlot,
@@ -85,9 +80,7 @@ import { resolveBirdOverride, speciesNameFor } from "@/components/common/bird-av
 import { SegmentedPills } from "@/components/common/segmented-pills";
 import { updateUserPlaces, requestAccountDeletion } from "@/components/settings/actions";
 import { Input } from "@/components/ui/input";
-import { AvatarCropDialog } from "@/components/settings/avatar-crop-dialog";
 import { useAvatarUpload } from "@/components/settings/avatar-upload";
-import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { Camera, X } from "lucide-react";
 import { callAction } from "@/lib/call-action";
 import {
@@ -107,6 +100,53 @@ import {
 import { FULL_NAME_MAX, cn, formatPhoneDisplay } from "@/lib/utils";
 import type { HouseYearEntry } from "@/lib/houses";
 import type { HouseSpan } from "@/lib/house-spans";
+
+/* ------------------------------------------------------------------ *
+ *  The pen's machinery, fetched only by the one person who can use it.
+ *
+ *  This module is one `"use client"` file, so until now its whole import
+ *  subtree shipped to every viewer -- and a long tail of it is reachable
+ *  only when `draft` is present, which is only ever on your OWN profile.
+ *  A stranger's sheet downloaded the GeoNames typeahead, the house
+ *  picker with its popover and bottom sheet, the contact-row editor and
+ *  both photo dialogs in order to render none of them. Measured on a
+ *  production build: 1,730 KB of JavaScript for a sheet of text.
+ *
+ *  Split at the leaves rather than by extracting an "edit half", because
+ *  the editable and read-only branches in here render byte-identical
+ *  boxes on purpose ("Byte-for-byte the read-only lockup below, with the
+ *  number swapped for a field") and a year of owner-tuned geometry lives
+ *  in those pairings. Every one of them stays in this file; only the five
+ *  self-contained editors leave, and each already renders behind a gate.
+ *
+ *  `ssr: false` throughout: none of this is on a stranger's server-rendered
+ *  sheet either, and the owner's copy is preloaded on mount (see the effect
+ *  below) so pressing Edit never waits on a network.
+ * ------------------------------------------------------------------ */
+const LocationPicker = dynamic(
+  () => import("@/components/common/location-picker").then((m) => m.LocationPicker),
+  { ssr: false }
+);
+/* The one of the five that keeps its server render. The other four are only
+   ever reachable from a click -- an open popover, an open dialog, the pen
+   turned on -- so their HTML is never in the first response anyway. The house
+   chain is different: it is on your own sheet AT REST, so `ssr: false` here
+   took it out of the first paint and popped it back in two frames later. */
+const HouseChainEditor = dynamic(() =>
+  import("@/components/profile/house-chain-editor").then((m) => m.HouseChainEditor)
+);
+const ContactsEditor = dynamic(
+  () => import("@/components/profile/contacts-editor").then((m) => m.ContactsEditor),
+  { ssr: false }
+);
+const AttachImageDialog = dynamic(
+  () => import("@/components/common/attach-image-dialog").then((m) => m.AttachImageDialog),
+  { ssr: false }
+);
+const AvatarCropDialog = dynamic(
+  () => import("@/components/settings/avatar-crop-dialog").then((m) => m.AvatarCropDialog),
+  { ssr: false }
+);
 
 /* ------------------------------------------------------------------ *
  *  Everything the sheet needs in order to be typed into.
@@ -368,6 +408,21 @@ export function LetterheadProfile({
      not fire a round trip. Typing into a field and tabbing straight out of it
      is the commonest thing anyone does on this page. */
   const saved = useRef<Record<string, string>>({});
+
+  /* The five deferred editors above are fetched the moment we know the sheet
+     is yours -- after first paint, in parallel, off the critical path -- so
+     the pen is already in hand by the time anyone presses Edit. Without this
+     the split would trade a stranger's 300 KB for an owner's visible beat,
+     which is the one thing the finding said would change its mind. A
+     stranger's sheet never runs this, and never fetches any of it. */
+  useEffect(() => {
+    if (!editable) return;
+    void import("@/components/profile/house-chain-editor");
+    void import("@/components/profile/contacts-editor");
+    void import("@/components/common/location-picker");
+    void import("@/components/common/attach-image-dialog");
+    void import("@/components/settings/avatar-crop-dialog");
+  }, [editable]);
 
   function setField(key: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -1371,109 +1426,117 @@ export function LetterheadProfile({
         </AnimatePresence>
       </div>
 
-      <AttachImageDialog
-        open={attachOpen}
-        onOpenChange={setAttachOpen}
-        onFiles={(files) => handlePhotoPick(files[0] ?? null)}
-        multiple={false}
-        title="Add a profile photo"
-      />
-      <AvatarCropDialog
-        file={cropFile}
-        onConfirm={async (blob) => {
-          setCropFile(null);
-          await uploadAvatarBlob(blob);
-        }}
-        onCancel={() => setCropFile(null)}
-        onDecodeError={(f) => {
-          setCropFile(null);
-          void uploadUndecodableAvatar(f);
-        }}
-      />
+      {/* Gated, where they used to be mounted unconditionally with
+          `open={false}`: rendering nothing still costs the download, and a
+          stranger has no control anywhere on this page that opens any of
+          them. */}
+      {editable && (
+        <>
+          <AttachImageDialog
+            open={attachOpen}
+            onOpenChange={setAttachOpen}
+            onFiles={(files) => handlePhotoPick(files[0] ?? null)}
+            multiple={false}
+            title="Add a profile photo"
+          />
+          <AvatarCropDialog
+            file={cropFile}
+            onConfirm={async (blob) => {
+              setCropFile(null);
+              await uploadAvatarBlob(blob);
+            }}
+            onCancel={() => setCropFile(null)}
+            onDecodeError={(f) => {
+              setCropFile(null);
+              void uploadUndecodableAvatar(f);
+            }}
+          />
 
-      <Dialog
-        open={confirmDelete}
-        onOpenChange={(open) => {
-          setConfirmDelete(open);
-          if (!open) {
-            setDeletePassword("");
-            setDeleteError(null);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete account</DialogTitle>
-            <DialogDescription>
-              Your account, posts, comments and photos will be permanently deleted 60
-              days from now. If you change your mind before then, just sign in again
-              and the deletion is cancelled. Confirm with your password.
-            </DialogDescription>
-          </DialogHeader>
-          {/* The password, not the session, is what authorises this (audit
-              M35): a stolen cookie must not be enough to schedule someone's
-              history for destruction. */}
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (deleting || deletePassword.length === 0) return;
-              setDeleting(true);
-              setDeleteError(null);
-              const fd = new FormData();
-              fd.set("password", deletePassword);
-              try {
-                const result = await callAction(() => requestAccountDeletion(fd));
-                if (result.error) {
-                  setDeleteError(result.error);
-                  return;
-                }
-                signOut({ callbackUrl: "/" });
-              } finally {
-                // finally, not a trailing statement: a rejected call used to
-                // leave the dialog stuck on "Scheduling..." forever, with no
-                // error shown and no way to retry (audit B-042).
-                setDeleting(false);
+          <Dialog
+            open={confirmDelete}
+            onOpenChange={(open) => {
+              setConfirmDelete(open);
+              if (!open) {
+                setDeletePassword("");
+                setDeleteError(null);
               }
             }}
-            className="space-y-[var(--space-s)]"
           >
-            {/* The standard bordered Input, NOT the auth pages' mist
-                FloatField: that material is scoped to pages that ARE a form
-                (design system, section 3), and this is a dialog like every
-                other dialog. No reveal toggle for the same reason no other
-                dialog has one. */}
-            <Input
-              type="password"
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-              autoComplete="current-password"
-              placeholder="Your password"
-              aria-label="Your password"
-            />
-            {deleteError && (
-              <p role="alert" className="text-[13px] leading-snug text-heart">
-                {deleteError}
-              </p>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setConfirmDelete(false)}
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete account</DialogTitle>
+                <DialogDescription>
+                  Your account, posts, comments and photos will be permanently deleted 60
+                  days from now. If you change your mind before then, just sign in again
+                  and the deletion is cancelled. Confirm with your password.
+                </DialogDescription>
+              </DialogHeader>
+              {/* The password, not the session, is what authorises this (audit
+                  M35): a stolen cookie must not be enough to schedule someone's
+                  history for destruction. */}
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (deleting || deletePassword.length === 0) return;
+                  setDeleting(true);
+                  setDeleteError(null);
+                  const fd = new FormData();
+                  fd.set("password", deletePassword);
+                  try {
+                    const result = await callAction(() => requestAccountDeletion(fd));
+                    if (result.error) {
+                      setDeleteError(result.error);
+                      return;
+                    }
+                    signOut({ callbackUrl: "/" });
+                  } finally {
+                    // finally, not a trailing statement: a rejected call used to
+                    // leave the dialog stuck on "Scheduling..." forever, with no
+                    // error shown and no way to retry (audit B-042).
+                    setDeleting(false);
+                  }
+                }}
+                className="space-y-[var(--space-s)]"
               >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="destructive"
-                disabled={deleting || deletePassword.length === 0}
-              >
-                {deleting ? "Scheduling..." : "Delete my account"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+                {/* The standard bordered Input, NOT the auth pages' mist
+                    FloatField: that material is scoped to pages that ARE a form
+                    (design system, section 3), and this is a dialog like every
+                    other dialog. No reveal toggle for the same reason no other
+                    dialog has one. */}
+                <Input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  autoComplete="current-password"
+                  placeholder="Your password"
+                  aria-label="Your password"
+                />
+                {deleteError && (
+                  <p role="alert" className="text-[13px] leading-snug text-heart">
+                    {deleteError}
+                  </p>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    disabled={deleting || deletePassword.length === 0}
+                  >
+                    {deleting ? "Scheduling..." : "Delete my account"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
 
       {(adminNode || flagNode) && (
         <div className="mt-[var(--space-xl)] space-y-[var(--space-m)]">
