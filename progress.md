@@ -1,5 +1,46 @@
 # Progress Log
 
+## 2026-08-27 — a room to choose where the in-app guide lives
+
+The owner wants a guide chapter per area, reachable from an affordance so quiet that
+nobody who is not looking for it ever sees it. Placement is the loud question, but it
+cannot be answered first: a hover that throws you to another route and a hover that
+opens a sheet want different doors. So this session built `/lab/guide` to settle the
+destination, and left placement for the next one.
+
+**One chapter, four containers.** Catch-ups, because he named it as the least intuitive
+thing in the app. The chapter is written once in `_content.tsx` and every stage renders
+that same component untouched, so nothing about the writing can sway the pick. The four:
+a page of its own, a side panel over the page you were on, a section of one long
+document jumped into by anchor, and the page floating over the app via intercepting
+routes. Each sits in a fake browser frame, because the address bar is half the argument
+and is invisible if you only draw the viewport.
+
+**A wrong turn worth recording.** The first version put the chapter in the policy pages'
+shell, on the grounds that he had praised those pages. He rejected it: "this is so
+boring". The pages are good because a legal document should be plain, and a guide has
+the opposite job — nobody is obliged to read it, so it has to earn the read. This is the
+purpose-fit rule he has given before, and it was violated in the same session he restated
+it. The rebuild is made of the product's own material instead: a Round card with real
+bird avatars, the four windows drawn to their true lengths, the holding state the quiet
+day really shows, one answer card, and a closing action that hands you back to the
+product.
+
+**Two things the specimens decided.** The band of windows only reads as a picture at page
+width; at the panel's 404px it is still legible but has stopped teaching the shape, which
+is the whole reason it exists. And a panel can only be opened from the page it describes,
+so it has no answer to "what even is a Catch-up" asked from the feed. Both point at D,
+and A is the same file so it comes free. The earlier claim that a panel cannot carry a
+URL was wrong and the stage shows it with the query in the bar.
+
+**Two mock defects fixed after looking.** A close button floating over the scroller let
+the diagram slide underneath it; it moved into a sticky strip. The negative top margin
+on that strip then dragged the chapter's first line up under it, which is what negative
+margins do to everything that follows them.
+
+Gates green: TypeScript, ESLint, protocol, lab registry (44 routes), unit tests.
+
+
 ## 2026-08-26 — phase 5 part 2: the pen, the press and the first photograph
 
 Four commits close the refactor audit's phase 5. The full handover is
