@@ -23,6 +23,7 @@ import { NotAvailableCard } from "@/components/catchups/answer/not-available";
 import { AnswerRedirect } from "@/components/catchups/answer/answer-redirect";
 import { AnswerExperience } from "@/components/catchups/answer/answer-experience";
 import type { AnswerPromptData } from "@/components/catchups/answer/types";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /* ------------------------------------------------------------------ *
  *  /catchups/[catchupId]/answer — spec 3.4, the answering experience.
@@ -217,7 +218,7 @@ export default async function CatchupAnswerPage({
           text: true,
           category: true,
           showAsker: true,
-          author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+          author: { select: IDENTITY_SELECT },
         },
       }),
       prisma.catchupEntry.findMany({
@@ -227,7 +228,7 @@ export default async function CatchupAnswerPage({
       prisma.catchupEntry.findMany({
         where: { editionId: edition.id },
         distinct: ["authorId"],
-        select: { authorId: true, author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
+        select: { authorId: true, author: { select: IDENTITY_SELECT } },
       }),
     ]);
 

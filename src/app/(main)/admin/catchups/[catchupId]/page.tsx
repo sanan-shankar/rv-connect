@@ -9,6 +9,7 @@ import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admi
 import { Chip, type ChipTone } from "@/components/admin/admin-chip";
 import { BirdAvatar } from "@/components/common/bird-avatar";
 import { formatDisplayDate, metaLine, renderRichText } from "@/lib/utils";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
   title: "Catch-up",
@@ -109,7 +110,7 @@ export default async function AdminCatchupReadingRoom({
               // in the docblock: this is the exception, and it is the only
               // place in the app where it is made.
               author: {
-                select: { id: true, name: true, photoUrl: true, birdOverride: true },
+                select: IDENTITY_SELECT,
               },
               entries: {
                 select: {
@@ -118,7 +119,7 @@ export default async function AdminCatchupReadingRoom({
                   songTitle: true,
                   createdAt: true,
                   author: {
-                    select: { id: true, name: true, photoUrl: true, birdOverride: true },
+                    select: IDENTITY_SELECT,
                   },
                   _count: { select: { loves: true } },
                 },

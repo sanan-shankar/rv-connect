@@ -11,6 +11,7 @@ import { buildDirectoryWhere, directoryOrderBy, parseDirectoryYears } from "./wh
 import type { CityPin, PinPerson } from "@/components/directory/alumni-map";
 import { valleyYear } from "@/lib/utils";
 import { logSearch } from "@/lib/search-log";
+import { PERSON_SELECT, PIN_SELECT } from "./select";
 
 export const metadata: Metadata = {
   title: "Directory",
@@ -18,46 +19,6 @@ export const metadata: Metadata = {
 
 // One page of directory results. Cursor pagination appends another page.
 const PAGE_SIZE = 60;
-
-const PERSON_SELECT = {
-  id: true,
-  name: true,
-  avatarColor: true,
-  photoUrl: true,
-  birdOverride: true,
-  accountType: true,
-  verifyState: true,
-  batchType: true,
-  batchYear: true,
-  currentCity: true,
-  jobTitle: true,
-  workplace: true,
-} as const;
-
-// Fields the map needs from each located alumnus. `places` (not `currentCity`)
-// drives pins: a person plots in EVERY city they list, not just a primary one
-// (owner override).
-// lat/lng ride along because the LocationPicker already wrote exact GeoNames
-// coordinates onto every picked row; the old select dropped them, and the map
-// then re-geocoded the bare city string against the small curated table --
-// which is how "Gurgaon" and "Northfield, Minnesota" fell off the map while
-// their rows held perfectly good coordinates.
-const PIN_SELECT = {
-  id: true,
-  name: true,
-  avatarColor: true,
-  photoUrl: true,
-  birdOverride: true,
-  accountType: true,
-  verifyState: true,
-  batchType: true,
-  batchYear: true,
-  jobTitle: true,
-  places: {
-    select: { city: true, lat: true, lng: true },
-    orderBy: { position: "asc" as const },
-  },
-} as const;
 
 type PinRow = {
   id: string;

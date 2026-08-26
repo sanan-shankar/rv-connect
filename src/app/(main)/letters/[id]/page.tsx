@@ -13,6 +13,7 @@ import { canViewPost } from "@/lib/post-visibility";
 import { VISIBLE_COMMENT } from "@/lib/posts";
 import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, readMinutes, renderRichText, VALLEY_TIME_ZONE } from "@/lib/utils";
 import { recordView } from "@/lib/content-view";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export async function generateMetadata({
   params,
@@ -57,7 +58,16 @@ export default async function LetterPage({
     where: { id },
     include: {
       author: {
-        select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, accountType: true, batchType: true, batchYear: true },
+        /* No `verifyState`, and that is consistent rather than an omission:
+           this byline is `metaLine(batchLine(author), date)` and never draws
+           a verified leaf, so the column would be fetched and dropped. */
+        select: {
+          ...IDENTITY_SELECT,
+          avatarColor: true,
+          accountType: true,
+          batchType: true,
+          batchYear: true,
+        },
       },
       _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
       likes: { where: { userId: session.user.id }, select: { id: true } },

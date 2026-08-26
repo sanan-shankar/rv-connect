@@ -4,6 +4,7 @@ import { requireVerifiedEmail } from "@/lib/email-verification";
 import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { parseBatchYearList } from "@/lib/batch-year";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
       deletionRequestedAt: null,
     },
     select: detail
-      ? { id: true, name: true, photoUrl: true, birdOverride: true, batchYear: true }
+      ? { ...IDENTITY_SELECT, batchYear: true }
       : { id: true },
     ...(detail ? { orderBy: { name: "asc" as const } } : {}),
     // A hard ceiling so a signed-in account can never turn this into a

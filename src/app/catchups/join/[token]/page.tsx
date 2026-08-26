@@ -8,6 +8,7 @@ import { BirdAvatar } from "@/components/common/bird-avatar";
 import { Wordmark } from "@/components/layout/peaks-mark";
 import { isMissingCatchupTable, restoreOwnCatchupCopy } from "@/lib/catchups";
 import { AcceptInvite } from "@/components/catchups/join/accept-invite";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
   title: "You're invited",
@@ -66,7 +67,7 @@ export default async function JoinCatchupPage({
           status: true,
           groupId: true,
           group: { select: { name: true, _count: { select: { members: true } } } },
-          createdBy: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+          createdBy: { select: IDENTITY_SELECT },
         },
       });
     } catch (err) {

@@ -37,6 +37,7 @@ import type {
   ReminderMode,
 } from "@/lib/catchups-types";
 import { batchLine, parseJsonArray } from "@/lib/utils";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /* ------------------------------------------------------------------ *
  *  The Catch-up home (spec 3.3): the command surface for the live
@@ -105,7 +106,7 @@ async function loadPublishedIssue(
           showAsker: true,
           accepted: true,
           position: true,
-          author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+          author: { select: IDENTITY_SELECT },
           entries: {
             orderBy: { createdAt: "asc" },
             select: {
@@ -204,7 +205,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
               // "keeper" here, which `isEffectiveKeeper` honours, so the hat is
               // handed over without a new column.
               role: true,
-              user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+              user: { select: IDENTITY_SELECT },
             },
           },
         },
@@ -266,7 +267,7 @@ async function loadHome(catchupId: string, viewerId: string): Promise<CatchupHom
         where: { id: latestRaw.id },
         include: {
           prompts: {
-            include: { author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
+            include: { author: { select: IDENTITY_SELECT } },
           },
         },
       })

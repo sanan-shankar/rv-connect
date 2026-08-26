@@ -15,6 +15,7 @@ import { TourAnchorSlot } from "@/components/tour/tour-anchor-slot";
 import { catchupShelf, type CatchupShelf } from "@/lib/catchup-shelf";
 import { advanceDueCatchups, describeEditionStatus, isMissingCatchupTable } from "@/lib/catchups";
 import type { CatchupPersonRef, CatchupStatus, EditionStatus } from "@/lib/catchups-types";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
   title: "Catch-ups",
@@ -95,7 +96,7 @@ async function loadIndexData(userId: string) {
              reading them all and putting the viewer first below costs nothing
              worth protecting. `_count` above still supplies the true total. */
           members: {
-            select: { user: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
+            select: { user: { select: IDENTITY_SELECT } },
           },
           catchup: {
             select: {
@@ -202,7 +203,7 @@ async function loadIndexData(userId: string) {
     const answeredRows = await prisma.catchupEntry.findMany({
       where: { editionId: { in: answeringCards.map((c) => c.editionId as string) } },
       distinct: ["editionId", "authorId"],
-      select: { editionId: true, author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } } },
+      select: { editionId: true, author: { select: IDENTITY_SELECT } },
     });
     const byEdition = new Map<string, CatchupPersonRef[]>();
     for (const row of answeredRows) {

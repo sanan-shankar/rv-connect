@@ -11,6 +11,7 @@ import { PhotoModerationControl } from "@/components/collection/photo-moderation
 import { subjectLabel, areaLabel, eraLabel } from "@/lib/collection";
 import { recordView } from "@/lib/content-view";
 import { VALLEY_TIME_ZONE } from "@/lib/utils";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export async function generateMetadata({
   params,
@@ -48,7 +49,9 @@ export default async function PhotoPage({
   const photo = await prisma.photo.findUnique({
     where: { id },
     include: {
-      uploader: { select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, batchType: true, batchYear: true } },
+      uploader: {
+        select: { ...IDENTITY_SELECT, avatarColor: true, batchType: true, batchYear: true },
+      },
       _count: { select: { loves: true } },
       loves: { where: { userId: session.user.id }, select: { id: true } },
     },
