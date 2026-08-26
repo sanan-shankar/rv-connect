@@ -9,7 +9,8 @@ import { ADMIN_MEASURE, AdminEmpty, AdminSection } from "@/components/admin/admi
 import { Chip } from "@/components/admin/admin-chip";
 import { ROUND_STATUS, SERIES_STATUS } from "@/components/admin/catchup-status";
 import { BirdAvatar } from "@/components/common/bird-avatar";
-import { formatDisplayDate, metaLine, renderRichText } from "@/lib/utils";
+import { formatDisplayDate, metaLine } from "@/lib/utils";
+import { renderRichText } from "@/lib/rich-text";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {

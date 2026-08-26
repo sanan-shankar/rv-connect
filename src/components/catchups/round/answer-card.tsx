@@ -28,7 +28,8 @@ import { IdentityRow } from "@/components/common/identity-row";
 import { SpotifyCard } from "@/components/catchups/round/spotify-card";
 import { EntryLoveButton } from "@/components/catchups/round/entry-love-button";
 import type { CatchupEntryView, CatchupSongView, PromptKind } from "@/lib/catchups-types";
-import { cn, renderRichText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { renderRichText } from "@/lib/rich-text";
 
 export type RoundEntry = CatchupEntryView & { authorMeta: string };
 

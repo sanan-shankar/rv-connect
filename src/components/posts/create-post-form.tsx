@@ -15,7 +15,8 @@ import { AttachImageDialog } from "@/components/common/attach-image-dialog";
 import { downscaleImage } from "@/lib/image-downscale";
 import { directUploadPut } from "@/lib/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-shared";
-import { cn, renderRichText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { renderRichText } from "@/lib/rich-text";
 import {
   applyFormatShortcut,
   insertPlainTextPaste,
@@ -41,7 +42,7 @@ import { safeGet, safeSet, safeRemove } from "@/lib/local-storage";
  *    3. markdown typed by hand, WhatsApp style: **bold**, *italic*,
  *       __underline__, ~~struck~~. Those characters survive verbatim
  *       through this serializer and are rendered by renderRichText()
- *       (src/lib/utils.ts), whose matching rules are deliberately strict
+ *       (src/lib/rich-text.ts), whose matching rules are deliberately strict
  *       so ordinary writing ("2*3*4", a bullet list) never bolds itself.
  *
  *  On every input we walk the DOM and serialize it back to the SAME

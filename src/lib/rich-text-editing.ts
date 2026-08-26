@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------ *
  *  The editing half of the app's one rich-text story. `renderRichText`
- *  (src/lib/utils.ts) turns the stored markdown into HTML for readers;
+ *  (src/lib/rich-text.ts) turns the stored markdown into HTML for readers;
  *  these helpers are its inverse and its input path, shared by every
  *  writing surface (the feed/letter composer, the catch-up answer card,
  *  the edit dialog) so bold in one box behaves like bold in every box.

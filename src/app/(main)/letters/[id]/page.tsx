@@ -11,7 +11,8 @@ import { LetterEngagement } from "@/components/letters/letter-engagement";
 import { LetterImages } from "@/components/letters/letter-images";
 import { canViewPost } from "@/lib/post-visibility";
 import { VISIBLE_COMMENT } from "@/lib/posts";
-import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, readMinutes, renderRichText, VALLEY_TIME_ZONE } from "@/lib/utils";
+import { batchLine, formatDisplayDate, letterTitle, metaLine, parseJsonArray, readMinutes, VALLEY_TIME_ZONE } from "@/lib/utils";
+import { renderRichText } from "@/lib/rich-text";
 import { recordView } from "@/lib/content-view";
 import { IDENTITY_SELECT } from "@/lib/people-select";
 

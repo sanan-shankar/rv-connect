@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { safeTruncateIndex } from "./rich-truncate.ts";
-import { renderRichText } from "./utils.ts";
+import { renderRichText } from "./rich-text.ts";
 import { read, decomment, hasLoneSurrogate } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *

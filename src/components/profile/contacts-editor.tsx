@@ -42,7 +42,7 @@ import {
   type ContactKind,
   type ContactRow,
 } from "@/lib/contact-rows";
-import { joinPhoneParts, splitPhoneParts } from "@/lib/utils";
+import { joinPhoneParts, splitPhoneParts } from "@/lib/phone";
 import { PenValue } from "@/components/profile/pen";
 import {
   Popover,
