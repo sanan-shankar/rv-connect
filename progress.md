@@ -1,5 +1,74 @@
 # Progress Log
 
+## Session 2026-08-26 (later) — phase 1b: 6.5MB out of the tree, and two gates that were lying
+
+The second fix session of the 2026-08-25 refactor audit. All 16 phase-1b rows executed in 18
+commits. `npm run check` green before every one; `npm run visual` run three times and unchanged
+throughout (the same 8 content-drift failures session 1 recorded — feed, directory, letters,
+catchups at both viewports — caused by live posts and signups moving the pages, not by this work).
+
+**Assets, ~6.5MB.** Both databases were queried before anything was deleted: no Photo, Post, Group
+or CatchupEntry row anywhere points at the WhatsApp originals or at any local collection file
+beyond the `demo-*` set. Moved to `sanan's stuff/moved out of the repo/` with a note explaining
+each: the two WhatsApp originals (3.05MB, and being under `public/` they were served on the live
+domain at a guessable address, full resolution, no access control), the 1.79MB overflow-stories
+PDF/HTML, and the 381KB 4096px brand PNG. Deleted outright: v4–v6 and c5–c6 with thumbs, the 12
+gen/ placeholder tiles, and the five support QR SVGs with their generator and two devDeps.
+
+**Dependencies.** Out: supercluster, d3-scale and their @types, @types/bcryptjs,
+@next/bundle-analyzer (webpack-only, so it has never produced a report on this Turbopack project —
+`npm run analyze` now calls `next experimental-analyze`), tw-animate-css and xlsx. In: d3-selection
+and @types/geojson, both imported by the map but resolving only as transitives. The prisma family
+had drifted to three different versions in the lockfile and is now aligned on 7.10.0; next and
+eslint-config-next are back in step at 16.3.3, whose new lint rule found the project's three
+deliberate hard navigations (each keeps its behaviour and now says why).
+
+**Where the audit was wrong** (rule 4 outcomes):
+- **dependency-diet-02 (prisma → devDependencies) is re-refuted in part and was NOT done.**
+  `@prisma/client` declares `prisma` as an optional peer, so npm keeps it in the `--omit=dev` graph
+  wherever it is listed — measured before and after. The claimed ~121MB production-graph saving and
+  the retirement of the audit-gate allowlist entry both fail to materialise; only deploy risk was
+  left, so prisma stays in dependencies. shadcn (~22MB) and @types/d3-zoom do genuinely leave; pg
+  and dotenv were still moved, because the app truly does not need top-level pg (the adapter carries
+  its own) even though the graph does not shrink.
+- **root-docs-assets-10's CLAUDE.md half is not done.** CLAUDE.md's spec list still omits `admin`.
+  The file carries the owner's uncommitted edit, so staging it would have staged his work too.
+
+**Two gates were reporting success on nothing.**
+- `crawl.mjs` had two hardcoded profile cuids, both of users since deleted. A profile page for a
+  missing user answers **200** with the app shell and no profile in it, so the crawl printed `OK 200`
+  twice for two blank pages — the exact failure it exists to catch. Ids now come from the database
+  and each row must show that person's name. Proved by feeding it a name that is not on the page.
+- `drive.mjs`'s houses and places scenarios drove `/settings`, gone since the letterhead profile
+  absorbed the editors (22b4b6c). Both now open the member's own profile, and the houses scenario
+  asserts the panel is really on screen rather than only screenshotting whatever happened.
+
+**The popover joined the menu material.** PopoverContent hand-restated the surface and animated with
+tw-animate-css's slide/zoom family — the one exception to the "no slide-downs on one page and pops on
+another" rule menu-material.ts exists to state. Verified through the harness: 344x352, opacity 1,
+12px radius, 140ms — the material's own numbers.
+
+**The roster stopped needing a dead library.** The owner confirmed no further spreadsheets are
+coming, so the two office workbooks were flattened into one `roster.csv` (every column of all four
+person-sheets, checked back cell by cell: 2,602 rows, 44,646 cells, zero differences) and `xlsx` —
+frozen on npm since 2022 with two advisories fixable only from the vendor's CDN, invisible to both
+Renovate and the `--omit=dev` audit gate — is gone. **The CSV reader exposed a real bug**: an empty
+email fell through `if (email && ...)` as `""`, and the dedupe key is `email ?? name|year`, where
+`""` is not nullish — so every person without an email collapsed onto one key and 2,134 people
+became 1,333. The workbook reader never produced `""`, so it had never shown. Both readers now
+produce byte-identical entries.
+
+**Docs.** README was teaching three forbidden things — `prisma db push` twice, the deleted
+admin-login bypass, and `NEXT_PUBLIC_ADMIN_EMAIL`, which reopens closed critical C1-c. Six dead doc
+pointers repointed at git history, profile.md's REJECTED banner replaced with its dated resolution,
+ROADMAP's three unannotated reversals annotated, and OPERATIONS finally documents snapshot.yml, the
+one job whose missed night is permanently missing from every analytics chart. progress.md's June and
+July moved to `docs/history/`, proved lossless by rebuilding the original from the three files.
+
+**For the owner.** ~357MB of unused Puppeteer Chrome sits in `~/.cache/puppeteer` and is outside
+the repo, so it is his to delete. The two roster workbooks in `moved out of the repo/roster
+spreadsheets/` were never in git — that folder holds the only copies.
+
 ## Session 2026-08-26 — phase 1a of the refactor campaign: 2,052 lines that ran nothing
 
 The first fix session of the 2026-08-25 refactor audit. All 16 phase-1a rows executed in 21
