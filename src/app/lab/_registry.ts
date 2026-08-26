@@ -72,6 +72,13 @@ export const GROUP_ORDER: LabGroup[] = [
 ];
 
 export const REGISTRY: LabEntry[] = [
+  {
+    href: "/lab/guide",
+    title: "The same words, four containers",
+    group: "Delight",
+    status: "active",
+    note: "One real guide chapter for Catch-ups, shown as a page, a side panel, a section of one long document, and a page floating over the app. Identical words in all four, address bar included, so the pick is about the container.",
+  },
   /* ---------------------------------------------------------------- *
    *  Delight, the general motion + concept lab
    *
