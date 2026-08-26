@@ -35,10 +35,10 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       (lib-tests-02 had already landed as `9cee0d5`). Two pieces deliberately deferred with
       reasons: shell-primitives-09's utils.ts module split belongs to phase 5's measurement,
       and lib-tests-01's optional `section()` migration is not safe as a sweep. See session 4.
-- [~] Phase 4 — dedupe at component/route level — **part 1 done 2026-08-26**, 17 commits,
-      10 of 21 rows. One row (catchups-12) was already executed and is not redone; one
+- [~] Phase 4 — dedupe at component/route level — **part 1 done 2026-08-26**, 25 commits,
+      15 of 21 rows. One row (catchups-12) was already executed and is not redone; one
       (the shared pager) is deliberately not done, with reasons, and its clean half
-      (appendUnseen) landed. Eleven rows remain; see session 5 for the list in order.
+      (appendUnseen) landed. Six rows remain; see session 5 for the list in order.
 - [ ] Phase 5 — bundle & build (+ before/after measurements vs report §1a)
 - [ ] Phase 6 — schema & architecture (owner-gated throughout)
 - [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
@@ -522,7 +522,7 @@ not phase 4.
 
 ### 2026-08-26 — session 5 (phase 4, part 1)
 
-**10 of phase 4's 21 rows executed, 17 commits.** Every item pre-flighted at HEAD per rule 4.
+**15 of phase 4's 21 rows executed, 25 commits.** Every item pre-flighted at HEAD per rule 4.
 This is part 1: the plan allowed two sessions for phase 4 and it needs them.
 
 **Done** (in order):
@@ -532,7 +532,10 @@ aggregate destructure → `146ba8a` · published-Round loader → `47433ba` · t
 `8c600a0` · NotAvailableCard → `57e06aa` · QuestionRow → `2d09e6e` · photo-intake prep →
 `04993fb` · MomentStage → `7a55fa2` · LetterDeskSkeleton → `e12a505` · viewer byline →
 `1947c59` · useWideViewport → `f48062f` · appendUnseen adopted → `4ef5a6e` ·
-useHeartToggle/useBookmarkToggle → `3f004d3`.
+useHeartToggle/useBookmarkToggle → `3f004d3` · handover → `86c6439` · ui/skeleton retired for
+the warm shimmer → `a6d57c5` · bell variants collapsed → `e13d191` · report preamble →
+`c5025c5` · the transition-property sweep → `e83f39f` · place-search clamp → `ccbfc37` ·
+Sentry branches + prisma.config signpost → `9c12779` · shared places transaction → `329ef62`.
 
 **Where the audit was wrong, or thinner than the tree** (rule 4 outcomes):
 - **catchups-12 is already done** — all four pieces (`keeperName`, `initialPeople`,
@@ -564,6 +567,15 @@ useHeartToggle/useBookmarkToggle → `3f004d3`.
    part that is genuinely one rule: `appendUnseen`, now used by all four lists and pinned.
 2. Nothing else was skipped.
 
+**A rule, not just a sweep.** `transition-[colors,transform]` was on eleven shipped surfaces.
+`transition-property` takes real CSS property names; `colors` is a Tailwind shorthand that
+only exists as the whole utility `transition-colors`, and inside the arbitrary-value bracket
+it passes through verbatim — so the transform eased and the colour SNAPPED, silently. Each
+site now names its own hover's properties, and `protocol-audit.mjs` refuses the broken form,
+so it cannot come back. Measured after: a message thread row ramps through 12 border colours
+where it used to jump. Four comments in the tree still QUOTE the bad form while explaining it;
+they are the documentation, not violations, and the audit reads code lines only.
+
 **Test pins that went red, and why** (each rode its own commit): B-061 (refuseIfFrozen per
 body) — five Keeper actions reach the freeze through `loadKeeperEdition` now, so it takes
 either spelling AND fails a caller that delegates without a `pausedHint`, which would look
@@ -580,7 +592,13 @@ pin you widen: three of these would have passed on a helper that had quietly los
    by you" → "You" / "You (anonymous)", "asked by {name}" → the name, "asked anonymously" →
    "Someone in the group". The collecting voice won because it is the only one that tells you
    whether the question you asked is showing your name.
-3. **Latent, nothing on screen today**: the Catch-up home now prints a song whenever there is
+3. **Eleven hovers now ease instead of snapping** (see the rule note above): directory cards,
+   message threads and their image links, the composer's remove button, the landing CTA, the
+   Collection's dialog and filter row, the flag control, an onboarding skip.
+4. **The loading feed and a profile's Posts tab shimmer warm** instead of pulsing grey.
+   `ui/skeleton.tsx` was stock shadcn and is deleted; the eight uses take the `skeleton-warm`
+   utility the other 201 skeletons already use.
+5. **Latent, nothing on screen today**: the Catch-up home now prints a song whenever there is
    a NAME for one, matching the permalink, where it previously needed a URL. No live entry has
    a song at all (checked: 0 of 133), so this changes nothing until one does.
 
@@ -621,15 +639,31 @@ importers are uncommitted on disk and a grep will not see them — nothing here 
 
 **State left**: clean — every file I touched is committed.
 
-**Next session**: phase 4 part 2. The eleven rows left, in the report's order: the report
-preamble + bell variant + ui/skeleton→warm row; **the admin programme** (the biggest single
-row in the phase — act-hook, filter bar, status maps, MAIL_TONE, audit skeleton, hygiene,
-shared `loadThreadWindow`, and the ~24 unread queries per analytics view); the
-`transition-[colors,transform]` sweep across 14 files (a real hover bug, not a cleanup — those
-files animate a property that does not exist); upload guard + toDisplayWebp + cron-secret
-helper; the places transaction helper; the probe/dev-script kits; places/search escapeLike;
-email-queue + instrumentation + prisma.config; the avatar-upload hook; the scripts ledger gate
-+ README backfill; and the optional tail. Read the ⚠ rows' `work/verify/` cluster first.
+**Next session**: phase 4 part 2. **Six rows left**, in the report's order:
+
+1. **The admin programme** — the biggest single row in the phase, and the reason part 2
+   exists: act-hook, filter bar, status maps, MAIL_TONE, audit skeleton, hygiene, a shared
+   `loadThreadWindow`, and the ~24 unread queries per analytics view (`countMembers()`, split
+   `loadPresence`). ⚠ — read `work/verify/v-member-admin.md` first.
+2. Upload guard + `toDisplayWebp`; the cron-secret helper; the lookup guard ⚠
+   (feed-posts-07 = duplication-09 = lib-core-config-07). Report §3 has two corrections on
+   this one: duplication-09's true text-readers are image-purge-rule/upload-shared, anchored
+   BELOW the preamble so extraction is safe, and each cron route must keep its own
+   `export const maxDuration`.
+3. The probe/dev-script kits (duplication-07/08 + scripts-e2e-ci-06).
+4. email-queue's duplicated doc block + its misplaced one (lib-core-config-05). The
+   instrumentation and prisma.config halves of that row are already done, in `9c12779`.
+5. The avatar-upload hook (directory-profile-12). Its real payoff is a behaviour gap, not
+   lines: photo-step shrinks an undecodable file in-browser (B-030) and the letterhead does
+   not, so the same phone HEIC can hit Vercel's body cap from the profile today.
+6. Scripts ledger gate + README backfill + close-out + crawl list + SKILL counts; delete
+   demo/run-sql (scripts-e2e-ci-01/04/07/08). Plus the optional tail if there is time.
+
+Two things this session learned that part 2 will need. **Widening a pin is not free**: five
+went red here and every one was mutation-tested afterwards, because three of them would
+otherwise have passed on a helper that had quietly lost the guard the pin exists for. And
+**a deletion must be staged before `npm run check`**, or the protocol audit crashes on a
+file `git ls-files` still lists.
 
 Template:
 ```
