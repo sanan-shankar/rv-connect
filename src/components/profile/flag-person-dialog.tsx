@@ -54,7 +54,7 @@ export function FlagPersonDialog({ userId, name }: { userId: string; name: strin
         // Hover stays the semantic red ink (no neutral state layer under a
         // colour that is already saying something). It was missing a press
         // answer entirely, hence the active sink.
-        className="inline-flex items-center gap-1.5 rounded-full border border-border py-1.5 pl-2.5 pr-3 text-[13px] font-medium text-muted-foreground transition-[colors,transform] duration-150 hover:text-destructive active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="inline-flex items-center gap-1.5 rounded-full border border-border py-1.5 pl-2.5 pr-3 text-[13px] font-medium text-muted-foreground transition-[color,transform] duration-150 hover:text-destructive active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <Flag className="h-3.5 w-3.5" />
         Flag

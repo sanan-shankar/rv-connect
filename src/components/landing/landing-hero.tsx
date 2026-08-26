@@ -361,7 +361,7 @@ export function LandingHero({ showScrollCue = true }: { showScrollCue?: boolean 
                      and every token in the ladder is a warm off-white that would sink into it.
                      Same exemption, same reason, as this file's existing entry on
                      protocol-audit's HEX_ALLOW for its photo-overlay treatment. */
-                  className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-[colors,transform] duration-200 hover:bg-white/90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-[15px] font-semibold text-[#23241E] shadow-md transition-[background-color,transform] duration-200 hover:bg-white/90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   Join the community
                 </MotionLink>

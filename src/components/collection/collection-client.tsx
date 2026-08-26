@@ -339,7 +339,7 @@ export function CollectionClient({
               // Same pill as the Directory's Filters button, same fix: the
               // bg-secondary to bg-accent swap was one ladder rung and read as
               // nothing, so the neutral hover is the state layer now.
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-[colors,transform] duration-150 state-layer active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-secondary px-4 text-[13px] font-medium text-foreground transition-transform duration-150 state-layer active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <SlidersHorizontal className="size-3.5" aria-hidden />
               Filters

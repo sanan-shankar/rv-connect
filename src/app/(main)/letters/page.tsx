@@ -171,10 +171,12 @@ export default async function LettersPage({
                 // active state it was missing. 0.995 not 0.97, the same as the
                 // message thread rows: a full-width card needs only a hint of
                 // give, and a deeper scale on a tall card reads as the page
-                // jumping. border-color is spelled out rather than the repo's
-                // usual `transition-[colors,...]`, because transition-property
-                // takes real property names and "colors" is an ident that
-                // matches nothing, which would leave the edge snapping.
+                // jumping. border-color is spelled out because
+                // transition-property takes real property names and "colors"
+                // is an ident that matches nothing, which would leave the edge
+                // snapping. This was the first surface to get that right; the
+                // other eleven have followed, and protocol-audit.mjs now
+                // refuses the broken form outright.
                 className="card-elevated group block rounded-[var(--radius)] border border-border bg-card p-5 transition-[border-color,transform] duration-200 hover:border-canopy/40 active:scale-[0.995] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">

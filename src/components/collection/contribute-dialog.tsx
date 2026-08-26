@@ -224,7 +224,7 @@ export function ContributeDialog({
                   setPreview(null);
                   setFile(null);
                 }}
-                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-[colors,transform] hover:bg-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background transition-[background-color,transform] hover:bg-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 aria-label="Remove photo"
               >
                 <X className="h-4 w-4" />
