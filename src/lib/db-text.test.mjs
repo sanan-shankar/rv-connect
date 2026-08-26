@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { escapeLike } from "./db-text.ts";
+import { escapeLike, SEARCH_TERM_MAX } from "./db-text.ts";
 
 /* escapeLike neutralises the LIKE wildcards Prisma's `contains` would otherwise
  * pass through live. The property that keeps it safe to apply everywhere: a
@@ -25,4 +25,20 @@ test("a backslash is escaped first so it cannot double back on a wildcard", () =
   // "\\%" read as backslash + live wildcard.
   assert.equal(escapeLike("\\%"), "\\\\\\%");
   assert.equal(escapeLike("\\"), "\\\\");
+});
+
+/* ---- C-015: an over-long term is a pattern Postgres has to scan ---------- */
+
+test("C-015: escapeLike clamps an over-long term", () => {
+  const long = "a".repeat(SEARCH_TERM_MAX * 50);
+  assert.equal(escapeLike(long).length, SEARCH_TERM_MAX);
+});
+
+test("C-015: the clamp never leaves a dangling LIKE escape", () => {
+  /* Backslash-only input is the worst case: each character escapes to two, so
+     clamping AFTER escaping would cut a pair in half and hand Postgres a
+     pattern ending in a lone backslash, which it refuses outright. */
+  const out = escapeLike("\\".repeat(SEARCH_TERM_MAX * 3));
+  const trailing = out.length - out.replace(/\\+$/, "").length;
+  assert.equal(trailing % 2, 0, `pattern ends in ${trailing} backslashes`);
 });

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { read, decomment } from "./test-kit.mjs";
 import { isPostTwin } from "./double-submit.ts";
-import { escapeLike, SEARCH_TERM_MAX } from "./db-text.ts";
 
 /* ------------------------------------------------------------------ *
  *  The feed's write paths, and the four ways they used to lie.
@@ -87,25 +86,10 @@ test("C-009: createPost settles its shortlist with isPostTwin, not with findFirs
   );
 });
 
-/* ---- C-015: no unbounded LIKE pattern ---------------------------- */
-
-test("C-015: escapeLike clamps an over-long term", () => {
-  const long = "a".repeat(SEARCH_TERM_MAX * 50);
-  assert.equal(escapeLike(long).length, SEARCH_TERM_MAX);
-});
-
-test("C-015: an ordinary term passes through untouched", () => {
-  assert.equal(escapeLike("Anantha Rao"), "Anantha Rao");
-});
-
-test("C-015: the clamp never leaves a dangling LIKE escape", () => {
-  /* Backslash-only input is the worst case: each character escapes to two, so
-     clamping AFTER escaping would cut a pair in half and hand Postgres a
-     pattern ending in a lone backslash, which it refuses outright. */
-  const out = escapeLike("\\".repeat(SEARCH_TERM_MAX * 3));
-  const trailing = out.length - out.replace(/\\+$/, "").length;
-  assert.equal(trailing % 2, 0, `pattern ends in ${trailing} backslashes`);
-});
+/* ---- C-015: both searches go through escapeLike ------------------
+   What escapeLike itself does with a long or wildcard term is pinned in
+   db-text.test.mjs, next to the function. These two are about the feed
+   and the directory calling it at all. */
 
 test("C-015: the feed search goes through escapeLike", () => {
   assert.match(FEED, /escapeLike\(opts\.search\)/);
