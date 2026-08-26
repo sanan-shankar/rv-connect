@@ -39,7 +39,6 @@ import {
 } from "@/components/admin/admin-nav";
 import { useAdminCounts } from "@/components/admin/admin-counts";
 import { NotificationBell } from "./notification-bell";
-import { LogoFact } from "./logo-fact";
 import { Wordmark } from "./peaks-mark";
 import { SidebarHoopoe } from "@/components/mascot/sidebar-hoopoe";
 import { LogoEasterEgg } from "@/components/mascot/moments/logo-easter-egg-hoopoe";
@@ -103,24 +102,36 @@ function accountNav(userId: string, showAdmin: boolean) {
   ];
 }
 
+/* `nowrap` is the rail's lockup: it sits in a `justify-center` row of fixed
+   248px, so the wordmark should hug its content and never truncate. The
+   drawer and the collapsed rail pass it the other way -- they share their row
+   with something else, so there `min-w-0 truncate` is what keeps the wordmark
+   from pushing its neighbour out. */
 function Brand({
   onNavigate,
   className = "",
+  nowrap = false,
 }: {
   onNavigate?: () => void;
   className?: string;
+  nowrap?: boolean;
 }) {
   return (
     <Link
       href="/feed"
       onClick={onNavigate}
+      aria-label="Rishi Valley, home"
       className={`flex items-center gap-2.5 rounded-xl py-1 transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-[0.98] ${className} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring`}
     >
       <Wordmark
         variant="two-plane"
-        className="min-w-0"
+        className={nowrap ? undefined : "min-w-0"}
         markClassName="shrink-0 text-sidebar-foreground"
-        textClassName="min-w-0 truncate text-sidebar-foreground"
+        textClassName={
+          nowrap
+            ? "block whitespace-nowrap text-sidebar-foreground"
+            : "min-w-0 truncate text-sidebar-foreground"
+        }
       />
     </Link>
   );
@@ -615,7 +626,7 @@ export function Sidebar({
               mark/wordmark pairing itself, which stays exactly as tuned. */}
           <div className="flex justify-center">
             <LogoEasterEgg>
-              <LogoFact />
+              <Brand nowrap />
             </LogoEasterEgg>
           </div>
           {/* min-h-0 + overflow-y-auto: the app's seven rows always fit, but

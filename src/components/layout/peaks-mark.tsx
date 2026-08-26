@@ -9,8 +9,8 @@
 /**
  * Canonical "PeaksMark + Rishi Valley" wordmark lockup. Sized so the mark's
  * left edge lands on the sidebar nav pill's left edge with the two
- * vertically centered against each other (see sidebar.tsx Brand /
- * logo-fact.tsx LogoFact) - the wordmark's right edge no longer needs to
+ * vertically centered against each other (see sidebar.tsx Brand) - the
+ * wordmark's right edge no longer needs to
  * reach the pill's right edge; it now leaves comfortable margin before the
  * sidebar's own edge. Every lockup on the site (sidebar, landing hero,
  * landing nav, landing footer, /login, /signup) uses this same font size
