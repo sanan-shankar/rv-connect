@@ -41,14 +41,16 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       Three deliberate refusals across the phase, each with its reason in its session log:
       the shared pager (feed-posts-05), the audit-log skeleton (admin-analytics-09), and
       the halves of duplication-07/08 that would over-delete or point at the wrong database.
-- [~] Phase 5 — bundle & build — **part 1 done 2026-08-26**, 8 commits. 8 of 13 rows
-      closed: 5 executed, 3 re-refuted at fix time WITH measurements (tsconfig exclude,
-      Sentry hook, the shell's DemoBar/VerifyEmailBanner half — do not retry these without
-      reading session 7 first). Measured against report §1a: /directory 1628→1226 KB,
-      /profile 1624→1330, /feed 1515→1220, /collection 1470→1169. The session's biggest
-      find is not JS at all — a feed screenful was 1,041 KB of photographs against 188 KB
-      of gzipped JavaScript, now 364 KB. **Five rows remain**; see session 7's "Next
-      session".
+- [x] Phase 5 — bundle & build — **done 2026-08-26** over two sessions, 12 commits
+      (8 + 4). All 13 rows closed: 9 executed, 3 re-refuted at fix time WITH measurements
+      (tsconfig exclude, Sentry hook, the shell's DemoBar/VerifyEmailBanner half — do not
+      retry these without reading session 7 first), 1 owner-declined. Measured against
+      report §1a: /directory 1628→1224 KB, /profile 1624→1232, /feed 1515→1191,
+      /collection 1470→1137, /welcome 1478→1179. The phase's biggest find is not JS at
+      all — a feed screenful was 1,041 KB of photographs against 188 KB of gzipped
+      JavaScript, now 364 KB. Its second is not JS either: /collection's first
+      photographs used to arrive 2.9 s after first paint on a throttled connection and
+      now arrive with it. Part 1 is session 7, part 2 session 8.
 - [ ] Phase 6 — schema & architecture (owner-gated throughout)
 - [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
       audit's row in `../README.md` to Closed, archive per report §7.4.
@@ -1070,3 +1072,164 @@ kill 3100 when done with it.
 5. Then the **close-out**: re-measure §1b's table into report §1b, flip the row in
    `../README.md`, archive per §7.4. Phase 6 is owner-gated and needs his §4 #4 answer
    (all the database drops) before it can start.
+
+### 2026-08-26 — session 8 (phase 5, part 2)
+
+**Phase 5 is closed.** The five rows session 7 left are done in 4 commits plus one
+baseline commit that was nobody's change. Every item pre-flighted at HEAD per rule 4;
+every number below was taken at the browser against `next start` on 3100, the method
+session 7 documented, because `route-js.mjs` still cannot tell an eager chunk from a
+lazy one.
+
+**Done** (in order):
+the letterhead's edit half deferred → `d68d923` · a stale Collection baseline →
+`4ee0cdf` · rich-text and phone out of `utils.ts` → `8c2a636` · the post stack's
+behind-interaction weight deferred → `a6be05b` · /collection's page 0 server-rendered →
+`7cb400f`.
+
+**Measured** (browser, decoded JS, production build):
+
+| Route | before this session | after | delta |
+|---|---|---|---|
+| /profile/[id] as a STRANGER | 1730.1 KB | 1633.5 | −96.6 |
+| /feed | 1619.3 | 1592.6 | −26.7 |
+| /collection | 1566.9 | 1537.1 | −29.8 |
+
+Manifest figures for the record (`work/raw/route-js.mjs`), against report §1a:
+/directory 1628→1224 · /profile 1624→1232 · /feed 1515→1191 · /collection 1470→1137 ·
+/welcome 1478→1179.
+
+**Where the audit was wrong, and what was done instead** (rule 4 outcomes):
+
+- **directory-profile-01: done, but NOT the way it was written, and the saving is
+  smaller.** The finding prescribes a ~400-line extraction of an "edit half" into
+  `letterhead-edit.tsx`. I split at the leaves instead — `LocationPicker`,
+  `HouseChainEditor`, `ContactsEditor`, `AttachImageDialog` and `AvatarCropDialog` each
+  through `next/dynamic` behind the gate each already had, the three always-mounted
+  dialogs gated on `editable`, and `buildRows`/`rowsToPayload` taken from `@/lib/contact-rows`
+  where they actually live rather than through the editor that re-exports them. Same
+  bytes, no restructuring of a file whose editable and read-only branches render
+  byte-identical boxes on purpose, and both text-reading pins
+  (`maxLength={FULL_NAME_MAX}`, `commitPlaces`) stay in `letterhead-profile.tsx`.
+  **Estimate 80–150 KB; actual 73 KB**, plus 23 KB more when the post-stack row landed.
+  Own profile costs +19 KB, all five prefetched in an effect after first paint.
+- **`ssr: false` was wrong for ONE of the five, and only measurement said so.**
+  `HouseChainEditor` is the one editor visible AT REST on your own sheet, so dropping its
+  server render popped the house chain in ~39 ms after FCP (`everMissing: true` on a rAF
+  sampler). It keeps SSR; the deferral survives because a stranger never renders it. The
+  other four are only reachable from a click, so their HTML was never in the first
+  response anyway. **Anything visible at rest keeps its server render.**
+- **`useAvatarUpload` was dragging the browser downscaler onto every profile view** —
+  the same shape as session 7's hoopoe find, a hook statically importing a heavy module.
+  `shrinkForUpload` is now an `await import()` inside the one function that needs it.
+- **The finding says "profile is a baseline route". It is not.** `/profile` is not in
+  `ROUTES` in `e2e/visual.spec.ts`, so `npm run visual` does not cover it. Verified by
+  hand at both viewports instead, with the whole edit battery driven for real.
+- **member-surfaces FOL / critic-1 names /collection AND /directory. /directory is
+  re-refuted:** `directory-client.tsx:115-116` already seeds `results`/`cursor` from
+  server props and only calls the action for Load more. Only /collection fetched page 0
+  from an effect. Half the row was already true.
+- **shell-primitives-09's byte saving is ~2 KB, and the row is still worth it.** The
+  premise is exactly right — I proved by string-marker probe that /privacy and /login
+  were downloading the renderer's five regexes and the phone kit's 30-entry Set — but
+  the shared chunk they carry only drops 30 KB → 28 KB. The reasons that survive are the
+  other two: `rich-text.test.mjs` already existed testing a module that did not, and the
+  renderer is the app's only defence before `dangerouslySetInnerHTML`.
+- **`ReportDialog` (feed-posts-04 / bundle-build-11) is deliberately NOT deferred.** It
+  is mounted unconditionally so its own AnimatePresence can play the close animation, so
+  a dynamic import loads on render and saves nothing; restructuring its mount for 137
+  lines is not worth it. The three others in that shape — the composer's photo dialog,
+  the Collection's contribute dialog and every ImageViewer — got a **latch** instead
+  (`mounted` goes true on first open and never back), which keeps the close animation
+  and still defers the chunk.
+- **The two Catch-ups dialogs in bundle-build-11 are skipped with a reason:**
+  `KeeperSettingsDialog` and `LibraryPickerDialog` each render their own trigger button,
+  so deferring them pops a control into the page rather than a dialog. Deferral there
+  needs the trigger lifted out first, which is a different change.
+
+**A measurement method worth keeping, and it is not the byte total.** Fetch the chunks
+the browser actually downloaded and grep them for a string literal unique to the module
+you think you removed. `.scratch/whats-in.mjs` in this session did it with
+`"Searching places..."`, `"linkedin.com/in/..."`, `"Which house in "`, `"Frame your
+photo"`, `"HEIC photos cannot be resized in the browser"`. A byte total tells you
+something moved; this tells you **what**, and it is what caught `image-downscale` still
+riding along after the five obvious things had gone.
+
+**Proved rather than asserted:**
+- the whole edit battery, driven on a production build: `?edit=1` opens with the pen out,
+  ContactsEditor renders "Reaching you" with its rows, the cities pen opens the GeoNames
+  picker, a house pill opens "Which house in …", the photo button opens "Add a profile
+  photo", Delete account opens with its password field, Done returns to reading, and a
+  stranger's sheet offers Get in touch with none of it downloaded.
+- **the comments section's EXIT animation still runs after a lazy open** — the audit's
+  named worry. Height 126 px open, 121 px 90 ms into the close, gone at settle.
+- edit, moderation, poll builder, mention list, photo dialog, contribute dialog and both
+  image viewers each opened for real, screenshotted, no page errors.
+- /collection's page 0: first tile at 1338 ms against FCP 1416 ms local, 1426 vs 1468
+  throttled to 1.6 Mbps/150 ms — i.e. it arrives WITH the paint. Before: 778 ms after it
+  local, **2,949 ms after it throttled**.
+- filters still take over from the seed: a search matching nothing empties the grid,
+  clearing it restores all of it, the sort pill re-queries.
+- `npm run verify:crawl` — all 20 routes 200.
+
+**One thing could not be exercised and is not claimed:** `LetterImages`' deferred viewer.
+No letter in the database carries a photograph (checked all seven). The code is the same
+latch, proven on /feed and /collection.
+
+**Owner-visible changes** (his standing rule):
+1. **Nothing looks different anywhere.** `npm run visual` 23/23, three times.
+2. **The Collection's photographs now appear as the page appears** rather than after a
+   beat of skeleton. On a slow connection that beat was nearly three seconds.
+3. Everything else is load-order only: the same screens, arriving with less JavaScript.
+
+**Verification**: `npm run check` ✓ green before every commit (TS, ESLint, protocol, lab
+registry 43, unit 78/78). `npm run visual` ✓ 23/23.
+
+**A trap worth naming once.** A scratch `python3` heredoc with a stray trailing comma made
+`s` a tuple, and `open(path, "w")` had already TRUNCATED `collection-client.tsx` before
+`.write()` raised. Recovered with `git show HEAD:<path> > <path>` — note `git checkout --`
+is blocked in this tree by design, and rightly. **Build the new string first, assert it
+differs, and only then open the file for writing.**
+
+**Peer traffic**: `rv-connect-d2` (the session-7 author) worked in this tree throughout
+and committed `1349eb4`, `b2216d5`, `28f019f` — a `sizes` correction for 4K screens and
+its handover note. It had `post-card.tsx` uncommitted at the moment I needed it; I
+reordered onto shell-primitives-09 and picked the post stack back up once it landed,
+rather than stage a file carrying its work. Two corrections it passed on, both worth
+keeping: derive any `sizes` from the real column width (the feed column is
+`max-w-[1600px]` minus a 318 px rail, not 728 px), and **Chrome will not downgrade an
+already-loaded srcset candidate**, so resize measurements need a fresh context.
+`CLAUDE.md` is modified in the tree and is **not mine**.
+
+**One thing found in passing, not caused by anyone**: `/collection`'s visual baseline
+held one photograph and the live database now has two, so the route was red on both
+viewports for no commit's reason. `visual.spec.ts`'s own LIVE ROUTES note anticipates
+exactly this ("photos arrive rarely enough that its picture still means something"), so
+it was looked at and re-recorded, that route only, as its own commit (`4ee0cdf`) rather
+than folded into unrelated work.
+
+**State left**: clean — every file I touched is committed. A `next start` may be up on
+port 3100; kill it when done. `.scratch/` (gitignored) held the measurement scripts and
+was emptied at close.
+
+**Next session**: **phase 6, and it cannot start without the owner.** It needs his §4 #4
+answer — every database drop, including the Visit trio and the orphan reverted-Catchup
+tables — plus §4 #16 (Collection taxonomy SELECT verdict) and the avatarColor column.
+Ask for those three in plain language at session start. Everything autonomous in phases
+1–5 is done.
+
+Then the **close-out**: re-measure §1b's table into report §1b, flip the row in
+`../README.md` to Closed, archive per §7.4. Do NOT flip it closed before phase 6 is
+either executed or consciously declined by the owner.
+
+**Still awaiting the owner** (carried forward, none of it new work):
+1. **The public landing still links to no Privacy / Terms / Guidelines** (security audit
+   H12). Unchanged since session 3; new UI on the public landing, so it is his.
+2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
+3. Vercel image transformations are now billed (session 7, item 1) — one look at the
+   Vercel usage page after a week.
+4. bundle-build-03 step 2 (dynamic-loading the directory MAP itself, ~80 KB) is
+   deliberately not done: the map is /directory's default view, so deferring it puts a
+   shimmer where the showpiece belongs. His call.
+5. The lab CSS measurement, which he correctly asked the point of. It only pays if lab
+   gets its own stylesheet.
