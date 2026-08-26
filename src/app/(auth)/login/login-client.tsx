@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FloatField } from "@/components/common/float-field";
+import { PasswordField } from "@/components/auth/password-field";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import { AuthPhotoPanel } from "@/components/auth/auth-panel";
@@ -274,33 +275,23 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
               animate={{ opacity: 1 }}
               transition={{ ...SPRINGS.snappy, ...rowTransition }}
             >
-              <FloatField
+              <PasswordField
                 id="password"
-                type={showPw ? "text" : "password"}
                 label="Password"
+                /* No hint here, unlike /signup and the reset page: this field
+                   asks for a password that already exists, so a length rule
+                   is noise at best and a suggestion to change it at worst. */
+                focusHint={null}
                 autoComplete="current-password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  // the bird follows what you type whether peeking or covered (head tracks
-                  // behind the wings when its eyes are hidden)
-                  hoopoe.gaze(gazeFor(e.target.value.length, 16));
-                }}
-                required
                 minLength={MIN_PASSWORD}
-                trailing={
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((s) => !s)}
-                    aria-label={showPw ? "Hide password" : "Show password"}
-                    // state-layer gives the reveal button the fill it never had:
-                    // an ink darkening alone is easy to miss on a 32px target,
-                    // and the same class carries the press state.
-                    className="state-layer grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-[color,transform] duration-150 hover:text-foreground active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    {showPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                  </button>
-                }
+                value={password}
+                onChange={(v) => {
+                  setPassword(v);
+                  // the bird follows what you type whether peeking or covered
+                  // (head tracks behind the wings when its eyes are hidden)
+                  hoopoe.gaze(gazeFor(v.length, 16));
+                }}
+                onRevealChange={setShowPw}
               />
               {/* The way out sits right under the field that is failing
                   them: by the time somebody wants this they have typed a
