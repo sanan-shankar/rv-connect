@@ -178,10 +178,17 @@ this site has. Security fixes ignore the schedule.
 
 **Fires:** when you ask. `npm run analyze`.
 
-A no-op without `ANALYZE=true`, so members pay nothing. Exists because this project already
-holds the principle — *"parked code should not ride in bundles it is not used by"* — and had
-no way to check it. The `optimizePackageImports` bet on `@phosphor-icons/react` in
-`next.config.ts` has never been confirmed by anything but reasoning.
+Runs Next's own analyzer. Exists because this project already holds the principle —
+*"parked code should not ride in bundles it is not used by"* — and had no way to check it.
+The `optimizePackageImports` bet on `@phosphor-icons/react` in `next.config.ts` has never
+been confirmed by anything but reasoning.
+
+Until 2026-08-26 this script wrapped the config in `@next/bundle-analyzer` and produced
+nothing at all: that wrapper is webpack-only, every build here is Turbopack, and the build
+said so on each run — *"The Next Bundle Analyzer is not compatible with Turbopack builds,
+no report will be generated."* The wrapper and its dependency are gone. If
+`experimental-analyze` is ever unavailable, per-route JS sizes can still be read out of
+`.next`'s build manifest.
 
 ---
 
