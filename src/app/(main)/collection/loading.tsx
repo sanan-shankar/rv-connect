@@ -1,9 +1,8 @@
 export default function CollectionLoading() {
   return (
     <div>
-      <header className="mb-6 space-y-2">
+      <header className="mb-6">
         <div className="skeleton-warm h-8 w-64 rounded-md" />
-        <div className="skeleton-warm h-4 w-96 rounded-md" />
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

@@ -1,9 +1,8 @@
 export default function MessagesLoading() {
   return (
     <div>
-      <header className="mb-6 space-y-2.5">
+      <header className="mb-6">
         <div className="skeleton-warm h-8 w-64 rounded-md" />
-        <div className="skeleton-warm h-4 w-80 rounded-md" />
       </header>
 
       <div className="mb-8 rounded-[var(--radius)] border border-border bg-card p-4 sm:p-5">

@@ -1,9 +1,8 @@
 export default function LettersLoading() {
   return (
     <div>
-      <header className="mb-6 space-y-2">
+      <header className="mb-6">
         <div className="skeleton-warm h-8 w-32 rounded-md" />
-        <div className="skeleton-warm h-4 w-80 rounded-md" />
       </header>
 
       <div className="space-y-5">
