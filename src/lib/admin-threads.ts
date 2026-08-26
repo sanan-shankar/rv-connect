@@ -22,6 +22,11 @@ const MAX_SUBJECT_LENGTH = 120;
 export const MAX_NEW_THREADS_PER_HOUR = 5;
 export const MAX_MESSAGES_PER_HOUR = 40;
 
+/** How many messages of one conversation a page render loads. Its most recent
+ *  end: a thread is read for what was said last. Both thread pages window on
+ *  this and both say so in copy, so it is one number (audit Low 86). */
+export const THREAD_MESSAGE_LIMIT = 200;
+
 const KIND_CHIP_LABEL: Record<string, string> = {
   bug: "Bug report",
   idea: "An idea",

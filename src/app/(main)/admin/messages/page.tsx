@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/lib/prisma";
 import { AdminEmpty, AdminSection } from "@/components/admin/admin-chrome";
 import { ThreadList, type ThreadRow } from "@/components/admin/messages/thread-list";
+import { THREAD_MEMBER_SELECT } from "@/lib/admin-threads-server";
 
 export const metadata: Metadata = {
   title: "Messages",
@@ -80,18 +81,7 @@ export default async function AdminMessagesPage({
       status: true,
       adminUnread: true,
       lastMessageAt: true,
-      member: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          photoUrl: true,
-          birdOverride: true,
-          accountType: true,
-          batchType: true,
-          batchYear: true,
-        },
-      },
+      member: { select: THREAD_MEMBER_SELECT },
       // The last line only, for the preview. Not the whole conversation.
       messages: {
         orderBy: { createdAt: "desc" as const },
