@@ -376,9 +376,11 @@ Note: DELIGHT_FEEDBACK.md's later owner review confirms 'React on tap (rotate + 
 > **Superseded 2026-07-02.** Current source for motion rules: `docs/spec/DESIGN-SYSTEM.md` sec 7. This
 > doc remains the authoritative record of the owner's per-item verdicts (build/fix/skip/defer) from the
 > `/preview/delight` walkthrough and is the newest feature-detail layer for delight work; consult it
-> for WHAT to build before consulting `docs/planning/DELIGHT_FIX.md` for HOW/where. Kept current for
-> unresolved items (composer rework, loading-ideas gallery, easter-egg verdicts); not all items here
-> have shipped yet.
+> for WHAT to build. The companion HOW/where document, `docs/planning/DELIGHT_FIX.md`, was
+> deleted in `c1aca36` and lives in git history
+> (`git log --follow -- docs/planning/DELIGHT_FIX.md`). Still the record for unresolved items
+> (composer rework, loading-ideas gallery, easter-egg verdicts); not all items here have
+> shipped yet.
 
 # Delight lab: owner feedback, tracked line by line
 

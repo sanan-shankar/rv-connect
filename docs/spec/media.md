@@ -1,6 +1,6 @@
 > **Superseded 2026-07-02.** Storage is Cloudflare R2 (not Vercel Blob) via the
 > `putImage`/`delImage` shim in `src/lib/storage.ts`; hosting is Vercel (compute
-> never moved to Render). Current source for the stack: `docs/STACK_MIGRATION.md`.
+> never moved to Render). For the stack itself see `AGENTS.md`; the infra migration runbook lives in git history: `git log --follow -- docs/STACK_MIGRATION.md`.
 > The photo/Collection pipeline design below (taxonomy, variants, moderation,
 > data model) is still current; only the storage-provider specifics are stale.
 

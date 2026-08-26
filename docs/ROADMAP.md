@@ -1,6 +1,6 @@
 # RV Connect — MVP Build Roadmap
 
-_Synthesized by the architecture workflow (wpud23338). Source of truth for build order, decisions, component inventory, and data model. Infra, avatar, and newsletter-naming details below reflect the 2026-07-01/07-02 decisions (Vercel + Supabase Mumbai + R2; 50-species avatars; "Catch-ups"/"Round N"); see `docs/STACK_MIGRATION.md` for the infra migration runbook._
+_Synthesized by the architecture workflow (wpud23338). Source of truth for build order, decisions, component inventory, and data model. Infra, avatar, and newsletter-naming details below reflect the 2026-07-01/07-02 decisions (Vercel + Supabase Mumbai + R2; 50-species avatars; "Catch-ups"/"Round N"); the infra migration runbook lives in git history: `git log --follow -- docs/STACK_MIGRATION.md`._
 
 This is the single, contradiction-free build plan synthesized from all area specs. It is light-mode-first, modular-reuse-first, and ordered so shared pieces land before the surfaces that consume them. No em dashes anywhere in shipped copy.
 
@@ -10,7 +10,7 @@ This is the single, contradiction-free build plan synthesized from all area spec
 
 ### Naming and identity
 - **Long-form post type is "Letters."** A Letter is a `Post` with `kind="letter"` (title + serif reading view), not a new model. Reuses the shared composer and feed. Warm, single-author, on-brand.
-- **Recurring newsletter feature is "Catch-ups."** ("Roundups" rejected by owner: not self-evident.) Many-author, scheduled, archived; a single instance is a **"Round"** (Round 1, Round 2, ...). First-run needs a one-line explanation of what it is. Distinct from "Letters" (long-form post). Being rebuilt separately per the GSD rebuild track; see `docs/spec/catchups.md` for the current model names (`Catchup`/`CatchupIssue`/`CatchupQuestion`/`CatchupAnswer`).
+- **Recurring newsletter feature is "Catch-ups."** ("Roundups" rejected by owner: not self-evident.) Many-author, scheduled, archived; a single instance is a **"Round"** (Round 1, Round 2, ...). First-run needs a one-line explanation of what it is. Distinct from "Letters" (long-form post). Being rebuilt separately per the GSD rebuild track; see `docs/spec/catchups.md` §6 for the current model names. **(Superseded: the schema has `Catchup`, `CatchupEdition`, `CatchupPrompt`, `CatchupEntry`, `CatchupEntryLove` and `CatchupPref` — no `CatchupIssue`/`CatchupQuestion`/`CatchupAnswer` model exists.)**
 - **Photo archive is "The Valley Collection"** (route `/collection`, sidebar label "Collection"). Frames it as a communal, place-not-people body of work; no collision with the profile "Photos" tab or with "Letters."
 - **Default avatar is a procedurally generated valley bird.** Shipped as **50 real Rishi Valley bird species, in their real colors, with no background disc** (see `docs/spec/avatars.md` and `src/lib/avatar.ts`), deterministic from `User.id`. Photo upload overrides; if the photo is removed the user returns to the same deterministic bird, never a new random one. Initials are the legacy fallback only.
 - **Directory default landing is a dual-mode browse surface with Map as the default tab** (Map | Batches), never an alphabetical list. The world map is the distinctive draw and has no alphabetical bias.
@@ -20,7 +20,7 @@ This is the single, contradiction-free build plan synthesized from all area spec
 - **Deploy to Vercel.** Kills cold starts for an infrequently-checked site and matches the rest of the Next.js tooling.
 - **Database is Supabase Postgres, region `ap-south-1` (Mumbai), for both production and local dev.** Runtime connects via the transaction pooler (`DATABASE_URL`, pgbouncer); the Prisma CLI uses the session pooler (`DIRECT_URL`). Keep the Prisma singleton with the `pg` adapter.
 - **Image storage is Cloudflare R2** (S3-compatible, zero egress). All image bytes flow through the `put`/`del` shim in `src/lib/storage.ts` (R2 in prod, local filesystem in dev).
-- **Keep DB-backed sessions, co-located** (not a JWT migration now; the admin-login bypass is fragile).
+- **Keep DB-backed sessions, co-located** (not a JWT migration now; the admin-login bypass is fragile). **(Superseded: the code was always JWT — `strategy: "jwt"` in `src/lib/auth.ts` — and revocation exists anyway, since `User.credentialVersion` is stamped into the token at sign-in and re-checked on every session read, so a password reset, block or deletion ends every live session. The admin-login bypass this bullet worried about was deleted in the 2026-08-20 security work, audit C1-b.)**
 - **Magic links removed.** Email + password primary; Resend stays for transactional mail. Delete `/verify` and `magic-link-sent.tsx`.
 
 ### Architecture
@@ -76,7 +76,7 @@ This is the single, contradiction-free build plan synthesized from all area spec
 
 **New onboarding/verification:** `Invite`, `InviteRedemption` (`userId @unique`), `JoinRequest`, `Vouch` (`@@unique([voucherId,voucheeId])`).
 
-**New Catch-ups:** `Catchup`, `CatchupIssue` (`@@unique([catchupId,number])`, each issue is a "Round"), `CatchupQuestion`, `CatchupAnswer` (`@@unique([questionId,authorId])`), `CatchupPref` (`@@unique([catchupId,userId])`). See `docs/spec/catchups.md` for the current model; this feature is on a separate GSD rebuild track.
+**New Catch-ups:** `Catchup`, `CatchupIssue` (`@@unique([catchupId,number])`, each issue is a "Round"), `CatchupQuestion`, `CatchupAnswer` (`@@unique([questionId,authorId])`), `CatchupPref` (`@@unique([catchupId,userId])`). **(Superseded: the rebuild landed as `CatchupEdition` / `CatchupPrompt` / `CatchupEntry` / `CatchupEntryLove`; only `Catchup` and `CatchupPref` survive from this plan. `docs/spec/catchups.md` §6 is the truth.)**
 
 **New Collection/directory/bookmarks:** `Photo` (3 rendition URLs + blurhash + dims + faceted tags + approval, `@@index([approved,isHidden,createdAt])`), `PhotoLove` (`@@unique([userId,photoId])`), `City` (`@@unique([asciiName,countryCode])`), `Bookmark` (`@@unique([userId,postId])`).
 
