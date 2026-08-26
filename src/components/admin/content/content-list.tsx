@@ -13,7 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FacetSelect, type SentenceToken } from "@/components/common/filters";
+import { FacetSelect } from "@/components/common/filters/facet-select";
+import { type SentenceToken } from "@/components/common/filters/sentence-line";
 import { Chip } from "@/components/admin/admin-chip";
 import { AdminEmpty } from "@/components/admin/admin-chrome";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";

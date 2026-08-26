@@ -5,15 +5,11 @@ import { Plus, SlidersHorizontal } from "lucide-react";
 import { Heart, MagnifyingGlass } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  FacetSelect,
-  FacetSearchSelect,
-  SortPill,
-  ActiveFilterChips,
-  ResultCount,
-  FilterSheet,
-  type ActiveChip,
-} from "@/components/common/filters";
+import { ActiveFilterChips, type ActiveChip } from "@/components/common/filters/active-filter-chips";
+import { FacetSearchSelect } from "@/components/common/filters/facet-search-select";
+import { FacetSelect, SortPill } from "@/components/common/filters/facet-select";
+import { FilterSheet } from "@/components/common/filters/filter-sheet";
+import { ResultCount } from "@/components/common/filters/result-count";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
 import { appendUnseen } from "@/lib/append-page";

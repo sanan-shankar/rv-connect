@@ -4,13 +4,9 @@ import { useCallback, useState, useTransition, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  FilterButton,
-  FilterPopover,
-  FilterSheet,
-  SentenceLine,
-  type SentenceToken,
-} from "@/components/common/filters";
+import { FilterButton, FilterPopover } from "@/components/common/filters/filter-popover";
+import { FilterSheet } from "@/components/common/filters/filter-sheet";
+import { SentenceLine, type SentenceToken } from "@/components/common/filters/sentence-line";
 
 /* ------------------------------------------------------------------ *
  *  The toolbar over an admin list.
