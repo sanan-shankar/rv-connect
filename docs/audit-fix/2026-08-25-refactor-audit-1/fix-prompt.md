@@ -618,9 +618,13 @@ poses, so the autoplay and solo guard both survive); and a REAL heart driven on 
 own post — single tap, then a double tap in one tick that flipped once — then restored and
 re-checked in the database (11 likes, his like present).
 
-**A gotcha worth knowing**: deleting a tracked file makes `npm run check` CRASH (not fail) in
-the protocol audit until the deletion is staged — it reads `git ls-files`, not the working
-tree. The gate reports "tool crashed" rather than "clean", which is C-190/C-195 working.
+**A gotcha, then its fix**: deleting or renaming a tracked file made `npm run check` CRASH
+(not fail) in the protocol audit, with a raw ENOENT. It reads `git ls-files`, which names
+paths rather than contents, and the two disagree for a whole pass while a deletion is
+unstaged — or, as `rv-connect-da` hit while this session renamed `not-available.tsx`
+underneath it, while a rename lands mid-pass in a checkout several sessions share. The
+audit now skips a path with nothing behind it and SAYS SO, so "clean" can never quietly mean
+"clean over the files I could open". Both cases reproduced against the old and new versions.
 
 **Also found in passing, not fixed**: `verify-shot.mjs` swallows a failed screenshot in a bare
 `try {} catch {}` and still prints `out` as though it wrote one — pass it a path whose parent
@@ -630,7 +634,12 @@ does not exist and it reports success on nothing. Same class as the crawler sess
 1. **The public landing still links to no Privacy / Terms / Guidelines** (security audit H12).
 2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
 
-**Peer traffic**: `rv-connect-da` held brand/logo work uncommitted in this tree all session
+**Peer traffic**: `rv-connect-da` confirmed its four uncommitted lab rooms carry no
+`transition-[` and no `ui/skeleton` import, so neither of this session's sweeps reaches them.
+Two new tracked things of its own are deliberate and must NOT be swept as unreferenced:
+`docs/spec/apple-edge-light.md` and `scripts/dev/apple-edge/` (five `.mjs` and two generated
+PNGs), a dev-only measurement harness for an icon lighting effect that nothing in the app
+imports. It also held brand/logo work uncommitted in this tree all session
 (icons, `lab/glass-edges`, `lab/hoopoe-marks`, `lab/icon-*`, `generate-icons.mjs`,
 `public/images/brand/`, and a new `docs/spec/apple-edge-light.md`); untouched. It asked that
 `peaks-mark.tsx`'s `PEAK_PLANES`/`ridge` exports not be moved without a ping, because two
