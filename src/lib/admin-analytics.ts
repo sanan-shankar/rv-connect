@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /* ------------------------------------------------------------------ *
  *  Everything /admin/analytics reads.
@@ -303,7 +304,7 @@ export async function loadPresence() {
       take: 40,
       include: {
         user: {
-          select: { id: true, name: true, batchYear: true, photoUrl: true, birdOverride: true },
+          select: { ...IDENTITY_SELECT, batchYear: true },
         },
       },
     }),
@@ -313,7 +314,7 @@ export async function loadPresence() {
       take: 25,
       include: {
         user: {
-          select: { id: true, name: true, batchYear: true, photoUrl: true, birdOverride: true },
+          select: { ...IDENTITY_SELECT, batchYear: true },
         },
       },
     }),

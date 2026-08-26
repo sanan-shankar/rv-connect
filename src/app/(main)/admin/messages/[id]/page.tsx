@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { markThreadSeenByAdmin } from "@/app/(main)/messages/actions";
 import { ThreadView } from "@/components/admin/messages/thread-view";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /** How many messages of one conversation a page render loads. Its most recent
  *  end: a thread is read for what was said last. */
@@ -71,7 +72,7 @@ export default async function AdminThreadPage({
           fromAdmin: true,
           createdAt: true,
           author: {
-            select: { id: true, name: true, photoUrl: true, birdOverride: true },
+            select: IDENTITY_SELECT,
           },
         },
       },

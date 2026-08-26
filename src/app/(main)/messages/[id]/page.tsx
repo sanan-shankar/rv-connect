@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { threadTitle } from "@/lib/admin-threads";
 import { AdminMark, Conversation } from "@/components/messages/conversation";
 import { MessageComposer } from "@/components/messages/message-composer";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /** How many messages of one conversation a page render loads. Its most recent
  *  end: a thread is read for what was said last. */
@@ -56,7 +57,7 @@ export default async function ThreadPage({
           fromAdmin: true,
           createdAt: true,
           author: {
-            select: { id: true, name: true, photoUrl: true, birdOverride: true },
+            select: IDENTITY_SELECT,
           },
         },
       },

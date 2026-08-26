@@ -30,19 +30,11 @@ import { valleyDayKey, valleyDayStart, valleyMidnight } from "@/lib/utils";
 import { DOUBLE_SUBMIT_MS, isPostTwin } from "@/lib/double-submit";
 import { decodeKeyset, encodeKeyset, keysetWhere } from "@/lib/keyset";
 import { isLetterDraft } from "@/lib/draft-rule";
+import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
 
-/** The author fields a rendered comment needs. One copy, two readers. */
-const COMMENT_AUTHOR_SELECT = {
-  id: true,
-  name: true,
-  avatarColor: true,
-  photoUrl: true,
-  birdOverride: true,
-  accountType: true,
-  verifyState: true,
-  batchType: true,
-  batchYear: true,
-} as const;
+/** The author fields a rendered comment needs: the shared byline shape, plus
+ *  the `avatarColor` the comment row's own type still declares. */
+const COMMENT_AUTHOR_SELECT = { ...AUTHOR_CARD_SELECT, avatarColor: true } as const;
 
 /** The url list out of a post's `images` column. Bad JSON reads as no images,
  *  never as a throw: a post with a corrupt column should still delete, and
@@ -1167,16 +1159,7 @@ export async function loadPosts(opts?: {
 
   const include = {
     author: {
-      select: {
-        id: true,
-        name: true,
-        photoUrl: true,
-        birdOverride: true,
-        accountType: true,
-        verifyState: true,
-        batchType: true,
-        batchYear: true,
-      },
+      select: AUTHOR_CARD_SELECT,
     },
     _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
     likes: { where: { userId: session.user.id }, select: { id: true } },
@@ -1328,16 +1311,7 @@ export async function loadSavedPosts() {
       post: {
         include: {
           author: {
-            select: {
-              id: true,
-              name: true,
-              photoUrl: true,
-              birdOverride: true,
-              accountType: true,
-              verifyState: true,
-              batchType: true,
-              batchYear: true,
-            },
+            select: AUTHOR_CARD_SELECT,
           },
           _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
           likes: { where: { userId }, select: { id: true } },
@@ -1506,17 +1480,7 @@ export async function loadComments(
     },
     include: {
       author: {
-        select: {
-          id: true,
-          name: true,
-          avatarColor: true,
-          photoUrl: true,
-          birdOverride: true,
-          accountType: true,
-          verifyState: true,
-          batchType: true,
-          batchYear: true,
-        },
+        select: { ...AUTHOR_CARD_SELECT, avatarColor: true },
       },
       _count: { select: { commentLikes: true } },
       commentLikes: { where: { userId }, select: { id: true } },

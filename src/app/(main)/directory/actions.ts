@@ -3,23 +3,9 @@
 import { requireVerifiedEmail } from "@/lib/email-verification";
 import { prisma } from "@/lib/prisma";
 import { buildDirectoryWhere, directoryOrderBy, type DirectoryFilters } from "./where";
+import { PERSON_SELECT } from "./select";
 
 const PAGE_SIZE = 60;
-
-const PERSON_SELECT = {
-  id: true,
-  name: true,
-  avatarColor: true,
-  photoUrl: true,
-  birdOverride: true,
-  accountType: true,
-  verifyState: true,
-  batchType: true,
-  batchYear: true,
-  currentCity: true,
-  jobTitle: true,
-  workplace: true,
-} as const;
 
 export type DirectoryUser = {
   id: string;

@@ -51,6 +51,7 @@ import { PublishNowButton } from "@/components/catchups/round/publish-now-button
 import { NotYetPublished } from "@/components/catchups/round/not-yet-published";
 import type { RoundEntry } from "@/components/catchups/round/answer-card";
 import { recordView } from "@/lib/content-view";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 /**
  * This reader's heading: "{Group name} catch-up", singular, because it is one
@@ -256,7 +257,7 @@ export default async function RoundPage({
           showAsker: true,
           accepted: true,
           position: true,
-          author: { select: { id: true, name: true, photoUrl: true, birdOverride: true } },
+          author: { select: IDENTITY_SELECT },
           entries: {
             orderBy: { createdAt: "asc" },
             select: {

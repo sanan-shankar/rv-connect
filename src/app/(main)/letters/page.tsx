@@ -15,6 +15,7 @@ import {
   VISIBLE_COMMENT,
   audienceWhere,
 } from "@/lib/posts";
+import { IDENTITY_SELECT } from "@/lib/people-select";
 
 export const metadata: Metadata = {
   title: "Letters",
@@ -74,7 +75,16 @@ export default async function LettersPage({
     },
     include: {
       author: {
-        select: { id: true, name: true, avatarColor: true, photoUrl: true, birdOverride: true, accountType: true, batchType: true, batchYear: true },
+        /* No `verifyState`, and that is consistent rather than an omission:
+           this byline is `metaLine(batchLine(author), date)` and never draws
+           a verified leaf, so the column would be fetched and dropped. */
+        select: {
+          ...IDENTITY_SELECT,
+          avatarColor: true,
+          accountType: true,
+          batchType: true,
+          batchYear: true,
+        },
       },
       _count: { select: { comments: { where: VISIBLE_COMMENT }, likes: true } },
     },

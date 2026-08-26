@@ -23,18 +23,14 @@ import {
   type PeopleFilters,
 } from "@/lib/admin-people";
 import type { Prisma } from "@/generated/prisma/client";
+import { AUTHOR_CARD_SELECT } from "@/lib/people-select";
 
 const ROW_SELECT = {
-  id: true,
-  name: true,
+  ...AUTHOR_CARD_SELECT,
+  // What the admin list adds on top of a byline: the account's standing as an
+  // account rather than as a person.
   email: true,
-  photoUrl: true,
-  birdOverride: true,
-  accountType: true,
-  batchType: true,
-  batchYear: true,
   role: true,
-  verifyState: true,
   isBlocked: true,
   emailVerified: true,
   createdAt: true,
