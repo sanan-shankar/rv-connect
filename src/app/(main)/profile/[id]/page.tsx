@@ -108,8 +108,17 @@ export default async function ProfilePage({
     );
   }
 
+  /* `omit` rather than a full `select`: an `include` with no `select` returns
+     every User scalar, so the most-visited people page was pulling the bcrypt
+     hash and the credential version into server memory on every view. Nothing
+     leaks -- the props handed to the client below are picked by hand -- but a
+     column nobody asked for is fetched by default forever, including the next
+     sensitive one somebody adds. Listing the twenty fields this page does read
+     would be twenty lines that go stale; omitting the one that must never be
+     here is the right size. */
   const user = await prisma.user.findUnique({
     where: { id },
+    omit: { password: true },
     include: { places: { orderBy: { position: "asc" } } },
   });
   // deletionRequestedAt: an account inside its 60-day deletion grace window
