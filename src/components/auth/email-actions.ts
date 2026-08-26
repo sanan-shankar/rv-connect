@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { maskEmail } from "@/lib/mask-email";
-import { burnTokens, hashToken, readToken } from "@/lib/auth-tokens";
+import { burnTokens, claimToken, readToken } from "@/lib/auth-tokens";
 import { passwordProblem } from "@/lib/password-rule";
 import { enqueueMail, verificationMailState } from "@/lib/email-queue";
 import { sendVerificationEmail } from "@/lib/verification-mail";
@@ -173,28 +173,12 @@ export async function confirmEmailToken(token: string): Promise<ConfirmOutcome> 
 
   // Burn the token and confirm the address together. `readToken` cannot be
   // called from inside this callback for the burn (see `hashToken`'s
-  // docblock in auth-tokens.ts): it writes through the shared `prisma` client, not `tx`,
-  // so it would not join this transaction at all. The claim below repeats
-  // `readToken`'s own conditional update -- unused, unexpired, this kind --
-  // so of two racing redemptions (a second tab, a mail client prefetch)
-  // exactly one still wins.
+  // docblock in auth-tokens.ts): it writes through the shared `prisma` client,
+  // not `tx`, so it would not join this transaction at all. `claimToken` is
+  // the conditional burn that does, and carries the reasoning for each of its
+  // conditions.
   const claimed = await prisma.$transaction(async (tx) => {
-    const claim = await tx.authToken.updateMany({
-      where: {
-        tokenHash: hashToken(token),
-        kind: "verify",
-        usedAt: null,
-        expiresAt: { gt: new Date() },
-        // ...and the address has not moved on since the link was sent, which
-        // is `readToken`'s "stale" check. The peek above already refused that
-        // case, but only as of the peek: without repeating it here the claim
-        // would be LOOSER than the read it stands in for, and a member who
-        // changed their email in the instant between the two would have this
-        // link confirm the mailbox they just left.
-        user: { email: peek.email },
-      },
-      data: { usedAt: new Date() },
-    });
+    const claim = await claimToken(tx, token, "verify", peek.email);
     if (claim.count === 0) return false;
     await tx.user.update({
       where: { id: peek.userId },
@@ -372,26 +356,12 @@ export async function resetPassword(input: {
   // this, a failure rolls the burn back too: the SAME link is still good to
   // retry, exactly as if nothing had been submitted.
   //
-  // `readToken` cannot supply the burn itself (see `hashToken`'s docblock in
-  // auth-tokens.ts), so the claim below repeats its own conditional update -- unused,
-  // unexpired, this kind -- so of two racing submissions (a double-click, a
-  // retried request) exactly one still wins.
+  // `readToken` cannot supply the burn itself (see `claimToken` in
+  // auth-tokens.ts, which is the conditional burn that runs inside `tx`), so
+  // of two racing submissions -- a double-click, a retried request -- exactly
+  // one still wins.
   const applied = await prisma.$transaction(async (tx) => {
-    const claim = await tx.authToken.updateMany({
-      where: {
-        tokenHash: hashToken(input.token),
-        kind: "reset",
-        usedAt: null,
-        expiresAt: { gt: new Date() },
-        // `readToken`'s "stale" check, repeated for the same reason as in
-        // confirmEmailToken above: the peek refused a moved address as of the
-        // peek, and without this the claim would be looser than the read it
-        // replaces, handing the password of an account to a link sent to an
-        // address it no longer uses.
-        user: { email: peek.email },
-      },
-      data: { usedAt: new Date() },
-    });
+    const claim = await claimToken(tx, input.token, "reset", peek.email);
     if (claim.count === 0) return null;
 
     return tx.user.update({

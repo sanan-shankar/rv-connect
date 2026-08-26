@@ -66,15 +66,66 @@ const RATE_LIMIT: Record<TokenKind, { max: number; windowMinutes: number }> = {
  * transaction as the effect it unlocks (bug audit Lows 22 and 114), and
  * `readToken` below writes through the shared `prisma` client: called from
  * inside a `$transaction` callback it would not join that transaction, just
- * run a second unrelated statement on its own connection. So that file
- * repeats the conditional claim against `tx`, and it must hash the token the
- * same way this file does. It imports this rather than keeping its own copy:
+ * run a second unrelated statement on its own connection. So the claim is
+ * repeated against `tx` -- see `claimToken` below, which is where that now
+ * lives -- and it must hash the token the same way this file does. One import
+ * rather than a second copy:
  * two implementations of one hash is the drift that would make every
  * confirmation and reset in the app stop working, on the day somebody changed
  * one of them.
  */
 export function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
+}
+
+/**
+ * Burn a token inside somebody else's transaction, as strictly as `readToken`
+ * peeked at it.
+ *
+ * `readToken` cannot do this itself: it writes through the shared `prisma`
+ * client, so called from inside a `$transaction` callback it would not join
+ * that transaction -- it would run a second, unrelated statement on its own
+ * connection, and a rollback of the effect would leave the token burned. The
+ * claim therefore has to be repeated against `tx`, and it was repeated twice:
+ * once in confirmEmailToken and once in resetPassword, under two copies of
+ * this explanation.
+ *
+ * Every condition here is load-bearing and the set must stay exactly as tight
+ * as the peek's:
+ *  - `usedAt: null` and the expiry make two racing redemptions (a second tab,
+ *    a mail client prefetching the link, a double-clicked submit) resolve to
+ *    exactly one winner, because `updateMany` reports how many rows it
+ *    actually changed;
+ *  - `kind` stops a confirmation link being spent as a password reset;
+ *  - `sentToEmail` must be the address `readToken` read off the User row, NOT
+ *    one submitted with the request -- it is compared against the unique
+ *    column, so a non-canonical one silently matches nothing (B-020), and the
+ *    email-normalization sweep allowlists this parameter on that promise. It
+ *    is `readToken`'s "stale" check. The peek already refused a
+ *    moved address, but only as of the peek. Without repeating it the claim
+ *    would be LOOSER than the read it stands in for, and a member who changed
+ *    their address in the instant between the two would have the old link
+ *    still act on the new account.
+ *
+ * Returns the updateMany result; a `count` of 0 means somebody else won, and
+ * the caller must abandon the transaction rather than proceed.
+ */
+export function claimToken(
+  tx: Prisma.TransactionClient,
+  raw: string,
+  kind: TokenKind,
+  sentToEmail: string
+) {
+  return tx.authToken.updateMany({
+    where: {
+      tokenHash: hashToken(raw),
+      kind,
+      usedAt: null,
+      expiresAt: { gt: new Date() },
+      user: { email: sentToEmail },
+    },
+    data: { usedAt: new Date() },
+  });
 }
 
 /**
