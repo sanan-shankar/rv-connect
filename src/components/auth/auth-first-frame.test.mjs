@@ -97,3 +97,23 @@ test("both destinations mount settled off the flag the landing sets", () => {
     );
   }
 });
+
+test("no row in the auth columns fades itself in at mount", () => {
+  // The stand-in draws every row opaque, and the real column mounts settled
+  // on top of it, so a row that fades ITSELF in has nothing covering it any
+  // more: /login's password row blinked for ~180ms right as the bird flew in
+  // (owner, 2026-08-26). Its `initial={{ opacity: 0 }}` was left over from
+  // when the field could appear later, and was only ever invisible because
+  // the column used to fade in over it. Rows may still animate `layout` —
+  // the error line arriving has to push them — and the error line itself may
+  // fade, because it genuinely does arrive later.
+  for (const field of ["<FloatField", "<PasswordField"]) {
+    const at = LOGIN.indexOf(field);
+    assert.ok(at > 0, `login-client.tsx no longer renders ${field}`);
+    const row = LOGIN.slice(LOGIN.lastIndexOf("<motion.div", at), at);
+    assert.ok(
+      !row.includes("initial="),
+      `the row around ${field} mounts with its own entrance, which blinks once the column stops covering it`
+    );
+  }
+});
