@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { SESSION_MAX_AGE } from "./session-revocation.ts";
-import { read } from "./test-kit.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The password-reset and confirmation flows.
@@ -13,9 +13,8 @@ import { read } from "./test-kit.mjs";
  *  it then passes against nothing.
  * ------------------------------------------------------------------ */
 
-const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
-const EMAIL_ACTIONS = code(read("src/components/auth/email-actions.ts"));
+const EMAIL_ACTIONS = decomment(read("src/components/auth/email-actions.ts"));
 
 /**
  * A named exported function's source, from its own `export` keyword to the
@@ -92,7 +91,7 @@ test("C-034: the three auth clients dispatch through callAction", () => {
     ["src/app/(auth)/verify-email/verify-client.tsx", "resendVerification"],
   ];
   for (const [file, action] of surfaces) {
-    const src = code(read(file));
+    const src = decomment(read(file));
     assert.match(
       src,
       new RegExp(`callAction\\(\\(\\) => ${action}\\(`),
@@ -109,7 +108,7 @@ test("C-034: the three auth clients dispatch through callAction", () => {
 /* ---- C-156: a swallowed signup write leaves a witness ----------- */
 
 test("C-156: the batch-group swallow reports rather than logging to nowhere", () => {
-  const src = code(read("src/components/auth/actions.ts"));
+  const src = decomment(read("src/components/auth/actions.ts"));
   const join = src.slice(src.indexOf("joinBatchGroup(user.id"));
   const guard = join.slice(0, join.indexOf("\n  }"));
   assert.match(guard, /reportSwallowed\(/, "the failure has no witness but a Vercel log line");
@@ -133,7 +132,7 @@ test("C-032: the session is ninety ABSOLUTE days, from one shared constant", () 
   // cookie -- auth.ts and /api/dev-login -- and dev-login used to carry its own
   // hand-typed thirty days under a comment claiming it matched a maxAge that
   // was never set.
-  const cfg = code(auth).slice(code(auth).indexOf("session: {"));
+  const cfg = decomment(auth).slice(decomment(auth).indexOf("session: {"));
   const sessionBlock = cfg.slice(0, cfg.indexOf("}"));
   assert.match(
     sessionBlock,
@@ -141,7 +140,7 @@ test("C-032: the session is ninety ABSOLUTE days, from one shared constant", () 
     "the session length is hand-typed or absent again; it must come from the " +
       "shared SESSION_MAX_AGE so dev-login cannot drift from it"
   );
-  const devLogin = code(read("src/app/api/dev-login/route.ts"));
+  const devLogin = decomment(read("src/app/api/dev-login/route.ts"));
   assert.match(
     devLogin,
     /MAX_AGE = SESSION_MAX_AGE/,

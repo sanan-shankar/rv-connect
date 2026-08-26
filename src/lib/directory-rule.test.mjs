@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read } from "./test-kit.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The directory: five ways a count and its list disagreed.
@@ -14,11 +14,10 @@ import { read } from "./test-kit.mjs";
  *  and the unit gate runs `node <file>.test.mjs` with no resolver.
  * ------------------------------------------------------------------ */
 
-const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
-const WHERE = code(read("src/app/(main)/directory/where.ts"));
-const PAGE = code(read("src/app/(main)/directory/page.tsx"));
-const MAP = code(read("src/components/directory/alumni-map.tsx"));
+const WHERE = decomment(read("src/app/(main)/directory/where.ts"));
+const PAGE = decomment(read("src/app/(main)/directory/page.tsx"));
+const MAP = decomment(read("src/components/directory/alumni-map.tsx"));
 const CLIENT = read("src/components/directory/directory-client.tsx");
 const SCHEMA = read("prisma/schema.prisma").replace(/^\s*\/\/.*$/gm, "");
 
@@ -153,7 +152,7 @@ test("C-097: every declared SearchScope has a writer", () => {
     "src/app/api/users/search/route.ts",
     "src/app/api/places/search/route.ts",
   ]
-    .map((f) => code(read(f)))
+    .map((f) => decomment(read(f)))
     .join("\n");
   for (const scope of scopes) {
     assert.match(

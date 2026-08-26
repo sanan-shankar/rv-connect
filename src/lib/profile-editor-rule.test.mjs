@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { read } from "./test-kit.mjs";
+import { read, decomment } from "./test-kit.mjs";
 
 /* ------------------------------------------------------------------ *
  *  The pen: the only live editor of the profile columns.
@@ -13,9 +13,8 @@ import { read } from "./test-kit.mjs";
  *  no bound is written twice.
  * ------------------------------------------------------------------ */
 
-const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
-const ACTIONS = code(read("src/components/profile/profile-actions.ts"));
+const ACTIONS = decomment(read("src/components/profile/profile-actions.ts"));
 
 /* ---- C-047/C-048/C-172: one bound per column -------------------- */
 
@@ -56,7 +55,7 @@ test("every bounded field is checked against the shared schema", () => {
 test("the schema really carries the bounds the pen defers to", () => {
   /* The deferral is only worth anything while the schema is the stricter one.
      If somebody loosens profileSchema, this is where it shows up. */
-  const v = code(read("src/lib/validators.ts"));
+  const v = decomment(read("src/lib/validators.ts"));
   const shape = v.slice(v.indexOf("export const profileSchema"));
   assert.match(shape, /workplace: z\.string\(\)\.max\(100\)/, "workplace's shared cap moved");
   assert.match(shape, /jobTitle: z\.string\(\)\.max\(100\)/, "jobTitle's shared cap moved");
@@ -84,10 +83,10 @@ test("C-174: every erased-type argument is checked before it is used", () => {
     ["src/lib/admin-people-query.ts", /Number\.isFinite\(loaded\)/, "the admin list's page offset"],
   ];
   for (const [file, pattern, what] of sites) {
-    assert.match(code(read(file)), pattern, `${what} is used without checking what arrived`);
+    assert.match(decomment(read(file)), pattern, `${what} is used without checking what arrived`);
   }
   // Both report paths, not just the first: they are a matched pair.
-  const reports = code(read("src/components/posts/report-action.ts"));
+  const reports = decomment(read("src/components/posts/report-action.ts"));
   assert.equal(
     [...reports.matchAll(/typeof reason !== "string"/g)].length,
     2,
@@ -98,14 +97,14 @@ test("C-174: every erased-type argument is checked before it is used", () => {
 /* ---- C-045: autosaves land in the order they were made ---------- */
 
 test("C-045: the save queue is ordered, not merely counted", () => {
-  const pen = code(read("src/components/profile/pen.tsx"));
+  const pen = decomment(read("src/components/profile/pen.tsx"));
   assert.match(pen, /const queue = useRef<Promise<unknown>>\(Promise\.resolve\(\)\);/, "there is no queue");
   assert.match(pen, /queue\.current\.then\(\(\) => fn\(\)\)/, "runs are not chained onto the queue");
   assert.match(pen, /queue\.current = mine\.catch\(\(\) => \{\}\);/, "a failed save would poison the queue");
 });
 
 test("C-045: a failed places save reconverges with the database", () => {
-  const src = code(read("src/components/profile/letterhead-profile.tsx"));
+  const src = decomment(read("src/components/profile/letterhead-profile.tsx"));
   const fn = src.slice(src.indexOf("function commitPlaces"));
   const body = fn.slice(0, fn.indexOf("\n  }"));
   assert.match(body, /router\.refresh\(\);/, "nothing re-reads the list");

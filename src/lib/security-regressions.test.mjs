@@ -219,7 +219,7 @@ test("C-060/C-007: a report and the thread that answers it are one write", () =>
      ever. Both report paths are checked, because they are a matched pair and
      half-fixing one of a pair is how this file's other entries came to exist. */
   const src = read("src/components/posts/report-action.ts");
-  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  const code = decomment(src);
 
   // openReportThread must write through whatever client it is given.
   assert.match(code, /db: Prisma\.TransactionClient \| typeof prisma;/, "openReportThread cannot join a transaction");
