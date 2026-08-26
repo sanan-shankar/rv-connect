@@ -58,6 +58,18 @@ export async function loadTrends(days = 90): Promise<Map<string, Trend>> {
  *  The community
  * ---------------------------------------------------------------- */
 
+/**
+ * Just the headcount.
+ *
+ * `loadPeople()` runs thirteen concurrent queries; two views wanted one
+ * integer out of it as the denominator of a percentage, and paid for the
+ * other twelve on every open. Postgres is in Mumbai and this page is
+ * force-dynamic, so those were twelve real round trips each.
+ */
+export async function countMembers() {
+  return prisma.user.count();
+}
+
 export async function loadPeople() {
   const [
     total,
@@ -297,7 +309,7 @@ export async function loadPresence() {
   const now = Date.now();
   const online = new Date(now - ONLINE_MIN * 60_000);
 
-  const [live, recent, sessionAgg, byDevice, byOs, byPath, returning] = await Promise.all([
+  const [live, recent, sessionAgg, breakdowns, returning] = await Promise.all([
     prisma.visit.findMany({
       where: { endedAt: { gte: online } },
       orderBy: { endedAt: "desc" },
@@ -329,25 +341,7 @@ export async function loadPresence() {
       FROM "Visit"
       WHERE "startedAt" >= now() - interval '30 days'
     `,
-    prisma.visit.groupBy({
-      by: ["device"],
-      _count: { _all: true },
-      where: { startedAt: { gte: new Date(now - 30 * 86_400_000) } },
-      orderBy: { _count: { device: "desc" } },
-    }),
-    prisma.visit.groupBy({
-      by: ["os"],
-      _count: { _all: true },
-      where: { startedAt: { gte: new Date(now - 30 * 86_400_000) }, os: { not: null } },
-      orderBy: { _count: { os: "desc" } },
-    }),
-    prisma.visit.groupBy({
-      by: ["lastPath"],
-      _count: { _all: true },
-      where: { startedAt: { gte: new Date(now - 30 * 86_400_000) }, lastPath: { not: null } },
-      orderBy: { _count: { lastPath: "desc" } },
-      take: 10,
-    }),
+    loadUsageBreakdowns(),
     /* How many people came back on more than one day. The single best signal
      * that this is a place rather than a page somebody visited once. */
     prisma.$queryRaw<{ n: bigint }[]>`
@@ -389,6 +383,45 @@ export async function loadPresence() {
     avgSessionSec: Math.round(agg?.avg_sec ?? 0),
     avgViews: agg?.avg_views ?? 0,
     returning: Number(returning[0]?.n ?? 0),
+    ...breakdowns,
+  };
+}
+
+/**
+ * What people browse on, and where they land, over 30 days.
+ *
+ * Split out of `loadPresence` because RhythmsView renders these three lists
+ * and nothing else, and loadPresence's other four queries are the heaviest in
+ * the loader: two findMany with a user join, and two raw aggregates over
+ * Visit. Opening Rhythms was paying for a live-visitor list nobody was going
+ * to see. loadPresence still calls this, so there is one definition.
+ */
+export async function loadUsageBreakdowns() {
+  const since = new Date(Date.now() - 30 * 86_400_000);
+
+  const [byDevice, byOs, byPath] = await Promise.all([
+    prisma.visit.groupBy({
+      by: ["device"],
+      _count: { _all: true },
+      where: { startedAt: { gte: since } },
+      orderBy: { _count: { device: "desc" } },
+    }),
+    prisma.visit.groupBy({
+      by: ["os"],
+      _count: { _all: true },
+      where: { startedAt: { gte: since }, os: { not: null } },
+      orderBy: { _count: { os: "desc" } },
+    }),
+    prisma.visit.groupBy({
+      by: ["lastPath"],
+      _count: { _all: true },
+      where: { startedAt: { gte: since }, lastPath: { not: null } },
+      orderBy: { _count: { lastPath: "desc" } },
+      take: 10,
+    }),
+  ]);
+
+  return {
     byDevice: byDevice.map((d) => ({ label: d.device ?? "unknown", value: d._count._all })),
     byOs: byOs.map((d) => ({ label: d.os ?? "unknown", value: d._count._all })),
     byPath: byPath.map((p) => ({ label: p.lastPath ?? "unknown", value: p._count._all })),

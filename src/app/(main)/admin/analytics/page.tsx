@@ -17,6 +17,8 @@ import {
   loadReading,
   loadPeople,
   loadPresence,
+  loadUsageBreakdowns,
+  countMembers,
   loadRetention,
   loadRhythm,
   loadSearches,
@@ -299,11 +301,11 @@ async function PeopleView() {
 /* ---------------------------------------------------------------- */
 
 async function ContentView() {
-  const [trends, content, catchups, people, reading, inter] = await Promise.all([
+  const [trends, content, catchups, memberCount, reading, inter] = await Promise.all([
     loadTrends(90),
     loadContent(),
     loadCatchups(),
-    loadPeople(),
+    countMembers(),
     loadReading(),
     loadInteractions(),
   ]);
@@ -425,7 +427,7 @@ async function ContentView() {
           {
             label: "Members who have answered",
             value: catchups.people,
-            hint: `${((catchups.people / Math.max(people.total, 1)) * 100).toFixed(0)}% of members`,
+            hint: `${((catchups.people / Math.max(memberCount, 1)) * 100).toFixed(0)}% of members`,
           },
           {
             label: "Hearts on catch-up answers",
@@ -457,7 +459,7 @@ async function ContentView() {
 /* ---------------------------------------------------------------- */
 
 async function RhythmsView() {
-  const [rhythm, presence] = await Promise.all([loadRhythm(), loadPresence()]);
+  const [rhythm, usage] = await Promise.all([loadRhythm(), loadUsageBreakdowns()]);
   return (
     <div className="flex flex-col gap-3">
       <Panel
@@ -470,13 +472,13 @@ async function RhythmsView() {
       </Panel>
       <Row cols={3}>
         <Panel title="Device" note="Visits, last 30 days">
-          <BarList items={presence.byDevice} empty="No visits yet." />
+          <BarList items={usage.byDevice} empty="No visits yet." />
         </Panel>
         <Panel title="Operating system">
-          <BarList items={presence.byOs} empty="No visits yet." />
+          <BarList items={usage.byOs} empty="No visits yet." />
         </Panel>
         <Panel title="The last page people saw" note="Where each visit ended.">
-          <BarList items={presence.byPath} empty="No visits yet." />
+          <BarList items={usage.byPath} empty="No visits yet." />
         </Panel>
       </Row>
     </div>
@@ -486,7 +488,7 @@ async function RhythmsView() {
 /* ---------------------------------------------------------------- */
 
 async function FacesView() {
-  const [faces, people] = await Promise.all([loadFaces(), loadPeople()]);
+  const [faces, memberCount] = await Promise.all([loadFaces(), countMembers()]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -495,7 +497,7 @@ async function FacesView() {
           {
             label: "Only ever read",
             value: faces.lurkers,
-            hint: `Of ${people.total} members, these have visited but never written a post or a comment. Normal: most people in any community read rather than write.`,
+            hint: `Of ${memberCount} members, these have visited but never written a post or a comment. Normal: most people in any community read rather than write.`,
           },
           {
             label: "Got no response from anyone",
