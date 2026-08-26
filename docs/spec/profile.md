@@ -1,13 +1,19 @@
 # Spec: profile
 
-> **THE SHIPPED PROFILE IS REJECTED, 2026-07-25. Read `docs/planning/profile-concepts-brief.md`
-> before doing any profile work.**
+> **Resolved 2026-07-30.** The rejection recorded below was answered by the letterhead
+> profile — `22b4b6c feat(profile): ship the letterhead as everyone's profile` — which is
+> the page members see today. Where this spec's layout sections and the shipped page
+> disagree, the shipped page is the successor. The reversals listed below are still binding
+> design rules. The concepts brief has been deleted; it lives in git history
+> (`git log --follow -- docs/planning/profile-concepts-brief.md`), and the exploration room
+> is `/lab/profiles`, not the `/preview/` tree, which no longer exists.
 >
-> The owner's verdict on the page this spec produced: "the profile version we have is like the
+> **The rejection, for the record (2026-07-25).** The owner's verdict on the page this spec
+> produced: "the profile version we have is like the
 > main reason I feel like I can't ship this", and on being asked what to build instead, "I am
-> actually stumped, I can tell you what I like and what I don't like". Three fresh concepts are
-> in `/preview/delight/profiles` (`passport`, `broadsheet`, `terrace`); the brief above is the
-> rule set they were built to.
+> actually stumped, I can tell you what I like and what I don't like". Three fresh concepts were built
+> in response (`passport`, `broadsheet`, `terrace`); they and the letterhead that won are
+> all in `/lab/profiles`.
 >
 > Specific reversals against what is written below and what shipped:
 > - The decorative leaf watermark is out. ("Everyone hated that.")
@@ -22,7 +28,7 @@
 > - Hover never moves a control anywhere in the app. Colour change only.
 > - The houses chain must hold ten houses. When it wraps, it now runs as a serpentine with a
 >   180 turn at each row end, so no arrow ever points into empty space (the owner's own idea).
->   Reference implementation: `src/app/preview/delight/profiles/_houses-trail.tsx`.
+>   Reference implementation: `src/app/lab/profiles/_houses-trail.tsx`.
 > - No dead white space at 1440 or 1920, and a clear reading order at 390.
 >
 > Still binding: the CTA decisions in section 3, the admission-number privacy question in
