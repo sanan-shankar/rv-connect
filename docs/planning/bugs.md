@@ -269,6 +269,27 @@ in that campaign.
 without a timezone and shift it a day across midnight IST. Checked on 2026-08-26: it does pass
 `timeZone: VALLEY_TIME_ZONE`. No bug, nothing to do.)*
 
+### 20. The /login password peek-a-boo never covers the bird's eyes
+`login-client.tsx` is written around it — "the hoopoe covers its eyes (wings up) while the password
+is hidden, and peeks when you reveal it" — and the wings do not move. Not at the end of the intro
+(`runIntro` calls `coverEyes()` after its 1700ms settle), and not on the reveal toggle
+(`useEffect` on `showPw` calls `peek()` / `coverEyes()`). The bird sits wings-down, eyes open,
+whatever the field is doing. It is not the mascot: /signup's register step tucks the wings over the
+eyes correctly with the same two verbs, so `coverEyes()` works and something on /login is either
+not calling it or being overwritten after it.
+
+Found on 2026-08-26 while extracting the shared flight hook (phase 4 of the refactor-audit
+campaign). **It is not a regression from that work**: the same probe against `e7efc97`, the commit
+before the campaign touched these files, shows the identical wings-down bird at rest, and
+`[data-part=leftWing]` carries no style in either. Filed rather than fixed because it is a bug, not
+a simplification.
+- Size: small, once the cause is known. Suspect the ambient idle loop or the damper re-posing the
+  wings after an unqueued verb — `coverEyes`/`peek` are deliberately not queued.
+- Watch out: the visual suite cannot see this. `/login`'s hoopoe is inside a masked volatile region
+  in `e2e/visual.spec.ts`, which is why a pixel-perfect green run says nothing about it.
+- Where: `src/app/(auth)/login/login-client.tsx` (runIntro + the showPw effect),
+  `src/components/mascot/hoopoe.tsx:994-1001`.
+
 ---
 
 ## Owner decisions carried from the second bug audit's fix ledger (closed 2026-08-25)
