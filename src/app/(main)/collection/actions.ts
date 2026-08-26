@@ -15,7 +15,6 @@ import { countImageFrames, sharpImage, storedResizeBox } from "@/lib/image";
 import { purgeImageKey, purgeImageUrls, putAllOrNone } from "@/lib/image-purge";
 import { drainPendingImagePurges } from "@/lib/account-purge";
 import { escapeLike, insensitive } from "@/lib/db-text";
-import { photoSchema } from "@/lib/validators";
 import {
   MAX_UPLOAD_BYTES,
   MAX_PHOTOS_PER_ACCOUNT,
@@ -25,7 +24,12 @@ import {
   stillPictureNotice,
 
   isImageFile,} from "@/lib/upload-shared";
-import { eraFromYear } from "@/lib/collection";
+import {
+  parsePhotoMeta,
+  isPhotoAutoApproved,
+  gridThumb,
+  photoRowData,
+} from "@/lib/collection-photo";
 import { notifyAdminNote } from "@/lib/admin-note";
 import { requireVerifiedMember } from "@/lib/member-gate";
 import { rateLimit } from "@/lib/rate-limit";
@@ -154,7 +158,7 @@ export async function contributePhoto(formData: FormData) {
   const yearRaw = formData.get("photoYear") as string | null;
   const monthRaw = formData.get("photoMonth") as string | null;
 
-  const parsed = photoSchema.safeParse({
+  const parsed = parsePhotoMeta({
     caption: (formData.get("caption") as string) || undefined,
     area: (formData.get("area") as string) || undefined,
     era: (formData.get("era") as string) || undefined,
@@ -162,13 +166,8 @@ export async function contributePhoto(formData: FormData) {
     photoYear: yearRaw ? Number(yearRaw) : undefined,
     photoMonth: monthRaw ? Number(monthRaw) : undefined,
   });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-
-  // The decade bucket other Collection surfaces (browse filters, admin queue)
-  // already key off. Derived from the exact year when given, else whatever
-  // decade fallback the contributor picked.
-  const era =
-    parsed.data.photoYear !== undefined ? eraFromYear(parsed.data.photoYear) : parsed.data.era || "unknown";
+  if ("error" in parsed) return { error: parsed.error };
+  const { meta } = parsed;
 
   let thumbUrl: string;
   let url: string;
@@ -199,11 +198,7 @@ export async function contributePhoto(formData: FormData) {
     width = display.info.width;
     height = display.info.height;
 
-    const thumb = await sharpImage(input)
-      .rotate()
-      .resize(480, 480, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 72 })
-      .toBuffer();
+    const thumb = await gridThumb(input);
 
     [url, thumbUrl] = await putAllOrNone(
       [putImage(display.data, dir, `${id}.webp`), putImage(thumb, dir, `${id}-t.webp`)],
@@ -218,30 +213,18 @@ export async function contributePhoto(formData: FormData) {
     where: { id: session.user.id },
     select: { photoTrusted: true },
   });
-  const autoApprove = session.user.role === "admin" || !!me?.photoTrusted;
+  const autoApprove = isPhotoAutoApproved({ role: session.user.role, ...me });
 
   await createPhotoRow({
-    data: {
+    data: photoRowData({
       uploaderId: session.user.id,
-      thumbUrl,
       url,
+      thumbUrl,
       width,
       height,
-      caption: parsed.data.caption || null,
-      // Subject tagging and the bird/species free-tag field were removed from
-      // the form (2026-07-18 rework); kept as empty/null for older rows and
-      // any other Collection surface still reading them.
-      subject: "",
-      area: parsed.data.area || null,
-      era,
-      freeTags: null,
-      photoYear: parsed.data.photoYear ?? null,
-      photoMonth: parsed.data.photoMonth ?? null,
-      datePrecision: parsed.data.datePrecision ?? (parsed.data.photoYear !== undefined ? "year" : "unknown"),
-      approved: autoApprove,
-      approvedAt: autoApprove ? new Date() : null,
-      approvedById: autoApprove ? session.user.id : null,
-    },
+      meta,
+      autoApprove,
+    }),
   }, [url, thumbUrl]);
 
   revalidatePath("/collection");
@@ -345,18 +328,16 @@ export async function contributePhotoDirect(input: {
   const quota = await photoQuotaError(session.user.id);
   if (quota) return refuse(quota);
 
-  const parsed = photoSchema.safeParse({
-    caption: input.caption || undefined,
-    area: input.area || undefined,
-    era: input.era || undefined,
-    datePrecision: input.datePrecision || undefined,
+  const parsed = parsePhotoMeta({
+    caption: input.caption,
+    area: input.area,
+    era: input.era,
+    datePrecision: input.datePrecision,
     photoYear: input.photoYear,
     photoMonth: input.photoMonth,
   });
-  if (!parsed.success) return refuse(parsed.error.issues[0].message);
-
-  const era =
-    parsed.data.photoYear !== undefined ? eraFromYear(parsed.data.photoYear) : parsed.data.era || "unknown";
+  if ("error" in parsed) return refuse(parsed.error);
+  const { meta } = parsed;
 
   // Independent of the image work below; overlap the round trips.
   const mePromise = prisma.user.findUnique({
@@ -422,10 +403,7 @@ export async function contributePhotoDirect(input: {
        upright, already within budget, and orders of magnitude smaller. It is a
        second lossy pass (q90 then q72), which at 480px is not visible and is
        the trade this path was already making everywhere else. */
-    const thumb = await sharpImage(display.data)
-      .resize(480, 480, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 72 })
-      .toBuffer();
+    const thumb = await gridThumb(display.data, { alreadyUpright: true });
 
     [url, thumbUrl] = await putAllOrNone(
       [
@@ -445,34 +423,25 @@ export async function contributePhotoDirect(input: {
   }
 
   const me = await mePromise;
-  const autoApprove = session.user.role === "admin" || !!me?.photoTrusted;
+  const autoApprove = isPhotoAutoApproved({ role: session.user.role, ...me });
 
   try {
     await createPhotoRow({
-      data: {
+      /* `sourceKey` is the staged key, held unique (audit C-129). It is what
+         makes one contribution one photograph: two calls carrying the same key
+         both read the original before either delete ran, so both re-encoded
+         it, both stored a pair of objects and both created a row -- with the
+         per-account ceiling checked before either insert. */
+      data: photoRowData({
         uploaderId: session.user.id,
-        /* The staged key, held unique (audit C-129). It is what makes one
-           contribution one photograph: two calls carrying the same key both
-           read the original before either delete ran, so both re-encoded it,
-           both stored a pair of objects and both created a row -- with the
-           per-account ceiling checked before either insert. */
         sourceKey: input.key,
-        thumbUrl,
         url,
+        thumbUrl,
         width,
         height,
-        caption: parsed.data.caption || null,
-        subject: "",
-        area: parsed.data.area || null,
-        era,
-        freeTags: null,
-        photoYear: parsed.data.photoYear ?? null,
-        photoMonth: parsed.data.photoMonth ?? null,
-        datePrecision: parsed.data.datePrecision ?? (parsed.data.photoYear !== undefined ? "year" : "unknown"),
-        approved: autoApprove,
-        approvedAt: autoApprove ? new Date() : null,
-        approvedById: autoApprove ? session.user.id : null,
-      },
+        meta,
+        autoApprove,
+      }),
     }, [url, thumbUrl]);
   } catch (err) {
     /* Lost the race to `Photo_sourceKey_key`. The contribution the member

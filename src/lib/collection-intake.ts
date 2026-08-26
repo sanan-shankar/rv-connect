@@ -2,6 +2,12 @@ import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "@/lib/prisma";
 import { getImageBuffer, keyForUrl, putImage, ownerPrefix } from "@/lib/storage";
 import { sharpImage } from "@/lib/image";
+import {
+  isPhotoAutoApproved,
+  gridThumb,
+  photoRowData,
+  NO_PHOTO_META,
+} from "@/lib/collection-photo";
 import { MAX_PHOTOS_PER_ACCOUNT } from "@/lib/upload-shared";
 import { plainExcerpt } from "@/lib/utils";
 import { reportSwallowed } from "@/lib/report-error";
@@ -27,9 +33,6 @@ import { reportSwallowed } from "@/lib/report-error";
  *  the same rule (an admin, or an uploader already marked photoTrusted), so the
  *  tick is a shortcut past the FORM, never past the moderator.
  * ------------------------------------------------------------------ */
-
-/** The 480px grid rendition, matching contributePhotoDirect's. */
-const THUMB_PX = 480;
 
 /**
  * Copy a post's images into the Collection as pending contributions.
@@ -73,7 +76,7 @@ export async function copyPostImagesToCollection({
     return 0;
   }
   if (!me) return 0;
-  const autoApprove = me.role === "admin" || me.photoTrusted;
+  const autoApprove = isPhotoAutoApproved(me);
 
   // The per-account Collection ceiling applies here too (audit M17): this path
   // creates Photo rows just like the contribute dialog, so without it a member
@@ -122,37 +125,27 @@ export async function copyPostImagesToCollection({
            unreachable for ever. */
         const [copiedUrl, thumbUrl] = await Promise.all([
           putImage(original, ownerPrefix("collection", userId), `${createId()}.webp`),
-          sharpImage(original)
-            .rotate()
-            .resize(THUMB_PX, THUMB_PX, { fit: "inside", withoutEnlargement: true })
-            .webp({ quality: 72 })
-            .toBuffer()
-            .then((thumb) => putImage(thumb, ownerPrefix("collection", userId), `${createId()}-t.webp`)),
+          gridThumb(original).then((thumb) =>
+            putImage(thumb, ownerPrefix("collection", userId), `${createId()}-t.webp`)
+          ),
         ]);
 
         stagedCopiedUrl = copiedUrl;
         stagedThumbUrl = thumbUrl;
 
+        // The composer asks for none of the Collection's own facts, which is
+        // the entire point of the tick. They stay empty exactly as they do for
+        // a contributor who skips them in the dialog.
         await prisma.photo.create({
-          data: {
+          data: photoRowData({
             uploaderId: userId,
-            thumbUrl,
             url: copiedUrl,
+            thumbUrl,
             width,
             height,
-            caption: photoCaption,
-            // The composer asks for none of the Collection's own facts, which
-            // is the entire point of the tick. They stay empty exactly as they
-            // do for a contributor who skips them in the dialog.
-            subject: "",
-            area: null,
-            era: "unknown",
-            freeTags: null,
-            datePrecision: "unknown",
-            approved: autoApprove,
-            approvedAt: autoApprove ? new Date() : null,
-            approvedById: autoApprove ? userId : null,
-          },
+            meta: NO_PHOTO_META(photoCaption),
+            autoApprove,
+          }),
         });
         return true;
       } catch (e) {
