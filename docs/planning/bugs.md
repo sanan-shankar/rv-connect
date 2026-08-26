@@ -445,3 +445,16 @@ to avoid. Both are listed in the policy now.
   offset, width, corner radius, and the hover-highlight inset now match the trigger everywhere
   (report-post reason select, collection/directory facet selects), including when a popover opens
   upward. Fix future dropdown issues at the shared primitive, not per-instance.
+
+## Dated cleanups
+
+Work that is correct to do only after a date, because doing it early breaks something real.
+Each entry says what to delete, when, and why that date.
+
+- **After 2027-08-01: delete `/notice/[id]`.** It resolves legacy links to moderation notes
+  that predate the 2026-07-24 notes-to-messages migration. `retention.ts` caps notifications
+  at 365 days, so after that date no notification old enough to point here can still exist.
+  Delete `src/app/(main)/notice/` (page + loading), drop `openAdminNoticeThread`'s `createdAt`
+  override if this is still its only caller, and reword the four comments citing the route.
+  Deleting it earlier 404s links sitting in real inboxes. (Refactor audit member-surfaces-05.)
+

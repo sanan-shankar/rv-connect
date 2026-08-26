@@ -12,6 +12,18 @@ import { openAdminNoticeThread } from "@/lib/admin-threads-server";
  * notification still points here, so this resolves it into a real thread the
  * first time it is opened, repoints the notification at that thread, and
  * hands over.
+ *
+ * RETIRE AFTER 2027-08-01. This is a shim with a knowable expiry, not a
+ * permanent route. Its whole audience is Notification rows minted before the
+ * moderation-notes-to-messages migration of 2026-07-24, and retention.ts caps
+ * notifications at 365 days, so by then no row that predates the migration can
+ * still exist and this resolves nothing ever again. At that point: delete
+ * src/app/(main)/notice/ (this file and its loading.tsx), drop the `createdAt`
+ * override plumbing from `openAdminNoticeThread` if this is still its only
+ * caller, and reword the four history comments that cite the route
+ * (messages/[id]/page.tsx, feed/actions.ts, moderation-dialog.tsx,
+ * admin-note.ts). Deleting it EARLY 404s real links in real inboxes, which is
+ * why this is dated rather than done.
  */
 export default async function AdminNoticePage({
   params,
