@@ -96,16 +96,21 @@ export function CollectionClient({
   pending,
   areaOptions,
   hasApprovedPhotos,
+  firstPage,
 }: {
   pending: PhotoData[];
   areaOptions: string[];
   hasApprovedPhotos: boolean;
+  /** Page 0 of the default view, queried on the server (see the page's own
+   *  comment for why). Every later page, and every page under a filter, still
+   *  comes from the action. */
+  firstPage: { photos: PhotoData[]; hasMore: boolean; total: number };
 }) {
-  const [photos, setPhotos] = useState<PhotoData[]>([]);
-  const [total, setTotal] = useState(0);
+  const [photos, setPhotos] = useState<PhotoData[]>(firstPage.photos);
+  const [total, setTotal] = useState(firstPage.total);
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(firstPage.hasMore);
+  const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   /* True from the first open onward, never back to false: see the note above
@@ -166,7 +171,19 @@ export function CollectionClient({
     [area, era, search, sortBy]
   );
 
+  /* The fetch effect below would otherwise re-ask the server, on mount, the
+     question it has already answered into `firstPage`. Held against the
+     IDENTITY of the first `fetchPage` rather than a one-shot boolean: a
+     boolean also has to survive StrictMode's double-invoked mount effect in
+     development, and would then either fetch there and not in production or
+     need a second guard. `useCallback` hands back a new function whenever the
+     filters, sort or search change -- including when they change BACK to the
+     defaults, which should refetch rather than re-show a seed that is by then
+     minutes old. So this skips exactly one query and no others. */
+  const seededFetch = useRef(fetchPage);
+
   useEffect(() => {
+    if (seededFetch.current === fetchPage) return;
     let cancelled = false;
     listGeneration.current += 1;
     // Re-arms the skeleton when the filters change, so changing a filter never leaves the previous results sitting on screen as though they matched.
