@@ -28,7 +28,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Supabase Postgres**, region `ap-south-1` (Mumbai), for both production and local dev
 - Runtime connects via the transaction pooler (`DATABASE_URL`, port 6543, `?pgbouncer=true`); the Prisma CLI uses the session pooler (`DIRECT_URL`, port 5432), set in `prisma.config.ts`
 - Schema: `prisma/schema.prisma` — User, Post, Comment, Like, Group, Notification, Report, Poll models
-- Commands: `npx prisma db push`, `npx prisma generate`, `npx prisma studio`
+- Commands: `npx prisma generate`, `npx prisma studio`. **Never `prisma db push`** — one
+  database serves production and local dev, and it will offer to drop tables it thinks are
+  orphaned. Schema changes go through a dated file in `prisma/migrations-manual/`, applied
+  with `node scripts/dev/run-sql.mjs`.
 - Migrated off Turso/libSQL on 2026-07-01
 
 ## File Storage
