@@ -1,5 +1,48 @@
 # Progress Log
 
+## Session 2026-08-26 (sixth) — eight more trivia questions, and the line that shows them
+
+The entry gate had two questions, so anyone who never lived in a house and never
+looked up at the tree was stuck refreshing. It now has ten: the hill over the games
+field, where singing assemblies happen, Thursday dinner, the tuck shop, the fourth
+valley after Golden, Silver and Neem, the round hut, folkie, and the walk up to
+Asthachal. The owner supplied the questions and the answers he wanted honoured; the
+wording is his, tidied.
+
+Matching works the way it already did — strip everything but letters and digits, then
+allow one typo on any answer of five characters or more — with two additions.
+`normalize()` now also drops a trailing "valley", so "Raavi valley" and "Raavi" are
+one answer. And Thursday dinner is a menu rather than a name: "egg curry", "paneer",
+"tomato rice", or all three in a sentence, are the same answer, so that one question
+carries a `contains` list and passes on a mention. Every accepted spelling the owner
+listed was checked against the real matcher before this landed, and two gaps it found
+were closed: "ashta" is a transposition, which the one-edit rule counts as two, and
+"kaveree" had been promised in a comment since August without ever matching.
+
+**What a visitor sees.** The longer questions broke the line that shows them, in three
+ways, all now fixed and all measured in the browser rather than eyeballed.
+
+The swap arrow was a sibling of the question's text box. An inline-block that has to
+wrap takes the full width of its line, so the moment a question needed two lines the
+arrow had nowhere to sit and dropped onto a line of its own — which was already
+happening on a phone with the two old questions. It now lives inside the text box,
+tied to the last word by a non-breaking space, so it rides the last line and hugs the
+question mark at every width.
+
+No line of a question holds a single word any more. `text-balance` evens the lines out
+and a non-breaking space between the last two words guarantees the tail; all ten
+questions were measured at 500, 390, 360, 320, 280 and 240px and none of them orphans
+a word or strands the arrow.
+
+And a swap that changes the number of lines no longer jolts the answer field and the
+button downward in one frame. The question block's height is animated on the same
+spring the words ride: a 28px change now spreads over thirteen frames, five pixels at
+the worst of them.
+
+`npm run check` green. `npm run visual` 22/23 — the failure was `/support` on mobile,
+the bird grid and the cost bar caught mid-render, which passes on re-run and has
+nothing to do with signup.
+
 ## Session 2026-08-26 (fifth) — phase 4 part 1: the same thing, written once
 
 The fifth fix session of the 2026-08-25 refactor audit. Fifteen of phase 4's twenty-one rows,

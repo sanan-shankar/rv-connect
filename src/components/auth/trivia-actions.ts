@@ -16,14 +16,23 @@ import { timingSafeEqualStrings } from "@/lib/timing-safe";
  * cleared. Attempts are lightly rate limited per gate token.
  */
 
-type Question = { id: string; question: string; answers: string[] };
+type Question = {
+  id: string;
+  question: string;
+  answers: string[];
+  /**
+   * Answers that are a sentence rather than a name: accepted when the guess
+   * MENTIONS one of these, anywhere in it. Only the dinner question needs it.
+   */
+  contains?: string[];
+};
 
 /**
- * Accepted answers (widened 2026-08-04, owner). Two rules do most of the work
+ * Accepted answers (widened 2026-08-04, owner). Three rules do most of the work
  * so these lists stay short and readable:
  *
  *   1. `normalize()` below strips spaces, punctuation, a leading "the" and a
- *      trailing "house"/"tree", so one entry covers "BBT", "b.b.t.",
+ *      trailing "house"/"tree"/"valley", so one entry covers "BBT", "b.b.t.",
  *      "The Big Banyan Tree" and "cauvery house" alike. Entries here are
  *      already in that stripped form.
  *   2. `NEAR_MISS_MIN_LENGTH` lets an entry of 5+ characters match on a
@@ -32,6 +41,10 @@ type Question = { id: string; question: string; answers: string[] };
  *      kavery, kaveree, cauvary and friends all land within one edit of a
  *      spelling below. Initialisms stay exact-match, because at three
  *      characters one edit is most of the word.
+ *   3. A question whose answer is a plate of food rather than a name carries
+ *      a `contains` list instead. "Egg curry and tomato rice", "just paneer"
+ *      and "tomato rice I think" are the same answer, and enumerating the
+ *      phrasings people use for a menu is a game nobody wins.
  *
  * These are people who went to the school. The gate is there to stop a
  * stranger with a search engine, not to mark a spelling test.
@@ -67,6 +80,7 @@ const TRIVIA_QUESTIONS: Question[] = [
       "cavery",
       "kaveri",
       "kavery",
+      "kaveree",
       "kauveri",
       "kauvery",
       "kaberi",
@@ -74,6 +88,81 @@ const TRIVIA_QUESTIONS: Question[] = [
       "caberi",
       "cabery",
     ],
+  },
+  {
+    id: "caverock",
+    question: "Which hill is most clearly visible from the games field?",
+    answers: [
+      "caverock",
+      // said in full often enough to earn its own entry: normalize() takes a
+      // trailing "house", "tree" and "valley" off, but not "hill"
+      "caverockhill",
+    ],
+  },
+  {
+    id: "auditorium",
+    question: "In which building are singing assemblies held?",
+    answers: [
+      "auditorium",
+      "seniorauditorium",
+      // what it is called out loud. "audi" is four characters, so it has to
+      // land exactly; the longer entries carry the one-edit allowance
+      "senioraudi",
+      "audi",
+    ],
+  },
+  {
+    id: "thursdaydinner",
+    question: "What is served for dinner on Thursdays?",
+    // A menu, so it is answered by mention rather than by name (rule 3 above).
+    // The one-edit allowance does not reach inside a sentence, which is why
+    // the likelier misspellings are spelt out here instead of inferred.
+    answers: [],
+    contains: [
+      "egg",
+      "paneer",
+      "paner",
+      "panir",
+      "panner",
+      "tomatorice",
+      "tomatoerice",
+      "tomoatorice",
+      "tamatorice",
+    ],
+  },
+  {
+    id: "tuckshop",
+    question: "Which building has your fortnightly dose of chocolatey goodness?",
+    answers: ["tuckshop", "grubtuck", "tuck"],
+  },
+  {
+    id: "raavi",
+    question: "Complete the list: Golden, Silver, Neem and _____?",
+    // "Raavi valley" arrives here as "raavi", the suffix stripped. "ravi" is
+    // four characters, so it is listed rather than left to the one-edit rule.
+    answers: ["raavi", "ravi"],
+  },
+  {
+    id: "roundhut",
+    question: "Which hut was round?",
+    answers: ["roundhut", "round"],
+  },
+  {
+    id: "folkie",
+    question: "What is folk dancing called here?",
+    // "foki" and "fokee" are each one edit from "fokie", so they land on their
+    // own. "folky" is deliberately absent: it is one edit from "folk", the
+    // word the question itself hands over.
+    answers: ["folkie", "fokie"],
+  },
+  {
+    id: "asthachal",
+    question:
+      "During which activity do you walk up a hill and sit quietly on a rock while the mosquitoes drain you?",
+    // "asta" and "aastha" are one edit from "astha", but "ashta" is a
+    // transposition, which withinOneEdit counts as two -- hence both spellings
+    // of each length.
+    answers: ["asthachal", "ashtachal", "astha", "ashta"],
   },
 ];
 
@@ -103,15 +192,16 @@ function sign(payload: string): string {
  * Reduce an answer to just its letters and digits, so spacing, capitalisation
  * and punctuation can never be the reason someone is turned away: "B.B.T.",
  * "b b t" and "bbt" all arrive here as the same three characters. A leading
- * "the" and a trailing "house"/"tree" come off too, because "the banyan tree"
- * and "cauvery house" are how people naturally answer these two questions.
+ * "the" and a trailing "house"/"tree"/"valley" come off too, because "the
+ * banyan tree", "cauvery house" and "Raavi valley" are how people naturally
+ * answer these questions.
  */
 function normalize(s: string): string {
   let out = s.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (out.startsWith("the")) out = out.slice(3);
   // Only strip the suffix when something is left in front of it, so a bare
   // "tree" stays "tree" (and stays wrong) instead of collapsing to "".
-  for (const suffix of ["house", "tree"]) {
+  for (const suffix of ["house", "tree", "valley"]) {
     if (out.length > suffix.length && out.endsWith(suffix)) {
       out = out.slice(0, -suffix.length);
       break;
@@ -145,9 +235,9 @@ function withinOneEdit(a: string, b: string): boolean {
  * Returns a question to show. Never returns the answer. Pass the current
  * question's id to get a DIFFERENT one — the gate offers a swap (owner,
  * 2026-08-20) for the person who knows the tree but never lived in the
- * houses, or the reverse. No cost and no limit on swapping: both questions
- * were always reachable by refreshing, so the button gives away nothing
- * the page did not.
+ * houses, or the reverse. No cost and no limit on swapping: every question
+ * was always reachable by refreshing, so the button gives away nothing the
+ * page did not.
  */
 export async function getTriviaQuestion(
   excludeId?: string,
@@ -196,12 +286,15 @@ export async function checkTrivia(
   }
 
   const guess = normalize(answer);
-  const accepted = q.answers.some((a) => {
+  const named = q.answers.some((a) => {
     const candidate = normalize(a);
     if (candidate === guess) return true;
     return candidate.length >= NEAR_MISS_MIN_LENGTH && withinOneEdit(candidate, guess);
   });
-  if (!accepted) {
+  // A `contains` question is answered in a sentence, so it passes the moment
+  // the guess mentions one of the things on the plate.
+  const mentioned = q.contains?.some((c) => guess.includes(normalize(c))) ?? false;
+  if (!named && !mentioned) {
     return { ok: false, error: "Not quite. Have another go." };
   }
 
