@@ -47,7 +47,10 @@ that rework.
       grid and today's masonry. Every control is a URL parameter, so a comparison can be
       linked: `?mode=six|scroll|many&w=phone|laptop|wide&photo=<key>&policy=<key>&n=2|3|4|6`.
       The maths is in `src/app/lab/crop/_policies.ts` and `_justified.ts`, written to be
-      lifted into the real components rather than retyped.
+      lifted into the real components rather than retyped. Two extra controls were added
+      after the first pass, because the numbers showed the six rules were not the whole
+      decision: **portrait floor** (4:5 / 1:1 / 5:4) and **photo width cap** (full column /
+      900px / 720px). See F8.
 - [x] **Prior art researched** — `prior-art.md`. Owner asked for it directly mid-session.
 - [ ] **Owner picks a crop policy** — blocks the spec, because it determines the justified
       grid maths, the stored derivative sizes and the viewer's framing.
@@ -139,6 +142,16 @@ Each is the owner's, given in this session. Do not relitigate these without aski
 - **F6. The current grid is CSS-column masonry**, not justified rows:
   `break-inside-avoid` plus `mb-3` on the tile (`collection-client.tsx:48`). That is why
   the rows do not line up the way the reference gallery's do. Page size is 24.
+- **F8. The six rules are not the real decision; two numbers are.** Computing every
+  rule against every specimen at the 728px column showed `bounds`, `snap` and `focal` all
+  returning **910px** for a 9:16 photo, because all three share Instagram's 4:5 floor and
+  728 / 0.8 = 910. That is taller than a laptop viewport, so "pick a rule" alone does not
+  answer the owner's one firm constraint. Instagram's 4:5 is tuned to Instagram's ~470px
+  desktop column, where it yields 587px. **Copying the ratio without copying the column
+  copies the wrong thing.** The two levers that actually decide whether the feed is a chore
+  are the portrait floor and whether the photograph is allowed to grow with the card at all
+  (brief #39). Both are now controls in the room. The whole-feed heights at 728px with a 4:5
+  floor: free 4,587px, bounds/focal 4,089px, snap 4,095px, fill 2,912px, today 2,232px.
 - **F7. A concurrent session is editing this area.** `src/app/(main)/collection/page.tsx`
   changed on disk mid-session (server-side first-page fetch added, `firstPage` prop passed
   to `CollectionClient`). Per CLAUDE.md, work around other sessions' edits, never stash or
@@ -207,7 +220,7 @@ reading the brief** — the wording in the brief carries nuance this table does 
 | 34 | Automatic cropping removes the part that matters | open — F3 |
 | 37 | Multi-image layouts are more complicated and he does not know whether the logic works | open |
 | 38 | Avoid a wall of black bars, but find the right way to crop | open — **D6, the gating decision** |
-| 39 | Consider rules for how wide the feed may be | open |
+| 39 | Consider rules for how wide the feed may be | open — **now a control in `/lab/crop`**, and F8 says it is half the answer |
 | 40 | **Thorough testing across every aspect ratio, and combinations of ratios within one post**, across feed, catch-ups and Collection | open — a testing requirement, not optional |
 | 41 | Every image clickable, opening in our viewer | open |
 
