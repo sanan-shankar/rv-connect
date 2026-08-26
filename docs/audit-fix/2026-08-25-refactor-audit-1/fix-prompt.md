@@ -210,10 +210,9 @@ popover onto menu material (+ tw-animate-css out) → `add8dd2` · roster CSV + 
   which flags three deliberate hard navigations (demo reset, admin user deletion, password
   reset); each keeps its behaviour under a disable comment stating why. Note the rule fires on
   the **literal** relative path, not a computed one.
-- **root-docs-assets-10 is only half done.** `docs/README.md` was already correct (the
-  audit-fix reorganisation fixed it). **CLAUDE.md's spec list still omits `admin`** — left
-  untouched because CLAUDE.md carries the owner's uncommitted one-word edit and staging it
-  would have staged his work. One line for whoever picks it up after he commits.
+- **root-docs-assets-10**: `docs/README.md` was already correct (the audit-fix reorganisation
+  fixed it). CLAUDE.md's half was closed later in the session, once the owner said his own
+  uncommitted edit could ride along — `1178e4a`.
 - **root-docs-assets-06 (progress.md archive)**: the file is not chronological — lines 1–467
   are a newest-first head block, then the full chronology. June and July happen to be one
   contiguous run (468–1348), so only those moved; August is the live month. Proved lossless by
@@ -252,15 +251,28 @@ fixed crawler. `npm run screenshot:auth` and `verify:shot /feed` ✓ after the d
 prisma changes. `npm run analyze`'s replacement command verified present in Next 16.3.1's CLI.
 The bundled-Chrome claim was re-proved by launching it (it dies), not taken on trust.
 
-**Awaiting owner**:
-1. Session 1's two are still open: the visual suite's four content routes will keep going red
-   as members post (mask, seed, or accept?), and the `gate-coverage.test.mjs` widening.
-2. **~357 MB of unused Puppeteer Chrome** in `~/.cache/puppeteer` — outside the repo, so his
-   to delete.
-3. CLAUDE.md's spec list needs `admin` once his edit is committed.
+**Closed after the owner read the summary** (same session):
+- **The visual suite is green, 23/23**, for the first time since 2026-08-25 — he asked for the
+  call rather than the options. `e2e/visual.spec.ts` gained a `live` mode: `"band"` (feed,
+  letters, catchups) shoots at viewport height and masks the content under the page header,
+  because one inserted post moves everything below it; `"map"` (directory) masks only the map
+  drawing and the headcount, keeping the search field, filters, toggle and map box full page.
+  `spine()` pins the content column's x and width as numbers on all four. A first attempt that
+  masked all of `main` was discarded after looking at the result — a sidebar and a magenta
+  rectangle. Failure was re-proved by swapping a baseline. **`/collection` is deliberately NOT
+  live-masked**; if full coverage of the four is ever wanted back, the answer is seeded content,
+  not a bigger mask. → `900546f`
+- **CLAUDE.md's spec list gained `admin`**, committed with his own uncommitted wording tweak at
+  his say-so, so root-docs-assets-10 is fully closed. → `1178e4a`
 
-**State left**: clean — every file I touched is committed. `CLAUDE.md` is still modified in the
-tree and is **not mine**. `c095f4c fix(lab): ...` landed mid-session from another session in
+**Awaiting owner**:
+1. Sighting session 1's `gate-coverage.test.mjs` widening (nothing to decide; a security test
+   changed shape and he should know).
+2. **~357 MB of unused Puppeteer Chrome** in `~/.cache/puppeteer`. A safety hook blocks
+   recursive deletes outside the repo, so clearing that folder is his to run.
+
+**State left**: clean — every file I touched is committed, `CLAUDE.md` included (the owner
+released his own uncommitted edit to ride with it). `c095f4c fix(lab): ...` landed mid-session from another session in
 this same tree; untouched.
 
 **Next session**: phase 2 (placeholders, flags, Groups residue). It needs owner input first —
