@@ -1,17 +1,16 @@
 /**
  * Case-insensitive text matching for Prisma string filters.
  *
- * SQLite's Prisma adapter rejects `mode: "insensitive"`; only Postgres accepts
- * it. SQLite `LIKE` is already case-insensitive for ASCII, so on SQLite we drop
- * the flag. Detect the live provider the same way `prisma.ts` does.
+ * Postgres-only since the move off SQLite/libSQL on 2026-07-01, so this is a
+ * plain constant: there is no longer a provider to detect. It used to be
+ * `IS_POSTGRES ? {...} : {}` because SQLite's Prisma adapter rejects
+ * `mode: "insensitive"` outright, and that arm has been unreachable ever since.
  *
  * Spread this into every `contains` / `startsWith` filter that a human types
  * into. Forgetting it is silently broken in the worst way: a search for "Afia"
  * misses a stored "afia" while a search for "fia" finds it.
  */
-const IS_POSTGRES = (process.env.DATABASE_URL ?? "").startsWith("postgres");
-
-export const insensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
+export const insensitive = { mode: "insensitive" } as const;
 
 /**
  * The longest search pattern any `contains` filter will carry.

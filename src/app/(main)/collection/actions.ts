@@ -14,7 +14,7 @@ import {
 import { countImageFrames, sharpImage, storedResizeBox } from "@/lib/image";
 import { purgeImageKey, purgeImageUrls, putAllOrNone } from "@/lib/image-purge";
 import { drainPendingImagePurges } from "@/lib/account-purge";
-import { escapeLike } from "@/lib/db-text";
+import { escapeLike, insensitive } from "@/lib/db-text";
 import { photoSchema } from "@/lib/validators";
 import {
   MAX_UPLOAD_BYTES,
@@ -487,11 +487,6 @@ export async function contributePhotoDirect(input: {
   revalidatePath("/collection");
   return { success: true, autoApprove, notice };
 }
-
-// Postgres accepts `mode: "insensitive"` on `contains`; SQLite's Prisma
-// adapter rejects it (same gate as directory/where.ts and feed/actions.ts).
-const IS_POSTGRES = (process.env.DATABASE_URL ?? "").startsWith("postgres");
-const insensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
 
 /**
  * Build the Prisma `where` for the Collection gallery from a set of filters.

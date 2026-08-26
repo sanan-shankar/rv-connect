@@ -22,7 +22,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { canViewPost, canViewPostOfComment, POST_NOT_VISIBLE } from "@/lib/post-visibility";
 import { storedBatchTargets } from "@/lib/post-visibility-rule";
 import { ownedUploadUrls } from "@/lib/upload-ownership";
-import { escapeLike } from "@/lib/db-text";
+import { escapeLike, insensitive } from "@/lib/db-text";
 import { isUniqueViolation } from "@/lib/prisma-errors";
 import { postNotificationLink, postNoun } from "@/lib/notification-links";
 import { clearPostNotifications } from "@/lib/post-notifications";
@@ -124,13 +124,6 @@ async function deletePostWithImages(
   await drainPendingImagePurges(orphaned);
 }
 
-
-// Postgres accepts `mode: "insensitive"` on `contains`; SQLite's Prisma
-// adapter rejects it (and SQLite `LIKE` is already case-insensitive for
-// ASCII), so it's only added when the live provider is Postgres. Same
-// detection as `src/app/(main)/directory/where.ts`.
-const IS_POSTGRES = (process.env.DATABASE_URL ?? "").startsWith("postgres");
-const searchInsensitive = IS_POSTGRES ? ({ mode: "insensitive" } as const) : {};
 
 
 // ─── Posts ───────────────────────────────────────────
@@ -241,7 +234,7 @@ export async function createPost(formData: FormData) {
     const ownPlace = await prisma.userPlace.findFirst({
       where: {
         userId: session.user.id,
-        city: { equals: parsed.data.cityScope, ...searchInsensitive },
+        city: { equals: parsed.data.cityScope, ...insensitive },
       },
       select: { city: true },
     });
@@ -647,7 +640,7 @@ export async function editPost(postId: string, formData: FormData) {
       const ownPlace = await prisma.userPlace.findFirst({
         where: {
           userId: session.user.id,
-          city: { equals: wanted, ...searchInsensitive },
+          city: { equals: wanted, ...insensitive },
         },
         select: { city: true },
       });
@@ -1158,9 +1151,9 @@ export async function loadPosts(opts?: {
     const search = escapeLike(opts.search);
     andConditions.push({
       OR: [
-        { title: { contains: search, ...searchInsensitive } },
-        { content: { contains: search, ...searchInsensitive } },
-        { author: { name: { contains: search, ...searchInsensitive } } },
+        { title: { contains: search, ...insensitive } },
+        { content: { contains: search, ...insensitive } },
+        { author: { name: { contains: search, ...insensitive } } },
       ],
     });
   }
