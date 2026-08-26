@@ -131,7 +131,7 @@ export function Crest({
   tip = true,
   flat,
   sep,
-  base = true,
+  base = false,
 }: {
   n?: number;
   spread?: number;
@@ -145,9 +145,10 @@ export function Crest({
   tip?: boolean;
   flat?: string;
   sep?: string;
-  /** a disc at the pivot. The feathers converge to a point there and leave a
-      notch along the bottom of the fan without it; on the real bird the head
-      is what fills that gap. */
+  /** a disc at the pivot, filling the small notch where the feathers converge.
+      Off by default: it also flattens the inner ends of the fan, and the fan
+      reads better with the notch than without it. Only the marks with no head
+      under them should ever want it. */
   base?: boolean;
 }) {
   const out: ReactNode[] = [];
@@ -169,15 +170,17 @@ export function Crest({
       />,
     );
   }
-  /* Middle feather last so the tallest one sits on top of its neighbours,
-     the way the rig stacks them. */
-  const mid = Math.floor(n / 2);
+  /* Draw in index order, first to last, exactly as the rig does. This is not
+     a detail: each feather overlaps the one before it, so painting them in
+     order is what makes the two crest browns read as a light sweeping across
+     the fan. Bringing the middle feather to the front (tried, 2026-08-24)
+     breaks the sweep in half and the fan goes flat. */
   return (
     <>
       {base ? (
         <circle cx={px} cy={py} r={6.2 * w} fill={flat ?? H.crest} />
       ) : null}
-      {[...out.filter((_, i) => i !== mid), out[mid]]}
+      {out}
     </>
   );
 }

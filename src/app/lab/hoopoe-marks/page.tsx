@@ -58,6 +58,8 @@ type Mark = {
   art: ReactNode;
   /** the one-colour version; separators take the ground colour */
   flat: (ground: string) => ReactNode;
+  /** a box tight around the ink, for the rail. The icon view is mostly air. */
+  railView: [number, number, number, number];
   light: string;
   dark: string;
 };
@@ -67,6 +69,7 @@ const MARKS: Mark[] = [
     key: "fan",
     name: "The fan",
     view: "14 -32 92 92",
+    railView: [17, -8, 86, 47],
     why: "The crest opened to 152 degrees across thirteen feathers, which is far wider than the bird can actually manage. On a real hoopoe the fan has a head under it holding it in scale. A mark has nothing under it, so it has to be the whole thing: wide, shallow, symmetrical, and closer to a sunrise than to a haircut.",
     art: <Crest n={13} spread={76} len={1.32} w={1.02} taper={0.1} />,
     flat: (g) => <Crest n={13} spread={76} len={1.32} w={1.02} taper={0.1} flat={G.cream} sep={g} />,
@@ -77,6 +80,7 @@ const MARKS: Mark[] = [
     key: "fan-bled",
     name: "The fan, run off the sides",
     view: "24 -26 68 68",
+    railView: [26, -6, 68, 40],
     why: "The same fan with the outer feathers leaving the tile. Everything comes out about a third bigger, which is the only thing that ever helps at 16px, and the cut edges make the mark feel like a window onto something larger rather than a badge sitting in the middle of a square.",
     art: <Crest n={13} spread={76} len={1.32} w={1.02} taper={0.1} />,
     flat: (g) => <Crest n={13} spread={76} len={1.32} w={1.02} taper={0.1} flat={G.cream} sep={g} />,
@@ -86,7 +90,8 @@ const MARKS: Mark[] = [
   {
     key: "peek",
     name: "Peeking",
-    view: "22 -14 78 78",
+    view: "22 -19 78 78",
+    railView: [24, -6, 72, 62],
     why: "The one you spotted by accident. The head comes up from the bottom edge, the eyes are cut by it, and the fan does the rest. It is the only mark here with any suspense in it, and the cut is doing the work: a whole face is a picture, two thirds of a face looking at you is a character.",
     art: (
       <>
@@ -107,6 +112,7 @@ const MARKS: Mark[] = [
     key: "rising",
     name: "Rising",
     view: "18 -8 84 84",
+    railView: [22, -6, 76, 78],
     why: "The same idea backed off by six units. The eyes clear the edge and the head is what gets cut instead. Calmer, less of a joke, and it keeps both catchlights, which is most of what makes the bird look alive rather than printed.",
     art: (
       <>
@@ -127,6 +133,7 @@ const MARKS: Mark[] = [
     key: "portrait",
     name: "The portrait",
     view: "16 -4 88 88",
+    railView: [22, -6, 76, 90],
     why: "Head and fan complete, nothing cut, with the crest opened wider than the character wears it so the mark is broad rather than tall. The bill is shortened a little and the eyes are up a hair. Those are the same three dials the live puppet takes, so whatever gets chosen here can be set on the real bird in one line.",
     art: (
       <>
@@ -147,6 +154,7 @@ const MARKS: Mark[] = [
     key: "shoulder",
     name: "Head and shoulder",
     view: "8 -6 104 104",
+    railView: [24, -6, 72, 108],
     why: "The body brought in under the head and cut off at the bottom edge, so the bird is sitting in the tile rather than floating in it. The extra mass helps at small sizes and costs the mark some of its poise at large ones.",
     art: (
       <>
@@ -169,6 +177,7 @@ const MARKS: Mark[] = [
     key: "onecolour",
     name: "The fan, one colour",
     view: "14 -32 92 92",
+    railView: [17, -8, 86, 47],
     why: "The same fan with the bands and the dark caps taken out. This is what the mark has to survive as: a favicon, an embossed page, a stamp, the rail. If it still reads here it is a logo, and if it only works in full colour it is an illustration.",
     art: <Crest n={13} spread={76} len={1.32} w={1.02} taper={0.1} flat={G.cream} sep={G.canopy} />,
     flat: (g) => <Crest n={13} spread={76} len={1.32} w={1.02} taper={0.1} flat={G.cream} sep={g} />,
@@ -176,6 +185,34 @@ const MARKS: Mark[] = [
     dark: G.ink,
   },
 ];
+
+/**
+ * The mark as it sits next to the word. Height is 26px against an 18px
+ * wordmark, which is what makes the two read as one lockup: a mark set to the
+ * same number as the type always looks smaller than the type.
+ */
+function RailMark({
+  m,
+  h = 26,
+  colour,
+}: {
+  m: Mark;
+  h?: number;
+  colour: "flat" | "full";
+}) {
+  const [vx, vy, vw, vh] = m.railView;
+  return (
+    <svg
+      width={Math.round((h * vw) / vh)}
+      height={h}
+      viewBox={`${vx} ${vy} ${vw} ${vh}`}
+      aria-hidden
+      style={{ display: "block", flex: "none" }}
+    >
+      {colour === "flat" ? m.flat(G.canopy) : m.art}
+    </svg>
+  );
+}
 
 function Card({ m }: { m: Mark }) {
   return (
@@ -207,15 +244,11 @@ function Card({ m }: { m: Mark }) {
       </div>
       <div className="onrail">
         <div className="rail-strip">
-          <Tile size={30} ground="transparent" view={m.view} round={false}>
-            {m.flat(G.canopy)}
-          </Tile>
+          <RailMark m={m} colour="flat" />
           <span>Hoopoe</span>
         </div>
         <div className="rail-strip">
-          <Tile size={30} ground="transparent" view={m.view} round={false}>
-            {m.art}
-          </Tile>
+          <RailMark m={m} colour="full" />
           <span>Hoopoe</span>
         </div>
       </div>
@@ -303,9 +336,7 @@ export default function HoopoeMarksLab() {
           <figure className="rail" key={m.key}>
             <div className="rail-box">
               <div className="rail-top">
-                <Tile size={34} ground="transparent" view={m.view} round={false}>
-                  {m.flat(G.canopy)}
-                </Tile>
+                <RailMark m={m} colour="flat" h={28} />
                 <span>Hoopoe</span>
               </div>
               <ul>
@@ -322,9 +353,7 @@ export default function HoopoeMarksLab() {
           <figure className="rail" key={`${m.key}-colour`}>
             <div className="rail-box">
               <div className="rail-top">
-                <Tile size={34} ground="transparent" view={m.view} round={false}>
-                  {m.art}
-                </Tile>
+                <RailMark m={m} colour="full" h={28} />
                 <span>Hoopoe</span>
               </div>
               <ul>
