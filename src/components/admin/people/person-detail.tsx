@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LocationPicker, type PlaceSelection } from "@/components/common/location-picker";
-import { Chip, type ChipTone } from "@/components/admin/admin-chip";
+import { Chip } from "@/components/admin/admin-chip";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { AdminSection } from "@/components/admin/admin-chrome";
 import { batchLine, formatDisplayDate, metaLine } from "@/lib/utils";
@@ -42,7 +42,11 @@ import {
   adminUpdatePlaces,
 } from "@/app/(main)/admin/people/actions";
 import { retryMail } from "@/app/(main)/admin/mail/actions";
-import { mailKindLabel, mailStatusLabel } from "@/components/admin/mail/mail-rows";
+import {
+  MAIL_STATUS_TONE,
+  mailKindLabel,
+  mailStatusLabel,
+} from "@/components/admin/mail/mail-rows";
 
 /* ------------------------------------------------------------------ *
  *  One person, everything about them, everything you can do to them.
@@ -106,13 +110,6 @@ const ACCOUNT_TYPES = [
   { value: "teacher", label: "Teacher" },
   { value: "ex_teacher", label: "Former teacher" },
 ];
-
-const MAIL_TONE: Record<string, ChipTone> = {
-  sent: "good",
-  queued: "warn",
-  sending: "warn",
-  failed: "bad",
-};
 
 export function PersonDetail({
   person,
@@ -756,7 +753,7 @@ function MailCard({
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                 {mailKindLabel(m.kind)}
-                <Chip label={mailStatusLabel(m.status)} tone={MAIL_TONE[m.status] ?? "idle"} />
+                <Chip label={mailStatusLabel(m.status)} tone={MAIL_STATUS_TONE[m.status] ?? "idle"} />
               </p>
               <p className="mt-0.5 text-[12px] text-muted-foreground">
                 {metaLine(
