@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { decomment } from "./test-kit.mjs";
 import { appendUnseen } from "./append-page.ts";
 
 const row = (id) => ({ id, caption: id });
@@ -58,4 +59,27 @@ test("C-179: the Collection grid drops a page that answers the previous query", 
   assert.ok(src.indexOf("listGeneration.current += 1;") < start, "the bump is not in the filter effect");
   // The append itself is the deduping one.
   assert.match(loadMore, /appendUnseen\(prev, data\.photos\)/);
+});
+
+test("C-071: every paged list appends through appendUnseen, not its own Set", () => {
+  // The rule this file exists for was written out inline in four places and
+  // shared in one. The three that hand-rolled it each had the same Set-of-ids
+  // filter -- so a change of mind about WHICH copy of a repeated row to keep
+  // (see the helper's docblock: the mounted one) would have reached one list
+  // and not the others.
+  const LISTS = [
+    "../components/posts/post-feed.tsx",
+    "../components/posts/comments-section.tsx",
+    "../components/profile/profile-author-feed.tsx",
+    "../components/collection/collection-client.tsx",
+  ];
+  for (const rel of LISTS) {
+    const src = decomment(readFileSync(new URL(rel, import.meta.url), "utf8"));
+    assert.match(src, /appendUnseen\(/, `${rel} no longer appends through the shared helper`);
+    assert.doesNotMatch(
+      src,
+      /new Set\(\w+\.map\(\(\w+\) => \w+\.id\)\)/,
+      `${rel} has gone back to hand-rolling the id dedupe`
+    );
+  }
 });
