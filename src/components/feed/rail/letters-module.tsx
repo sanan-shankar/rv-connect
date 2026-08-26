@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { Feather } from "@phosphor-icons/react/dist/ssr";
 import { prisma } from "@/lib/prisma";
-import { batchLine, letterTitle, metaLine, plainExcerpt } from "@/lib/utils";
+import { batchLine, letterTitle, metaLine, plainExcerpt, readMinutes } from "@/lib/utils";
 import { RailCard } from "./rail-card";
 import { AUTHOR_IN_GOOD_STANDING, PUBLISHED_ONLY, batchScopeWhere } from "@/lib/posts";
 import { cityScopeWhere } from "@/lib/city-scope";
@@ -58,10 +58,7 @@ export async function LettersModule({ viewer }: { viewer: RailViewer }) {
 
   if (!letter) return null;
 
-  const readMinutes = Math.max(
-    1,
-    Math.round(letter.content.trim().split(/\s+/).filter(Boolean).length / 200)
-  );
+  const minutes = readMinutes(letter.content);
 
   return (
     <RailCard label="This week in Letters">
@@ -83,7 +80,7 @@ export async function LettersModule({ viewer }: { viewer: RailViewer }) {
           {plainExcerpt(letter.content)}
         </p>
         <p className="mt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-          {metaLine(letter.author.name, batchLine(letter.author), `${readMinutes} min read`)}
+          {metaLine(letter.author.name, batchLine(letter.author), `${minutes} min read`)}
         </p>
       </Link>
     </RailCard>

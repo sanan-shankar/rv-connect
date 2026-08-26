@@ -25,7 +25,7 @@ import { ReportDialog } from "./report-dialog";
 import { EditPostDialog } from "./edit-post-dialog";
 import { PollDisplay } from "./poll-display";
 import { ModerationDialog } from "@/components/admin/moderation-dialog";
-import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, renderRichText, batchLine, letterTitle } from "@/lib/utils";
+import { cn, formatTimeAgo, formatDisplayDate, parseJsonArray, renderRichText, batchLine, letterTitle, plainExcerpt, readMinutes } from "@/lib/utils";
 import { toggleLike, deletePost, toggleBookmark, adminRemovePost } from "@/app/(main)/feed/actions";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
@@ -144,16 +144,8 @@ export function PostCard({
   const restText = isLongText ? content.slice(cut) : "";
 
   // Letter preview: plain-text excerpt + estimated read time.
-  const letterPlain = content
-    .replace(/[*_#>`~]|\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\s+/g, " ")
-    .trim();
-  const letterExcerpt =
-    letterPlain.length > 200 ? letterPlain.slice(0, 200).trimEnd() + "..." : letterPlain;
-  const readMinutes = Math.max(
-    1,
-    Math.round(content.trim().split(/\s+/).filter(Boolean).length / 200)
-  );
+  const letterExcerpt = plainExcerpt(content, 200);
+  const minutes = readMinutes(content);
 
   /* One like in flight at a time.
    *
@@ -335,7 +327,7 @@ export function PostCard({
             <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-cinnamon">
               <Feather size={13} weight="fill" />
               Letter
-              <span className="text-muted-foreground/70">· {readMinutes} min read</span>
+              <span className="text-muted-foreground/70">· {minutes} min read</span>
             </div>
             <h3 className="mt-2 font-heading text-xl font-bold leading-snug tracking-[-0.01em] text-foreground">
               {letterTitle(title, content)}
