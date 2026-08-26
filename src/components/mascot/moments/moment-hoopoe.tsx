@@ -14,11 +14,11 @@
  *  demo behaviour).
  * ------------------------------------------------------------------ */
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
-import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
+import { useSoloHoopoe } from "./one-hoopoe-guard";
 
 /**
  * The sacred one-hoopoe rule, enforced at the door: whether THIS moment's
@@ -40,15 +40,6 @@ import { anotherHoopoeOnScreen } from "./one-hoopoe-guard";
  * sidesteps that: it only ever sees OTHER birds, because at check time its
  * own has not been rendered yet.
  */
-export function useSoloHoopoe(): boolean {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Asks the DOM whether another hoopoe is already on screen. Only answerable after mount.
-    setShow(!anotherHoopoeOnScreen());
-  }, []);
-  return show;
-}
-
 export function useMomentAutoplay(
   ref: RefObject<HTMLElement | null>,
   play: () => void,

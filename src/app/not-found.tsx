@@ -3,10 +3,32 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Hoopoe } from "@/components/mascot/hoopoe";
+import dynamic from "next/dynamic";
+import type { HoopoeProps } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
-import { useSoloHoopoe } from "@/components/mascot/moments/moment-hoopoe";
+import { useSoloHoopoe } from "@/components/mascot/moments/one-hoopoe-guard";
 import { clamp, rand } from "@/components/mascot/hoopoe-kit";
+
+/* The puppet is 36 KB and this file is the ROOT not-found boundary, which
+ * means it sits in every route's client graph -- so a static import here put
+ * the bird (and, until LazyMotion, the whole motion runtime behind it) into
+ * the shared chunk of pages that never draw one. /privacy, /terms and
+ * /guidelines each carried a bird they do not render.
+ *
+ * Loaded the way the flight layer already loads it. A 404 is an apology
+ * screen; the bird arriving a beat late is invisible, and this is the one
+ * page where that is true. Do NOT copy this to login, signup, the landing or
+ * the sidebar -- all four show the bird at first paint by design (mascot.md).
+ *
+ * onReady rather than ref: next/dynamic returns a wrapper that does not
+ * forward a ref to the inner forwardRef component, so ref={ref} here would
+ * leave the controller null and the bird permanently inert -- silently, since
+ * useHoopoe resolves every un-mounted verb harmlessly. Filling that same ref
+ * from onReady keeps useHoopoe working exactly as it did. */
+const Hoopoe = dynamic<HoopoeProps>(
+  () => import("@/components/mascot/hoopoe").then((m) => m.Hoopoe),
+  { ssr: false }
+);
 
 /* ------------------------------------------------------------------ *
  *  The 404 page: a centred copy block (404 / heading / line / button),
@@ -378,7 +400,12 @@ export default function NotFound() {
           className="pointer-events-none fixed left-0 top-0 z-20 opacity-0 will-change-transform"
           style={{ marginLeft: -M.footX, marginTop: -M.footY }}
         >
-          <Hoopoe ref={ref} size={rig} />
+          <Hoopoe
+            onReady={(api) => {
+              ref.current = api;
+            }}
+            size={rig}
+          />
         </div>
       )}
     </main>
