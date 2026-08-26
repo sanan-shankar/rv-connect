@@ -1,5 +1,61 @@
 # Progress Log
 
+## 2026-08-26 — phase 5 part 1: the bundle diet, and the thing that was never the bundle
+
+Eight commits against the refactor audit's phase 5. Five rows executed, three
+re-refuted with measurements attached so nobody re-runs them. The full handover
+is `docs/audit-fix/2026-08-25-refactor-audit-1/fix-prompt.md`, session 7.
+
+**What got lighter.** Every member page lost roughly 295 KB of first-load
+JavaScript, and /directory 402 KB. posthog-js (245 KB, the largest single thing
+after react-dom) now arrives on an idle callback instead of before hydration;
+the animation runtime moved behind LazyMotion so `m.` components load their 132
+KB of features asynchronously; the world atlas /directory drew is fetched as a
+static file rather than compiled into the page's JavaScript; the 404's hoopoe
+stopped riding along on /privacy and /terms; and the app's one internal barrel
+is gone. Measured on production builds, not estimated.
+
+**The finding that matters more than all of it.** A feed screenful downloads
+**1,041 KB of photographs against 188 KB of gzipped JavaScript**. Every image
+was oversized — a card 728px wide fetching a 1920px file, a half-width card
+359px wide fetching 1600px, between four and twenty times the pixels a screen
+can use. Feed and letter photos now come through the image optimizer at display
+size: 364 KB for the same screenful, a 65% cut, nothing upscaled. Photos are
+5.5x all the JavaScript in this audit put together, which is worth remembering
+the next time a page feels slow.
+
+Two consequences the owner should hold on to: this starts billing Vercel image
+transformations (trivial at 63 members, but it is a real line item), and the
+privacy policy lost its "Vercel Analytics" row because that tool was removed in
+favour of PostHog — a member-facing legal document, edited in the same commit as
+the code that made it untrue.
+
+**Three claims did not survive contact.** Excluding `src/generated` from
+tsconfig removes 3 files of 6,300, because TypeScript still pulls in whatever is
+imported — Instantiations were identical to the digit. Sentry's build hook costs
+about 1 s today, not the 3 s the audit measured, so dropping the wrapper is not
+worth its risk. And making the demo bar dynamic saved exactly zero bytes: 1,619
+KB decoded before and after. That last one was reverted rather than kept as
+indirection that buys nothing.
+
+**A method worth reusing.** The audit's own `route-js.mjs` counts what a route
+*can* hydrate, so it reports no change for any `next/dynamic` work and cannot
+tell an eager chunk from a lazy one. The ground truth is what the browser
+actually downloads, and getting that on an authed route needs a production
+server started with an http `AUTH_URL` (otherwise it wants a `__Secure-` cookie
+the browser will not set over http). That method changed three verdicts here.
+
+**Guard added.** LazyMotion's `strict` mode would catch a stray `motion.` at dev
+time, but it would also break every lab room, since the 30 files under
+`src/app/lab` still use `motion.` deliberately. `motion-namespace-rule.test.mjs`
+replaces it, mutation-checked three ways — one stray `motion.` anywhere in the
+app silently puts 132 KB back on every page, and nothing else would notice.
+
+Five rows remain in phase 5. The largest, splitting the letterhead's edit half
+out of what every stranger downloads, was deliberately not started late in a
+session: it is a 400-line extraction on the app's second-heaviest route and
+wants a session's front half, not its tail.
+
 ## 2026-08-26 — apple logo replication, committed on the owner's word
 
 Not this session's work. The icon and edge-light files had been sitting modified

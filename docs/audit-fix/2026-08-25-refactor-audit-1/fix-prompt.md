@@ -41,7 +41,14 @@ rest. Read the agent entry AND the §3 corrections for every item before touchin
       Three deliberate refusals across the phase, each with its reason in its session log:
       the shared pager (feed-posts-05), the audit-log skeleton (admin-analytics-09), and
       the halves of duplication-07/08 that would over-delete or point at the wrong database.
-- [ ] Phase 5 — bundle & build (+ before/after measurements vs report §1a)
+- [~] Phase 5 — bundle & build — **part 1 done 2026-08-26**, 8 commits. 8 of 13 rows
+      closed: 5 executed, 3 re-refuted at fix time WITH measurements (tsconfig exclude,
+      Sentry hook, the shell's DemoBar/VerifyEmailBanner half — do not retry these without
+      reading session 7 first). Measured against report §1a: /directory 1628→1226 KB,
+      /profile 1624→1330, /feed 1515→1220, /collection 1470→1169. The session's biggest
+      find is not JS at all — a feed screenful was 1,041 KB of photographs against 188 KB
+      of gzipped JavaScript, now 364 KB. **Five rows remain**; see session 7's "Next
+      session".
 - [ ] Phase 6 — schema & architecture (owner-gated throughout)
 - [ ] Close-out: re-measure §1b's table, write the deltas into report §1b, flip this
       audit's row in `../README.md` to Closed, archive per report §7.4.
@@ -860,3 +867,183 @@ report §1a. Two things are waiting for it specifically:
   every client chunk importing only `cn` evaluates them. Measure before moving.
 - Phase 5 needs owner input first: report §4 #5 (duplicate TS check on deploys), #7 (Vercel
   Analytics), #6 (lab CSS measurement authorisation).
+
+### 2026-08-26 — session 7 (phase 5, part 1)
+
+**8 of phase 5's 13 rows closed, 8 commits.** Five executed, three re-refuted at fix
+time with measurements attached. Every item pre-flighted at HEAD per rule 4.
+
+**Owner decisions taken at session start** (§4): duplicate TS check on deploys **stays**
+(so bundle-build-05 is closed as owner-declined, not skipped) · Vercel Analytics
+**removed** in favour of PostHog · lab CSS measurement — he answered with a fair
+question, "what are you gonna do with the info", and he is right that it has no action
+behind it while lab stays in the app; the only lever bundle-build-08 offers is a second
+lab-only stylesheet, which is real work for 2–9 KB gz. Left unmeasured, deliberately.
+
+**Done** (in order):
+Vercel Analytics out, privacy table corrected → `bd7da7d` · posthog-js deferred to idle →
+`b8010bc` · privacy visual baselines → `88b7157` · LazyMotion + `m` across 56 files, plus
+a rule test → `8314f24` · the 404's bird off every page → `36288fa` · world atlas fetched
+not compiled → `b899d1a` · the filters barrel deleted → `cf83279` · feed photos served at
+display size → `b87b75e`.
+
+**Measured, against report §1a** (raw first-load JS, production builds):
+
+| Route | §1a | now | delta |
+|---|---|---|---|
+| /directory | 1628 | 1226 | −402 KB |
+| /collection | 1470 | 1169 | −301 KB |
+| /feed | 1515 | 1220 | −295 KB |
+| /profile/[id] | 1624 | 1330 | −294 KB |
+| /welcome | 1478 | 1182 | −296 KB |
+
+**The biggest thing in this session is not JavaScript.** A production /feed screenful
+pulled **1,041 KB of photographs against 188 KB of gzipped JS** — every image oversized,
+a 728px card downloading a 1920px file, a 359px half-card downloading 1600px. Now 364 KB.
+bundle-build-12 called this "potentially the largest real-world load-time item in this
+report" and it is not close. **If a future session wants one number to care about on this
+project, it is image bytes, not bundle bytes.**
+
+**Where the audit was wrong, and what was done instead** (rule 4 outcomes — all three
+carry the measurement, so nobody has to re-run them):
+- **lib-core-config-01 / bundle-build-05c (tsconfig excludes src/generated) is RE-REFUTED.**
+  TypeScript's `exclude` only trims the initial file set; files pulled in by an import
+  still enter the program, and 16 files import `@/generated/prisma/client`. Measured
+  either way with `--extendedDiagnostics`: **6300 → 6297 files, Instantiations identical
+  at 906,930.** The claimed "up to ~5 s/build" does not exist. Do not retry.
+- **bundle-build-06 (Sentry's runAfterProductionCompile) is RE-REFUTED ON MAGNITUDE.**
+  The audit measured 3.0 s, 6.6% of the build. Across six production builds today it ran
+  612 ms / 716 / 770 / 917 / 1095 / 1639 — mean ~1 s of a ~52 s build, about 2%. Against
+  medium risk (the wrapper strips Sentry debug logging from the server bundle, and its
+  comment block carries two owner decisions), not worth it. The audit's own escape clause
+  covers this: "if (ii) or (iii) fails, close this as a not-finding with the measurement".
+- **bundle-build-07's DemoBar/VerifyEmailBanner half: tried, measured, REVERTED.** The
+  premise is true — I confirmed in a production build that a non-demo member's /feed
+  really does fetch the chunk carrying DemoBar. But making both `next/dynamic` in the
+  `(main)` layout changed nothing: **1,619 KB decoded before and after**, one fewer chunk,
+  same bytes. `next/dynamic` in a Server Component (where `ssr: false` is illegal) did not
+  split it. Reverted rather than keep indirection that buys zero. The tour half of that
+  row was already done in phase 2 (`d698bf2`) and is the part that carried the weight.
+- **bundle-build-02's saving is smaller than estimated.** LazyMotion took ~37 KB/page off,
+  not 90–100: the LazyMotion core measures 49 KB, where the audit assumed 15–30.
+- **bundle-build-04 needed TWO imports removed, not one.** Making not-found.tsx's `<Hoopoe>`
+  dynamic did nothing on its own — /privacy still fetched the puppet. The second path was
+  invisible: `useSoloHoopoe` lived in `moment-hoopoe.tsx`, which statically imports
+  `<Hoopoe>`, so a seven-line DOM check dragged the whole rig behind it. Moved to
+  `one-hoopoe-guard.ts`. **Anyone chasing a "why is this still in the bundle" should
+  suspect a hook re-exported from a heavy module.**
+- **shell-primitives-10's PILL_BASE/PILL_IDLE note is already done** — both are plain
+  `const` at HEAD. Nothing to un-export.
+- **bundle-build-03's `supercluster` note is stale** — the dependency is already gone.
+
+**A measurement method worth keeping, because it changed three verdicts.**
+`work/raw/route-js.mjs` counts chunks in a route's client-reference-manifest, which is
+what a route *can* hydrate — it cannot tell an eagerly-fetched chunk from a lazily-fetched
+one, so it reports no change for any `next/dynamic` work. The ground truth is what the
+browser actually downloads. To get it on an authed route:
+`AUTH_URL=http://localhost:3100 npx next start -p 3100` — the http AUTH_URL is the trick,
+because a production build otherwise wants a `__Secure-` cookie the browser will not set
+over http — then reuse the dev-login cookie (cookies are per-host, not per-port) and read
+`performance.getEntriesByType("resource")`. This is how the DemoBar row was refuted and
+how the /privacy and image numbers were proved.
+
+**New mechanism**: `src/components/common/motion-namespace-rule.test.mjs`. LazyMotion
+ships a `strict` mode that turns a stray `motion.` into a dev throw; it is deliberately
+OFF because the 30 files under `src/app/lab` still use `motion.` on purpose and strict
+would break every lab room. The test replaces it — one stray `motion.` anywhere in the app
+puts the whole 132 KB runtime back with no other symptom. **Mutation-checked three ways**
+(stray `motion.div`, `domMax`→`domAnimation`, LazyMotion unmounted); all three go red.
+It also counts what it sweeps, so it cannot pass over an empty file list.
+
+**Owner-visible changes** (his standing rule):
+1. **Feed and letter photos are sharper and much lighter.** They now come through Next's
+   image optimizer at display size. This starts billing **Vercel image transformations** —
+   trivial at 63 members, but it is a real line item and he should know it exists.
+2. **The privacy policy no longer lists Vercel Analytics** as a processor, because it is
+   no longer installed. That is a member-facing legal document and the edit rode in the
+   same commit as the code.
+3. **Analytics starts ~1–2 s later than it used to.** A click in the first moment after
+   load is no longer autocaptured. Everything else is unchanged.
+4. Nothing else moved: `npm run visual` is 23/23 throughout.
+
+**Verification**: `npm run check` ✓ green before every commit (TS, ESLint, protocol, lab
+registry 43, unit 77 → 78 files). `npm run visual` ✓ 23/23, five times.
+Proved rather than asserted, wherever a claim was load-bearing:
+- **posthog still identifies** — the M42 scenario driven for real: a hard load into a
+  signed-in route as Jerry, `distinct_id` arriving as his cuid rather than the anon uuid,
+  `$anon_distinct_id` showing the alias, and person properties carrying exactly the three
+  the component sends. The capture endpoint is silent in dev **both before and after the
+  change** — I restored the old code and re-ran to be sure that was pre-existing.
+- **domMax really arrives** — the sidebar marker glides 64→107px through 19 distinct
+  intermediate positions (a jump would be 2), and the image viewer carries the
+  `touch-action: pan-y` motion sets only when its drag gesture attaches. `layout` and
+  `drag` are the two things domMax has and domAnimation does not, so this is the check.
+- **the 404 bird still works** — 296 distinct poses in 5 s of idle emoting, and a real
+  trusted click flew it (112,879) → (720,452) through 81 transforms. It needed `onReady`
+  rather than `ref`: next/dynamic does not forward a ref, and useHoopoe swallows verbs on
+  a null controller, so a ref would have left it inert **silently**.
+- **the map still draws** — 177 country paths, 20 pins, zoom 1→2 working, screenshotted.
+- **the puppet really left /privacy** — fetched in a production build before, absent after.
+- **the three-photo case caught its own bug**: my first `sizes` ignored that the first
+  cell spans both columns, so the browser fetched a half-width file and rendered it
+  upscaled at 728px. The measurement found it; the fix is pinned by a comment tying
+  `sizes` to the grid.
+
+**A process note**: `git update-ref` is the wrong way to commit in this shared tree. I
+built the first commit in a private index (a peer had files staged and a plain `git commit`
+would have swept them in) and moved HEAD by hand — which left **the shared index holding a
+reverse of my own commit**, so anyone's next plain `git commit` would have silently undone
+it. Caught and reset. The right move when a peer has staged work is to wait, or to commit
+by pathspec; not to hand-roll a ref update.
+
+**Commit-message discipline**: four messages exceeded 150 words and were amended down
+before anything stacked on them. Count BEFORE committing — `wc -w` on the message file.
+
+**Awaiting owner**:
+1. **The public landing still links to no Privacy / Terms / Guidelines** (security audit
+   H12). Unchanged since session 3; it is new UI on the public landing, so it is his.
+2. Session 1's `gate-coverage.test.mjs` widening is still unsighted.
+3. **NEW — Vercel image transformations** are now billed (item 1 above). Worth one look at
+   the Vercel usage page after a week.
+4. **NEW — bundle-build-03 step 2** (dynamic-loading the directory MAP itself, ~80 KB more)
+   is deliberately not done: the map is the default view of /directory, so deferring it
+   puts a shimmer where the site's showpiece should be. The audit says the same. His call.
+5. Still open from the start of this session: the lab CSS measurement, which he correctly
+   asked the point of. It only pays if lab gets its own stylesheet.
+
+**Peer traffic**: `rv-connect-4f` (which signs itself rv-connect-ad; same session, harness
+artifact) worked in this tree all session and committed the icon/brand/apple-edge work as
+`5be3952 feat(brand): apple logo replication` — the files that had sat uncommitted for two
+days. It did that on the owner's direct instruction, given after I had asked him and been
+told "I'll deal with them myself"; both are true, he dealt with them through that session.
+It also warned me that `auth-first-frame.test.mjs` pins the landing stand-in string-for-
+string against login/signup/trivia-gate, which is exactly what my `m.` rename touched —
+that test's edit rode in `8314f24`, and I strengthened it: `lastIndexOf` returning −1 would
+have silently sliced the wrong text and passed. `CLAUDE.md` is modified in the tree and is
+**not mine**.
+
+**State left**: clean — every file I touched is committed. Two servers may still be up on
+ports 3000 (dev) and 3100 (`next start`, for the authed production measurements above);
+kill 3100 when done with it.
+
+**Next session**: **phase 5, part 2 — five rows left**, in descending value:
+
+1. **The letterhead edit split** (directory-profile-01) — 80–150 KB off every stranger
+   profile view, the app's #2 route. **Deliberately not started here**: it is a ~400-line
+   extraction out of a 2,000-line component whose edit half shares state and handlers with
+   the read half, and its verification battery is the whole edit flow (contacts, houses,
+   cities, avatar crop, delete account, dark mode, export). Starting it late in a session
+   risks leaving it half-done, which rule 1 forbids. Give it a session's front half.
+2. **Dialog/viewer deferral** (feed-posts-04 = bundle-build-11), ~12–15 KB/route. Note the
+   DemoBar result above before starting: these are CLIENT components, so `ssr: false` is
+   available and the outcome may genuinely differ — but **measure at the browser, not with
+   route-js.mjs**, or you will not be able to tell.
+3. **shell-primitives-09** — the rich-text renderer and phone kit out of `utils.ts`,
+   deferred out of phase 3 for this phase specifically. utils.ts builds an
+   `Intl.Segmenter`, a 30-entry Set and five RegExp at import time, so every client chunk
+   importing only `cn` evaluates them. Measure before moving; ~15 importers.
+4. **Server-render page 0** of /collection and /directory (member-surfaces FOL + critic-1)
+   — perceived latency, measure first.
+5. Then the **close-out**: re-measure §1b's table into report §1b, flip the row in
+   `../README.md`, archive per §7.4. Phase 6 is owner-gated and needs his §4 #4 answer
+   (all the database drops) before it can start.
