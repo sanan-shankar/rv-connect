@@ -15,25 +15,9 @@
  *  switching accounts on one browser never crosses wires.
  * ------------------------------------------------------------------ */
 
+import { safeGet, safeSet } from "./local-storage";
+
 const SEEN_PREFIX = "rv:onboarding:seen:";
-
-function safeGet(key: string): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null; // private mode / quota — never let onboarding throw over this
-  }
-}
-
-function safeSet(key: string, value: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // storage disabled — worst case a step replays once; never crash the page
-  }
-}
 
 export function hasSeenOnboarding(userId: string): boolean {
   return safeGet(SEEN_PREFIX + userId) === "1";
