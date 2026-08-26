@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
+import { useFlightArrival } from "@/components/mascot/use-flight-arrival";
 import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
@@ -16,18 +17,19 @@ import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo
  *  The auth page shell: valley photograph on the left, warm form
  *  column on the right, one hoopoe above the heading.
  *
- *  /login and /signup each carry their own copy of this geometry, and
- *  they keep it: those two are the endpoints of the landing page's
- *  cross-page bird flight, so they additionally run the perch-reporting
- *  and handoff machinery from mascot-flight.ts, which is most of their
- *  length and means nothing here. The three email pages
- *  (forgot-password, reset-password, verify-email) are never a flight
- *  destination, so they take this instead of copying 250 lines of
- *  flight wiring three more times.
+ *  /login and /signup keep their own shell rather than taking this one:
+ *  those two are the endpoints of the landing page's cross-page bird
+ *  flight, so their hoopoe has to sit in a measured box inside a
+ *  measured entrance, and /signup's column re-anchors between its two
+ *  steps. The three email pages (forgot-password, reset-password,
+ *  verify-email) are never a flight destination and never change shape,
+ *  so they take this.
  *
  *  What IS shared with those two, deliberately, so the five pages read
  *  as one place: the 58.3333% split and its exact photo crop, the
- *  lateral entrance on the gentle spring, and the mobile fly-in.
+ *  lateral entrance on the gentle spring, and the arrival machinery
+ *  itself — the mobile fly-in and its veil come from useFlightArrival,
+ *  which is where the flight wiring lives too.
  * ------------------------------------------------------------------ */
 
 export function AuthPanel({
@@ -47,69 +49,25 @@ export function AuthPanel({
   hoopoeSize?: number;
   children: React.ReactNode;
 }) {
-  const apiRef = useRef<HoopoeApi | null>(null);
   const introDone = useRef(false);
-  const mobileFlyInFired = useRef(false);
 
-  // Same `min-width: 1024px` gate the landing hero's desktop-only flight uses.
-  // Below it there is no photo panel and no CTA to fly from, so the bird
-  // arrives under its own power instead of simply being there.
-  const [mobileFlyIn] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return !window.matchMedia("(min-width: 1024px)").matches;
-    } catch {
-      return false;
-    }
-  });
-
-  // The pre-flight veil, as a media-scoped CLASS rather than an inline style:
-  // the server cannot know the viewport, and a mismatched inline `style`
-  // between the SSR paint and hydration is the class of hydration error React
-  // leaves in place. `max-lg:opacity-0` is inert at lg+, so the server can
-  // render it unconditionally and a phone never paints the seated bird before
-  // it flies in. Lifted before paint on any viewport that is not flying.
-  const [preFlightVeil, setPreFlightVeil] = useState(true);
-  useLayoutEffect(() => {
-    if (!mobileFlyIn) setPreFlightVeil(false);
-  }, [mobileFlyIn]);
-
-  function handleReady(api: HoopoeApi) {
-    apiRef.current = api;
-    if (!mobileFlyIn) {
-      introDone.current = true;
-      onHoopoeReady?.(api);
-    }
+  // The arrival beat, such as it is: these three pages have no flight aimed at
+  // them, so the bird either is simply there (desktop) or descends once the
+  // page settles (mobile), and either way the page above gets told once.
+  function runIntro(api: HoopoeApi) {
+    if (introDone.current) return;
+    introDone.current = true;
+    onHoopoeReady?.(api);
   }
 
-  // Mobile: ~500ms after the page settles the bird descends from above the
-  // VIEWPORT ("sky", not "top": this rig sits mid-screen, so a box-relative
-  // start would have it appear already on screen) and lands on its own rest
-  // anchor, exactly where the seated bird would have been.
-  useEffect(() => {
-    if (!mobileFlyIn) return;
-    const timer = setTimeout(() => {
-      if (mobileFlyInFired.current) return;
-      const api = apiRef.current;
-      if (!api) {
-        // The rig never reported ready. Show the seated bird rather than none.
-        setPreFlightVeil(false);
-        return;
-      }
-      mobileFlyInFired.current = true;
-      void api.flyIn("sky").then(() => {
-        if (introDone.current) return;
-        introDone.current = true;
-        onHoopoeReady?.(api);
-      });
-      // Two frames later: motion renders the fly-in's duration-0 pose warp on
-      // its NEXT frame, so revealing in the same tick can paint one frame of
-      // the seated bird at the perch before the warp lifts it off-screen.
-      requestAnimationFrame(() => requestAnimationFrame(() => setPreFlightVeil(false)));
-    }, 500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mobileFlyIn]);
+  // `flightKey: null` switches off the perch/handoff half — nothing flies
+  // here, so there is nothing to report a rest rect to. What remains is the
+  // mobile fly-in and its pre-paint veil, shared with /login and /signup
+  // rather than written a third time.
+  const { preFlightVeil, onHoopoeReady: handleReady } = useFlightArrival({
+    flightKey: null,
+    runIntro,
+  });
 
   return (
     // Not a grid: the photo half is viewport-fixed, so it must never take part
