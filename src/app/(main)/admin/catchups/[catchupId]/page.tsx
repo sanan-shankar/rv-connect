@@ -56,11 +56,9 @@ export default async function AdminCatchupReadingRoom({
 }: {
   params: Promise<{ catchupId: string }>;
 }) {
-  // The role, re-established on this page and not borrowed from the layout.
-  // Soft navigation re-renders only the segments that changed, so a shared
-  // layout is not re-evaluated on every move -- and this page reads the most
-  // private writing on the site. One line, and the demotion window closes
-  // (bug audit B-024).
+  // Re-checked per page, not only in the layout (B-024, argued in
+  // lib/admin.ts) -- and this page reads the most private writing on the
+  // site, so the demotion window is the one that matters most here.
   await requireAdminPage();
   const { catchupId } = await params;
 
