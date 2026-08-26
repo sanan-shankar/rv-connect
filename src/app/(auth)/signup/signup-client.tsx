@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -10,12 +9,11 @@ import { TriviaGate } from "@/components/auth/trivia-gate";
 import { SignupForm } from "@/components/auth/signup-form";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
+import { AuthPhotoPanel } from "@/components/auth/auth-panel";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
-import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
-import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
 import { PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
 import { useFlightArrival } from "@/components/mascot/use-flight-arrival";
 import { nextPathFromLocation } from "@/lib/next-path";
@@ -96,40 +94,7 @@ export default function SignupClient({
     // in row-height sizing with the form column. `lg:pl-[...]` reserves the same width
     // the fixed panel occupies, so the form content starts right where the photo ends.
     <div className="min-h-screen lg:pl-[58.3333%]">
-      {/* Photo half: the valley, with the brand overlaid (matches /login). Pinned to the
-          viewport with `fixed` + `inset-y-0` (not part of the grid row), so its size and
-          crop are constant no matter how tall the form column gets when switching between
-          Alumnus/Teacher fields, error states, etc. The form column scrolls the page under
-          it; the photo never resizes.
-
-          Same geometry as /login: a full 100vw `object-cover` render (landing's scale),
-          right-aligned in this 58.33vw panel and clipped, so both auth pages and the
-          landing hero share one continuous crop. */}
-      <div className="fixed inset-y-0 left-0 hidden w-[58.3333%] overflow-hidden lg:block">
-        <div className="absolute inset-y-0 right-0 w-screen">
-          <Image
-            src={HERO_IMAGE_SRC}
-            alt=""
-            fill
-            priority
-            placeholder="blur"
-            blurDataURL={HERO_IMAGE_BLUR}
-            className="object-cover"
-            sizes="100vw"
-          />
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent"
-          />
-        </div>
-        <Link
-          href="/"
-          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white lg:left-16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
-        >
-          <Wordmark markClassName="text-white" textClassName="block" />
-        </Link>
-      </div>
+      <AuthPhotoPanel />
 
       {/* Form half: warm panel. The inner content slides in from the right on the
           gentle spring while the photo half stays anchored (lateral pass from the

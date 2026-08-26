@@ -26,11 +26,61 @@ import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo
  *  so they take this.
  *
  *  What IS shared with those two, deliberately, so the five pages read
- *  as one place: the 58.3333% split and its exact photo crop, the
- *  lateral entrance on the gentle spring, and the arrival machinery
- *  itself — the mobile fly-in and its veil come from useFlightArrival,
- *  which is where the flight wiring lives too.
+ *  as one place: the photo half and its 58.3333% split (AuthPhotoPanel,
+ *  below), the lateral entrance on the gentle spring, and the arrival
+ *  machinery itself — the mobile fly-in and its veil come from
+ *  useFlightArrival, which is where the flight wiring lives too.
  * ------------------------------------------------------------------ */
+
+/**
+ * The valley photograph every auth page opens on, with the brand over it.
+ *
+ * Pinned to the viewport with `fixed` + `inset-y-0` rather than sharing a grid
+ * row with the form column, so its size and crop stay constant however tall
+ * the form gets (a password field toggling, an error line, /signup swapping
+ * Alumnus for Teacher). The form column scrolls underneath it; the photo never
+ * resizes.
+ *
+ * Geometry, and the reason this is one component rather than three copies: the
+ * inner box is a full 100vw `object-cover` render — the SAME scale the landing
+ * hero uses — right-aligned inside this 58.33vw panel and clipped. So the
+ * panel shows exactly the RIGHT slice of the landing composition, at the
+ * landing's zoom, with the left part cropped off. That is what the landing
+ * "Sign in" slide lands on, so the handoff has no jump, and it is why the crop
+ * must not drift between the five pages: it was written out three times, and
+ * the comment warning about drift was written out three times with it.
+ */
+export function AuthPhotoPanel() {
+  return (
+    <div className="fixed inset-y-0 left-0 hidden w-[58.3333%] overflow-hidden lg:block">
+      <div className="absolute inset-y-0 right-0 w-screen">
+        <Image
+          src={HERO_IMAGE_SRC}
+          alt=""
+          fill
+          priority
+          placeholder="blur"
+          blurDataURL={HERO_IMAGE_BLUR}
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent"
+        />
+      </div>
+      {/* Canonical wordmark lockup, at the landing hero's own size and
+          position so it stays put across the sign-in handoff. */}
+      <Link
+        href="/"
+        className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white lg:left-16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
+      >
+        <Wordmark markClassName="text-white" textClassName="block" />
+      </Link>
+    </div>
+  );
+}
 
 export function AuthPanel({
   back,
@@ -74,35 +124,7 @@ export function AuthPanel({
     // in row-height sizing with the form column. `lg:pl-[...]` reserves the
     // width the fixed panel occupies.
     <div className="min-h-screen lg:pl-[58.3333%]">
-      {/* The same crop as /login and /signup: a full 100vw object-cover render
-          (the landing's own scale), right-aligned inside this 58.33vw panel and
-          clipped, so all five auth pages and the landing hero share one
-          continuous photograph. */}
-      <div className="fixed inset-y-0 left-0 hidden w-[58.3333%] overflow-hidden lg:block">
-        <div className="absolute inset-y-0 right-0 w-screen">
-          <Image
-            src={HERO_IMAGE_SRC}
-            alt=""
-            fill
-            priority
-            placeholder="blur"
-            blurDataURL={HERO_IMAGE_BLUR}
-            className="object-cover"
-            sizes="100vw"
-          />
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent"
-          />
-        </div>
-        <Link
-          href="/"
-          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white lg:left-16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
-        >
-          <Wordmark markClassName="text-white" textClassName="block" />
-        </Link>
-      </div>
+      <AuthPhotoPanel />
 
       <div className="flex min-h-screen flex-col bg-background px-[var(--space-l)] py-[var(--space-l)]">
         <Link

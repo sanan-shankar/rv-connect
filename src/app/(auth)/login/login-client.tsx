@@ -3,19 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { signIn } from "next-auth/react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FloatField } from "@/components/common/float-field";
 import { Hoopoe } from "@/components/mascot/hoopoe";
 import { useHoopoe } from "@/components/mascot/use-hoopoe";
+import { AuthPhotoPanel } from "@/components/auth/auth-panel";
 import type { HoopoeApi } from "@/components/mascot/hoopoe-kit";
 import { HoopoeWarmup } from "@/components/mascot/hoopoe-warmup";
-import { Wordmark } from "@/components/layout/peaks-mark";
 import { SPRINGS } from "@/components/common/motion";
 import { cn } from "@/lib/utils";
-import { HERO_IMAGE_SRC, HERO_IMAGE_BLUR } from "@/components/landing/hero-photo";
 import { PERCH_LIFT_PX } from "@/components/mascot/mascot-flight";
 import { useFlightArrival } from "@/components/mascot/use-flight-arrival";
 import { nextPathFromLocation } from "@/lib/next-path";
@@ -190,43 +188,7 @@ export default function LoginClient({ turnstileSiteKey }: { turnstileSiteKey: st
     // in row-height sizing with the form column. `lg:pl-[...]` reserves the same width
     // the fixed panel occupies, so the form content starts right where the photo ends.
     <div className="min-h-screen lg:pl-[58.3333%]">
-      {/* Photo half: the valley, with the brand overlaid. Pinned to the viewport with
-          `fixed` + `inset-y-0` (not part of the grid row), so its size and crop stay
-          constant regardless of form height (password field toggling, error text, etc).
-          The form column scrolls the page under it; the photo never resizes.
-
-          Geometry note: the inner box is a full 100vw `object-cover` render (the SAME
-          scale the landing hero uses), right-aligned inside this 58.33vw panel and
-          clipped by `overflow-hidden`. So the panel shows exactly the RIGHT slice of the
-          landing composition, at the landing's zoom, with the left part cropped off. That
-          is what the landing "Sign in" slide lands on, so the handoff has no jump. */}
-      <div className="fixed inset-y-0 left-0 hidden w-[58.3333%] overflow-hidden lg:block">
-        <div className="absolute inset-y-0 right-0 w-screen">
-          <Image
-            src={HERO_IMAGE_SRC}
-            alt=""
-            fill
-            priority
-            placeholder="blur"
-            blurDataURL={HERO_IMAGE_BLUR}
-            className="object-cover"
-            sizes="100vw"
-          />
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-gradient-to-br from-[#16241a]/55 via-[#16241a]/15 to-transparent"
-          />
-        </div>
-        {/* Canonical wordmark lockup (same size + position as the landing hero, so it
-            stays put across the sign-in handoff). */}
-        <Link
-          href="/"
-          className="absolute left-8 top-7 inline-flex items-center gap-2.5 rounded-sm text-white lg:left-16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          style={{ filter: "drop-shadow(0 1px 6px rgba(20,30,22,0.55))" }}
-        >
-          <Wordmark markClassName="text-white" textClassName="block" />
-        </Link>
-      </div>
+      <AuthPhotoPanel />
 
       {/* Form half: warm panel with a top-left "Back" link (matches /signup)
           and a centered form below it. The content always does a lateral pass
