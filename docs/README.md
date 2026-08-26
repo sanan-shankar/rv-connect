@@ -9,7 +9,8 @@ Repo-discovery files stay at the root:
 - `README.md` — project overview and local setup.
 - `AGENTS.md` — agent/project rules.
 - `CLAUDE.md` — local Claude workflow instructions (start here — it points at the roadmap and specs).
-- `progress.md` — running session history, append-only.
+- `progress.md` — running session history, append-only. Closed months are archived to
+  `docs/history/` (see below), so this file holds the current month.
 
 Everything else is grouped here:
 
@@ -31,6 +32,8 @@ Everything else is grouped here:
   evidence tucked under `work/`. `prompts/` holds the reusable audit prompts. The rule:
   an audit's artefacts move here in the commit that closes it, and its fix campaign edits
   the same folder's `fix-prompt.md` as the living handover. See `docs/audit-fix/README.md`.
+- `docs/history/` — closed months of `progress.md`, moved here unedited once the month ends,
+  in the same commit as an ordinary session entry. Nothing reads them; they are the record.
 - `docs/content/` — writing-style notes, the delight idea bank, and the curated WhatsApp stories.
   `whatsapp-curation/picks.json` is read at runtime by `scripts/dev/seed-curated-content.ts`;
   it is data, not prose, so do not edit it for readability.
