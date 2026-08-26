@@ -8,7 +8,6 @@ import { appendUnseen } from "@/lib/append-page";
 import { PostCard, type PostData } from "@/components/posts/post-card";
 import { loadPosts } from "@/app/(main)/feed/actions";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * The Posts tab on a profile. Reuses the same loadPosts query and the shared
@@ -124,13 +123,13 @@ export function ProfileAuthorFeed({
             }
           >
             <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="skeleton-warm h-10 w-10 rounded-full" />
               <div className="space-y-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-20" />
+                <div className="skeleton-warm h-4 w-32 rounded-md" />
+                <div className="skeleton-warm h-3 w-20 rounded-md" />
               </div>
             </div>
-            <Skeleton className="mt-4 h-14 w-full" />
+            <div className="skeleton-warm mt-4 h-14 w-full rounded-md" />
           </div>
         ))}
       </div>

@@ -15,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { NoResultsHoopoe } from "@/components/mascot/moments/no-results-hoopoe";
 import { toast } from "sonner";
 import { callAction } from "@/lib/call-action";
@@ -350,13 +349,13 @@ export function PostFeed({
           {[1, 2, 3].map((i) => (
             <div key={i} className="card-elevated rounded-[var(--radius)] border border-border bg-card p-5">
               <div className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="skeleton-warm h-10 w-10 rounded-full" />
                 <div className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-20" />
+                  <div className="skeleton-warm h-4 w-32 rounded-md" />
+                  <div className="skeleton-warm h-3 w-20 rounded-md" />
                 </div>
               </div>
-              <Skeleton className="mt-4 h-14 w-full" />
+              <div className="skeleton-warm mt-4 h-14 w-full rounded-md" />
             </div>
           ))}
         </div>
